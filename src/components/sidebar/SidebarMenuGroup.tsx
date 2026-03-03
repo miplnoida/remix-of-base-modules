@@ -37,7 +37,6 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   const location = useLocation();
   const currentPath = location.pathname;
   
-  // Check if any nested item is active
   const isAnyChildActive = (items?: SubItem[]): boolean => {
     if (!items) return false;
     return items.some(child => 
@@ -49,7 +48,6 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   const hasActiveChild = isAnyChildActive(item.subItems);
   const [open, setOpen] = useState(hasActiveChild);
 
-  // If this is a leaf node with a URL, render as link
   if (item.url && !item.subItems) {
     const isActive = currentPath === item.url;
     return (
@@ -63,21 +61,20 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
     );
   }
 
-  // Otherwise, render as collapsible group
   const groupButton = (
     <CollapsibleTrigger asChild>
       <SidebarMenuButton
         className={cn(
           "group w-full rounded-lg transition-all duration-200 ease-in-out font-medium h-11",
           hasActiveChild 
-            ? "bg-government-100 text-government-800 shadow-sm" 
-            : "text-gray-700 hover:bg-gray-50 hover:text-government-700"
+            ? "bg-sidebar-accent text-white shadow-sm" 
+            : "text-white/80 hover:bg-sidebar-accent/60 hover:text-white"
         )}
       >
         <div className="flex items-center gap-3 min-w-0 w-full">
           <item.icon className={cn(
             "h-5 w-5 flex-shrink-0 transition-colors",
-            hasActiveChild ? "text-government-600" : "text-gray-500 group-hover:text-government-600"
+            hasActiveChild ? "text-accent" : "text-white/60 group-hover:text-white"
           )} />
           {!collapsed && (
             <>
@@ -85,9 +82,9 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
                 {item.title}
               </span>
               {open ? (
-                <ChevronDown className="h-4 w-4 flex-shrink-0 transition-transform" />
+                <ChevronDown className="h-4 w-4 flex-shrink-0 transition-transform text-white/50" />
               ) : (
-                <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform text-white/50" />
               )}
             </>
           )}
@@ -105,10 +102,10 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
               <TooltipTrigger asChild>
                 {groupButton}
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+              <TooltipContent side="right" className="bg-foreground text-background border-border">
                 <div>
                   <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-gray-300 mt-1">{item.description}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{item.description}</div>
                 </div>
               </TooltipContent>
             </Tooltip>

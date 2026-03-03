@@ -1,93 +1,90 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* ── SSB Brand Tokens ── */
+    --background: 150 14% 97%;        /* #F7F9F8 */
+    --foreground: 220 14% 16%;        /* #1F2937 */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 220 14% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 199 73% 38%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --popover-foreground: 220 14% 16%;
+    --primary: 153 73% 21%;           /* #0E5F3A  Government Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 144 65% 34%;         /* #1E8E3E  National Green */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 20% 96%;             /* #F1F5F9 */
+    --muted-foreground: 217 10% 50%;  /* #6B7280 */
+    --accent: 44 90% 57%;             /* #F4C430  Flag Yellow */
+    --accent-foreground: 220 14% 16%;
+    --destructive: 2 74% 50%;         /* #D62828  National Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 91%;            /* #E2E8F0 */
+    --input: 214 20% 91%;
+    --ring: 153 73% 21%;
+    --radius: 0.75rem;
 
-    /* Default Government Theme Colors */
-    --color-government-50: #1c78a7;
-    --color-government-100: 237 242 254;
-    --color-government-200: 219 229 252;
-    --color-government-300: 191 210 248;
-    --color-government-400: 147 175 240;
-    --color-government-500: 91 123 197;
-    --color-government-600: 32 60 135;
-    --color-government-700: 29 54 122;
-    --color-government-800: 26 48 108;
-    --color-government-900: 23 42 95;
+    /* Sidebar */
+    --sidebar-background: 153 73% 21%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 153 73% 21%;
+    --sidebar-accent: 144 65% 34%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 153 73% 28%;
+    --sidebar-ring: 44 90% 57%;
 
-    /* BeMA Finance Colors */
-    --bema-primary: 142 100% 27%;  /* #078A00 */
-    --bema-primary-light: 142 100% 34%;  /* #0ABC01 */
-    --bema-secondary: 148 83% 86%;  /* #D3F4DD */
-    --bema-warning: 0 79% 57%;  /* #E74C3C */
-    --bema-success: 145 45% 46%;  /* #27AE60 */
-    --bema-accent: 38 94% 37%;  /* #B77407 */
-    --bema-text-primary: 0 0% 0%;  /* #000000 */
-    --bema-text-secondary: 0 0% 53%;  /* #868686 */
-    --bema-text-tertiary: 0 0% 80%;  /* #CCCCCC */
+    /* SSB semantic palette */
+    --ssb-green-primary: 153 73% 21%;
+    --ssb-green-active: 144 65% 34%;
+    --ssb-yellow: 44 90% 57%;
+    --ssb-red: 2 74% 50%;
+    --ssb-blue: 217 91% 60%;
+
+    /* BeMA Finance Colors (preserved) */
+    --bema-primary: 142 100% 27%;
+    --bema-primary-light: 142 100% 34%;
+    --bema-secondary: 148 83% 86%;
+    --bema-warning: 0 79% 57%;
+    --bema-success: 145 45% 46%;
+    --bema-accent: 38 94% 37%;
+    --bema-text-primary: 0 0% 0%;
+    --bema-text-secondary: 0 0% 53%;
+    --bema-text-tertiary: 0 0% 80%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 7%;         /* #111827 */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 217 33% 12%;              /* #1F2937 */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 217 33% 12%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 144 65% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 44 90% 57%;
+    --accent-foreground: 220 14% 16%;
+    --destructive: 2 62% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 144 65% 34%;
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 144 65% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 15%;
+    --sidebar-ring: 44 90% 57%;
   }
 }
 
@@ -98,327 +95,86 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Fira Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
   }
 
-  /* BeMA Finance Typography */
-  .bema-h1 { font-size: 40px; font-weight: 700; font-family: 'Fira Sans', sans-serif; }
-  .bema-h2 { font-size: 26px; font-weight: 600; font-family: 'Fira Sans', sans-serif; }
-  .bema-t1 { font-size: 14px; font-weight: 400; font-family: 'Fira Sans', sans-serif; }
-  .bema-t2 { font-size: 12px; font-weight: 400; font-family: 'Fira Sans', sans-serif; }
+  /* Typography hierarchy per SSB style guide */
+  h1 { @apply text-[26px] font-semibold tracking-tight; }
+  h2 { @apply text-lg font-medium tracking-tight; }
+  h3 { @apply text-base font-medium tracking-tight; }
+  h4 { @apply text-sm font-medium tracking-tight; }
+  h5 { @apply text-[13px] font-medium tracking-tight; }
+  h6 { @apply text-xs font-normal tracking-tight; }
 
-  /* Theme-specific body backgrounds */
-  body.theme-government { background-color: #f8fafc; }
-  body.theme-emerald { background-color: #f0fdfc; }
-  body.theme-purple { background-color: #faf5ff; }
-  body.theme-slate { background-color: #f8fafc; }
-  body.theme-rose { background-color: #fff1f2; }
+  /* BeMA Finance Typography (preserved) */
+  .bema-h1 { font-size: 40px; font-weight: 700; font-family: 'Inter', sans-serif; }
+  .bema-h2 { font-size: 26px; font-weight: 600; font-family: 'Inter', sans-serif; }
+  .bema-t1 { font-size: 14px; font-weight: 400; font-family: 'Inter', sans-serif; }
+  .bema-t2 { font-size: 12px; font-weight: 400; font-family: 'Inter', sans-serif; }
 
-  /* Professional styling improvements */
-  .government-header {
-    background: linear-gradient(135deg, rgb(var(--color-government-600)) 0%, rgb(var(--color-government-500)) 100%);
-  }
+  /* Animations */
+  .animate-fade-in { animation: fade-in 0.3s ease-out; }
+  .animate-slide-in { animation: slide-in 0.3s ease-out; }
 
-  .government-card {
-    @apply border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 ease-in-out;
-  }
-
-  .status-badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-
-  .status-active {
-    @apply bg-green-100 text-green-800;
-  }
-
-  .status-pending {
-    @apply bg-orange-100 text-orange-800;
-  }
-
-  .status-inactive {
-    @apply bg-red-100 text-red-800;
-  }
-
-  /* Improved typography hierarchy */
-  h1 { @apply text-3xl font-bold tracking-tight; }
-  h2 { @apply text-2xl font-semibold tracking-tight; }
-  h3 { @apply text-xl font-semibold tracking-tight; }
-  h4 { @apply text-lg font-medium tracking-tight; }
-  h5 { @apply text-base font-medium tracking-tight; }
-  h6 { @apply text-sm font-medium tracking-tight; }
-
-  /* Animation classes */
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .animate-slide-in {
-    animation: slide-in 0.3s ease-out;
-  }
-
-  /* Print styles for ID cards */
+  /* Print styles */
   @media print {
-    .print-hidden, .no-print {
-      display: none !important;
-    }
-    
-    .id-card {
-      width: 85.6mm;
-      height: 53.98mm;
-      page-break-inside: avoid;
-      page-break-after: always;
-    }
-    
-    /* Report printing styles */
-    body {
-      background: white;
-      color: black;
-    }
-    
-    /* Ensure charts and tables print properly */
-    .recharts-wrapper,
-    .recharts-surface {
-      max-width: 100% !important;
-    }
-    
-    /* Page breaks */
-    .page-break {
-      page-break-after: always;
-    }
-    
-    /* Prevent breaking inside elements */
-    .card,
-    table {
-      page-break-inside: avoid;
-    }
+    .print-hidden, .no-print { display: none !important; }
+    .id-card { width: 85.6mm; height: 53.98mm; page-break-inside: avoid; page-break-after: always; }
+    body { background: white; color: black; }
+    .recharts-wrapper, .recharts-surface { max-width: 100% !important; }
+    .page-break { page-break-after: always; }
+    .card, table { page-break-inside: avoid; }
   }
 }
 
 @layer components {
-  .btn-government {
-    background-color: rgb(var(--color-government-600));
-    color: white;
-    font-weight: 500;
-    padding: 0.625rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  /* ── Status Badges (pill shape per style guide) ── */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .status-active   { background-color: hsl(var(--ssb-green-active)); color: white; }
+  .status-pending  { background-color: hsl(var(--ssb-yellow)); color: hsl(var(--foreground)); }
+  .status-inactive { background-color: hsl(var(--ssb-red)); color: white; }
+
+  /* ── Enterprise Card ── */
+  .highlighted-card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
 
-  .btn-government:hover {
-    background-color: rgb(var(--color-government-700));
-  }
-
-  .btn-government:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgb(var(--color-government-500) / 0.5);
-  }
-
-  .input-government {
-    border-color: rgb(var(--color-government-300));
-    border-radius: 0.5rem;
-    transition: border-color 0.2s;
-  }
-
-  .input-government:focus {
-    border-color: rgb(var(--color-government-500));
-    box-shadow: 0 0 0 1px rgb(var(--color-government-500));
-  }
-
-  .table-government {
-    @apply min-w-full divide-y rounded-lg overflow-hidden shadow-sm;
-    border-color: rgb(var(--color-government-200));
-  }
-
-  .table-government th {
-    @apply px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider;
-    background-color: rgb(var(--color-government-50));
-    color: rgb(var(--color-government-700));
-  }
-
-  .table-government td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
-    border-bottom: 1px solid rgb(var(--color-government-100));
-  }
-
-  /* Professional card styling */
-  .card-professional {
-    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ease-in-out;
-    border: 1px solid rgb(var(--color-government-200));
-  }
-
-  /* Enhanced sidebar styling */
-  .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ease-in-out font-medium text-sm;
-  }
-
-  .sidebar-item-active {
-    background-color: rgb(var(--color-government-100));
-    color: rgb(var(--color-government-800));
-    border-left: 4px solid rgb(var(--color-government-600));
-  }
-
-  .sidebar-item-hover:hover {
-    background-color: rgb(var(--color-government-50));
-    color: rgb(var(--color-government-700));
-  }
-
-  /* Government theme color classes */
-  .bg-government-50 { background-color: rgb(var(--color-government-50)); }
-  .bg-government-100 { background-color: rgb(var(--color-government-100)); }
-  .bg-government-200 { background-color: rgb(var(--color-government-200)); }
-  .bg-government-300 { background-color: rgb(var(--color-government-300)); }
-  .bg-government-400 { background-color: rgb(var(--color-government-400)); }
-  .bg-government-500 { background-color: rgb(var(--color-government-500)); }
-  .bg-government-600 { background-color: rgb(var(--color-government-600)); }
-  .bg-government-700 { background-color: rgb(var(--color-government-700)); }
-  .bg-government-800 { background-color: rgb(var(--color-government-800)); }
-  .bg-government-900 { background-color: rgb(var(--color-government-900)); }
-
-  .text-government-50 { color: rgb(var(--color-government-50)); }
-  .text-government-100 { color: rgb(var(--color-government-100)); }
-  .text-government-200 { color: rgb(var(--color-government-200)); }
-  .text-government-300 { color: rgb(var(--color-government-300)); }
-  .text-government-400 { color: rgb(var(--color-government-400)); }
-  .text-government-500 { color: rgb(var(--color-government-500)); }
-  .text-government-600 { color: rgb(var(--color-government-600)); }
-  .text-government-700 { color: rgb(var(--color-government-700)); }
-  .text-government-800 { color: rgb(var(--color-government-800)); }
-  .text-government-900 { color: rgb(var(--color-government-900)); }
-
-  .border-government-50 { border-color: rgb(var(--color-government-50)); }
-  .border-government-100 { border-color: rgb(var(--color-government-100)); }
-  .border-government-200 { border-color: rgb(var(--color-government-200)); }
-  .border-government-300 { border-color: rgb(var(--color-government-300)); }
-  .border-government-400 { border-color: rgb(var(--color-government-400)); }
-  .border-government-500 { border-color: rgb(var(--color-government-500)); }
-  .border-government-600 { border-color: rgb(var(--color-government-600)); }
-  .border-government-700 { border-color: rgb(var(--color-government-700)); }
-  .border-government-800 { border-color: rgb(var(--color-government-800)); }
-  .border-government-900 { border-color: rgb(var(--color-government-900)); }
-
-  .hover\:bg-government-50:hover { background-color: rgb(var(--color-government-50)); }
-  .hover\:bg-government-100:hover { background-color: rgb(var(--color-government-100)); }
-  .hover\:bg-government-200:hover { background-color: rgb(var(--color-government-200)); }
-  .hover\:bg-government-300:hover { background-color: rgb(var(--color-government-300)); }
-  .hover\:bg-government-400:hover { background-color: rgb(var(--color-government-400)); }
-  .hover\:bg-government-500:hover { background-color: rgb(var(--color-government-500)); }
-  .hover\:bg-government-600:hover { background-color: rgb(var(--color-government-600)); }
-  .hover\:bg-government-700:hover { background-color: rgb(var(--color-government-700)); }
-  .hover\:bg-government-800:hover { background-color: rgb(var(--color-government-800)); }
-  .hover\:bg-government-900:hover { background-color: rgb(var(--color-government-900)); }
-
-  .hover\:text-government-50:hover { color: rgb(var(--color-government-50)); }
-  .hover\:text-government-100:hover { color: rgb(var(--color-government-100)); }
-  .hover\:text-government-200:hover { color: rgb(var(--color-government-200)); }
-  .hover\:text-government-300:hover { color: rgb(var(--color-government-300)); }
-  .hover\:text-government-400:hover { color: rgb(var(--color-government-400)); }
-  .hover\:text-government-500:hover { color: rgb(var(--color-government-500)); }
-  .hover\:text-government-600:hover { color: rgb(var(--color-government-600)); }
-  .hover\:text-government-700:hover { color: rgb(var(--color-government-700)); }
-  .hover\:text-government-800:hover { color: rgb(var(--color-government-800)); }
-  .hover\:text-government-900:hover { color: rgb(var(--color-government-900)); }
-
-  /* Theme-specific button styles */
-  .theme-government .btn-primary { background-color: #203C87; }
-  .theme-government .btn-primary:hover { background-color: #1a3275; }
-  
-  .theme-emerald .btn-primary { background-color: #01796F; }
-  .theme-emerald .btn-primary:hover { background-color: #016660; }
-  
-  .theme-purple .btn-primary { background-color: #8646EC; }
-  .theme-purple .btn-primary:hover { background-color: #7639d9; }
-  
-  .theme-slate .btn-primary { background-color: #3B4755; }
-  .theme-slate .btn-primary:hover { background-color: #323c47; }
-  
-  .theme-rose .btn-primary { background-color: #D32F55; }
-  .theme-rose .btn-primary:hover { background-color: #c02849; }
-
-  /* Unified app table styles */
+  /* ── App Table ── */
   .app-table thead tr th {
-    @apply bg-muted font-semibold text-foreground;
+    @apply bg-muted font-medium text-foreground text-sm;
   }
-  .app-table tbody tr:nth-child(even) {
-    @apply bg-muted/20;
+  .app-table tbody tr:hover {
+    background-color: hsl(144 65% 34% / 0.04);
   }
   .app-table .totals-row {
-    @apply bg-green-50 text-green-900 font-semibold;
+    background-color: hsl(144 65% 34% / 0.08);
+    @apply font-semibold;
   }
-  .app-table .numeric {
-    @apply text-right;
-  }
+  .app-table .numeric { @apply text-right; }
 
-  /* BeMA Finance Styles */
-  .bema-card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 transition-all;
-  }
-  
-  .bema-card:hover {
-    @apply shadow-md;
-  }
-
+  /* ── BeMA Finance Styles (preserved) ── */
+  .bema-card { @apply bg-white rounded-lg shadow-sm border border-border transition-all; }
+  .bema-card:hover { @apply shadow-md; }
   .bema-btn-primary {
     background-color: hsl(var(--bema-primary));
-    color: white;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    transition: all 0.2s;
+    color: white; padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem; font-weight: 600; transition: all 0.2s;
   }
-
-  .bema-btn-primary:hover {
-    background-color: hsl(var(--bema-primary-light));
-  }
-
-  .bema-badge-success {
-    background-color: hsl(var(--bema-success) / 0.1);
-    color: hsl(var(--bema-success));
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .bema-badge-warning {
-    background-color: hsl(var(--bema-warning) / 0.1);
-    color: hsl(var(--bema-warning));
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .bema-table {
-    @apply w-full border-collapse;
-  }
-
-  .bema-table thead tr {
-    background-color: hsl(var(--bema-secondary));
-  }
-
-  .bema-table thead th {
-    @apply px-4 py-3 text-left font-semibold;
-    color: hsl(var(--bema-text-primary));
-    font-size: 14px;
-  }
-
-  .bema-table tbody tr {
-    @apply border-b border-gray-100;
-  }
-
-  .bema-table tbody tr:hover {
-    background-color: hsl(var(--bema-secondary) / 0.3);
-  }
-
-  .bema-table tbody td {
-    @apply px-4 py-3;
-    color: hsl(var(--bema-text-primary));
-    font-size: 14px;
-  }
+  .bema-btn-primary:hover { background-color: hsl(var(--bema-primary-light)); }
+  .bema-badge-success { background-color: hsl(var(--bema-success) / 0.1); color: hsl(var(--bema-success)); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+  .bema-badge-warning { background-color: hsl(var(--bema-warning) / 0.1); color: hsl(var(--bema-warning)); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+  .bema-table { @apply w-full border-collapse; }
+  .bema-table thead tr { background-color: hsl(var(--bema-secondary)); }
+  .bema-table thead th { @apply px-4 py-3 text-left font-semibold; color: hsl(var(--bema-text-primary)); font-size: 14px; }
+  .bema-table tbody tr { @apply border-b border-border; }
+  .bema-table tbody tr:hover { background-color: hsl(var(--bema-secondary) / 0.3); }
+  .bema-table tbody td { @apply px-4 py-3; color: hsl(var(--bema-text-primary)); font-size: 14px; }
 }
 
 @keyframes fade-in {
@@ -427,12 +183,6 @@
 }
 
 @keyframes slide-in {
-  from { 
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ChevronDown, ChevronRight, Bell } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   SidebarMenuButton, 
   SidebarMenuSub, 
@@ -52,17 +52,14 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
     return currentPath === path;
   };
 
-  // Filter sub-items based on permissions
   const visibleSubItems = item.subItems.filter(subItem => 
     !subItem.requiresPermission || hasPermission(subItem.requiresPermission)
   );
 
-  // Don't render if no sub-items are visible
   if (visibleSubItems.length === 0) {
     return null;
   }
 
-  // Calculate total notifications for this group
   const totalNotifications = visibleSubItems.reduce((sum, item) => 
     sum + (item.notificationCount || 0), 0
   );
@@ -73,12 +70,12 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
         <SidebarMenuButton 
           className={`group relative px-3 py-3 rounded-lg transition-all duration-200 ease-in-out font-medium text-sm ${
             isGroupActive 
-              ? 'bg-government-100 text-government-800 shadow-sm border-l-4 border-government-600' 
-              : 'text-gray-700 hover:bg-gray-50 hover:text-government-700'
+              ? 'bg-sidebar-accent text-white shadow-sm border-l-4 border-accent' 
+              : 'text-white/80 hover:bg-sidebar-accent/60 hover:text-white'
           }`}
         >
           <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
-            isGroupActive ? "text-government-600" : "text-gray-500 group-hover:text-government-600"
+            isGroupActive ? "text-accent" : "text-white/60 group-hover:text-white"
           }`} />
           {!collapsed && (
             <>
@@ -90,9 +87,9 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
                   </Badge>
                 )}
                 {open ? (
-                  <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 text-white/50" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 transition-transform duration-200" />
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200 text-white/50" />
                 )}
               </div>
             </>
@@ -102,7 +99,7 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
       
       {!collapsed && (
         <CollapsibleContent className="overflow-hidden transition-all duration-200 ease-in-out">
-          <SidebarMenuSub className="mx-2 border-l-2 border-government-200 px-3 py-2 space-y-1">
+          <SidebarMenuSub className="mx-2 border-l-2 border-white/20 px-3 py-2 space-y-1">
             {visibleSubItems.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton asChild>
@@ -110,15 +107,15 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
                     to={subItem.url}
                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm rounded-md transition-all duration-200 ease-in-out relative ${
                       isActive(subItem.url)
-                        ? 'bg-government-600 text-white shadow-sm'
-                        : 'text-gray-700 hover:bg-government-50 hover:text-government-700'
+                        ? 'bg-accent text-foreground shadow-sm font-semibold'
+                        : 'text-white/70 hover:bg-sidebar-accent/50 hover:text-white'
                     }`}
                     title={subItem.description}
                   >
                     <subItem.icon className={`h-4 w-4 flex-shrink-0 transition-colors ${
                       isActive(subItem.url) 
-                        ? "text-white" 
-                        : "text-gray-500 group-hover:text-government-600"
+                        ? "text-foreground" 
+                        : "text-white/50 group-hover:text-white"
                     }`} />
                     <span className="truncate font-medium">{subItem.title}</span>
                     {subItem.notificationCount && subItem.notificationCount > 0 && (
