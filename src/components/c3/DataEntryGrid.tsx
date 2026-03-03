@@ -684,8 +684,8 @@ export default function DataEntryGrid({
                           <div
                             className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
                               isPresent ? 'bg-green-500 border-green-600' : 'bg-background border-input'
-                            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={() => canEdit && handleWeekToggle(rowIdx, weekIdx)}
+                            }`}
+                            onClick={() => handleWeekToggle(rowIdx, weekIdx)}
                           >
                             {isPresent && <Check className="h-2.5 w-2.5 text-white" />}
                           </div>
