@@ -32,15 +32,15 @@ export function QuickActions() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {actions.map((action, i) => (
             <Button
               key={i}
               variant="outline"
-              className="h-auto py-3 flex flex-col items-center gap-2 text-xs font-medium hover:bg-primary/5 hover:border-primary/30"
+              className="h-auto min-h-[72px] py-3 px-2 flex flex-col items-center justify-center gap-2 text-xs font-medium text-center whitespace-normal hover:bg-primary/5 hover:border-primary/30"
               onClick={() => navigate(action.path)}
             >
-              <action.icon className="h-5 w-5 text-primary" />
+              <action.icon className="h-5 w-5 text-primary shrink-0" />
               {action.label}
             </Button>
           ))}
