@@ -24,6 +24,17 @@ export interface C3CalculationConfig {
   employerSeveranceRate: number;
 }
 
+export interface HolidayDistribution {
+  week1: number;
+  week2: number;
+  week3: number;
+  week4: number;
+  week5: number;
+  totalDistributed: number;
+  overlapDays: number[];
+  distributed: boolean;
+}
+
 export interface EmployeeCalculationResult {
   ssn: string;
   name: string;
@@ -46,6 +57,10 @@ export interface EmployeeCalculationResult {
   totalWagesPlusEmployeeLevyPlusSS: number;
   employersThreePercentLevyPlusSS: number;
   employersOnePercentSeverancePay: number;
+  holidayDistribution?: HolidayDistribution;
+  holidayLevy?: number;
+  holidayPolicyApplied?: string;
+  holidayPolicyType?: string;
 }
 
 export interface C3CalculationTotals {
@@ -94,7 +109,10 @@ function transformEmployeeData(employees: EmployeeData[]) {
     holiday: emp.weeklyWages?.[6] || 0,
     payPeriod: emp.payPeriod || 'Monthly',
     termStartDate: emp.termStartDate || null,
-    dateOfBirth: emp.dateOfBirth || null
+    dateOfBirth: emp.dateOfBirth || null,
+    holidayStartDate: emp.holidayNoDates ? null : (emp.holidayStartDate || null),
+    holidayEndDate: emp.holidayNoDates ? null : (emp.holidayEndDate || null),
+    holidayNoDates: emp.holidayNoDates ? 'true' : 'false'
   }));
 }
 
