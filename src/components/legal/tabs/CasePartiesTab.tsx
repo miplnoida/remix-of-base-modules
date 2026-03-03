@@ -90,7 +90,7 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
                           onClick={() => handleView(party)}
                           aria-label={`View ${party}`}
                           title="View"
-                          className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                          className="h-9 w-9 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -100,7 +100,7 @@ export function CasePartiesTab({ caseData }: CasePartiesTabProps) {
                           onClick={() => handleEdit(party)}
                           aria-label={`Edit ${party}`}
                           title="Edit"
-                          className="h-9 w-9 border-[#06B6D4] text-[#06B6D4] hover:bg-[#06B6D4] hover:text-white"
+                          className="h-9 w-9 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>

@@ -67,12 +67,12 @@ export default function Arrears60DaysReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="zone" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="zone" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="employers" fill="#F59E0B" name="Employers" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="totalArrears" fill="#DC2626" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="employers" fill="hsl(var(--accent))" name="Employers" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="totalArrears" fill="hsl(var(--destructive))" name="Arrears (EC$)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -101,12 +101,12 @@ export default function Arrears60DaysReport() {
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="font-semibold text-red-600">{row.arrears.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{row.arrears.toLocaleString()}</TableCell>
                     <TableCell>{row.dueDate}</TableCell>
                     <TableCell>{row.daysOverdue}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.escalationLevel === 'High' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        row.escalationLevel === 'High' ? 'bg-destructive/10 text-destructive' : 'bg-accent/30 text-accent-foreground'
                       }`}>
                         {row.escalationLevel}
                       </span>

@@ -1851,7 +1851,7 @@ export const RegisterPersonForm = () => {
                 <CardContent className="space-y-6">
                   <hr />
                   <div className="space-y-4">
-                    <h4 className="font-medium capitalize text-[#6B7280]">
+                    <h4 className="font-medium capitalize text-muted-foreground">
                       Marital Status Verification
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1862,7 +1862,7 @@ export const RegisterPersonForm = () => {
                   </div>
                   <Separator />
                   <div className="space-y-4">
-                    <h4 className="font-medium capitalize text-[#6B7280]">
+                    <h4 className="font-medium capitalize text-muted-foreground">
                       Birth Status Verification
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1873,7 +1873,7 @@ export const RegisterPersonForm = () => {
                   </div>
                   <Separator />
                   <div className="space-y-4">
-                    <h4 className="font-medium capitalize text-[#6B7280]">
+                    <h4 className="font-medium capitalize text-muted-foreground">
                       Death Status Verification
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1884,7 +1884,7 @@ export const RegisterPersonForm = () => {
                   </div>
                   <Separator />
                   <div className="space-y-4">
-                    <h4 className="font-medium capitalize text-[#6B7280]">
+                    <h4 className="font-medium capitalize text-muted-foreground">
                       Name Status Verification
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2149,7 +2149,7 @@ export const RegisterPersonForm = () => {
   return (
     <div className="space-y-6">
       {/* Stepper */}
-      <Card className='py-5' style={{backgroundColor:"#F9FAFB"}}>
+      <Card className='py-5 bg-muted'>
           <div className='px-5 mb-6'>
             <Card className='p-3'>
               <Stepper 

@@ -371,10 +371,10 @@ export default function LegalHearingCalendar() {
                     toolbar={false}
                     eventPropGetter={(event) => ({
                       style: {
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: 'hsl(var(--primary))',
                         borderRadius: '4px',
                         border: 'none',
-                        color: 'white',
+                        color: 'hsl(var(--primary-foreground))',
                       },
                     })}
                   />

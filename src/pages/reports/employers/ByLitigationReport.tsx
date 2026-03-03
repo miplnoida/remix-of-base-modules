@@ -67,12 +67,12 @@ export default function ByLitigationReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="employer" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="employer" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="pending" fill="#F59E0B" name="Pending" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="closed" fill="#009B4C" name="Closed" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="pending" fill="hsl(var(--accent))" name="Pending" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="closed" fill="hsl(var(--primary))" name="Closed" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -104,8 +104,8 @@ export default function ByLitigationReport() {
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell className="font-semibold">{row.cases}</TableCell>
-                    <TableCell className="text-orange-600">{row.pending}</TableCell>
-                    <TableCell className="text-green-600">{row.closed}</TableCell>
+                    <TableCell className="text-accent-foreground">{row.pending}</TableCell>
+                    <TableCell className="text-primary">{row.closed}</TableCell>
                     <TableCell className="font-semibold">{row.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>{row.zone}</TableCell>
                   </TableRow>

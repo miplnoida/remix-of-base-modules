@@ -91,7 +91,7 @@ export default function InspectorPerformance() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Field Visits</p>
                 <p className="text-2xl font-bold text-foreground">232</p>
-                <p className="text-xs text-green-600">+8% from last month</p>
+                <p className="text-xs text-primary">+8% from last month</p>
               </div>
               <Users className="h-8 w-8 text-primary" />
             </div>
@@ -103,9 +103,9 @@ export default function InspectorPerformance() {
               <div>
                 <p className="text-sm text-muted-foreground">Plan Approval Rate</p>
                 <p className="text-2xl font-bold text-foreground">94%</p>
-                <p className="text-xs text-green-600">+2% improvement</p>
+                <p className="text-xs text-primary">+2% improvement</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -115,9 +115,9 @@ export default function InspectorPerformance() {
               <div>
                 <p className="text-sm text-muted-foreground">Cases Handled</p>
                 <p className="text-2xl font-bold text-foreground">61</p>
-                <p className="text-xs text-green-600">+5 new cases</p>
+                <p className="text-xs text-primary">+5 new cases</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-600" />
+              <TrendingUp className="h-8 w-8 text-secondary" />
             </div>
           </CardContent>
         </Card>
@@ -127,9 +127,9 @@ export default function InspectorPerformance() {
               <div>
                 <p className="text-sm text-muted-foreground">Avg Compliance Rate</p>
                 <p className="text-2xl font-bold text-foreground">93%</p>
-                <p className="text-xs text-yellow-600">Stable</p>
+                <p className="text-xs text-accent-foreground">Stable</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-yellow-600" />
+              <AlertCircle className="h-8 w-8 text-accent-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -143,14 +143,14 @@ export default function InspectorPerformance() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="month" stroke="#64748B" />
-              <YAxis stroke="#64748B" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+              <YAxis stroke="hsl(var(--muted-foreground))" />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="visits" stroke="#009B4C" strokeWidth={2} name="Field Visits" />
-              <Line type="monotone" dataKey="cases" stroke="#2563EB" strokeWidth={2} name="Cases Handled" />
-              <Line type="monotone" dataKey="plans" stroke="#0EA5E9" strokeWidth={2} name="Plans Approved" />
+              <Line type="monotone" dataKey="visits" stroke="hsl(var(--primary))" strokeWidth={2} name="Field Visits" />
+              <Line type="monotone" dataKey="cases" stroke="hsl(var(--secondary))" strokeWidth={2} name="Cases Handled" />
+              <Line type="monotone" dataKey="plans" stroke="hsl(var(--accent))" strokeWidth={2} name="Plans Approved" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -190,7 +190,7 @@ export default function InspectorPerformance() {
                   <TableCell className="text-right">{row.fieldVisits}</TableCell>
                   <TableCell className="text-right">{row.casesHandled}</TableCell>
                   <TableCell className="text-right">
-                    <span className={row.complianceRate >= 95 ? 'text-green-600 font-semibold' : 'text-foreground'}>
+                    <span className={row.complianceRate >= 95 ? 'text-primary font-semibold' : 'text-foreground'}>
                       {row.complianceRate}%
                     </span>
                   </TableCell>

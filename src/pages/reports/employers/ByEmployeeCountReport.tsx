@@ -68,11 +68,11 @@ export default function ByEmployeeCountReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis type="number" stroke="#64748B" />
-                <YAxis dataKey="employer" type="category" width={120} stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                <YAxis dataKey="employer" type="category" width={120} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="employees" fill="#009B4C" name="Employees" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="employees" fill="hsl(var(--primary))" name="Employees" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -106,7 +106,7 @@ export default function ByEmployeeCountReport() {
                     <TableCell className="font-semibold">{row.employees}</TableCell>
                     <TableCell>{row.zone}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
                         {row.status}
                       </span>
                     </TableCell>
