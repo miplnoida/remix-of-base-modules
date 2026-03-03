@@ -731,14 +731,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                 </div>
               )}
 
-              {/* Existing employee list */}
-              {employees.length === 0 && !dataEntryMode ? (
+              {/* Existing employee list - hidden when data entry mode is active */}
+              {dataEntryMode ? null : employees.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {!employerValidated 
                     ? "Enter a valid Employer ID to add employees"
                     : "No employees added yet. Click 'Add Employee' or enable 'Data Entry Mode' to begin."}
                 </div>
-              ) : employees.length > 0 ? (
                 <DataTable
                   data={employees}
                   columns={[
