@@ -165,7 +165,7 @@ const ContributionEntry = () => {
             </div>
 
             <div className="flex gap-3 pt-4 border-t">
-              <Button onClick={handleSubmit} className="bg-government-600 hover:bg-government-700">
+              <Button onClick={handleSubmit}>
                 Save Entry
               </Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>
@@ -186,7 +186,7 @@ const ContributionEntry = () => {
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <Button onClick={() => setShowForm(true)} className="bg-government-600 hover:bg-government-700">
+          <Button onClick={() => setShowForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Entry
           </Button>

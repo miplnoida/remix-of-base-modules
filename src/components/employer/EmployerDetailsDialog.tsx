@@ -86,34 +86,34 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-card">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-government-800">
-            <Building className="h-5 w-5 text-government-600" />
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <Building className="h-5 w-5 text-primary" />
             Employer Details - {employer.employerName}
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 bg-government-50">
-            <TabsTrigger value="basic" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Basic</TabsTrigger>
-            <TabsTrigger value="owners" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Owners</TabsTrigger>
-            <TabsTrigger value="locations" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Locations</TabsTrigger>
-            <TabsTrigger value="commence-dates" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Commence Dates</TabsTrigger>
-            <TabsTrigger value="visits" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Visits</TabsTrigger>
-            <TabsTrigger value="suits" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Suits</TabsTrigger>
-            <TabsTrigger value="notes" className="text-government-700 data-[state=active]:bg-government-600 data-[state=active]:text-white">Notes</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 bg-muted">
+            <TabsTrigger value="basic" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Basic</TabsTrigger>
+            <TabsTrigger value="owners" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Owners</TabsTrigger>
+            <TabsTrigger value="locations" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Locations</TabsTrigger>
+            <TabsTrigger value="commence-dates" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Commence Dates</TabsTrigger>
+            <TabsTrigger value="visits" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Visits</TabsTrigger>
+            <TabsTrigger value="suits" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Suits</TabsTrigger>
+            <TabsTrigger value="notes" className="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Notes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
-                <CardTitle className="flex items-center gap-2 text-government-800">
-                  <User className="h-5 w-5 text-government-600" />
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <User className="h-5 w-5 text-primary" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 bg-white">
+              <CardContent className="space-y-4 bg-card">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label>Name</Label>
@@ -282,48 +282,48 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="owners" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <Users className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Users className="h-5 w-5 text-primary" />
                     Owners Information
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Owner
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Owner ID</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Name</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Title</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Phone</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Owner ID</TableHead>
+                        <TableHead className="text-foreground font-semibold">Name</TableHead>
+                        <TableHead className="text-foreground font-semibold">Title</TableHead>
+                        <TableHead className="text-foreground font-semibold">Phone</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockOwners.map((owner) => (
-                        <TableRow key={owner.id} className="hover:bg-government-50/50">
+                        <TableRow key={owner.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{owner.ownerId}</TableCell>
-                          <TableCell className="text-government-800 font-medium">{owner.name}</TableCell>
-                          <TableCell className="text-government-700">{owner.title}</TableCell>
-                          <TableCell className="text-government-700">{owner.phone}</TableCell>
+                          <TableCell className="text-muted-foreground">{owner.ownerId}</TableCell>
+                          <TableCell className="text-foreground font-medium">{owner.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{owner.title}</TableCell>
+                          <TableCell className="text-muted-foreground">{owner.phone}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -334,48 +334,48 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <MapPin className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <MapPin className="h-5 w-5 text-primary" />
                     Locations
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Location
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Address</TableHead>
-                        <TableHead className="text-government-800 font-semibold">City</TableHead>
-                        <TableHead className="text-government-800 font-semibold">State</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Address</TableHead>
+                        <TableHead className="text-foreground font-semibold">City</TableHead>
+                        <TableHead className="text-foreground font-semibold">State</TableHead>
+                        <TableHead className="text-foreground font-semibold">Type</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockLocations.map((location) => (
-                        <TableRow key={location.id} className="hover:bg-government-50/50">
+                        <TableRow key={location.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{location.address}</TableCell>
-                          <TableCell className="text-government-700">{location.city}</TableCell>
-                          <TableCell className="text-government-700">{location.state}</TableCell>
-                          <TableCell className="text-government-700">{location.type}</TableCell>
+                          <TableCell className="text-muted-foreground">{location.address}</TableCell>
+                          <TableCell className="text-muted-foreground">{location.city}</TableCell>
+                          <TableCell className="text-muted-foreground">{location.state}</TableCell>
+                          <TableCell className="text-muted-foreground">{location.type}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -386,46 +386,46 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="commence-dates" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <Calendar className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Calendar className="h-5 w-5 text-primary" />
                     Commence Dates
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Date
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Date Commenced</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Date Ceased</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Type</TableHead>
+                        <TableHead className="text-foreground font-semibold">Date Commenced</TableHead>
+                        <TableHead className="text-foreground font-semibold">Date Ceased</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockCommenceDates.map((date) => (
-                        <TableRow key={date.id} className="hover:bg-government-50/50">
+                        <TableRow key={date.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{date.type}</TableCell>
-                          <TableCell className="text-government-700">{formatDate(date.dateCommenced)}</TableCell>
-                          <TableCell className="text-government-700">{date.dateCeased ? formatDate(date.dateCeased) : 'Active'}</TableCell>
+                          <TableCell className="text-muted-foreground">{date.type}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(date.dateCommenced)}</TableCell>
+                          <TableCell className="text-muted-foreground">{date.dateCeased ? formatDate(date.dateCeased) : 'Active'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -436,47 +436,47 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="visits" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <Calendar className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Calendar className="h-5 w-5 text-primary" />
                     Visits
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Visit
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Visit Date</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Inspector</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Purpose</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Status</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Visit Date</TableHead>
+                        <TableHead className="text-foreground font-semibold">Inspector</TableHead>
+                        <TableHead className="text-foreground font-semibold">Purpose</TableHead>
+                        <TableHead className="text-foreground font-semibold">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockVisits.map((visit) => (
-                        <TableRow key={visit.id} className="hover:bg-government-50/50">
+                        <TableRow key={visit.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{formatDate(visit.visitDate)}</TableCell>
-                          <TableCell className="text-government-700">{visit.inspector}</TableCell>
-                          <TableCell className="text-government-700">{visit.purpose}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(visit.visitDate)}</TableCell>
+                          <TableCell className="text-muted-foreground">{visit.inspector}</TableCell>
+                          <TableCell className="text-muted-foreground">{visit.purpose}</TableCell>
                           <TableCell>
                             <Badge variant={visit.status === 'Completed' ? 'default' : 'outline'}>
                               {visit.status}
@@ -492,58 +492,58 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="suits" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <Gavel className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Gavel className="h-5 w-5 text-primary" />
                     Legal Suits
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Suit
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Type</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Status</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Amount</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Year</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Begin Period</TableHead>
-                        <TableHead className="text-government-800 font-semibold">End Period</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Scheme Code</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Type</TableHead>
+                        <TableHead className="text-foreground font-semibold">Status</TableHead>
+                        <TableHead className="text-foreground font-semibold">Amount</TableHead>
+                        <TableHead className="text-foreground font-semibold">Year</TableHead>
+                        <TableHead className="text-foreground font-semibold">Begin Period</TableHead>
+                        <TableHead className="text-foreground font-semibold">End Period</TableHead>
+                        <TableHead className="text-foreground font-semibold">Scheme Code</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockSuits.map((suit) => (
-                        <TableRow key={suit.id} className="hover:bg-government-50/50">
+                        <TableRow key={suit.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{suit.type}</TableCell>
+                          <TableCell className="text-muted-foreground">{suit.type}</TableCell>
                           <TableCell>
                             <Badge variant={suit.status === 'Active' ? 'destructive' : 'default'}>
                               {suit.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-government-700">{formatCurrency(suit.amount)}</TableCell>
-                          <TableCell className="text-government-700">{suit.year}</TableCell>
-                          <TableCell className="text-government-700">{formatDate(suit.beginPeriod)}</TableCell>
-                          <TableCell className="text-government-700">{formatDate(suit.endPeriod)}</TableCell>
-                          <TableCell className="text-government-700">{suit.schemeCode}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatCurrency(suit.amount)}</TableCell>
+                          <TableCell className="text-muted-foreground">{suit.year}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(suit.beginPeriod)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(suit.endPeriod)}</TableCell>
+                          <TableCell className="text-muted-foreground">{suit.schemeCode}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -554,46 +554,46 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-4">
-            <Card className="border-government-200">
-              <CardHeader className="bg-government-50">
+            <Card className="border-border">
+              <CardHeader className="bg-muted">
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-government-800">
-                    <FileText className="h-5 w-5 text-government-600" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <FileText className="h-5 w-5 text-primary" />
                     Notes
                   </div>
-                  <Button size="sm" className="flex items-center gap-2 bg-government-600 hover:bg-government-700 text-white">
+                  <Button size="sm" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Note
                   </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="bg-white">
+              <CardContent className="bg-card">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-government-50">
-                        <TableHead className="text-government-800 font-semibold">Actions</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Note Date</TableHead>
-                        <TableHead className="text-government-800 font-semibold">Note</TableHead>
-                        <TableHead className="text-government-800 font-semibold">User ID</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                        <TableHead className="text-foreground font-semibold">Note Date</TableHead>
+                        <TableHead className="text-foreground font-semibold">Note</TableHead>
+                        <TableHead className="text-foreground font-semibold">User ID</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {mockNotes.map((note) => (
-                        <TableRow key={note.id} className="hover:bg-government-50/50">
+                        <TableRow key={note.id} className="hover:bg-muted/50">
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-government-300 text-government-700 hover:bg-government-50">
+                              <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                              <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/5">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-government-700">{formatDate(note.noteDate)}</TableCell>
-                          <TableCell className="text-government-700">{note.note}</TableCell>
-                          <TableCell className="text-government-700">{note.userId}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(note.noteDate)}</TableCell>
+                          <TableCell className="text-muted-foreground">{note.note}</TableCell>
+                          <TableCell className="text-muted-foreground">{note.userId}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

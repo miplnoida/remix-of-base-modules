@@ -97,8 +97,8 @@ const OnlineBenefitApplications = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-government-700">Online Benefit Applications</h1>
-          <p className="text-gray-600 mt-1">Manage and review online benefit applications submitted through the web portal</p>
+          <h1 className="text-3xl font-bold text-foreground">Online Benefit Applications</h1>
+          <p className="text-muted-foreground mt-1">Manage and review online benefit applications submitted through the web portal</p>
         </div>
       </div>
 

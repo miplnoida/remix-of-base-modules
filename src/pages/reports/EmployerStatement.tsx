@@ -103,13 +103,13 @@ const EmployerStatement = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/reports")}
-                className="flex items-center gap-2 hover:bg-government-50"
+                className="flex items-center gap-2 hover:bg-muted"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Reports
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Reports & Analytics</span>
                 <span>/</span>
                 <span className="font-medium" style={{ color: currentTheme.colors.text }}>
@@ -126,11 +126,11 @@ const EmployerStatement = () => {
           <h1 className="text-3xl font-bold" style={{ color: currentTheme.colors.text }}>
             Employer Account Statement
           </h1>
-          <p className="text-gray-600">Generate detailed account statements for employers</p>
+          <p className="text-muted-foreground">Generate detailed account statements for employers</p>
         </div>
 
         {/* Search Form */}
-        <Card className="mb-8 border-government-200">
+        <Card className="mb-8 border-border">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
@@ -140,7 +140,6 @@ const EmployerStatement = () => {
                   placeholder="Enter employer name or ID"
                   value={searchData.employerNameId}
                   onChange={(e) => setSearchData(prev => ({ ...prev, employerNameId: e.target.value }))}
-                  className="border-government-300 focus:border-government-500 focus:ring-government-500"
                 />
               </div>
               <div className="space-y-2">
@@ -174,7 +173,7 @@ const EmployerStatement = () => {
               </div>
               <Button 
                 onClick={handleSearch} 
-                className="h-10 bg-government-600 hover:bg-government-700"
+                className="h-10"
               >
                 <Search className="h-4 w-4 mr-2" />
                 Search
@@ -187,7 +186,7 @@ const EmployerStatement = () => {
         {hasSearched && (
           <div className="space-y-6">
             {/* Employer Information */}
-            <Card className="border-government-200">
+            <Card className="border-border">
               <CardContent className="p-6">
                 <div className="space-y-2 text-sm">
                   <div>
@@ -209,7 +208,7 @@ const EmployerStatement = () => {
             </Card>
 
             {/* Monthly Breakdown */}
-            <Card className="border-government-200">
+            <Card className="border-border">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {monthlyData.map((monthData) => (
@@ -221,7 +220,7 @@ const EmployerStatement = () => {
                       <CollapsibleTrigger asChild>
                         <Button 
                           variant="ghost" 
-                          className="w-full justify-between p-0 h-auto hover:bg-government-50"
+                          className="w-full justify-between p-0 h-auto hover:bg-muted"
                         >
                           <div className="flex items-center space-x-2">
                             {expandedMonths.includes(monthData.month) ? (
@@ -239,28 +238,28 @@ const EmployerStatement = () => {
                       <CollapsibleContent className="mt-4">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-government-50">
-                              <TableHead className="w-[200px] text-government-700">Transaction Type</TableHead>
-                              <TableHead className="text-government-700">Date</TableHead>
-                              <TableHead className="text-right text-government-700">Amount (ECS)</TableHead>
-                              <TableHead className="text-government-700">Notes</TableHead>
+                            <TableRow className="bg-muted">
+                              <TableHead className="w-[200px] text-foreground">Transaction Type</TableHead>
+                              <TableHead className="text-foreground">Date</TableHead>
+                              <TableHead className="text-right text-foreground">Amount (ECS)</TableHead>
+                              <TableHead className="text-foreground">Notes</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {monthData.transactions.map((transaction, index) => (
-                              <TableRow key={index} className="hover:bg-government-50">
+                              <TableRow key={index} className="hover:bg-muted/50">
                                 <TableCell className="font-medium">{transaction.type}</TableCell>
                                 <TableCell>{transaction.date}</TableCell>
                                 <TableCell className="text-right font-mono">
                                   {transaction.amount >= 0 ? '' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                                 </TableCell>
-                                <TableCell className="text-sm text-gray-600">{transaction.notes}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground">{transaction.notes}</TableCell>
                               </TableRow>
                             ))}
-                            <TableRow className="border-t-2 bg-government-100">
-                              <TableCell className="font-bold text-government-800">Subtotal Balance</TableCell>
+                            <TableRow className="border-t-2 bg-muted">
+                              <TableCell className="font-bold text-foreground">Subtotal Balance</TableCell>
                               <TableCell></TableCell>
-                              <TableCell className="text-right font-bold font-mono text-government-800">
+                              <TableCell className="text-right font-bold font-mono text-foreground">
                                 $ {monthData.subtotal.toFixed(2)}
                               </TableCell>
                               <TableCell></TableCell>
@@ -275,20 +274,20 @@ const EmployerStatement = () => {
             </Card>
 
             {/* Summary Totals */}
-            <Card className="border-government-200">
+            <Card className="border-border">
               <CardContent className="p-6">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-government-50">
-                      <TableHead className="text-government-700">Total Contributions Due</TableHead>
-                      <TableHead className="text-government-700">Total Payments Made</TableHead>
-                      <TableHead className="text-government-700">Total Penalties</TableHead>
-                      <TableHead className="text-government-700">Net Over/Short</TableHead>
-                      <TableHead className="text-government-700">Total Due</TableHead>
+                    <TableRow className="bg-muted">
+                      <TableHead className="text-foreground">Total Contributions Due</TableHead>
+                      <TableHead className="text-foreground">Total Payments Made</TableHead>
+                      <TableHead className="text-foreground">Total Penalties</TableHead>
+                      <TableHead className="text-foreground">Net Over/Short</TableHead>
+                      <TableHead className="text-foreground">Total Due</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className="hover:bg-government-50">
+                    <TableRow className="hover:bg-muted/50">
                       <TableCell className="font-mono">${totals.totalContributionsDue.toFixed(2)}</TableCell>
                       <TableCell className="font-mono">{totals.totalPaymentsMade.toFixed(2)}</TableCell>
                       <TableCell className="font-mono">${totals.totalPenalties.toFixed(2)}</TableCell>
@@ -302,15 +301,15 @@ const EmployerStatement = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-4">
-              <Button variant="outline" onClick={handlePrint} className="border-government-300 hover:bg-government-50">
+              <Button variant="outline" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <Button variant="outline" onClick={handleDownloadPDF} className="border-government-300 hover:bg-government-50">
+              <Button variant="outline" onClick={handleDownloadPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
-              <Button variant="outline" onClick={handleExportToExcel} className="border-government-300 hover:bg-government-50">
+              <Button variant="outline" onClick={handleExportToExcel}>
                 <FileDown className="h-4 w-4 mr-2" />
                 Export to Excel
               </Button>

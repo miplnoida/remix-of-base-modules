@@ -3,9 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, AlertTriangle, Shield, ClipboardCheck, BarChart3, ShieldCheck } from 'lucide-react';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -16,6 +15,13 @@ import {
 import { getDeviceInfo } from '@/services/correlationIdService';
 import { useTurnstile } from '@/hooks/useTurnstile';
 import { verifyTurnstileToken, updateLoginOutcome } from '@/services/turnstileService';
+
+const features = [
+  { icon: Shield, label: 'Risk-Based Planning' },
+  { icon: ClipboardCheck, label: 'IIA Standards' },
+  { icon: ShieldCheck, label: 'Secure & Compliant' },
+  { icon: BarChart3, label: 'Real-time Analytics' },
+];
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -33,7 +39,6 @@ export const LoginScreen = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    // Skip if still loading auth state or already redirected
     if (authLoading || hasRedirected.current) return;
     
     if (isAuthenticated && profile) {
@@ -56,7 +61,7 @@ export const LoginScreen = () => {
     }
     if (pendingSubmit && turnstileError) {
       setPendingSubmit(false);
-      void performLogin(null); // Proceed without verification
+      void performLogin(null);
     }
   }, [turnstileToken, turnstileError, pendingSubmit]);
 
@@ -98,7 +103,6 @@ export const LoginScreen = () => {
     setError('');
     setAttemptsRemaining(null);
 
-    // If turnstile is not fully available, skip verification entirely
     if (!turnstileAvailable) {
       void performLogin(null);
       return;
@@ -112,17 +116,14 @@ export const LoginScreen = () => {
     let securityEventId: string | null = null;
 
     try {
-      // Step 1: Log the attempt via edge function (verify or skip)
       const tokenToSend = verificationToken || 'turnstile-unavailable';
       try {
         const verification = await verifyTurnstileToken(tokenToSend, email);
         securityEventId = verification.eventId || null;
 
-        // If Cloudflare is disabled via config, proceed (already logged server-side)
         if (verification.skipped) {
-          // Allowed to proceed — verification was skipped by config or environment
+          // Allowed to proceed
         } else if (verificationToken && !verification.success) {
-          // Real token used and verification failed — block login
           setError(verification.error || 'Human verification failed.');
           if (securityEventId) {
             await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
@@ -133,16 +134,13 @@ export const LoginScreen = () => {
         }
       } catch (verifyErr) {
         console.error('[Login] Turnstile verification error:', verifyErr);
-        // Non-blocking — continue with login
       }
 
-      // Step 2: Proceed with credential check
       const result = await login(email, password);
       
       if (result.success) {
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Update security event with success
         if (securityEventId) {
           await updateLoginOutcome(securityEventId, true, undefined, user?.id);
         }
@@ -153,7 +151,6 @@ export const LoginScreen = () => {
           navigate('/change-password', { state: { required: true }, replace: true });
         }
       } else {
-        // Update security event with failure reason
         const failureReason = result.error?.includes('locked') ? 'ACCOUNT_LOCKED' 
           : result.error?.includes('Invalid') ? 'INVALID_CREDENTIALS'
           : result.error?.includes('deactivated') ? 'ACCOUNT_DEACTIVATED'
@@ -189,7 +186,6 @@ export const LoginScreen = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       
-      // Update security event with error
       if (securityEventId) {
         await updateLoginOutcome(securityEventId, false, 'SYSTEM_ERROR');
       }
@@ -213,9 +209,9 @@ export const LoginScreen = () => {
   // Show loading while auth state is being determined
   if (authLoading) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <p>Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -223,133 +219,167 @@ export const LoginScreen = () => {
 
   if (isAuthenticated && !hasRedirected.current) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <p>Redirecting...</p>
+          <p className="text-muted-foreground">Redirecting...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[hsl(153_73%_21%)] via-[hsl(153_73%_28%)] to-[hsl(144_65%_34%)] flex items-center justify-center p-4 sm:p-6 md:p-8 m-0 relative overflow-hidden">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
-      
-      <div className="w-full max-w-md space-y-6 relative z-10">
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-28 h-28 rounded-full flex items-center justify-center p-2 bg-card/95 ring-1 ring-border/60 shadow-lg overflow-hidden">
-            <img 
-              src="/images/ssb-logo.png" 
-              alt="St. Christopher & Nevis Social Security Board" 
-              className="w-full h-full object-cover rounded-full"
+    <div className="min-h-screen w-full flex flex-col lg:flex-row m-0">
+      {/* Left Branding Panel */}
+      <div className="hidden lg:flex lg:w-[55%] bg-secondary text-secondary-foreground flex-col justify-between p-10 xl:p-14 relative overflow-hidden">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 pointer-events-none" />
+
+        {/* Top: Logo + App Name */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20 overflow-hidden">
+            <img
+              src="/images/ssb-logo.png"
+              alt="SSB Logo"
+              className="w-8 h-8 object-contain"
             />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">St. Christopher & Nevis</h1>
-            <p className="text-white/80 text-sm font-medium">Social Security Board</p>
+            <p className="font-semibold text-white text-[15px] leading-tight">
+              Social Security Board
+            </p>
+            <p className="text-white/60 text-xs">Enterprise Management System</p>
           </div>
         </div>
 
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-center text-foreground">Sign In</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="pl-10"
-                    required
-                    autoComplete="email"
-                  />
-                </div>
+        {/* Middle: Hero Text */}
+        <div className="relative z-10 space-y-5 max-w-lg">
+          <h1 className="text-[32px] xl:text-[38px] font-bold text-white leading-tight tracking-tight">
+            Enterprise Social Security Management for Government & Beyond
+          </h1>
+          <p className="text-white/70 text-[15px] leading-relaxed">
+            Streamline your social security lifecycle from registration to benefits with a
+            comprehensive, standards-compliant platform trusted by government institutions.
+          </p>
+
+          {/* Feature Pills */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 pt-2">
+            {features.map((f) => (
+              <div key={f.label} className="flex items-center gap-2.5">
+                <f.icon className="h-4.5 w-4.5 text-accent shrink-0" />
+                <span className="text-white/90 text-sm font-medium">{f.label}</span>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="pl-10 pr-10"
-                    required
-                    autoComplete="current-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+            ))}
+          </div>
+        </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {attemptsRemaining !== null && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Warning: {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining before account lockout.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Button>
-
-              {/* Invisible Turnstile widget container */}
-              <div ref={containerRef} />
-
-              <div className="text-center">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            </form>
-
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-sm text-white/60">
-          © {new Date().getFullYear()} St. Christopher & Nevis Social Security Board
+        {/* Bottom: Copyright */}
+        <p className="relative z-10 text-white/40 text-xs">
+          © {new Date().getFullYear()} St. Christopher & Nevis Social Security Board. All rights reserved.
         </p>
+      </div>
+
+      {/* Right Login Panel */}
+      <div className="flex-1 flex items-center justify-center bg-background p-6 sm:p-10">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile-only logo */}
+          <div className="lg:hidden flex justify-center">
+            <div className="w-20 h-20 rounded-full bg-card ring-1 ring-border shadow-lg flex items-center justify-center overflow-hidden p-1.5">
+              <img
+                src="/images/ssb-logo.png"
+                alt="SSB Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="text-center space-y-1.5">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Welcome back</h2>
+            <p className="text-muted-foreground text-sm">Sign in to access your dashboard</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="pl-10"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pl-10 pr-10"
+                  required
+                  autoComplete="current-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {attemptsRemaining !== null && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Warning: {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining before account lockout.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-11 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing In...' : 'Sign in'}
+            </Button>
+
+            {/* Invisible Turnstile widget container */}
+            <div ref={containerRef} />
+
+            <div className="text-center">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

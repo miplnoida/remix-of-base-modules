@@ -19,10 +19,10 @@ const themes: Record<string, Theme> = {
     name: 'ssb',
     label: 'SSB Official',
     colors: {
-      primary: '#0E5F3A',
-      secondary: '#1E8E3E',
+      primary: '#1E8E3E',
+      secondary: '#1F2A37',
       accent: '#F4C430',
-      background: '#F7F9F8',
+      background: '#F4F6F9',
       surface: '#ffffff',
       text: '#1F2937',
     },

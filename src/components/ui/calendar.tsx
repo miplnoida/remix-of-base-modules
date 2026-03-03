@@ -37,12 +37,12 @@ function Calendar({
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[#0284c7] hover:text-white"
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-primary hover:text-primary-foreground"
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "!bg-[#BFDBFE] !text-foreground font-medium hover:!bg-[#BFDBFE] hover:!text-foreground focus:!bg-[#BFDBFE] focus:!text-foreground rounded-md",
-        day_today: "bg-[#2a4da3] text-white",
+          "!bg-primary/20 !text-foreground font-medium hover:!bg-primary/20 hover:!text-foreground focus:!bg-primary/20 focus:!text-foreground rounded-md",
+        day_today: "bg-secondary text-secondary-foreground",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",

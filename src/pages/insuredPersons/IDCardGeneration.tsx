@@ -91,8 +91,8 @@ const IDCardGeneration = () => {
                         key={person.id}
                         className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                           selectedPerson?.id === person.id
-                            ? 'border-government-500 bg-government-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-muted-foreground/30'
                         }`}
                         onClick={() => setSelectedPerson(person)}
                       >
