@@ -62,6 +62,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   defaultHiddenColumns = [],
   onView,
   onEdit,
+  onDelete,
   onApprove,
   onReject,
   actions = { view: true, edit: true, approve: true, reject: true },

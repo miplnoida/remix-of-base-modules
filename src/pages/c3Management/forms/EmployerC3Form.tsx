@@ -829,7 +829,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                   onEdit={handleEditEmployee}
                   onDelete={(row: any) => handleDeleteEmployee(row as EmployeeData)}
                 />
-              ) : null}
+              )}
             </CardContent>
           </Card>
 
