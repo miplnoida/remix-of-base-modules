@@ -231,6 +231,10 @@ export const DataTable: React.FC<DataTableProps> = ({
     if (onEdit) onEdit(row);
   };
 
+  const handleDelete = (row: any) => {
+    if (onDelete) onDelete(row);
+  };
+
   const handleApprove = (row: any) => {
     if (onApprove) onApprove(row[idField]);
   };
