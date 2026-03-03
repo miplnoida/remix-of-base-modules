@@ -6672,6 +6672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_card_config: {
+        Row: {
+          card_validity_years: number
+          created_at: string
+          created_by: string | null
+          date_source: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          card_validity_years?: number
+          created_at?: string
+          created_by?: string | null
+          date_source?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          card_validity_years?: number
+          created_at?: string
+          created_by?: string | null
+          date_source?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ip_depend: {
         Row: {
           date_modified: string | null
@@ -15027,6 +15060,10 @@ export type Database = {
           p_user_id?: string
           p_user_name?: string
         }
+        Returns: Json
+      }
+      process_ready_to_print_card: {
+        Args: { p_unique_uuid: string }
         Returns: Json
       }
       register_voluntary_contributor: {
