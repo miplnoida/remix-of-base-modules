@@ -408,18 +408,24 @@ export default function DataEntryGrid({
     }));
   }, [rows, generatedWeekIndices, periodYear, periodMonth, periodTermStartDate]);
 
-  // Holiday blur handler - show modal if value is not empty
+  // Holiday blur handler - always re-open modal when holiday has a value
   const handleHolidayBlur = useCallback((rowIdx: number) => {
     const row = rows[rowIdx];
     if (!row) return;
     const holidayVal = row.weeklyWages[6] || 0;
-    if (holidayVal > 0 && !row.holidayNoDates && !row.holidayStartDate) {
-      // Show holiday modal
-      setHolidayModalStartDate(row.holidayStartDate || '');
-      setHolidayModalEndDate(row.holidayEndDate || '');
-      setHolidayModalNoDates(row.holidayNoDates || false);
-      setHolidayModalRowIdx(rowIdx);
+    if (holidayVal > 0) {
+      openHolidayModal(rowIdx);
     }
+  }, [rows]);
+
+  // Open holiday modal prefilled with current row data
+  const openHolidayModal = useCallback((rowIdx: number) => {
+    const row = rows[rowIdx];
+    if (!row) return;
+    setHolidayModalStartDate(row.holidayStartDate || '');
+    setHolidayModalEndDate(row.holidayEndDate || '');
+    setHolidayModalNoDates(row.holidayNoDates || false);
+    setHolidayModalRowIdx(rowIdx);
   }, [rows]);
 
   // Holiday modal OK
