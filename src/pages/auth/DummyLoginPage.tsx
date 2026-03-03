@@ -182,48 +182,48 @@ const DummyLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-government-50 to-government-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[hsl(153_73%_21%/0.08)] via-background to-[hsl(144_65%_34%/0.06)] flex items-center justify-center p-6">
       <div className="w-full max-w-6xl">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <img 
-              src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-              alt="SecureServe Logo" 
-              className="h-16 w-16 bg-white rounded-lg p-3 shadow-lg"
+              src="/images/ssb-logo.png" 
+              alt="St. Christopher & Nevis Social Security Board" 
+              className="h-20 w-20 object-contain drop-shadow-md"
             />
           </div>
-          <h1 className="text-3xl font-bold text-government-900 mb-2">SecureServe Portal</h1>
-          <p className="text-government-600">Social Security Administration System</p>
-          <Badge variant="outline" className="mt-2">Demo Environment</Badge>
+          <h1 className="text-[26px] font-semibold text-foreground mb-1">St. Christopher & Nevis Social Security Board</h1>
+          <p className="text-muted-foreground text-sm">Enterprise Administration Portal</p>
+          <Badge variant="outline" className="mt-2 border-primary/30 text-primary">Demo Environment</Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Quick Login Section */}
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-government-600" />
+              <CardTitle className="flex items-center gap-2 text-base font-medium">
+                <Users className="h-5 w-5 text-primary" />
                 Quick Login - Demo Users
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {dummyUsers.map((user) => (
-                  <div key={user.email} className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={user.email} className="p-3 border rounded-lg hover:bg-muted/60 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-900">{user.name}</h3>
+                          <h3 className="font-medium text-foreground">{user.name}</h3>
                           <Badge variant="secondary" className="text-xs">
                             {user.role}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{user.email}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <p className="text-sm text-muted-foreground mb-1">{user.email}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Building className="h-3 w-3" />
                           {user.department}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                           <Shield className="h-3 w-3" />
                           {user.permissions}
                         </div>
@@ -246,8 +246,8 @@ const DummyLoginPage = () => {
           {/* Manual Login Section */}
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LogIn className="h-5 w-5 text-government-600" />
+              <CardTitle className="flex items-center gap-2 text-base font-medium">
+                <LogIn className="h-5 w-5 text-primary" />
                 Manual Login
               </CardTitle>
             </CardHeader>
@@ -286,22 +286,22 @@ const DummyLoginPage = () => {
 
               <Separator />
 
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Demo Credentials</h4>
-                <p className="text-sm text-blue-700 mb-2">
+              <div className="bg-primary/5 border border-primary/15 p-4 rounded-lg">
+                <h4 className="font-medium text-foreground mb-2">Demo Credentials</h4>
+                <p className="text-sm text-muted-foreground mb-2">
                   <strong>Password for all users:</strong> password123
                 </p>
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-muted-foreground">
                   This is a demonstration environment. All login credentials are for testing purposes only.
                 </p>
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-medium text-green-900 mb-2">Cashier Module Access</h4>
-                <p className="text-sm text-green-700 mb-2">
+              <div className="bg-secondary/5 border border-secondary/15 p-4 rounded-lg">
+                <h4 className="font-medium text-foreground mb-2">Cashier Module Access</h4>
+                <p className="text-sm text-muted-foreground mb-2">
                   To access the <strong>Cashier & Payments</strong> module, login as:
                 </p>
-                <ul className="text-xs text-green-600 space-y-1">
+                <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• <strong>Accounts Manager:</strong> Full cashier system access</li>
                   <li>• <strong>Cashier Officer:</strong> Payment collection & reports</li>
                   <li>• <strong>Cashier Supervisor:</strong> Batch management & approvals</li>
@@ -313,8 +313,8 @@ const DummyLoginPage = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            SecureServe Social Security Administration Portal v2.0
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} St. Christopher & Nevis Social Security Board
           </p>
         </div>
       </div>

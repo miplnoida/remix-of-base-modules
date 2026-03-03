@@ -232,25 +232,28 @@ export const LoginScreen = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-200 via-emerald-100 to-emerald-50 flex items-center justify-center p-4 sm:p-6 md:p-8 m-0">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[hsl(153_73%_21%)] via-[hsl(153_73%_28%)] to-[hsl(144_65%_34%)] flex items-center justify-center p-4 sm:p-6 md:p-8 m-0 relative overflow-hidden">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+      
+      <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="text-center space-y-4">
-          <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 shadow-lg">
+          <div className="mx-auto w-28 h-28 rounded-full flex items-center justify-center p-3">
             <img 
-              src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-              alt="SecureServe Logo" 
-              className="w-full h-full object-contain"
+              src="/images/ssb-logo.png" 
+              alt="St. Christopher & Nevis Social Security Board" 
+              className="w-full h-full object-contain drop-shadow-lg"
             />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-emerald-800">SecureServe</h1>
-            <p className="text-emerald-700">Social Security Management System</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">St. Christopher & Nevis</h1>
+            <p className="text-white/80 text-sm font-medium">Social Security Board</p>
           </div>
         </div>
 
-        <Card className="shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-center">Sign In</CardTitle>
+        <Card className="shadow-2xl border-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-center text-foreground">Sign In</CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access the system
             </CardDescription>
@@ -322,7 +325,7 @@ export const LoginScreen = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700" 
+                className="w-full" 
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
@@ -344,8 +347,8 @@ export const LoginScreen = () => {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SecureServe. All rights reserved [1.0.009]
+        <p className="text-center text-sm text-white/60">
+          © {new Date().getFullYear()} St. Christopher & Nevis Social Security Board
         </p>
       </div>
     </div>
