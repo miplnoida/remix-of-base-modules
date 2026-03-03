@@ -68,13 +68,13 @@ export function AuditChecklistDialog({
   const getResponseIcon = (response?: string) => {
     switch (response) {
       case 'Yes':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'No':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'N/A':
-        return <MinusCircle className="h-4 w-4 text-gray-400" />;
+        return <MinusCircle className="h-4 w-4 text-muted-foreground" />;
       case 'Partial':
-        return <MinusCircle className="h-4 w-4 text-yellow-600" />;
+        return <MinusCircle className="h-4 w-4 text-warning" />;
       default:
         return null;
     }

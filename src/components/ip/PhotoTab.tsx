@@ -173,7 +173,7 @@ export const PhotoTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               {photo ? (
                 <div className="space-y-4">
                   <img 
@@ -198,8 +198,8 @@ export const PhotoTab = () => {
                 </div>
               ) : (
                 <div>
-                  <Camera className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-sm text-gray-600 mb-4">Upload passport-style photo</p>
+                  <Camera className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground mb-4">Upload passport-style photo</p>
                   <div className="flex flex-col gap-2">
                     <Button 
                       onClick={() => document.getElementById('photo-upload')?.click()}
@@ -229,9 +229,9 @@ export const PhotoTab = () => {
             </div>
 
             {/* Photo Requirements */}
-            <div className="bg-blue-50 p-4 rounded">
-              <h4 className="font-semibold text-blue-900 mb-2">Photo Requirements:</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="bg-info/10 p-4 rounded">
+              <h4 className="font-semibold text-info mb-2">Photo Requirements:</h4>
+              <ul className="text-sm text-info/80 space-y-1">
                 <li>• Passport-style photo (2x2 inches)</li>
                 <li>• Clear, high-resolution image</li>
                 <li>• Plain background (white or light blue)</li>
@@ -244,7 +244,7 @@ export const PhotoTab = () => {
         </Card>
 
         {/* Signature Section */}
-        <Card style={{backgroundColor:"#F9FAFB"}}>
+        <Card className="bg-muted/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -252,7 +252,7 @@ export const PhotoTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               {signature ? (
                 <div className="space-y-4">
                   <img 

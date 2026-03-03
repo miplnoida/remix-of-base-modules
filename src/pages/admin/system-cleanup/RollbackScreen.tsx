@@ -247,7 +247,7 @@ export default function RollbackScreen() {
                       </TableCell>
                       <TableCell>
                         {backup.canRestore ? (
-                          <Badge className="bg-green-600">
+                          <Badge className="bg-success text-success-foreground">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Available
                           </Badge>
@@ -309,12 +309,12 @@ export default function RollbackScreen() {
                 {selectedBackup && new Date(selectedBackup.createdAt).toLocaleString()}
               </p>
 
-              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-4 rounded-md">
+              <div className="bg-warning/10 border border-warning/20 p-4 rounded-md">
                 <div className="flex gap-2 items-start">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-amber-800 dark:text-amber-200">Warning</p>
-                    <p className="text-amber-700 dark:text-amber-300">
+                    <p className="font-medium text-warning">Warning</p>
+                    <p className="text-muted-foreground">
                       This will restore all deleted items from this backup. 
                       Make sure you have reviewed the backup contents before proceeding.
                     </p>

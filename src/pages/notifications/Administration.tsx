@@ -97,16 +97,16 @@ export default function Administration() {
 
   const getPermissionBadge = (permission: string) => {
     const colors = {
-      create: "bg-green-100 text-green-800 border-green-300",
-      read: "bg-blue-100 text-blue-800 border-blue-300",
-      update: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      delete: "bg-red-100 text-red-800 border-red-300",
-      manage_users: "bg-purple-100 text-purple-800 border-purple-300"
+      create: "bg-success/10 text-success border-success/30",
+      read: "bg-info/10 text-info border-info/30",
+      update: "bg-warning/15 text-warning border-warning/30",
+      delete: "bg-destructive/10 text-destructive border-destructive/30",
+      manage_users: "bg-accent text-accent-foreground border-accent"
     };
     
     return (
       <Badge 
-        className={colors[permission as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-300"}
+        className={colors[permission as keyof typeof colors] || "bg-muted text-muted-foreground border-border"}
       >
         {permission.replace('_', ' ')}
       </Badge>

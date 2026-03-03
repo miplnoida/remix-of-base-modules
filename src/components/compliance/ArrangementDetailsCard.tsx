@@ -68,7 +68,7 @@ export function ArrangementDetailsCard({ arrangement, onRecordPayment }: Arrange
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Total Paid</p>
-            <p className="text-lg font-bold text-green-600">{formatCurrency(arrangement.totalPaid)}</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(arrangement.totalPaid)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Outstanding</p>
@@ -104,7 +104,7 @@ export function ArrangementDetailsCard({ arrangement, onRecordPayment }: Arrange
 
         {/* Next Payment Due */}
         {arrangement.nextDueDate && arrangement.status === 'ACTIVE' && (
-          <Card className="bg-yellow-50/30 border-yellow-200">
+          <Card className="bg-warning/10 border-warning/20">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -138,18 +138,18 @@ export function ArrangementDetailsCard({ arrangement, onRecordPayment }: Arrange
               </TableHeader>
               <TableBody>
                 {arrangement.installments.map((installment) => (
-                  <TableRow key={installment.id} className={installment.overdue ? 'bg-red-50/30' : ''}>
+                  <TableRow key={installment.id} className={installment.overdue ? 'bg-destructive/5' : ''}>
                     <TableCell className="font-medium">{installment.installmentNumber}</TableCell>
                     <TableCell>{formatDate(installment.dueDate)}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(installment.totalAmount)}</TableCell>
                     <TableCell>
                       {installment.paid ? (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className="bg-success/10 text-success">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Paid
                         </Badge>
                       ) : installment.overdue ? (
-                        <Badge className="bg-red-100 text-red-800">
+                        <Badge className="bg-destructive/10 text-destructive">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Overdue
                         </Badge>

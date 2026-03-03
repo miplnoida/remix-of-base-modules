@@ -310,12 +310,12 @@ export default function WorkflowSecuritySettings() {
                       <TableCell>{workflow.secured_table || '-'}</TableCell>
                       <TableCell>
                         {workflow.secured_module_id && workflow.secured_table ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                             <Lock className="h-3 w-3 mr-1" />
                             Secured
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Unsecured
                           </Badge>

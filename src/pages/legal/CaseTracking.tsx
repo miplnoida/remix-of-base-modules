@@ -129,8 +129,8 @@ const CaseTracking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -143,11 +143,11 @@ const CaseTracking = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Legal Module
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Legal Module</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Case Tracking</span>
+                <span className="text-foreground font-medium">Case Tracking</span>
               </nav>
             </div>
             <div className="flex items-center space-x-2">
@@ -166,8 +166,8 @@ const CaseTracking = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Case Detail & Tracking</h1>
-          <p className="text-gray-600">Monitor and track all legal cases and their progress</p>
+          <h1 className="text-3xl font-bold text-foreground">Case Detail & Tracking</h1>
+          <p className="text-muted-foreground">Monitor and track all legal cases and their progress</p>
         </div>
 
         <Card>
@@ -260,7 +260,7 @@ const CaseTracking = () => {
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-sm">{case_.nextAction}</div>
-                        <div className="text-xs text-gray-500">{case_.nextActionDate}</div>
+                        <div className="text-xs text-muted-foreground">{case_.nextActionDate}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -288,7 +288,7 @@ const CaseTracking = () => {
             
             {filteredCases.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-500">No cases found matching your criteria.</p>
+                <p className="text-muted-foreground">No cases found matching your criteria.</p>
               </div>
             )}
           </CardContent>

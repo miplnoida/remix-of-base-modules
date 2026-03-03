@@ -523,7 +523,7 @@ const SearchPayInvoices: React.FC = () => {
                       ))}
 
                       {/* Payment Summary */}
-                      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                         <div>
                           <div className="text-sm text-muted-foreground">Total Payment Splits</div>
                           <div className="font-semibold">EC$ {getTotalPaymentAmount().toFixed(2)}</div>

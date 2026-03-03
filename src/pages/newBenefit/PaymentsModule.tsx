@@ -418,9 +418,9 @@ export const PaymentsModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Export Summary</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm text-blue-700">
+              <div className="p-4 bg-info/10 border border-info/20 rounded-lg">
+                <h4 className="font-medium text-foreground mb-2">Export Summary</h4>
+                <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground">
                   <div>
                     <p>Total Payments: 87</p>
                   </div>

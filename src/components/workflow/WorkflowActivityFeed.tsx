@@ -89,28 +89,28 @@ const mockActivities: Activity[] = [
 export default function WorkflowActivityFeed() {
   const getActivityIcon = (type: string) => {
     const icons: Record<string, any> = {
-      started: <PlayCircle className="h-5 w-5 text-blue-600" />,
-      completed: <CheckCircle2 className="h-5 w-5 text-green-600" />,
-      failed: <XCircle className="h-5 w-5 text-red-600" />,
-      paused: <PauseCircle className="h-5 w-5 text-yellow-600" />,
-      resumed: <PlayCircle className="h-5 w-5 text-purple-600" />,
-      approved: <CheckCircle2 className="h-5 w-5 text-green-600" />,
-      rejected: <XCircle className="h-5 w-5 text-red-600" />,
+      started: <PlayCircle className="h-5 w-5 text-info" />,
+      completed: <CheckCircle2 className="h-5 w-5 text-success" />,
+      failed: <XCircle className="h-5 w-5 text-destructive" />,
+      paused: <PauseCircle className="h-5 w-5 text-warning" />,
+      resumed: <PlayCircle className="h-5 w-5 text-accent-foreground" />,
+      approved: <CheckCircle2 className="h-5 w-5 text-success" />,
+      rejected: <XCircle className="h-5 w-5 text-destructive" />,
     };
-    return icons[type] || <Clock className="h-5 w-5 text-gray-600" />;
+    return icons[type] || <Clock className="h-5 w-5 text-muted-foreground" />;
   };
 
   const getActivityColor = (type: string) => {
     const colors: Record<string, string> = {
-      started: "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-      paused: "bg-yellow-100 text-yellow-800",
-      resumed: "bg-purple-100 text-purple-800",
-      approved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
+      started: "bg-info/10 text-info",
+      completed: "bg-success/10 text-success",
+      failed: "bg-destructive/10 text-destructive",
+      paused: "bg-warning/15 text-warning",
+      resumed: "bg-accent text-accent-foreground",
+      approved: "bg-success/10 text-success",
+      rejected: "bg-destructive/10 text-destructive",
     };
-    return colors[type] || "bg-gray-100 text-gray-800";
+    return colors[type] || "bg-muted text-muted-foreground";
   };
 
   const formatTime = (timestamp: string) => {

@@ -73,11 +73,11 @@ const ServiceReceipts = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge variant="default" className="bg-success/10 text-success">Completed</Badge>;
       case 'processing':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Processing</Badge>;
+        return <Badge variant="secondary" className="bg-info/10 text-info">Processing</Badge>;
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-warning/15 text-warning">Pending</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
@@ -87,19 +87,19 @@ const ServiceReceipts = () => {
 
   const getServiceTypeBadge = (type: string) => {
     const colors = {
-      certificate: 'bg-blue-100 text-blue-800',
-      verification: 'bg-green-100 text-green-800',
-      statement: 'bg-purple-100 text-purple-800',
-      compliance: 'bg-orange-100 text-orange-800',
-      appeal: 'bg-red-100 text-red-800'
+      certificate: 'bg-info/10 text-info',
+      verification: 'bg-success/10 text-success',
+      statement: 'bg-accent text-accent-foreground',
+      compliance: 'bg-warning/15 text-warning',
+      appeal: 'bg-destructive/10 text-destructive'
     };
     return <Badge variant="outline" className={colors[type as keyof typeof colors]}>{type}</Badge>;
   };
 
   const getClientTypeBadge = (type: string) => {
     return type === 'individual' ? 
-      <Badge variant="outline" className="bg-gray-100 text-gray-800">Individual</Badge> :
-      <Badge variant="outline" className="bg-indigo-100 text-indigo-800">Employer</Badge>;
+      <Badge variant="outline" className="bg-muted text-muted-foreground">Individual</Badge> :
+      <Badge variant="outline" className="bg-info/10 text-info">Employer</Badge>;
   };
 
   const filteredReceipts = receipts.filter(receipt => {
@@ -116,8 +116,8 @@ const ServiceReceipts = () => {
       <BackNavigation />
       
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Service Receipts</h1>
-        <p className="text-gray-600 mt-2">Manage administrative service fees and document processing receipts</p>
+        <h1 className="text-3xl font-bold text-foreground">Service Receipts</h1>
+        <p className="text-muted-foreground mt-2">Manage administrative service fees and document processing receipts</p>
       </div>
 
       {/* Search and Filter Section */}
@@ -133,7 +133,7 @@ const ServiceReceipts = () => {
             <div>
               <Label htmlFor="search">Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
                   placeholder="Client, service, receipt #..."
@@ -189,25 +189,25 @@ const ServiceReceipts = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">$240.00</div>
-            <p className="text-sm text-gray-600">Total Service Fees</p>
+            <p className="text-sm text-muted-foreground">Total Service Fees</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">4</div>
-            <p className="text-sm text-gray-600">Service Requests</p>
+            <p className="text-sm text-muted-foreground">Service Requests</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">2</div>
-            <p className="text-sm text-gray-600">Completed</p>
+            <p className="text-sm text-muted-foreground">Completed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">2</div>
-            <p className="text-sm text-gray-600">In Progress</p>
+            <p className="text-sm text-muted-foreground">In Progress</p>
           </CardContent>
         </Card>
       </div>

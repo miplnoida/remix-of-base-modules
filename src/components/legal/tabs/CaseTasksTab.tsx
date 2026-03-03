@@ -21,7 +21,7 @@ const getPriorityBadge = (priority: string) => {
     case 'Critical':
       return <Badge variant="destructive">{priority}</Badge>;
     case 'High':
-      return <Badge className="bg-orange-600 text-white">{priority}</Badge>;
+      return <Badge className="bg-warning text-warning-foreground">{priority}</Badge>;
     case 'Medium':
       return <Badge variant="warning">{priority}</Badge>;
     default:
@@ -55,8 +55,8 @@ export function CaseTasksTab({ caseData }: CaseTasksTabProps) {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 {status === 'To Do' && <Clock className="h-4 w-4 text-muted-foreground" />}
-                {status === 'Doing' && <AlertCircle className="h-4 w-4 text-blue-600" />}
-                {status === 'Done' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                {status === 'Doing' && <AlertCircle className="h-4 w-4 text-info" />}
+                {status === 'Done' && <CheckCircle className="h-4 w-4 text-success" />}
                 {status}
                 <Badge variant="outline" className="ml-auto text-xs">
                   {tasks.length}

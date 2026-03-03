@@ -185,7 +185,7 @@ export default function CaseIntakeWizard() {
             <div className="flex flex-col items-center flex-1">
               <div className={`
                 w-10 h-10 rounded-full flex items-center justify-center font-semibold
-                ${currentStep > step.id ? 'bg-green-600 text-white' : 
+                ${currentStep > step.id ? 'bg-success text-success-foreground' : 
                   currentStep === step.id ? 'bg-primary text-primary-foreground' : 
                   'bg-muted text-muted-foreground'}
               `}>
@@ -194,7 +194,7 @@ export default function CaseIntakeWizard() {
               <span className="text-xs mt-1 hidden sm:block">{step.name}</span>
             </div>
             {index < STEPS.length - 1 && (
-              <div className={`h-0.5 flex-1 ${currentStep > step.id ? 'bg-green-600' : 'bg-muted'}`} />
+              <div className={`h-0.5 flex-1 ${currentStep > step.id ? 'bg-success' : 'bg-muted'}`} />
             )}
           </div>
         ))}
@@ -217,7 +217,7 @@ export default function CaseIntakeWizard() {
                   placeholder="Brief descriptive title"
                   className="mt-1"
                 />
-                {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title}</p>}
+                {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
               </div>
 
               <div>
@@ -233,7 +233,7 @@ export default function CaseIntakeWizard() {
                     <SelectItem value="Enforcement">Enforcement</SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.caseType && <p className="text-sm text-red-600 mt-1">{errors.caseType}</p>}
+                {errors.caseType && <p className="text-sm text-destructive mt-1">{errors.caseType}</p>}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -341,7 +341,7 @@ export default function CaseIntakeWizard() {
                 </div>
               ))}
 
-              {errors.parties && <p className="text-sm text-red-600">{errors.parties}</p>}
+              {errors.parties && <p className="text-sm text-destructive">{errors.parties}</p>}
 
               <Button type="button" variant="outline" onClick={handleAddParty}>
                 Add Another Party
@@ -365,7 +365,7 @@ export default function CaseIntakeWizard() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.summary.length} characters
                 </p>
-                {errors.summary && <p className="text-sm text-red-600 mt-1">{errors.summary}</p>}
+                {errors.summary && <p className="text-sm text-destructive mt-1">{errors.summary}</p>}
               </div>
 
               <div>
@@ -378,7 +378,7 @@ export default function CaseIntakeWizard() {
                   rows={4}
                   className="mt-1"
                 />
-                {errors.relief_sought && <p className="text-sm text-red-600 mt-1">{errors.relief_sought}</p>}
+                {errors.relief_sought && <p className="text-sm text-destructive mt-1">{errors.relief_sought}</p>}
               </div>
             </div>
           )}

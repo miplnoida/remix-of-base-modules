@@ -62,30 +62,30 @@ const RULE_TYPE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const RULE_TYPE_COLORS: Record<string, string> = {
-  validation: 'bg-blue-50 text-blue-700 border-blue-200',
-  calculation: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  workflow: 'bg-purple-50 text-purple-700 border-purple-200',
-  api_contract: 'bg-green-50 text-green-700 border-green-200',
-  ui_behavior: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  db_constraint: 'bg-orange-50 text-orange-700 border-orange-200',
-  access_control: 'bg-red-50 text-red-700 border-red-200',
+  validation: 'bg-info/10 text-info border-info/20',
+  calculation: 'bg-warning/10 text-warning border-warning/20',
+  workflow: 'bg-accent text-accent-foreground border-accent',
+  api_contract: 'bg-success/10 text-success border-success/20',
+  ui_behavior: 'bg-info/15 text-info border-info/25',
+  db_constraint: 'bg-warning/15 text-warning border-warning/25',
+  access_control: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
   critical: 'text-destructive font-semibold',
-  high: 'text-orange-600 font-medium',
-  medium: 'text-yellow-600',
+  high: 'text-warning font-medium',
+  medium: 'text-warning',
   low: 'text-muted-foreground',
 };
 
 const TEST_TYPE_COLORS: Record<string, string> = {
-  positive: 'bg-green-50 text-green-700 border-green-200',
-  negative: 'bg-red-50 text-red-700 border-red-200',
-  boundary: 'bg-purple-50 text-purple-700 border-purple-200',
-  workflow: 'bg-blue-50 text-blue-700 border-blue-200',
-  rbac: 'bg-orange-50 text-orange-700 border-orange-200',
-  integrity: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  dependency: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  positive: 'bg-success/10 text-success border-success/20',
+  negative: 'bg-destructive/10 text-destructive border-destructive/20',
+  boundary: 'bg-accent text-accent-foreground border-accent',
+  workflow: 'bg-info/10 text-info border-info/20',
+  rbac: 'bg-warning/15 text-warning border-warning/25',
+  integrity: 'bg-warning/10 text-warning border-warning/20',
+  dependency: 'bg-info/15 text-info border-info/25',
 };
 
 // Normalize module names to match knowledge entries (fuzzy match)

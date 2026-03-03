@@ -85,13 +85,13 @@ export const SignatureCapture = ({ onCapture }: SignatureCaptureProps) => {
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
-        <p className="text-sm text-gray-600 mb-2 text-center">Sign in the area below</p>
+      <div className="border-2 border-dashed border-border rounded-lg p-4 bg-card">
+        <p className="text-sm text-muted-foreground mb-2 text-center">Sign in the area below</p>
         <canvas
           ref={canvasRef}
           width={500}
           height={200}
-          className="cursor-crosshair border border-gray-200 rounded bg-white"
+          className="cursor-crosshair border border-border rounded bg-background"
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
