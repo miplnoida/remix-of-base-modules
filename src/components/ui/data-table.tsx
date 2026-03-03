@@ -18,6 +18,7 @@ import {
   Eye,
   Edit,
   CheckCircle,
+  Trash2,
   AlertTriangle,
   ChevronDown
 } from 'lucide-react';
