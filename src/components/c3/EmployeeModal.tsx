@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -133,6 +133,7 @@ export default function EmployeeModal({
 
   // Track if auto-fill has been applied
   const autoFillAppliedRef = useRef(false);
+  const ssnInputRef = useRef<HTMLInputElement>(null);
 
   // Server-side recalculated penalty data for Edit mode
   const [livePenalty, setLivePenalty] = useState<PenaltyFinesData | null>(null);
@@ -706,6 +707,85 @@ export default function EmployeeModal({
     onClose();
   };
 
+  const resetForNextEntry = () => {
+    setLocalEmployee({
+      ssn: '', name: '',
+      days: [false, false, false, false, false, false, false],
+      categories: [false, false, false],
+      wages: 0, bonus: 0, totalWages: 0, hssdLevy: 0, socialSecurity: 0,
+      isVerified: false,
+      weeklyWages: [0, 0, 0, 0, 0, 0, 0],
+      termStartDate: periodTermStartDate,
+      payPeriod: 'Monthly', dateOfBirth: '',
+      bonusDate: '', bonusExemptLevy: false,
+      holidayStartDate: '', holidayEndDate: '', holidayNoDates: false
+    });
+    setSsnValidated(false);
+    setSsnError('');
+    setDefaultPayPeriodFetched(false);
+    setWageInputValues(['', '', '', '', '', '', '']);
+    setLivePenalty(null);
+    setServerEmployeeCalc(null);
+    autoFillAppliedRef.current = false;
+    setHolidayDateError('');
+    setBonusDateError('');
+  };
+
+  const handleSaveAndContinue = () => {
+    if (!ssnValidated) { setSsnError('Please enter a valid SSN'); return; }
+    if (!employee && allEmployees) {
+      const isDuplicate = allEmployees.some(emp => emp.ssn === localEmployee.ssn);
+      if (isDuplicate) { setSsnError('This SSN already exists in this C3. Duplicate employees are not allowed.'); return; }
+    }
+    if (localEmployee.bonusDate && !validateBonusDate(localEmployee.bonusDate)) return;
+    if (localEmployee.holidayStartDate && localEmployee.holidayEndDate && !validateHolidayDates(localEmployee.holidayStartDate, localEmployee.holidayEndDate)) return;
+    if (localEmployee.days?.[6] && (localEmployee.weeklyWages?.[6] ?? 0) > 0) {
+      if (!holidayPolicyLookup.canSaveHoliday) {
+        setHolidayDateError(holidayPolicyLookup.holidayValidationError || 'Holiday pay configuration issue. Cannot save.');
+        return;
+      }
+    }
+    const savedEmployee: EmployeeData = {
+      ...localEmployee,
+      weeklyWages: effectiveWages,
+      totalWages: payrollCalc.totalWages,
+      hssdLevy: payrollCalc.employeeLevy,
+      socialSecurity: payrollCalc.employeeSS,
+      employeeSS: payrollCalc.employeeSS,
+      employeeLevy: payrollCalc.employeeLevy,
+      employerSS: payrollCalc.employerSSTotal,
+      employerLevy: payrollCalc.employerLevy,
+      employerSeverance: payrollCalc.employerSeverance,
+      periodGross: payrollCalc.totalWages,
+      bonusDate: localEmployee.days?.[5] ? localEmployee.bonusDate : '',
+      bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,
+      holidayStartDate: localEmployee.days?.[6] ? localEmployee.holidayStartDate : '',
+      holidayEndDate: localEmployee.days?.[6] ? localEmployee.holidayEndDate : '',
+      holidayNoDates: localEmployee.days?.[6] ? localEmployee.holidayNoDates : false,
+    };
+    onSave(savedEmployee);
+    resetForNextEntry();
+    setTimeout(() => ssnInputRef.current?.focus(), 150);
+  };
+
+  const handlePanelKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (!isViewMode && ssnValidated) handleSave();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!isViewMode && ssnValidated && !employee) handleSaveAndContinue();
+    }
+  };
+
+  // Auto-focus SSN when panel opens in add mode
+  useEffect(() => {
+    if (isOpen && !employee && !isViewMode) {
+      setTimeout(() => ssnInputRef.current?.focus(), 200);
+    }
+  }, [isOpen, employee, isViewMode]);
+
   const isWeekFieldEnabled = (index: number) => {
     if (index < 5) {
       // Payment input: editable only if pay-period allows it AND presence is marked
@@ -756,23 +836,26 @@ export default function EmployeeModal({
       </AlertDialogContent>
     </AlertDialog>
 
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[94vh] overflow-hidden p-0 flex flex-col w-[96vw] max-w-[1080px] sm:rounded-xl">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="max-h-screen overflow-hidden p-0 flex flex-col w-[96vw] max-w-[680px] sm:max-w-[680px]" onKeyDown={handlePanelKeyDown}>
         {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-5 py-3 border-b border-border/50 flex-shrink-0">
-          <DialogHeader className="space-y-0">
+          <SheetHeader className="space-y-0">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-md bg-primary/15 flex items-center justify-center">
                 <User className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-base font-semibold tracking-tight">{modalTitle}</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0">
+                <SheetTitle className="text-base font-semibold tracking-tight">{modalTitle}</SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground mt-0">
                   {isViewMode ? 'Viewing employee contribution details' : 'Enter employee details and wage information'}
-                </DialogDescription>
+                  {!isViewMode && (
+                    <span className="ml-2 text-muted-foreground/50 text-[10px]">Ctrl+S save · Ctrl+Enter save & next · Esc cancel</span>
+                  )}
+                </SheetDescription>
               </div>
             </div>
-          </DialogHeader>
+          </SheetHeader>
         </div>
 
         {/* Scrollable Content */}
@@ -784,6 +867,7 @@ export default function EmployeeModal({
               <div className="relative">
                 <Input
                   id="ssn"
+                  ref={ssnInputRef}
                   value={localEmployee.ssn}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -1338,17 +1422,23 @@ export default function EmployeeModal({
                 <X className="h-4 w-4" />
                 Cancel
               </Button>
+              {!isViewMode && !employee && (
+                <Button variant="secondary" onClick={handleSaveAndContinue} disabled={!ssnValidated} className="gap-1.5 h-9 text-sm">
+                  <Save className="h-4 w-4" />
+                  Save & Next
+                </Button>
+              )}
               {!isViewMode && (
                 <Button onClick={handleSave} disabled={!ssnValidated} className="gap-1.5 h-9 text-sm min-w-[130px]">
                   <Save className="h-4 w-4" />
-                  Save Employee
+                  Save{employee ? '' : ' & Close'}
                 </Button>
               )}
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
     </>
   );
 }
