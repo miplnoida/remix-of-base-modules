@@ -117,8 +117,8 @@ const IDCardGeneration = () => {
             )}
 
             {selectedPerson && (
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-medium text-green-800 mb-2">Selected Person:</h3>
+              <div className="mt-6 p-4 bg-success/10 border border-success/20 rounded-lg">
+                <h3 className="font-medium text-success mb-2">Selected Person:</h3>
                 <div className="text-sm space-y-1">
                   <p><strong>Name:</strong> {selectedPerson.firstName} {selectedPerson.lastName}</p>
                   <p><strong>Registration No:</strong> {selectedPerson.registrationNo}</p>

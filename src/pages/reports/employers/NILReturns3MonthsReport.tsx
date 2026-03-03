@@ -99,7 +99,7 @@ export default function NILReturns3MonthsReport() {
                     <TableCell>{row.periods}</TableCell>
                     <TableCell>{row.lastPositive}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-warning/15 text-warning">
                         {row.reason}
                       </span>
                     </TableCell>

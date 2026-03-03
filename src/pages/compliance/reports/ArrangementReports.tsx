@@ -162,13 +162,13 @@ export default function ArrangementReports() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={successRateData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="month" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="completed" fill="#009B4C" name="Completed" />
-                <Bar dataKey="defaulted" fill="#DC2626" name="Defaulted" />
+                <Bar dataKey="completed" fill="hsl(var(--success))" name="Completed" />
+                <Bar dataKey="defaulted" fill="hsl(var(--destructive))" name="Defaulted" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -181,12 +181,12 @@ export default function ArrangementReports() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={paymentTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="month" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="payments" stroke="#009B4C" strokeWidth={3} name="Payments (EC$)" />
+                <Line type="monotone" dataKey="payments" stroke="hsl(var(--success))" strokeWidth={3} name="Payments (EC$)" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

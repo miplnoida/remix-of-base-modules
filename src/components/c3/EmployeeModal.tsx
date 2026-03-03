@@ -796,10 +796,10 @@ export default function EmployeeModal({
                   placeholder="6-digit SSN"
                   maxLength={6}
                   disabled={isViewMode || !!employee}
-                  className={`h-9 text-sm ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
+                  className={`h-9 text-sm ${ssnError ? 'border-destructive focus-visible:ring-destructive' : ssnValidated ? 'border-success focus-visible:ring-success' : ''}`}
                 />
                 {isValidating && <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                {ssnValidated && !isValidating && <Check className="absolute right-2 top-2 h-4 w-4 text-green-500" />}
+                {ssnValidated && !isValidating && <Check className="absolute right-2 top-2 h-4 w-4 text-success" />}
               </div>
               {ssnError && <p className="text-xs text-destructive leading-tight">{ssnError}</p>}
             </div>
@@ -830,15 +830,15 @@ export default function EmployeeModal({
             {/* Left Column: Presence + Weekly Payment */}
             <div className="flex flex-col gap-3">
               {/* Weekly Presence */}
-              <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+              <div className="rounded-lg border border-info/20 bg-info/10 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
-                  <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Weekly Presence</h3>
-                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 ml-auto border-blue-300 text-blue-700">
+                  <CalendarDays className="h-3.5 w-3.5 text-info" />
+                  <h3 className="text-xs font-semibold text-info uppercase tracking-wide">Weekly Presence</h3>
+                  <Badge variant="outline" className="text-[10px] font-normal h-5 px-1.5 ml-auto border-info/30 text-info">
                     {mondayCount} {mondayCount === 1 ? 'Monday' : 'Mondays'}
                   </Badge>
                 </div>
-                <p className="text-[10px] text-blue-600/80 mb-2">Mark which weeks the employee was present</p>
+                <p className="text-[10px] text-info/80 mb-2">Mark which weeks the employee was present</p>
                 <div className="flex flex-wrap gap-1.5">
                   {generatedWeekIndices.map((weekIdx) => {
                     const isChecked = localEmployee.days?.[weekIdx] || false;
@@ -847,17 +847,17 @@ export default function EmployeeModal({
                       <div
                         key={weekIdx}
                         className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 cursor-pointer transition-all select-none ${
-                          isChecked ? 'bg-green-50 border-green-400 shadow-sm ring-1 ring-green-300' : 'bg-background border-blue-200 hover:bg-blue-100/50'
+                          isChecked ? 'bg-success/10 border-success shadow-sm ring-1 ring-success/30' : 'bg-background border-info/20 hover:bg-info/5'
                         }`}
                         onClick={() => !isViewMode && handleWeekToggle(weekIdx)}
                       >
                         <div className={`h-4 w-4 min-w-[1rem] border rounded flex items-center justify-center transition-colors ${
-                          isChecked ? 'bg-green-500 border-green-600' : 'bg-background border-input'
+                          isChecked ? 'bg-success border-success' : 'bg-background border-input'
                         }`}>
                           {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
                         </div>
                         <div className="flex flex-col leading-tight">
-                          <span className={`text-xs font-medium ${isChecked ? 'text-green-800' : 'text-foreground'}`}>Wk {weekIdx + 1}</span>
+                          <span className={`text-xs font-medium ${isChecked ? 'text-success' : 'text-foreground'}`}>Wk {weekIdx + 1}</span>
                           {mondayDate && <span className="text-[9px] text-muted-foreground">{formatMondayDate(mondayDate)}</span>}
                         </div>
                       </div>
@@ -867,18 +867,18 @@ export default function EmployeeModal({
               </div>
 
               {/* Weekly Payment */}
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 flex-1">
+              <div className="rounded-lg border border-success/20 bg-success/10 p-3 flex-1">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-                  <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Weekly Payment</h3>
+                  <DollarSign className="h-3.5 w-3.5 text-success" />
+                  <h3 className="text-xs font-semibold text-success uppercase tracking-wide">Weekly Payment</h3>
                   {localEmployee.payPeriod && (
-                    <Badge variant="secondary" className="text-[10px] font-normal h-5 px-1.5 ml-auto bg-emerald-100 text-emerald-700 border-emerald-300">
+                    <Badge variant="secondary" className="text-[10px] font-normal h-5 px-1.5 ml-auto bg-success/10 text-success border-success/30">
                       {localEmployee.payPeriod}
                     </Badge>
                   )}
                 </div>
                 {!hasPayPeriodSelected ? (
-                  <div className="rounded-md border border-dashed border-emerald-300 bg-background p-4 text-center">
+                  <div className="rounded-md border border-dashed border-success/30 bg-background p-4 text-center">
                     <p className="text-xs text-muted-foreground">Select a Pay Period above to configure weekly wages</p>
                   </div>
                 ) : (
@@ -889,9 +889,9 @@ export default function EmployeeModal({
                       const fieldEnabled = isPresent && isPayEditable;
                       const mondayDate = mondays[weekIdx];
                       return (
-                        <div key={weekIdx} className={`flex items-center gap-2 rounded-md border border-emerald-200/80 px-2.5 py-1.5 ${fieldEnabled ? 'bg-background' : 'bg-muted/30'}`}>
+                        <div key={weekIdx} className={`flex items-center gap-2 rounded-md border border-success/20 px-2.5 py-1.5 ${fieldEnabled ? 'bg-background' : 'bg-muted/30'}`}>
                           <div className="flex items-center gap-1.5 min-w-[6rem]">
-                            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isPresent ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
+                            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isPresent ? 'bg-success' : 'bg-muted-foreground/30'}`} />
                             <div className="flex flex-col">
                               <span className={`text-xs font-medium ${isPayEditable ? 'text-foreground' : 'text-muted-foreground'}`}>Week {weekIdx + 1}</span>
                               {mondayDate && <span className="text-[10px] text-muted-foreground leading-tight">Mon {formatMondayDate(mondayDate)}</span>}
@@ -923,22 +923,22 @@ export default function EmployeeModal({
             <div className="flex flex-col gap-3">
               {/* Bonus */}
               {hasPayPeriodSelected && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+                <div className="rounded-lg border border-warning/20 bg-warning/10 p-3">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Gift className="h-3.5 w-3.5 text-amber-600" />
-                    <h3 className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Bonus</h3>
+                    <Gift className="h-3.5 w-3.5 text-warning" />
+                    <h3 className="text-xs font-semibold text-warning uppercase tracking-wide">Bonus</h3>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-amber-100/50 ${
-                          localEmployee.days?.[5] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-amber-300'
+                        className={`h-5 w-5 min-w-[1.25rem] border rounded flex items-center justify-center transition-colors cursor-pointer hover:bg-warning/10 ${
+                          localEmployee.days?.[5] ? 'bg-primary border-primary shadow-sm' : 'bg-background border-warning/30'
                         }`}
                         onClick={() => handleWeekToggle(5)}
                       >
                         {localEmployee.days?.[5] && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                       </div>
-                      <span className="text-xs font-medium text-amber-800 w-20">Amount</span>
+                      <span className="text-xs font-medium text-warning w-20">Amount</span>
                       <Input
                         type="text"
                         inputMode="decimal"

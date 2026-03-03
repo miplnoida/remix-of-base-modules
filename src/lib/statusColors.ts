@@ -4,38 +4,38 @@
  * instead of hardcoded Tailwind color classes.
  *
  * Semantic mapping:
- *   success/active/approved  → primary (green)
- *   warning/pending          → accent (yellow)
+ *   success/active/approved  → success (green)
+ *   warning/pending          → warning (amber)
  *   error/rejected/overdue   → destructive (red)
- *   info/secondary           → secondary (slate)
+ *   info/secondary           → info (blue)
  *   neutral/default          → muted
  */
 
 // ── Badge / pill classes ──────────────────────────────────────────
 export const STATUS_BADGE: Record<string, string> = {
   // ── Positive ──
-  active:     'bg-primary/10 text-primary',
-  approved:   'bg-primary/10 text-primary',
-  completed:  'bg-primary/10 text-primary',
-  settled:    'bg-primary/10 text-primary',
-  resolved:   'bg-primary/10 text-primary',
-  verified:   'bg-primary/10 text-primary',
-  balanced:   'bg-primary/10 text-primary',
-  cleared:    'bg-primary/10 text-primary',
-  paid:       'bg-primary/10 text-primary',
-  success:    'bg-primary/10 text-primary',
-  low:        'bg-primary/10 text-primary',
+  active:     'bg-success/10 text-success',
+  approved:   'bg-success/10 text-success',
+  completed:  'bg-success/10 text-success',
+  settled:    'bg-success/10 text-success',
+  resolved:   'bg-success/10 text-success',
+  verified:   'bg-success/10 text-success',
+  balanced:   'bg-success/10 text-success',
+  cleared:    'bg-success/10 text-success',
+  paid:       'bg-success/10 text-success',
+  success:    'bg-success/10 text-success',
+  low:        'bg-success/10 text-success',
 
   // ── Warning / in-progress ──
-  pending:    'bg-accent/30 text-accent-foreground',
-  warning:    'bg-accent/30 text-accent-foreground',
-  'in progress': 'bg-accent/30 text-accent-foreground',
-  'in-progress': 'bg-accent/30 text-accent-foreground',
-  partial:    'bg-accent/30 text-accent-foreground',
-  medium:     'bg-accent/30 text-accent-foreground',
-  review:     'bg-accent/30 text-accent-foreground',
-  'under review': 'bg-accent/30 text-accent-foreground',
-  delayed:    'bg-accent/30 text-accent-foreground',
+  pending:    'bg-warning/15 text-warning',
+  warning:    'bg-warning/15 text-warning',
+  'in progress': 'bg-warning/15 text-warning',
+  'in-progress': 'bg-warning/15 text-warning',
+  partial:    'bg-warning/15 text-warning',
+  medium:     'bg-warning/15 text-warning',
+  review:     'bg-warning/15 text-warning',
+  'under review': 'bg-warning/15 text-warning',
+  delayed:    'bg-warning/15 text-warning',
 
   // ── Error / negative ──
   rejected:   'bg-destructive/10 text-destructive',
@@ -47,10 +47,12 @@ export const STATUS_BADGE: Record<string, string> = {
   error:      'bg-destructive/10 text-destructive',
   'at risk':  'bg-destructive/10 text-destructive',
 
-  // ── Informational / neutral ──
-  info:       'bg-secondary/10 text-secondary-foreground',
-  system:     'bg-secondary/10 text-secondary-foreground',
-  mandatory:  'bg-secondary/10 text-secondary-foreground',
+  // ── Informational ──
+  info:       'bg-info/10 text-info',
+  system:     'bg-info/10 text-info',
+  mandatory:  'bg-info/10 text-info',
+
+  // ── Neutral ──
   draft:      'bg-muted text-muted-foreground',
   custom:     'bg-muted text-muted-foreground',
   neutral:    'bg-muted text-muted-foreground',
@@ -68,12 +70,12 @@ export function getStatusBadgeClass(status: string): string {
 
 // ── Text color helpers ────────────────────────────────────────────
 export const STATUS_TEXT: Record<string, string> = {
-  success:  'text-primary',
-  positive: 'text-primary',
-  warning:  'text-accent-foreground',
+  success:  'text-success',
+  positive: 'text-success',
+  warning:  'text-warning',
   error:    'text-destructive',
   negative: 'text-destructive',
-  info:     'text-secondary-foreground',
+  info:     'text-info',
   neutral:  'text-muted-foreground',
 };
 
@@ -84,11 +86,11 @@ export function getStatusTextClass(variant: string): string {
 // ── Icon accent color helpers ─────────────────────────────────────
 export const ICON_COLOR: Record<string, string> = {
   primary:     'text-primary',
-  success:     'text-primary',
-  warning:     'text-accent-foreground',
+  success:     'text-success',
+  warning:     'text-warning',
   error:       'text-destructive',
   destructive: 'text-destructive',
-  info:        'text-secondary-foreground',
+  info:        'text-info',
   muted:       'text-muted-foreground',
 };
 
@@ -98,6 +100,9 @@ export const KPI_GRADIENT: Record<string, string> = {
   secondary: 'from-secondary to-secondary/80',
   accent:    'from-accent to-accent/80',
   error:     'from-destructive to-destructive/80',
+  info:      'from-info to-info/80',
+  success:   'from-success to-success/80',
+  warning:   'from-warning to-warning/80',
 };
 
 // ── Chart color tokens (HSL CSS vars for Recharts) ────────────────
@@ -106,6 +111,19 @@ export const CHART_HSL = {
   secondary:   'hsl(var(--secondary))',
   accent:      'hsl(var(--accent))',
   destructive: 'hsl(var(--destructive))',
+  info:        'hsl(var(--info))',
+  success:     'hsl(var(--success))',
+  warning:     'hsl(var(--warning))',
   muted:       'hsl(var(--muted-foreground))',
   border:      'hsl(var(--border))',
+};
+
+// ── Contextual background + text combos ───────────────────────────
+// Use these for alert boxes, info panels, highlighted sections
+export const CONTEXTUAL_CLASSES = {
+  info:        'bg-info/10 text-info border-info/20',
+  success:     'bg-success/10 text-success border-success/20',
+  warning:     'bg-warning/15 text-warning border-warning/20',
+  destructive: 'bg-destructive/10 text-destructive border-destructive/20',
+  muted:       'bg-muted text-muted-foreground border-border',
 };

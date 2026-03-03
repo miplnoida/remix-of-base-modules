@@ -109,13 +109,13 @@ export default function DefaultedPlansReport() {
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell className="font-semibold">{row.planAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-green-600">{row.paidAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-red-600 font-semibold">{row.missedPayments}</TableCell>
+                    <TableCell className="text-success">{row.paidAmount.toLocaleString()}</TableCell>
+                    <TableCell className="text-destructive font-semibold">{row.missedPayments}</TableCell>
                     <TableCell>{row.lastPayment}</TableCell>
                     <TableCell>{row.defaultDate}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.escalated ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        row.escalated ? 'bg-destructive/10 text-destructive' : 'bg-warning/15 text-warning'
                       }`}>
                         {row.escalated ? 'Yes' : 'No'}
                       </span>

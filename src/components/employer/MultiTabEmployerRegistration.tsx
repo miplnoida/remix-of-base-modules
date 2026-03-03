@@ -1022,15 +1022,15 @@ export const MultiTabEmployerRegistration = () => {
                  
                   <span className="sm:hidden">Back</span>
                 </Button>
-                <div className="h-6 w-px bg-gray-300" />
+                <div className="h-6 w-px bg-border" />
                
                 <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Add New Employer</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Add New Employer</h1>
                 
                 </div>
               </div>
               <div className="flex gap-2 self-start lg:self-center mt-4 lg:mt-0">
-                <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md" onClick={() => setShowSuccess(true)}>
+                <Button type="button" variant="outline"  className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md" onClick={() => setShowSuccess(true)}>
                   Draft
                 </Button>
                 <Button type="button" className="flex items-center gap-2 border-r-4 border-r-primary" onClick={() => setShowSuccess(true)}>
@@ -1056,7 +1056,7 @@ export const MultiTabEmployerRegistration = () => {
 
             <TabsContent value="form-detail" className="space-y-6">
               {/* Stepper */}
-              <Card className='py-5 mt-5' style={{backgroundColor:"#F9FAFB"}}>
+              <Card className='py-5 mt-5 bg-muted'>
                 <div className='px-5 mb-6'>
                   <Card className='p-3'>
                     <Stepper 
@@ -1081,7 +1081,7 @@ export const MultiTabEmployerRegistration = () => {
                       variant="outline"
                       onClick={prevStep}
                       disabled={currentStep === 0}
-                      className="flex items-center gap-2 border-0 border-l-2 border-l-[#0284C7] shadow-md bg-sky-100 mr-5"
+                      className="flex items-center gap-2 border-0 border-l-2 border-l-primary shadow-md bg-primary/10 mr-5"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Back

@@ -73,15 +73,15 @@ export function CreateTaskDialog({ open, onOpenChange, caseId, onTaskCreated, on
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Review case documents"
-              className={errors.title ? "border-red-500" : ""}
+              className={errors.title ? "border-destructive" : ""}
             />
-            {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-destructive mt-1">{errors.title}</p>}
           </div>
 
           <div>
             <Label htmlFor="owner">Assigned To *</Label>
             <Select value={owner} onValueChange={setOwner}>
-              <SelectTrigger id="owner" className={errors.owner ? "border-red-500" : ""}>
+              <SelectTrigger id="owner" className={errors.owner ? "border-destructive" : ""}>
                 <SelectValue placeholder="Select assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -92,14 +92,14 @@ export function CreateTaskDialog({ open, onOpenChange, caseId, onTaskCreated, on
                 <SelectItem value="Lisa Anderson">Lisa Anderson</SelectItem>
               </SelectContent>
             </Select>
-            {errors.owner && <p className="text-xs text-red-500 mt-1">{errors.owner}</p>}
+            {errors.owner && <p className="text-xs text-destructive mt-1">{errors.owner}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="priority">Priority *</Label>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger id="priority" className={errors.priority ? "border-red-500" : ""}>
+                <SelectTrigger id="priority" className={errors.priority ? "border-destructive" : ""}>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>

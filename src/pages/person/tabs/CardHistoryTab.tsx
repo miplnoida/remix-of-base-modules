@@ -110,7 +110,7 @@ export function CardHistoryTab({ insuredPersonId }: CardHistoryTabProps) {
                   </TableCell>
                   <TableCell>
                     {history.spoiledPrints > 0 && (
-                      <Badge variant="outline" className="text-orange-600 border-orange-600">
+                      <Badge variant="outline" className="text-warning border-warning">
                         {history.spoiledPrints}
                       </Badge>
                     )}

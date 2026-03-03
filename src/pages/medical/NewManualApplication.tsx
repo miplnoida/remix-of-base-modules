@@ -386,7 +386,7 @@ export default function NewManualApplication() {
                   </div>
                   {practiceLocations.length > 1 && (
                     <Button variant="ghost" size="sm" onClick={() => removeLocation(index)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
                 </div>
@@ -511,7 +511,7 @@ export default function NewManualApplication() {
                         size="sm"
                         onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   ))}

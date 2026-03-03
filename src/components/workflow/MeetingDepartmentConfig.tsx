@@ -55,10 +55,10 @@ export function MeetingDepartmentConfig({
   };
 
   return (
-    <Card className="border-blue-200 dark:border-blue-800">
+    <Card className="border-info/20 dark:border-info/10">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600" />
+          <Building2 className="h-5 w-5 text-info" />
           <CardTitle className="text-base">Meeting Department Configuration</CardTitle>
         </div>
         <CardDescription>

@@ -98,34 +98,34 @@ export default function ServiceRequestList() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="text-sm text-blue-600 font-medium">Total Requests</div>
-          <div className="text-2xl font-bold text-blue-900">{requests.length}</div>
+        <div className="bg-info/10 border border-info/20 rounded-lg p-4">
+          <div className="text-sm text-info font-medium">Total Requests</div>
+          <div className="text-2xl font-bold text-foreground">{requests.length}</div>
         </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="text-sm text-yellow-600 font-medium">Pending Payment</div>
-          <div className="text-2xl font-bold text-yellow-900">
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+          <div className="text-sm text-warning font-medium">Pending Payment</div>
+          <div className="text-2xl font-bold text-foreground">
             {requests.filter(r => r.status === 'Payment Pending' || r.status === 'Invoice Generated').length}
           </div>
         </div>
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <div className="text-sm text-purple-600 font-medium">Under Review</div>
-          <div className="text-2xl font-bold text-purple-900">
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <div className="text-sm text-primary font-medium">Under Review</div>
+          <div className="text-2xl font-bold text-foreground">
             {requests.filter(r => r.status === 'Under Review').length}
           </div>
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="text-sm text-green-600 font-medium">Completed</div>
-          <div className="text-2xl font-bold text-green-900">
+        <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+          <div className="text-sm text-success font-medium">Completed</div>
+          <div className="text-2xl font-bold text-foreground">
             {requests.filter(r => r.status === 'Completed').length}
           </div>
         </div>
       </div>
 
       {/* Demo Data Legend */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
+      <Alert className="bg-info/10 border-info/20">
+        <Info className="h-4 w-4 text-info" />
+        <AlertDescription className="text-info">
           <div className="space-y-2">
             <div><strong>Workflow Process:</strong></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">

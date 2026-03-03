@@ -50,10 +50,10 @@ export default function FieldOperations() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "checked_in": return "bg-blue-500";
-      case "in_progress": return "bg-yellow-500";
-      case "completed": return "bg-green-500";
-      default: return "bg-gray-500";
+      case "checked_in": return "bg-info";
+      case "in_progress": return "bg-warning";
+      case "completed": return "bg-success";
+      default: return "bg-muted-foreground";
     }
   };
 
@@ -212,9 +212,9 @@ export default function FieldOperations() {
                   </div>
 
                   {isCheckedIn && (
-                    <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <div className="flex items-center gap-2 mb-3 p-2 bg-info/10 dark:bg-info/5 rounded">
+                      <Clock className="h-4 w-4 text-info" />
+                      <p className="text-sm text-info">
                         Checked in • Visit in progress
                       </p>
                     </div>
@@ -393,9 +393,9 @@ export default function FieldOperations() {
                 <p className="text-sm text-muted-foreground">Case: {selectedActivity.caseNumber}</p>
               </div>
 
-              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="flex items-center gap-2 p-3 bg-info/10 dark:bg-info/5 rounded">
+                <MapPin className="h-4 w-4 text-info" />
+                <p className="text-sm text-info">
                   GPS location will be recorded upon check-in
                 </p>
               </div>

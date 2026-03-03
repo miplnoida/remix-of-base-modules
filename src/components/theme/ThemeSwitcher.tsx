@@ -22,29 +22,39 @@ export function ThemeSwitcher() {
           <Palette className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Application Theme</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel className="flex items-center gap-2">
+          <Palette className="h-4 w-4" />
+          Application Theme
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         {(Object.keys(themes) as ThemeName[]).map((key) => {
           const t = themes[key];
+          const isActive = currentTheme === key;
           return (
             <DropdownMenuItem
               key={key}
               onClick={() => setTheme(key)}
-              className="flex items-center justify-between cursor-pointer"
+              className={`flex items-center gap-3 cursor-pointer py-2.5 ${isActive ? 'bg-primary/5' : ''}`}
             >
-              <div>
-                <p className="text-sm font-medium">{t.label}</p>
-                <p className="text-xs text-muted-foreground">{t.description}</p>
+              {/* Color swatches */}
+              <div className="flex gap-0.5 flex-shrink-0">
+                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${t.cssVars['--sidebar-background']})` }} />
+                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${t.cssVars['--primary']})` }} />
+                <div className="w-4 h-4 rounded-sm border" style={{ background: `hsl(${t.cssVars['--accent']})` }} />
               </div>
-              {currentTheme === key && <Check className="h-4 w-4 text-primary ml-2 flex-shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{t.label}</p>
+                <p className="text-xs text-muted-foreground truncate">{t.description}</p>
+              </div>
+              {isActive && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
             </DropdownMenuItem>
           );
         })}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={toggleDark} className="cursor-pointer">
+        <DropdownMenuItem onClick={toggleDark} className="cursor-pointer py-2.5">
           {isDark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
           {isDark ? 'Light Mode' : 'Dark Mode'}
         </DropdownMenuItem>
@@ -64,7 +74,7 @@ export function ThemeSettingsPanel() {
         <p className="text-sm text-muted-foreground">Choose a visual theme for the application</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(Object.keys(themes) as ThemeName[]).map((key) => {
           const t = themes[key];
           const isActive = currentTheme === key;

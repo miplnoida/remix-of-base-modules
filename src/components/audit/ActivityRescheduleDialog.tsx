@@ -57,23 +57,23 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
 
   const getPriorityColor = (priority: string) => {
     const colors = {
-      'Low': 'bg-green-500',
-      'Medium': 'bg-orange-600',
-      'High': 'bg-red-500'
+      'Low': 'bg-success',
+      'Medium': 'bg-warning',
+      'High': 'bg-destructive'
     };
-    return colors[priority as keyof typeof colors] || 'bg-gray-500';
+    return colors[priority as keyof typeof colors] || 'bg-muted-foreground';
   };
 
   const getStatusColor = (status: string) => {
     const colors = {
-      'Planned': 'bg-blue-500',
-      'Scheduled': 'bg-cyan-500',
-      'In Progress': 'bg-orange-600',
-      'Completed': 'bg-green-500',
-      'Cancelled': 'bg-red-500',
-      'Rescheduled': 'bg-purple-500'
+      'Planned': 'bg-info',
+      'Scheduled': 'bg-info/80',
+      'In Progress': 'bg-warning',
+      'Completed': 'bg-success',
+      'Cancelled': 'bg-destructive',
+      'Rescheduled': 'bg-primary'
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-500';
+    return colors[status as keyof typeof colors] || 'bg-muted-foreground';
   };
 
   return (
@@ -141,7 +141,7 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
           </div>
 
           {/* Previous Schedule */}
-          <div className="space-y-3 p-4 border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950 rounded-lg">
+          <div className="space-y-3 p-4 border-l-4 border-l-warning bg-warning/10 dark:bg-warning/5 rounded-lg">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <h4 className="font-semibold">Previous Schedule</h4>
@@ -165,7 +165,7 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
           </div>
 
           {/* New Schedule */}
-          <div className="space-y-4 p-4 border-l-4 border-l-green-500 bg-green-50 dark:bg-green-950 rounded-lg">
+          <div className="space-y-4 p-4 border-l-4 border-l-success bg-success/10 dark:bg-success/5 rounded-lg">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               <h4 className="font-semibold">New Schedule *</h4>
