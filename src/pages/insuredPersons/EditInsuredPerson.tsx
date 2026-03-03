@@ -87,13 +87,13 @@ const EditInsuredPerson = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-primary/10 text-primary">Active</Badge>;
       case 'Pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-accent/30 text-accent-foreground">Pending</Badge>;
       case 'Inactive':
-        return <Badge className="bg-red-100 text-red-800">Inactive</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">Inactive</Badge>;
       case 'Verify':
-        return <Badge className="bg-blue-100 text-blue-800">Verify</Badge>;
+        return <Badge className="bg-secondary/10 text-secondary">Verify</Badge>;
       case 'Suspend':
         return <Badge className="bg-orange-100 text-orange-800">Suspend</Badge>;
       case 'Ceased':

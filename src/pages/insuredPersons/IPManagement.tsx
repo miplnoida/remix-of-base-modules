@@ -88,7 +88,7 @@ const IPManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl lg:text-3xl font-bold text-foreground">{stat.value}</div>
-                <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-primary' : 'text-destructive'}`}>
                   {stat.change} from last month
                 </p>
               </CardContent>
@@ -194,8 +194,8 @@ const IPManagement = () => {
                       <p className="text-sm text-gray-600">{activity.person}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-green-600 font-medium">{activity.status}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
+                      <p className="text-sm text-primary font-medium">{activity.status}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
                     </div>
                   </div>
                 ))}

@@ -19,18 +19,18 @@ interface MetricCardProps {
 
 const variantStyles = {
   default: "border-border",
-  success: "border-l-4 border-l-green-500",
-  warning: "border-l-4 border-l-yellow-500",
-  error: "border-l-4 border-l-red-500",
-  info: "border-l-4 border-l-blue-500",
+  success: "border-l-4 border-l-primary",
+  warning: "border-l-4 border-l-accent",
+  error: "border-l-4 border-l-destructive",
+  info: "border-l-4 border-l-secondary",
 };
 
 const iconVariantStyles = {
   default: "text-muted-foreground",
-  success: "text-green-600",
-  warning: "text-yellow-600",
-  error: "text-red-600",
-  info: "text-blue-600",
+  success: "text-primary",
+  warning: "text-accent-foreground",
+  error: "text-destructive",
+  info: "text-secondary",
 };
 
 export function MetricCard({
@@ -70,7 +70,7 @@ export function MetricCard({
             {trend && (
               <span className={cn(
                 "font-medium",
-                trend.isPositive ? "text-green-600" : "text-red-600"
+                trend.isPositive ? "text-primary" : "text-destructive"
               )}>
                 {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}% {trend.label}
               </span>

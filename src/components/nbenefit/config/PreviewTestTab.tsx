@@ -183,12 +183,12 @@ export default function PreviewTestTab({ benefitRule }: PreviewTestTabProps) {
       {testResults && (
         <>
           <Card>
-            <CardHeader className={testResults.eligibilityMet ? 'bg-green-50' : 'bg-red-50'}>
+            <CardHeader className={testResults.eligibilityMet ? 'bg-primary/10' : 'bg-destructive/10'}>
               <div className="flex items-center gap-3">
                 {testResults.eligibilityMet ? (
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
                 ) : (
-                  <XCircle className="h-6 w-6 text-red-600" />
+                  <XCircle className="h-6 w-6 text-destructive" />
                 )}
                 <div>
                   <CardTitle>
@@ -206,11 +206,11 @@ export default function PreviewTestTab({ benefitRule }: PreviewTestTabProps) {
               <div className="space-y-4">
                 {testResults.eligibilityReasons.length > 0 && (
                   <div>
-                    <h4 className="mb-2 text-sm font-semibold text-green-700">Passed Checks:</h4>
+                    <h4 className="mb-2 text-sm font-semibold text-primary">Passed Checks:</h4>
                     <ul className="space-y-1">
                       {testResults.eligibilityReasons.map((reason, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm">
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                           {reason}
                         </li>
                       ))}
@@ -220,11 +220,11 @@ export default function PreviewTestTab({ benefitRule }: PreviewTestTabProps) {
 
                 {testResults.failureReasons.length > 0 && (
                   <div>
-                    <h4 className="mb-2 text-sm font-semibold text-red-700">Failed Checks:</h4>
+                    <h4 className="mb-2 text-sm font-semibold text-destructive">Failed Checks:</h4>
                     <ul className="space-y-1">
                       {testResults.failureReasons.map((reason, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm">
-                          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                           {reason}
                         </li>
                       ))}

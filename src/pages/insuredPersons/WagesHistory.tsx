@@ -97,9 +97,9 @@ const WagesHistory = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Paid':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Paid</Badge>;
+        return <Badge variant="default" className="bg-primary/10 text-primary">Paid</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-accent/30 text-accent-foreground">Pending</Badge>;
       case 'Overdue':
         return <Badge variant="destructive">Overdue</Badge>;
       default:

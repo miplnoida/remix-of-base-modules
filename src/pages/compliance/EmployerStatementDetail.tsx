@@ -402,8 +402,8 @@ export default function EmployerStatementDetail() {
             </div>
           )}
           {reportType === "detailed" && (
-            <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-              <p className="text-sm text-green-700 dark:text-green-300">
+            <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-sm text-primary">
                 <span className="font-semibold">Detailed Report:</span> Shows every single transaction with running balance.
               </p>
             </div>
@@ -442,7 +442,7 @@ export default function EmployerStatementDetail() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Total Payments Received</p>
-              <p className="text-lg font-semibold text-green-600">{formatCurrency(grandTotals.totalCredits)}</p>
+              <p className="text-lg font-semibold text-primary">{formatCurrency(grandTotals.totalCredits)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Net Outstanding</p>

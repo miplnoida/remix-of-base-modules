@@ -4,50 +4,50 @@ import { Badge } from '@/components/ui/badge';
 const STATUS_COLORS: Record<string, string> = {
   // Plan statuses
   'Draft': 'bg-muted text-muted-foreground',
-  'Submitted': 'bg-blue-500/10 text-blue-700 border-blue-200',
-  'Approved': 'bg-green-500/10 text-green-700 border-green-200',
-  'In Progress': 'bg-orange-500/10 text-orange-700 border-orange-200',
-  'Completed': 'bg-purple-500/10 text-purple-700 border-purple-200',
+  'Submitted': 'bg-secondary/10 text-secondary border-secondary/20',
+  'Approved': 'bg-primary/10 text-primary border-primary/20',
+  'In Progress': 'bg-accent/30 text-accent-foreground border-accent/20',
+  'Completed': 'bg-primary/10 text-primary border-primary/20',
   'Rejected': 'bg-destructive/10 text-destructive border-destructive/20',
   'Cancelled': 'bg-muted text-muted-foreground',
   // Follow-up statuses
-  'Open': 'bg-blue-500/10 text-blue-700 border-blue-200',
-  'Resolved': 'bg-green-500/10 text-green-700 border-green-200',
+  'Open': 'bg-secondary/10 text-secondary border-secondary/20',
+  'Resolved': 'bg-primary/10 text-primary border-primary/20',
   'Overdue': 'bg-destructive/10 text-destructive border-destructive/20',
   // Activity statuses
-  'Planned': 'bg-blue-500/10 text-blue-700 border-blue-200',
+  'Planned': 'bg-secondary/10 text-secondary border-secondary/20',
   // Compliance
-  'Compliant': 'bg-green-500/10 text-green-700 border-green-200',
-  'Partially Compliant': 'bg-orange-500/10 text-orange-700 border-orange-200',
+  'Compliant': 'bg-primary/10 text-primary border-primary/20',
+  'Partially Compliant': 'bg-accent/30 text-accent-foreground border-accent/20',
   'Non-Compliant': 'bg-destructive/10 text-destructive border-destructive/20',
   // Acceptance
-  'Accepted': 'bg-green-500/10 text-green-700 border-green-200',
-  'Pending': 'bg-orange-500/10 text-orange-700 border-orange-200',
+  'Accepted': 'bg-primary/10 text-primary border-primary/20',
+  'Pending': 'bg-accent/30 text-accent-foreground border-accent/20',
   // Risk
   'High': 'bg-destructive/10 text-destructive border-destructive/20',
-  'Medium': 'bg-orange-500/10 text-orange-700 border-orange-200',
-  'Low': 'bg-green-500/10 text-green-700 border-green-200',
+  'Medium': 'bg-accent/30 text-accent-foreground border-accent/20',
+  'Low': 'bg-primary/10 text-primary border-primary/20',
   'Critical': 'bg-destructive/10 text-destructive border-destructive/20',
   // Roles
-  'Audit Director': 'bg-purple-500/10 text-purple-700 border-purple-200',
-  'Audit Manager': 'bg-blue-500/10 text-blue-700 border-blue-200',
-  'Auditor': 'bg-green-500/10 text-green-700 border-green-200',
+  'Audit Director': 'bg-secondary/10 text-secondary border-secondary/20',
+  'Audit Manager': 'bg-secondary/10 text-secondary border-secondary/20',
+  'Auditor': 'bg-primary/10 text-primary border-primary/20',
   'Admin': 'bg-muted text-muted-foreground',
   // Employment status
-  'Active': 'bg-green-500/10 text-green-700 border-green-200',
+  'Active': 'bg-primary/10 text-primary border-primary/20',
   'Inactive': 'bg-muted text-muted-foreground',
   // Leave types
-  'Annual': 'bg-green-500/10 text-green-700 border-green-200',
-  'Sick': 'bg-orange-500/10 text-orange-700 border-orange-200',
-  'Training': 'bg-blue-500/10 text-blue-700 border-blue-200',
+  'Annual': 'bg-primary/10 text-primary border-primary/20',
+  'Sick': 'bg-accent/30 text-accent-foreground border-accent/20',
+  'Training': 'bg-secondary/10 text-secondary border-secondary/20',
   'Other': 'bg-muted text-muted-foreground',
   // Control effectiveness
-  'Effective': 'bg-green-500/10 text-green-700 border-green-200',
-  'Partially Effective': 'bg-orange-500/10 text-orange-700 border-orange-200',
+  'Effective': 'bg-primary/10 text-primary border-primary/20',
+  'Partially Effective': 'bg-accent/30 text-accent-foreground border-accent/20',
   'Ineffective': 'bg-destructive/10 text-destructive border-destructive/20',
   // Holidays
-  'Public Holiday': 'bg-green-500/10 text-green-700 border-green-200',
-  'Rescheduled': 'bg-purple-500/10 text-purple-700 border-purple-200',
+  'Public Holiday': 'bg-primary/10 text-primary border-primary/20',
+  'Rescheduled': 'bg-secondary/10 text-secondary border-secondary/20',
 };
 
 interface StatusBadgeProps {

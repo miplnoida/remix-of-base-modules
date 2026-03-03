@@ -200,10 +200,10 @@ const GLPostingSummary = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Balance Status</CardTitle>
-            {isBalanced ? <CheckCircle className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />}
+            {isBalanced ? <CheckCircle className="h-4 w-4 text-primary" /> : <AlertCircle className="h-4 w-4 text-destructive" />}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${isBalanced ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-2xl font-bold ${isBalanced ? 'text-primary' : 'text-destructive'}`}>
               {isBalanced ? 'Balanced' : 'Unbalanced'}
             </div>
           </CardContent>
@@ -259,17 +259,17 @@ const GLPostingSummary = () => {
             <Separator />
             <div className="flex justify-between items-center">
               <span className="font-bold">Difference:</span>
-              <span className={`font-mono font-bold ${isBalanced ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`font-mono font-bold ${isBalanced ? 'text-primary' : 'text-destructive'}`}>
                 ${Math.abs(totalDebits - totalCredits).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
             {!isBalanced && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                 <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <span className="text-red-700 font-medium">Entries are out of balance!</span>
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                  <span className="text-destructive font-medium">Entries are out of balance!</span>
                 </div>
-                <p className="text-red-600 text-sm mt-1">
+                <p className="text-destructive/80 text-sm mt-1">
                   Please review the entries before posting to the General Ledger.
                 </p>
               </div>

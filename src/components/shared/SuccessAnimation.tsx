@@ -57,14 +57,14 @@ export default function SuccessAnimation({
       >
         <div 
           className={cn(
-            "w-20 h-20 rounded-full bg-green-100 flex items-center justify-center",
+            "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center",
             "transition-transform duration-500 ease-out",
             isAnimating ? "scale-100" : "scale-50"
           )}
         >
           <Check 
             className={cn(
-              "w-10 h-10 text-green-600 stroke-[3]",
+              "w-10 h-10 text-primary stroke-[3]",
               "transition-all duration-300 delay-200",
               isAnimating ? "opacity-100 scale-100" : "opacity-0 scale-50"
             )} 

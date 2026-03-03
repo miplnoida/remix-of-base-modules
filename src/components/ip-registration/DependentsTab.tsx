@@ -147,7 +147,7 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
                     onBlur={handleSSNBlur}
                     maxLength={6}
                     placeholder="Enter 6 digits"
-                    className={ssnFound === true ? 'border-green-500' : ssnFound === false ? 'border-amber-500' : ''}
+                    className={ssnFound === true ? 'border-primary' : ssnFound === false ? 'border-accent' : ''}
                   />
                   {isLookingUp && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -156,7 +156,7 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
                   )}
                 </div>
                 {ssnFound === true && (
-                  <p className="text-xs text-green-600 mt-1">✓ SSN found - fields auto-filled</p>
+                  <p className="text-xs text-primary mt-1">✓ SSN found - fields auto-filled</p>
                 )}
                 {ssnFound === false && (
                   <p className="text-xs text-amber-600 mt-1">SSN not found - enter details manually</p>
