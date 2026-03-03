@@ -66,9 +66,9 @@ const DataTableExample: React.FC<DataTableExampleProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge variant="default" className="bg-success/10 text-success">Active</Badge>;
       case 'Inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
+        return <Badge variant="secondary" className="bg-destructive/10 text-destructive">Inactive</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

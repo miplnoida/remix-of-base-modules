@@ -179,7 +179,7 @@ export function IPStatusChangeDialog({
           {/* Current Status Display */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <span className="text-sm font-medium">Current Status:</span>
-            <Badge className={STATUS_COLORS[currentStatus] || 'bg-gray-100'}>
+            <Badge className={STATUS_COLORS[currentStatus] || 'bg-muted'}>
               {STATUS_LABELS[currentStatus] || currentStatus}
             </Badge>
           </div>
@@ -231,7 +231,7 @@ export function IPStatusChangeDialog({
                         className="flex-1 cursor-pointer flex items-center justify-between"
                       >
                         <span>{transition.description}</span>
-                        <Badge className={STATUS_COLORS[transition.code] || 'bg-gray-100'}>
+                        <Badge className={STATUS_COLORS[transition.code] || 'bg-muted'}>
                           {transition.code}
                         </Badge>
                       </Label>

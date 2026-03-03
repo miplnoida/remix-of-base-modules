@@ -383,7 +383,7 @@ export function ScheduleMeetingDialog({
                             className={cn(
                               'relative p-2 rounded text-center transition-colors',
                               isSelected ? 'bg-primary text-primary-foreground font-bold ring-2 ring-primary' : '',
-                              isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-600' : '',
+                              isToday && !isSelected ? 'bg-muted' : '',
                               isDisabled ? 'text-muted-foreground/40 bg-muted/30 cursor-not-allowed' : '',
                               !isSelected && !isToday && !isDisabled ? 'hover:bg-accent' : ''
                             )}

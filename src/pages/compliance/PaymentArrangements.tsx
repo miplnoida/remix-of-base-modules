@@ -57,13 +57,13 @@ export default function PaymentArrangements() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      DRAFT: 'bg-gray-100 text-gray-800',
-      ACTIVE: 'bg-green-100 text-green-800',
-      COMPLETED: 'bg-teal-100 text-teal-800',
-      DEFAULTED: 'bg-red-100 text-red-800',
-      CANCELLED: 'bg-gray-100 text-gray-800',
+      DRAFT: 'bg-muted text-muted-foreground',
+      ACTIVE: 'bg-success/10 text-success',
+      COMPLETED: 'bg-primary/10 text-primary',
+      DEFAULTED: 'bg-destructive/10 text-destructive',
+      CANCELLED: 'bg-muted text-muted-foreground',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
   const formatCurrency = (amount: number) => {

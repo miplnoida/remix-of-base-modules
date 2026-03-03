@@ -140,10 +140,10 @@ export default function TopCompliantReport() {
                     <TableCell className="font-bold">{index + 1}</TableCell>
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell className="font-semibold text-green-600">{row.complianceScore}%</TableCell>
+                    <TableCell className="font-semibold text-success">{row.complianceScore}%</TableCell>
                     <TableCell>{row.onTimePayment}%</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-success/10 text-success">
                         {row.zeroArrears ? 'Yes' : 'No'}
                       </span>
                     </TableCell>

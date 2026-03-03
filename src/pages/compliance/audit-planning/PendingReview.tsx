@@ -145,13 +145,13 @@ export default function PendingReview() {
 
   const getStatusColor = (status: WeeklyPlanWorkflowStatus) => {
     const colors: Record<WeeklyPlanWorkflowStatus, string> = {
-      [WeeklyPlanWorkflowStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanWorkflowStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
-      [WeeklyPlanWorkflowStatus.NEED_CHANGES]: 'bg-yellow-100 text-yellow-800',
-      [WeeklyPlanWorkflowStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
-      [WeeklyPlanWorkflowStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [WeeklyPlanWorkflowStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
-      [WeeklyPlanWorkflowStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
+      [WeeklyPlanWorkflowStatus.DRAFT]: 'bg-muted text-muted-foreground',
+      [WeeklyPlanWorkflowStatus.SUBMITTED]: 'bg-info/10 text-info',
+      [WeeklyPlanWorkflowStatus.NEED_CHANGES]: 'bg-warning/15 text-warning',
+      [WeeklyPlanWorkflowStatus.RESUBMITTED]: 'bg-accent/20 text-accent-foreground',
+      [WeeklyPlanWorkflowStatus.APPROVED]: 'bg-success/10 text-success',
+      [WeeklyPlanWorkflowStatus.IN_EXECUTION]: 'bg-primary/10 text-primary',
+      [WeeklyPlanWorkflowStatus.COMPLETED]: 'bg-muted text-muted-foreground',
     };
     return colors[status];
   };

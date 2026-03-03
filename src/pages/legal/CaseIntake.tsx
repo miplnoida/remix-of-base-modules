@@ -20,15 +20,15 @@ export default function CaseIntake() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending Review':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-warning/15 text-warning border-warning/20';
       case 'Info Requested':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/10 text-info border-info/20';
       case 'Accepted':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success/10 text-success border-success/20';
       case 'Rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -40,8 +40,8 @@ export default function CaseIntake() {
           <p className="text-muted-foreground">Review and process legal action requisitions</p>
         </div>
         <div className="flex gap-4">
-          <Card className="p-4 border-amber-200 bg-amber-50">
-            <div className="flex items-center gap-2 text-amber-700">
+          <Card className="p-4 border-warning/20 bg-warning/5">
+            <div className="flex items-center gap-2 text-warning">
               <FileText className="h-5 w-5" />
               <div>
                 <div className="text-xs font-medium">Pending Review</div>
@@ -49,8 +49,8 @@ export default function CaseIntake() {
               </div>
             </div>
           </Card>
-          <Card className="p-4 border-blue-200 bg-blue-50">
-            <div className="flex items-center gap-2 text-blue-700">
+          <Card className="p-4 border-info/20 bg-info/5">
+            <div className="flex items-center gap-2 text-info">
               <MessageSquare className="h-5 w-5" />
               <div>
                 <div className="text-xs font-medium">Info Requested</div>

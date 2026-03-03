@@ -162,7 +162,7 @@ export const DependentTab = () => {
 
   return (
     <div className="space-y-6">
-      <Card style={{backgroundColor:"#F9FAFB"}}>
+      <Card className="bg-muted/30">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Dependent Management</CardTitle>
           {!isViewMode && (
@@ -172,7 +172,7 @@ export const DependentTab = () => {
             </Button>
           )}
         </CardHeader>
-        <CardContent className="space-y-5 m-5 pt-5" style={{backgroundColor:"#fff"}}>
+        <CardContent className="space-y-5 m-5 pt-5 bg-card rounded-lg">
           {/* Add/Edit Dependent Form */}
           {showAddForm && !isViewMode && (
             <Card className="border-2 border-dashed">

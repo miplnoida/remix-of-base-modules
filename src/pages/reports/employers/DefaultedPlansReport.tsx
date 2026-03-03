@@ -72,12 +72,12 @@ export default function DefaultedPlansReport() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="employer" stroke="#64748B" />
-                <YAxis stroke="#64748B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="employer" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip />
-                <Bar dataKey="planAmount" fill="#CBD5E1" name="Plan Amount" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="paidAmount" fill="#009B4C" name="Paid Amount" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="planAmount" fill="hsl(var(--muted))" name="Plan Amount" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="paidAmount" fill="hsl(var(--primary))" name="Paid Amount" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

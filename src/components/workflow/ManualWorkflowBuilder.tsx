@@ -34,15 +34,15 @@ export default function ManualWorkflowBuilder({ workflowId, initialSteps = [], o
 
   const getStepTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      start: "bg-green-100 text-green-800",
-      task: "bg-blue-100 text-blue-800",
-      decision: "bg-orange-100 text-orange-800",
-      timer: "bg-purple-100 text-purple-800",
-      automation: "bg-yellow-100 text-yellow-800",
-      subflow: "bg-cyan-100 text-cyan-800",
-      end: "bg-red-100 text-red-800",
+      start: "bg-success/10 text-success",
+      task: "bg-info/10 text-info",
+      decision: "bg-warning/15 text-warning",
+      timer: "bg-accent/20 text-accent-foreground",
+      automation: "bg-primary/10 text-primary",
+      subflow: "bg-secondary/10 text-secondary-foreground",
+      end: "bg-destructive/10 text-destructive",
     };
-    return colors[type.toLowerCase()] || "bg-gray-100 text-gray-800";
+    return colors[type.toLowerCase()] || "bg-muted text-muted-foreground";
   };
 
   const handleAddStep = (newStep: Omit<WorkflowStep, "id" | "stepNumber">) => {

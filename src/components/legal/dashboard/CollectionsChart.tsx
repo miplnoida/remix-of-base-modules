@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CollectionsData } from '@/adapters/legalDashboardAdapter';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CHART_COLORS } from '@/lib/chartColors';
 
 interface CollectionsChartProps {
   data: CollectionsData[] | null;
@@ -51,7 +52,7 @@ export function CollectionsChart({ data, loading, onClick }: CollectionsChartPro
             <p className="text-sm text-muted-foreground mt-1">Last 12 months overview</p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-2xl font-bold text-success">
               {formatCurrency(totalCollected)}
             </div>
             <p className="text-xs text-muted-foreground">Total Collected</p>
@@ -63,12 +64,12 @@ export function CollectionsChart({ data, loading, onClick }: CollectionsChartPro
           <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
               <linearGradient id="colorCollected" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0.1}/>
               </linearGradient>
               <linearGradient id="colorOutstanding" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0.1}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -99,7 +100,7 @@ export function CollectionsChart({ data, loading, onClick }: CollectionsChartPro
             <Area
               type="monotone"
               dataKey="collected"
-              stroke="#10b981"
+              stroke={CHART_COLORS.success}
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorCollected)"
@@ -108,7 +109,7 @@ export function CollectionsChart({ data, loading, onClick }: CollectionsChartPro
             <Area
               type="monotone"
               dataKey="outstanding"
-              stroke="#f59e0b"
+              stroke={CHART_COLORS.warning}
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorOutstanding)"
@@ -120,13 +121,13 @@ export function CollectionsChart({ data, loading, onClick }: CollectionsChartPro
         <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Outstanding Balance</div>
-            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+            <div className="text-lg font-bold text-warning">
               {formatCurrency(totalOutstanding)}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Month-over-Month</div>
-            <div className={`text-lg font-bold ${parseFloat(collectionTrend) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <div className={`text-lg font-bold ${parseFloat(collectionTrend) >= 0 ? 'text-success' : 'text-destructive'}`}>
               {collectionTrend}%
             </div>
           </div>

@@ -255,18 +255,18 @@ Terminal: ${receiptData.cashierDetails.terminalId || 'N/A'}
 
                 {/* Payment Splits */}
                 {receiptData.paymentSplits && receiptData.paymentSplits.length > 0 && (
-                  <div className="bg-gray-50 p-3 rounded">
+                  <div className="bg-muted/50 p-3 rounded">
                     <h4 className="text-md font-semibold mb-2">Payment Methods Used</h4>
                     <div className="space-y-2">
                       {receiptData.paymentSplits.map((split, index) => (
-                        <div key={index} className="flex justify-between items-start border-b border-gray-200 pb-2 last:border-b-0">
+                        <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-b-0">
                           <div className="flex-1">
                             <div className="font-medium capitalize">{split.paymentMode}</div>
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-muted-foreground">
                               {split.currency} {split.amount.toFixed(2)}
                             </div>
                             {split.checkNumber && (
-                              <div className="text-xs text-gray-600 mt-1">
+                              <div className="text-xs text-muted-foreground mt-1">
                                 Check: {split.checkNumber}
                                 {split.bankName && ` (${split.bankName})`}
                                 {split.checkDate && ` - ${split.checkDate}`}
@@ -310,7 +310,7 @@ Terminal: ${receiptData.cashierDetails.terminalId || 'N/A'}
 
               {/* Amount Summary */}
               <Separator />
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-muted/50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3">Amount Summary</h3>
                 {receiptData.fees && receiptData.fees.length > 0 && (
                   <div className="mb-4">
@@ -334,7 +334,7 @@ Terminal: ${receiptData.cashierDetails.terminalId || 'N/A'}
                   <Separator />
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Notes</h3>
-                    <p className="text-sm bg-gray-50 p-3 rounded">{receiptData.notes}</p>
+                    <p className="text-sm bg-muted/50 p-3 rounded">{receiptData.notes}</p>
                   </div>
                 </>
               )}

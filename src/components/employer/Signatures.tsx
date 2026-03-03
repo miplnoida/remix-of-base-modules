@@ -144,12 +144,12 @@ export function Signatures() {
         </Button>
 
         <div className="border-t pt-4">
-          <p className="text-sm text-gray-600 italic">
+          <p className="text-sm text-muted-foreground italic">
             Form RS (revised 2018) (2000)
           </p>
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
             <h4 className="font-medium text-sm mb-2">Notes:</h4>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               1. Every employer must, as soon as he/she engages any employed person, ensure that such employed person 
               completes an application form (R3) for registration with the Social Security Office unless the employed person 
               produces evidence that he/she is already registered.

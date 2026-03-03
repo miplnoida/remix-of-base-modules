@@ -75,13 +75,13 @@ export default function PendingHearings() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Scheduled':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/10 text-info border-info/20';
       case 'Pending':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-warning/15 text-warning border-warning/20';
       case 'Overdue':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -99,8 +99,8 @@ export default function PendingHearings() {
               <p className="text-sm text-muted-foreground">Total Upcoming</p>
               <p className="text-2xl font-bold mt-2">{hearingsData.upcomingTotal}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 rounded-full bg-info/10 flex items-center justify-center">
+              <Calendar className="h-6 w-6 text-info" />
             </div>
           </div>
         </Card>
@@ -111,8 +111,8 @@ export default function PendingHearings() {
               <p className="text-sm text-muted-foreground">This Week</p>
               <p className="text-2xl font-bold mt-2">{hearingsData.thisWeek}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Clock className="h-6 w-6 text-green-600" />
+            <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+              <Clock className="h-6 w-6 text-success" />
             </div>
           </div>
         </Card>
@@ -123,8 +123,8 @@ export default function PendingHearings() {
               <p className="text-sm text-muted-foreground">Next Week</p>
               <p className="text-2xl font-bold mt-2">{hearingsData.nextWeek}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-purple-600" />
+            <div className="h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center">
+              <Calendar className="h-6 w-6 text-primary" />
             </div>
           </div>
         </Card>
@@ -135,8 +135,8 @@ export default function PendingHearings() {
               <p className="text-sm text-muted-foreground">Backlog</p>
               <p className="text-2xl font-bold mt-2 text-destructive">{hearingsData.backlog}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
           </div>
         </Card>

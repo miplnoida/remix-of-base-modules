@@ -92,11 +92,11 @@ export default function WorkflowEmailReports() {
 
   const getFrequencyColor = (frequency: string) => {
     const colors: Record<string, string> = {
-      Daily: "bg-blue-100 text-blue-800",
-      Weekly: "bg-green-100 text-green-800",
-      Monthly: "bg-purple-100 text-purple-800",
+      Daily: "bg-info/10 text-info",
+      Weekly: "bg-success/10 text-success",
+      Monthly: "bg-accent/20 text-accent-foreground",
     };
-    return colors[frequency] || "bg-gray-100 text-gray-800";
+    return colors[frequency] || "bg-muted text-muted-foreground";
   };
 
   return (
@@ -181,7 +181,7 @@ export default function WorkflowEmailReports() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Schedules</CardTitle>
-            <Mail className="h-4 w-4 text-green-600" />
+            <Mail className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -194,7 +194,7 @@ export default function WorkflowEmailReports() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Reports Sent</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
+            <Calendar className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">24</div>
@@ -205,7 +205,7 @@ export default function WorkflowEmailReports() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recipients</CardTitle>
-            <Mail className="h-4 w-4 text-purple-600" />
+            <Mail className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>

@@ -106,7 +106,7 @@ export default function Arrears90DaysReport() {
                     <TableCell>{row.daysOverdue}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.legalAction === 'Initiated' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        row.legalAction === 'Initiated' ? 'bg-destructive/10 text-destructive' : 'bg-warning/15 text-warning'
                       }`}>
                         {row.legalAction}
                       </span>

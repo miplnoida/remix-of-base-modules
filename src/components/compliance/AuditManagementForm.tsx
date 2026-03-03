@@ -154,9 +154,9 @@ export const AuditManagementForm = () => {
 
           <div>
             <Label>Supporting Documents</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-600">Upload audit documents and evidence</p>
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">Upload audit documents and evidence</p>
               <Button variant="outline" className="mt-2" type="button">
                 Choose Files
               </Button>

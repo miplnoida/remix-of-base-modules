@@ -31,14 +31,14 @@ export function ArrangementDetailsCard({ arrangement, onRecordPayment }: Arrange
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      DRAFT: 'bg-gray-100 text-gray-800',
-      PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800',
-      ACTIVE: 'bg-green-100 text-green-800',
-      COMPLETED: 'bg-blue-100 text-blue-800',
-      DEFAULTED: 'bg-red-100 text-red-800',
-      CANCELLED: 'bg-gray-100 text-gray-800',
+      DRAFT: 'bg-muted text-muted-foreground',
+      PENDING_APPROVAL: 'bg-warning/15 text-warning',
+      ACTIVE: 'bg-success/10 text-success',
+      COMPLETED: 'bg-info/10 text-info',
+      DEFAULTED: 'bg-destructive/10 text-destructive',
+      CANCELLED: 'bg-muted text-muted-foreground',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
   const progressPercentage = (arrangement.installmentsPaid / arrangement.numberOfInstallments) * 100;

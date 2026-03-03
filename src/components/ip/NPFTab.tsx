@@ -149,35 +149,35 @@ export const NPFTab = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
                   <div>
                     <p className="font-medium">Monthly Contribution</p>
-                    <p className="text-sm text-gray-600">June 2024</p>
+                    <p className="text-sm text-muted-foreground">June 2024</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">+$275.00</p>
-                    <p className="text-sm text-gray-500">06/30/2024</p>
+                    <p className="font-semibold text-success">+$275.00</p>
+                    <p className="text-sm text-muted-foreground">06/30/2024</p>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
                   <div>
                     <p className="font-medium">Monthly Contribution</p>
-                    <p className="text-sm text-gray-600">May 2024</p>
+                    <p className="text-sm text-muted-foreground">May 2024</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">+$275.00</p>
-                    <p className="text-sm text-gray-500">05/31/2024</p>
+                    <p className="font-semibold text-success">+$275.00</p>
+                    <p className="text-sm text-muted-foreground">05/31/2024</p>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
                   <div>
                     <p className="font-medium">Monthly Contribution</p>
-                    <p className="text-sm text-gray-600">April 2024</p>
+                    <p className="text-sm text-muted-foreground">April 2024</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">+$275.00</p>
+                    <p className="font-semibold text-success">+$275.00</p>
                     <p className="text-sm text-gray-500">04/30/2024</p>
                   </div>
                 </div>

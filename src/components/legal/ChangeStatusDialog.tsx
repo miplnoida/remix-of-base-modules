@@ -70,7 +70,7 @@ export function ChangeStatusDialog({ open, onOpenChange, currentStatus, onChange
           <div>
             <Label htmlFor="newStatus">New Status *</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger id="newStatus" className={errors.status ? "border-red-500" : ""}>
+              <SelectTrigger id="newStatus" className={errors.status ? "border-destructive" : ""}>
                 <SelectValue placeholder="Select new status" />
               </SelectTrigger>
               <SelectContent>
@@ -83,7 +83,7 @@ export function ChangeStatusDialog({ open, onOpenChange, currentStatus, onChange
                   ))}
               </SelectContent>
             </Select>
-            {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
+            {errors.status && <p className="text-xs text-destructive mt-1">{errors.status}</p>}
           </div>
 
           <div>

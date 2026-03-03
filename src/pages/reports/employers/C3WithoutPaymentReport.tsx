@@ -98,7 +98,7 @@ export default function C3WithoutPaymentReport() {
                     <TableCell>{row.submissions}</TableCell>
                     <TableCell>{row.amountDue.toLocaleString()}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                      <span className="px-2 py-1 rounded-full text-xs bg-warning/15 text-warning">
                         {row.paymentStatus}
                       </span>
                     </TableCell>
