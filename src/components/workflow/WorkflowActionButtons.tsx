@@ -227,6 +227,10 @@ export function WorkflowActionButtons({
   };
 
   const getActionVariant = (actionType: string): 'default' | 'destructive' | 'outline' | 'secondary' => {
+    if (variant === 'compact') {
+      return 'outline';
+    }
+
     switch (actionType.toLowerCase()) {
       case 'approve':
         return 'default';
@@ -241,16 +245,27 @@ export function WorkflowActionButtons({
   };
 
   const getActionClassName = (actionType: string): string => {
-    if (isScheduleMeetingAction(actionType)) {
-      return 'bg-primary/80 hover:bg-primary/90 text-primary-foreground';
+    if (variant !== 'compact') {
+      if (isScheduleMeetingAction(actionType)) {
+        return 'bg-primary/80 hover:bg-primary/90 text-primary-foreground';
+      }
+      return '';
     }
+
+    if (isScheduleMeetingAction(actionType)) {
+      return 'text-secondary border-border hover:bg-muted';
+    }
+
     switch (actionType.toLowerCase()) {
       case 'approve':
-        return '';
+        return 'text-primary border-primary/30 hover:bg-primary/10 hover:text-primary';
       case 'reject':
-        return '';
+        return 'text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive';
+      case 'send_back':
+      case 'send_back_to_applicant':
+        return 'text-secondary border-border hover:bg-muted';
       default:
-        return '';
+        return 'text-foreground border-border hover:bg-muted';
     }
   };
 

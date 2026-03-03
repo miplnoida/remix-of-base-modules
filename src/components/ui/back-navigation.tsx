@@ -43,7 +43,7 @@ export const BackNavigation: React.FC<BackNavigationProps> = ({
   };
 
   return (
-    <div className={`bg-white shadow-sm border-b ${className || ''}`}>
+    <div className={`bg-card shadow-sm border-b border-border ${className || ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
@@ -59,17 +59,17 @@ export const BackNavigation: React.FC<BackNavigationProps> = ({
             
             {breadcrumbs.length > 0 && (
               <>
-                <div className="h-6 w-px bg-gray-300" />
-                <nav className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="h-6 w-px bg-border" />
+                <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                   {breadcrumbs.map((item, index) => (
                     <React.Fragment key={index}>
                       {index > 0 && <span>/</span>}
                       {item.current ? (
-                        <span className="text-gray-900 font-medium">{item.label}</span>
+                        <span className="text-foreground font-medium">{item.label}</span>
                       ) : item.href ? (
                         <button
                           onClick={() => navigate(item.href!)}
-                          className="hover:text-gray-700 transition-colors"
+                          className="hover:text-foreground transition-colors"
                         >
                           {item.label}
                         </button>
