@@ -63,13 +63,11 @@ export const InspectorLogin = () => {
     <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-3">
       <div className="w-full max-w-md space-y-4">
         <div className="text-center space-y-3">
-          <div className="mx-auto w-16 h-16 bg-card rounded-full flex items-center justify-center p-2 shadow-xl border-4 border-primary/20">
-            <img 
-              src="/lovable-uploads/990576b3-f8e5-48e9-a203-ee949d3d0ae0.png" 
-              alt="SSB Logo" 
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img 
+            src="/images/ssb-logo.png" 
+            alt="SSB Logo" 
+            className="mx-auto w-16 h-16 object-contain"
+          />
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />

@@ -236,13 +236,11 @@ export const LoginScreen = () => {
 
         {/* Top: Logo + App Name */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20 overflow-hidden">
-            <img
-              src="/images/ssb-logo.png"
-              alt="SSB Logo"
-              className="w-8 h-8 object-contain"
-            />
-          </div>
+          <img
+            src="/images/ssb-logo.png"
+            alt="SSB Logo"
+            className="w-10 h-10 object-contain"
+          />
           <div>
             <p className="font-semibold text-white text-[15px] leading-tight">
               Social Security Board
@@ -283,13 +281,11 @@ export const LoginScreen = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile-only logo */}
           <div className="lg:hidden flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-card ring-1 ring-border shadow-lg flex items-center justify-center overflow-hidden p-1.5">
-              <img
-                src="/images/ssb-logo.png"
-                alt="SSB Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img
+              src="/images/ssb-logo.png"
+              alt="SSB Logo"
+              className="w-20 h-20 object-contain"
+            />
           </div>
 
           {/* Heading */}

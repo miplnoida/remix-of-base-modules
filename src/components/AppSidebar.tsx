@@ -28,7 +28,7 @@ export function AppSidebar() {
                 <img 
                   src="/images/ssb-logo.png" 
                   alt="SSB Logo" 
-                  className="h-10 w-10 rounded-lg bg-white/10 p-0.5"
+                  className="h-10 w-10 object-contain"
                 />
               </div>
               {!collapsed && (
