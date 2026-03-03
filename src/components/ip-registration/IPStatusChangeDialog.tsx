@@ -46,15 +46,15 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   'Z': 'bg-muted text-muted-foreground',
-  'P': 'bg-yellow-100 text-yellow-800',
-  'V': 'bg-blue-100 text-blue-800',
-  'A': 'bg-green-100 text-green-800',
-  'S': 'bg-orange-100 text-orange-800',
-  'T': 'bg-red-100 text-red-800',
-  'D': 'bg-gray-100 text-gray-800',
-  'I': 'bg-gray-100 text-gray-800',
-  'E': 'bg-purple-100 text-purple-800',
-  'C': 'bg-gray-100 text-gray-800',
+  'P': 'bg-accent/30 text-accent-foreground',
+  'V': 'bg-secondary/10 text-secondary',
+  'A': 'bg-primary/10 text-primary',
+  'S': 'bg-accent/30 text-accent-foreground',
+  'T': 'bg-destructive/10 text-destructive',
+  'D': 'bg-muted text-muted-foreground',
+  'I': 'bg-muted text-muted-foreground',
+  'E': 'bg-secondary/10 text-secondary',
+  'C': 'bg-muted text-muted-foreground',
 };
 
 export function IPStatusChangeDialog({

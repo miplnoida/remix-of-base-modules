@@ -145,17 +145,17 @@ const BenefitEligibility = () => {
 
   const getEligibilityBadge = (eligible: boolean, requirementsMet: number, totalRequirements: number) => {
     if (eligible && requirementsMet === totalRequirements) {
-      return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1 px-3 py-1">
+      return <Badge variant="default" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 px-3 py-1">
         <CheckCircle className="h-3 w-3" />
         Eligible
       </Badge>;
     } else if (eligible && requirementsMet < totalRequirements) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 flex items-center gap-1 px-3 py-1">
+      return <Badge variant="secondary" className="bg-accent/30 text-accent-foreground border-accent/20 flex items-center gap-1 px-3 py-1">
         <Clock className="h-3 w-3" />
         Conditionally Eligible
       </Badge>;
     } else {
-      return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1 px-3 py-1">
+      return <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20 flex items-center gap-1 px-3 py-1">
         <AlertCircle className="h-3 w-3" />
         Not Eligible
       </Badge>;
@@ -164,8 +164,8 @@ const BenefitEligibility = () => {
 
   const getRequirementIcon = (met: boolean) => {
     return met ? 
-      <CheckCircle className="h-4 w-4 text-green-600" /> : 
-      <AlertCircle className="h-4 w-4 text-red-600" />;
+      <CheckCircle className="h-4 w-4 text-primary" /> : 
+      <AlertCircle className="h-4 w-4 text-destructive" />;
   };
 
   return (

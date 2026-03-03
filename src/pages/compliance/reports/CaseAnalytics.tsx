@@ -76,7 +76,7 @@ export default function CaseAnalytics() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Active Cases</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-primary">
               {MOCK_CASES.filter(c => c.caseStatus === CaseStatus.ACTIVE).length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Currently open</p>

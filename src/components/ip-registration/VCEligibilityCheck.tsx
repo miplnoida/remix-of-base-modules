@@ -63,14 +63,14 @@ export function VCEligibilityCheck({ ssn, personName }: VCEligibilityCheckProps)
   // Active Voluntary Contributor - Show status card
   if (isActiveVC) {
     return (
-      <Card className="border-green-500/50">
+      <Card className="border-primary/50">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <CheckCircle2 className="h-5 w-5" />
               Active Voluntary Contributor
             </CardTitle>
-            <Badge variant="default" className="bg-green-600">Active</Badge>
+            <Badge variant="default">Active</Badge>
           </div>
           <CardDescription>
             Registered since {formatDisplayDate(vcRecord.date_registered)}

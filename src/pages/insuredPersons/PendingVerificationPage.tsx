@@ -227,7 +227,7 @@ const PendingVerificationPage = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center gap-3">
             <Button 
@@ -239,20 +239,20 @@ const PendingVerificationPage = () => {
               <span className="hidden sm:inline">Back to Dashboard</span>
               <span className="sm:hidden">Back</span>
             </Button>
-            <div className="h-6 w-px bg-gray-300" />
+            <div className="h-6 w-px bg-border" />
             
             <div>
-              <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Pending Verification</h1>
-              <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Review and approve pending employer registrations</p>
+              <h1 className="text-xl lg:text-3xl font-bold text-foreground">Pending Verification</h1>
+              <p className="text-sm lg:text-base text-muted-foreground hidden sm:block">Review and approve pending employer registrations</p>
             </div>
           </div>
 
           {/* Search and Filter Section */}
           <Card className="mt-6 shadow-sm">
-            <CardHeader className="border-b bg-white">
+            <CardHeader className="border-b">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-lg text-gray-800">Pending Verification ({filteredPending.length})</CardTitle>
+                  <CardTitle className="text-lg">Pending Verification ({filteredPending.length})</CardTitle>
                   <CardDescription>Review and approve pending employer registrations</CardDescription>
                 </div>
               </div>
@@ -273,22 +273,22 @@ const PendingVerificationPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b">
-                      <TableHead className="text-gray-600 font-medium">Employer Name</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Business Name</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Date Submitted</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Registration Number</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Phone</TableHead>
-                      <TableHead className="text-gray-600 font-medium text-center">Actions</TableHead>
+                      <TableHead className="font-medium">Employer Name</TableHead>
+                      <TableHead className="font-medium">Business Name</TableHead>
+                      <TableHead className="font-medium">Date Submitted</TableHead>
+                      <TableHead className="font-medium">Registration Number</TableHead>
+                      <TableHead className="font-medium">Phone</TableHead>
+                      <TableHead className="font-medium text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPending.map((employer) => (
-                      <TableRow key={employer.regNo} className="hover:bg-gray-50">
-                        <TableCell className="font-medium text-gray-900">{employer.name}</TableCell>
-                        <TableCell className="text-gray-700">{employer.tradeName}</TableCell>
-                        <TableCell className="text-gray-700">{employer.dateOfApplication || 'N/A'}</TableCell>
-                        <TableCell className="text-gray-700">{employer.regNo}</TableCell>
-                        <TableCell className="text-gray-700">{employer.phone}</TableCell>
+                      <TableRow key={employer.regNo} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{employer.name}</TableCell>
+                        <TableCell>{employer.tradeName}</TableCell>
+                        <TableCell>{employer.dateOfApplication || 'N/A'}</TableCell>
+                        <TableCell>{employer.regNo}</TableCell>
+                        <TableCell>{employer.phone}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-2">
                             <Tooltip>

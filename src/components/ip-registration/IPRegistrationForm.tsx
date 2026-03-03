@@ -148,16 +148,16 @@ export const IPRegistrationForm: React.FC = () => {
             </Button>
           )}
           <span className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
-            formData.status === 'Z' ? 'bg-yellow-100 text-yellow-800' :
-            formData.status === 'P' ? 'bg-blue-100 text-blue-800' :
-            formData.status === 'A' ? 'bg-green-100 text-green-800' :
-            formData.status === 'V' ? 'bg-emerald-100 text-emerald-800' :
-            formData.status === 'E' ? 'bg-purple-100 text-purple-800' :
-            formData.status === 'C' ? 'bg-gray-100 text-gray-800' :
-            formData.status === 'T' ? 'bg-red-100 text-red-800' :
-            formData.status === 'I' ? 'bg-orange-100 text-orange-800' :
-            formData.status === 'S' ? 'bg-amber-100 text-amber-800' :
-            formData.status === 'D' ? 'bg-rose-100 text-rose-800' :
+            formData.status === 'Z' ? 'bg-accent/30 text-accent-foreground' :
+            formData.status === 'P' ? 'bg-secondary/10 text-secondary' :
+            formData.status === 'A' ? 'bg-primary/10 text-primary' :
+            formData.status === 'V' ? 'bg-primary/10 text-primary' :
+            formData.status === 'E' ? 'bg-secondary/10 text-secondary' :
+            formData.status === 'C' ? 'bg-muted text-muted-foreground' :
+            formData.status === 'T' ? 'bg-destructive/10 text-destructive' :
+            formData.status === 'I' ? 'bg-accent/30 text-accent-foreground' :
+            formData.status === 'S' ? 'bg-accent/30 text-accent-foreground' :
+            formData.status === 'D' ? 'bg-destructive/10 text-destructive' :
             'bg-muted text-muted-foreground'
           }`}>
             {(formData.status === 'P' || !isEditable) && <Lock className="h-3 w-3" />}
@@ -169,9 +169,9 @@ export const IPRegistrationForm: React.FC = () => {
 
       {/* Save Success Animation */}
       {saveSuccessAnimation && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700">
+        <Alert className="bg-primary/10 border-primary/20">
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary">
             Changes saved successfully!
           </AlertDescription>
         </Alert>

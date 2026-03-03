@@ -91,27 +91,27 @@ const ViewInsuredPerson = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+        return <Badge className="bg-primary/10 text-primary flex items-center gap-1">
           <CheckCircle className="h-3 w-3" /> Active
         </Badge>;
       case 'Pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
+        return <Badge className="bg-accent/30 text-accent-foreground flex items-center gap-1">
           <Clock className="h-3 w-3" /> Pending
         </Badge>;
       case 'Verify':
-        return <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+        return <Badge className="bg-secondary/10 text-secondary flex items-center gap-1">
           <UserCheck className="h-3 w-3" /> Verify
         </Badge>;
       case 'Suspend':
-        return <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1">
+        return <Badge className="bg-accent/30 text-accent-foreground flex items-center gap-1">
           <AlertCircle className="h-3 w-3" /> Suspend
         </Badge>;
       case 'Ceased':
-        return <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
+        return <Badge className="bg-destructive/10 text-destructive flex items-center gap-1">
           <AlertCircle className="h-3 w-3" /> Ceased
         </Badge>;
       default:
-        return <Badge className='bg-orange-100 text-orange-800 flex items-center gap-1' variant="secondary">{status}</Badge>;
+        return <Badge className='bg-muted text-muted-foreground flex items-center gap-1' variant="secondary">{status}</Badge>;
     }
   };
 
@@ -190,7 +190,7 @@ const AccountStatusModal = ({
             <Button 
               type="submit" 
               variant="destructive"
-              className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500"
+              className="px-4 py-2"
             >
               Change Status
             </Button>
@@ -636,7 +636,7 @@ const AccountStatusModal = ({
                               <TableCell>8 weeks</TableCell>
                               <TableCell>$3,200.00</TableCell>
                               <TableCell>$400.00</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">Approved</Badge></TableCell>
+                              <TableCell><Badge className="bg-primary/10 text-primary">Approved</Badge></TableCell>
                               <TableCell>$450.00</TableCell>
                               <TableCell>-</TableCell>
                               <TableCell>Job seeking verification provided</TableCell>
@@ -821,7 +821,7 @@ const AccountStatusModal = ({
                               <TableCell>Consulting Services</TableCell>
                               <TableCell>$5,000.00</TableCell>
                               <TableCell>$500.00</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">Filed</Badge></TableCell>
+                              <TableCell><Badge className="bg-primary/10 text-primary">Filed</Badge></TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
@@ -864,7 +864,7 @@ const AccountStatusModal = ({
                           </div>
                           <div className="p-4 border rounded-lg">
                             <h4 className="font-medium">Compliance Status</h4>
-                            <p className="text-2xl font-bold text-green-600">Up to Date</p>
+                            <p className="text-2xl font-bold text-primary">Up to Date</p>
                           </div>
                         </div>
                         
@@ -910,7 +910,7 @@ const AccountStatusModal = ({
                               <TableCell>$200.00</TableCell>
                               <TableCell>$1,250.00</TableCell>
                               <TableCell>12</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">100%</Badge></TableCell>
+                              <TableCell><Badge className="bg-primary/10 text-primary">100%</Badge></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
                                   <Button variant="outline" size="sm">
@@ -933,7 +933,7 @@ const AccountStatusModal = ({
                               <TableCell>$600.00</TableCell>
                               <TableCell>$4,520.00</TableCell>
                               <TableCell>52</TableCell>
-                              <TableCell><Badge className="bg-green-100 text-green-800">100%</Badge></TableCell>
+                              <TableCell><Badge className="bg-primary/10 text-primary">100%</Badge></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
                                   <Button variant="outline" size="sm">

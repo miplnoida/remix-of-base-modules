@@ -201,11 +201,11 @@ const InsuredPersonListing = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">Active</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-accent/30 text-accent-foreground border-accent/20">Pending</Badge>;
       case 'Inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>;
+        return <Badge variant="secondary" className="bg-muted text-muted-foreground">Inactive</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
