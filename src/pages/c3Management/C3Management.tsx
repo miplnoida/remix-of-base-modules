@@ -665,7 +665,7 @@ export default function C3Management() {
               </Button>
               <Button 
                 onClick={confirmVerification} 
-                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                className="flex-1 py-3 rounded-lg font-medium"
               >
                 Yes, Verify
               </Button>

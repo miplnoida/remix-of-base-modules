@@ -259,7 +259,7 @@ const WizCompanyUsers: React.FC = () => {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button onClick={saveEdit} disabled={editSaving} className="bg-green-600 hover:bg-green-700 text-white border-green-600">
+              <Button onClick={saveEdit} disabled={editSaving}>
                 <Save className="h-4 w-4 mr-2" /> Save
               </Button>
               <Button variant="outline" onClick={() => setEditMode(false)} className="text-destructive border-destructive">

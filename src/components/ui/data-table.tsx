@@ -442,7 +442,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                           <Button 
                             variant="default" 
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700"
+                            className=""
                             title="Approve"
                             onClick={() => handleApprove(row)}
                           >
@@ -470,7 +470,7 @@ export const DataTable: React.FC<DataTableProps> = ({
 
         {/* Pagination */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-2 pt-2 border-t shrink-0">
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-muted-foreground">
             Showing {startEntry} to {endEntry} of {filteredData.length}
           </div>
           

@@ -630,7 +630,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
                   <div className="flex items-center gap-3">
                     <Button 
                       onClick={handleSave} 
-                      className="bg-green-600 hover:bg-green-700 gap-2" 
+                      className="gap-2" 
                       disabled={isReadOnly || isSaving || isSubmitting}
                     >
                       {isSaving ? (
@@ -683,7 +683,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
               <div className="mt-6">
                 <Button 
                   onClick={handleSave} 
-                  className="bg-green-600 hover:bg-green-700 gap-2" 
+                  className="gap-2" 
                   disabled={isReadOnly || isSaving}
                 >
                   {isSaving ? (

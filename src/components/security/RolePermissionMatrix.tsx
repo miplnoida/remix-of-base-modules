@@ -303,7 +303,7 @@ const RolePermissionMatrix: React.FC<RolePermissionMatrixProps> = ({
               Configure granular permissions for the selected role
             </CardDescription>
           </div>
-          <Button size="sm" className="bg-green-600 hover:bg-green-700">
+          <Button size="sm">
             Save Changes
           </Button>
         </div>

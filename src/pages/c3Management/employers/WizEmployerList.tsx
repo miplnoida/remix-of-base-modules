@@ -295,7 +295,7 @@ const WizEmployerList: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMappingOpen(false)} className="text-destructive border-destructive">Close</Button>
-            <Button onClick={saveMapping} disabled={mappingLoading} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={saveMapping} disabled={mappingLoading}>
               Save Mapping
             </Button>
           </DialogFooter>

@@ -434,7 +434,7 @@ const WizEmployerDetails: React.FC = () => {
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" /> Save
             </Button>
             <Button variant="outline" onClick={() => navigate('/c3-management/employer-details')} className="text-destructive border-destructive">

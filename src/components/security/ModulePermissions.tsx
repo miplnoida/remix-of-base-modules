@@ -277,7 +277,7 @@ const ModulePermissions: React.FC<ModulePermissionsProps> = ({ modules }) => {
       {/* Save Changes */}
       <div className="flex justify-end gap-3">
         <Button variant="outline">Reset to Defaults</Button>
-        <Button className="bg-green-600 hover:bg-green-700">
+        <Button>
           Save All Changes
         </Button>
       </div>

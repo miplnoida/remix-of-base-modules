@@ -226,7 +226,7 @@ const TestDataEntry = () => {
                   </TableHead>
                   <TableHead className="text-white">Verified</TableHead>
                 </TableRow>
-                <TableRow className="bg-green-500">
+                <TableRow className="bg-primary text-primary-foreground">
                   <TableHead className="text-white">Start Date</TableHead>
                   <TableHead className="text-white"></TableHead>
                   <TableHead className="text-white"></TableHead>

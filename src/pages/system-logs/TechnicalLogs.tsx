@@ -77,7 +77,7 @@ const TechnicalLogs: React.FC = () => {
   });
 
   const getStatusBadge = (status: string | null) => {
-    if (status === 'success') return <Badge className="bg-green-500">Success</Badge>;
+    if (status === 'success') return <Badge className="bg-primary text-primary-foreground">Success</Badge>;
     if (status === 'failed') return <Badge variant="destructive">Failed</Badge>;
     return <Badge variant="secondary">{status || 'Unknown'}</Badge>;
   };

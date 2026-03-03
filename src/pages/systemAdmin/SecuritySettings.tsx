@@ -202,7 +202,7 @@ const SecuritySettings = () => {
                     <Button variant="outline" onClick={() => setIsCloneRoleOpen(false)}>
                       Cancel
                     </Button>
-                    <Button className="bg-green-600 hover:bg-green-700">
+                    <Button>
                       Clone Role
                     </Button>
                   </div>

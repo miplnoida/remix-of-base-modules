@@ -230,7 +230,7 @@ export default function DoctorApplicationDetail() {
             </Button>
           )}
           {canApprove && (
-            <Button onClick={() => setApproveDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => setApproveDialogOpen(true)}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </Button>
@@ -530,7 +530,7 @@ export default function DoctorApplicationDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleApprove}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve & Create Account
             </Button>

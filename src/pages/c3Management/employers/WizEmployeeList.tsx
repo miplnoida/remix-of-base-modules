@@ -366,7 +366,7 @@ const WizEmployeeList: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={saveEdit} disabled={editSaving} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={saveEdit} disabled={editSaving}>
               <Save className="h-4 w-4 mr-2" /> Save
             </Button>
             <Button variant="outline" onClick={() => setEditOpen(false)} className="text-destructive border-destructive">

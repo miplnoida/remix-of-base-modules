@@ -47,7 +47,7 @@ const LoginSecurityLogs: React.FC = () => {
 
   const getResultBadge = (result: string) => {
     switch (result) {
-      case 'passed': return <Badge className="bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Passed</Badge>;
+      case 'passed': return <Badge className="bg-primary text-primary-foreground"><CheckCircle className="h-3 w-3 mr-1" />Passed</Badge>;
       case 'failed': return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
       case 'skipped': return <Badge className="bg-yellow-500 text-white"><AlertTriangle className="h-3 w-3 mr-1" />Skipped</Badge>;
       case 'rate_limited': return <Badge className="bg-orange-600 text-white"><Ban className="h-3 w-3 mr-1" />Rate Limited</Badge>;

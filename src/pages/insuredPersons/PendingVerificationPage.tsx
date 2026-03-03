@@ -297,7 +297,7 @@ const PendingVerificationPage = () => {
                                   variant="default" 
                                   size="sm" 
                                   onClick={() => handleApprove(employer)}
-                                  className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                                  className="h-8 px-3"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
@@ -364,7 +364,7 @@ const PendingVerificationPage = () => {
               <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={confirmApprove} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={confirmApprove}>
                 Approve Registration
               </Button>
             </DialogFooter>

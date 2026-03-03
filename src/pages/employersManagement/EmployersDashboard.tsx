@@ -89,7 +89,7 @@ const EmployersDashboard = () => {
       description: "Add a new employer to the system",
       icon: Plus,
       action: () => navigate('/employer/register'),
-      color: "bg-blue-600 hover:bg-blue-700"
+      color: "bg-secondary hover:bg-secondary/90"
     },
     {
       title: "Pending Verification",
@@ -103,14 +103,14 @@ const EmployersDashboard = () => {
       description: "Find and manage existing employers",
       icon: Search,
       action: () => navigate('/employers-management/manage'),
-      color: "bg-green-600 hover:bg-green-700"
+      color: "bg-primary hover:bg-primary/90"
     },
     {
       title: "View Reports",
       description: "Generate employer reports and analytics",
       icon: FileText,
       action: () => navigate('/employers-management/reports'),
-      color: "bg-purple-600 hover:bg-purple-700"
+      color: "bg-secondary/80 hover:bg-secondary/90"
     }
   ];
 
