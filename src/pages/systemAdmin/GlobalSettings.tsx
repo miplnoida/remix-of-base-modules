@@ -185,7 +185,7 @@ const GlobalSettings = () => {
     
     if (setting.setting_type === 'boolean') {
       return setting.setting_value === 'true' ? (
-        <Badge variant="default" className="bg-green-500">Yes</Badge>
+        <Badge variant="default" className="bg-primary text-primary-foreground">Yes</Badge>
       ) : (
         <Badge variant="secondary">No</Badge>
       );

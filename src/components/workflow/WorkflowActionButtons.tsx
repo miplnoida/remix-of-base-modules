@@ -242,11 +242,11 @@ export function WorkflowActionButtons({
 
   const getActionClassName = (actionType: string): string => {
     if (isScheduleMeetingAction(actionType)) {
-      return 'bg-blue-600 hover:bg-blue-700 text-white';
+      return 'bg-primary/80 hover:bg-primary/90 text-primary-foreground';
     }
     switch (actionType.toLowerCase()) {
       case 'approve':
-        return 'bg-green-600 hover:bg-green-700 text-white';
+        return '';
       case 'reject':
         return '';
       default:

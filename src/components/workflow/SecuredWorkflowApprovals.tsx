@@ -178,7 +178,7 @@ function TaskDetailDialog({ task, open, onOpenChange, onAction }: TaskDetailDial
             <Button 
               onClick={() => handleAction('approve')}
               disabled={isProcessing}
-              className="bg-green-600 hover:bg-green-700"
+              className=""
             >
               <Check className="h-4 w-4 mr-1" />
               Approve

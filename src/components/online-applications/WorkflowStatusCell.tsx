@@ -38,16 +38,16 @@ function getBadgeClasses(variant: ApplicationWorkflowStatus['displayStatusVarian
   switch (variant) {
     case 'success':
     case 'approved':
-      return 'bg-green-600 hover:bg-green-700 text-white border-green-700';
+      return 'bg-primary hover:bg-primary/90 text-primary-foreground border-primary';
     case 'error':
     case 'rejected':
       return 'bg-destructive hover:bg-destructive/90 text-destructive-foreground';
     case 'warning':
-      return 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600';
+      return 'bg-accent hover:bg-accent/90 text-accent-foreground border-accent';
     case 'in_progress':
-      return 'bg-blue-500 hover:bg-blue-600 text-white border-blue-600';
+      return 'bg-secondary hover:bg-secondary/90 text-secondary-foreground border-secondary';
     case 'pending':
-      return 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600';
+      return 'bg-accent hover:bg-accent/80 text-accent-foreground border-accent';
     default:
       return 'bg-muted hover:bg-muted/80';
   }

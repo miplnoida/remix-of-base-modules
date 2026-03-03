@@ -453,7 +453,7 @@ const set = (k: keyof typeof form, v: any) => setForm((f) => ({ ...f, [k]: v }))
                             <TableCell>{form.version}</TableCell>
                           </TableRow>
 
-                          <TableRow className="bg-green-600 text-white">
+                          <TableRow className="bg-primary text-primary-foreground">
                             <TableCell className="w-16">Line #</TableCell>
                             <TableCell className="w-24">SSN</TableCell>
                             <TableCell>Name of Employee</TableCell>

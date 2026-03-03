@@ -186,7 +186,7 @@ const WizSelfEmployedList: React.FC = () => {
                             <Switch
                               checked={rec.isActive}
                               onCheckedChange={() => confirmToggle(rec)}
-                              className="data-[state=checked]:bg-green-500"
+                              className="data-[state=checked]:bg-primary"
                             />
                           </div>
                         </TableCell>

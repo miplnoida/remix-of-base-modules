@@ -939,7 +939,7 @@ const ManageEmployers = () => {
               <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={confirmApprove} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={confirmApprove}>
                 Approve Registration
               </Button>
             </DialogFooter>

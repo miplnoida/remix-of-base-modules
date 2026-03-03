@@ -57,7 +57,7 @@ const BusinessEvents: React.FC = () => {
 
   const getActionBadge = (action: string | null) => {
     switch (action?.toLowerCase()) {
-      case 'create': return <Badge className="bg-green-500">Create</Badge>;
+      case 'create': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
       case 'update': return <Badge className="bg-blue-500">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
       case 'approve': return <Badge className="bg-purple-500">Approve</Badge>;

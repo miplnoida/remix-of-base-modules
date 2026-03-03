@@ -254,7 +254,7 @@ const AccountStatusModal = ({
                 <Printer className="h-4 w-4" />
                 Print
               </Button>
-              <Button type="button" variant="default" className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+              <Button type="button" variant="default" className="flex items-center gap-2">
                 Approve
               </Button>
               <Button type="button" variant="destructive" className="flex items-center gap-2">

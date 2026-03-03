@@ -56,7 +56,7 @@ const IntegrationLogs: React.FC = () => {
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
-      case 'success': return <Badge className="bg-green-500">Success</Badge>;
+      case 'success': return <Badge className="bg-primary text-primary-foreground">Success</Badge>;
       case 'failed': return <Badge variant="destructive">Failed</Badge>;
       case 'pending': return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'retry': return <Badge className="bg-orange-500">Retry</Badge>;

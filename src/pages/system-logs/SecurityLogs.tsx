@@ -85,7 +85,7 @@ const SecurityLogs: React.FC = () => {
 
   const getEventBadge = (eventType: string | null) => {
     switch (eventType) {
-      case 'login': return <Badge className="bg-green-500">Login</Badge>;
+      case 'login': return <Badge className="bg-primary text-primary-foreground">Login</Badge>;
       case 'logout': return <Badge className="bg-blue-500">Logout</Badge>;
       case 'password_change': return <Badge className="bg-purple-500">Password Change</Badge>;
       case 'permission_denied': return <Badge variant="destructive">Permission Denied</Badge>;

@@ -382,7 +382,7 @@ const EmployerApproval = () => {
                     <div className="flex gap-3">
                       <Button 
                         onClick={() => handleApprove(selectedEmployer.id)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className=""
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve Registration
