@@ -269,16 +269,61 @@ export function usePublishToC3Wizard() {
       if (logErr) throw logErr;
 
       try {
-        // TODO: Replace with actual C3-Wizard API call
-        // POST to: ${C3_WIZARD_API_URL}/functions/v1/c3-config-sync
-        // Headers: { 'Content-Type': 'application/json', 'x-sync-api-key': C3_CONFIG_SYNC_API_KEY }
-        // Body: payload
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        await supabase
-          .from('c3_config_sync_log')
-          .update({ status: 'success', response_data: { message: 'Sync completed successfully' } as any })
-          .eq('id', logEntry.id);
+        // Call C3-Wizard sync API
+        const syncUrl = import.meta.env.VITE_C3_WIZARD_SYNC_URL;
+        
+        if (!syncUrl) {
+          // Fallback: use edge function to proxy the call (secrets are only accessible there)
+          const { data: funcData, error: funcError } = await supabase.functions.invoke('c3-config-sync-publish', {
+            body: payload,
+          });
+          
+          if (funcError) throw new Error(funcError.message || 'Sync function failed');
+          
+          const result = funcData;
+          if (result?.status === 'error') {
+            throw new Error(result.error || 'Sync failed on Wizard side');
+          }
+          
+          // Handle success or skipped (idempotent duplicate)
+          const syncStatus = result?.status === 'skipped' ? 'success' : 'success';
+          
+          await supabase
+            .from('c3_config_sync_log')
+            .update({ 
+              status: syncStatus, 
+              response_data: result as any,
+            })
+            .eq('id', logEntry.id);
+        } else {
+          // Direct API call (for environments with URL configured)
+          const response = await fetch(syncUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-sync-api-key': import.meta.env.VITE_C3_CONFIG_SYNC_API_KEY || '',
+            },
+            body: JSON.stringify(payload),
+          });
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(result?.error || `Sync failed with status ${response.status}`);
+          }
+          
+          if (result?.status === 'error') {
+            throw new Error(result.error || 'Sync failed on Wizard side');
+          }
+          
+          await supabase
+            .from('c3_config_sync_log')
+            .update({ 
+              status: 'success', 
+              response_data: result as any,
+            })
+            .eq('id', logEntry.id);
+        }
 
         const now = new Date().toISOString();
         await Promise.all([
