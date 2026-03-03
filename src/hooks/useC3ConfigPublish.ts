@@ -211,8 +211,10 @@ async function buildSyncPayload() {
     .order('year_from', { ascending: false });
   if (heErr) throw heErr;
 
+  const syncTimestamp = new Date().toISOString();
   const payload = {
-    sync_version: new Date().toISOString(),
+    sync_version: '3.0',
+    sync_timestamp: syncTimestamp,
     config_periods: configPeriods,
     levy_slabs: levySlabs,
     bonus_policies: bonusPolicies || [],
