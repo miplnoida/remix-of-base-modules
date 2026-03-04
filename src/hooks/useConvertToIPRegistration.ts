@@ -159,6 +159,26 @@ function buildDependantsJson(
 
 // ─── Build documents array: merge app docs + meeting_uploaded_documents ──────
 
+/** Map verification_category (e.g. "birth") to verification_type (e.g. "birth_status") */
+const CATEGORY_TO_VERIFY_TYPE: Record<string, string> = {
+  birth: 'birth_status',
+  name: 'name_status',
+  marital: 'marital_status',
+  death: 'death_status',
+};
+
+function resolveVerificationType(doc: any): string | null {
+  // Prefer explicit verification_type fields first
+  const explicit = doc.verificationType || doc.verification_type;
+  if (explicit) return explicit;
+  // Map verification_category to the _status suffix the RPC expects
+  const cat = doc.verification_category;
+  if (cat && CATEGORY_TO_VERIFY_TYPE[cat]) return CATEGORY_TO_VERIFY_TYPE[cat];
+  // Fallback: if category already looks like a _status value, pass through
+  if (cat && cat.endsWith('_status')) return cat;
+  return cat || null;
+}
+
 function mapDocToRpcFormat(doc: any) {
   return {
     id:               doc.id || null,
@@ -166,7 +186,7 @@ function mapDocToRpcFormat(doc: any) {
     fileName:         doc.fileName || doc.name || doc.file_name || null,
     documentType:     doc.documentType || doc.type || doc.document_type || null,
     type:             doc.type || doc.documentType || doc.document_type || null,
-    verificationType: doc.verificationType || doc.verification_type || doc.verification_category || null,
+    verificationType: resolveVerificationType(doc),
     filePath:         doc.filePath || doc.file_path || null,
     url:              doc.url || doc.storage_url || null,
     signedUrl:        doc.signedUrl || doc.signed_url || null,
