@@ -54,8 +54,8 @@ const AllBenefitsTabs = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -68,11 +68,11 @@ const AllBenefitsTabs = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Benefits Management</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">All Benefits</span>
+                <span className="text-foreground font-medium">All Benefits</span>
               </nav>
             </div>
             <Button onClick={() => navigate("/")} variant="outline" size="sm">

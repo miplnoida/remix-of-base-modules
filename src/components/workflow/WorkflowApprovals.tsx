@@ -25,9 +25,9 @@ export default function WorkflowApprovals() {
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      High: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-      Medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      Low: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      High: "bg-destructive/10 text-destructive",
+      Medium: "bg-warning/15 text-warning",
+      Low: "bg-success/10 text-success",
     };
     return colors[priority] || "bg-muted text-muted-foreground";
   };
@@ -80,7 +80,7 @@ export default function WorkflowApprovals() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCount}</div>
@@ -91,10 +91,10 @@ export default function WorkflowApprovals() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
+            <div className="text-2xl font-bold text-destructive">{overdueCount}</div>
             <p className="text-xs text-muted-foreground">Past due date</p>
           </CardContent>
         </Card>
@@ -187,7 +187,7 @@ export default function WorkflowApprovals() {
                           onClick={() => handleViewRecord(approval)}
                           title="View and take action"
                         >
-                          <Eye className="h-4 w-4 text-blue-600" />
+                          <Eye className="h-4 w-4 text-info" />
                         </Button>
                       </div>
                     </TableCell>

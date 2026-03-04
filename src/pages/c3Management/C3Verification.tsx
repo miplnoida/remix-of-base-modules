@@ -58,26 +58,26 @@ export default function C3Verification() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Pending Review":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending Review</Badge>;
+        return <Badge className="bg-warning/15 text-warning">Pending Review</Badge>;
       case "Pending Verification":
-        return <Badge className="bg-blue-100 text-blue-800">Pending Verification</Badge>;
+        return <Badge className="bg-info/10 text-info">Pending Verification</Badge>;
       case "Needs Clarification":
-        return <Badge className="bg-orange-100 text-orange-800">Needs Clarification</Badge>;
+        return <Badge className="bg-warning/15 text-warning">Needs Clarification</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">{status}</Badge>;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "High":
-        return <Badge className="bg-red-100 text-red-800">High</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive">High</Badge>;
       case "Medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium</Badge>;
+        return <Badge className="bg-warning/15 text-warning">Medium</Badge>;
       case "Low":
-        return <Badge className="bg-green-100 text-green-800">Low</Badge>;
+        return <Badge className="bg-success/10 text-success">Low</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{priority}</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">{priority}</Badge>;
     }
   };
 

@@ -169,8 +169,8 @@ const MultiCurrencySettings = () => {
               Transactions in foreign currencies are converted to XCD using the applicable exchange rate at transaction date.
             </p>
           </div>
-          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
-            <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+          <div className="mt-3 p-3 bg-warning/10 border border-warning/30 rounded-md">
+            <p className="text-sm text-warning flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               <strong>Security:</strong> The base currency (XCD) cannot be edited or disabled once configured. This ensures data integrity across all financial records.
             </p>
@@ -226,9 +226,9 @@ const MultiCurrencySettings = () => {
                       </TableCell>
                       <TableCell>
                         {currency.isActive ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/30">Active</Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Inactive</Badge>
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Inactive</Badge>
                         )}
                       </TableCell>
                       <TableCell>{currency.decimalPlaces}</TableCell>
@@ -295,9 +295,9 @@ const MultiCurrencySettings = () => {
                       <TableCell>{rate.expiryDate ? new Date(rate.expiryDate).toLocaleDateString() : '-'}</TableCell>
                       <TableCell>
                         {rate.isActive ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/30">Active</Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Inactive</Badge>
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Inactive</Badge>
                         )}
                       </TableCell>
                       <TableCell>{rate.createdBy}</TableCell>
@@ -332,8 +332,8 @@ const MultiCurrencySettings = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {editingCurrency?.isBase && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
-                <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
+                <p className="text-sm text-warning flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   <strong>Warning:</strong> Base currency (XCD) cannot be modified. This dialog is read-only.
                 </p>

@@ -14,19 +14,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const getStatusBadgeClass = (status: string) => {
   const statusMap: Record<string, string> = {
-    'Draft': 'bg-[#6B7280] text-white',
-    'Filed': 'bg-[#B45309] text-white',
-    'Under Review': 'bg-[#B45309] text-white',
-    'Hearing Scheduled': 'bg-[#0F766E] text-white',
-    'Decision Pending': 'bg-[#B45309] text-white',
-    'Order Issued': 'bg-[#6D28D9] text-white',
-    'Closed – Compliant': 'bg-[#166534] text-white',
-    'Closed – Non-Compliant': 'bg-[#B91C1C] text-white',
-    'Resolved': 'bg-[#047857] text-white',
-    'Completed': 'bg-[#047857] text-white',
-    'Pending': 'bg-[#B45309] text-white',
+    'Draft': 'bg-muted text-muted-foreground',
+    'Filed': 'bg-warning/15 text-warning',
+    'Under Review': 'bg-warning/15 text-warning',
+    'Hearing Scheduled': 'bg-info/10 text-info',
+    'Decision Pending': 'bg-warning/15 text-warning',
+    'Order Issued': 'bg-accent text-accent-foreground',
+    'Closed – Compliant': 'bg-success/10 text-success',
+    'Closed – Non-Compliant': 'bg-destructive/10 text-destructive',
+    'Resolved': 'bg-success/10 text-success',
+    'Completed': 'bg-success/10 text-success',
+    'Pending': 'bg-warning/15 text-warning',
   };
-  return statusMap[status] || 'bg-[#6B7280] text-white';
+  return statusMap[status] || 'bg-muted text-muted-foreground';
 };
 
 export default function LegalCaseList() {
@@ -284,10 +284,10 @@ export default function LegalCaseList() {
                           <TableCell>{legalCase.case_type}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={
-                              legalCase.priority === 'Urgent' ? 'bg-[#B91C1C] text-white border-[#DC2626]' :
-                              legalCase.priority === 'High' ? 'bg-[#DC2626] text-white border-[#B91C1C]' :
-                              legalCase.priority === 'Medium' ? 'bg-[#B45309] text-white border-[#C2410C]' :
-                              'bg-[#0F766E] text-white border-[#0D9488]'
+                              legalCase.priority === 'Urgent' ? 'bg-destructive text-destructive-foreground border-destructive' :
+                              legalCase.priority === 'High' ? 'bg-destructive/80 text-destructive-foreground border-destructive' :
+                              legalCase.priority === 'Medium' ? 'bg-warning text-warning-foreground border-warning' :
+                              'bg-success text-success-foreground border-success'
                             }>
                               {legalCase.priority}
                             </Badge>

@@ -28,9 +28,9 @@ export const ComplianceView = () => {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
               <metric.icon className={`h-4 w-4 ${
-                metric.status === 'danger' ? 'text-red-500' :
-                metric.status === 'success' ? 'text-green-500' :
-                metric.status === 'warning' ? 'text-orange-600' : 'text-blue-500'
+                metric.status === 'danger' ? 'text-destructive' :
+                metric.status === 'success' ? 'text-success' :
+                metric.status === 'warning' ? 'text-warning' : 'text-info'
               }`} />
             </CardHeader>
             <CardContent>
@@ -44,7 +44,7 @@ export const ComplianceView = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               Active Violations
             </span>
             <Button size="sm">View All</Button>
@@ -64,8 +64,8 @@ export const ComplianceView = () => {
                     {violation.severity}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-600">{violation.violation}</p>
-                <div className="flex justify-between text-xs text-gray-500">
+                <p className="text-sm text-muted-foreground">{violation.violation}</p>
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Inspector: {violation.inspector}</span>
                   <span>{violation.daysOpen} days open</span>
                 </div>
