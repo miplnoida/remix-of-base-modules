@@ -18,7 +18,8 @@ import { useDocumentVerification } from '@/hooks/useDocumentVerification';
 import { IPFormData } from '../IPRegistrationForm';
 import {
   UnifiedDocument, VerificationCategory, DocumentPersistenceAdapter,
-  CATEGORY_TO_VERIFY_TYPE, mapPlatformDocs, formatSize, formatDocDate, getFileCategory,
+  CATEGORY_TO_VERIFY_TYPE, VERIFY_TYPE_TO_CATEGORY, EXTERNAL_DOC_TYPE_TO_VERIFY_CODE,
+  mapPlatformDocs, formatSize, formatDocDate, getFileCategory, resolveExternalDocTypeToCode,
 } from '@/components/documents/shared/types';
 import { DocumentPreviewDialog } from '@/components/documents/shared/DocumentPreviewDialog';
 import { DocumentSelectionStep } from '@/components/documents/shared/DocumentSelectionStep';
