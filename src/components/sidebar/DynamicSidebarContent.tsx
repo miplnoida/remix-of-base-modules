@@ -14,13 +14,6 @@ interface DynamicSidebarContentProps {
 // Default menu items always visible to all users regardless of permissions
 const defaultMenuItems: MenuItem[] = [
   {
-    id: 'home-dashboard',
-    title: 'Dashboard',
-    url: '/',
-    icon: LayoutDashboard,
-    description: 'System overview and role-based widgets',
-  },
-  {
     id: 'user-profile-preferences',
     title: 'User Profile & Preferences',
     icon: User,
