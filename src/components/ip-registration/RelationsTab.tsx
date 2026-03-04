@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, UserRound, Heart, Eye, Award } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { IP_MASTER_FIELDS } from '@/lib/fieldLengths';
+import { useRelations } from '@/hooks/useIPMasterLookups';
 
 interface RelationsTabProps {
   formData: IPMasterFormData;
@@ -37,6 +38,15 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
   isEditable,
 }) => {
   const [selectedRelationType, setSelectedRelationType] = useState<string>('contact');
+  const { data: relations = [], isLoading: relationsLoading } = useRelations();
+
+  const resolveRelationDesc = useMemo(() => {
+    const map = new Map(relations.map(r => [r.code, r.description]));
+    return (code: string | null | undefined) => {
+      if (!code) return '';
+      return map.get(code) || code;
+    };
+  }, [relations]);
 
   const renderContactFields = () => (
     <Card>
@@ -56,7 +66,16 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
               </div>
               <div>
                 <Label htmlFor="contact_relation">Relation</Label>
-                <Input id="contact_relation" value={formData.contact_relation} onChange={(e) => updateField('contact_relation', e.target.value)} maxLength={20} />
+                <Select value={formData.contact_relation || ''} onValueChange={(val) => updateField('contact_relation', val)}>
+                  <SelectTrigger id="contact_relation">
+                    <SelectValue placeholder={relationsLoading ? 'Loading...' : 'Select relation'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {relations.map((r) => (
+                      <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="contact_email">Email</Label>
@@ -66,7 +85,7 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
           ) : (
             <>
               <ViewModeField label="Contact Name" value={formData.contact} />
-              <ViewModeField label="Relation" value={formData.contact_relation} />
+              <ViewModeField label="Relation" value={relationsLoading ? formData.contact_relation : resolveRelationDesc(formData.contact_relation)} />
               <ViewModeField label="Email" value={formData.contact_email} />
             </>
           )}
