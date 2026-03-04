@@ -682,12 +682,12 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10"></TableHead>
-                      <TableHead>Document Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Verification Status</TableHead>
+                      <TableHead>Document</TableHead>
+                      {/* <TableHead>Type</TableHead> */}
+                      <TableHead>Verification Type</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Uploaded</TableHead>
-                      <TableHead>Transfer Status</TableHead>
+                      <TableHead>DMS Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -702,7 +702,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                         <TableRow key={doc.id}>
                           <TableCell>{getAppDocFileIcon(doc)}</TableCell>
                           <TableCell className="font-medium">{getAppDocName(doc, index)}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type) !== doc.document_type ? resolveDocType(doc.document_type) : (doc.document_name || resolveDocType(doc.document_type))}</Badge></TableCell>
+                          {/* <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type) !== doc.document_type ? resolveDocType(doc.document_type) : (doc.document_name || resolveDocType(doc.document_type))}</Badge></TableCell> */}
                           <TableCell>
                             {showDropdown ? (
                               isEditable ? (
@@ -715,16 +715,16 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                               ) : (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
-                                  <Badge variant="outline" className="text-xs w-fit">
+                                  {/* <Badge variant="outline" className="text-xs w-fit">
                                     {statusVal ? (verifyTypes.find(v => v.code === statusVal)?.description || statusVal) : 'Not Set'}
-                                  </Badge>
+                                  </Badge> */}
                                 </div>
                               )
                             ) : (
                               doc.verification_type ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-xs font-medium text-muted-foreground">{getStatusLabel(doc.verification_type)}</span>
-                                  <Badge variant="outline" className="text-xs w-fit">Not Set</Badge>
+                                  {/* <Badge variant="outline" className="text-xs w-fit">Not Set</Badge> */}
                                 </div>
                               ) : <span className="text-xs text-muted-foreground">—</span>
                             )}
