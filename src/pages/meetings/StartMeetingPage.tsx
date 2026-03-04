@@ -190,6 +190,8 @@ export default function StartMeetingPage() {
           userCode: userCode   || '',
           validRelationCodes,
           sourceRoute: `/meetings/start/${meetingId}`,
+          meetingId,
+          applicationReference,
         });
 
         if (!result.success) {
