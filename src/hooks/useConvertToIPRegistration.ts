@@ -71,6 +71,10 @@ interface ConversionParams {
   /** Valid tb_relation codes fetched from master (used for client-side pre-check) */
   validRelationCodes: Set<string>;
   sourceRoute?: string;
+  /** When converting from /meetings/start/:id, pass the meeting ID so we fetch uploaded docs */
+  meetingId?: string;
+  /** Application reference to query meeting_uploaded_documents */
+  applicationReference?: string;
 }
 
 // ─── Client-side preflight validation ────────────────────────────────────────
