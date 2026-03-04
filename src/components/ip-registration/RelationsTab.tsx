@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, UserRound, Heart, Eye, Award } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { IP_MASTER_FIELDS } from '@/lib/fieldLengths';
+import { useRelations } from '@/hooks/useIPMasterLookups';
 
 interface RelationsTabProps {
   formData: IPMasterFormData;
