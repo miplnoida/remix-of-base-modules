@@ -85,7 +85,7 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
           ) : (
             <>
               <ViewModeField label="Contact Name" value={formData.contact} />
-              <ViewModeField label="Relation" value={formData.contact_relation} />
+              <ViewModeField label="Relation" value={relationsLoading ? formData.contact_relation : resolveRelationDesc(formData.contact_relation)} />
               <ViewModeField label="Email" value={formData.contact_email} />
             </>
           )}
