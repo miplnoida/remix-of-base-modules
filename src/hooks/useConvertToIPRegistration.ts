@@ -292,20 +292,7 @@ export function useConvertToIPRegistration() {
           p_remarks:               app.remarks || null,
           p_application_ref_number: resolvedAppRefNumber,
           p_dependants:            dependantsJson,
-          p_documents:             (app.documents || []).map(doc => ({
-            id:               doc.id || null,
-            name:             doc.name || doc.fileName || null,
-            fileName:         doc.fileName || doc.name || null,
-            documentType:     doc.documentType || doc.type || null,
-            type:             doc.type || doc.documentType || null,
-            verificationType: doc.verificationType || null,
-            filePath:         doc.filePath || null,
-            url:              doc.url || null,
-            signedUrl:        doc.signedUrl || null,
-            mimeType:         doc.mimeType || null,
-            fileSize:         doc.fileSize ? String(doc.fileSize) : null,
-            uploadedAt:       doc.uploadedAt || null,
-          })),
+          p_documents:             await buildDocumentsForConversion(app, meetingId, applicationReference || resolvedAppRefNumber),
         }
       );
 
