@@ -38,6 +38,15 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
   isEditable,
 }) => {
   const [selectedRelationType, setSelectedRelationType] = useState<string>('contact');
+  const { data: relations = [], isLoading: relationsLoading } = useRelations();
+
+  const resolveRelationDesc = useMemo(() => {
+    const map = new Map(relations.map(r => [r.code, r.description]));
+    return (code: string | null | undefined) => {
+      if (!code) return '';
+      return map.get(code) || code;
+    };
+  }, [relations]);
 
   const renderContactFields = () => (
     <Card>
