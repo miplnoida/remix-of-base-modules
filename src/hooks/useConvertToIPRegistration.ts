@@ -169,6 +169,8 @@ export function useConvertToIPRegistration() {
     userId,
     userCode,
     validRelationCodes,
+    meetingId,
+    applicationReference,
   }: ConversionParams): Promise<ConversionResult> => {
     setIsConverting(true);
     setConversionErrors([]);
