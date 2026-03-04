@@ -704,23 +704,16 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                           <TableCell className="font-medium">{getAppDocName(doc, index)}</TableCell>
                           {/* <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type) !== doc.document_type ? resolveDocType(doc.document_type) : (doc.document_name || resolveDocType(doc.document_type))}</Badge></TableCell> */}
                           <TableCell>
-                            {showDropdown ? (
-                              isEditable ? (
-                                <Select value={statusVal || undefined} onValueChange={(v) => handleStatusChange(doc.id, doc.verification_type!, v)} disabled={isSaving[doc.id]}>
-                                  <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder={`Select ${statusLabel}`} /></SelectTrigger>
-                                  <SelectContent>
-                                    {verifyTypes.map(v => (<SelectItem key={v.code} value={v.code}>{v.description || v.code}</SelectItem>))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
+                            {
+                            showDropdown ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
                                   {/* <Badge variant="outline" className="text-xs w-fit">
                                     {statusVal ? (verifyTypes.find(v => v.code === statusVal)?.description || statusVal) : 'Not Set'}
                                   </Badge> */}
                                 </div>
-                              )
-                            ) : (
+                            ) : 
+                            (
                               doc.verification_type ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-xs font-medium text-muted-foreground">{getStatusLabel(doc.verification_type)}</span>
