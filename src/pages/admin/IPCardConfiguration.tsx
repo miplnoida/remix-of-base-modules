@@ -119,7 +119,7 @@ export default function IPCardConfiguration() {
             Card Print Settings
           </CardTitle>
           <CardDescription>
-            These settings apply when processing "Ready to Print Card" for verified insured persons.
+            These settings apply when processing "Ready to Print" for verified insured persons.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -190,7 +190,7 @@ export default function IPCardConfiguration() {
                 <div>
                   <span className="font-medium">Card Print Date</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Use the current date (when "Ready to Print Card" is clicked) as the card start date.
+                    Use the current date (when "Ready to Print" is clicked) as the card start date.
                     Card expiration = Print date + validity years.
                   </p>
                 </div>

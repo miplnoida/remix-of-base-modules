@@ -890,7 +890,7 @@ export default function IPRegistrationList() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleReadyToPrint(record)}
-                                title="Ready to Print Card"
+                                title="Ready to Print"
                                 disabled={printingCardId === record.unique_uuid}
                                 className="flex items-center gap-1 text-xs"
                               >
@@ -899,7 +899,7 @@ export default function IPRegistrationList() {
                                 ) : (
                                   <CreditCard className="h-3.5 w-3.5" />
                                 )}
-                                <span className="hidden lg:inline">Ready to Print Card</span>
+                                <span className="hidden lg:inline">Ready to Print</span>
                               </Button>
                             )}
                             {canDelete(record) && (
@@ -962,11 +962,11 @@ export default function IPRegistrationList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Ready to Print Card Confirmation Dialog */}
+      {/* Ready to Print Confirmation Dialog */}
       <AlertDialog open={!!readyToPrintRecord} onOpenChange={(open) => { if (!open && !printingCardId) setReadyToPrintRecord(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ready to Print Card?</AlertDialogTitle>
+            <AlertDialogTitle>Ready to Print?</AlertDialogTitle>
             <AlertDialogDescription>
               This will update the insured person's status to Active, set the permanent card date and card expiration based on IP Configuration settings. This action cannot be undone.
             </AlertDialogDescription>
