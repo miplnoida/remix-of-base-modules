@@ -157,6 +157,76 @@ function buildDependantsJson(
   });
 }
 
+// ─── Build documents array: merge app docs + meeting_uploaded_documents ──────
+
+function mapDocToRpcFormat(doc: any) {
+  return {
+    id:               doc.id || null,
+    name:             doc.name || doc.fileName || doc.document_name || null,
+    fileName:         doc.fileName || doc.name || doc.file_name || null,
+    documentType:     doc.documentType || doc.type || doc.document_type || null,
+    type:             doc.type || doc.documentType || doc.document_type || null,
+    verificationType: doc.verificationType || doc.verification_type || doc.verification_category || null,
+    filePath:         doc.filePath || doc.file_path || null,
+    url:              doc.url || doc.storage_url || null,
+    signedUrl:        doc.signedUrl || doc.signed_url || null,
+    mimeType:         doc.mimeType || doc.mime_type || null,
+    fileSize:         doc.fileSize || doc.file_size ? String(doc.fileSize || doc.file_size) : null,
+    uploadedAt:       doc.uploadedAt || doc.created_at || null,
+    isSupportive:     doc.is_supportive || false,
+    supportiveDocType: doc.supportive_doc_type || doc.supportiveDocType || null,
+    docCode:          doc.doc_code || doc.docCode || null,
+  };
+}
+
+async function buildDocumentsForConversion(
+  app: ExternalApplicationDetail,
+  meetingId?: string,
+  applicationReference?: string,
+): Promise<object[]> {
+  // Start with the documents from the external application payload
+  const appDocs = (app.documents || []).map(mapDocToRpcFormat);
+
+  // If conversion is triggered from a meeting, fetch documents uploaded during the meeting
+  if (meetingId && applicationReference) {
+    console.log(`[buildDocumentsForConversion] Fetching meeting docs for meeting=${meetingId}, appRef=${applicationReference}`);
+    
+    const { data: meetingDocs, error } = await supabase
+      .from('meeting_uploaded_documents')
+      .select('*')
+      .eq('meeting_id', meetingId)
+      .eq('application_reference', applicationReference)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('[buildDocumentsForConversion] Failed to fetch meeting documents:', error);
+      throw new Error(`Failed to fetch meeting documents: ${error.message}. Document transfer aborted.`);
+    }
+
+    const meetingMapped = (meetingDocs || []).map(mapDocToRpcFormat);
+    console.log(`[buildDocumentsForConversion] Found ${appDocs.length} app doc(s) + ${meetingMapped.length} meeting doc(s)`);
+
+    // Deduplicate by id (meeting docs take precedence)
+    const seen = new Set<string>();
+    const merged: object[] = [];
+
+    for (const doc of meetingMapped) {
+      if ((doc as any).id) seen.add((doc as any).id);
+      merged.push(doc);
+    }
+    for (const doc of appDocs) {
+      if ((doc as any).id && seen.has((doc as any).id)) continue;
+      merged.push(doc);
+    }
+
+    console.log(`[buildDocumentsForConversion] Total documents for conversion: ${merged.length}`);
+    return merged;
+  }
+
+  console.log(`[buildDocumentsForConversion] No meeting context — using ${appDocs.length} app doc(s)`);
+  return appDocs;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useConvertToIPRegistration() {
