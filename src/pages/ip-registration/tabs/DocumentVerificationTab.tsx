@@ -702,7 +702,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                         <TableRow key={doc.id}>
                           <TableCell>{getAppDocFileIcon(doc)}</TableCell>
                           <TableCell className="font-medium">{getAppDocName(doc, index)}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type)}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{resolveDocType(doc.document_type) !== doc.document_type ? resolveDocType(doc.document_type) : (doc.document_name || resolveDocType(doc.document_type))}</Badge></TableCell>
                           <TableCell>
                             {showDropdown ? (
                               isEditable ? (
