@@ -54,21 +54,35 @@ function createIpRegistrationAdapter(ssn: string | undefined, uniqueUuid: string
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        document_type: d.document_name || d.document_type || '',
-        document_name: d.file_name || d.document_name || '',
-        file_path: d.file_path || '',
-        file_size: d.file_size || 0,
-        uploaded_at: d.uploaded_at || '',
-        verification_category: d.verification_category || d.metadata?.verification_category || null,
-        supportive_doc_type: d.supportive_doc_type || d.metadata?.supportive_doc_type || null,
-        is_supportive: d.is_supportive ?? d.metadata?.is_supportive ?? false,
-        source: 'platform' as const,
-        url: d.url || d.signed_url || '',
-        doc_code: d.document_type || null,
-        is_active: true,
-      }));
+      return (data || []).map((d: any) => {
+        // Normalize verification_category: convert 'birth_status' → 'birth' if needed
+        const rawCat = d.verification_category || d.metadata?.verification_category || null;
+        const normalizedCat = rawCat ? (VERIFY_TYPE_TO_CATEGORY[rawCat] || rawCat) : null;
+
+        // Resolve doc_code: if document_type is a valid tb_verify code use it,
+        // otherwise derive from document_name (handles conversion-era 'mandatory' values)
+        const rawDocType = d.document_type;
+        const isValidCode = rawDocType && rawDocType.length === 1 && 'ABCDEILMNPVX'.includes(rawDocType.toUpperCase());
+        const resolvedCode = isValidCode
+          ? rawDocType.toUpperCase()
+          : (resolveExternalDocTypeToCode(d.document_name) || resolveExternalDocTypeToCode(rawDocType) || rawDocType || null);
+
+        return {
+          id: d.id,
+          document_type: d.document_name || d.document_type || '',
+          document_name: d.file_name || d.document_name || '',
+          file_path: d.file_path || '',
+          file_size: d.file_size || 0,
+          uploaded_at: d.uploaded_at || '',
+          verification_category: normalizedCat,
+          supportive_doc_type: d.supportive_doc_type || d.metadata?.supportive_doc_type || null,
+          is_supportive: d.is_supportive ?? d.metadata?.is_supportive ?? false,
+          source: 'platform' as const,
+          url: d.url || d.signed_url || '',
+          doc_code: resolvedCode,
+          is_active: true,
+        };
+      });
     },
 
     async uploadFile(file: File, storagePath: string): Promise<string> {
