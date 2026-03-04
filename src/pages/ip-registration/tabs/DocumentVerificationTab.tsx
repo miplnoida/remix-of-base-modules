@@ -738,11 +738,9 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
                                 <>
                                   <Button variant="outline" size="sm" onClick={() => handleViewAppDoc(doc, index)} disabled={isLoading} className="gap-1.5">
                                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                                    View
                                   </Button>
                                   <Button variant="outline" size="sm" onClick={() => handleDownloadAppDoc(doc, index)} disabled={isLoading} className="gap-1.5">
                                     <Download className="h-4 w-4" />
-                                    Download
                                   </Button>
                                 </>
                               ) : <span className="text-xs text-muted-foreground italic">No file available</span>}
