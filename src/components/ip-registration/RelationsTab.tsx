@@ -66,7 +66,16 @@ export const RelationsTab: React.FC<RelationsTabProps> = ({
               </div>
               <div>
                 <Label htmlFor="contact_relation">Relation</Label>
-                <Input id="contact_relation" value={formData.contact_relation} onChange={(e) => updateField('contact_relation', e.target.value)} maxLength={20} />
+                <Select value={formData.contact_relation || ''} onValueChange={(val) => updateField('contact_relation', val)}>
+                  <SelectTrigger id="contact_relation">
+                    <SelectValue placeholder={relationsLoading ? 'Loading...' : 'Select relation'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {relations.map((r) => (
+                      <SelectItem key={r.code} value={r.code}>{r.description}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="contact_email">Email</Label>
