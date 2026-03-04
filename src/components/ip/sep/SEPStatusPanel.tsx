@@ -24,10 +24,10 @@ interface SEPStatusPanelProps {
 }
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; variant: string; color: string }> = {
-  P: { label: 'Pending', icon: AlertTriangle, variant: 'secondary', color: 'text-amber-500' },
-  V: { label: 'Verified', icon: ShieldCheck, variant: 'default', color: 'text-blue-500' },
-  A: { label: 'Active', icon: CheckCircle2, variant: 'default', color: 'text-green-500' },
-  S: { label: 'Suspended', icon: PauseCircle, variant: 'destructive', color: 'text-orange-500' },
+  P: { label: 'Pending', icon: AlertTriangle, variant: 'secondary', color: 'text-warning' },
+  V: { label: 'Verified', icon: ShieldCheck, variant: 'default', color: 'text-info' },
+  A: { label: 'Active', icon: CheckCircle2, variant: 'default', color: 'text-success' },
+  S: { label: 'Suspended', icon: PauseCircle, variant: 'destructive', color: 'text-warning' },
   C: { label: 'Ceased', icon: XCircle, variant: 'outline', color: 'text-muted-foreground' },
 };
 

@@ -82,7 +82,7 @@ export function IssueNoticeDialog({ open, onOpenChange, caseId, onIssueNotice }:
                 <SelectItem value="General Correspondence">General Correspondence</SelectItem>
               </SelectContent>
             </Select>
-            {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
+            {errors.type && <p className="text-xs text-destructive mt-1">{errors.type}</p>}
           </div>
 
           <div>
@@ -92,9 +92,9 @@ export function IssueNoticeDialog({ open, onOpenChange, caseId, onIssueNotice }:
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Enter notice subject"
-              className={errors.subject ? "border-red-500" : ""}
+              className={errors.subject ? "border-destructive" : ""}
             />
-            {errors.subject && <p className="text-xs text-red-500 mt-1">{errors.subject}</p>}
+            {errors.subject && <p className="text-xs text-destructive mt-1">{errors.subject}</p>}
           </div>
 
           <div>
@@ -105,9 +105,9 @@ export function IssueNoticeDialog({ open, onOpenChange, caseId, onIssueNotice }:
               onChange={(e) => setRecipients(e.target.value)}
               placeholder="Enter recipient names or emails (comma-separated)"
               rows={2}
-              className={errors.recipients ? "border-red-500" : ""}
+              className={errors.recipients ? "border-destructive" : ""}
             />
-            {errors.recipients && <p className="text-xs text-red-500 mt-1">{errors.recipients}</p>}
+            {errors.recipients && <p className="text-xs text-destructive mt-1">{errors.recipients}</p>}
           </div>
 
           <div>
@@ -146,7 +146,7 @@ export function IssueNoticeDialog({ open, onOpenChange, caseId, onIssueNotice }:
                 <label htmlFor="inPerson" className="text-sm cursor-pointer">In Person</label>
               </div>
             </div>
-            {errors.channels && <p className="text-xs text-red-500 mt-1">{errors.channels}</p>}
+            {errors.channels && <p className="text-xs text-destructive mt-1">{errors.channels}</p>}
           </div>
         </div>
         <DialogFooter>

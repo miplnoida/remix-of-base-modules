@@ -74,13 +74,13 @@ const SageSynchronization = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'running':
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <RefreshCw className="h-4 w-4 text-info animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -200,7 +200,7 @@ const SageSynchronization = () => {
                   </div>
                   <Progress value={sync.progress} className="h-2" />
                   {sync.errors > 0 && (
-                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                    <div className="flex items-center gap-2 text-destructive text-sm">
                       <XCircle className="h-4 w-4" />
                       <span>{sync.errors} errors encountered</span>
                     </div>
@@ -230,9 +230,9 @@ const SageSynchronization = () => {
                   <div key={index} className="flex items-center justify-between py-2 border-b last:border-b-0">
                     <div className="flex items-center gap-3">
                       {item.status === 'Success' ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-success" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                       <div>
                         <div className="font-medium">{item.module}</div>

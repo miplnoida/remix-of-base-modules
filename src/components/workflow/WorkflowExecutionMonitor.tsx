@@ -110,7 +110,7 @@ export default function WorkflowExecutionMonitor() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Running</CardTitle>
-            <Play className="h-4 w-4 text-blue-600" />
+            <Play className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{runningCount}</div>
@@ -121,7 +121,7 @@ export default function WorkflowExecutionMonitor() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Paused</CardTitle>
-            <Pause className="h-4 w-4 text-yellow-600" />
+            <Pause className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pausedCount}</div>
@@ -132,7 +132,7 @@ export default function WorkflowExecutionMonitor() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{avgProgress.toFixed(0)}%</div>

@@ -72,7 +72,7 @@ export function WorkflowApiExecutionLogs({ instanceId }: WorkflowApiExecutionLog
         );
       case 'TIMEOUT':
         return (
-          <Badge variant="secondary" className="bg-amber-600 dark:bg-amber-700 text-white">
+          <Badge variant="secondary" className="bg-warning text-warning-foreground">
             <Clock className="h-3 w-3 mr-1" />
             Timeout
           </Badge>
@@ -158,9 +158,9 @@ export function WorkflowApiExecutionLogs({ instanceId }: WorkflowApiExecutionLog
                     <span
                       className={
                         log.http_status >= 200 && log.http_status < 300
-                          ? 'text-green-600'
+                          ? 'text-success'
                           : log.http_status >= 400
-                          ? 'text-red-600'
+                          ? 'text-destructive'
                           : ''
                       }
                     >

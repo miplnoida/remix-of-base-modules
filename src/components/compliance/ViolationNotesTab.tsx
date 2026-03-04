@@ -89,9 +89,9 @@ export function ViolationNotesTab({ violationId }: ViolationNotesTabProps) {
       case NoteType.SYSTEM:
         return <Badge variant="outline">System</Badge>;
       case NoteType.FIELD_NOTE:
-        return <Badge className="bg-blue-100 text-blue-800">Field Note</Badge>;
+        return <Badge className="bg-info/10 text-info">Field Note</Badge>;
       case NoteType.FOLLOW_UP:
-        return <Badge className="bg-orange-100 text-orange-800">Follow-up</Badge>;
+        return <Badge className="bg-warning/15 text-warning">Follow-up</Badge>;
       default:
         return <Badge>{type}</Badge>;
     }

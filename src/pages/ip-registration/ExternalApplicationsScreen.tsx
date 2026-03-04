@@ -492,9 +492,9 @@ export default function ExternalApplicationsScreen() {
           ))}
 
           {/* Read-only warning */}
-          <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-700 dark:text-amber-400">
+          <Alert className="border-warning/30 bg-warning/10">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-warning">
               This is a read-only view of an external record. Editing, deleting, and verification 
               are not available for external API records.
             </AlertDescription>

@@ -186,7 +186,7 @@ const OnlineBenefitApplications = () => {
                   <TableCell>
                     <div>
                       <div className="font-medium">{application.applicantName}</div>
-                      <div className="text-sm text-gray-500">{application.email}</div>
+                      <div className="text-sm text-muted-foreground">{application.email}</div>
                     </div>
                   </TableCell>
                   <TableCell>{application.benefitType}</TableCell>
