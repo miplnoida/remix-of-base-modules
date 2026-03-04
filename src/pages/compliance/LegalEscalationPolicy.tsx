@@ -174,15 +174,15 @@ const LegalEscalationPolicyPage = () => {
   const getRuleTypeBadgeColor = (type: EscalationRuleType) => {
     switch (type) {
       case EscalationRuleType.AGE_THRESHOLD:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-info/10 text-info';
       case EscalationRuleType.AMOUNT_THRESHOLD:
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success';
       case EscalationRuleType.BEHAVIOUR_THRESHOLD:
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-warning/15 text-warning';
       case EscalationRuleType.RISK_THRESHOLD:
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   };
 

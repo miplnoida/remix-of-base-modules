@@ -91,17 +91,17 @@ export const WorklistsHome: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-warning" />;
       case 'ELIGIBILITY_CHECK':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />;
+        return <CheckCircle className="h-4 w-4 text-info" />;
       case 'PENDING_INFO':
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        return <AlertTriangle className="h-4 w-4 text-warning" />;
       case 'CALCULATION':
-        return <FileText className="h-4 w-4 text-purple-500" />;
+        return <FileText className="h-4 w-4 text-accent-foreground" />;
       case 'EVIDENCE_REVIEW':
-        return <Eye className="h-4 w-4 text-indigo-500" />;
+        return <Eye className="h-4 w-4 text-info" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -148,12 +148,12 @@ export const WorklistsHome: React.FC = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <User className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-info/10 rounded-lg">
+                <User className="h-6 w-6 text-info" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-blue-600">{queueStats.myQueue}</p>
-                <p className="text-sm text-blue-600">My Queue</p>
+                <p className="text-2xl font-bold text-info">{queueStats.myQueue}</p>
+                <p className="text-sm text-info">My Queue</p>
               </div>
             </div>
           </CardContent>
@@ -162,12 +162,12 @@ export const WorklistsHome: React.FC = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-success/10 rounded-lg">
+                <Users className="h-6 w-6 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{queueStats.teamQueue}</p>
-                <p className="text-sm text-green-600">Team Queue</p>
+                <p className="text-2xl font-bold text-success">{queueStats.teamQueue}</p>
+                <p className="text-sm text-success">Team Queue</p>
               </div>
             </div>
           </CardContent>
@@ -176,12 +176,12 @@ export const WorklistsHome: React.FC = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-orange-50 rounded-lg">
-                <Clock className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-warning/15 rounded-lg">
+                <Clock className="h-6 w-6 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-orange-600">{queueStats.overdue}</p>
-                <p className="text-sm text-orange-600">Overdue (7+ days)</p>
+                <p className="text-2xl font-bold text-warning">{queueStats.overdue}</p>
+                <p className="text-sm text-warning">Overdue (7+ days)</p>
               </div>
             </div>
           </CardContent>
@@ -190,12 +190,12 @@ export const WorklistsHome: React.FC = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="p-2 bg-destructive/10 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">{queueStats.urgent}</p>
-                <p className="text-sm text-red-600">Urgent Priority</p>
+                <p className="text-2xl font-bold text-destructive">{queueStats.urgent}</p>
+                <p className="text-sm text-destructive">Urgent Priority</p>
               </div>
             </div>
           </CardContent>
@@ -342,7 +342,7 @@ export const WorklistsHome: React.FC = () => {
             <CardContent>
               {unassignedClaims.length === 0 ? (
                 <div className="text-center py-8">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
                   <p className="text-muted-foreground">No unassigned claims</p>
                 </div>
               ) : (
@@ -390,19 +390,19 @@ export const WorklistsHome: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-red-600">Overdue Claims</CardTitle>
+                <CardTitle className="text-destructive">Overdue Claims</CardTitle>
                 <CardDescription>Claims over 7 days old</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {mockClaims.filter(claim => claim.daysInQueue > 7).map(claim => (
-                    <div key={claim.id} className="flex items-center justify-between p-2 border-l-4 border-l-red-500 bg-red-50">
+                    <div key={claim.id} className="flex items-center justify-between p-2 border-l-4 border-l-destructive bg-destructive/5">
                       <div>
                         <p className="font-medium">{claim.id}</p>
                         <p className="text-sm text-muted-foreground">{claim.contributorName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-red-600 font-bold">{claim.daysInQueue} days</p>
+                        <p className="text-destructive font-bold">{claim.daysInQueue} days</p>
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/newbenefit/claim-360/${claim.id}`}>Action</Link>
                         </Button>
@@ -415,19 +415,19 @@ export const WorklistsHome: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-orange-600">Pending Information</CardTitle>
+                <CardTitle className="text-warning">Pending Information</CardTitle>
                 <CardDescription>Claims waiting for additional documents</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {mockClaims.filter(claim => claim.status === 'PENDING_INFO').map(claim => (
-                    <div key={claim.id} className="flex items-center justify-between p-2 border-l-4 border-l-orange-500 bg-orange-50">
+                    <div key={claim.id} className="flex items-center justify-between p-2 border-l-4 border-l-warning bg-warning/10">
                       <div>
                         <p className="font-medium">{claim.id}</p>
                         <p className="text-sm text-muted-foreground">{claim.contributorName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-orange-600 font-bold">{claim.daysInQueue} days</p>
+                        <p className="text-warning font-bold">{claim.daysInQueue} days</p>
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/newbenefit/claim-360/${claim.id}`}>Follow Up</Link>
                         </Button>

@@ -42,21 +42,21 @@ import {
 } from 'lucide-react';
 
 const statusColors: Record<MeetingStatus, string> = {
-  'Scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'Rescheduled': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  'InProgress': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  'Closed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-  'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  'Scheduled': 'bg-info/10 text-info',
+  'Rescheduled': 'bg-warning/15 text-warning',
+  'InProgress': 'bg-accent text-accent-foreground',
+  'Closed': 'bg-success/10 text-success',
+  'Cancelled': 'bg-muted text-muted-foreground',
+  'Rejected': 'bg-destructive/10 text-destructive'
 };
 
 const statusAccentColors: Record<MeetingStatus, string> = {
-  'Scheduled': 'border-l-blue-500',
-  'Rescheduled': 'border-l-amber-500',
-  'InProgress': 'border-l-purple-500',
-  'Closed': 'border-l-green-500',
-  'Cancelled': 'border-l-gray-400',
-  'Rejected': 'border-l-red-500'
+  'Scheduled': 'border-l-info',
+  'Rescheduled': 'border-l-warning',
+  'InProgress': 'border-l-accent',
+  'Closed': 'border-l-success',
+  'Cancelled': 'border-l-muted-foreground',
+  'Rejected': 'border-l-destructive'
 };
 
 const meetingTypeLabels: Record<MeetingType, string> = {
@@ -230,7 +230,7 @@ function StatCard({ label, value, icon: Icon, color, active, onClick }: {
       }`}
     >
       <div className={`rounded-lg p-2.5 ${color}`}>
-        <Icon className="h-5 w-5 text-white" />
+        <Icon className="h-5 w-5 text-primary-foreground" />
       </div>
       <div>
         <p className="text-2xl font-bold leading-none">{value}</p>
@@ -507,7 +507,7 @@ export default function ManageMeetingsPage() {
             label="Total Meetings"
             value={stats.total}
             icon={CalendarDays}
-            color="bg-slate-600"
+            color="bg-muted-foreground"
             active={!filters.status}
             onClick={() => handleFilterChange('status', 'all')}
           />
@@ -515,7 +515,7 @@ export default function ManageMeetingsPage() {
             label="Scheduled"
             value={stats.scheduled}
             icon={CalendarCheck}
-            color="bg-blue-600"
+            color="bg-info"
             active={filters.status === 'Scheduled'}
             onClick={() => handleFilterChange('status', filters.status === 'Scheduled' ? 'all' : 'Scheduled')}
           />
@@ -523,7 +523,7 @@ export default function ManageMeetingsPage() {
             label="In Progress"
             value={stats.inProgress}
             icon={Activity}
-            color="bg-purple-600"
+            color="bg-accent"
             active={filters.status === 'InProgress'}
             onClick={() => handleFilterChange('status', filters.status === 'InProgress' ? 'all' : 'InProgress')}
           />
@@ -531,7 +531,7 @@ export default function ManageMeetingsPage() {
             label="Closed / Done"
             value={stats.closed}
             icon={CheckCircle2}
-            color="bg-green-600"
+            color="bg-success"
             active={filters.status === 'Closed'}
             onClick={() => handleFilterChange('status', filters.status === 'Closed' ? 'all' : 'Closed')}
           />

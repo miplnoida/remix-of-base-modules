@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 
-// Sample employer data for view mode
 const sampleEmployerData = {
   regNo: "EMP001",
   name: "ABC Construction Ltd",
@@ -29,163 +28,58 @@ const sampleEmployerData = {
   industrialCode: "Building of Complete Con",
   village: "Basseterre",
   activityType: "Construction",
-  inspectorCode: "01 Vincent Sutton",
-  acquiredCompany: true,
-  acquisitionDate: new Date("2022-04-01"),
-  incorporatedDate: new Date("2023-01-01"),
-  acquiredCode: "yes",
-  applicationDate: new Date("2023-01-01"),
-  totalEmployees: "40",
-  maleEmployees: "25",
-  femaleEmployees: "15",
-  dateWagesFirstPaid: new Date("2023-02-01"),
-  dateOfClosure: null,
-  reregistrationDate: null,
+  inspectorCode: "INS001",
+  totalEmployees: 45,
+  maleEmployees: 32,
+  femaleEmployees: 13,
+  applicationDate: "2024-01-15",
+  dateWagesFirstPaid: "2024-02-01",
+  dateOfClosure: null as string | null,
+  reregistrationDate: null as string | null,
   computerPayroll: true,
-  makeModel: "Dell Optiplex",
-  dateOfEntry: new Date("2023-01-10"),
-  registrationDate: new Date("2023-01-20"),
-  enteredBy: "John Doe",
-  dateModified: new Date("2024-01-01"),
-  userId: "ADMIN001",
+  makeModel: "QuickBooks Enterprise",
+  acquiredCompany: false,
+  acquisitionDate: null as string | null,
+  incorporatedDate: "2020-05-20",
+  acquiredCode: "new",
   previousOwners: [
-    { name: "Previous Corp", address: "789 Old Street, Old Town" }
-  ]
+    { name: "John Smith", address: "456 Heritage Lane, Basseterre" }
+  ],
+  dateOfEntry: "2024-01-15",
+  registrationDate: "2024-01-20",
+  enteredBy: "admin",
+  dateModified: "2024-06-15",
+  userId: "USR001"
 };
 
-interface Owner {
-  id: string;
-  name: string;
-  title: string;
-  phoneNumber: string;
-}
+const steps: StepperStep[] = [
+  { id: 'general', title: 'General Info', icon: undefined, status: 'current' },
+  { id: 'background', title: 'Background Info', icon: undefined, status: 'upcoming' },
+  { id: 'contact', title: 'Contact & Reach', icon: undefined, status: 'upcoming' },
+  { id: 'tech', title: 'Tech & Finance Overview', icon: undefined, status: 'upcoming' },
+];
 
-interface Location {
-  id: string;
-  tradeName: string;
-  locAddr1: string;
-  locAddr2: string;
-  activityType: string;
-}
+const owners = [
+  { id: "OWN-001", name: "John Smith", title: "Director", phoneNumber: "(869) 465-1234" },
+  { id: "OWN-002", name: "Jane Doe", title: "Managing Director", phoneNumber: "(869) 465-5678" },
+];
 
-interface Note {
-  id: string;
-  noteDate: Date;
-  note: string;
-  userId: string;
-}
+const locations = [
+  { id: "LOC-001", tradeName: "ABC Construction HQ", locAddr1: "456 Industrial Road", locAddr2: "Cayon", activityType: "Main Office" },
+  { id: "LOC-002", tradeName: "ABC Construction Site A", locAddr1: "789 Building Lane", locAddr2: "Basseterre", activityType: "Construction Site" },
+];
 
-export const ViewEmployer = () => {
+const notes = [
+  { id: "NOTE-001", noteDate: new Date("2024-06-15"), note: "Annual inspection completed. All records in order.", userId: "USR001" },
+  { id: "NOTE-002", noteDate: new Date("2024-03-20"), note: "Updated mailing address per employer request.", userId: "USR002" },
+];
+
+export function ViewEmployer() {
+  const navigate = useNavigate();
   const { regNo } = useParams();
   const [activeTab, setActiveTab] = useState("form-detail");
   const [currentStep, setCurrentStep] = useState(0);
-  
-  // Sample data for Owners
-  const [owners] = useState<Owner[]>([
-    {
-      id: "OWN001",
-      name: "John Smith",
-      title: "Chief Executive Officer",
-      phoneNumber: "(869) 465-1234"
-    },
-    {
-      id: "OWN002", 
-      name: "Sarah Johnson",
-      title: "Chief Financial Officer",
-      phoneNumber: "(869) 465-5678"
-    },
-    {
-      id: "OWN003",
-      name: "Michael Brown",
-      title: "Chief Operations Officer", 
-      phoneNumber: "(869) 465-9012"
-    }
-  ]);
 
-  // Sample data for Locations
-  const [locations] = useState<Location[]>([
-    {
-      id: "LOC001",
-      tradeName: "ABC Construction - Main Office",
-      locAddr1: "123 Main Street",
-      locAddr2: "Basseterre, Saint Kitts",
-      activityType: "Administrative"
-    },
-    {
-      id: "LOC002",
-      tradeName: "ABC Construction - Site A",
-      locAddr1: "456 Industrial Road",
-      locAddr2: "Cayon, Saint Kitts", 
-      activityType: "Construction Site"
-    },
-    {
-      id: "LOC003",
-      tradeName: "ABC Construction - Warehouse",
-      locAddr1: "789 Storage Lane",
-      locAddr2: "Sandy Point, Saint Kitts",
-      activityType: "Storage & Logistics"
-    }
-  ]);
-
-  // Sample data for Notes
-  const [notes] = useState<Note[]>([
-    {
-      id: "NOTE001",
-      noteDate: new Date("2024-01-15"),
-      note: "Initial registration completed. All documents verified and approved. Company is compliant with all regulatory requirements.",
-      userId: "ADMIN001"
-    },
-    {
-      id: "NOTE002", 
-      noteDate: new Date("2024-02-20"),
-      note: "Annual compliance review conducted. No issues found. Company continues to meet all employment and safety standards.",
-      userId: "INSPECTOR001"
-    },
-    {
-      id: "NOTE003",
-      noteDate: new Date("2024-03-10"),
-      note: "Updated employee count: 40 total employees (25 male, 15 female). All new employees properly registered in the system.",
-      userId: "HR001"
-    },
-    {
-      id: "NOTE004",
-      noteDate: new Date("2024-04-05"),
-      note: "Site inspection completed at all three locations. Safety protocols are being followed correctly. No violations found.",
-      userId: "SAFETY001"
-    }
-  ]);
-
-  const navigate = useNavigate();
-
-  // Define stepper steps
-  const steps: StepperStep[] = [
-    {
-      id: 'entity-overview',
-      title: 'Entity Overview',
-      icon: <Building2 className="w-5 h-5" />,
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'upcoming'
-    },
-    {
-      id: 'background-info',
-      title: 'Background Info',
-      icon: <Users className="w-5 h-5" />,
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'upcoming'
-    },
-    {
-      id: 'contact-reach',
-      title: 'Contact & Reach',
-      icon: <Phone className="w-5 h-5" />,
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'upcoming'
-    },
-    {
-      id: 'tech-finance',
-      title: 'Tech & Finance Overview',
-      icon: <Settings className="w-5 h-5" />,
-      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'upcoming'
-    }
-  ];
-
-  // Navigation functions
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -198,25 +92,26 @@ export const ViewEmployer = () => {
     }
   };
 
-  const goToStep = (stepIndex: number) => {
-    setCurrentStep(stepIndex);
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
   };
 
-  // Helper function to format dates
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: string | null) => {
     if (!date) return "Not specified";
-    return format(date, "MM/dd/yyyy");
+    try {
+      return format(new Date(date), "MM/dd/yyyy");
+    } catch {
+      return "Invalid date";
+    }
   };
 
-  // Helper function to format boolean values
   const formatBoolean = (value: boolean) => {
     return value ? "Yes" : "No";
   };
 
-  // Step content components for view mode
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0: // Entity Overview
+      case 0: // General Info
         return (
           <div className="space-y-6">
             {/* General Information */}
@@ -227,23 +122,23 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Name *</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Name *</Label>
                     <p className="text-sm font-medium">{sampleEmployerData.name}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Trade Name</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Trade Name</Label>
                     <p className="text-sm">{sampleEmployerData.tradeName}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">E-Mail Address</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">E-Mail Address</Label>
                     <p className="text-sm">{sampleEmployerData.email}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">HQ Address *</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">HQ Address *</Label>
                     <p className="text-sm">{sampleEmployerData.hqAddress}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Mailing Address *</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Mailing Address *</Label>
                     <p className="text-sm">{sampleEmployerData.mailingAddress}</p>
                   </div>
                 </div>
@@ -260,19 +155,19 @@ export const ViewEmployer = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {sampleEmployerData.previousOwners.map((owner, index) => (
                       <div key={index} className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-500">Name *</Label>
+                        <Label className="text-sm font-medium text-muted-foreground">Name *</Label>
                         <p className="text-sm">{owner.name}</p>
                       </div>
                     ))}
                     {sampleEmployerData.previousOwners.map((owner, index) => (
                       <div key={`address-${index}`} className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-500">Address</Label>
+                        <Label className="text-sm font-medium text-muted-foreground">Address</Label>
                         <p className="text-sm">{owner.address}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No previous owner information recorded.</p>
+                  <p className="text-sm text-muted-foreground">No previous owner information recorded.</p>
                 )}
               </CardContent>
             </div>
@@ -285,23 +180,23 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Parent Reg. No.</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Parent Reg. No.</Label>
                     <p className="text-sm">{sampleEmployerData.parentRegNo || "Not specified"}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Office Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Office Code</Label>
                     <p className="text-sm">{sampleEmployerData.officeCode}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Ownership Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Ownership Code</Label>
                     <p className="text-sm">{sampleEmployerData.ownershipCode}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Sector Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Sector Code</Label>
                     <p className="text-sm">{sampleEmployerData.sectorCode}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Industrial Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Industrial Code</Label>
                     <p className="text-sm">{sampleEmployerData.industrialCode}</p>
                   </div>
                 </div>
@@ -324,18 +219,18 @@ export const ViewEmployer = () => {
                     {sampleEmployerData.previousOwners.map((owner, index) => (
                       <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-500">Previous Owner Name</Label>
+                          <Label className="text-sm font-medium text-muted-foreground">Previous Owner Name</Label>
                           <p className="text-sm">{owner.name}</p>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-500">Previous Owner Address</Label>
+                          <Label className="text-sm font-medium text-muted-foreground">Previous Owner Address</Label>
                           <p className="text-sm">{owner.address}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No previous owners recorded.</p>
+                  <p className="text-sm text-muted-foreground">No previous owners recorded.</p>
                 )}
               </CardContent>
             </div>
@@ -348,23 +243,23 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Acquired Company</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Acquired Company</Label>
                     <p className="text-sm">{formatBoolean(sampleEmployerData.acquiredCompany)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Acquisition Date</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Acquisition Date</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.acquisitionDate)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Incorporated Date</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Incorporated Date</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.incorporatedDate)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Acquired Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Acquired Code</Label>
                     <p className="text-sm capitalize">{sampleEmployerData.acquiredCode || "Not specified"}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Activity Type</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Activity Type</Label>
                     <p className="text-sm">{sampleEmployerData.activityType || "Not specified"}</p>
                   </div>
                 </div>
@@ -384,15 +279,15 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Contact Telephone No. *</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Contact Telephone No. *</Label>
                     <p className="text-sm font-medium">{sampleEmployerData.telephone}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Contact Fax No.</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Contact Fax No.</Label>
                     <p className="text-sm">{sampleEmployerData.fax}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Email *</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Email *</Label>
                     <p className="text-sm font-medium">{sampleEmployerData.email}</p>
                   </div>
                 </div>
@@ -407,15 +302,15 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Village</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Village</Label>
                     <p className="text-sm">{sampleEmployerData.village}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Activity Type</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Activity Type</Label>
                     <p className="text-sm">{sampleEmployerData.activityType}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Inspector Code</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Inspector Code</Label>
                     <p className="text-sm">{sampleEmployerData.inspectorCode}</p>
                   </div>
                 </div>
@@ -430,31 +325,31 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Date of Application</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Date of Application</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.applicationDate)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Total Employees</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Total Employees</Label>
                     <p className="text-sm">{sampleEmployerData.totalEmployees}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Male Employees</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Male Employees</Label>
                     <p className="text-sm">{sampleEmployerData.maleEmployees}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Female Employees</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Female Employees</Label>
                     <p className="text-sm">{sampleEmployerData.femaleEmployees}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Date Wages First Paid</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Date Wages First Paid</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.dateWagesFirstPaid)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Date of Closure</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Date of Closure</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.dateOfClosure)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Re-registration Date</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Re-registration Date</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.reregistrationDate)}</p>
                   </div>
                 </div>
@@ -474,11 +369,11 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Computer Payroll</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Computer Payroll</Label>
                     <p className="text-sm">{formatBoolean(sampleEmployerData.computerPayroll)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Make Model</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Make Model</Label>
                     <p className="text-sm">{sampleEmployerData.makeModel}</p>
                   </div>
                 </div>
@@ -493,23 +388,23 @@ export const ViewEmployer = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Date of Entry</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Date of Entry</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.dateOfEntry)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Registration Date</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.registrationDate)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Entered By</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Entered By</Label>
                     <p className="text-sm">{sampleEmployerData.enteredBy}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">Date Modified</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Date Modified</Label>
                     <p className="text-sm">{formatDate(sampleEmployerData.dateModified)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-500">User ID</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
                     <p className="text-sm">{sampleEmployerData.userId}</p>
                   </div>
                 </div>
@@ -536,10 +431,10 @@ export const ViewEmployer = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="sm:hidden">Back</span>
           </Button>
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">View </h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">View {sampleEmployerData.name}</h1>
             
           </div>
         </div>
@@ -566,14 +461,14 @@ export const ViewEmployer = () => {
         <CardContent className="py-4 px-6">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <User className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+              <User className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
             </div>
             <div className="flex flex-col gap-1 justify-center">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-              John Doe
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground leading-tight">
+              {sampleEmployerData.name}
               </h1>
               <div className="flex items-center gap-3">
-                <span className="text-gray-600 text-sm font-medium">Regn No.: TE0001</span>
+                <span className="text-muted-foreground text-sm font-medium">Regn No.: {sampleEmployerData.regNo}</span>
                 
               </div>
             </div>
@@ -595,7 +490,7 @@ export const ViewEmployer = () => {
 
             <TabsContent value="form-detail" className="space-y-6">
               {/* Stepper */}
-              <Card className='py-5 mt-5' style={{backgroundColor:"#F9FAFB"}}>
+              <Card className='py-5 mt-5 bg-muted'>
                 <div className='px-5 mb-6'>
                   <Card className='p-3'>
                     <Stepper 

@@ -73,7 +73,7 @@ export default function TemplatePreview({ open, onOpenChange, template }: Templa
           <div className="flex gap-2">
             <Badge variant="outline">{template.module}</Badge>
             <Badge variant="outline">{template.channel}</Badge>
-            <Badge className={template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+            <Badge className={template.isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>
               {template.isActive ? 'Active' : 'Inactive'}
             </Badge>
           </div>
@@ -97,8 +97,8 @@ export default function TemplatePreview({ open, onOpenChange, template }: Templa
                 </pre>
               </div>
 
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-xs text-blue-800">
+              <div className="mt-4 p-3 bg-info/10 border border-info/20 rounded-md">
+                <p className="text-xs text-info">
                   <strong>Note:</strong> This preview shows sample data. Actual messages will use real values from the system.
                 </p>
               </div>

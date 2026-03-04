@@ -19,8 +19,8 @@ const UnemploymentBenefits = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -33,11 +33,11 @@ const UnemploymentBenefits = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              <div className="h-6 w-px bg-gray-300" />
-              <nav className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="h-6 w-px bg-border" />
+              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Benefits Management</span>
                 <span>/</span>
-                <span className="text-gray-900 font-medium">Unemployment Benefits</span>
+                <span className="text-foreground font-medium">Unemployment Benefits</span>
               </nav>
             </div>
             <Button onClick={() => navigate("/")} variant="outline" size="sm">
@@ -50,10 +50,10 @@ const UnemploymentBenefits = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <BriefcaseIcon className="h-8 w-8 text-orange-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Unemployment Benefits</h1>
+            <BriefcaseIcon className="h-8 w-8 text-warning" />
+            <h1 className="text-3xl font-bold text-foreground">Unemployment Benefits</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Process unemployment benefit claims for eligible insured persons
           </p>
         </div>
@@ -223,14 +223,14 @@ const UnemploymentBenefits = () => {
                     <div key={claim.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{claim.name}</p>
-                        <p className="text-xs text-gray-500">{claim.id}</p>
+                        <p className="text-xs text-muted-foreground">{claim.id}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-sm">{claim.amount}</p>
                         <p className={`text-xs ${
-                          claim.status === 'Active' ? 'text-green-600' :
-                          claim.status === 'Pending' ? 'text-yellow-600' :
-                          'text-blue-600'
+                          claim.status === 'Active' ? 'text-success' :
+                          claim.status === 'Pending' ? 'text-warning' :
+                          'text-info'
                         }`}>
                           {claim.status}
                         </p>
@@ -251,20 +251,20 @@ const UnemploymentBenefits = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Active Claims</span>
+                    <span className="text-sm text-muted-foreground">Active Claims</span>
                     <span className="font-semibold">23</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Monthly Payout</span>
+                    <span className="text-sm text-muted-foreground">Monthly Payout</span>
                     <span className="font-semibold">$25,400</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">New This Month</span>
-                    <span className="font-semibold text-blue-600">5</span>
+                    <span className="text-sm text-muted-foreground">New This Month</span>
+                    <span className="font-semibold text-info">5</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Pending Review</span>
-                    <span className="font-semibold text-yellow-600">3</span>
+                    <span className="text-sm text-muted-foreground">Pending Review</span>
+                    <span className="font-semibold text-warning">3</span>
                   </div>
                 </div>
               </CardContent>
