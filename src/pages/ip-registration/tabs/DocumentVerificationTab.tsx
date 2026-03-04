@@ -399,15 +399,22 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
       const vt = doc.verification_type;
       if (!vt || !verTypeToFormField[vt]) continue;
       const { docField, verifyField, fieldKey } = verTypeToFormField[vt];
-      const docType = doc.document_type;
-      if (!docType) continue;
+
+      // Resolve doc code: if document_type is a valid single-char code use it,
+      // otherwise derive from document_name (handles 'mandatory' values from conversion)
+      const rawDocType = doc.document_type;
+      const isValidCode = rawDocType && rawDocType.length === 1 && 'ABCDEILMNPVX'.includes(rawDocType.toUpperCase());
+      const resolvedCode = isValidCode
+        ? rawDocType!.toUpperCase()
+        : (resolveExternalDocTypeToCode(doc.document_name) || resolveExternalDocTypeToCode(rawDocType) || null);
+      if (!resolvedCode) continue;
 
       // Only prefill if formData doesn't already have a value for this field
       const currentVal = (formData as any)[docField];
       if (!currentVal) {
-        onChange(docField, docType);
-        updates[verifyField] = docType;
-        selectionsToSet[fieldKey] = docType;
+        onChange(docField, resolvedCode);
+        updates[verifyField] = resolvedCode;
+        selectionsToSet[fieldKey] = resolvedCode;
         hasChanges = true;
       }
     }
