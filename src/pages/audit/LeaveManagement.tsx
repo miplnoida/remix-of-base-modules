@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -57,11 +57,11 @@ export default function LeaveAndVacationManagement() {
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />New Leave Request</Button>}
     >
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pending</CardTitle><Clock className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{leaveRequests.filter((l: any) => l.status === 'Submitted').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Approved</CardTitle><CheckCircle className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{leaveRequests.filter((l: any) => l.status === 'Approved').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Rejected</CardTitle><XCircle className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{leaveRequests.filter((l: any) => l.status === 'Rejected').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{leaveRequests.length}</div></CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="pt-6"><div className="flex items-center"><Clock className="h-5 w-5 text-orange-600" /><div className="ml-3"><p className="text-sm text-muted-foreground">Pending</p><p className="text-2xl font-bold text-orange-600">{leaveRequests.filter((l: any) => l.status === 'Submitted').length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><CheckCircle className="h-5 w-5 text-green-600" /><div className="ml-3"><p className="text-sm text-muted-foreground">Approved</p><p className="text-2xl font-bold text-green-600">{leaveRequests.filter((l: any) => l.status === 'Approved').length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><XCircle className="h-5 w-5 text-destructive" /><div className="ml-3"><p className="text-sm text-muted-foreground">Rejected</p><p className="text-2xl font-bold text-destructive">{leaveRequests.filter((l: any) => l.status === 'Rejected').length}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center"><CalendarIcon className="h-5 w-5 text-muted-foreground" /><div className="ml-3"><p className="text-sm text-muted-foreground">Total</p><p className="text-2xl font-bold">{leaveRequests.length}</p></div></div></CardContent></Card>
       </div>
 
       <Card>

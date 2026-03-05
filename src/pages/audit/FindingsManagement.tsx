@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Eye, Edit } from "lucide-react";
+import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,13 @@ const FindingsManagement = () => {
   const [viewItem, setViewItem] = useState<any>(null);
   const [editItem, setEditItem] = useState<any>(null);
   const [statusItem, setStatusItem] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [nextStatus, setNextStatus] = useState('');
 
   const { data: findings = [], isLoading } = useIAFindings();
   const { data: departments = [] } = useIADepartments();
   const { data: activities = [] } = useIAActivities();
-  const { create, update } = useIAFindingMutations();
+  const { create, update, remove } = useIAFindingMutations();
 
   const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', finding_id: '' };
   const [formData, setFormData] = useState(emptyForm);
@@ -147,9 +148,14 @@ const FindingsManagement = () => {
             onView={(f) => setViewItem(f)}
             onEdit={(f) => openEdit(f)}
             renderActions={(f) => (
-              <Button size="sm" variant="outline" onClick={() => { setStatusItem(f); setNextStatus(f.status || 'Draft'); }}>
-                Change Status
-              </Button>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" onClick={() => { setStatusItem(f); setNextStatus(f.status || 'Draft'); }}>
+                  Change Status
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(f.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           />
         </CardContent>
@@ -205,6 +211,8 @@ const FindingsManagement = () => {
           </div>
         )}
       </EntityModal>
+
+      <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding? This action cannot be undone." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
     </PageShell>
   );
 };
