@@ -149,6 +149,7 @@ export async function verifyAllWagesForC3(
 
 export interface C3RecordWithWages extends C3Record {
   wages?: WageRecord[];
+  otherPayments?: any[];
 }
 
 export interface C3ListFilters {
@@ -575,6 +576,39 @@ export async function saveC3Draft(
         };
       }
       console.log('Successfully upserted ER wage records:', upsertedWages?.length);
+
+      // Save Other Payments per employee
+      for (const emp of employeesData) {
+        const otherPayments = (emp as any).otherPayments || [];
+        const empSsn = emp.ssn;
+        // Always delete existing other payments for this c3+ssn
+        await (supabase as any).from('ip_other_payments').delete()
+          .eq('c3_id', c3Record.id)
+          .eq('ssn', empSsn);
+        
+        const validPayments = otherPayments.filter((p: any) => p.income_code_id && p.amount > 0);
+        if (validPayments.length > 0) {
+          const opRecords = validPayments.map((p: any) => ({
+            c3_id: c3Record.id,
+            ssn: empSsn,
+            income_code_id: p.income_code_id,
+            amount: p.amount || 0,
+            employee_ss: p.employee_ss || 0,
+            employee_levy: p.employee_levy || 0,
+            employer_ss: p.employer_ss || 0,
+            employer_eib: p.employer_eib || 0,
+            employer_levy: p.employer_levy || 0,
+            employer_severance: p.employer_severance || 0,
+            policy_id: p.policy_id || null,
+            policy_type: p.policy_type || null,
+            date_entry_mode: p.date_entry_mode || null,
+            created_by: effectiveUserCode,
+            updated_by: effectiveUserCode,
+          }));
+          const { error: opError } = await (supabase as any).from('ip_other_payments').insert(opRecords);
+          if (opError) console.error('Error saving other payments:', opError);
+        }
+      }
     }
 
     return { success: true, data: c3Record };
@@ -693,10 +727,18 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
       console.error('Error fetching wages:', wagesError);
     }
 
+    // Load other payments
+    const { data: otherPaymentsData } = await (supabase as any)
+      .from('ip_other_payments')
+      .select('*, tb_income_codes(code, description)')
+      .eq('c3_id', c3Id)
+      .order('created_at');
+
     return {
       data: {
         ...c3Data,
-        wages: wagesData || []
+        wages: wagesData || [],
+        otherPayments: otherPaymentsData || []
       }
     };
   } catch (error: any) {

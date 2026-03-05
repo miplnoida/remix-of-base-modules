@@ -17,6 +17,10 @@ import { useHolidayPolicyLookup } from '@/hooks/useHolidayPolicyLookup';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import OtherPaymentsSection from '@/components/c3/OtherPaymentsSection';
+import type { OtherPaymentRow } from '@/types/otherPayments';
+import { calculateOtherPaymentTotals } from '@/types/otherPayments';
+import { useOtherPaymentsCRUD, validateOtherPaymentPolicies } from '@/hooks/useOtherPayments';
 
 export interface EmployeeData {
   ssn: string;
@@ -45,6 +49,8 @@ export interface EmployeeData {
   holidayStartDate?: string;
   holidayEndDate?: string;
   holidayNoDates?: boolean;
+  // Other Payments by income code
+  otherPayments?: OtherPaymentRow[];
 }
 
 export interface PenaltyFinesData {
@@ -130,6 +136,11 @@ export default function EmployeeModal({
   const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
   const [holidayDateError, setHolidayDateError] = useState('');
   const [bonusDateError, setBonusDateError] = useState('');
+  
+  // Other Payments state
+  const [otherPayments, setOtherPayments] = useState<OtherPaymentRow[]>(employee?.otherPayments || []);
+  const [otherPaymentError, setOtherPaymentError] = useState('');
+  const { loadOtherPayments } = useOtherPaymentsCRUD();
 
   // Track if auto-fill has been applied
   const autoFillAppliedRef = useRef(false);
@@ -396,7 +407,9 @@ export default function EmployeeModal({
       setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
       setLivePenalty(null);
       setServerEmployeeCalc(null);
-      autoFillAppliedRef.current = true; // Existing data = don't auto-fill
+      autoFillAppliedRef.current = true;
+      setOtherPayments(employee.otherPayments || []);
+      setOtherPaymentError('');
     } else {
       setLocalEmployee({
         ssn: '',
@@ -426,6 +439,8 @@ export default function EmployeeModal({
       setLivePenalty(null);
       setServerEmployeeCalc(null);
       autoFillAppliedRef.current = false;
+      setOtherPayments([]);
+      setOtherPaymentError('');
     }
     setHolidayDateError('');
     setBonusDateError('');
@@ -684,25 +699,38 @@ export default function EmployeeModal({
         return;
       }
     }
+
+    // Other Payments policy validation: block save if any income code lacks a policy
+    const validOtherPayments = otherPayments.filter(p => p.income_code_id && p.amount > 0);
+    const hasOtherPaymentPolicyError = validOtherPayments.some(p => p.policy_error);
+    if (hasOtherPaymentPolicyError) {
+      setOtherPaymentError('One or more Other Payments income codes do not have an active policy for the selected period.');
+      return;
+    }
+    setOtherPaymentError('');
+
+    // Calculate other payment contribution totals
+    const opTotals = calculateOtherPaymentTotals(validOtherPayments);
     
     const savedEmployee: EmployeeData = {
       ...localEmployee,
       weeklyWages: effectiveWages,
-      totalWages: payrollCalc.totalWages,
-      hssdLevy: payrollCalc.employeeLevy, 
-      socialSecurity: payrollCalc.employeeSS,
-      employeeSS: payrollCalc.employeeSS,
-      employeeLevy: payrollCalc.employeeLevy,
-      employerSS: payrollCalc.employerSSTotal,
-      employerLevy: payrollCalc.employerLevy,
-      employerSeverance: payrollCalc.employerSeverance,
-      periodGross: payrollCalc.totalWages,
+      totalWages: payrollCalc.totalWages + opTotals.totalAmount,
+      hssdLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy, 
+      socialSecurity: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
+      employeeSS: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
+      employeeLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy,
+      employerSS: payrollCalc.employerSSTotal + opTotals.totalEmployerSS + opTotals.totalEmployerEIB,
+      employerLevy: payrollCalc.employerLevy + opTotals.totalEmployerLevy,
+      employerSeverance: payrollCalc.employerSeverance + opTotals.totalEmployerSeverance,
+      periodGross: payrollCalc.totalWages + opTotals.totalAmount,
       // Clear bonus/holiday metadata if their checkboxes are unchecked
       bonusDate: localEmployee.days?.[5] ? localEmployee.bonusDate : '',
       bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,
       holidayStartDate: localEmployee.days?.[6] ? localEmployee.holidayStartDate : '',
       holidayEndDate: localEmployee.days?.[6] ? localEmployee.holidayEndDate : '',
       holidayNoDates: localEmployee.days?.[6] ? localEmployee.holidayNoDates : false,
+      otherPayments: validOtherPayments,
     };
     
     onSave(savedEmployee);
@@ -1106,6 +1134,30 @@ export default function EmployeeModal({
               )}
             </div>
           </div>
+
+          {/* Other Payments Section — full width */}
+          {hasPayPeriodSelected && (
+            <OtherPaymentsSection
+              payments={otherPayments}
+              onChange={setOtherPayments}
+              periodYear={safePeriodYear}
+              periodMonth={safePeriodMonth}
+              configRates={config ? {
+                employeeSSRate: config.employeeSSRate,
+                employerSSRate: config.employerSSRate,
+                employerEIBRate: config.employerEIBRate,
+                employerLevyRate: config.employerLevyRate,
+                employerSeveranceRate: config.employerSeveranceRate,
+              } : undefined}
+              isReadOnly={isViewMode}
+            />
+          )}
+          {otherPaymentError && (
+            <Alert variant="destructive" className="py-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs">{otherPaymentError}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Row 3: Calculations — full width below */}
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
