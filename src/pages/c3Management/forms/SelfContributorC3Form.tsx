@@ -193,11 +193,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       setWeeklyWage(0);
       setWeeklyContribution(0);
       setWageCategory(null);
+      setConfigFound(true);
+      setConfigWarning(null);
       return;
     }
 
     setSSNValidating(true);
     setSsnError(null);
+    setConfigWarning(null);
 
     try {
       // First get person details
@@ -211,7 +214,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         setWeeklyWage(0);
         setWeeklyContribution(0);
         setWageCategory(null);
-        setSsRate(10);
+        setSsRate(0);
+        setPenaltyRate(null);
+        setConfigFound(true);
         setSSNValidating(false);
         return;
       }
@@ -229,16 +234,28 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           setWeeklyWage(0);
           setWeeklyContribution(0);
           setWageCategory(null);
-          setSsRate(10);
+          setSsRate(0);
+          setPenaltyRate(null);
+          setConfigFound(true);
         } else if (categoryResult.wageCategory) {
-          // Fetch wage category details - weeklyWage is the wage_category value itself
-          // weeklyContribution is calculated as weeklyWage * SS rate from tb_self_emp_contrib_rate
-          const wageDetails = await getWageCategoryDetails(categoryResult.wageCategory);
+          // Fetch wage category details with period-aware config lookup
+          const wageDetails = await getWageCategoryDetails(
+            categoryResult.wageCategory,
+            period.year,
+            period.month
+          );
           if (wageDetails) {
             setWeeklyWage(wageDetails.weeklyWage);
             setWeeklyContribution(wageDetails.weeklyContribution);
             setWageCategory(categoryResult.wageCategory);
             setSsRate(wageDetails.ssRate);
+            setPenaltyRate(wageDetails.penaltyRate);
+            setConfigFound(wageDetails.configFound);
+            if (!wageDetails.configFound) {
+              setConfigWarning(
+                `Contribution rate configuration not found for wage ${categoryResult.wageCategory} and period ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][period.month]} ${period.year}`
+              );
+            }
             setSsnValid(true);
           } else {
             setSsnError("Could not fetch wage category details");
