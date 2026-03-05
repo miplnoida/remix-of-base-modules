@@ -21,6 +21,8 @@ export interface PolicyLookupResult {
   ssc_contrib_employer?: boolean;
   contrib_eib?: boolean;
   include_in_severance?: boolean;
+  calculation_method?: string;
+  affects_last_week_payment?: boolean;
 }
 
 export interface C3ConfigRates {
