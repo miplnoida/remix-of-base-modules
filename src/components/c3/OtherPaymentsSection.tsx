@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Trash2, AlertCircle, Check, FileText } from 'lucide-react';
 import { useIncomeCodes } from '@/hooks/useIncomeCodePolicy';
-import { useIncomeCodePolicyLookup, calculateOtherPaymentContributions, type C3ConfigRates, type PolicyLookupResult } from '@/hooks/useOtherPayments';
+import { useIncomeCodePolicyLookup, useOtherPaymentCalculation, type C3ConfigRates, type PolicyLookupResult } from '@/hooks/useOtherPayments';
 import type { OtherPaymentRow } from '@/types/otherPayments';
 import { EMPTY_OTHER_PAYMENT, calculateOtherPaymentTotals } from '@/types/otherPayments';
 
