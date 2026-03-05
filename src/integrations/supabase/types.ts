@@ -15002,6 +15002,24 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_c3_contributions_with_other_payments: {
+        Args: {
+          p_employee_data: Json
+          p_period_month: number
+          p_period_year: number
+          p_received_date: string
+        }
+        Returns: Json
+      }
+      calculate_other_payment_components: {
+        Args: {
+          p_amount: number
+          p_income_code_id: string
+          p_period_month: number
+          p_period_year: number
+        }
+        Returns: Json
+      }
       calculate_vc_avg_weekly_wage: {
         Args: { p_date_registered: string; p_ssn: string }
         Returns: Json
