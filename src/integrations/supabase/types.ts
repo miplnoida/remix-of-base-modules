@@ -7799,6 +7799,77 @@ export type Database = {
           },
         ]
       }
+      ip_other_payments: {
+        Row: {
+          amount: number
+          c3_id: string
+          created_at: string | null
+          created_by: string | null
+          date_entry_mode: string | null
+          employee_levy: number | null
+          employee_ss: number | null
+          employer_eib: number | null
+          employer_levy: number | null
+          employer_severance: number | null
+          employer_ss: number | null
+          id: string
+          income_code_id: string
+          policy_id: string | null
+          policy_type: string | null
+          ssn: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount?: number
+          c3_id: string
+          created_at?: string | null
+          created_by?: string | null
+          date_entry_mode?: string | null
+          employee_levy?: number | null
+          employee_ss?: number | null
+          employer_eib?: number | null
+          employer_levy?: number | null
+          employer_severance?: number | null
+          employer_ss?: number | null
+          id?: string
+          income_code_id: string
+          policy_id?: string | null
+          policy_type?: string | null
+          ssn: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          c3_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          date_entry_mode?: string | null
+          employee_levy?: number | null
+          employee_ss?: number | null
+          employer_eib?: number | null
+          employer_levy?: number | null
+          employer_severance?: number | null
+          employer_ss?: number | null
+          id?: string
+          income_code_id?: string
+          policy_id?: string | null
+          policy_type?: string | null
+          ssn?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_other_payments_income_code_id_fkey"
+            columns: ["income_code_id"]
+            isOneToOne: false
+            referencedRelation: "tb_income_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ip_self_category: {
         Row: {
           activity_seq_no: string
@@ -15287,6 +15358,14 @@ export type Database = {
           p_schedule_no?: number
           p_status?: string
           p_verified_by?: string
+        }
+        Returns: Json
+      }
+      get_income_code_policy_for_period: {
+        Args: {
+          p_income_code_id: string
+          p_period_month: number
+          p_period_year: number
         }
         Returns: Json
       }
