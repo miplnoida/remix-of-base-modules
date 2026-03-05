@@ -672,6 +672,8 @@ import DailyReports from '@/pages/finance/DailyReports';
 import ReversalsAndPenalties from '@/pages/finance/ReversalsAndPenalties';
 import AdminConfiguration from '@/pages/finance/AdminConfiguration';
 import { default as FinanceUserManagement } from '@/pages/finance/UserManagement';
+import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
+import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
 
 export const AppRoutes = () => {
   return (
@@ -1462,6 +1464,10 @@ export const AppRoutes = () => {
       <Route path="/employer-registration/new" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
       <Route path="/employer-registration/edit/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
       <Route path="/employer-registration/view/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
+
+      {/* Master Data Admin */}
+      <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/sep-contrib-rates" element={<ProtectedLayout><SepContribRateManagement /></ProtectedLayout>} />
 
       {/* Maintenance / Lockdown */}
       <Route path="/maintenance" element={<Maintenance />} />

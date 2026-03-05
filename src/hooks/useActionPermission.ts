@@ -81,6 +81,8 @@ export const MODULE_NAMES = {
   WORKFLOW_INSTANCES: 'workflow_instances',
   // Sample Application module
   SAMPLE_APPLICATION: 'sample_application',
+  INCOME_CATEGORY: 'income_category_management',
+  SEP_CONTRIB_RATE: 'sep_contrib_rate_management',
 } as const;
 
 /**
