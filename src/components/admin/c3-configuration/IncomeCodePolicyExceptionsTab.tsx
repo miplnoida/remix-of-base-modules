@@ -385,6 +385,14 @@ export function IncomeCodePolicyExceptionsTab() {
                   </>
                 ) : (
                   <>
+                    {/* Include in Levy toggle for no_dates mode */}
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <span className="text-sm font-medium">Include in Levy</span>
+                        <p className="text-xs text-muted-foreground">When OFF, this income code amount will be excluded from levy calculations</p>
+                      </div>
+                      <Switch checked={form.include_in_levy !== false} onCheckedChange={(v) => setField('include_in_levy', v)} />
+                    </div>
                     {/* Bonus-style overrides */}
                     <div className="border rounded-lg p-4 space-y-3">
                       <span className="text-sm font-semibold uppercase tracking-wider">Calculation Method</span>

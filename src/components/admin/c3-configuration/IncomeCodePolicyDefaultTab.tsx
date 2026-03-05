@@ -405,7 +405,7 @@ export function IncomeCodePolicyDefaultTab() {
               <>
                 <SectionLabel>Applicability in C3</SectionLabel>
                 <div className="space-y-3">
-                  <ToggleRow label="Include in Levy" hint="Amount is included in levy base calculation" checked={true} onChange={() => {}} disabled />
+                  <ToggleRow label="Include in Levy" hint="When OFF, this income code amount will be excluded from employee and employer levy calculations" checked={!!form.include_in_levy} onChange={(v) => setField('include_in_levy', v)} />
                 </div>
 
                 <SectionLabel>Calculation Method</SectionLabel>

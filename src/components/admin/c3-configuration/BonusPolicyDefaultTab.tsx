@@ -127,7 +127,7 @@ export function BonusPolicyDefaultTab() {
     }
   };
 
-  const formInvalid = !form.include_in_levy;
+  const formInvalid = false;
 
   return (
     <div className="space-y-6">
@@ -240,7 +240,7 @@ export function BonusPolicyDefaultTab() {
             {/* 1. Applicability */}
             <SectionLabel>Bonus Applicability in C3</SectionLabel>
             <div className="space-y-3">
-              <ToggleRow label="Include Bonus in Levy" hint="Bonus amount is always included in levy base calculation" checked={true} onChange={() => {}} disabled />
+              <ToggleRow label="Include Bonus in Levy" hint="When OFF, bonus amount will be excluded from employee and employer levy calculations" checked={!!form.include_in_levy} onChange={(v) => setField('include_in_levy', v)} />
             </div>
 
             {/* 2. Calculation Method */}
