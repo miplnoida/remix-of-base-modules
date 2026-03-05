@@ -420,6 +420,26 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       return;
     }
 
+    // Validate Other Payments policy coverage before submit
+    if (!formData.nilReturn && formData.period && employees.length > 0) {
+      const allOtherPayments = employees.flatMap(emp => emp.otherPayments || []);
+      if (allOtherPayments.length > 0) {
+        const policyValidation = await validateOtherPaymentPolicies(
+          allOtherPayments,
+          formData.period.year,
+          formData.period.month
+        );
+        if (!policyValidation.valid) {
+          toast({
+            title: "Policy Validation Failed",
+            description: policyValidation.errors[0] || "One or more income codes do not have an active policy for the selected period.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     const periodDisplay = formData.period 
       ? `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][formData.period.month]} ${formData.period.year}` 
       : '';
