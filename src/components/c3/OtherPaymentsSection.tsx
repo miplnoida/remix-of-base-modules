@@ -71,24 +71,35 @@ export default function OtherPaymentsSection({
     const result = await lookupPolicy(incomeCodeId);
     policyCacheRef.current[incomeCodeId] = result;
 
-    // Read LATEST state from refs
     const currentPayments = paymentsRef.current;
     const currentRow = currentPayments[rowIndex];
     if (!currentRow) return;
 
-    const contribs = calculateOtherPaymentContributions(currentRow.amount, result, ratesRef.current);
     const codeInfo = incomeCodesRef.current?.find(c => c.id === incomeCodeId);
+
+    let backendCalc: any = null;
+    if (result.found && currentRow.amount > 0) {
+      backendCalc = await calculatePayment(incomeCodeId, currentRow.amount);
+    }
 
     const updated = [...currentPayments];
     updated[rowIndex] = {
       ...currentRow,
-      ...contribs,
       income_code: codeInfo?.code || currentRow.income_code || '',
       income_description: codeInfo?.description || currentRow.income_description || '',
+      policy_id: backendCalc?.policy_id || result.policy_id,
+      policy_type: backendCalc?.policy_type || result.policy_type,
+      date_entry_mode: backendCalc?.date_entry_mode || result.date_entry_mode,
+      employee_ss: backendCalc?.employee_ss || 0,
+      employee_levy: backendCalc?.employee_levy || 0,
+      employer_ss: backendCalc?.employer_ss || 0,
+      employer_eib: backendCalc?.employer_eib || 0,
+      employer_levy: backendCalc?.employer_levy || 0,
+      employer_severance: backendCalc?.employer_severance || 0,
       policy_error: result.found ? undefined : (result.error || 'No active policy for this period'),
     };
     onChangeRef.current(updated);
-  }, [lookupPolicy]);
+  }, [lookupPolicy, calculatePayment]);
 
   // Recalculate contributions for a row using cached policy and current rates
   const recalculateRow = useCallback((rowIndex: number, amount: number, extraFields?: Partial<OtherPaymentRow>) => {
