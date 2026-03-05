@@ -140,7 +140,7 @@ export function useC3ServerCalculations() {
     try {
       const employeeData = transformEmployeeData(employees);
       
-      const { data, error: rpcError } = await supabase.rpc('calculate_c3_contributions', {
+      const { data, error: rpcError } = await supabase.rpc('calculate_c3_contributions_with_other_payments', {
         p_period_year: periodYear,
         p_period_month: periodMonth,
         p_received_date: receivedDate,
