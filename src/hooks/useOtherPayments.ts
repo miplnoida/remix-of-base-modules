@@ -31,6 +31,17 @@ export interface C3ConfigRates {
   employerSeveranceRate: number;
 }
 
+export interface OtherPaymentCalculationResult extends PolicyLookupResult {
+  success: boolean;
+  amount: number;
+  employee_ss: number;
+  employee_levy: number;
+  employer_ss: number;
+  employer_eib: number;
+  employer_levy: number;
+  employer_severance: number;
+}
+
 /**
  * Calculate contributions for an other payment based on policy flags and C3 config rates.
  * Employee levy uses the employer levy rate as a flat-rate approximation
