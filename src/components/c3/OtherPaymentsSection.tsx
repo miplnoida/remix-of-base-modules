@@ -50,16 +50,6 @@ export default function OtherPaymentsSection({
   const incomeCodesRef = useRef(incomeCodes);
   incomeCodesRef.current = incomeCodes;
 
-  // Default rates if config not provided
-  const rates: C3ConfigRates = configRates || {
-    employeeSSRate: 0.05,
-    employerSSRate: 0.05,
-    employerEIBRate: 0.01,
-    employerLevyRate: 0.03,
-    employerSeveranceRate: 0.01,
-  };
-  const ratesRef = useRef(rates);
-  ratesRef.current = rates;
 
   // Store policy results for recalculation
   const policyCacheRef = useRef<Record<string, PolicyLookupResult>>({});
