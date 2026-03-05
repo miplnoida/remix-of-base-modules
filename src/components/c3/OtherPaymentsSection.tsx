@@ -91,23 +91,6 @@ export default function OtherPaymentsSection({
     onChangeRef.current(updated);
   }, [lookupPolicy, calculatePayment]);
 
-  // Recalculate contributions for a row using cached policy and current rates
-  const recalculateRow = useCallback((rowIndex: number, amount: number, extraFields?: Partial<OtherPaymentRow>) => {
-    const currentPayments = paymentsRef.current;
-    const row = currentPayments[rowIndex];
-    if (!row) return;
-
-    const codeId = extraFields?.income_code_id || row.income_code_id;
-    if (!codeId) return;
-
-    const policy = policyCacheRef.current[codeId];
-    if (!policy?.found) return;
-
-    const contribs = calculateOtherPaymentContributions(amount, policy, ratesRef.current);
-    const updated = [...currentPayments];
-    updated[rowIndex] = { ...row, ...extraFields, amount, ...contribs };
-    onChangeRef.current(updated);
-  }, []);
 
   const handleAddRow = () => {
     onChange([...payments, { ...EMPTY_OTHER_PAYMENT }]);
