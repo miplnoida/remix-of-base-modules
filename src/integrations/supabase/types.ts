@@ -2494,6 +2494,268 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_income_code_policy_default: {
+        Row: {
+          calc_flat_enabled: boolean | null
+          calc_flat_percentage: number | null
+          calc_slab_enabled: boolean | null
+          calculation_method: string | null
+          contrib_eir: boolean | null
+          contrib_employee: boolean | null
+          contrib_employer: boolean | null
+          contrib_severance: boolean | null
+          created_by: string | null
+          created_on: string
+          date_entry_mode: string
+          date_from: string
+          date_to: string | null
+          distribution: Json | null
+          distribution_enabled: boolean | null
+          id: string
+          include_in_levy: boolean | null
+          include_in_severance: boolean | null
+          income_code_id: string
+          is_active: boolean
+          levy_calc_flat_enabled: boolean | null
+          levy_calc_flat_percentage: number | null
+          levy_calc_slab_enabled: boolean | null
+          levy_calculation_method: string | null
+          levy_distribution: Json | null
+          levy_include: boolean | null
+          max_amount: number | null
+          min_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          policy_type: string | null
+          ssc_contrib_eib: boolean | null
+          ssc_contrib_employee: boolean | null
+          ssc_contrib_employer: boolean | null
+          ssc_include: boolean | null
+        }
+        Insert: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_entry_mode?: string
+          date_from: string
+          date_to?: string | null
+          distribution?: Json | null
+          distribution_enabled?: boolean | null
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          income_code_id: string
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          policy_type?: string | null
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+        }
+        Update: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_entry_mode?: string
+          date_from?: string
+          date_to?: string | null
+          distribution?: Json | null
+          distribution_enabled?: boolean | null
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          income_code_id?: string
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          policy_type?: string | null
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c3_income_code_policy_default_income_code_id_fkey"
+            columns: ["income_code_id"]
+            isOneToOne: false
+            referencedRelation: "tb_income_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c3_income_code_policy_exceptions: {
+        Row: {
+          calc_flat_enabled: boolean | null
+          calc_flat_percentage: number | null
+          calc_slab_enabled: boolean | null
+          calculation_method: string | null
+          contrib_eir: boolean | null
+          contrib_employee: boolean | null
+          contrib_employer: boolean | null
+          contrib_severance: boolean | null
+          created_by: string | null
+          created_on: string
+          date_entry_mode: string
+          date_from: string
+          date_to: string | null
+          description: string | null
+          distribution: Json | null
+          distribution_enabled: boolean | null
+          exception_month: number
+          exception_type: string
+          id: string
+          include_in_levy: boolean | null
+          include_in_severance: boolean | null
+          income_code_id: string
+          is_active: boolean
+          levy_calc_flat_enabled: boolean | null
+          levy_calc_flat_percentage: number | null
+          levy_calc_slab_enabled: boolean | null
+          levy_calculation_method: string | null
+          levy_distribution: Json | null
+          levy_include: boolean | null
+          max_amount: number | null
+          min_amount: number | null
+          modified_by: string | null
+          modified_on: string
+          override_default: boolean | null
+          policy_type: string | null
+          ssc_contrib_eib: boolean | null
+          ssc_contrib_employee: boolean | null
+          ssc_contrib_employer: boolean | null
+          ssc_include: boolean | null
+          year_from: number
+          year_to: number | null
+        }
+        Insert: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_entry_mode?: string
+          date_from: string
+          date_to?: string | null
+          description?: string | null
+          distribution?: Json | null
+          distribution_enabled?: boolean | null
+          exception_month: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          income_code_id: string
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean | null
+          policy_type?: string | null
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+          year_from: number
+          year_to?: number | null
+        }
+        Update: {
+          calc_flat_enabled?: boolean | null
+          calc_flat_percentage?: number | null
+          calc_slab_enabled?: boolean | null
+          calculation_method?: string | null
+          contrib_eir?: boolean | null
+          contrib_employee?: boolean | null
+          contrib_employer?: boolean | null
+          contrib_severance?: boolean | null
+          created_by?: string | null
+          created_on?: string
+          date_entry_mode?: string
+          date_from?: string
+          date_to?: string | null
+          description?: string | null
+          distribution?: Json | null
+          distribution_enabled?: boolean | null
+          exception_month?: number
+          exception_type?: string
+          id?: string
+          include_in_levy?: boolean | null
+          include_in_severance?: boolean | null
+          income_code_id?: string
+          is_active?: boolean
+          levy_calc_flat_enabled?: boolean | null
+          levy_calc_flat_percentage?: number | null
+          levy_calc_slab_enabled?: boolean | null
+          levy_calculation_method?: string | null
+          levy_distribution?: Json | null
+          levy_include?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          modified_by?: string | null
+          modified_on?: string
+          override_default?: boolean | null
+          policy_type?: string | null
+          ssc_contrib_eib?: boolean | null
+          ssc_contrib_employee?: boolean | null
+          ssc_contrib_employer?: boolean | null
+          ssc_include?: boolean | null
+          year_from?: number
+          year_to?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c3_income_code_policy_exceptions_income_code_id_fkey"
+            columns: ["income_code_id"]
+            isOneToOne: false
+            referencedRelation: "tb_income_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c3_line_items: {
         Row: {
           c3_id: string | null
@@ -12216,6 +12478,39 @@ export type Database = {
           appeal?: string | null
           category_code?: string
           wage_upper?: number | null
+        }
+        Relationships: []
+      }
+      tb_income_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
