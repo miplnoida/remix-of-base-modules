@@ -726,10 +726,18 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
       console.error('Error fetching wages:', wagesError);
     }
 
+    // Load other payments
+    const { data: otherPaymentsData } = await (supabase as any)
+      .from('ip_other_payments')
+      .select('*, tb_income_codes(code, description)')
+      .eq('c3_id', c3Id)
+      .order('created_at');
+
     return {
       data: {
         ...c3Data,
-        wages: wagesData || []
+        wages: wagesData || [],
+        otherPayments: otherPaymentsData || []
       }
     };
   } catch (error: any) {
