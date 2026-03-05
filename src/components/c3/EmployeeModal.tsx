@@ -17,6 +17,10 @@ import { useHolidayPolicyLookup } from '@/hooks/useHolidayPolicyLookup';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import OtherPaymentsSection from '@/components/c3/OtherPaymentsSection';
+import type { OtherPaymentRow } from '@/types/otherPayments';
+import { calculateOtherPaymentTotals } from '@/types/otherPayments';
+import { useOtherPaymentsCRUD, validateOtherPaymentPolicies } from '@/hooks/useOtherPayments';
 
 export interface EmployeeData {
   ssn: string;
@@ -45,6 +49,8 @@ export interface EmployeeData {
   holidayStartDate?: string;
   holidayEndDate?: string;
   holidayNoDates?: boolean;
+  // Other Payments by income code
+  otherPayments?: OtherPaymentRow[];
 }
 
 export interface PenaltyFinesData {
