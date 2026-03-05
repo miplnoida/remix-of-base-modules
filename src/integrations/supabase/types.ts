@@ -4755,6 +4755,7 @@ export type Database = {
       }
       ia_action_tracking: {
         Row: {
+          action_description: string | null
           action_status: string | null
           created_at: string | null
           created_by: string | null
@@ -4763,12 +4764,17 @@ export type Database = {
           id: string
           notes: string | null
           response_id: string | null
+          responsible_person: string | null
+          status: string | null
+          target_date: string | null
           updated_at: string | null
           updated_by: string | null
           verification_date: string | null
           verified_by: string | null
+          verified_date: string | null
         }
         Insert: {
+          action_description?: string | null
           action_status?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4777,12 +4783,17 @@ export type Database = {
           id?: string
           notes?: string | null
           response_id?: string | null
+          responsible_person?: string | null
+          status?: string | null
+          target_date?: string | null
           updated_at?: string | null
           updated_by?: string | null
           verification_date?: string | null
           verified_by?: string | null
+          verified_date?: string | null
         }
         Update: {
+          action_description?: string | null
           action_status?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4791,10 +4802,14 @@ export type Database = {
           id?: string
           notes?: string | null
           response_id?: string | null
+          responsible_person?: string | null
+          status?: string | null
+          target_date?: string | null
           updated_at?: string | null
           updated_by?: string | null
           verification_date?: string | null
           verified_by?: string | null
+          verified_date?: string | null
         }
         Relationships: [
           {
@@ -5099,6 +5114,105 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ia_audit_reports: {
+        Row: {
+          approved_on: string | null
+          background: string | null
+          conclusion: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          distribution_list: string | null
+          fiscal_year: string | null
+          follow_up_actions: string | null
+          generated_on: string | null
+          id: string
+          key_highlights: string | null
+          limitations: string | null
+          overall_assessment: string | null
+          period: string | null
+          plan_id: string | null
+          prepared_by: string | null
+          report_number: string | null
+          report_type: string
+          reviewed_by: string | null
+          status: string
+          submitted_on: string | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approved_on?: string | null
+          background?: string | null
+          conclusion?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          distribution_list?: string | null
+          fiscal_year?: string | null
+          follow_up_actions?: string | null
+          generated_on?: string | null
+          id?: string
+          key_highlights?: string | null
+          limitations?: string | null
+          overall_assessment?: string | null
+          period?: string | null
+          plan_id?: string | null
+          prepared_by?: string | null
+          report_number?: string | null
+          report_type?: string
+          reviewed_by?: string | null
+          status?: string
+          submitted_on?: string | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approved_on?: string | null
+          background?: string | null
+          conclusion?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          distribution_list?: string | null
+          fiscal_year?: string | null
+          follow_up_actions?: string | null
+          generated_on?: string | null
+          id?: string
+          key_highlights?: string | null
+          limitations?: string | null
+          overall_assessment?: string | null
+          period?: string | null
+          plan_id?: string | null
+          prepared_by?: string | null
+          report_number?: string | null
+          report_type?: string
+          reviewed_by?: string | null
+          status?: string
+          submitted_on?: string | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_reports_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_reports_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_audit_settings: {
         Row: {
