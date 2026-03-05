@@ -674,6 +674,7 @@ import AdminConfiguration from '@/pages/finance/AdminConfiguration';
 import { default as FinanceUserManagement } from '@/pages/finance/UserManagement';
 import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
 import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
+import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 
 export const AppRoutes = () => {
   return (
@@ -947,6 +948,7 @@ export const AppRoutes = () => {
       {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
       <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/sep-contrib-rates" element={<ProtectedLayout><SepContribRateManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/income-codes" element={<ProtectedLayout><IncomeCodeManagement /></ProtectedLayout>} />
       <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />

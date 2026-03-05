@@ -83,6 +83,7 @@ export const MODULE_NAMES = {
   SAMPLE_APPLICATION: 'sample_application',
   INCOME_CATEGORY: 'income_category_management',
   SEP_CONTRIB_RATE: 'sep_contrib_rate_management',
+  INCOME_CODE: 'income_code_management',
 } as const;
 
 /**
