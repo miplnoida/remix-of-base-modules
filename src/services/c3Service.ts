@@ -986,38 +986,55 @@ export async function getPersonBySSN(ssn: string): Promise<{
   }
 }
 
-// Get wage category details for self-contributor
-// Weekly Wage = wage_category value from ip_self_category
-// Weekly Contribution = wage_category * 10% (self-employed SS rate from tb_self_emp_contrib_rate)
-export async function getWageCategoryDetails(wageCategory: number): Promise<{
+// Get wage category details for self-contributor with period-aware config lookup
+// Matches tb_self_emp_contrib_rate by wage_cat AND month-year range overlap
+export async function getWageCategoryDetails(
+  wageCategory: number,
+  periodYear?: number,
+  periodMonth?: number // 0-indexed
+): Promise<{
   weeklyWage: number;
   weeklyContribution: number;
   ssRate: number;
+  penaltyRate: number | null;
+  configFound: boolean;
 } | null> {
   try {
-    // wageCategory is the actual weekly wage amount from ip_self_category
     const weeklyWage = wageCategory;
 
-    // Get the self-employed contribution rate (typically 10%)
-    const { data: rateData, error: rateError } = await supabase
+    // Build query filtering by wage_cat
+    let query = (supabase as any)
       .from('tb_self_emp_contrib_rate')
-      .select('sep_ss_percent')
-      .eq('wage_cat', wageCategory)
-      .limit(1);
+      .select('sep_ss_percent, sep_penalty_percent, effstart, effend')
+      .eq('wage_cat', wageCategory);
 
-    let ssRate = 10; // Default 10% if not found
-    if (!rateError && rateData && rateData.length > 0) {
-      ssRate = Number(rateData[0].sep_ss_percent) || 10;
+    // If period provided, filter by month-year range overlap
+    // C3 period is a single month-year. We need a config row whose effstart..effend range covers it.
+    // We compare using first-of-month for the C3 period and check effstart <= period <= effend
+    if (periodYear !== undefined && periodMonth !== undefined) {
+      // Build YYYY-MM-01 for the C3 period month
+      const periodDateStr = `${periodYear}-${String(periodMonth + 1).padStart(2, '0')}-01`;
+      query = query.lte('effstart', periodDateStr).gte('effend', periodDateStr);
     }
 
-    // Weekly contribution is wage * SS rate (e.g., 10%)
-    const weeklyContribution = Math.round(weeklyWage * (ssRate / 100) * 100) / 100;
+    const { data: rateData, error: rateError } = await query.limit(1);
 
-    return {
-      weeklyWage,
-      weeklyContribution,
-      ssRate
-    };
+    if (rateError) {
+      console.error('Error fetching contrib rate:', rateError);
+    }
+
+    if (!rateError && rateData && rateData.length > 0) {
+      const ssRate = Number(rateData[0].sep_ss_percent) || 10;
+      const penaltyRate = rateData[0].sep_penalty_percent != null
+        ? Number(rateData[0].sep_penalty_percent)
+        : null;
+      const weeklyContribution = Math.round(weeklyWage * (ssRate / 100) * 100) / 100;
+
+      return { weeklyWage, weeklyContribution, ssRate, penaltyRate, configFound: true };
+    }
+
+    // No matching config found
+    return { weeklyWage, weeklyContribution: 0, ssRate: 0, penaltyRate: null, configFound: false };
   } catch (error) {
     console.error('Error fetching wage category details:', error);
     return null;
