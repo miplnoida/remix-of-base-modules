@@ -89,18 +89,21 @@ export default function OtherPaymentsSection({
     onChangeRef.current(updated);
   }, [lookupPolicy]);
 
-  // Recalculate when amount changes
-  const recalculateRow = useCallback((rowIndex: number, amount: number) => {
+  // Recalculate contributions for a row using cached policy and current rates
+  const recalculateRow = useCallback((rowIndex: number, amount: number, extraFields?: Partial<OtherPaymentRow>) => {
     const currentPayments = paymentsRef.current;
     const row = currentPayments[rowIndex];
-    if (!row?.income_code_id) return;
+    if (!row) return;
 
-    const policy = policyCacheRef.current[row.income_code_id];
+    const codeId = extraFields?.income_code_id || row.income_code_id;
+    if (!codeId) return;
+
+    const policy = policyCacheRef.current[codeId];
     if (!policy?.found) return;
 
     const contribs = calculateOtherPaymentContributions(amount, policy, ratesRef.current);
     const updated = [...currentPayments];
-    updated[rowIndex] = { ...row, amount, ...contribs };
+    updated[rowIndex] = { ...row, ...extraFields, amount, ...contribs };
     onChangeRef.current(updated);
   }, []);
 
@@ -138,25 +141,42 @@ export default function OtherPaymentsSection({
     const numValue = parseFloat(clean) || 0;
     if (numValue < 0) return;
 
-    const updated = [...payments];
-    // Store the raw string for display while typing, but use numValue for calculations
-    updated[index] = { ...updated[index], amount: numValue, _rawAmount: clean } as any;
-    onChange(updated);
+    const currentPayments = paymentsRef.current;
+    const row = currentPayments[index];
+    if (!row) return;
+
+    // If we have a cached policy, recalculate contributions immediately
+    const codeId = row.income_code_id;
+    const policy = codeId ? policyCacheRef.current[codeId] : undefined;
+
+    if (policy?.found && numValue > 0) {
+      const contribs = calculateOtherPaymentContributions(numValue, policy, ratesRef.current);
+      const updated = [...currentPayments];
+      updated[index] = { ...row, amount: numValue, _rawAmount: clean, ...contribs } as any;
+      onChangeRef.current(updated);
+    } else {
+      const updated = [...currentPayments];
+      updated[index] = {
+        ...row,
+        amount: numValue,
+        _rawAmount: clean,
+        employee_ss: 0, employee_levy: 0, employer_ss: 0,
+        employer_eib: 0, employer_levy: 0, employer_severance: 0,
+      } as any;
+      onChangeRef.current(updated);
+    }
   };
 
   const handleAmountBlur = (index: number) => {
-    const row = payments[index];
+    const currentPayments = paymentsRef.current;
+    const row = currentPayments[index];
     if (!row) return;
     // Clean up raw display value on blur
-    const updated = [...payments];
+    const updated = [...currentPayments];
     const cleanRow = { ...updated[index] };
     delete (cleanRow as any)._rawAmount;
     updated[index] = cleanRow;
-    onChange(updated);
-
-    if (row.income_code_id && row.amount > 0) {
-      recalculateRow(index, row.amount);
-    }
+    onChangeRef.current(updated);
   };
 
   // Get used income codes to prevent duplicates
