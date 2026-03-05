@@ -1135,6 +1135,30 @@ export default function EmployeeModal({
             </div>
           </div>
 
+          {/* Other Payments Section — full width */}
+          {hasPayPeriodSelected && (
+            <OtherPaymentsSection
+              payments={otherPayments}
+              onChange={setOtherPayments}
+              periodYear={safePeriodYear}
+              periodMonth={safePeriodMonth}
+              configRates={config ? {
+                employeeSSRate: config.employeeSSRate,
+                employerSSRate: config.employerSSRate,
+                employerEIBRate: config.employerEIBRate,
+                employerLevyRate: config.employerLevyRate,
+                employerSeveranceRate: config.employerSeveranceRate,
+              } : undefined}
+              isReadOnly={isViewMode}
+            />
+          )}
+          {otherPaymentError && (
+            <Alert variant="destructive" className="py-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs">{otherPaymentError}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Row 3: Calculations — full width below */}
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
             <div className="flex items-center gap-1.5 mb-2">
