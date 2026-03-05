@@ -265,7 +265,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
   const showNewForm = addingNew || (isRegistrationMode && activities.length === 0);
 
   // No SEP exists at all - only show empty state when not loading and no activities
-  if (!loading && !eligibility?.sep_exists && activities.length === 0 && !isRegistrationMode) {
+  if (!loading && !eligibility?.sep_exists && activities.length === 0 && !isRegistrationMode && !addingNew) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
