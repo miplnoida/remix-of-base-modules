@@ -128,6 +128,17 @@ export default function OtherPaymentsSection({
   };
 
   const handleCodeChange = (index: number, incomeCodeId: string) => {
+    const isDuplicate = payments.some((p, i) => i !== index && p.income_code_id === incomeCodeId);
+    if (isDuplicate) {
+      const updated = [...payments];
+      updated[index] = {
+        ...updated[index],
+        policy_error: 'This income code is already selected in another row.',
+      };
+      onChange(updated);
+      return;
+    }
+
     const codeInfo = incomeCodes?.find(c => c.id === incomeCodeId);
     const updated = [...payments];
     updated[index] = {
