@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useIAManagementResponses, useIAManagementResponseMutations, useIAFindings } from '@/hooks/useAuditData';
-import { PageShell, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, FilterField } from '@/components/common';
 import { useState } from 'react';
 
 export default function ManagementResponses() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: responses = [], isLoading } = useIAManagementResponses();
   const { data: findings = [] } = useIAFindings();
   const { update } = useIAManagementResponseMutations();
@@ -22,6 +24,17 @@ export default function ManagementResponses() {
     update.mutate({ id: confirmAction.id, status });
     setConfirmAction(null);
   };
+
+  const filteredResponses = responses.filter((r: any) => {
+    const matchesStatus = filters.status === 'all' || r.status === filters.status;
+    const finding = findings.find((f: any) => f.id === r.finding_id);
+    const matchesSearch = !searchTerm || (finding?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.responsible_person || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const filterFields: FilterField[] = [
+    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Accepted', label: 'Accepted' }, { value: 'Draft', label: 'Draft' }] },
+  ];
 
   const statCards = [
     { label: 'Awaiting Response', value: findings.filter((f: any) => f.status === 'For Mgmt Response').length, icon: Clock, color: 'text-orange-600' },
@@ -65,11 +78,19 @@ export default function ManagementResponses() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Management Responses</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by finding or responsible person..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
           <DataTable
             columns={columns}
-            data={responses}
+            data={filteredResponses}
             emptyMessage="No management responses found"
             renderActions={(response) => response.status === 'Submitted' ? (
               <div className="flex gap-1">

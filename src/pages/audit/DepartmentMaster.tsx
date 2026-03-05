@@ -79,19 +79,27 @@ export default function DepartmentMaster() {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Building2 className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{departments.filter(d => d.risk_rating === 'Low').length}</div></CardContent></Card>
       </div>
 
-      <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by department name or head..." />
+      <Card>
+        <CardContent className="pt-6">
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by department name or head..." />
+        </CardContent>
+      </Card>
 
-      <DataTable
-        columns={columns}
-        data={filteredDepartments}
-        renderActions={(row) => (
-          <div className="flex gap-1">
-            <Link to={`/audit/department-view/${row.id}`}><Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-4 w-4" /></Button></Link>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}><Building2 className="h-4 w-4" /></Button>
-          </div>
-        )}
-        emptyMessage='No departments found. Click "Add Department" to get started.'
-      />
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={filteredDepartments}
+            renderActions={(row) => (
+              <div className="flex gap-1">
+                <Link to={`/audit/department-view/${row.id}`}><Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-4 w-4" /></Button></Link>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}><Building2 className="h-4 w-4" /></Button>
+              </div>
+            )}
+            emptyMessage='No departments found. Click "Add Department" to get started.'
+          />
+        </CardContent>
+      </Card>
 
       <EntityModal open={isAddOpen} onOpenChange={o => { if (!o) resetForm(); setIsAddOpen(o); }} title="Add New Department" mode="create" onSave={handleAdd} isSaving={create.isPending} saveLabel="Save Department">
         {formFields}

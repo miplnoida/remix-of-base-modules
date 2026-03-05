@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Award, X } from 'lucide-react';
 import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -115,23 +116,31 @@ export default function AuditorProfiles() {
       error={isError ? 'Failed to load auditor profiles' : null}
       actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>}
     >
-      <div className="flex flex-col md:flex-row gap-3">
-        <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by name, email, or employee number..." />
-        <FilterBar
-          filters={[{ key: 'role', label: 'Role', type: 'select', options: [{ value: 'all', label: 'All Roles' }, { value: 'Audit Director', label: 'Audit Director' }, { value: 'Audit Manager', label: 'Audit Manager' }, { value: 'Auditor', label: 'Auditor' }] }]}
-          values={filters}
-          onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-          onReset={() => setFilters({ role: 'all' })}
-        />
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by name, email, or employee number..." />
+            <FilterBar
+              filters={[{ key: 'role', label: 'Role', type: 'select', options: [{ value: 'all', label: 'All Roles' }, { value: 'Audit Director', label: 'Audit Director' }, { value: 'Audit Manager', label: 'Audit Manager' }, { value: 'Auditor', label: 'Auditor' }] }]}
+              values={filters}
+              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+              onReset={() => setFilters({ role: 'all' })}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      <DataTable
-        columns={columns}
-        data={filteredAuditors}
-        onView={(row) => setViewAuditor(row)}
-        onEdit={(row) => openEdit(row)}
-        emptyMessage='No auditors found. Click "Add Auditor" to create one.'
-      />
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={filteredAuditors}
+            onView={(row) => setViewAuditor(row)}
+            onEdit={(row) => openEdit(row)}
+            emptyMessage='No auditors found. Click "Add Auditor" to create one.'
+          />
+        </CardContent>
+      </Card>
 
       {/* View Modal */}
       <EntityModal open={viewAuditor !== null} onOpenChange={() => setViewAuditor(null)} title="Auditor Profile Details" mode="view">
