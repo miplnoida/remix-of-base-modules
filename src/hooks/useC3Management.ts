@@ -173,6 +173,8 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
     bonusExemptLevy: (wage as any).bonus_exempt_levy || false,
     holidayStartDate: (wage as any).holiday_start_date || '',
     holidayEndDate: (wage as any).holiday_end_date || '',
+    // Other payments will be attached separately
+    otherPayments: [],
   };
 };
 

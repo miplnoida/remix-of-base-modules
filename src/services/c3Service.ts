@@ -149,6 +149,7 @@ export async function verifyAllWagesForC3(
 
 export interface C3RecordWithWages extends C3Record {
   wages?: WageRecord[];
+  otherPayments?: any[];
 }
 
 export interface C3ListFilters {
