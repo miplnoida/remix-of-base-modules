@@ -7,10 +7,11 @@ export function useIAFindings(activityId?: string) {
   return useQuery({
     queryKey: ['ia_findings', activityId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_findings').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_findings' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return activityId ? result.filter((r: any) => r.activity_id === activityId) : result;
+      return data ?? [];
     },
   });
 }
@@ -41,10 +42,11 @@ export function useIARecommendations(findingId?: string) {
   return useQuery({
     queryKey: ['ia_recommendations', findingId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_recommendations').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_recommendations' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return findingId ? result.filter((r: any) => r.finding_id === findingId) : result;
+      return data ?? [];
     },
   });
 }
@@ -70,10 +72,11 @@ export function useIAManagementResponses(findingId?: string) {
   return useQuery({
     queryKey: ['ia_management_responses', findingId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_management_responses').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_management_responses' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return findingId ? result.filter((r: any) => r.finding_id === findingId) : result;
+      return data ?? [];
     },
   });
 }
@@ -155,10 +158,11 @@ export function useIADocumentTemplates(category?: string) {
   return useQuery({
     queryKey: ['ia_document_templates', category],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_document_templates').select('*').eq('is_active', true).order('name');
+      const { data, error } = await supabase.from('ia_document_templates' as any).select('*').eq('is_active', true).order('name');
       if (error) throw error;
       const result = data ?? [];
       return category ? result.filter((r: any) => r.category === category) : result;
+      return data ?? [];
     },
   });
 }

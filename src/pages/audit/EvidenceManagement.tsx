@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Download, Eye } from 'lucide-react';
-import { useIAEvidence, useIAEvidenceMutations, useIAActivities } from '@/hooks/useAuditData';
+import { Upload, FileText, Download } from 'lucide-react';
+import { useIAEvidence, useIAEvidenceMutations, useIAActivities, useIAAnnualPlans } from '@/hooks/useAuditData';
+import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
+import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
@@ -15,13 +17,16 @@ import { Badge } from '@/components/ui/badge';
 
 export default function EvidenceManagement() {
   const { toast } = useToast();
+  const { getCreateFields } = useAuditFields();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ type: 'all' });
   const { data: evidenceList = [], isLoading } = useIAEvidence();
   const { data: activities = [] } = useIAActivities();
+  const { data: plans = [] } = useIAAnnualPlans();
+  const { data: deptAudits = [] } = useIADepartmentAudits();
   const { create } = useIAEvidenceMutations();
-  const [formData, setFormData] = useState({ activity_id: '', evidence_type: '', title: '', description: '' });
+  const [formData, setFormData] = useState({ activity_id: '', evidence_type: '', title: '', description: '', annual_plan_id: '', department_audit_id: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -47,7 +52,6 @@ export default function EvidenceManagement() {
       let fileType = '';
 
       if (selectedFile) {
-        const ext = selectedFile.name.split('.').pop();
         const filePath = `evidence/${Date.now()}-${selectedFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from('ia-evidence')
@@ -72,10 +76,14 @@ export default function EvidenceManagement() {
         file_size: fileSize || null,
         file_type: fileType || null,
         upload_date: new Date().toISOString(),
+        activity_id: formData.activity_id || null,
+        annual_plan_id: formData.annual_plan_id || null,
+        department_audit_id: formData.department_audit_id || null,
+        ...getCreateFields(),
       }, {
         onSuccess: () => {
           setIsDialogOpen(false);
-          setFormData({ activity_id: '', evidence_type: '', title: '', description: '' });
+          setFormData({ activity_id: '', evidence_type: '', title: '', description: '', annual_plan_id: '', department_audit_id: '' });
           setSelectedFile(null);
           if (fileInputRef.current) fileInputRef.current.value = '';
         }
@@ -101,8 +109,8 @@ export default function EvidenceManagement() {
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Title', render: (ev) => <span className="font-medium">{ev.title || ev.file_name || '-'}</span> },
     { key: 'evidence_type', header: 'Type', render: (ev) => <Badge variant="outline">{ev.evidence_type || '-'}</Badge> },
+    { key: 'plan', header: 'Plan', render: (ev) => { const p = plans.find((p: any) => p.id === ev.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
     { key: 'file_name', header: 'File', render: (ev) => ev.file_name ? <span className="text-sm flex items-center gap-1"><FileText className="h-3 w-3" />{ev.file_name}</span> : <span className="text-muted-foreground">No file</span> },
-    { key: 'description', header: 'Description', className: 'max-w-md', render: (ev) => <span className="truncate block max-w-md">{ev.description}</span> },
     { key: 'created_at', header: 'Date', render: (ev) => ev.created_at ? new Date(ev.created_at).toLocaleDateString() : '-' },
   ];
 
@@ -150,47 +158,62 @@ export default function EvidenceManagement() {
         </CardContent>
       </Card>
 
-      {/* Upload Dialog */}
       <EntityModal open={isDialogOpen} onOpenChange={setIsDialogOpen} title="Upload Audit Evidence" mode="create" onSave={handleUpload} saveLabel="Upload Evidence" isSaving={isUploading || create.isPending}>
         <div className="space-y-4">
-          <div><Label>Related Activity</Label>
-            <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
-              <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-              <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
           <div><Label>Title *</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Evidence title" /></div>
-          <div><Label>Type</Label>
-            <Select value={formData.evidence_type} onValueChange={v => setFormData({...formData, evidence_type: v})}>
-              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-              <SelectContent><SelectItem value="Document">Document</SelectItem><SelectItem value="Photo">Photo</SelectItem><SelectItem value="Interview">Interview Record</SelectItem></SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Related Activity</Label>
+              <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
+                <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Type</Label>
+              <Select value={formData.evidence_type} onValueChange={v => setFormData({...formData, evidence_type: v})}>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent><SelectItem value="Document">Document</SelectItem><SelectItem value="Photo">Photo</SelectItem><SelectItem value="Interview">Interview Record</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Annual Plan</Label>
+              <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                <SelectContent>{plans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Dept. Audit</Label>
+              <Select value={formData.department_audit_id} onValueChange={v => setFormData({...formData, department_audit_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Select dept audit" /></SelectTrigger>
+                <SelectContent>{deptAudits.map((da: any) => <SelectItem key={da.id} value={da.id}>{da.department_name || da.id.slice(0,8)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label>Attach File</Label>
-            <Input
-              ref={fileInputRef}
-              type="file"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              className="mt-1"
-            />
-            {selectedFile && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-              </p>
-            )}
+            <Input ref={fileInputRef} type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="mt-1" />
+            {selectedFile && <p className="text-xs text-muted-foreground mt-1">{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</p>}
           </div>
           <div><Label>Description</Label><Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe the evidence..." rows={3} /></div>
         </div>
       </EntityModal>
 
-      {/* View Dialog */}
       <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Evidence Details" mode="view">
         {viewItem && (
           <div className="space-y-4">
             <div><Label className="text-muted-foreground">Title</Label><p className="font-medium">{viewItem.title || viewItem.file_name || '-'}</p></div>
-            <div><Label className="text-muted-foreground">Evidence ID</Label><p>{viewItem.evidence_id || '-'}</p></div>
-            <div><Label className="text-muted-foreground">Type</Label><p>{viewItem.evidence_type || '-'}</p></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Evidence ID</Label><p>{viewItem.evidence_id || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Type</Label><p>{viewItem.evidence_type || '-'}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Annual Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Department Audit</Label><p>{deptAudits.find((da: any) => da.id === viewItem.department_audit_id)?.department_name || '-'}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Activity</Label><p>{activities.find((a: any) => a.id === viewItem.activity_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Created By</Label><p>{viewItem.created_by || '-'}</p></div>
+            </div>
             <div><Label className="text-muted-foreground">Description</Label><p>{viewItem.description || '-'}</p></div>
             {viewItem.file_name && (
               <div><Label className="text-muted-foreground">File</Label>
