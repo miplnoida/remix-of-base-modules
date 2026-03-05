@@ -1465,9 +1465,8 @@ export const AppRoutes = () => {
       <Route path="/employer-registration/edit/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
       <Route path="/employer-registration/view/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
 
-      {/* Master Data Admin */}
-      <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/sep-contrib-rates" element={<ProtectedLayout><SepContribRateManagement /></ProtectedLayout>} />
+
+
 
       {/* Maintenance / Lockdown */}
       <Route path="/maintenance" element={<Maintenance />} />
