@@ -79,10 +79,13 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
-  const [weeklyWage, setWeeklyWage] = useState<number>(0); // wage_category from ip_self_category
-  const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // weeklyWage * 10% (from tb_self_emp_contrib_rate)
+  const [weeklyWage, setWeeklyWage] = useState<number>(0);
+  const [weeklyContribution, setWeeklyContribution] = useState<number>(0);
   const [wageCategory, setWageCategory] = useState<number | null>(null);
-  const [ssRate, setSsRate] = useState<number>(10); // Self-employed SS rate (typically 10%)
+  const [ssRate, setSsRate] = useState<number>(0);
+  const [penaltyRate, setPenaltyRate] = useState<number | null>(null);
+  const [configFound, setConfigFound] = useState<boolean>(true);
+  const [configWarning, setConfigWarning] = useState<string | null>(null);
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
