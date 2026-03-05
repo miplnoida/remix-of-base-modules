@@ -38,6 +38,7 @@ export default function OtherPaymentsSection({
 }: OtherPaymentsSectionProps) {
   const { data: incomeCodes, isLoading: isLoadingCodes } = useIncomeCodes(true);
   const { lookupPolicy } = useIncomeCodePolicyLookup(periodYear, periodMonth);
+  const { calculatePayment } = useOtherPaymentCalculation(periodYear, periodMonth);
 
   // Use a ref to always access the latest payments to avoid stale closures in async callbacks
   const paymentsRef = useRef(payments);
