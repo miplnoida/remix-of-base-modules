@@ -54,6 +54,12 @@ export default function CommunicationCenter() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />New Communication</Button>}
     >
+      <Card>
+        <CardContent className="pt-6">
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search templates or communications..." />
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="sent">
         <TabsList>
           <TabsTrigger value="templates"><FileText className="w-4 h-4 mr-2" />Templates</TabsTrigger>
@@ -61,17 +67,15 @@ export default function CommunicationCenter() {
         </TabsList>
         <TabsContent value="templates">
           <Card>
-            <CardHeader><CardTitle>Letter Templates</CardTitle></CardHeader>
-            <CardContent>
-              <DataTable columns={templateColumns} data={templates} emptyMessage="No templates found" />
+            <CardContent className="pt-6">
+              <DataTable columns={templateColumns} data={templates.filter((t: any) => (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()))} emptyMessage="No templates found" />
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="sent">
           <Card>
-            <CardHeader><CardTitle>Sent Communications</CardTitle></CardHeader>
-            <CardContent>
-              <DataTable columns={commColumns} data={communications} emptyMessage="No communications sent yet" />
+            <CardContent className="pt-6">
+              <DataTable columns={commColumns} data={communications.filter((c: any) => (c.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.recipient_email || '').toLowerCase().includes(searchTerm.toLowerCase()))} emptyMessage="No communications sent yet" />
             </CardContent>
           </Card>
         </TabsContent>

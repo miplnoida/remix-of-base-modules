@@ -96,23 +96,31 @@ export default function FunctionMaster() {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Low').length}</div></CardContent></Card>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3">
-        <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search functions..." />
-        <FilterBar
-          filters={[{ key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] }]}
-          values={filters}
-          onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-          onReset={() => setFilters({ department: 'all' })}
-        />
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search functions..." />
+            <FilterBar
+              filters={[{ key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] }]}
+              values={filters}
+              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+              onReset={() => setFilters({ department: 'all' })}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      <DataTable
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable
         columns={columns}
         data={filteredFunctions}
         onView={(row) => setViewFunc(row)}
         onEdit={(row) => openEdit(row)}
-        emptyMessage="No functions found."
-      />
+            emptyMessage="No functions found."
+          />
+        </CardContent>
+      </Card>
 
       {/* Risk Matrix */}
       <Card>

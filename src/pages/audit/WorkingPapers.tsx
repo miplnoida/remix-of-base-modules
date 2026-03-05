@@ -95,7 +95,7 @@ const WorkingPapers = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search working papers..." />
             <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
           </div>
@@ -103,8 +103,7 @@ const WorkingPapers = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Working Papers Repository ({filteredWPs.length})</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <DataTable columns={columns} data={filteredWPs} emptyMessage="No working papers found" onView={(wp) => setViewItem(wp)} onEdit={(wp) => setEditItem(wp)} />
         </CardContent>
       </Card>
