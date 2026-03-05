@@ -184,6 +184,37 @@ export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
   
   // Transform wages to employees format
   const employees = (record.wages || []).map(transformWageToEmployee);
+
+  // Attach persisted other payments to each employee by SSN
+  if (record.otherPayments && record.otherPayments.length > 0) {
+    const paymentsBySSN = new Map<string, any[]>();
+    for (const op of record.otherPayments) {
+      const ssn = op.ssn;
+      if (!paymentsBySSN.has(ssn)) paymentsBySSN.set(ssn, []);
+      paymentsBySSN.get(ssn)!.push({
+        id: op.id,
+        income_code_id: op.income_code_id,
+        income_code: op.tb_income_codes?.code || '',
+        income_description: op.tb_income_codes?.description || '',
+        amount: Number(op.amount) || 0,
+        employee_ss: Number(op.employee_ss) || 0,
+        employee_levy: Number(op.employee_levy) || 0,
+        employer_ss: Number(op.employer_ss) || 0,
+        employer_eib: Number(op.employer_eib) || 0,
+        employer_levy: Number(op.employer_levy) || 0,
+        employer_severance: Number(op.employer_severance) || 0,
+        policy_id: op.policy_id,
+        policy_type: op.policy_type,
+        date_entry_mode: op.date_entry_mode,
+      });
+    }
+    for (const emp of employees) {
+      const empPayments = paymentsBySSN.get(emp.ssn);
+      if (empPayments) {
+        emp.otherPayments = empPayments;
+      }
+    }
+  }
   
   return {
     ...baseRecord,
