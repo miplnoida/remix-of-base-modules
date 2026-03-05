@@ -356,7 +356,7 @@ export default function EmployeeModal({
           fullEmployeeData = [currentEmpData];
         }
 
-        const { data, error } = await supabase.rpc('calculate_c3_contributions', {
+        const { data, error } = await supabase.rpc('calculate_c3_contributions_with_other_payments', {
           p_period_year: periodYear,
           p_period_month: periodMonth,
           p_received_date: receivedDate,
