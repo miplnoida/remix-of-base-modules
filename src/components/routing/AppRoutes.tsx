@@ -584,6 +584,7 @@ const BemaAdminRules = lazy(() => import("@/pages/bema/AdminRules"));
 const BemaTemplateManagement = lazy(() => import("@/pages/bema/TemplateManagement"));
 const BemaRoleManagement = lazy(() => import("@/pages/bema/RoleManagement"));
 const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
+const IATemplatesManagement = lazy(() => import("@/pages/audit/TemplatesManagement"));
 
 // Authentication
 import DummyLoginPage from '@/pages/auth/DummyLoginPage';
@@ -1028,7 +1029,7 @@ export const AppRoutes = () => {
       <Route path="/benefits/templates" element={<ProtectedLayout><ModuleTemplates module="Benefits" /></ProtectedLayout>} />
       <Route path="/finance/templates" element={<ProtectedLayout><ModuleTemplates module="Finance" /></ProtectedLayout>} />
       <Route path="/legal/templates" element={<ProtectedLayout><ModuleTemplates module="Legal" /></ProtectedLayout>} />
-      <Route path="/audit/templates" element={<ProtectedLayout><ModuleTemplates module="InternalAudit" /></ProtectedLayout>} />
+      <Route path="/audit/templates" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense></ProtectedLayout>} />
       <Route path="/employers/templates" element={<ProtectedLayout><ModuleTemplates module="Employers" /></ProtectedLayout>} />
       <Route path="/insured-persons/templates" element={<ProtectedLayout><ModuleTemplates module="InsuredPersons" /></ProtectedLayout>} />
 
