@@ -407,7 +407,9 @@ export default function EmployeeModal({
       setWageInputValues(safeWages.map(w => w === 0 ? '' : String(w)));
       setLivePenalty(null);
       setServerEmployeeCalc(null);
-      autoFillAppliedRef.current = true; // Existing data = don't auto-fill
+      autoFillAppliedRef.current = true;
+      setOtherPayments(employee.otherPayments || []);
+      setOtherPaymentError('');
     } else {
       setLocalEmployee({
         ssn: '',
@@ -437,6 +439,8 @@ export default function EmployeeModal({
       setLivePenalty(null);
       setServerEmployeeCalc(null);
       autoFillAppliedRef.current = false;
+      setOtherPayments([]);
+      setOtherPaymentError('');
     }
     setHolidayDateError('');
     setBonusDateError('');
