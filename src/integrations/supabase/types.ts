@@ -12201,6 +12201,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_income_cat: {
+        Row: {
+          appeal: string | null
+          category_code: string
+          wage_upper: number | null
+        }
+        Insert: {
+          appeal?: string | null
+          category_code: string
+          wage_upper?: number | null
+        }
+        Update: {
+          appeal?: string | null
+          category_code?: string
+          wage_upper?: number | null
+        }
+        Relationships: []
+      }
       tb_indus: {
         Row: {
           code: string
