@@ -305,7 +305,14 @@ export default function EmployeeModal({
           dateOfBirth: localEmployee.dateOfBirth || null,
           holidayStartDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayStartDate || null),
           holidayEndDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayEndDate || null),
-          holidayNoDates: localEmployee.holidayNoDates ? 'true' : 'false'
+          holidayNoDates: localEmployee.holidayNoDates ? 'true' : 'false',
+          otherPayments: (otherPayments || [])
+            .filter(p => p.income_code_id)
+            .map(p => ({
+              income_code_id: p.income_code_id,
+              income_code: p.income_code || '',
+              amount: Number(p.amount) || 0,
+            })),
         };
 
         // Build full employee list: replace edited employee, keep others as-is
