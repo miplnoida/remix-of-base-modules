@@ -11,6 +11,7 @@ export interface SelfContributorPenaltyInputs {
   socialSecurityDue: number;                          // The contribution amount due for that month
   paymentDate: Date | null;                           // Actual payment date; if null, calculate "accrued to date"
   today: Date;                                        // System date, used if paymentDate is null
+  penaltyRatePercent?: number | null;                 // Dynamic penalty rate from tb_self_emp_contrib_rate (e.g. 5)
 }
 
 export interface SelfContributorPenaltyResult {
