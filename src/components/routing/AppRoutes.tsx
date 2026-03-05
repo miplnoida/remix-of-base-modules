@@ -169,6 +169,7 @@ import SSBLegalReports from '@/pages/legal/SSBLegalReports';
 import SSBLegalDashboard from '@/pages/legal/SSBLegalDashboard';
 
 // Audit Module
+import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlans from '@/pages/audit/AuditPlans';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 import PlanApproval from '@/pages/audit/PlanApproval';
@@ -804,6 +805,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
 
       {/* Audit Module Routes — wrapped with AuditFeatureGate for rollback safety */}
+      <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
       <Route path="/audit/auditors" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_AUDITOR_PROFILES"><AuditorProfiles /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/workload" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_WORKLOAD_CAPACITY"><WorkloadCapacity /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><LeaveAndVacationManagement /></AuditFeatureGate></ProtectedLayout>} />

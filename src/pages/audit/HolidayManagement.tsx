@@ -1,30 +1,35 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, CalendarDays, Building2 } from 'lucide-react';
 import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageShell, SearchBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
+import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
   const { data: holidays = [], isLoading, isError } = useIAHolidays();
   const { create, update, remove } = useIAHolidayMutations();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ type: 'all' });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editHoliday, setEditHoliday] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
 
   const resetForm = () => setForm({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
-  
+
   const filteredHolidays = [...holidays]
-    .filter(h => (h.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (h.country || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(h => {
+      const matchesSearch = (h.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (h.country || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filters.type === 'all' || (filters.type === 'ssb' ? h.is_ssb_specific : !h.is_ssb_specific);
+      return matchesSearch && matchesType;
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const handleAdd = () => {
@@ -41,6 +46,17 @@ export default function HolidayManagement() {
     setForm({ name: h.name, date: h.date, country: h.country || 'St. Kitts & Nevis', is_ssb_specific: h.is_ssb_specific || false });
     setEditHoliday(h);
   };
+
+  const filterFields: FilterField[] = [
+    { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'public', label: 'Public Holidays' }, { value: 'ssb', label: 'SSB-Specific' }] },
+  ];
+
+  const statCards = [
+    { label: 'Public Holidays', value: holidays.filter(h => !h.is_ssb_specific).length, icon: CalendarDays, color: 'text-muted-foreground' },
+    { label: 'SSB Holidays', value: holidays.filter(h => h.is_ssb_specific).length, icon: Building2, color: 'text-primary' },
+    { label: 'Total', value: holidays.length, icon: Calendar, color: 'text-muted-foreground' },
+    { label: 'Upcoming', value: holidays.filter(h => new Date(h.date) >= new Date()).length, icon: Calendar, color: 'text-green-600' },
+  ];
 
   const columns: DataTableColumn<any>[] = [
     { key: 'date', header: 'Date', render: (row) => <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" />{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div> },
@@ -70,15 +86,28 @@ export default function HolidayManagement() {
       error={isError ? 'Failed to load holidays' : null}
       actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Holiday</Button>}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Public Holidays</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{holidays.filter(h => !h.is_ssb_specific).length}</div></CardContent></Card>
-        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">SSB Holidays</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{holidays.filter(h => h.is_ssb_specific).length}</div></CardContent></Card>
-        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{holidays.length}</div></CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {statCards.map((card) => (
+          <Card key={card.label}>
+            <CardContent className="pt-6">
+              <div className="flex items-center">
+                <card.icon className={`h-5 w-5 ${card.color}`} />
+                <div className="ml-3">
+                  <p className="text-sm text-muted-foreground">{card.label}</p>
+                  <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by holiday name or country..." />
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by holiday name or country..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ type: 'all' })} />
+          </div>
         </CardContent>
       </Card>
 

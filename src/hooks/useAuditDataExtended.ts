@@ -97,7 +97,12 @@ export function useIAEvidenceMutations() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
-  return { create, update };
+  const remove = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from('ia_evidence').delete().eq('id', id); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Deleted' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update, remove };
 }
 
 // ============= WORKING PAPERS =============
@@ -126,5 +131,10 @@ export function useIAWorkingPaperMutations() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
-  return { create, update };
+  const remove = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from('ia_working_papers').delete().eq('id', id); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Deleted' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update, remove };
 }
