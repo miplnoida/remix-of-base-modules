@@ -138,14 +138,15 @@ export const transformWageToEmployee = (wage: WageRecord): any => {
   ];
 
   // Build days (checkboxes) from paid_code1..7: '1' = checked, '0' = unchecked
+  // Use String() to handle both numeric (1) and string ('1') values from database
   const days = [
-    wage.paid_code1 === '1',
-    wage.paid_code2 === '1',
-    wage.paid_code3 === '1',
-    wage.paid_code4 === '1',
-    wage.paid_code5 === '1',
-    wage.paid_code7 === '1', // Bonus (paid_code7 = Bonus)
-    wage.paid_code6 === '1', // Holiday (paid_code6 = Holiday)
+    String(wage.paid_code1) === '1',
+    String(wage.paid_code2) === '1',
+    String(wage.paid_code3) === '1',
+    String(wage.paid_code4) === '1',
+    String(wage.paid_code5) === '1',
+    String(wage.paid_code7) === '1', // Bonus (paid_code7 = Bonus)
+    String(wage.paid_code6) === '1', // Holiday (paid_code6 = Holiday)
   ];
 
   return {
