@@ -76,7 +76,7 @@ export default function ActionTracking() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search actions..." />
             <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
           </div>
@@ -84,8 +84,7 @@ export default function ActionTracking() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Corrective Actions ({filteredActions.length})</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <DataTable
             columns={columns}
             data={filteredActions}

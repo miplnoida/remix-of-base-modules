@@ -92,7 +92,7 @@ const FindingsManagement = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search findings..." />
             <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', risk: 'all' })} />
           </div>
@@ -100,8 +100,7 @@ const FindingsManagement = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Findings ({filteredFindings.length})</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <DataTable columns={columns} data={filteredFindings} emptyMessage="No findings found" onView={(f) => setViewItem(f)} />
         </CardContent>
       </Card>
