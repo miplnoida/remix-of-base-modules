@@ -127,7 +127,7 @@ export function BonusPolicyDefaultTab() {
     }
   };
 
-  const formInvalid = !form.include_in_levy;
+  const formInvalid = false;
 
   return (
     <div className="space-y-6">

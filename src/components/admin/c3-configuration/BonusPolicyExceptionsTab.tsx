@@ -304,7 +304,7 @@ export function BonusPolicyExceptionsTab() {
             {/* Applicability toggles — Levy only */}
             <SectionLabel>Applicability</SectionLabel>
             <div className="space-y-3">
-              <ToggleRow label="Include Bonus in Levy" hint="Bonus amount is always included in levy base calculation" checked={true} onChange={() => {}} disabled />
+              <ToggleRow label="Include Bonus in Levy" hint="When OFF, bonus amount will be excluded from employee and employer levy calculations for this exception" checked={form.include_in_levy !== false} onCha nge={(v) => setField('include_in_levy', v)} />
             </div>
 
             {/* Override toggle */}
