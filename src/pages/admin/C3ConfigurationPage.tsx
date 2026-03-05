@@ -34,7 +34,7 @@ const C3ConfigurationPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 lg:w-auto lg:inline-flex">
           <TabsTrigger value="period-config" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Period Configuration</span>
@@ -64,6 +64,16 @@ const C3ConfigurationPage: React.FC = () => {
             <TreePalm className="h-4 w-4" />
             <span className="hidden sm:inline">Holiday Pay Exceptions</span>
             <span className="sm:hidden">H. Exc</span>
+          </TabsTrigger>
+          <TabsTrigger value="income-code-policy" className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            <span className="hidden sm:inline">Income Code Policy</span>
+            <span className="sm:hidden">IC Policy</span>
+          </TabsTrigger>
+          <TabsTrigger value="income-code-exceptions" className="flex items-center gap-2">
+            <TagsIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">IC Exceptions</span>
+            <span className="sm:hidden">IC Exc</span>
           </TabsTrigger>
           <TabsTrigger value="audit-logs" className="flex items-center gap-2">
             <History className="h-4 w-4" />
