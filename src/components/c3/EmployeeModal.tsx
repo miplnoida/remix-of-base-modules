@@ -699,25 +699,38 @@ export default function EmployeeModal({
         return;
       }
     }
+
+    // Other Payments policy validation: block save if any income code lacks a policy
+    const validOtherPayments = otherPayments.filter(p => p.income_code_id && p.amount > 0);
+    const hasOtherPaymentPolicyError = validOtherPayments.some(p => p.policy_error);
+    if (hasOtherPaymentPolicyError) {
+      setOtherPaymentError('One or more Other Payments income codes do not have an active policy for the selected period.');
+      return;
+    }
+    setOtherPaymentError('');
+
+    // Calculate other payment contribution totals
+    const opTotals = calculateOtherPaymentTotals(validOtherPayments);
     
     const savedEmployee: EmployeeData = {
       ...localEmployee,
       weeklyWages: effectiveWages,
-      totalWages: payrollCalc.totalWages,
-      hssdLevy: payrollCalc.employeeLevy, 
-      socialSecurity: payrollCalc.employeeSS,
-      employeeSS: payrollCalc.employeeSS,
-      employeeLevy: payrollCalc.employeeLevy,
-      employerSS: payrollCalc.employerSSTotal,
-      employerLevy: payrollCalc.employerLevy,
-      employerSeverance: payrollCalc.employerSeverance,
-      periodGross: payrollCalc.totalWages,
+      totalWages: payrollCalc.totalWages + opTotals.totalAmount,
+      hssdLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy, 
+      socialSecurity: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
+      employeeSS: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
+      employeeLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy,
+      employerSS: payrollCalc.employerSSTotal + opTotals.totalEmployerSS + opTotals.totalEmployerEIB,
+      employerLevy: payrollCalc.employerLevy + opTotals.totalEmployerLevy,
+      employerSeverance: payrollCalc.employerSeverance + opTotals.totalEmployerSeverance,
+      periodGross: payrollCalc.totalWages + opTotals.totalAmount,
       // Clear bonus/holiday metadata if their checkboxes are unchecked
       bonusDate: localEmployee.days?.[5] ? localEmployee.bonusDate : '',
       bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,
       holidayStartDate: localEmployee.days?.[6] ? localEmployee.holidayStartDate : '',
       holidayEndDate: localEmployee.days?.[6] ? localEmployee.holidayEndDate : '',
       holidayNoDates: localEmployee.days?.[6] ? localEmployee.holidayNoDates : false,
+      otherPayments: validOtherPayments,
     };
     
     onSave(savedEmployee);
