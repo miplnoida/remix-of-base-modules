@@ -588,6 +588,14 @@ export async function saveC3Draft(
         
         const validPayments = otherPayments.filter((p: any) => p.income_code_id && p.amount > 0);
         if (validPayments.length > 0) {
+          const seenCodes = new Set<string>();
+          for (const payment of validPayments) {
+            if (seenCodes.has(payment.income_code_id)) {
+              throw new Error(`Duplicate income code is not allowed in Other Payments for employee ${empSsn}.`);
+            }
+            seenCodes.add(payment.income_code_id);
+          }
+
           const opRecords = validPayments.map((p: any) => ({
             c3_id: c3Record.id,
             ssn: empSsn,
@@ -606,7 +614,7 @@ export async function saveC3Draft(
             updated_by: effectiveUserCode,
           }));
           const { error: opError } = await (supabase as any).from('ip_other_payments').insert(opRecords);
-          if (opError) console.error('Error saving other payments:', opError);
+          if (opError) throw opError;
         }
       }
     }

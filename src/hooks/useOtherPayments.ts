@@ -21,6 +21,8 @@ export interface PolicyLookupResult {
   ssc_contrib_employer?: boolean;
   contrib_eib?: boolean;
   include_in_severance?: boolean;
+  calculation_method?: string;
+  affects_last_week_payment?: boolean;
 }
 
 export interface C3ConfigRates {
@@ -264,37 +266,47 @@ export function useOtherPaymentsCRUD() {
     if (!c3Id || !ssn) return { success: false, error: 'Missing c3_id or ssn' };
 
     try {
+      const validPayments = payments.filter(p => p.income_code_id && p.amount > 0);
+
+      // Enforce unique income code per employee payroll record
+      const seen = new Set<string>();
+      for (const p of validPayments) {
+        if (seen.has(p.income_code_id)) {
+          return {
+            success: false,
+            error: `Duplicate income code "${p.income_code || p.income_code_id}" is not allowed in Other Payments.`
+          };
+        }
+        seen.add(p.income_code_id);
+      }
+
       // Delete existing
       await (supabase as any).from('ip_other_payments').delete()
         .eq('c3_id', c3Id)
         .eq('ssn', ssn);
 
       // Insert new
-      if (payments.length > 0) {
-        const records = payments
-          .filter(p => p.income_code_id && p.amount > 0)
-          .map(p => ({
-            c3_id: c3Id,
-            ssn,
-            income_code_id: p.income_code_id,
-            amount: p.amount,
-            employee_ss: p.employee_ss || 0,
-            employee_levy: p.employee_levy || 0,
-            employer_ss: p.employer_ss || 0,
-            employer_eib: p.employer_eib || 0,
-            employer_levy: p.employer_levy || 0,
-            employer_severance: p.employer_severance || 0,
-            policy_id: p.policy_id || null,
-            policy_type: p.policy_type || null,
-            date_entry_mode: p.date_entry_mode || null,
-            created_by: userCode || null,
-            updated_by: userCode || null,
-          }));
+      if (validPayments.length > 0) {
+        const records = validPayments.map(p => ({
+          c3_id: c3Id,
+          ssn,
+          income_code_id: p.income_code_id,
+          amount: p.amount,
+          employee_ss: p.employee_ss || 0,
+          employee_levy: p.employee_levy || 0,
+          employer_ss: p.employer_ss || 0,
+          employer_eib: p.employer_eib || 0,
+          employer_levy: p.employer_levy || 0,
+          employer_severance: p.employer_severance || 0,
+          policy_id: p.policy_id || null,
+          policy_type: p.policy_type || null,
+          date_entry_mode: p.date_entry_mode || null,
+          created_by: userCode || null,
+          updated_by: userCode || null,
+        }));
 
-        if (records.length > 0) {
-          const { error } = await (supabase as any).from('ip_other_payments').insert(records);
-          if (error) throw error;
-        }
+        const { error } = await (supabase as any).from('ip_other_payments').insert(records);
+        if (error) throw error;
       }
 
       return { success: true };

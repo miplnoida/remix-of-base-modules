@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import OtherPaymentsSection from '@/components/c3/OtherPaymentsSection';
 import type { OtherPaymentRow } from '@/types/otherPayments';
-import { calculateOtherPaymentTotals } from '@/types/otherPayments';
+
 import { useOtherPaymentsCRUD, validateOtherPaymentPolicies } from '@/hooks/useOtherPayments';
 
 export interface EmployeeData {
@@ -277,7 +277,8 @@ export default function EmployeeModal({
   useEffect(() => {
     if (isViewMode || !isOpen) return;
     const hasWages = effectiveWages.some(w => w > 0);
-    if (!hasWages || !receivedDate) {
+    const hasOtherPayments = otherPayments.some(p => p.income_code_id && Number(p.amount) > 0);
+    if ((!hasWages && !hasOtherPayments) || !receivedDate) {
       setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, monthsLate: 0, totalLateCharges: 0 });
       return;
     }
@@ -304,7 +305,14 @@ export default function EmployeeModal({
           dateOfBirth: localEmployee.dateOfBirth || null,
           holidayStartDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayStartDate || null),
           holidayEndDate: localEmployee.holidayNoDates ? null : (localEmployee.holidayEndDate || null),
-          holidayNoDates: localEmployee.holidayNoDates ? 'true' : 'false'
+          holidayNoDates: localEmployee.holidayNoDates ? 'true' : 'false',
+          otherPayments: (otherPayments || [])
+            .filter(p => p.income_code_id)
+            .map(p => ({
+              income_code_id: p.income_code_id,
+              income_code: p.income_code || '',
+              amount: Number(p.amount) || 0,
+            })),
         };
 
         // Build full employee list: replace edited employee, keep others as-is
@@ -330,7 +338,14 @@ export default function EmployeeModal({
               dateOfBirth: emp.dateOfBirth || null,
               holidayStartDate: emp.holidayNoDates ? null : (emp.holidayStartDate || null),
               holidayEndDate: emp.holidayNoDates ? null : (emp.holidayEndDate || null),
-              holidayNoDates: emp.holidayNoDates ? 'true' : 'false'
+              holidayNoDates: emp.holidayNoDates ? 'true' : 'false',
+              otherPayments: (emp.otherPayments || [])
+                .filter(p => p.income_code_id)
+                .map(p => ({
+                  income_code_id: p.income_code_id,
+                  income_code: p.income_code || '',
+                  amount: Number(p.amount) || 0,
+                })),
             };
           });
           // If this is a new employee (not found by SSN), add them
@@ -341,7 +356,7 @@ export default function EmployeeModal({
           fullEmployeeData = [currentEmpData];
         }
 
-        const { data, error } = await supabase.rpc('calculate_c3_contributions', {
+        const { data, error } = await supabase.rpc('calculate_c3_contributions_with_other_payments', {
           p_period_year: periodYear,
           p_period_month: periodMonth,
           p_received_date: receivedDate,
@@ -380,7 +395,7 @@ export default function EmployeeModal({
       if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isViewMode, isOpen, effectiveWagesKey, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate, allEmployees]);
+  }, [isViewMode, isOpen, effectiveWagesKey, otherPayments, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate, allEmployees]);
 
   // Reset form when employee changes
   useEffect(() => {
@@ -700,30 +715,40 @@ export default function EmployeeModal({
       }
     }
 
-    // Other Payments policy validation: block save if any income code lacks a policy
+    // Other Payments validations: policy + uniqueness + amount integrity
     const validOtherPayments = otherPayments.filter(p => p.income_code_id && p.amount > 0);
     const hasOtherPaymentPolicyError = validOtherPayments.some(p => p.policy_error);
     if (hasOtherPaymentPolicyError) {
       setOtherPaymentError('One or more Other Payments income codes do not have an active policy for the selected period.');
       return;
     }
+
+    const codeSet = new Set<string>();
+    for (const payment of validOtherPayments) {
+      if (!Number.isFinite(Number(payment.amount)) || Number(payment.amount) <= 0) {
+        setOtherPaymentError(`Invalid amount for income code "${payment.income_code || payment.income_code_id}".`);
+        return;
+      }
+      if (codeSet.has(payment.income_code_id)) {
+        setOtherPaymentError(`Duplicate income code "${payment.income_code || payment.income_code_id}" is not allowed.`);
+        return;
+      }
+      codeSet.add(payment.income_code_id);
+    }
     setOtherPaymentError('');
 
-    // Calculate other payment contribution totals
-    const opTotals = calculateOtherPaymentTotals(validOtherPayments);
-    
     const savedEmployee: EmployeeData = {
       ...localEmployee,
       weeklyWages: effectiveWages,
-      totalWages: payrollCalc.totalWages + opTotals.totalAmount,
-      hssdLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy, 
-      socialSecurity: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
-      employeeSS: payrollCalc.employeeSS + opTotals.totalEmployeeSS,
-      employeeLevy: payrollCalc.employeeLevy + opTotals.totalEmployeeLevy,
-      employerSS: payrollCalc.employerSSTotal + opTotals.totalEmployerSS + opTotals.totalEmployerEIB,
-      employerLevy: payrollCalc.employerLevy + opTotals.totalEmployerLevy,
-      employerSeverance: payrollCalc.employerSeverance + opTotals.totalEmployerSeverance,
-      periodGross: payrollCalc.totalWages + opTotals.totalAmount,
+      totalWages: payrollCalc.totalWages,
+      hssdLevy: payrollCalc.employeeLevy,
+      socialSecurity: payrollCalc.employeeSS,
+      employeeSS: payrollCalc.employeeSS,
+      employeeLevy: payrollCalc.employeeLevy,
+      employerSS: payrollCalc.employerSSTotal,
+      employerLevy: payrollCalc.employerLevy,
+      employerSeverance: payrollCalc.employerSeverance,
+      periodGross: payrollCalc.totalWages,
       // Clear bonus/holiday metadata if their checkboxes are unchecked
       bonusDate: localEmployee.days?.[5] ? localEmployee.bonusDate : '',
       bonusExemptLevy: localEmployee.days?.[5] ? localEmployee.bonusExemptLevy : false,

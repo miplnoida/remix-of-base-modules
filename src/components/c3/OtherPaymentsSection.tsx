@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Trash2, AlertCircle, Check, FileText } from 'lucide-react';
 import { useIncomeCodes } from '@/hooks/useIncomeCodePolicy';
-import { useIncomeCodePolicyLookup, calculateOtherPaymentContributions, type C3ConfigRates, type PolicyLookupResult } from '@/hooks/useOtherPayments';
+import { useIncomeCodePolicyLookup, useOtherPaymentCalculation, type C3ConfigRates, type PolicyLookupResult } from '@/hooks/useOtherPayments';
 import type { OtherPaymentRow } from '@/types/otherPayments';
 import { EMPTY_OTHER_PAYMENT, calculateOtherPaymentTotals } from '@/types/otherPayments';
 
@@ -20,7 +20,7 @@ interface OtherPaymentsSectionProps {
   onChange: (payments: OtherPaymentRow[]) => void;
   periodYear: number;
   periodMonth: number;
-  configRates?: C3ConfigRates;
+  configRates?: C3ConfigRates; // retained for API compatibility
   isReadOnly?: boolean;
   compact?: boolean;
 }
@@ -38,6 +38,7 @@ export default function OtherPaymentsSection({
 }: OtherPaymentsSectionProps) {
   const { data: incomeCodes, isLoading: isLoadingCodes } = useIncomeCodes(true);
   const { lookupPolicy } = useIncomeCodePolicyLookup(periodYear, periodMonth);
+  const { calculatePayment } = useOtherPaymentCalculation(periodYear, periodMonth);
 
   // Use a ref to always access the latest payments to avoid stale closures in async callbacks
   const paymentsRef = useRef(payments);
@@ -49,16 +50,6 @@ export default function OtherPaymentsSection({
   const incomeCodesRef = useRef(incomeCodes);
   incomeCodesRef.current = incomeCodes;
 
-  // Default rates if config not provided
-  const rates: C3ConfigRates = configRates || {
-    employeeSSRate: 0.05,
-    employerSSRate: 0.05,
-    employerEIBRate: 0.01,
-    employerLevyRate: 0.03,
-    employerSeveranceRate: 0.01,
-  };
-  const ratesRef = useRef(rates);
-  ratesRef.current = rates;
 
   // Store policy results for recalculation
   const policyCacheRef = useRef<Record<string, PolicyLookupResult>>({});
@@ -70,42 +61,36 @@ export default function OtherPaymentsSection({
     const result = await lookupPolicy(incomeCodeId);
     policyCacheRef.current[incomeCodeId] = result;
 
-    // Read LATEST state from refs
     const currentPayments = paymentsRef.current;
     const currentRow = currentPayments[rowIndex];
     if (!currentRow) return;
 
-    const contribs = calculateOtherPaymentContributions(currentRow.amount, result, ratesRef.current);
     const codeInfo = incomeCodesRef.current?.find(c => c.id === incomeCodeId);
+
+    let backendCalc: any = null;
+    if (result.found && currentRow.amount > 0) {
+      backendCalc = await calculatePayment(incomeCodeId, currentRow.amount);
+    }
 
     const updated = [...currentPayments];
     updated[rowIndex] = {
       ...currentRow,
-      ...contribs,
       income_code: codeInfo?.code || currentRow.income_code || '',
       income_description: codeInfo?.description || currentRow.income_description || '',
+      policy_id: backendCalc?.policy_id || result.policy_id,
+      policy_type: backendCalc?.policy_type || result.policy_type,
+      date_entry_mode: backendCalc?.date_entry_mode || result.date_entry_mode,
+      employee_ss: backendCalc?.employee_ss || 0,
+      employee_levy: backendCalc?.employee_levy || 0,
+      employer_ss: backendCalc?.employer_ss || 0,
+      employer_eib: backendCalc?.employer_eib || 0,
+      employer_levy: backendCalc?.employer_levy || 0,
+      employer_severance: backendCalc?.employer_severance || 0,
       policy_error: result.found ? undefined : (result.error || 'No active policy for this period'),
     };
     onChangeRef.current(updated);
-  }, [lookupPolicy]);
+  }, [lookupPolicy, calculatePayment]);
 
-  // Recalculate contributions for a row using cached policy and current rates
-  const recalculateRow = useCallback((rowIndex: number, amount: number, extraFields?: Partial<OtherPaymentRow>) => {
-    const currentPayments = paymentsRef.current;
-    const row = currentPayments[rowIndex];
-    if (!row) return;
-
-    const codeId = extraFields?.income_code_id || row.income_code_id;
-    if (!codeId) return;
-
-    const policy = policyCacheRef.current[codeId];
-    if (!policy?.found) return;
-
-    const contribs = calculateOtherPaymentContributions(amount, policy, ratesRef.current);
-    const updated = [...currentPayments];
-    updated[rowIndex] = { ...row, ...extraFields, amount, ...contribs };
-    onChangeRef.current(updated);
-  }, []);
 
   const handleAddRow = () => {
     onChange([...payments, { ...EMPTY_OTHER_PAYMENT }]);
@@ -116,6 +101,17 @@ export default function OtherPaymentsSection({
   };
 
   const handleCodeChange = (index: number, incomeCodeId: string) => {
+    const isDuplicate = payments.some((p, i) => i !== index && p.income_code_id === incomeCodeId);
+    if (isDuplicate) {
+      const updated = [...payments];
+      updated[index] = {
+        ...updated[index],
+        policy_error: 'This income code is already selected in another row.',
+      };
+      onChange(updated);
+      return;
+    }
+
     const codeInfo = incomeCodes?.find(c => c.id === incomeCodeId);
     const updated = [...payments];
     updated[index] = {
@@ -130,14 +126,12 @@ export default function OtherPaymentsSection({
   };
 
   const handleAmountChange = (index: number, value: string) => {
-    // Allow empty, digits, and a single decimal point for natural typing
     const clean = value.replace(/[^0-9.]/g, '');
     const parts = clean.split('.');
-    if (parts.length > 2) return; // disallow multiple dots
-    if ((parts[0] || '').length > 8) return; // max 8 integer digits
-    if (parts[1] !== undefined && parts[1].length > 2) return; // max 2 decimal places
+    if (parts.length > 2) return;
+    if ((parts[0] || '').length > 8) return;
+    if (parts[1] !== undefined && parts[1].length > 2) return;
 
-    // Disallow negative values
     const numValue = parseFloat(clean) || 0;
     if (numValue < 0) return;
 
@@ -145,26 +139,53 @@ export default function OtherPaymentsSection({
     const row = currentPayments[index];
     if (!row) return;
 
-    // If we have a cached policy, recalculate contributions immediately
-    const codeId = row.income_code_id;
-    const policy = codeId ? policyCacheRef.current[codeId] : undefined;
+    const updated = [...currentPayments];
+    updated[index] = {
+      ...row,
+      amount: numValue,
+      _rawAmount: clean,
+      policy_error: clean && numValue <= 0 ? 'Amount must be greater than zero.' : row.policy_error,
+    } as any;
+    onChangeRef.current(updated);
 
-    if (policy?.found && numValue > 0) {
-      const contribs = calculateOtherPaymentContributions(numValue, policy, ratesRef.current);
-      const updated = [...currentPayments];
-      updated[index] = { ...row, amount: numValue, _rawAmount: clean, ...contribs } as any;
-      onChangeRef.current(updated);
-    } else {
-      const updated = [...currentPayments];
-      updated[index] = {
-        ...row,
-        amount: numValue,
-        _rawAmount: clean,
-        employee_ss: 0, employee_levy: 0, employer_ss: 0,
-        employer_eib: 0, employer_levy: 0, employer_severance: 0,
-      } as any;
-      onChangeRef.current(updated);
+    const codeId = row.income_code_id;
+    if (!codeId || numValue <= 0) {
+      const resetRows = [...paymentsRef.current];
+      if (!resetRows[index]) return;
+      resetRows[index] = {
+        ...resetRows[index],
+        employee_ss: 0,
+        employee_levy: 0,
+        employer_ss: 0,
+        employer_eib: 0,
+        employer_levy: 0,
+        employer_severance: 0,
+      };
+      onChangeRef.current(resetRows);
+      return;
     }
+
+    calculatePayment(codeId, numValue).then((calc) => {
+      const latestRows = paymentsRef.current;
+      const latestRow = latestRows[index];
+      if (!latestRow || latestRow.income_code_id !== codeId) return;
+
+      const nextRows = [...latestRows];
+      nextRows[index] = {
+        ...latestRow,
+        policy_id: calc.policy_id || latestRow.policy_id,
+        policy_type: calc.policy_type || latestRow.policy_type,
+        date_entry_mode: calc.date_entry_mode || latestRow.date_entry_mode,
+        employee_ss: calc.employee_ss || 0,
+        employee_levy: calc.employee_levy || 0,
+        employer_ss: calc.employer_ss || 0,
+        employer_eib: calc.employer_eib || 0,
+        employer_levy: calc.employer_levy || 0,
+        employer_severance: calc.employer_severance || 0,
+        policy_error: calc.success && calc.found ? undefined : (calc.error || 'Policy calculation failed'),
+      };
+      onChangeRef.current(nextRows);
+    });
   };
 
   const handleAmountBlur = (index: number) => {
