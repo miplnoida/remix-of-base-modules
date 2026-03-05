@@ -175,6 +175,7 @@ export function useOtherPaymentCalculation(periodYear: number, periodMonth: numb
  * Hook for looking up income code policies for a given period.
  * Caches results per income_code_id to avoid redundant queries.
  */
+export function useIncomeCodePolicyLookup(periodYear: number, periodMonth: number) {
   const cache = useRef<Map<string, PolicyLookupResult>>(new Map());
 
   const lookupPolicy = useCallback(async (incomeCodeId: string): Promise<PolicyLookupResult> => {
