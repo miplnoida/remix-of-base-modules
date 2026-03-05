@@ -20,6 +20,7 @@ import { formatPeriodForStorage, formatPeriodDisplay } from "@/utils/weekCalcula
 import { formatCurrency, calculateAge } from "@/utils/sknPayrollCalculations";
 import { useC3ServerCalculations, C3CalculationTotals, C3CalculationConfig } from "@/hooks/useC3ServerCalculations";
 import { useC3Payments, calculateC3Balance } from "@/hooks/useC3Payments";
+import { validateOtherPaymentPolicies } from "@/hooks/useOtherPayments";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
