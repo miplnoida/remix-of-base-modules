@@ -364,12 +364,32 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
 
   const formatMoney = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isReadOnly) return;
     
     if (!employerValidated && !formData.nilReturn) {
       setEmployerError('Please enter a valid employer registration number');
       return;
+    }
+
+    // Validate Other Payments policy coverage before save
+    if (!formData.nilReturn && formData.period && employees.length > 0) {
+      const allOtherPayments = employees.flatMap(emp => emp.otherPayments || []);
+      if (allOtherPayments.length > 0) {
+        const policyValidation = await validateOtherPaymentPolicies(
+          allOtherPayments,
+          formData.period.year,
+          formData.period.month
+        );
+        if (!policyValidation.valid) {
+          toast({
+            title: "Policy Validation Failed",
+            description: policyValidation.errors[0] || "One or more income codes do not have an active policy for the selected period.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
     }
 
     const periodStr = formData.period 
