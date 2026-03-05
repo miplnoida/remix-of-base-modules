@@ -135,12 +135,11 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     return calculateTotalWagesFromWeeks(weeklyWage, selectedWeeks);
   }, [weeklyWage, selectedWeeks, nilReturn]);
 
-  // Calculate SS contribution using the rate from tb_self_emp_contrib_rate (typically 10%)
+  // Calculate SS contribution using the rate from tb_self_emp_contrib_rate
   const ssContribution = useMemo(() => {
-    if (nilReturn) return 0;
-    // Total wages * SS rate (e.g., 10%)
+    if (nilReturn || !configFound || ssRate <= 0) return 0;
     return Math.round(totalWages * (ssRate / 100) * 100) / 100;
-  }, [totalWages, ssRate, nilReturn]);
+  }, [totalWages, ssRate, nilReturn, configFound]);
 
   // Calculate penalty
   const penaltyResult = useMemo(() => {
