@@ -78,10 +78,103 @@ export function calculateOtherPaymentContributions(
 }
 
 /**
+ * Backend-driven calculation for one Other Payment row.
+ * Uses policy + C3 period config from RPC (authoritative source).
+ */
+export function useOtherPaymentCalculation(periodYear: number, periodMonth: number) {
+  const calculatePayment = useCallback(async (
+    incomeCodeId: string,
+    amount: number
+  ): Promise<OtherPaymentCalculationResult> => {
+    if (!incomeCodeId) {
+      return {
+        success: false,
+        found: false,
+        error: 'No income code selected',
+        amount: 0,
+        employee_ss: 0,
+        employee_levy: 0,
+        employer_ss: 0,
+        employer_eib: 0,
+        employer_levy: 0,
+        employer_severance: 0,
+      };
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        success: false,
+        found: false,
+        error: 'Amount must be greater than zero',
+        amount: 0,
+        employee_ss: 0,
+        employee_levy: 0,
+        employer_ss: 0,
+        employer_eib: 0,
+        employer_levy: 0,
+        employer_severance: 0,
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('calculate_other_payment_components', {
+        p_income_code_id: incomeCodeId,
+        p_period_year: periodYear,
+        p_period_month: periodMonth,
+        p_amount: amount,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          found: false,
+          error: error.message,
+          amount: 0,
+          employee_ss: 0,
+          employee_levy: 0,
+          employer_ss: 0,
+          employer_eib: 0,
+          employer_levy: 0,
+          employer_severance: 0,
+        };
+      }
+
+      const result = (typeof data === 'string' ? JSON.parse(data) : data) as OtherPaymentCalculationResult;
+      return {
+        ...result,
+        success: !!result.success,
+        found: !!result.found,
+        amount: Number(result.amount) || 0,
+        employee_ss: Number(result.employee_ss) || 0,
+        employee_levy: Number(result.employee_levy) || 0,
+        employer_ss: Number(result.employer_ss) || 0,
+        employer_eib: Number(result.employer_eib) || 0,
+        employer_levy: Number(result.employer_levy) || 0,
+        employer_severance: Number(result.employer_severance) || 0,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        found: false,
+        error: err instanceof Error ? err.message : 'Other payment calculation failed',
+        amount: 0,
+        employee_ss: 0,
+        employee_levy: 0,
+        employer_ss: 0,
+        employer_eib: 0,
+        employer_levy: 0,
+        employer_severance: 0,
+      };
+    }
+  }, [periodYear, periodMonth]);
+
+  return { calculatePayment };
+}
+
+/**
  * Hook for looking up income code policies for a given period.
  * Caches results per income_code_id to avoid redundant queries.
  */
-export function useIncomeCodePolicyLookup(periodYear: number, periodMonth: number) {
   const cache = useRef<Map<string, PolicyLookupResult>>(new Map());
 
   const lookupPolicy = useCallback(async (incomeCodeId: string): Promise<PolicyLookupResult> => {
