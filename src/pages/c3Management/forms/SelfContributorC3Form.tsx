@@ -687,26 +687,30 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
               <Label className="text-sm font-medium">Select Weeks ({mondaysInMonth} Mondays in period)</Label>
               <div className="flex gap-6">
                 {[1, 2, 3, 4, 5].map((week, index) => {
-                  const isDisabled = isReadOnly || nilReturn || index >= mondaysInMonth;
+                  const isUnavailable = nilReturn || index >= mondaysInMonth;
+                  const isDisabled = isReadOnly || isUnavailable;
+                  const isSelected = !!selectedWeeks[index];
+                  const buttonClass = isUnavailable
+                    ? 'bg-muted border-muted-foreground/20 cursor-not-allowed opacity-50'
+                    : isSelected
+                      ? 'bg-primary border-primary'
+                      : isReadOnly
+                        ? 'bg-background border-border cursor-default'
+                        : 'bg-background border-border hover:border-primary';
+
                   return (
                     <div key={index} className="flex flex-col items-center space-y-2">
-                      <span className={`text-sm ${isDisabled && index < 5 && index >= mondaysInMonth ? 'text-muted-foreground' : ''}`}>
+                      <span className={`text-sm ${index >= mondaysInMonth ? 'text-muted-foreground' : ''}`}>
                         Week {week}
                       </span>
                       <button
                         type="button"
                         onClick={() => !isDisabled && handleWeekChange(index, !selectedWeeks[index])}
-                        className={`h-10 w-10 rounded-md border flex items-center justify-center transition-colors ${
-                          isDisabled 
-                            ? 'bg-muted border-muted-foreground/20 cursor-not-allowed opacity-50' 
-                            : selectedWeeks[index] 
-                              ? 'bg-primary border-primary' 
-                              : 'bg-background border-border hover:border-primary'
-                        }`}
+                        className={`h-10 w-10 rounded-md border flex items-center justify-center transition-colors ${buttonClass}`}
                         disabled={isDisabled}
                         title={index >= mondaysInMonth ? `No Week ${week} in this month` : `Week ${week}`}
                       >
-                        {selectedWeeks[index] && <Check className="h-5 w-5 text-primary-foreground" />}
+                        {isSelected && <Check className="h-5 w-5 text-primary-foreground" />}
                       </button>
                     </div>
                   );
