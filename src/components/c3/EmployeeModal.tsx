@@ -338,7 +338,14 @@ export default function EmployeeModal({
               dateOfBirth: emp.dateOfBirth || null,
               holidayStartDate: emp.holidayNoDates ? null : (emp.holidayStartDate || null),
               holidayEndDate: emp.holidayNoDates ? null : (emp.holidayEndDate || null),
-              holidayNoDates: emp.holidayNoDates ? 'true' : 'false'
+              holidayNoDates: emp.holidayNoDates ? 'true' : 'false',
+              otherPayments: (emp.otherPayments || [])
+                .filter(p => p.income_code_id)
+                .map(p => ({
+                  income_code_id: p.income_code_id,
+                  income_code: p.income_code || '',
+                  amount: Number(p.amount) || 0,
+                })),
             };
           });
           // If this is a new employee (not found by SSN), add them
