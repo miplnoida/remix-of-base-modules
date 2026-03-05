@@ -945,6 +945,8 @@ export const AppRoutes = () => {
       <Route path="/crd/reports/printed-spoiled-cards" element={<ProtectedLayout><CRDPrintedSpoiledCardsReport /></ProtectedLayout>} />
 
       {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
+      <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/sep-contrib-rates" element={<ProtectedLayout><SepContribRateManagement /></ProtectedLayout>} />
       <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
