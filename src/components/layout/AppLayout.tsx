@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
@@ -8,9 +8,21 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
+function getSidebarCookieState(): boolean {
+  const cookie = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('sidebar:state='));
+  if (cookie) {
+    return cookie.split('=')[1] === 'true';
+  }
+  return true; // default open
+}
+
 export const AppLayout = ({ children }: AppLayoutProps) => {
+  const defaultOpen = useMemo(() => getSidebarCookieState(), []);
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">

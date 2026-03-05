@@ -1,6 +1,6 @@
 
-import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { NavLink } from "react-router-dom";
+import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarMenuLinkProps {
@@ -15,6 +15,18 @@ interface SidebarMenuLinkProps {
 }
 
 const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) => {
+  const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(item.url);
+    // On mobile, close the sidebar sheet after navigation
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const content = (
     <SidebarMenuButton
       asChild
@@ -24,7 +36,11 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
           : "text-white/80 hover:bg-sidebar-accent/60 hover:text-white"
       }`}
     >
-      <NavLink to={item.url} className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`}>
+      <a 
+        href={item.url} 
+        onClick={handleClick}
+        className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`}
+      >
         <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
           isActive ? "text-accent" : "text-white/60 group-hover:text-white"
         }`} />
@@ -33,7 +49,7 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
             {item.title}
           </span>
         )}
-      </NavLink>
+      </a>
     </SidebarMenuButton>
   );
 
