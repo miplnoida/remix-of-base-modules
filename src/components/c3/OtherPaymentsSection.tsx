@@ -126,14 +126,12 @@ export default function OtherPaymentsSection({
   };
 
   const handleAmountChange = (index: number, value: string) => {
-    // Allow empty, digits, and a single decimal point for natural typing
     const clean = value.replace(/[^0-9.]/g, '');
     const parts = clean.split('.');
-    if (parts.length > 2) return; // disallow multiple dots
-    if ((parts[0] || '').length > 8) return; // max 8 integer digits
-    if (parts[1] !== undefined && parts[1].length > 2) return; // max 2 decimal places
+    if (parts.length > 2) return;
+    if ((parts[0] || '').length > 8) return;
+    if (parts[1] !== undefined && parts[1].length > 2) return;
 
-    // Disallow negative values
     const numValue = parseFloat(clean) || 0;
     if (numValue < 0) return;
 
@@ -141,26 +139,53 @@ export default function OtherPaymentsSection({
     const row = currentPayments[index];
     if (!row) return;
 
-    // If we have a cached policy, recalculate contributions immediately
-    const codeId = row.income_code_id;
-    const policy = codeId ? policyCacheRef.current[codeId] : undefined;
+    const updated = [...currentPayments];
+    updated[index] = {
+      ...row,
+      amount: numValue,
+      _rawAmount: clean,
+      policy_error: clean && numValue <= 0 ? 'Amount must be greater than zero.' : row.policy_error,
+    } as any;
+    onChangeRef.current(updated);
 
-    if (policy?.found && numValue > 0) {
-      const contribs = calculateOtherPaymentContributions(numValue, policy, ratesRef.current);
-      const updated = [...currentPayments];
-      updated[index] = { ...row, amount: numValue, _rawAmount: clean, ...contribs } as any;
-      onChangeRef.current(updated);
-    } else {
-      const updated = [...currentPayments];
-      updated[index] = {
-        ...row,
-        amount: numValue,
-        _rawAmount: clean,
-        employee_ss: 0, employee_levy: 0, employer_ss: 0,
-        employer_eib: 0, employer_levy: 0, employer_severance: 0,
-      } as any;
-      onChangeRef.current(updated);
+    const codeId = row.income_code_id;
+    if (!codeId || numValue <= 0) {
+      const resetRows = [...paymentsRef.current];
+      if (!resetRows[index]) return;
+      resetRows[index] = {
+        ...resetRows[index],
+        employee_ss: 0,
+        employee_levy: 0,
+        employer_ss: 0,
+        employer_eib: 0,
+        employer_levy: 0,
+        employer_severance: 0,
+      };
+      onChangeRef.current(resetRows);
+      return;
     }
+
+    calculatePayment(codeId, numValue).then((calc) => {
+      const latestRows = paymentsRef.current;
+      const latestRow = latestRows[index];
+      if (!latestRow || latestRow.income_code_id !== codeId) return;
+
+      const nextRows = [...latestRows];
+      nextRows[index] = {
+        ...latestRow,
+        policy_id: calc.policy_id || latestRow.policy_id,
+        policy_type: calc.policy_type || latestRow.policy_type,
+        date_entry_mode: calc.date_entry_mode || latestRow.date_entry_mode,
+        employee_ss: calc.employee_ss || 0,
+        employee_levy: calc.employee_levy || 0,
+        employer_ss: calc.employer_ss || 0,
+        employer_eib: calc.employer_eib || 0,
+        employer_levy: calc.employer_levy || 0,
+        employer_severance: calc.employer_severance || 0,
+        policy_error: calc.success && calc.found ? undefined : (calc.error || 'Policy calculation failed'),
+      };
+      onChangeRef.current(nextRows);
+    });
   };
 
   const handleAmountBlur = (index: number) => {
