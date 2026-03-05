@@ -674,6 +674,7 @@ import AdminConfiguration from '@/pages/finance/AdminConfiguration';
 import { default as FinanceUserManagement } from '@/pages/finance/UserManagement';
 import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
 import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
+import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 
 export const AppRoutes = () => {
   return (
