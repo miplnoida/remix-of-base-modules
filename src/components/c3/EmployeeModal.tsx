@@ -136,6 +136,11 @@ export default function EmployeeModal({
   const [defaultPayPeriodFetched, setDefaultPayPeriodFetched] = useState(false);
   const [holidayDateError, setHolidayDateError] = useState('');
   const [bonusDateError, setBonusDateError] = useState('');
+  
+  // Other Payments state
+  const [otherPayments, setOtherPayments] = useState<OtherPaymentRow[]>(employee?.otherPayments || []);
+  const [otherPaymentError, setOtherPaymentError] = useState('');
+  const { loadOtherPayments } = useOtherPaymentsCRUD();
 
   // Track if auto-fill has been applied
   const autoFillAppliedRef = useRef(false);
