@@ -659,7 +659,6 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   <p className="text-xs text-muted-foreground">
                     {penaltyResult.monthsLate} month(s) late - 5% per month (default)
                   </p>
-                  </p>
                 )}
               </div>
             </div>
