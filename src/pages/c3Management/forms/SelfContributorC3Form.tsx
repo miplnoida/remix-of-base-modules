@@ -93,22 +93,41 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [ssnValid, setSsnValid] = useState(false);
   const [periodError, setPeriodError] = useState<string | null>(null);
 
-  // Wages Details state - Initialize from wage data if available (edit/view mode)
-  const [selectedWeeks, setSelectedWeeks] = useState<boolean[]>(() => {
-    // Check if employees/wages data is available (from getRecordWithWages)
-    if (data?.employees?.[0]) {
-      const emp = data.employees[0];
+  // Helper to extract week selections from employee wage data
+  const extractWeekSelections = (empData: any): boolean[] => {
+    if (!empData) return [false, false, false, false, false];
+    // Prefer days (paid_code flags) over weeklyWages amounts
+    if (empData.days && Array.isArray(empData.days)) {
       return [
-        (emp.weeklyWages?.[0] || 0) > 0,
-        (emp.weeklyWages?.[1] || 0) > 0,
-        (emp.weeklyWages?.[2] || 0) > 0,
-        (emp.weeklyWages?.[3] || 0) > 0,
-        (emp.weeklyWages?.[4] || 0) > 0,
+        !!empData.days[0],
+        !!empData.days[1],
+        !!empData.days[2],
+        !!empData.days[3],
+        !!empData.days[4],
       ];
     }
-    return [false, false, false, false, false];
+    // Fallback: derive from weeklyWages
+    return [
+      (empData.weeklyWages?.[0] || 0) > 0,
+      (empData.weeklyWages?.[1] || 0) > 0,
+      (empData.weeklyWages?.[2] || 0) > 0,
+      (empData.weeklyWages?.[3] || 0) > 0,
+      (empData.weeklyWages?.[4] || 0) > 0,
+    ];
+  };
+
+  // Wages Details state - Initialize from wage data if available (edit/view mode)
+  const [selectedWeeks, setSelectedWeeks] = useState<boolean[]>(() => {
+    return extractWeekSelections(data?.employees?.[0]);
   });
   const [isVerified, setIsVerified] = useState(data?.isVerified || false);
+
+  // Sync selectedWeeks when data prop changes (e.g. async load for view/edit mode)
+  useEffect(() => {
+    if (data?.employees?.[0]) {
+      setSelectedWeeks(extractWeekSelections(data.employees[0]));
+    }
+  }, [data]);
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
