@@ -20,7 +20,7 @@ interface OtherPaymentsSectionProps {
   onChange: (payments: OtherPaymentRow[]) => void;
   periodYear: number;
   periodMonth: number;
-  configRates?: C3ConfigRates;
+  configRates?: C3ConfigRates; // retained for API compatibility
   isReadOnly?: boolean;
   compact?: boolean;
 }
