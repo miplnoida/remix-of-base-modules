@@ -334,7 +334,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setWeeklyWage(0);
     setWeeklyContribution(0);
     setWageCategory(null);
-    setSsRate(10);
+    setSsRate(0);
+    setPenaltyRate(null);
+    setConfigFound(true);
+    setConfigWarning(null);
     setSelectedWeeks([false, false, false, false, false]);
     setIsVerified(false);
     setSsnError(null);
