@@ -141,9 +141,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     return Math.round(totalWages * (ssRate / 100) * 100) / 100;
   }, [totalWages, ssRate, nilReturn, configFound]);
 
-  // Calculate penalty
+  // Calculate penalty using dynamic rate from tb_self_emp_contrib_rate
   const penaltyResult = useMemo(() => {
-    if (nilReturn || !period || ssContribution <= 0) {
+    if (nilReturn || !period || ssContribution <= 0 || !configFound) {
       return { lateFine: 0, monthsLate: 0, dueDate: null };
     }
     
@@ -151,9 +151,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       contributionMonth: period,
       socialSecurityDue: ssContribution,
       paymentDate: dateReceived || null,
-      today: new Date()
+      today: new Date(),
+      penaltyRatePercent: penaltyRate
     });
-  }, [period, ssContribution, dateReceived, nilReturn]);
+  }, [period, ssContribution, dateReceived, nilReturn, penaltyRate, configFound]);
 
   // Format money
   const formatMoney = (amount: number) => {
