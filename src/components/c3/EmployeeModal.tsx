@@ -277,7 +277,8 @@ export default function EmployeeModal({
   useEffect(() => {
     if (isViewMode || !isOpen) return;
     const hasWages = effectiveWages.some(w => w > 0);
-    if (!hasWages || !receivedDate) {
+    const hasOtherPayments = otherPayments.some(p => p.income_code_id && Number(p.amount) > 0);
+    if ((!hasWages && !hasOtherPayments) || !receivedDate) {
       setLivePenalty({ levyPenalty: 0, severancePenalty: 0, ssFines: 0, daysLate: 0, monthsLate: 0, totalLateCharges: 0 });
       return;
     }
