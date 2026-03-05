@@ -264,14 +264,22 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
   // If no activities and in registration mode, show the add form directly
   const showNewForm = addingNew || (isRegistrationMode && activities.length === 0);
 
-  // No SEP exists at all
-  if (!eligibility?.sep_exists && activities.length === 0 && !isRegistrationMode) {
+  // No SEP exists at all - only show empty state when not loading and no activities
+  if (!loading && !eligibility?.sep_exists && activities.length === 0 && !isRegistrationMode) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
           <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Self-Employment Registration</h3>
           <p className="text-muted-foreground">This insured person has not been registered as self-employed.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={startAddNew}
+            disabled={loading}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Register &amp; Add Activity
+          </Button>
         </CardContent>
       </Card>
     );
