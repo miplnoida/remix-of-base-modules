@@ -111,6 +111,14 @@ const C3ConfigurationPage: React.FC = () => {
           <HolidayPayPolicyExceptionsTab />
         </TabsContent>
 
+        <TabsContent value="income-code-policy" className="mt-6">
+          <IncomeCodePolicyDefaultTab />
+        </TabsContent>
+
+        <TabsContent value="income-code-exceptions" className="mt-6">
+          <IncomeCodePolicyExceptionsTab />
+        </TabsContent>
+
         <TabsContent value="audit-logs" className="mt-6">
           <C3AuditLogsTab />
         </TabsContent>
