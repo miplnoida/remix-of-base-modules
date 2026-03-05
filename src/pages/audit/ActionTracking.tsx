@@ -7,12 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings } from '@/hooks/useAuditData';
+import { useAuditFields } from '@/hooks/useAuditTrail';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 const ACTION_STATUSES = ['Not Started', 'In Progress', 'Implemented', 'Verified', 'Closed'];
 
 export default function ActionTracking() {
+  const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: actions = [], isLoading } = useIAActionTracking();
@@ -31,16 +33,14 @@ export default function ActionTracking() {
   });
 
   const handleCreate = () => {
-    if (!formData.finding_id || !formData.action_description) {
-      return;
-    }
-    create.mutate({ ...formData, target_date: formData.target_date || null }, {
+    if (!formData.finding_id || !formData.action_description) return;
+    create.mutate({ ...formData, target_date: formData.target_date || null, ...getCreateFields() }, {
       onSuccess: () => { setIsCreateOpen(false); resetForm(); }
     });
   };
 
   const handleUpdateStatus = (id: string, newStatus: string) => {
-    update.mutate({ id, status: newStatus, ...(newStatus === 'Verified' ? { verified_date: new Date().toISOString() } : {}) });
+    update.mutate({ id, status: newStatus, ...getUpdateFields(), ...(newStatus === 'Verified' ? { verified_date: new Date().toISOString() } : {}) });
   };
 
   const filterFields: FilterField[] = [
@@ -111,7 +111,6 @@ export default function ActionTracking() {
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
       <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Corrective Action" mode="create" onSave={handleCreate} saveLabel="Create Action" isSaving={create.isPending}>
         <div className="space-y-4">
           <div className="space-y-2"><Label>Related Finding *</Label>
@@ -129,7 +128,6 @@ export default function ActionTracking() {
         </div>
       </EntityModal>
 
-      {/* View Modal */}
       <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Action Details" mode="view">
         {viewItem && (
           <div className="space-y-4">
@@ -139,7 +137,10 @@ export default function ActionTracking() {
               <div><Label className="text-muted-foreground">Responsible</Label><p>{viewItem.responsible_person || '-'}</p></div>
               <div><Label className="text-muted-foreground">Target Date</Label><p>{viewItem.target_date ? new Date(viewItem.target_date).toLocaleDateString() : '-'}</p></div>
             </div>
-            <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status || viewItem.action_status || 'Not Started'} /></div></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status || viewItem.action_status || 'Not Started'} /></div></div>
+              <div><Label className="text-muted-foreground">Created By</Label><p>{viewItem.created_by || '-'}</p></div>
+            </div>
             <div><Label className="text-muted-foreground">Notes</Label><p>{viewItem.notes || '-'}</p></div>
           </div>
         )}

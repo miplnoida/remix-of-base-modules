@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useIAWorkingPapers, useIAWorkingPaperMutations, useIAActivities, useIADepartments } from '@/hooks/useAuditData';
+import { useIAWorkingPapers, useIAWorkingPaperMutations, useIAActivities, useIAAnnualPlans } from '@/hooks/useAuditData';
+import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
+import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, FilterField } from '@/components/common';
@@ -15,6 +17,7 @@ const STATUSES = ['Draft', 'Under Review', 'Approved'];
 
 const WorkingPapers = () => {
   const { toast } = useToast();
+  const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -25,9 +28,11 @@ const WorkingPapers = () => {
 
   const { data: workingPapers = [], isLoading } = useIAWorkingPapers();
   const { data: activities = [] } = useIAActivities();
+  const { data: plans = [] } = useIAAnnualPlans();
+  const { data: deptAudits = [] } = useIADepartmentAudits();
   const { create, update } = useIAWorkingPaperMutations();
 
-  const emptyForm = { title: '', description: '', objective: '', audit_area: '', procedure: '', test_performed: '', results: '', observations: '', conclusion: '', activity_id: '', working_paper_id: '' };
+  const emptyForm = { title: '', description: '', objective: '', audit_area: '', procedure: '', test_performed: '', results: '', observations: '', conclusion: '', activity_id: '', annual_plan_id: '', department_audit_id: '', working_paper_id: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
 
@@ -43,7 +48,12 @@ const WorkingPapers = () => {
       return;
     }
     const wpId = `WP-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-    create.mutate({ ...formData, working_paper_id: wpId, activity_id: formData.activity_id || null }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
+    create.mutate({
+      ...formData, working_paper_id: wpId,
+      activity_id: formData.activity_id || null, annual_plan_id: formData.annual_plan_id || null,
+      department_audit_id: formData.department_audit_id || null,
+      ...getCreateFields(),
+    }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
 
   const handleEdit = () => {
@@ -51,20 +61,33 @@ const WorkingPapers = () => {
       toast({ title: "Validation Error", description: "Title and objective are required", variant: "destructive" });
       return;
     }
-    update.mutate({ id: editItem.id, title: formData.title, description: formData.description, objective: formData.objective, audit_area: formData.audit_area, procedure: formData.procedure, test_performed: formData.test_performed, results: formData.results, observations: formData.observations, conclusion: formData.conclusion, activity_id: formData.activity_id || null }, {
-      onSuccess: () => { setEditItem(null); resetForm(); }
-    });
+    update.mutate({
+      id: editItem.id, title: formData.title, description: formData.description, objective: formData.objective,
+      audit_area: formData.audit_area, procedure: formData.procedure, test_performed: formData.test_performed,
+      results: formData.results, observations: formData.observations, conclusion: formData.conclusion,
+      activity_id: formData.activity_id || null, annual_plan_id: formData.annual_plan_id || null,
+      department_audit_id: formData.department_audit_id || null,
+      ...getUpdateFields(),
+    }, { onSuccess: () => { setEditItem(null); resetForm(); } });
   };
 
   const handleStatusChange = () => {
     if (!statusItem || !nextStatus) return;
-    update.mutate({ id: statusItem.id, status: nextStatus, ...(nextStatus === 'Approved' ? { approved_date: new Date().toISOString() } : {}), ...(nextStatus === 'Under Review' ? { reviewed_date: new Date().toISOString() } : {}) }, {
-      onSuccess: () => { setStatusItem(null); setNextStatus(''); }
-    });
+    update.mutate({
+      id: statusItem.id, status: nextStatus, ...getUpdateFields(),
+      ...(nextStatus === 'Approved' ? { approved_date: new Date().toISOString() } : {}),
+      ...(nextStatus === 'Under Review' ? { reviewed_date: new Date().toISOString() } : {}),
+    }, { onSuccess: () => { setStatusItem(null); setNextStatus(''); } });
   };
 
   const openEdit = (wp: any) => {
-    setFormData({ title: wp.title || '', description: wp.description || '', objective: wp.objective || '', audit_area: wp.audit_area || '', procedure: wp.procedure || '', test_performed: wp.test_performed || '', results: wp.results || '', observations: wp.observations || '', conclusion: wp.conclusion || '', activity_id: wp.activity_id || '', working_paper_id: wp.working_paper_id || '' });
+    setFormData({
+      title: wp.title || '', description: wp.description || '', objective: wp.objective || '',
+      audit_area: wp.audit_area || '', procedure: wp.procedure || '', test_performed: wp.test_performed || '',
+      results: wp.results || '', observations: wp.observations || '', conclusion: wp.conclusion || '',
+      activity_id: wp.activity_id || '', annual_plan_id: wp.annual_plan_id || '',
+      department_audit_id: wp.department_audit_id || '', working_paper_id: wp.working_paper_id || '',
+    });
     setEditItem(wp);
   };
 
@@ -83,6 +106,7 @@ const WorkingPapers = () => {
     { key: 'working_paper_id', header: 'WP ID', render: (wp) => <span className="text-xs font-mono">{wp.working_paper_id || wp.id.slice(0,8)}</span> },
     { key: 'title', header: 'Title', render: (wp) => <span className="font-medium">{wp.title}</span> },
     { key: 'audit_area', header: 'Audit Area', render: (wp) => wp.audit_area || '-' },
+    { key: 'plan', header: 'Plan', render: (wp) => { const p = plans.find((p: any) => p.id === wp.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
     { key: 'status', header: 'Status', render: (wp) => <StatusBadge status={wp.status} /> },
     { key: 'created_at', header: 'Created', render: (wp) => wp.created_at ? new Date(wp.created_at).toLocaleDateString() : '-' },
   ];
@@ -96,6 +120,20 @@ const WorkingPapers = () => {
           <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
             <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
             <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2"><Label>Annual Plan</Label>
+          <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
+            <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+            <SelectContent>{plans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2"><Label>Dept. Audit</Label>
+          <Select value={formData.department_audit_id} onValueChange={v => setFormData({...formData, department_audit_id: v})}>
+            <SelectTrigger><SelectValue placeholder="Select dept audit" /></SelectTrigger>
+            <SelectContent>{deptAudits.map((da: any) => <SelectItem key={da.id} value={da.id}>{da.department_name || da.id.slice(0,8)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       </div>
@@ -154,17 +192,14 @@ const WorkingPapers = () => {
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
       <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create New Working Paper" mode="create" onSave={handleCreate} saveLabel="Create Working Paper" isSaving={create.isPending} maxWidth="max-w-4xl">
         {formFields}
       </EntityModal>
 
-      {/* Edit Modal */}
       <EntityModal open={!!editItem} onOpenChange={(o) => { if (!o) { setEditItem(null); resetForm(); } }} title="Edit Working Paper" mode="edit" onSave={handleEdit} saveLabel="Save Changes" isSaving={update.isPending} maxWidth="max-w-4xl">
         {formFields}
       </EntityModal>
 
-      {/* Status Transition Modal */}
       <EntityModal open={!!statusItem} onOpenChange={() => { setStatusItem(null); setNextStatus(''); }} title="Change Working Paper Status" mode="edit" onSave={handleStatusChange} saveLabel="Update Status" isSaving={update.isPending}>
         {statusItem && (
           <div className="space-y-4">
@@ -181,7 +216,6 @@ const WorkingPapers = () => {
         )}
       </EntityModal>
 
-      {/* View Modal */}
       <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Working Paper Details" mode="view" maxWidth="max-w-4xl">
         {viewItem && (
           <div className="space-y-4">
@@ -190,8 +224,16 @@ const WorkingPapers = () => {
               <div><Label className="text-muted-foreground">WP ID</Label><p>{viewItem.working_paper_id || '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Annual Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Department Audit</Label><p>{deptAudits.find((da: any) => da.id === viewItem.department_audit_id)?.department_name || '-'}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Audit Area</Label><p>{viewItem.audit_area || '-'}</p></div>
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status} /></div></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Activity</Label><p>{activities.find((a: any) => a.id === viewItem.activity_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Created By</Label><p>{viewItem.created_by || '-'}</p></div>
             </div>
             <div><Label className="text-muted-foreground">Objective</Label><p>{viewItem.objective || '-'}</p></div>
             <div><Label className="text-muted-foreground">Description</Label><p>{viewItem.description || '-'}</p></div>

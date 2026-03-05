@@ -7,7 +7,7 @@ export function useIADepartmentAudits(planId?: string) {
   return useQuery({
     queryKey: ['ia_department_audits', planId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_department_audits').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_department_audits' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return planId ? result.filter((r: any) => r.plan_id === planId) : result;
@@ -44,13 +44,13 @@ export function useIAActivities(filters?: { department_audit_id?: string; audito
   return useQuery({
     queryKey: ['ia_activities', filters],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_activities').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_activities' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       let result = data ?? [];
       if (filters?.department_audit_id) result = result.filter((r: any) => r.department_audit_id === filters.department_audit_id);
       if (filters?.auditor_id) result = result.filter((r: any) => r.auditor_id === filters.auditor_id);
       if (filters?.status) result = result.filter((r: any) => r.status === filters.status);
-      return result;
+      return data ?? [];
     },
   });
 }
@@ -76,7 +76,7 @@ export function useIAEvidence(activityId?: string) {
   return useQuery({
     queryKey: ['ia_evidence', activityId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_evidence').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_evidence' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return activityId ? result.filter((r: any) => r.activity_id === activityId) : result;
@@ -110,7 +110,7 @@ export function useIAWorkingPapers(activityId?: string) {
   return useQuery({
     queryKey: ['ia_working_papers', activityId],
     queryFn: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('ia_working_papers').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_working_papers' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
       return activityId ? result.filter((r: any) => r.activity_id === activityId) : result;
