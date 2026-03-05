@@ -11,6 +11,7 @@ export interface SelfContributorPenaltyInputs {
   socialSecurityDue: number;                          // The contribution amount due for that month
   paymentDate: Date | null;                           // Actual payment date; if null, calculate "accrued to date"
   today: Date;                                        // System date, used if paymentDate is null
+  penaltyRatePercent?: number | null;                 // Dynamic penalty rate from tb_self_emp_contrib_rate (e.g. 5)
 }
 
 export interface SelfContributorPenaltyResult {
@@ -96,7 +97,8 @@ export function calculateSelfContributorPenalty(inputs: SelfContributorPenaltyIn
     contributionMonth,
     socialSecurityDue,
     paymentDate,
-    today
+    today,
+    penaltyRatePercent
   } = inputs;
   
   // 1. Calculate due date
@@ -111,11 +113,12 @@ export function calculateSelfContributorPenalty(inputs: SelfContributorPenaltyIn
   // 4. Months late (calendar-month logic)
   const monthsLate = calculateMonthsLate(dueDate, effectivePaymentDate);
   
-  // 5. Calculate fine
-  // Fine = 5% of outstanding amount for each month or part of a month late
+  // 5. Calculate fine using dynamic rate from tb_self_emp_contrib_rate
+  // penaltyRatePercent is e.g. 5 for 5%. Falls back to 5 if not provided (legacy).
+  const rate = penaltyRatePercent != null ? penaltyRatePercent : 5;
   let lateFine = 0;
   if (socialSecurityDue > 0 && monthsLate > 0) {
-    lateFine = round2(socialSecurityDue * 0.05 * monthsLate);
+    lateFine = round2(socialSecurityDue * (rate / 100) * monthsLate);
   }
   
   return {

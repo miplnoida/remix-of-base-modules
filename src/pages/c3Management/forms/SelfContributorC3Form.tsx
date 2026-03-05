@@ -79,10 +79,13 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
-  const [weeklyWage, setWeeklyWage] = useState<number>(0); // wage_category from ip_self_category
-  const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // weeklyWage * 10% (from tb_self_emp_contrib_rate)
+  const [weeklyWage, setWeeklyWage] = useState<number>(0);
+  const [weeklyContribution, setWeeklyContribution] = useState<number>(0);
   const [wageCategory, setWageCategory] = useState<number | null>(null);
-  const [ssRate, setSsRate] = useState<number>(10); // Self-employed SS rate (typically 10%)
+  const [ssRate, setSsRate] = useState<number>(0);
+  const [penaltyRate, setPenaltyRate] = useState<number | null>(null);
+  const [configFound, setConfigFound] = useState<boolean>(true);
+  const [configWarning, setConfigWarning] = useState<string | null>(null);
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
@@ -132,16 +135,15 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     return calculateTotalWagesFromWeeks(weeklyWage, selectedWeeks);
   }, [weeklyWage, selectedWeeks, nilReturn]);
 
-  // Calculate SS contribution using the rate from tb_self_emp_contrib_rate (typically 10%)
+  // Calculate SS contribution using the rate from tb_self_emp_contrib_rate
   const ssContribution = useMemo(() => {
-    if (nilReturn) return 0;
-    // Total wages * SS rate (e.g., 10%)
+    if (nilReturn || !configFound || ssRate <= 0) return 0;
     return Math.round(totalWages * (ssRate / 100) * 100) / 100;
-  }, [totalWages, ssRate, nilReturn]);
+  }, [totalWages, ssRate, nilReturn, configFound]);
 
-  // Calculate penalty
+  // Calculate penalty using dynamic rate from tb_self_emp_contrib_rate
   const penaltyResult = useMemo(() => {
-    if (nilReturn || !period || ssContribution <= 0) {
+    if (nilReturn || !period || ssContribution <= 0 || !configFound) {
       return { lateFine: 0, monthsLate: 0, dueDate: null };
     }
     
@@ -149,9 +151,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       contributionMonth: period,
       socialSecurityDue: ssContribution,
       paymentDate: dateReceived || null,
-      today: new Date()
+      today: new Date(),
+      penaltyRatePercent: penaltyRate
     });
-  }, [period, ssContribution, dateReceived, nilReturn]);
+  }, [period, ssContribution, dateReceived, nilReturn, penaltyRate, configFound]);
 
   // Format money
   const formatMoney = (amount: number) => {
@@ -190,11 +193,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       setWeeklyWage(0);
       setWeeklyContribution(0);
       setWageCategory(null);
+      setConfigFound(true);
+      setConfigWarning(null);
       return;
     }
 
     setSSNValidating(true);
     setSsnError(null);
+    setConfigWarning(null);
 
     try {
       // First get person details
@@ -208,7 +214,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         setWeeklyWage(0);
         setWeeklyContribution(0);
         setWageCategory(null);
-        setSsRate(10);
+        setSsRate(0);
+        setPenaltyRate(null);
+        setConfigFound(true);
         setSSNValidating(false);
         return;
       }
@@ -226,16 +234,28 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           setWeeklyWage(0);
           setWeeklyContribution(0);
           setWageCategory(null);
-          setSsRate(10);
+          setSsRate(0);
+          setPenaltyRate(null);
+          setConfigFound(true);
         } else if (categoryResult.wageCategory) {
-          // Fetch wage category details - weeklyWage is the wage_category value itself
-          // weeklyContribution is calculated as weeklyWage * SS rate from tb_self_emp_contrib_rate
-          const wageDetails = await getWageCategoryDetails(categoryResult.wageCategory);
+          // Fetch wage category details with period-aware config lookup
+          const wageDetails = await getWageCategoryDetails(
+            categoryResult.wageCategory,
+            period.year,
+            period.month
+          );
           if (wageDetails) {
             setWeeklyWage(wageDetails.weeklyWage);
             setWeeklyContribution(wageDetails.weeklyContribution);
             setWageCategory(categoryResult.wageCategory);
             setSsRate(wageDetails.ssRate);
+            setPenaltyRate(wageDetails.penaltyRate);
+            setConfigFound(wageDetails.configFound);
+            if (!wageDetails.configFound) {
+              setConfigWarning(
+                `Contribution rate configuration not found for wage ${categoryResult.wageCategory} and period ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][period.month]} ${period.year}`
+              );
+            }
             setSsnValid(true);
           } else {
             setSsnError("Could not fetch wage category details");
@@ -314,7 +334,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setWeeklyWage(0);
     setWeeklyContribution(0);
     setWageCategory(null);
-    setSsRate(10);
+    setSsRate(0);
+    setPenaltyRate(null);
+    setConfigFound(true);
+    setConfigWarning(null);
     setSelectedWeeks([false, false, false, false, false]);
     setIsVerified(false);
     setSsnError(null);
@@ -592,6 +615,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Config warning */}
+            {configWarning && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">{configWarning}</p>
+              </div>
+            )}
+
             {/* Row 1: Calculated fields (read-only) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
@@ -604,7 +635,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
               </div>
 
               <div className="space-y-2">
-                <Label>Social Security Contribution</Label>
+                <Label>Social Security Contribution {ssRate > 0 && <span className="text-xs text-muted-foreground">({ssRate}%)</span>}</Label>
                 <Input
                   value={formatMoney(ssContribution)}
                   readOnly
@@ -619,9 +650,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   readOnly
                   className={`bg-muted font-semibold ${penaltyResult.lateFine > 0 ? 'text-destructive' : ''}`}
                 />
-                {penaltyResult.monthsLate > 0 && (
+                {penaltyResult.monthsLate > 0 && penaltyRate != null && (
                   <p className="text-xs text-muted-foreground">
-                    {penaltyResult.monthsLate} month(s) late - 5% per month
+                    {penaltyResult.monthsLate} month(s) late - {penaltyRate}% per month
+                  </p>
+                )}
+                {penaltyResult.monthsLate > 0 && penaltyRate == null && configFound && (
+                  <p className="text-xs text-muted-foreground">
+                    {penaltyResult.monthsLate} month(s) late - 5% per month (default)
                   </p>
                 )}
               </div>
