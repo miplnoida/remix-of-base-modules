@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import OtherPaymentsSection from '@/components/c3/OtherPaymentsSection';
 import type { OtherPaymentRow } from '@/types/otherPayments';
-import { calculateOtherPaymentTotals } from '@/types/otherPayments';
+
 import { useOtherPaymentsCRUD, validateOtherPaymentPolicies } from '@/hooks/useOtherPayments';
 
 export interface EmployeeData {
