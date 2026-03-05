@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +10,7 @@ import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations, useIADepartments } from '@/hooks/useAuditData';
 import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import { StandardModal } from '@/components/common/StandardModal';
 import type { DataTableColumn, FilterField } from '@/components/common';
 
 export default function AuditPlansNew() {
@@ -55,30 +55,24 @@ export default function AuditPlansNew() {
       (plan.title || '').toLowerCase().includes(normalizedSearch) ||
       (plan.fiscal_year || '').toLowerCase().includes(normalizedSearch) ||
       (plan.id || '').toLowerCase().includes(normalizedSearch);
-
     const matchesStatus = filters.status === 'all' || (plan.status || '') === filters.status;
     const matchesFiscalYear = filters.fiscalYear === 'all' || (plan.fiscal_year || '') === filters.fiscalYear;
-
     const matchesDepartment =
       filters.departmentId === 'all' ||
       (departmentAudits || []).some((audit: any) => audit.plan_id === plan.id && `${audit.department_id || ''}` === filters.departmentId);
-
     return matchesSearch && matchesStatus && matchesFiscalYear && matchesDepartment;
   });
 
   const filteredDepartmentAudits = (departmentAudits || []).filter((audit: any) => {
     const linkedPlan = planById.get(audit.plan_id);
     const fiscalYear = linkedPlan?.fiscal_year || '';
-
     const matchesSearch =
       (audit.department_name || '').toLowerCase().includes(normalizedSearch) ||
       (audit.period || '').toLowerCase().includes(normalizedSearch) ||
       (audit.id || '').toLowerCase().includes(normalizedSearch);
-
     const matchesStatus = filters.status === 'all' || (audit.status || '') === filters.status;
     const matchesFiscalYear = filters.fiscalYear === 'all' || fiscalYear === filters.fiscalYear;
     const matchesDepartment = filters.departmentId === 'all' || `${audit.department_id || ''}` === filters.departmentId;
-
     return matchesSearch && matchesStatus && matchesFiscalYear && matchesDepartment;
   });
 
@@ -99,31 +93,9 @@ export default function AuditPlansNew() {
   ];
 
   const filterFields: FilterField[] = [
-    {
-      key: 'fiscalYear',
-      label: 'Fiscal Year',
-      type: 'select',
-      options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((year) => ({ value: year, label: year }))],
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'select',
-      options: [
-        { value: 'all', label: 'All Statuses' },
-        { value: 'Draft', label: 'Draft' },
-        { value: 'Submitted', label: 'Submitted' },
-        { value: 'Approved', label: 'Approved' },
-        { value: 'In Progress', label: 'In Progress' },
-        { value: 'Completed', label: 'Completed' },
-      ],
-    },
-    {
-      key: 'departmentId',
-      label: 'Department',
-      type: 'select',
-      options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))],
-    },
+    { key: 'fiscalYear', label: 'Fiscal Year', type: 'select', options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((year) => ({ value: year, label: year }))] },
+    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' }] },
+    { key: 'departmentId', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))] },
   ];
 
   const resetFilters = () => setFilters({ status: 'all', fiscalYear: 'all', departmentId: 'all' });
@@ -134,7 +106,6 @@ export default function AuditPlansNew() {
       subtitle="Create and manage annual plans and department audit plans"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Plans' }]}
       isLoading={plansLoading || auditsLoading}
-      
       actions={<Button onClick={() => setShowCreatePicker(true)}><Plus className="w-4 h-4 mr-2" />Add New</Button>}
     >
       <Card>
@@ -202,12 +173,9 @@ export default function AuditPlansNew() {
         </div>
       </EntityModal>
 
-      <Dialog open={isCreateAnnualOpen} onOpenChange={setIsCreateAnnualOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Create Annual Plan</DialogTitle></DialogHeader>
-          <AnnualPlanForm onClose={() => setIsCreateAnnualOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      <StandardModal open={isCreateAnnualOpen} onOpenChange={setIsCreateAnnualOpen} title="Create Annual Plan" mode="create" size="4xl">
+        <AnnualPlanForm onClose={() => setIsCreateAnnualOpen(false)} />
+      </StandardModal>
 
       <EntityModal
         open={isCreateDeptPickerOpen}
@@ -236,29 +204,20 @@ export default function AuditPlansNew() {
         </div>
       </EntityModal>
 
-      <Dialog open={isCreateDeptOpen} onOpenChange={setIsCreateDeptOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Create Department Audit Plan</DialogTitle></DialogHeader>
-          {selectedAnnualPlanId && <DepartmentAuditForm annualPlanId={selectedAnnualPlanId} onClose={() => setIsCreateDeptOpen(false)} />}
-        </DialogContent>
-      </Dialog>
+      <StandardModal open={isCreateDeptOpen} onOpenChange={setIsCreateDeptOpen} title="Create Department Audit Plan" mode="create" size="4xl">
+        {selectedAnnualPlanId && <DepartmentAuditForm annualPlanId={selectedAnnualPlanId} onClose={() => setIsCreateDeptOpen(false)} />}
+      </StandardModal>
 
       {editAnnual && (
-        <Dialog open={!!editAnnual} onOpenChange={() => setEditAnnual(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Annual Plan</DialogTitle></DialogHeader>
-            <AnnualPlanForm plan={editAnnual} onClose={() => setEditAnnual(null)} />
-          </DialogContent>
-        </Dialog>
+        <StandardModal open={!!editAnnual} onOpenChange={() => setEditAnnual(null)} title="Edit Annual Plan" mode="edit" size="4xl">
+          <AnnualPlanForm plan={editAnnual} onClose={() => setEditAnnual(null)} />
+        </StandardModal>
       )}
 
       {editDept && (
-        <Dialog open={!!editDept} onOpenChange={() => setEditDept(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Department Audit Plan</DialogTitle></DialogHeader>
-            <DepartmentAuditForm annualPlanId={editDept.plan_id} departmentAudit={editDept} onClose={() => setEditDept(null)} />
-          </DialogContent>
-        </Dialog>
+        <StandardModal open={!!editDept} onOpenChange={() => setEditDept(null)} title="Edit Department Audit Plan" mode="edit" size="4xl">
+          <DepartmentAuditForm annualPlanId={editDept.plan_id} departmentAudit={editDept} onClose={() => setEditDept(null)} />
+        </StandardModal>
       )}
 
       <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view">

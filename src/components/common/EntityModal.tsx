@@ -1,7 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { StandardModal } from './StandardModal';
 
 interface EntityModalProps {
   open: boolean;
@@ -17,6 +15,17 @@ interface EntityModalProps {
   maxWidth?: string;
 }
 
+const maxWidthToSize = (maxWidth?: string) => {
+  if (!maxWidth) return '2xl' as const;
+  if (maxWidth.includes('5xl')) return '5xl' as const;
+  if (maxWidth.includes('4xl')) return '4xl' as const;
+  if (maxWidth.includes('3xl')) return '3xl' as const;
+  if (maxWidth.includes('xl')) return 'xl' as const;
+  if (maxWidth.includes('lg')) return 'lg' as const;
+  if (maxWidth.includes('md')) return 'md' as const;
+  return '2xl' as const;
+};
+
 export const EntityModal: React.FC<EntityModalProps> = ({
   open,
   onOpenChange,
@@ -28,33 +37,22 @@ export const EntityModal: React.FC<EntityModalProps> = ({
   isSaving = false,
   saveLabel = 'Save',
   cancelLabel = 'Cancel',
-  maxWidth = 'max-w-2xl',
+  maxWidth,
 }) => {
-  const isReadOnly = mode === 'view';
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={maxWidth}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="py-4 max-h-[60vh] overflow-y-auto">
-          {children}
-        </div>
-        {!isReadOnly && (
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={onCancel || (() => onOpenChange(false))} disabled={isSaving}>
-              {cancelLabel}
-            </Button>
-            {onSave && (
-              <Button onClick={onSave} disabled={isSaving}>
-                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {saveLabel}
-              </Button>
-            )}
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
+    <StandardModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      mode={mode}
+      size={maxWidthToSize(maxWidth)}
+      onSave={onSave}
+      onCancel={onCancel}
+      isSaving={isSaving}
+      saveLabel={saveLabel}
+      cancelLabel={cancelLabel}
+    >
+      {children}
+    </StandardModal>
   );
 };
