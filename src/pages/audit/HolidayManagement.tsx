@@ -8,20 +8,24 @@ import { Plus, Calendar, Trash2 } from 'lucide-react';
 import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageShell, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
+import { PageShell, SearchBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
   const { data: holidays = [], isLoading, isError } = useIAHolidays();
   const { create, update, remove } = useIAHolidayMutations();
+  const [searchTerm, setSearchTerm] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editHoliday, setEditHoliday] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
 
   const resetForm = () => setForm({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
-  const sortedHolidays = [...holidays].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  const filteredHolidays = [...holidays]
+    .filter(h => (h.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (h.country || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const handleAdd = () => {
     if (!form.name || !form.date) return;
@@ -72,18 +76,28 @@ export default function HolidayManagement() {
         <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{holidays.length}</div></CardContent></Card>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={sortedHolidays}
-        onEdit={(row) => openEdit(row)}
-        renderActions={(row) => (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}><Calendar className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(row.id)}><Trash2 className="h-4 w-4" /></Button>
-          </div>
-        )}
-        emptyMessage='No holidays found. Click "Add Holiday" to get started.'
-      />
+      <Card>
+        <CardContent className="pt-6">
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by holiday name or country..." />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={filteredHolidays}
+            onEdit={(row) => openEdit(row)}
+            renderActions={(row) => (
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}><Calendar className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(row.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            )}
+            emptyMessage='No holidays found. Click "Add Holiday" to get started.'
+          />
+        </CardContent>
+      </Card>
 
       <EntityModal open={isAddOpen} onOpenChange={o => { if (!o) resetForm(); setIsAddOpen(o); }} title="Add New Holiday" mode="create" onSave={handleAdd} isSaving={create.isPending} saveLabel="Add Holiday">
         {formFields}

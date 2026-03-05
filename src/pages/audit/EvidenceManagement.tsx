@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, FileText } from 'lucide-react';
 import { useIAEvidence, useIAEvidenceMutations, useIAActivities } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, SearchBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, FilterField } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 
 export default function EvidenceManagement() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ type: 'all' });
   const { data: evidenceList = [], isLoading } = useIAEvidence();
   const { data: activities = [] } = useIAActivities();
   const { create } = useIAEvidenceMutations();
@@ -22,10 +23,11 @@ export default function EvidenceManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewItem, setViewItem] = useState<any>(null);
 
-  const filteredEvidence = evidenceList.filter((ev: any) =>
-    (ev.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEvidence = evidenceList.filter((ev: any) => {
+    const matchesSearch = (ev.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filters.type === 'all' || ev.evidence_type === filters.type;
+    return matchesSearch && matchesType;
+  });
 
   const handleUpload = () => {
     if (!formData.title) { toast({ title: 'Validation Error', description: 'Title is required', variant: 'destructive' }); return; }
@@ -37,6 +39,10 @@ export default function EvidenceManagement() {
     { label: 'This Month', value: evidenceList.filter((ev: any) => { const d = new Date(ev.created_at); const n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length },
     { label: 'Activities', value: new Set(evidenceList.map((ev: any) => ev.activity_id).filter(Boolean)).size },
     { label: 'Types', value: new Set(evidenceList.map((ev: any) => ev.evidence_type).filter(Boolean)).size },
+  ];
+
+  const filterFields: FilterField[] = [
+    { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'Document', label: 'Document' }, { value: 'Photo', label: 'Photo' }, { value: 'Interview', label: 'Interview Record' }] },
   ];
 
   const columns: DataTableColumn<any>[] = [
@@ -67,13 +73,15 @@ export default function EvidenceManagement() {
 
       <Card>
         <CardContent className="pt-6">
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search evidence..." />
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search evidence..." />
+            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ type: 'all' })} />
+          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Evidence Repository ({filteredEvidence.length})</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <DataTable columns={columns} data={filteredEvidence} emptyMessage="No evidence records found" onView={(ev) => setViewItem(ev)} />
         </CardContent>
       </Card>

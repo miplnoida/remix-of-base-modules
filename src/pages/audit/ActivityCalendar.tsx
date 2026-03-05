@@ -6,12 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIAActivities, useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { PageShell, FilterBar, DataTable, StatusBadge } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 
 export default function ActivityCalendar() {
   const { hasPermission } = useAuth();
   const isMobile = useIsMobile();
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ auditor: 'all', status: 'all' });
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
@@ -22,7 +23,8 @@ export default function ActivityCalendar() {
   const filteredActivities = activities.filter((a: any) => {
     const matchesAuditor = filters.auditor === 'all' || a.auditor_id === filters.auditor;
     const matchesStatus = filters.status === 'all' || a.status === filters.status;
-    return matchesAuditor && matchesStatus;
+    const matchesSearch = !searchTerm || (a.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesAuditor && matchesStatus && matchesSearch;
   });
 
   const todaysActivities = filteredActivities.filter((a: any) => a.scheduled_date && new Date(a.scheduled_date).toDateString() === new Date().toDateString());
@@ -62,14 +64,25 @@ export default function ActivityCalendar() {
         <Card><CardContent className="pt-6"><div className="flex items-center"><MapPin className="h-4 w-4 text-muted-foreground" /><div className="ml-2"><p className="text-sm font-medium">Completed</p><p className="text-2xl font-bold">{filteredActivities.filter((a: any) => a.status === 'Completed').length}</p></div></div></CardContent></Card>
       </div>
 
-      <FilterBar
-        filters={filterFields}
-        values={filters}
-        onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ auditor: 'all', status: 'all' })}
-      />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search activities..." />
+            <FilterBar
+              filters={filterFields}
+              values={filters}
+              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+              onReset={() => setFilters({ auditor: 'all', status: 'all' })}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      <DataTable columns={columns} data={filteredActivities} emptyMessage="No activities found." />
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable columns={columns} data={filteredActivities} emptyMessage="No activities found." />
+        </CardContent>
+      </Card>
 
       {!isMobile && isScheduleDialogOpen && (
         <Card>

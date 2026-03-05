@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Download, Plus } from 'lucide-react';
+import { Send, Plus } from 'lucide-react';
 import { useIADocumentTemplates, useIAAnnualPlans, useIADepartments } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, SearchBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 
 export default function LetterGeneration() {
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: templates = [], isLoading } = useIADocumentTemplates();
   const { data: plans = [] } = useIAAnnualPlans();
   const { data: departments = [] } = useIADepartments();
+
+  const filteredTemplates = templates.filter((t: any) =>
+    (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.template_type || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const columns: DataTableColumn<any>[] = [
     { key: 'name', header: 'Template Name', render: (t) => <span className="font-medium">{t.name}</span> },
@@ -35,9 +41,14 @@ export default function LetterGeneration() {
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Generate Letter</Button>}
     >
       <Card>
-        <CardHeader><CardTitle>Letter Templates</CardTitle></CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={templates} emptyMessage="No templates found" onView={() => {}} />
+        <CardContent className="pt-6">
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search templates..." />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable columns={columns} data={filteredTemplates} emptyMessage="No templates found" onView={() => {}} />
         </CardContent>
       </Card>
 

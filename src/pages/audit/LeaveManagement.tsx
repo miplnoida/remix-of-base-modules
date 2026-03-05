@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, CheckCircle, XCircle, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { useIALeaveRequests, useIALeaveRequestMutations, useIAAuditors } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, FilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
+import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 
 export default function LeaveAndVacationManagement() {
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: leaveRequests = [], isLoading } = useIALeaveRequests();
   const { data: auditors = [] } = useIAAuditors();
@@ -21,9 +22,12 @@ export default function LeaveAndVacationManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: string } | null>(null);
 
-  const filteredLeaves = leaveRequests.filter((leave: any) =>
-    filters.status === 'all' || leave.status === filters.status
-  );
+  const filteredLeaves = leaveRequests.filter((leave: any) => {
+    const matchesStatus = filters.status === 'all' || leave.status === filters.status;
+    const auditorName = auditors.find((a: any) => a.id === leave.auditor_id)?.name || '';
+    const matchesSearch = !searchTerm || auditorName.toLowerCase().includes(searchTerm.toLowerCase()) || (leave.leave_type || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   const handleSubmit = () => {
     if (!formData.auditor_id || !formData.leave_type || !formData.start_date || !formData.end_date) {
@@ -60,24 +64,35 @@ export default function LeaveAndVacationManagement() {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{leaveRequests.length}</div></CardContent></Card>
       </div>
 
-      <FilterBar
-        filters={[{ key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All' }, { value: 'Submitted', label: 'Pending' }, { value: 'Approved', label: 'Approved' }, { value: 'Rejected', label: 'Rejected' }] }]}
-        values={filters}
-        onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ status: 'all' })}
-      />
-
-      <DataTable
-        columns={columns}
-        data={filteredLeaves}
-        renderActions={(row) => row.status === 'Submitted' ? (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => setConfirmAction({ id: row.id, action: 'Approved' })}><CheckCircle className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setConfirmAction({ id: row.id, action: 'Rejected' })}><XCircle className="h-4 w-4" /></Button>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by auditor or leave type..." />
+            <FilterBar
+              filters={[{ key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All' }, { value: 'Submitted', label: 'Pending' }, { value: 'Approved', label: 'Approved' }, { value: 'Rejected', label: 'Rejected' }] }]}
+              values={filters}
+              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+              onReset={() => setFilters({ status: 'all' })}
+            />
           </div>
-        ) : undefined}
-        emptyMessage="No leave requests found."
-      />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={filteredLeaves}
+            renderActions={(row) => row.status === 'Submitted' ? (
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => setConfirmAction({ id: row.id, action: 'Approved' })}><CheckCircle className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setConfirmAction({ id: row.id, action: 'Rejected' })}><XCircle className="h-4 w-4" /></Button>
+              </div>
+            ) : undefined}
+            emptyMessage="No leave requests found."
+          />
+        </CardContent>
+      </Card>
 
       {/* Create Modal */}
       <EntityModal open={isDialogOpen} onOpenChange={setIsDialogOpen} title="Submit Leave Request" mode="create" onSave={handleSubmit} isSaving={create.isPending} saveLabel="Submit Request">
