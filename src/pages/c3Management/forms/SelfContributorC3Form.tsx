@@ -615,6 +615,14 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Config warning */}
+            {configWarning && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">{configWarning}</p>
+              </div>
+            )}
+
             {/* Row 1: Calculated fields (read-only) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
@@ -627,7 +635,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
               </div>
 
               <div className="space-y-2">
-                <Label>Social Security Contribution</Label>
+                <Label>Social Security Contribution {ssRate > 0 && <span className="text-xs text-muted-foreground">({ssRate}%)</span>}</Label>
                 <Input
                   value={formatMoney(ssContribution)}
                   readOnly
@@ -642,9 +650,15 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   readOnly
                   className={`bg-muted font-semibold ${penaltyResult.lateFine > 0 ? 'text-destructive' : ''}`}
                 />
-                {penaltyResult.monthsLate > 0 && (
+                {penaltyResult.monthsLate > 0 && penaltyRate != null && (
                   <p className="text-xs text-muted-foreground">
-                    {penaltyResult.monthsLate} month(s) late - 5% per month
+                    {penaltyResult.monthsLate} month(s) late - {penaltyRate}% per month
+                  </p>
+                )}
+                {penaltyResult.monthsLate > 0 && penaltyRate == null && configFound && (
+                  <p className="text-xs text-muted-foreground">
+                    {penaltyResult.monthsLate} month(s) late - 5% per month (default)
+                  </p>
                   </p>
                 )}
               </div>
