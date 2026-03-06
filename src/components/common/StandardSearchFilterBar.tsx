@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface StandardFilterField {
   key: string;
@@ -23,7 +24,13 @@ interface StandardSearchFilterBarProps {
   onFilterChange?: (key: string, value: string) => void;
   onReset?: () => void;
   debounceMs?: number;
+  /** Max filters on first row (desktop). Remaining wrap to row 2. */
+  maxFiltersFirstRow?: number;
 }
+
+// Desktop breakpoint
+const LG = 1024;
+const MD = 768;
 
 export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = ({
   searchValue,
@@ -34,8 +41,10 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
   onFilterChange,
   onReset,
   debounceMs = 300,
+  maxFiltersFirstRow,
 }) => {
   const [localSearch, setLocalSearch] = useState(searchValue);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : LG);
 
   useEffect(() => {
     setLocalSearch(searchValue);
@@ -46,56 +55,46 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
       if (localSearch !== searchValue) onSearchChange(localSearch);
     }, debounceMs);
     return () => clearTimeout(timer);
-  }, [localSearch, debounceMs]);
+  }, [localSearch, debounceMs, onSearchChange, searchValue]);
+
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const hasActiveFilters = Object.entries(filterValues).some(
     ([, v]) => v && v !== '' && v !== 'all'
   );
 
+  const isDesktop = windowWidth >= LG;
+  const isTablet = windowWidth >= MD && windowWidth < LG;
+
   const filterCount = filters.length;
 
-  // Compute grid layout
+  // Layout: deterministic 12-col grid for desktop
   const layout = useMemo(() => {
     const searchCols = filterCount >= 3 ? 3 : 4;
-    const filterCols = 2;
     const resetCols = 1;
-    const totalNeeded = searchCols + (filterCount * filterCols) + resetCols;
-    const multiRow = totalNeeded > 12;
+    const maxRow1 = maxFiltersFirstRow ?? Math.floor((12 - searchCols - resetCols) / 2);
+    const needsMultiRow = filterCount > maxRow1;
 
-    if (multiRow) {
-      // Split: row1 gets search + as many filters as fit, row2 gets rest + reset
-      const row1FilterSlots = Math.floor((12 - searchCols) / filterCols);
-      const row1Filters = filters.slice(0, row1FilterSlots);
-      const row2Filters = filters.slice(row1FilterSlots);
-      // Row2: distribute remaining filters evenly, reset gets leftover
-      const row2FilterTotal = row2Filters.length;
-      const row2UsedCols = row2FilterTotal * filterCols;
-      // Give remaining cols to reset area or distribute
-      const row2ResetSpan = 12 - row2UsedCols;
-      // If row2 filters are few, give them more space
-      const row2EachCols = row2FilterTotal <= 2 ? 3 : 2;
-      const row2ResetActual = 12 - (row2FilterTotal * row2EachCols);
+    if (needsMultiRow) {
+      const row1Filters = filters.slice(0, maxRow1);
+      const row2Filters = filters.slice(maxRow1);
+      const row2FilterCols = Math.min(3, Math.floor((12 - resetCols) / Math.max(row2Filters.length, 1)));
+      const row2ResetCols = Math.max(12 - row2Filters.length * row2FilterCols, 1);
 
-      return {
-        multiRow: true,
-        searchCols,
-        row1Filters,
-        row2Filters,
-        row2EachCols,
-        row2ResetCols: Math.max(row2ResetActual, 1),
-      };
+      return { multiRow: true, searchCols, row1Filters, row2Filters, row2FilterCols, row2ResetCols };
     }
 
-    return {
-      multiRow: false,
-      searchCols,
-      filterCols,
-      resetCols: 12 - searchCols - (filterCount * filterCols), // remaining for reset
-    };
-  }, [filterCount, filters]);
+    return { multiRow: false, searchCols, resetCols: Math.max(12 - searchCols - filterCount * 2, 1) };
+  }, [filterCount, filters, maxFiltersFirstRow]);
 
-  const renderFilter = (filter: StandardFilterField, colSpan: number) => (
-    <div key={filter.key} className={`space-y-1 lg:col-span-${colSpan}`}>
+  // --- Reusable sub-renders ---
+
+  const renderFilter = (filter: StandardFilterField) => (
+    <div key={filter.key} className="space-y-1 min-w-0">
       <Label className="text-xs text-muted-foreground">{filter.label}</Label>
       {filter.type === 'select' && filter.options ? (
         <Select
@@ -122,17 +121,13 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
     </div>
   );
 
-  const resetButton = (
-    <div className="space-y-1 flex flex-col justify-end">
-      <Label className="text-xs text-transparent select-none hidden lg:block">Reset</Label>
+  const resetBtn = onReset ? (
+    <div className="space-y-1 flex flex-col justify-end min-w-0">
+      {isDesktop && <Label className="text-xs text-transparent select-none">Reset</Label>}
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
-          setLocalSearch('');
-          onSearchChange('');
-          onReset?.();
-        }}
+        onClick={() => { setLocalSearch(''); onSearchChange(''); onReset(); }}
         disabled={!localSearch && !hasActiveFilters}
         className="h-9 px-3 whitespace-nowrap"
       >
@@ -140,10 +135,10 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
         Reset
       </Button>
     </div>
-  );
+  ) : null;
 
   const searchField = (
-    <div className="space-y-1">
+    <div className="space-y-1 min-w-0">
       <Label className="text-xs text-muted-foreground">Search</Label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -165,37 +160,41 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
     </div>
   );
 
-  // Build dynamic grid style for desktop using inline style for col-span
-  // (Tailwind purges dynamic class names, so we use inline gridColumn)
+  // --- Grid template helpers ---
+  // Desktop uses fractional units matching the 12-col plan
+  const fr = (n: number) => `${n}fr`;
+
+  // Multi-row
   if (layout.multiRow) {
-    const { searchCols, row1Filters, row2Filters, row2EachCols, row2ResetCols } = layout;
+    const { searchCols, row1Filters, row2Filters, row2FilterCols, row2ResetCols } = layout;
+
+    // Desktop grid templates
+    const row1DesktopTemplate = [fr(searchCols), ...row1Filters.map(() => fr(2))].join(' ');
+    const row2DesktopTemplate = [...row2Filters.map(() => fr(row2FilterCols)), fr(row2ResetCols)].join(' ');
+
+    const row1Style: React.CSSProperties = isDesktop
+      ? { display: 'grid', gridTemplateColumns: row1DesktopTemplate, gap: '0.75rem' }
+      : isTablet
+        ? { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }
+        : { display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' };
+
+    const row2Style: React.CSSProperties = isDesktop
+      ? { display: 'grid', gridTemplateColumns: row2DesktopTemplate, gap: '0.75rem' }
+      : isTablet
+        ? { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }
+        : { display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' };
+
     return (
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3">
-            {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3">
-              <div style={{ gridColumn: `span ${searchCols}` }} className="col-span-1 md:col-span-6 lg:col-auto">
-                {searchField}
-              </div>
-              {row1Filters.map((f) => (
-                <div key={f.key} style={{ gridColumn: 'span 2' }} className="col-span-1 md:col-span-3 lg:col-auto">
-                  {renderFilter(f, 2)}
-                </div>
-              ))}
+            <div style={row1Style}>
+              {searchField}
+              {row1Filters.map((f) => renderFilter(f))}
             </div>
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3">
-              {row2Filters.map((f) => (
-                <div key={f.key} style={{ gridColumn: `span ${row2EachCols}` }} className="col-span-1 md:col-span-3 lg:col-auto">
-                  {renderFilter(f, row2EachCols)}
-                </div>
-              ))}
-              {onReset && (
-                <div style={{ gridColumn: `span ${row2ResetCols}` }} className="col-span-1 md:col-span-3 lg:col-auto flex justify-end">
-                  {resetButton}
-                </div>
-              )}
+            <div style={row2Style}>
+              {row2Filters.map((f) => renderFilter(f))}
+              {resetBtn && <div className="flex justify-end">{resetBtn}</div>}
             </div>
           </div>
         </CardContent>
@@ -203,26 +202,26 @@ export const StandardSearchFilterBar: React.FC<StandardSearchFilterBarProps> = (
     );
   }
 
-  // Single row layout
-  const { searchCols, resetCols } = layout as { multiRow: false; searchCols: number; filterCols: number; resetCols: number };
+  // Single-row
+  const { searchCols, resetCols } = layout as { multiRow: false; searchCols: number; resetCols: number };
+
+  const parts = [fr(searchCols), ...filters.map(() => fr(2))];
+  if (onReset) parts.push(fr(resetCols));
+  const singleDesktopTemplate = parts.join(' ');
+
+  const gridStyle: React.CSSProperties = isDesktop
+    ? { display: 'grid', gridTemplateColumns: singleDesktopTemplate, gap: '0.75rem' }
+    : isTablet
+      ? { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }
+      : { display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' };
 
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3">
-          <div style={{ gridColumn: `span ${searchCols}` }} className="col-span-1 md:col-span-6 lg:col-auto">
-            {searchField}
-          </div>
-          {filters.map((f) => (
-            <div key={f.key} style={{ gridColumn: 'span 2' }} className="col-span-1 md:col-span-3 lg:col-auto">
-              {renderFilter(f, 2)}
-            </div>
-          ))}
-          {onReset && (
-            <div style={{ gridColumn: `span ${Math.max(resetCols, 1)}` }} className="col-span-1 md:col-span-3 lg:col-auto flex justify-end">
-              {resetButton}
-            </div>
-          )}
+        <div style={gridStyle}>
+          {searchField}
+          {filters.map((f) => renderFilter(f))}
+          {resetBtn && <div className="flex justify-end">{resetBtn}</div>}
         </div>
       </CardContent>
     </Card>
