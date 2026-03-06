@@ -1,72 +1,63 @@
 
+Goal: fully fix search/filter alignment by rebuilding the shared toolbar logic (not page-by-page hacks), then run route-by-route visual QA across all Internal Audit pages.
 
-## Plan: Rebuild StandardSearchFilterBar with Grid-Based Layout
+What I found (from code + current preview):
+1) The current StandardSearchFilterBar is still unstable:
+- Desktop column math creates oversized empty reset areas when filters are few.
+- Multi-row logic distributes row 2 unevenly (especially 5-filter pages like Follow-up Tracker).
+- Inline `gridColumn` spans apply at all breakpoints, causing awkward tablet wrapping/alignment.
+- Dynamic class names like `lg:col-span-${colSpan}` are unreliable.
+2) Most Internal Audit list routes do use the shared component, so fixing it centrally will correct nearly all pages at once.
 
-### Problem
-The current `StandardSearchFilterBar` uses a flex layout where the search input takes `flex-1` (stretching excessively), filters get arbitrary fixed widths (`170px`-`200px`), and the overall balance is poor. Pages with few filters have an oversized search bar; pages with many filters feel cramped.
+Implementation plan:
+1) Rebuild `src/components/common/StandardSearchFilterBar.tsx` layout engine with strict deterministic rules:
+- Desktop: true 12-col grid only.
+- Default spans: Search=4, each filter=2, Reset fixed at far right.
+- No unpredictable flex growth.
+- Compact uniform controls (`h-9`), consistent label spacing, uniform gaps/padding.
+2) Replace current multi-row algorithm with controlled wrapping:
+- If controls fit comfortably, single row.
+- If not, split into two explicit rows.
+- Follow-up Tracker special requirement supported via reusable prop (config-driven, not custom page markup): row 1 = Search + first 2 filters; row 2 = remaining filters + Reset.
+3) Keep API/backward compatibility of the component, but add optional layout config props (e.g., first-row filter cap / desktop split strategy) so pages can declare structure without custom UI code.
+4) Remove dynamic Tailwind span strings and breakpoint-conflicting inline grid behavior; use explicit grid templates per breakpoint.
+5) Fix debounce effect dependencies in the component to avoid stale search updates.
 
-### Solution
-Rebuild the component using a **CSS grid with a 12-column system** and intelligent column allocation based on filter count. For pages with many filters (like Follow-up Tracker with 5 filters), automatically wrap into two rows.
+Page wiring updates:
+- Keep all existing filters/business logic.
+- Add only layout-config props where required:
+  - `/audit/follow-up-tracker` (explicit 2-row distribution).
+  - Any other high-density filter pages if needed after QA (likely `/audit/activity-workbench`, `/audit/audit-reports`).
 
-### Changes
+QA/test plan (must be completed before finalizing):
+Desktop + Tablet + Mobile checks for:
+- /audit/auditors
+- /audit/leave
+- /audit/holidays
+- /audit/audit-plans
+- /audit/activity-workbench
+- /audit/evidence
+- /audit/working-papers
+- /audit/findings
+- /audit/responses
+- /audit/actions
+- /audit/follow-up-tracker
+- /audit/plan-closeout
+- /audit/departments
+- /audit/functions
+- /audit/plan-approval
+- /audit/audit-reports
+- /audit/calendar
+- /audit/letters
+- /audit/communication-center
 
-**1. Rewrite `src/components/common/StandardSearchFilterBar.tsx`**
+Acceptance checklist:
+- Search not over-dominant.
+- Dropdown/date widths balanced and equal-height.
+- Reset always right-aligned and visually connected.
+- No cramped date inputs.
+- Clean wrap behavior (no overflow/squeezing).
+- Consistent spacing/label alignment across all audited routes.
 
-Replace the flex layout with a 12-column grid system:
-
-- **Grid container**: `grid grid-cols-12 gap-3` on desktop (`lg:`), stacked on mobile
-- **Column allocation logic**:
-  - Calculate total slots needed: search (4 cols) + filters (2 cols each) + reset (1 col)
-  - If total exceeds 12, split into two rows
-  - Search always gets 4 columns on desktop
-  - Each filter gets 2 columns on desktop
-  - Reset gets remaining space, right-aligned
-- **Row wrapping**: When filters exceed what fits in one row (e.g., Follow-up Tracker with 5 filters), the grid naturally wraps. Search + first 2-3 filters on row 1, remaining filters + reset on row 2.
-- **Mobile**: `grid-cols-1` (full stack), with filters in `grid-cols-2` sub-grid on tablet (`md:grid-cols-2`)
-- **Consistent sizing**: All controls `h-9` (compact enterprise feel), uniform label spacing
-
-**Layout mapping per filter count:**
-
-```text
-0-1 filters:  Search[4] Filter[2] Reset[auto]  — single row, balanced
-2 filters:    Search[4] Filter[2] Filter[2] Reset[auto]
-3 filters:    Search[4] Filter[2] Filter[2] Filter[2] Reset[auto]  
-4 filters:    Search[3] Filter[2] Filter[2] Filter[2] Filter[2] Reset[1]
-5+ filters:   Row 1: Search[4] Filter[2] Filter[2]
-              Row 2: Filter[2] Filter[2] Filter[2] Reset[auto]
-```
-
-**Key CSS approach:**
-- Desktop: `lg:grid lg:grid-cols-12 lg:gap-3`
-- Each item gets `lg:col-span-X` based on allocation
-- Reset always `lg:col-start-12` or `ml-auto` within its cell
-- Tablet: `md:grid-cols-6` (half grid)
-- Mobile: `grid-cols-1` full stack
-
-**2. No changes needed to any page files**
-
-The component interface (`StandardSearchFilterBarProps`) remains identical. All pages already pass the correct props. The only change is internal layout logic within the component.
-
-**3. Specific layout outcomes:**
-
-| Page | Filters | Desktop Layout |
-|------|---------|---------------|
-| Auditor Profiles | 1 (Role) | Search[4] Role[2] Reset[1] — 5 cols used, clean |
-| Leave Management | 1 (Status) | Search[4] Status[2] Reset[1] |
-| Holiday Management | 1 (Type) | Search[4] Type[2] Reset[1] |
-| Audit Plans | 3 (FY, Status, Dept) | Search[3] FY[2] Status[2] Dept[2] Reset[1] — 10 cols |
-| Activity Workbench | 4 (Plan, DeptAudit, Status, Assigned) | Search[3] Plan[2] DeptAudit[2] Status[2] Assigned[2] Reset[1] — 12 cols |
-| Findings | 2 (Risk, Status) | Search[4] Risk[2] Status[2] Reset[1] |
-| Follow-up Tracker | 5 (Status, Dept, DueFrom, DueTo, Assigned) | Row1: Search[4] Status[2] Dept[2] DueFrom[2] — Row2: DueTo[3] Assigned[3] Reset[auto] |
-| Plan Closeout | 3 (FY, Type, Status) | Search[3] FY[2] Type[2] Status[2] Reset[1] |
-
-### Implementation approach
-
-The component will compute column spans dynamically:
-- `searchCols = filterCount >= 3 ? 3 : 4`
-- `filterCols = 2` (each)
-- Total = searchCols + (filterCount * 2) + 1 (reset)
-- If total > 12: enable `multiRow` mode, split filters across rows
-
-All controls maintain `h-9` height (slightly more compact than current `h-10`), `text-xs` labels with `mb-1` spacing, and the card container uses `p-4` padding (tighter than current `pt-6`).
-
+Deliverable:
+- One corrected shared toolbar system + small page config touches only where needed + verified screenshots/route-by-route QA notes for the key problematic pages (Auditors, Audit Plans, Activity Workbench, Follow-up Tracker, Plan Closeout, Department Master).
