@@ -1108,26 +1108,6 @@ export default function IPRegistrationForm() {
               <EmploymentHistoryTab ssn={formData.ssn} />
             </TabsContent>
 
-            {/* NPF Tab - Placeholder */}
-            <TabsContent value="npf" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                NPF information will be displayed here.
-              </div>
-            </TabsContent>
-
-            {/* Photo Tab - Placeholder */}
-            <TabsContent value="photo" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                Photo management will be displayed here.
-              </div>
-            </TabsContent>
-
-            {/* Caricom Tab - Placeholder */}
-            <TabsContent value="caricom" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                CARICOM information will be displayed here.
-              </div>
-            </TabsContent>
 
             {/* Self-Employed Tab Contents - only rendered if registered */}
             {showSepTabs && (
