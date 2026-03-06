@@ -1,6 +1,8 @@
 export { SearchBar } from './SearchBar';
 export { FilterBar } from './FilterBar';
 export type { FilterField, FilterOption } from './FilterBar';
+export { StandardSearchFilterBar } from './StandardSearchFilterBar';
+export type { StandardFilterField } from './StandardSearchFilterBar';
 export { DataTable } from './DataTable';
 export type { DataTableColumn } from './DataTable';
 export { EntityModal } from './EntityModal';

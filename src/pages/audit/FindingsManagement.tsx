@@ -10,8 +10,8 @@ import { useIAFindings, useIAFindingMutations, useIADepartments, useIAActivities
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
 const RISKS = ['High', 'Medium', 'Low'];
@@ -92,7 +92,7 @@ const FindingsManagement = () => {
     setEditItem(f);
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'risk', label: 'Risk', type: 'select', options: [{ value: 'all', label: 'All Risks' }, ...RISKS.map(r => ({ value: r, label: r }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, ...STATUSES.map(s => ({ value: s, label: s }))] },
   ];
@@ -170,14 +170,15 @@ const FindingsManagement = () => {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search findings..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', risk: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search findings..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ status: 'all', risk: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

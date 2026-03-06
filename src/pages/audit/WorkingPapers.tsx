@@ -10,8 +10,8 @@ import { useIAWorkingPapers, useIAWorkingPaperMutations, useIAActivities, useIAA
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 const STATUSES = ['Draft', 'Under Review', 'Approved'];
 
@@ -91,7 +91,7 @@ const WorkingPapers = () => {
     setEditItem(wp);
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, ...STATUSES.map(s => ({ value: s, label: s }))] },
   ];
 
@@ -166,14 +166,15 @@ const WorkingPapers = () => {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search working papers..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search working papers..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ status: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

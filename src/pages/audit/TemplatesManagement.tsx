@@ -7,8 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { useIADocumentTemplates, useIADocumentTemplateMutations } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 
 const TEMPLATE_TYPES = ['Letter', 'Report', 'Notice', 'Memo', 'Certificate'];
@@ -55,7 +55,7 @@ export default function TemplatesManagement() {
     setEditItem(t);
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, ...TEMPLATE_TYPES.map(t => ({ value: t, label: t }))] },
     { key: 'category', label: 'Category', type: 'select', options: [{ value: 'all', label: 'All Categories' }, ...TEMPLATE_CATEGORIES.map(c => ({ value: c, label: c }))] },
   ];
@@ -98,14 +98,15 @@ export default function TemplatesManagement() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Template</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search templates..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ type: 'all', category: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search templates..."
+        filters={filterFields as StandardFilterField[]}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ type: 'all', category: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

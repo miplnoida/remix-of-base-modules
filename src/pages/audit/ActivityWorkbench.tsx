@@ -8,8 +8,8 @@ import { AlertCircle, Eye, Play, CheckCircle, Edit, FileText, ClipboardPlus } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useIAActivities, useIAActivityMutations, useIAAnnualPlans, useIADepartmentAudits, useIAAuditors } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function ActivityWorkbench() {
   const { hasPermission } = useAuth();
@@ -59,7 +59,7 @@ export default function ActivityWorkbench() {
         (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     {
       key: 'planId',
       label: 'Annual Plan',
@@ -111,25 +111,21 @@ export default function ActivityWorkbench() {
       isLoading={isLoading}
       
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by activity name or id..." />
-            <FilterBar
-              filters={filterFields}
-              values={filters}
-              onChange={(key, value) => {
-                if (key === 'planId') {
-                  setFilters((prev) => ({ ...prev, planId: value, departmentAuditId: 'all' }));
-                  return;
-                }
-                setFilters((prev) => ({ ...prev, [key]: value }));
-              }}
-              onReset={() => setFilters({ planId: 'all', departmentAuditId: 'all', status: 'all', assignedTo: 'all' })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by activity name or id..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(key, value) => {
+          if (key === 'planId') {
+            setFilters((prev) => ({ ...prev, planId: value, departmentAuditId: 'all' }));
+            return;
+          }
+          setFilters((prev) => ({ ...prev, [key]: value }));
+        }}
+        onReset={() => setFilters({ planId: 'all', departmentAuditId: 'all', status: 'all', assignedTo: 'all' })}
+      />
 
       {needsAnnualPlan && (
         <Card>

@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 const ACTION_STATUSES = ['Not Started', 'In Progress', 'Implemented', 'Verified', 'Closed'];
 
@@ -43,7 +43,7 @@ export default function ActionTracking() {
     update.mutate({ id, status: newStatus, ...getUpdateFields(), ...(newStatus === 'Verified' ? { verified_date: new Date().toISOString() } : {}) });
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, ...ACTION_STATUSES.map(s => ({ value: s, label: s }))] },
   ];
 
@@ -85,14 +85,15 @@ export default function ActionTracking() {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search actions..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search actions..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ status: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

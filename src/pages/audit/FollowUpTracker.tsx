@@ -9,8 +9,8 @@ import { Upload, Eye, Edit3, MessageSquare, Plus } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
 import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function FollowUpTracker() {
   const { toast } = useToast();
@@ -91,7 +91,7 @@ export default function FollowUpTracker() {
     { key: 'responsible', header: 'Responsible', render: (row) => row.responsible_party || row.responsible_person || '-' },
   ];
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Open', label: 'Open' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Resolved', label: 'Resolved' }, { value: 'Overdue', label: 'Overdue' }] },
     { key: 'departmentId', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))] },
     { key: 'dueFrom', label: 'Due From', type: 'date' },
@@ -107,14 +107,15 @@ export default function FollowUpTracker() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Follow-Up</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search follow-ups..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search follow-ups..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

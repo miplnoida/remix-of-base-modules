@@ -8,8 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Award, X } from 'lucide-react';
 import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
 const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
@@ -116,19 +116,15 @@ export default function AuditorProfiles() {
       error={isError ? 'Failed to load auditor profiles' : null}
       actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by name, email, or employee number..." />
-            <FilterBar
-              filters={[{ key: 'role', label: 'Role', type: 'select', options: [{ value: 'all', label: 'All Roles' }, { value: 'Audit Director', label: 'Audit Director' }, { value: 'Audit Manager', label: 'Audit Manager' }, { value: 'Auditor', label: 'Auditor' }] }]}
-              values={filters}
-              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-              onReset={() => setFilters({ role: 'all' })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by name, email, or employee number..."
+        filters={[{ key: 'role', label: 'Role', type: 'select', options: [{ value: 'all', label: 'All Roles' }, { value: 'Audit Director', label: 'Audit Director' }, { value: 'Audit Manager', label: 'Audit Manager' }, { value: 'Auditor', label: 'Auditor' }] }] as StandardFilterField[]}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ role: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

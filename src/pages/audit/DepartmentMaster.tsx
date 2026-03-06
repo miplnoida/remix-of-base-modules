@@ -8,8 +8,8 @@ import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
-import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function DepartmentMaster() {
   const { profile } = useSupabaseAuth();
@@ -44,7 +44,7 @@ export default function DepartmentMaster() {
     setEditDept(dept);
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'risk', label: 'Risk Rating', type: 'select', options: [{ value: 'all', label: 'All Ratings' }, { value: 'High', label: 'High' }, { value: 'Medium', label: 'Medium' }, { value: 'Low', label: 'Low' }] },
   ];
 
@@ -105,14 +105,15 @@ export default function DepartmentMaster() {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by department name or head..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ risk: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by department name or head..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ risk: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

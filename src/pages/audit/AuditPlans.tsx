@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function AuditPlans() {
   const { hasPermission } = useAuth();
@@ -53,15 +53,15 @@ export default function AuditPlans() {
       isLoading={isLoading}
       actions={hasPermission('create_audit_plans') ? <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}><Plus className="w-4 h-4 mr-2" />Create Plan</Button> : undefined}
     >
-      <div className="flex flex-col md:flex-row gap-3">
-        <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by period or title..." />
-        <FilterBar
-          filters={[{ key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' }, { value: 'Rejected', label: 'Rejected' }] }]}
-          values={filters}
-          onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-          onReset={() => setFilters({ status: 'all' })}
-        />
-      </div>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by period or title..."
+        filters={[{ key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' }, { value: 'Rejected', label: 'Rejected' }] }] as StandardFilterField[]}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ status: 'all' })}
+      />
 
       <DataTable
         columns={columns}

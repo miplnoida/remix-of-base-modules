@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Send, Plus, Mail, FileText } from 'lucide-react';
 import { useIADocumentTemplates, useIAAnnualPlans, useIADepartments, useIACommunications, useIACommunicationMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, SearchBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 
@@ -54,11 +54,11 @@ export default function CommunicationCenter() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />New Communication</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search templates or communications..." />
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search templates or communications..."
+      />
 
       <Tabs defaultValue="sent">
         <TabsList>

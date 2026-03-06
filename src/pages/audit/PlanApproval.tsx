@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
 
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function PlanApproval() {
   
@@ -90,7 +90,7 @@ export default function PlanApproval() {
     }
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     {
       key: 'planType',
       label: 'Plan Type',
@@ -126,19 +126,15 @@ export default function PlanApproval() {
       isLoading={annualLoading || deptLoading}
       
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by plan id or title..." />
-            <FilterBar
-              filters={filterFields}
-              values={filters}
-              onChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
-              onReset={() => setFilters({ planType: 'all', fiscalYear: 'all' })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by plan id or title..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
+        onReset={() => setFilters({ planType: 'all', fiscalYear: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

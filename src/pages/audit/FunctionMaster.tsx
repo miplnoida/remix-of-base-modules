@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Shield, Target } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function FunctionMaster() {
   const { toast } = useToast();
@@ -96,19 +96,15 @@ export default function FunctionMaster() {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Low').length}</div></CardContent></Card>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search functions..." />
-            <FilterBar
-              filters={[{ key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] }]}
-              values={filters}
-              onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-              onReset={() => setFilters({ department: 'all' })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search functions..."
+        filters={[{ key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] }] as StandardFilterField[]}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ department: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

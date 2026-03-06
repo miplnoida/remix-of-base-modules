@@ -12,8 +12,8 @@ import {
   useIAFindings,
   useIAFollowUps,
 } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 interface CloseoutRow {
   id: string;
@@ -137,7 +137,7 @@ export default function PlanCloseout() {
     { key: 'completion', header: 'Completion %', render: (row) => `${getProgress(row)}%` },
   ];
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     {
       key: 'fiscalYear',
       label: 'Fiscal Year',
@@ -190,19 +190,15 @@ export default function PlanCloseout() {
       isLoading={annualLoading || deptLoading}
       
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search plan id, name, or department..." />
-            <FilterBar
-              filters={filterFields}
-              values={filters}
-              onChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
-              onReset={() => setFilters({ fiscalYear: 'all', planType: 'all', status: 'all' })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search plan id, name, or department..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
+        onReset={() => setFilters({ fiscalYear: 'all', planType: 'all', status: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

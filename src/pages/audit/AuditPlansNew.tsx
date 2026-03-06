@@ -9,9 +9,9 @@ import { Plus, Eye, Edit, Send } from 'lucide-react';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useIADepartmentAuditMutations, useIADepartments } from '@/hooks/useAuditData';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function AuditPlansNew() {
   
@@ -92,7 +92,7 @@ export default function AuditPlansNew() {
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
   ];
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'fiscalYear', label: 'Fiscal Year', type: 'select', options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((year) => ({ value: year, label: year }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' }] },
     { key: 'departmentId', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))] },
@@ -108,14 +108,15 @@ export default function AuditPlansNew() {
       isLoading={plansLoading || auditsLoading}
       actions={<Button onClick={() => setShowCreatePicker(true)}><Plus className="w-4 h-4 mr-2" />Add New</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search plan name, id, or department..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters((prev) => ({ ...prev, [k]: v }))} onReset={resetFilters} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search plan name, id, or department..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters((prev) => ({ ...prev, [k]: v }))}
+        onReset={resetFilters}
+      />
 
       <Tabs defaultValue="annual" className="space-y-4">
         <TabsList>
