@@ -204,7 +204,8 @@ export default function IPRegistrationForm() {
   const isSelfEmployed = selfEmployed.activities.length > 0;
   // Always show SEP tab if person has permanent SSN (not temp), so users can add activities from View or Edit mode
   const hasPermanentSSN = formData?.ssn && !formData.ssn.startsWith('T');
-  const showSepTabs = isSelfEmployed || sepRegistrationMode || (hasPermanentSSN && !isNewMode);
+  const isDraftOrPending = ['Z', 'P'].includes(formData?.status || '');
+  const showSepTabs = !isDraftOrPending && (isSelfEmployed || sepRegistrationMode || (hasPermanentSSN && !isNewMode));
 
   // Handle "Register as Self Employed" action - navigate to edit mode with SEP tabs
   const handleRegisterAsSelfEmployed = useCallback(() => {
