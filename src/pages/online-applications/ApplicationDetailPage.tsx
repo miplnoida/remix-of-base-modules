@@ -613,7 +613,7 @@ export default function ApplicationDetailPage() {
                         <TableCell>{formatDateRaw(dep.dateOfBirth)}</TableCell>
                         <TableCell>{formatGender(dep.gender)}</TableCell>
                         <TableCell>{getRelationName(dep.relationship)}</TableCell>
-                        <TableCell>{dep.address1 || (dep.livesAtSameAddress ? 'Same as Applicant' : dep.address) || '—'}</TableCell>
+                        <TableCell>{[dep.address1, dep.address2].filter(Boolean).join(', ') || (dep.livesAtSameAddress ? 'Same as Applicant' : dep.address) || '—'}</TableCell>
                         <TableCell>
                           {(dep.isSchoolChild ?? dep.isInSchool) ? (
                             <Badge variant="default">Yes</Badge>
