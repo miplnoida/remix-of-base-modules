@@ -448,9 +448,9 @@ export default function ApplicationDetailPage() {
                   Residential Address
                 </h3>
                 <div className="grid grid-cols-3 gap-6">
-                  <InfoField label="Address Line 1" value={application.addressLine1} />
-                  <InfoField label="Address Line 2" value={application.addressLine2} />
-                  <InfoField label="Postal District" value={getDistrictName(application.postalDistrict)} />
+                  <InfoField label="Address Line 1" value={application.resAddr1 || application.addressLine1} />
+                  <InfoField label="Address Line 2" value={application.resAddr2 || application.addressLine2} />
+                  <InfoField label="Postal District" value={getDistrictName(application.resDistrict || application.postalDistrict)} />
                   <InfoField label="Place of Residency" value={getCountryName(application.placeOfResidency)} />
                   <InfoField label="Residency Date" value={formatDateRaw(application.residencyDate)} />
                 </div>
