@@ -916,18 +916,6 @@ export default function IPRegistrationForm() {
                 <Briefcase className="h-4 w-4" />
                 <span className="hidden sm:inline">Emp. History</span>
               </TabsTrigger>
-              <TabsTrigger value="npf" className="flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                <span className="hidden sm:inline">NPF</span>
-              </TabsTrigger>
-              <TabsTrigger value="photo" className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                <span className="hidden sm:inline">Photo</span>
-              </TabsTrigger>
-              <TabsTrigger value="caricom" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">Caricom</span>
-              </TabsTrigger>
               {/* Self-Employed tabs - only visible if registered as self-employed */}
               {showSepTabs && (
                 <>
@@ -1120,26 +1108,6 @@ export default function IPRegistrationForm() {
               <EmploymentHistoryTab ssn={formData.ssn} />
             </TabsContent>
 
-            {/* NPF Tab - Placeholder */}
-            <TabsContent value="npf" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                NPF information will be displayed here.
-              </div>
-            </TabsContent>
-
-            {/* Photo Tab - Placeholder */}
-            <TabsContent value="photo" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                Photo management will be displayed here.
-              </div>
-            </TabsContent>
-
-            {/* Caricom Tab - Placeholder */}
-            <TabsContent value="caricom" className="mt-6">
-              <div className="text-center py-8 text-muted-foreground">
-                CARICOM information will be displayed here.
-              </div>
-            </TabsContent>
 
             {/* Self-Employed Tab Contents - only rendered if registered */}
             {showSepTabs && (
