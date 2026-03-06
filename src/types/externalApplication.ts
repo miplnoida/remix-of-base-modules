@@ -150,6 +150,7 @@ export interface ExternalApplicationDetail {
   // Employment
   isSelfEmployed: boolean;
   hasWorkPermit: boolean;
+  workPermit?: string | null;
   workPermitExpiry: string | null;
   occupation?: string;
   occupationCode?: string;

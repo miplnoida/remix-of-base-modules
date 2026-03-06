@@ -552,7 +552,7 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-3 gap-6">
-                <InfoField label="Has Work Permit" value={application.hasWorkPermit ? 'Yes' : 'No'} />
+                <InfoField label="Has Work Permit" value={(() => { const raw = application.workPermit ?? application.hasWorkPermit; if (raw === 'Y' || raw === 'y' || raw === true || raw === 'true' || raw === 'Yes') return 'Yes'; if (raw === 'N' || raw === 'n' || raw === false || raw === 'false' || raw === 'No') return 'No'; return '-'; })()} />
                 <InfoField label="Work Permit Expiry" value={formatDateRaw(application.workPermitExpiry)} />
                 <InfoField label="Occupation" value={application.occupationName || getOccupationName(application.occupationCode || application.occupation)} />
                 <InfoField label="NPF" value={resolveNpf()} />
