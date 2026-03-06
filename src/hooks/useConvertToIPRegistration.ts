@@ -364,7 +364,7 @@ export function useConvertToIPRegistration() {
           p_ben_addr1:             trim(app.beneficiaryAddress, 50),
           p_ben_addr2:             trim(app.beneficiaryAddress1, 50),
           p_primary_occup:         trim((app.occupationCode || app.occupation || ''), 4),
-          p_work_permit:           ((app as any).hasWorkPermit === true || (app as any).hasWorkPermit === 'Y' || (app as any).hasWorkPermit === 'true') ? 'Y' : 'N',
+          p_work_permit:           (() => { const wp = (app as any).hasWorkPermit ?? (app as any).workPermit; return (wp === true || wp === 'Y' || wp === 'y' || wp === 'true' || wp === 'Yes') ? 'Y' : 'N'; })(),
           p_work_permit_expiration: safeDate(app.workPermitExpiry ?? undefined),
           p_npf:                   npf,
           p_citizenship_flag:      citizenshipFlag,

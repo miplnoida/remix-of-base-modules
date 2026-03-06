@@ -143,7 +143,7 @@ function buildRpcParams(detail: ExternalApplicationDetail, approvedBy: string, s
     p_npf:                npfValue,
     p_date_of_residency:  (detail.placeOfBirth && detail.placeOfResidency && detail.placeOfBirth === detail.placeOfResidency) ? null : safeDate(detail.residencyDate ?? undefined),
     p_place_of_residence: countryCode(detail.placeOfResidency),
-    p_has_work_permit:    ((detail as any).hasWorkPermit === true || (detail as any).hasWorkPermit === 'Y' || (detail as any).hasWorkPermit === 'true') ? 'Y' : 'N',
+    p_has_work_permit:    (() => { const wp = (detail as any).hasWorkPermit ?? (detail as any).workPermit; return (wp === true || wp === 'Y' || wp === 'y' || wp === 'true' || wp === 'Yes') ? 'Y' : 'N'; })(),
     p_work_permit_expiry: safeDate(detail.workPermitExpiry ?? undefined),
     p_witness_name:       detail.witnessName       || null,
     p_witness_date:       safeDate(detail.witnessDate ?? undefined),
