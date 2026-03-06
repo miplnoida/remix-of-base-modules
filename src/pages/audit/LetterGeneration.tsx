@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, Plus } from 'lucide-react';
 import { useIADocumentTemplates, useIAAnnualPlans, useIADepartments } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, SearchBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 
@@ -40,11 +40,11 @@ export default function LetterGeneration() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Generate Letter</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search templates..." />
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search templates..."
+      />
 
       <Card>
         <CardContent className="pt-6">

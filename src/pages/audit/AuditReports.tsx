@@ -7,8 +7,8 @@ import { Eye, Download, FileText, RefreshCw, Share2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useIAAuditReports, useIAAuditReportMutations } from '@/hooks/useAuditReports';
-import { PageShell, SearchBar, FilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const REPORT_TYPES = ['Plan Summary', 'Activity Schedule', 'Auditor Workload', 'Findings Compliance', 'Follow-up Register'];
@@ -65,7 +65,7 @@ export default function AuditReports() {
     { key: 'generated_on', header: 'Generated On', render: (r) => r.generated_on ? new Date(r.generated_on).toLocaleDateString() : '-' },
   ];
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'fiscalYear', label: 'Fiscal Year', type: 'select', options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((y) => ({ value: y, label: y }))] },
     { key: 'departmentId', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...(departments || []).map((d: any) => ({ value: d.id, label: d.name }))] },
     { key: 'reportType', label: 'Report Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, ...REPORT_TYPES.map((t) => ({ value: t, label: t }))] },
@@ -80,14 +80,15 @@ export default function AuditReports() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Report</Button>}
     >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search report title or department..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ fiscalYear: 'all', departmentId: 'all', reportType: 'all', status: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search report title or department..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
+        onReset={() => setFilters({ fiscalYear: 'all', departmentId: 'all', reportType: 'all', status: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIAActivities, useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { PageShell, SearchBar, FilterBar, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, StatusBadge, EntityModal } from '@/components/common';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -88,16 +88,15 @@ export default function ActivityCalendar() {
         <Card><CardContent className="pt-6"><div className="flex items-center"><MapPin className="h-5 w-5 text-muted-foreground" /><div className="ml-3"><p className="text-sm text-muted-foreground">Completed</p><p className="text-2xl font-bold">{filteredActivities.filter((a: any) => a.status === 'Completed').length}</p></div></div></CardContent></Card>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <FilterBar
-            filters={filterFields}
-            values={filters}
-            onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-            onReset={() => setFilters({ auditor: 'all', status: 'all' })}
-          />
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue=""
+        onSearchChange={() => {}}
+        searchPlaceholder="Search activities..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ auditor: 'all', status: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">

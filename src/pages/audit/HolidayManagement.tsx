@@ -8,8 +8,8 @@ import { Plus, Calendar, Trash2, CalendarDays, Building2 } from 'lucide-react';
 import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageShell, SearchBar, FilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
-import type { DataTableColumn, FilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
@@ -47,7 +47,7 @@ export default function HolidayManagement() {
     setEditHoliday(h);
   };
 
-  const filterFields: FilterField[] = [
+  const filterFields: StandardFilterField[] = [
     { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'public', label: 'Public Holidays' }, { value: 'ssb', label: 'SSB-Specific' }] },
   ];
 
@@ -102,14 +102,15 @@ export default function HolidayManagement() {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by holiday name or country..." />
-            <FilterBar filters={filterFields} values={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ type: 'all' })} />
-          </div>
-        </CardContent>
-      </Card>
+      <StandardSearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by holiday name or country..."
+        filters={filterFields}
+        filterValues={filters}
+        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
+        onReset={() => setFilters({ type: 'all' })}
+      />
 
       <Card>
         <CardContent className="pt-6">
