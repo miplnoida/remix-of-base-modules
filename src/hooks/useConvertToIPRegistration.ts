@@ -101,7 +101,7 @@ export function validateApplicationForConversion(
     errors.push({ field: 'dateMarried', message: 'Date married is required for married/common-law applicants' });
   }
 
-  const wpVal = (app as any).hasWorkPermit;
+  const wpVal = (app as any).hasWorkPermit ?? (app as any).workPermit;
   if ((wpVal === true || wpVal === 'Y' || wpVal === 'true') && !app.workPermitExpiry) {
     errors.push({ field: 'workPermitExpiry', message: 'Work permit expiry date is required when work permit is set' });
   }
