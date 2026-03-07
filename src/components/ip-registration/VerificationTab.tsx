@@ -5,11 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Upload, File, Trash2, Download, AlertTriangle } from 'lucide-react';
+import { Shield, Upload, File, Trash2, Download, AlertTriangle, Loader2, ShieldCheck, ShieldAlert, ScanSearch } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useDocumentPurposeValidation, type DocumentValidationResult } from '@/hooks/useDocumentPurposeValidation';
+import { useAuth } from '@/contexts/AuthContext';
+import { EXTERNAL_DOC_TYPE_TO_VERIFY_CODE } from '@/components/documents/shared/types';
 
 interface VerificationTabProps {
   formData: IPMasterFormData;
