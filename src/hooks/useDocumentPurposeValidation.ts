@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
 export interface DocumentValidationResult {
   is_valid: boolean;
   confidence: number;
   reason: string;
   extracted_text_preview?: string;
+  user_message?: string;
+  _fallback?: boolean;
 }
 
 interface ValidationState {
@@ -57,12 +59,49 @@ export function useDocumentPurposeValidation() {
         }
       );
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        throw new Error((errorBody as any)?.reason || `Validation failed: HTTP ${response.status}`);
-      }
+      let result: DocumentValidationResult;
 
-      const result: DocumentValidationResult = await response.json();
+      if (!response.ok) {
+        // Try to parse error body
+        let errorBody: any = {};
+        try {
+          errorBody = await response.json();
+        } catch {
+          // ignore parse error
+        }
+
+        // Log the full technical error for debugging
+        await logApplicationError(
+          new Error(`Document validation HTTP ${response.status}: ${errorBody?.reason || 'Unknown'}`),
+          {
+            module: 'DocumentPurposeValidation',
+            action: 'validateDocument',
+            entity_type: 'document',
+            request_payload: { docCode, fileName: file.name, fileSize: file.size, mimeType: file.type },
+          }
+        );
+
+        // If the server returned a structured response with user_message, use it
+        if (errorBody?.user_message) {
+          result = {
+            is_valid: errorBody.is_valid ?? false,
+            confidence: errorBody.confidence ?? 0,
+            reason: errorBody.reason || 'Validation service error',
+            user_message: errorBody.user_message,
+          };
+        } else {
+          // Service unavailable — accept document gracefully
+          result = {
+            is_valid: true,
+            confidence: 0.5,
+            reason: `Validation service returned HTTP ${response.status}`,
+            user_message: 'Document accepted. Automatic verification was temporarily unavailable — your document will be reviewed manually.',
+            _fallback: true,
+          };
+        }
+      } else {
+        result = await response.json();
+      }
 
       setValidationStates(prev => ({
         ...prev,
@@ -71,19 +110,30 @@ export function useDocumentPurposeValidation() {
 
       return result;
     } catch (error: any) {
+      // Log full technical error for support/debugging
       console.error('Document purpose validation error:', error);
-      const failResult: DocumentValidationResult = {
-        is_valid: false,
-        confidence: 0,
+      await logApplicationError(error, {
+        module: 'DocumentPurposeValidation',
+        action: 'validateDocument',
+        entity_type: 'document',
+        request_payload: { docCode, fileName: file.name, fileSize: file.size, mimeType: file.type },
+      });
+
+      // Don't block the user — accept with fallback
+      const fallbackResult: DocumentValidationResult = {
+        is_valid: true,
+        confidence: 0.5,
         reason: error.message || 'Validation service unavailable',
+        user_message: 'Document accepted. Automatic verification could not be completed at this time — your document will be reviewed manually.',
+        _fallback: true,
       };
 
       setValidationStates(prev => ({
         ...prev,
-        [slotKey]: { validating: false, result: failResult },
+        [slotKey]: { validating: false, result: fallbackResult },
       }));
 
-      return failResult;
+      return fallbackResult;
     }
   }, []);
 
