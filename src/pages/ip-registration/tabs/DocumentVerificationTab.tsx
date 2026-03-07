@@ -650,6 +650,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
             uploadProgress={hook.uploadProgress}
             isEditable={isEditable}
             verificationCategories={verificationCategories}
+            purposeValidationStates={hook.purposeValidation.validationStates}
             onFileUpload={hook.handleFileUpload}
             onDelete={hook.handleDeleteDocument}
             onDownload={hook.handleDownloadDocument}

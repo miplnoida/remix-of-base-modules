@@ -8,13 +8,14 @@ import { Progress } from '@/components/ui/progress';
 import {
   Upload, File, Trash2, Download, FileText, Eye,
   Loader2, CheckCircle2, Info, ChevronLeft,
-  ShieldCheck, AlertTriangle, RefreshCw
+  ShieldCheck, AlertTriangle, RefreshCw, ShieldAlert, ScanSearch
 } from 'lucide-react';
 import {
   UploadSlot, UnifiedDocument, DocTypeMismatch,
   ACCEPTED_TYPES, formatSize,
 } from './types';
 import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
+import type { DocumentValidationResult } from '@/hooks/useDocumentPurposeValidation';
 
 interface VerificationCategory {
   id: string;
@@ -30,6 +31,8 @@ interface DocumentUploadStepProps {
   isEditable: boolean;
   verificationCategories?: VerificationCategory[];
   docTypeMismatchErrors?: DocTypeMismatch[];
+  /** Purpose validation state per slot key */
+  purposeValidationStates?: Record<string, { validating: boolean; result: DocumentValidationResult | null }>;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>, slot: UploadSlot) => void;
   onDelete: (doc: UnifiedDocument) => void;
   onDownload: (doc: UnifiedDocument) => void;
@@ -50,6 +53,7 @@ export function DocumentUploadStep({
   isEditable,
   verificationCategories = [],
   docTypeMismatchErrors = [],
+  purposeValidationStates = {},
   onFileUpload,
   onDelete,
   onDownload,
@@ -101,6 +105,8 @@ export function DocumentUploadStep({
           const slotDocs = getDocsForSlot(slot);
           const isUploading = uploading[slot.key];
           const slotUploadError = uploadErrors[slot.key];
+          const slotValidation = purposeValidationStates[slot.key];
+          const isSlotValidating = slotValidation?.validating || false;
 
           // Check for doc-type mismatch inline
           const slotMismatch = !slot.isSupportive
@@ -140,12 +146,17 @@ export function DocumentUploadStep({
                         accept={ACCEPTED_TYPES.join(',')}
                         multiple
                         onChange={(e) => onFileUpload(e, slot)}
-                        disabled={isUploading}
+                        disabled={isUploading || isSlotValidating}
                       />
-                      <Button variant="outline" size="sm" asChild disabled={isUploading}>
+                      <Button variant="outline" size="sm" asChild disabled={isUploading || isSlotValidating}>
                         <span>
-                          {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isSlotValidating ? (
+                            <><ScanSearch className="h-4 w-4 mr-2 animate-pulse" /> Verifying...</>
+                          ) : isUploading ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                          ) : (
+                            <><Upload className="h-4 w-4 mr-2" /> Upload</>
+                          )}
                         </span>
                       </Button>
                     </label>
@@ -182,6 +193,36 @@ export function DocumentUploadStep({
                   </div>
                 )}
 
+                {/* Document purpose validation status */}
+                {slotValidation?.result && !slotValidation.validating && (
+                  slotValidation.result.is_valid ? (
+                    <div className="flex items-start gap-2 p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 mb-2">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="text-xs text-emerald-700 dark:text-emerald-400">
+                        <strong>Document verified:</strong> {slotValidation.result.reason}
+                        {slotValidation.result.confidence !== undefined && (
+                          <span className="ml-1 opacity-75">({Math.round(slotValidation.result.confidence * 100)}% confidence)</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/30 mb-2">
+                      <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                      <div className="text-xs text-destructive">
+                        <strong>Validation failed:</strong> {slotValidation.result.reason}
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {/* Validating indicator */}
+                {isSlotValidating && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-primary/5 border border-primary/20 mb-2">
+                    <ScanSearch className="h-4 w-4 text-primary animate-pulse shrink-0" />
+                    <p className="text-xs text-primary">Analyzing document content to verify it matches the selected type...</p>
+                  </div>
+                )}
+
                 {/* Upload progress */}
                 {Object.entries(uploadProgress)
                   .filter(([key]) => key.startsWith(slot.key))
@@ -189,7 +230,7 @@ export function DocumentUploadStep({
                     <div key={key} className="mb-2">
                       <Progress value={progress} className="h-1.5" />
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {progress < 100 ? `Uploading... ${progress}%` : 'Complete'}
+                        {progress < 30 ? 'Verifying document...' : progress < 100 ? `Uploading... ${progress}%` : 'Complete'}
                       </p>
                     </div>
                   ))

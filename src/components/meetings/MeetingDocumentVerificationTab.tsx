@@ -263,6 +263,7 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
               isEditable={isEditable}
               verificationCategories={verificationCategories}
               docTypeMismatchErrors={docTypeMismatchErrors}
+              purposeValidationStates={hook.purposeValidation.validationStates}
               onFileUpload={hook.handleFileUpload}
               onDelete={hook.handleDeleteDocument}
               onDownload={hook.handleDownloadDocument}

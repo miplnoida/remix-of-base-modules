@@ -5,11 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Upload, File, Trash2, Download, AlertTriangle } from 'lucide-react';
+import { Shield, Upload, File, Trash2, Download, AlertTriangle, Loader2, ShieldCheck, ShieldAlert, ScanSearch } from 'lucide-react';
 import { IPMasterFormData } from '@/types/ipRegistration';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useDocumentPurposeValidation, type DocumentValidationResult } from '@/hooks/useDocumentPurposeValidation';
+import { useAuth } from '@/contexts/AuthContext';
+import { EXTERNAL_DOC_TYPE_TO_VERIFY_CODE } from '@/components/documents/shared/types';
 
 interface VerificationTabProps {
   formData: IPMasterFormData;
@@ -32,9 +35,13 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
   isEditable,
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data: verifyTypes = [], isLoading: loadingVerifyTypes } = useVerifyTypes();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [validatingDocType, setValidatingDocType] = useState<string | null>(null);
+  const [validationResults, setValidationResults] = useState<Record<string, DocumentValidationResult>>({});
+  const purposeValidation = useDocumentPurposeValidation();
 
   const isMarried = formData.marital_status === 'M';
   const hasMarriageCert = documents.some(d => d.document_type === 'Marriage Certificate');
@@ -67,7 +74,35 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
     const file = e.target.files?.[0];
     if (!file || !formData.ssn) return;
     setUploading(true);
+    setValidatingDocType(documentType);
+    
     try {
+      // Resolve doc_code from documentType name
+      const docCode = EXTERNAL_DOC_TYPE_TO_VERIFY_CODE[documentType] || '';
+      
+      // Step 1: Server-side document purpose validation
+      if (docCode) {
+        const validationResult = await purposeValidation.validateDocument(
+          file, docCode, documentType, undefined, user?.id
+        );
+        
+        setValidationResults(prev => ({ ...prev, [documentType]: validationResult }));
+
+        if (!validationResult.is_valid) {
+          toast({
+            title: `Document does not match "${documentType}"`,
+            description: validationResult.reason,
+            variant: 'destructive',
+          });
+          setUploading(false);
+          setValidatingDocType(null);
+          return;
+        }
+      }
+      
+      setValidatingDocType(null);
+      
+      // Step 2: Upload file
       const fileExt = file.name.split('.').pop();
       const fileName = `${formData.ssn}/${documentType}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('ip-documents').upload(fileName, file);
@@ -75,7 +110,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
       const { error: dbError } = await supabase.from('ip_application_documents').insert({
         ssn: formData.ssn,
         document_name: documentType,
-        document_type: 'mandatory',
+        document_type: docCode || 'mandatory',
         file_name: file.name,
         file_path: fileName,
         file_size: file.size,
@@ -83,12 +118,13 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
         transfer_status: 'Pending',
       });
       if (dbError) throw dbError;
-      toast({ title: 'Document uploaded successfully' });
+      toast({ title: 'Document verified & uploaded successfully' });
       fetchDocuments();
     } catch (error: any) {
       toast({ title: 'Failed to upload document', description: error.message, variant: 'destructive' });
     } finally {
       setUploading(false);
+      setValidatingDocType(null);
     }
   };
 
@@ -256,29 +292,60 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
         <CardContent className="space-y-4">
           {isEditable && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {docTypes.map((docType) => (
-                <div key={docType} className="border rounded-lg p-4 flex items-center justify-between">
-                  <span className="font-medium text-sm">
-                    {docType}
-                    {docType === 'Marriage Certificate' && isMarried && ' *'}
-                  </span>
-                  <label className="cursor-pointer">
-                    <Input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e, docType)}
-                      disabled={uploading}
-                    />
-                    <Button variant="outline" size="sm" asChild disabled={uploading}>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {uploading ? 'Uploading...' : 'Upload'}
+              {docTypes.map((docType) => {
+                const vResult = validationResults[docType];
+                const isCurrentlyValidating = validatingDocType === docType;
+                return (
+                  <div key={docType} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">
+                        {docType}
+                        {docType === 'Marriage Certificate' && isMarried && ' *'}
                       </span>
-                    </Button>
-                  </label>
-                </div>
-              ))}
+                      <label className="cursor-pointer">
+                        <Input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onChange={(e) => handleFileUpload(e, docType)}
+                          disabled={uploading}
+                        />
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span>
+                            {isCurrentlyValidating ? (
+                              <><ScanSearch className="h-4 w-4 mr-2 animate-pulse" /> Verifying...</>
+                            ) : uploading && validatingDocType !== docType ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                            ) : (
+                              <><Upload className="h-4 w-4 mr-2" /> Upload</>
+                            )}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    {/* Validation result inline */}
+                    {vResult && !isCurrentlyValidating && (
+                      vResult.is_valid ? (
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>Verified ({Math.round(vResult.confidence * 100)}% match)</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-1.5 text-xs text-destructive">
+                          <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>{vResult.reason}</span>
+                        </div>
+                      )
+                    )}
+                    {isCurrentlyValidating && (
+                      <div className="flex items-center gap-1.5 text-xs text-primary">
+                        <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
+                        <span>Analyzing document content...</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
