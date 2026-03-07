@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ShieldAlert } from 'lucide-react';
 import React from 'react';
 import {
   UnifiedDocument, VerificationCategory, UploadSlot, PreviewDoc, DocTypeMismatch,
@@ -12,6 +12,7 @@ import {
   CATEGORY_FIELD_KEY_MAP,
   getFileCategory,
 } from '@/components/documents/shared/types';
+import { useDocumentPurposeValidation, type DocumentValidationResult } from '@/hooks/useDocumentPurposeValidation';
 
 export interface UseDocumentVerificationConfig {
   adapter: DocumentPersistenceAdapter;
