@@ -105,6 +105,8 @@ export function DocumentUploadStep({
           const slotDocs = getDocsForSlot(slot);
           const isUploading = uploading[slot.key];
           const slotUploadError = uploadErrors[slot.key];
+          const slotValidation = purposeValidationStates[slot.key];
+          const isSlotValidating = slotValidation?.validating || false;
 
           // Check for doc-type mismatch inline
           const slotMismatch = !slot.isSupportive
