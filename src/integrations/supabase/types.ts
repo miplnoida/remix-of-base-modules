@@ -4094,6 +4094,78 @@ export type Database = {
         }
         Relationships: []
       }
+      document_purpose_rules: {
+        Row: {
+          ai_prompt_hint: string | null
+          created_at: string
+          doc_code: string
+          doc_description: string
+          expected_keywords: string[]
+          id: string
+          is_active: boolean
+          min_confidence: number
+          updated_at: string
+        }
+        Insert: {
+          ai_prompt_hint?: string | null
+          created_at?: string
+          doc_code: string
+          doc_description: string
+          expected_keywords?: string[]
+          id?: string
+          is_active?: boolean
+          min_confidence?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_prompt_hint?: string | null
+          created_at?: string
+          doc_code?: string
+          doc_description?: string
+          expected_keywords?: string[]
+          id?: string
+          is_active?: boolean
+          min_confidence?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_validation_results: {
+        Row: {
+          confidence: number | null
+          doc_code: string
+          document_id: string
+          extracted_text_preview: string | null
+          id: string
+          is_valid: boolean
+          reason: string | null
+          validated_at: string
+          validated_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          doc_code: string
+          document_id: string
+          extracted_text_preview?: string | null
+          id?: string
+          is_valid?: boolean
+          reason?: string | null
+          validated_at?: string
+          validated_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          doc_code?: string
+          document_id?: string
+          extracted_text_preview?: string | null
+          id?: string
+          is_valid?: boolean
+          reason?: string | null
+          validated_at?: string
+          validated_by?: string | null
+        }
+        Relationships: []
+      }
       email_campaigns: {
         Row: {
           completed_at: string | null
