@@ -8,13 +8,14 @@ import { Progress } from '@/components/ui/progress';
 import {
   Upload, File, Trash2, Download, FileText, Eye,
   Loader2, CheckCircle2, Info, ChevronLeft,
-  ShieldCheck, AlertTriangle, RefreshCw
+  ShieldCheck, AlertTriangle, RefreshCw, ShieldAlert, ScanSearch
 } from 'lucide-react';
 import {
   UploadSlot, UnifiedDocument, DocTypeMismatch,
   ACCEPTED_TYPES, formatSize,
 } from './types';
 import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
+import type { DocumentValidationResult } from '@/hooks/useDocumentPurposeValidation';
 
 interface VerificationCategory {
   id: string;
@@ -30,6 +31,8 @@ interface DocumentUploadStepProps {
   isEditable: boolean;
   verificationCategories?: VerificationCategory[];
   docTypeMismatchErrors?: DocTypeMismatch[];
+  /** Purpose validation state per slot key */
+  purposeValidationStates?: Record<string, { validating: boolean; result: DocumentValidationResult | null }>;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>, slot: UploadSlot) => void;
   onDelete: (doc: UnifiedDocument) => void;
   onDownload: (doc: UnifiedDocument) => void;
@@ -50,6 +53,7 @@ export function DocumentUploadStep({
   isEditable,
   verificationCategories = [],
   docTypeMismatchErrors = [],
+  purposeValidationStates = {},
   onFileUpload,
   onDelete,
   onDownload,
