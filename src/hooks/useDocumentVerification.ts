@@ -514,6 +514,8 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
     // Preview
     previewOpen,
     previewDoc,
+    // Document purpose validation
+    purposeValidation,
     // Actions
     handleVerificationChange,
     handleFileUpload,
