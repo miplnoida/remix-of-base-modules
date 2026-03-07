@@ -352,7 +352,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
       }
     }
     e.target.value = '';
-  }, [adapter, userId, userCode, fetchDocuments]);
+  }, [adapter, userId, userCode, fetchDocuments, purposeValidation]);
 
   // --- Delete document ---
   const handleDeleteDocument = useCallback(async (doc: UnifiedDocument) => {
