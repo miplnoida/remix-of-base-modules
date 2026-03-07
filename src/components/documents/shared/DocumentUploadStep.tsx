@@ -146,12 +146,17 @@ export function DocumentUploadStep({
                         accept={ACCEPTED_TYPES.join(',')}
                         multiple
                         onChange={(e) => onFileUpload(e, slot)}
-                        disabled={isUploading}
+                        disabled={isUploading || isSlotValidating}
                       />
-                      <Button variant="outline" size="sm" asChild disabled={isUploading}>
+                      <Button variant="outline" size="sm" asChild disabled={isUploading || isSlotValidating}>
                         <span>
-                          {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isSlotValidating ? (
+                            <><ScanSearch className="h-4 w-4 mr-2 animate-pulse" /> Verifying...</>
+                          ) : isUploading ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                          ) : (
+                            <><Upload className="h-4 w-4 mr-2" /> Upload</>
+                          )}
                         </span>
                       </Button>
                     </label>
