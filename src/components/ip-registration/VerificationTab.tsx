@@ -90,8 +90,8 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
 
         if (!validationResult.is_valid) {
           toast({
-            title: `Document does not match "${documentType}"`,
-            description: validationResult.reason,
+            title: 'Document verification failed',
+            description: validationResult.user_message || `The uploaded file does not appear to be a valid ${documentType}. Please check the file and try again.`,
             variant: 'destructive',
           });
           setUploading(false);
