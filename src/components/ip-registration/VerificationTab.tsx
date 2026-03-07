@@ -74,7 +74,35 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
     const file = e.target.files?.[0];
     if (!file || !formData.ssn) return;
     setUploading(true);
+    setValidatingDocType(documentType);
+    
     try {
+      // Resolve doc_code from documentType name
+      const docCode = EXTERNAL_DOC_TYPE_TO_VERIFY_CODE[documentType] || '';
+      
+      // Step 1: Server-side document purpose validation
+      if (docCode) {
+        const validationResult = await purposeValidation.validateDocument(
+          file, docCode, documentType, undefined, user?.id
+        );
+        
+        setValidationResults(prev => ({ ...prev, [documentType]: validationResult }));
+
+        if (!validationResult.is_valid) {
+          toast({
+            title: `Document does not match "${documentType}"`,
+            description: validationResult.reason,
+            variant: 'destructive',
+          });
+          setUploading(false);
+          setValidatingDocType(null);
+          return;
+        }
+      }
+      
+      setValidatingDocType(null);
+      
+      // Step 2: Upload file
       const fileExt = file.name.split('.').pop();
       const fileName = `${formData.ssn}/${documentType}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('ip-documents').upload(fileName, file);
@@ -82,7 +110,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
       const { error: dbError } = await supabase.from('ip_application_documents').insert({
         ssn: formData.ssn,
         document_name: documentType,
-        document_type: 'mandatory',
+        document_type: docCode || 'mandatory',
         file_name: file.name,
         file_path: fileName,
         file_size: file.size,
@@ -90,12 +118,13 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
         transfer_status: 'Pending',
       });
       if (dbError) throw dbError;
-      toast({ title: 'Document uploaded successfully' });
+      toast({ title: 'Document verified & uploaded successfully' });
       fetchDocuments();
     } catch (error: any) {
       toast({ title: 'Failed to upload document', description: error.message, variant: 'destructive' });
     } finally {
       setUploading(false);
+      setValidatingDocType(null);
     }
   };
 
