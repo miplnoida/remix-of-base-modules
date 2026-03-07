@@ -299,9 +299,10 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 30 }));
 
         if (!validationResult.is_valid) {
-          // Validation failed — block upload
-          toast.error(`Document does not match "${slot.docDescription}"`, {
-            description: validationResult.reason,
+          // Validation failed — block upload; show user-friendly message
+          const userMsg = validationResult.user_message || `The uploaded file does not appear to be a valid ${slot.docDescription}. Please check the file and try again.`;
+          toast.error('Document verification failed', {
+            description: userMsg,
             duration: 8000,
             icon: React.createElement(ShieldAlert, { className: 'h-4 w-4 text-destructive' }),
           });
