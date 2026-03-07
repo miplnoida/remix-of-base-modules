@@ -283,19 +283,43 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
       const uploadKey = `${slot.key}_${file.name}`;
       setUploading(prev => ({ ...prev, [slot.key]: true }));
-      setUploadProgress(prev => ({ ...prev, [uploadKey]: 10 }));
+      setUploadProgress(prev => ({ ...prev, [uploadKey]: 5 }));
 
       try {
+        // --- Step 1: Server-side document purpose validation ---
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 10 }));
+        const validationResult = await purposeValidation.validateDocument(
+          file,
+          slot.docCode,
+          slot.key,
+          undefined, // documentId not yet available
+          userId,
+        );
+
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 30 }));
+
+        if (!validationResult.is_valid) {
+          // Validation failed — block upload
+          toast.error(`Document does not match "${slot.docDescription}"`, {
+            description: validationResult.reason,
+            duration: 8000,
+            icon: React.createElement(ShieldAlert, { className: 'h-4 w-4 text-destructive' }),
+          });
+          setUploading(prev => ({ ...prev, [slot.key]: false }));
+          setUploadProgress(prev => { const n = { ...prev }; delete n[uploadKey]; return n; });
+          continue;
+        }
+
+        // Validation passed — proceed with upload
         if (adapter.deactivateByCategory) {
           await adapter.deactivateByCategory(slot.categoryId, slot.isSupportive);
         }
 
-        const fileExt = file.name.split('.').pop();
         const storagePath = `${Date.now()}_${slot.categoryId}_${slot.isSupportive ? 'supportive_' : ''}${file.name}`;
 
-        setUploadProgress(prev => ({ ...prev, [uploadKey]: 40 }));
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 50 }));
         const publicUrl = await adapter.uploadFile(file, storagePath);
-        setUploadProgress(prev => ({ ...prev, [uploadKey]: 75 }));
+        setUploadProgress(prev => ({ ...prev, [uploadKey]: 80 }));
 
         await adapter.insertRecord({
           slot,
@@ -307,7 +331,10 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
         });
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 100 }));
-        toast.success(`"${file.name}" uploaded successfully`, {
+        
+        const confidenceText = validationResult.confidence >= 0.8 ? 'High confidence' : 'Moderate confidence';
+        toast.success(`"${file.name}" verified & uploaded`, {
+          description: `${confidenceText} match for ${slot.docDescription}`,
           icon: React.createElement(CheckCircle2, { className: 'h-4 w-4 text-emerald-500' }),
         });
 
