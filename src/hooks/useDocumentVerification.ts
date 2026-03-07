@@ -30,6 +30,7 @@ export interface UseDocumentVerificationConfig {
 export function useDocumentVerification(config: UseDocumentVerificationConfig) {
   const { adapter, verificationCategories, externalDocFieldKeys = {}, onSelectionChange, onUploadComplete, userId, userCode } = config;
   const { data: verifyTypes = [], isLoading: verifyLoading } = useVerifyTypes();
+  const purposeValidation = useDocumentPurposeValidation();
 
   // --- State ---
   const [verifySelections, setVerifySelections] = useState<Record<string, string>>({});
