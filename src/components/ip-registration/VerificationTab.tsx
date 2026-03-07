@@ -35,9 +35,13 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
   isEditable,
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data: verifyTypes = [], isLoading: loadingVerifyTypes } = useVerifyTypes();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [validatingDocType, setValidatingDocType] = useState<string | null>(null);
+  const [validationResults, setValidationResults] = useState<Record<string, DocumentValidationResult>>({});
+  const purposeValidation = useDocumentPurposeValidation();
 
   const isMarried = formData.marital_status === 'M';
   const hasMarriageCert = documents.some(d => d.document_type === 'Marriage Certificate');
