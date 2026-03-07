@@ -292,29 +292,60 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
         <CardContent className="space-y-4">
           {isEditable && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {docTypes.map((docType) => (
-                <div key={docType} className="border rounded-lg p-4 flex items-center justify-between">
-                  <span className="font-medium text-sm">
-                    {docType}
-                    {docType === 'Marriage Certificate' && isMarried && ' *'}
-                  </span>
-                  <label className="cursor-pointer">
-                    <Input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e, docType)}
-                      disabled={uploading}
-                    />
-                    <Button variant="outline" size="sm" asChild disabled={uploading}>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {uploading ? 'Uploading...' : 'Upload'}
+              {docTypes.map((docType) => {
+                const vResult = validationResults[docType];
+                const isCurrentlyValidating = validatingDocType === docType;
+                return (
+                  <div key={docType} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">
+                        {docType}
+                        {docType === 'Marriage Certificate' && isMarried && ' *'}
                       </span>
-                    </Button>
-                  </label>
-                </div>
-              ))}
+                      <label className="cursor-pointer">
+                        <Input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onChange={(e) => handleFileUpload(e, docType)}
+                          disabled={uploading}
+                        />
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span>
+                            {isCurrentlyValidating ? (
+                              <><ScanSearch className="h-4 w-4 mr-2 animate-pulse" /> Verifying...</>
+                            ) : uploading && validatingDocType !== docType ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                            ) : (
+                              <><Upload className="h-4 w-4 mr-2" /> Upload</>
+                            )}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    {/* Validation result inline */}
+                    {vResult && !isCurrentlyValidating && (
+                      vResult.is_valid ? (
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>Verified ({Math.round(vResult.confidence * 100)}% match)</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-1.5 text-xs text-destructive">
+                          <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>{vResult.reason}</span>
+                        </div>
+                      )
+                    )}
+                    {isCurrentlyValidating && (
+                      <div className="flex items-center gap-1.5 text-xs text-primary">
+                        <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
+                        <span>Analyzing document content...</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
