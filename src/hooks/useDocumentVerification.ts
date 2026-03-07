@@ -333,9 +333,12 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 100 }));
         
-        const confidenceText = validationResult.confidence >= 0.8 ? 'High confidence' : 'Moderate confidence';
-        toast.success(`"${file.name}" verified & uploaded`, {
-          description: `${confidenceText} match for ${slot.docDescription}`,
+        const isFallback = validationResult._fallback;
+        const successMsg = isFallback
+          ? (validationResult.user_message || 'Document accepted for manual review.')
+          : `${validationResult.confidence >= 0.8 ? 'High' : 'Moderate'} confidence match for ${slot.docDescription}`;
+        toast.success(`"${file.name}" uploaded successfully`, {
+          description: successMsg,
           icon: React.createElement(CheckCircle2, { className: 'h-4 w-4 text-emerald-500' }),
         });
 
