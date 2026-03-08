@@ -15645,6 +15645,10 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_c3_ready_for_acceptance: {
+        Args: { p_c3_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           _action_type: string
