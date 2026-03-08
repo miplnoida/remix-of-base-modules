@@ -62,12 +62,26 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       return year && month ? { year, month: month - 1 } : undefined;
     })() : undefined
   );
-  const [dateReceived, setDateReceived] = useState<Date | undefined>(
-    data?.dateReceived ? new Date(data.dateReceived) : new Date()
-  );
-  const [receivedBy, setReceivedBy] = useState(data?.received_by || "");
+  const [dateReceived, setDateReceived] = useState<Date | undefined>(() => {
+    // Use raw ISO date string for reliable parsing; fall back to formatted dateReceived
+    const rawDate = data?.dateReceivedRaw || data?.dateReceived;
+    if (rawDate) {
+      const parsed = new Date(rawDate);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }
+    return new Date();
+  });
+  const [receivedBy, setReceivedBy] = useState(data?.received_by || data?.cnc3ReportedReceivedBy || "");
   const [nilReturn, setNilReturn] = useState(data?.nilReturn || false);
-  const [scheduleNo, setScheduleNo] = useState<number>(data?.sequence_no || 1);
+  const [scheduleNo, setScheduleNo] = useState<number>(() => {
+    // sequence_no may not be in the transformed data; parse from scheduleNo "SCH-X"
+    if (data?.sequence_no) return data.sequence_no;
+    if (data?.scheduleNo && typeof data.scheduleNo === 'string') {
+      const match = data.scheduleNo.match(/(\d+)$/);
+      return match ? parseInt(match[1], 10) : 1;
+    }
+    return 1;
+  });
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
   const [notes, setNotes] = useState(data?.notes || "");
   const [recordId, setRecordId] = useState<string | null>(data?.id || null);
@@ -107,6 +121,15 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   
   // Check if record can be submitted (only DFT/Draft status)
   const canSubmit = recordId && (status === 'DFT' || status === 'Z');
+
+  // Auto-validate SSN on mount for edit/view mode to populate weeklyWage/weeklyContribution
+  const hasAutoValidated = useRef(false);
+  useEffect(() => {
+    if ((mode === 'edit' || mode === 'view') && ssn && !hasAutoValidated.current) {
+      hasAutoValidated.current = true;
+      runSSNValidation(ssn);
+    }
+  }, [mode, ssn]);
 
   // Set default received by to current user on mount
   useEffect(() => {

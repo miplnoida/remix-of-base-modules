@@ -1460,7 +1460,7 @@ export async function saveVoluntaryContributorC3(
       const periodDate = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : null;
       if (!periodDate) {
         console.error('VC save - missing period for wage record');
-        return { success: true, data: c3Record, error: 'Missing period for wage record' };
+        return { success: false, error: 'Missing period for wage record' };
       }
 
       const wages1 = hasSelectedWeeks && selectedWeeks[0] ? toNumericOrNull(weeklyWage) : null;
@@ -1518,7 +1518,7 @@ export async function saveVoluntaryContributorC3(
 
       if (wageError) {
         console.error('Error saving VC wage record:', wageError);
-        return { success: true, data: c3Record, error: `C3 saved but wage record failed: ${wageError.message}` };
+        return { success: false, error: `Failed to save wage details: ${wageError.message}` };
       }
       console.log('Successfully upserted VC wage record');
     }

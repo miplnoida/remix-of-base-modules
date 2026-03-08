@@ -221,6 +221,7 @@ export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
     employees,
     // Also include raw data for reference
     received_by: record.received_by,
+    sequence_no: record.sequence_no,
   };
 };
 
