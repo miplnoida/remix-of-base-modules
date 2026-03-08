@@ -238,90 +238,199 @@ async function validateWithAI(
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
-      console.warn('No LOVABLE_API_KEY configured — using keyword fallback validation');
-      return keywordFallbackValidation(rule, true);
+      console.error('LOVABLE_API_KEY is missing for document-purpose validation', {
+        doc_code: rule.doc_code,
+        mime_type: mimeType,
+        file_size_bytes: fileBytes.length,
+      });
+      return {
+        is_valid: false,
+        confidence: 0,
+        reason: 'AI validation credential is not configured.',
+        user_message: 'Document verification is currently unavailable. Please try again later.',
+        _fallback: false,
+      };
     }
 
-    // Encode file to base64
-    const base64Data = btoa(
-      Array.from(fileBytes).map(b => String.fromCharCode(b)).join('')
-    );
+    const base64Data = btoa(Array.from(fileBytes, (b) => String.fromCharCode(b)).join(''));
+    const effectiveMime = mimeType || 'application/octet-stream';
+    const dataUrl = `data:${effectiveMime};base64,${base64Data}`;
 
-    const effectiveMime = mimeType || 'application/pdf';
-
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              inline_data: {
-                mime_type: effectiveMime,
-                data: base64Data,
-              },
-            },
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 1024,
-      },
-    };
-
-    // Use Google Gemini API directly (accessible from edge functions)
-    const aiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${LOVABLE_API_KEY}`;
-
-    const response = await fetch(aiUrl, {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a strict document verification system. Always respond with valid JSON only.',
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        temperature: 0.1,
+      }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      // Fall back gracefully — accept document with low confidence
-      return keywordFallbackValidation(rule, true);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI gateway validation error', {
+        status: aiResponse.status,
+        error: errorText,
+        doc_code: rule.doc_code,
+        mime_type: mimeType,
+        file_size_bytes: fileBytes.length,
+      });
+
+      if (isTemporaryAiFailure(aiResponse.status, errorText)) {
+        return keywordFallbackValidation(rule, true);
+      }
+
+      return {
+        is_valid: false,
+        confidence: 0,
+        reason: `AI validation request failed with status ${aiResponse.status}.`,
+        user_message: 'We could not verify this document automatically right now. Please try again.',
+        _fallback: false,
+      };
     }
 
-    const aiResponse = await response.json();
+    const payload = await aiResponse.json();
+    const content = payload.choices?.[0]?.message?.content;
+    const textContent = extractTextContent(content);
 
-    const textContent = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!textContent) {
+      console.error('AI response missing content for validation', {
+        doc_code: rule.doc_code,
+        mime_type: mimeType,
+        response: payload,
+      });
+      return {
+        is_valid: false,
+        confidence: 0,
+        reason: 'AI response did not include analyzable content.',
+        user_message: 'We could not verify this file content. Please upload a clearer document and try again.',
+        _fallback: false,
+      };
+    }
 
-    // Extract JSON from response (handle possible markdown wrapping)
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('No JSON found in AI response:', textContent);
+      console.error('AI response JSON parse target not found', {
+        doc_code: rule.doc_code,
+        mime_type: mimeType,
+        content_preview: textContent.slice(0, 500),
+      });
+      return {
+        is_valid: false,
+        confidence: 0,
+        reason: 'AI response format was invalid.',
+        user_message: 'Document verification could not be completed. Please try uploading a clearer file.',
+        _fallback: false,
+      };
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      const parseErr = parseError instanceof Error ? parseError : new Error(String(parseError));
+      console.error('AI response JSON parse failed', {
+        message: parseErr.message,
+        stack: parseErr.stack,
+        doc_code: rule.doc_code,
+        mime_type: mimeType,
+      });
+      return {
+        is_valid: false,
+        confidence: 0,
+        reason: `Failed to parse AI verification response: ${parseErr.message}`,
+        user_message: 'Document verification could not be completed. Please try again.',
+        _fallback: false,
+      };
+    }
+
+    const confidence = Math.min(1, Math.max(0, Number(parsed.confidence) || 0));
+    const matchesPurpose = parsed.is_valid === true && confidence >= rule.min_confidence;
+    const parsedReason = typeof parsed.reason === 'string'
+      ? parsed.reason
+      : matchesPurpose
+        ? `Document matches ${rule.doc_description}.`
+        : `Document does not appear to match ${rule.doc_description}.`;
+
+    return {
+      is_valid: matchesPurpose,
+      confidence,
+      reason: parsedReason,
+      extracted_text_preview: typeof parsed.extracted_text_preview === 'string'
+        ? parsed.extracted_text_preview
+        : undefined,
+      user_message: matchesPurpose
+        ? `Document verified as ${rule.doc_description}.`
+        : `The uploaded file does not appear to match ${rule.doc_description}. ${parsedReason}`,
+      _fallback: false,
+    };
+  } catch (aiError) {
+    const err = aiError instanceof Error ? aiError : new Error(String(aiError));
+
+    console.error('AI validation runtime exception', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      doc_code: rule.doc_code,
+      mime_type: mimeType,
+      file_size_bytes: fileBytes.length,
+    });
+
+    if (isTransientRuntimeFailure(err.message)) {
       return keywordFallbackValidation(rule, true);
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-
     return {
-      is_valid: parsed.is_valid === true && (parsed.confidence >= rule.min_confidence),
-      confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0)),
-      reason: parsed.reason || 'No reason provided',
-      extracted_text_preview: parsed.extracted_text_preview || undefined,
-      user_message: parsed.is_valid
-        ? `Document verified as ${rule.doc_description}.`
-        : `The uploaded file does not appear to be a valid ${rule.doc_description}. ${parsed.reason || ''}`,
+      is_valid: false,
+      confidence: 0,
+      reason: `AI validation runtime error: ${err.message}`,
+      user_message: 'Document verification failed due to a technical issue. Please try again.',
+      _fallback: false,
     };
-  } catch (aiError) {
-    // Log the full technical error server-side
-    console.error('AI validation service error (falling back to accept):', {
-      message: aiError.message,
-      stack: aiError.stack,
-      name: aiError.name,
-    });
-
-    // Gracefully accept — AI is unavailable, don't block user
-    return keywordFallbackValidation(rule, true);
   }
+}
+
+function extractTextContent(content: unknown): string {
+  if (typeof content === 'string') return content;
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part === 'object' && 'text' in part && typeof part.text === 'string') {
+          return part.text;
+        }
+        return '';
+      })
+      .join('\n')
+      .trim();
+  }
+
+  return '';
+}
+
+function isTemporaryAiFailure(status: number, errorText: string): boolean {
+  if ([408, 425, 429, 500, 502, 503, 504].includes(status)) return true;
+  return /temporar|timeout|unavailable|overloaded|rate.?limit|gateway/i.test(errorText);
+}
+
+function isTransientRuntimeFailure(message: string): boolean {
+  return /fetch failed|network|timeout|timed out|connection|econn|enotfound|dns|tls/i.test(message);
 }
 
 function keywordFallbackValidation(rule: ValidationRule, aiUnavailable = false): ValidationResult {
@@ -329,14 +438,17 @@ function keywordFallbackValidation(rule: ValidationRule, aiUnavailable = false):
     return {
       is_valid: true,
       confidence: 0.5,
-      reason: `AI verification service unavailable. Document accepted pending manual review.`,
-      user_message: `Document accepted. Automatic content verification was not available — your document will be reviewed manually.`,
+      reason: 'AI verification service unavailable. Document accepted pending manual review.',
+      user_message: 'Document accepted. Automatic content verification was not available — your document will be reviewed manually.',
+      _fallback: true,
     };
   }
+
   return {
     is_valid: false,
     confidence: 0.1,
     reason: `Unable to analyze document content automatically. Expected a valid ${rule.doc_description}.`,
     user_message: `We could not verify this document. Please ensure you are uploading a valid ${rule.doc_description}. Try uploading a clearer scan or image.`,
+    _fallback: false,
   };
 }
