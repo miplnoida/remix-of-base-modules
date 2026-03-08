@@ -627,6 +627,8 @@ export async function saveC3Draft(
 }
 
 // Submit a C3 record (change status from DFT to PEN)
+// After submission, both Accept and Reject options become available
+// Rejection can proceed immediately, but Acceptance requires verification
 export async function submitC3Record(c3Id: string, userId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('submit_c3_record', {
