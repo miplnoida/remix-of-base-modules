@@ -386,7 +386,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   };
 
   // Reset form
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSSN("");
     setPeriod(undefined);
     setDateReceived(new Date());
@@ -409,7 +409,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setSsnError(null);
     setSsnValid(false);
     setPeriodError(null);
-  };
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {
