@@ -5,7 +5,7 @@ The Voluntary Contributor (VC) registration feature allows eligible Insured Pers
 
 ## Eligibility Criteria (ALL must pass)
 
-1. **Residency**: `place_of_residence_code` in `ip_master` must be 'STK' or 'NEV'
+1. **Residency**: `place_of_residence_code` in `ip_master` must be 'SKN' (St. Kitts & Nevis)
 2. **Age**: Between 16 and 62 years (configurable via `tb_vc_contrib_rate`)
 3. **Employment Status**: No active employment (no record in `ip_employer` where `term_end_date IS NULL`)
 4. **Assistance Pensioner**: `asp_num` in `ip_master` must NOT be 'Y'
