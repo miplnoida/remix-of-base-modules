@@ -1285,13 +1285,15 @@ export async function validateVoluntaryContributorSSN(
     const name = [personData.firstname, personData.surname].filter(Boolean).join(' ').trim();
     const address = [personData.resident_addr1, personData.resident_addr2].filter(Boolean).join(' ').trim();
 
-    // Check ip_vol_contrib for avg_weekly_wage and contrib_amt (note: column is contrib_amt not contrib_amount)
+    // Check ip_vol_contrib for avg_weekly_wage, contrib_amt, and date_commenced
     const { data: volContribData, error: volContribError } = await supabase
       .from('ip_vol_contrib')
-      .select('avg_weekly_wage, contrib_amt')
+      .select('avg_weekly_wage, contrib_amt, date_commenced')
       .eq('ssn', ssn)
+      .is('date_ceased', null)
+      .order('date_registered', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (volContribError || !volContribData) {
       return {
@@ -1300,7 +1302,8 @@ export async function validateVoluntaryContributorSSN(
         address,
         avgWeeklyWage: 0,
         contribAmount: 0,
-        message: 'No voluntary contribution record found for this SSN. Please ensure the SSN has a declared avg_weekly_wage and contrib_amt in ip_vol_contrib.'
+        dateCommenced: null,
+        message: 'No active voluntary contribution record found for this SSN. Please ensure the SSN has a declared avg_weekly_wage and contrib_amt in ip_vol_contrib.'
       };
     }
 
@@ -1311,6 +1314,7 @@ export async function validateVoluntaryContributorSSN(
         address,
         avgWeeklyWage: 0,
         contribAmount: 0,
+        dateCommenced: volContribData.date_commenced || null,
         message: 'Voluntary contribution record is incomplete. Both avg_weekly_wage and contrib_amt are required.'
       };
     }
@@ -1321,6 +1325,7 @@ export async function validateVoluntaryContributorSSN(
       address,
       avgWeeklyWage: Number(volContribData.avg_weekly_wage) || 0,
       contribAmount: Number(volContribData.contrib_amt) || 0,
+      dateCommenced: volContribData.date_commenced || null,
       message: 'Voluntary contributor validated successfully'
     };
   } catch (error: any) {
