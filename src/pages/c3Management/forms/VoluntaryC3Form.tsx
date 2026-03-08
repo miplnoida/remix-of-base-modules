@@ -73,6 +73,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   const [address, setAddress] = useState(data?.payerAddress || "");
   const [weeklyWage, setWeeklyWage] = useState<number>(0); // avg_weekly_wage from ip_vol_contrib
   const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // contrib_amt from ip_vol_contrib
+  const [vcDateCommenced, setVcDateCommenced] = useState<string | null>(null); // VC effective start date
+  const [periodError, setPeriodError] = useState<string | null>(null);
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
