@@ -1356,6 +1356,34 @@ export async function saveVoluntaryContributorC3(
   try {
     const currentDate = new Date().toISOString();
     
+    // SERVER-SIDE VALIDATION: Check that the filing period is not before the VC effective date
+    const periodStr = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : String(record.period)) : null;
+    if (periodStr && record.payer_id) {
+      const { data: vcRecord } = await supabase
+        .from('ip_vol_contrib')
+        .select('date_commenced')
+        .eq('ssn', record.payer_id)
+        .is('date_ceased', null)
+        .order('date_registered', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (vcRecord?.date_commenced) {
+        const commencedDate = new Date(vcRecord.date_commenced);
+        const filingPeriod = new Date(periodStr);
+        // Compare year/month: filing period must be >= commenced month
+        const commencedYM = commencedDate.getUTCFullYear() * 12 + commencedDate.getUTCMonth();
+        const filingYM = filingPeriod.getUTCFullYear() * 12 + filingPeriod.getUTCMonth();
+        if (filingYM < commencedYM) {
+          const commencedDisplay = commencedDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+          return {
+            success: false,
+            error: `C3 cannot be filed for a period before the voluntary contribution effective date. This person became a voluntary contributor from ${commencedDisplay}. Please select a period on or after ${commencedDisplay}.`
+          };
+        }
+      }
+    }
+
     // If no userCode provided, try to get the current user's code
     let effectiveUserCode = userCode;
     if (!effectiveUserCode) {
