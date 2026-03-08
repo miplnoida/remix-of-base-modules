@@ -1278,6 +1278,7 @@ export async function validateVoluntaryContributorSSN(
         address: '',
         avgWeeklyWage: 0,
         contribAmount: 0,
+        dateCommenced: null,
         message: 'SSN not found in the system'
       };
     }
