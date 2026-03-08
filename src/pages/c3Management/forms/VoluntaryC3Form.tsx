@@ -189,6 +189,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
         setAddress(result.address);
         setWeeklyWage(result.avgWeeklyWage);
         setWeeklyContribution(result.contribAmount);
+        setVcDateCommenced(result.dateCommenced || null);
         setSsnValid(true);
       }
     } catch (error: any) {
