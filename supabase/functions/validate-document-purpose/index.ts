@@ -19,6 +19,7 @@ interface ValidationResult {
   reason: string;
   extracted_text_preview?: string;
   user_message?: string;
+  _fallback?: boolean;
 }
 
 Deno.serve(async (req) => {
