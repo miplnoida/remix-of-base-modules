@@ -21,6 +21,8 @@ import { formatCurrency, calculateAge } from "@/utils/sknPayrollCalculations";
 import { useC3ServerCalculations, C3CalculationTotals, C3CalculationConfig } from "@/hooks/useC3ServerCalculations";
 import { useC3Payments, calculateC3Balance } from "@/hooks/useC3Payments";
 import { validateOtherPaymentPolicies } from "@/hooks/useOtherPayments";
+import { useC3FieldChangeConfirmation } from "@/hooks/useC3FieldChangeConfirmation";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 interface EmployerC3FormProps {
   mode: 'add' | 'edit' | 'view';
@@ -54,7 +56,11 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   const { validateEmployer, getScheduleNumber, isValidating } = useEmployerValidation();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
-  const { calculate: calculateServerSide, isCalculating, calculationResult } = useC3ServerCalculations();
+  const { calculate: calculateServerSide, isCalculating, calculationResult, clearCalculation } = useC3ServerCalculations();
+  const fieldChangeConfirm = useC3FieldChangeConfirmation();
+  
+  // Ref to track the last validated employer ID for change detection
+  const lastValidatedEmployerId = useRef<string>('');
   
   // Ref to track calculation debounce
   const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -160,12 +166,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       });
       
       // If we have employer data already loaded (name/address), mark as validated without error
-      if ((initialData.payerId || initialData.employerId) && (initialData.payerName || initialData.employerName)) {
+      const empId = initialData.payerId || initialData.employerId || "";
+      if (empId && (initialData.payerName || initialData.employerName)) {
         setEmployerValidated(true);
         setEmployerError('');
-      } else if (initialData.payerId || initialData.employerId) {
+        lastValidatedEmployerId.current = empId;
+        fieldChangeConfirm.markDataCommitted(empId, periodParsed);
+      } else if (empId) {
         // Have ID but no name — run validation silently
-        const empId = initialData.payerId || initialData.employerId;
         validateEmployer(empId).then(result => {
           if (result.isValid) {
             setFormData(prev => ({
@@ -175,6 +183,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
             }));
             setEmployerValidated(true);
             setEmployerError('');
+            lastValidatedEmployerId.current = empId;
+            fieldChangeConfirm.markDataCommitted(empId, periodParsed);
           }
         });
       }
@@ -209,7 +219,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }));
   }, [employees]);
 
-  // Validate employer on blur
+  // Validate employer on blur - with change confirmation
   const handleEmployerBlur = useCallback(async () => {
     if (!formData.employerId) {
       setEmployerError('Employer ID is required');
@@ -217,7 +227,18 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       return;
     }
 
-    const result = await validateEmployer(formData.employerId);
+    // If employer ID changed from a previously validated one, ask for confirmation
+    if (lastValidatedEmployerId.current && lastValidatedEmployerId.current !== formData.employerId) {
+      const canProceed = fieldChangeConfirm.requestChange('ssn', formData.employerId);
+      if (!canProceed) return; // Dialog shown, wait for user
+    }
+
+    await runEmployerValidation(formData.employerId);
+  }, [formData.employerId, formData.period, validateEmployer, getScheduleNumber, fieldChangeConfirm]);
+
+  // Extracted validation logic for reuse after confirmation
+  const runEmployerValidation = useCallback(async (empId: string) => {
+    const result = await validateEmployer(empId);
     
     if (result.isValid) {
       setFormData(prev => ({
@@ -227,11 +248,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       }));
       setEmployerError('');
       setEmployerValidated(true);
+      lastValidatedEmployerId.current = empId;
+      fieldChangeConfirm.markDataCommitted(empId, formData.period);
       
       // Recalculate schedule number
       if (formData.period) {
         const periodStr = formatPeriodForStorage(formData.period.year, formData.period.month);
-        const scheduleNo = await getScheduleNumber(formData.employerId, 'ER', periodStr);
+        const scheduleNo = await getScheduleNumber(empId, 'ER', periodStr);
         setFormData(prev => ({ ...prev, schedule: String(scheduleNo) }));
       }
     } else {
@@ -243,10 +266,21 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         address: ''
       }));
     }
-  }, [formData.employerId, formData.period, validateEmployer, getScheduleNumber]);
+  }, [formData.period, validateEmployer, getScheduleNumber, fieldChangeConfirm]);
 
-  // Update schedule number when period changes
+  // Update schedule number when period changes - with change confirmation
   const handlePeriodChange = useCallback(async (value: { year: number; month: number }) => {
+    // If we have committed data and period is changing, ask for confirmation
+    if (employerValidated && formData.period) {
+      const canProceed = fieldChangeConfirm.requestChange('period', value);
+      if (!canProceed) return; // Dialog shown, wait for user
+    }
+
+    applyPeriodChange(value);
+  }, [employerValidated, formData.employerId, formData.period, getScheduleNumber, fieldChangeConfirm]);
+
+  // Extracted period change logic for reuse after confirmation
+  const applyPeriodChange = useCallback(async (value: { year: number; month: number }) => {
     setFormData(prev => ({ ...prev, period: value }));
     
     if (employerValidated && formData.employerId) {
@@ -465,7 +499,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   };
 
   // Reset form functionality
-  const resetFormToDefaults = () => {
+  const resetFormToDefaults = useCallback(() => {
     setFormData({
       employerId: "",
       period: defaultPeriod,
@@ -481,16 +515,50 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     setEmployees([]);
     setEmployerValidated(false);
     setEmployerError('');
+    lastValidatedEmployerId.current = '';
+    fieldChangeConfirm.resetCommitted();
+    clearCalculation();
     // Re-focus employer ID after reset
     setTimeout(() => employerIdInputRef.current?.focus(), 100);
-  };
+  }, [userCode, defaultPeriod, fieldChangeConfirm, clearCalculation]);
+
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    // Full reset
+    resetFormToDefaults();
+
+    // Apply the new value
+    if (change.field === 'ssn') {
+      // Set the new employer ID and trigger validation
+      setFormData(prev => ({ ...prev, employerId: change.newValue }));
+      setTimeout(async () => {
+        await runEmployerValidation(change.newValue);
+      }, 50);
+    } else if (change.field === 'period') {
+      setFormData(prev => ({ ...prev, period: change.newValue }));
+    }
+  }, [fieldChangeConfirm, resetFormToDefaults, runEmployerValidation]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    // Revert the value
+    if (pending?.field === 'ssn') {
+      setFormData(prev => ({ ...prev, employerId: lastValidatedEmployerId.current }));
+    }
+    // For period, no revert needed since we didn't apply it yet
+  }, [fieldChangeConfirm]);
 
   // Handle reset trigger from parent component
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0 && mode === 'add') {
       resetFormToDefaults();
     }
-  }, [resetTrigger, mode]);
+  }, [resetTrigger, mode, resetFormToDefaults]);
 
   // Handle save trigger from parent component (header Save button)
   useEffect(() => {
@@ -1073,6 +1141,22 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
           totalLateCharges: overall.totalLateCharges
         }}
         allEmployees={employees}
+      />
+
+      {/* Confirm dialog for SSN/Period change */}
+      <ConfirmDialog
+        open={fieldChangeConfirm.showConfirm}
+        onOpenChange={(open) => { if (!open) handleFieldChangeCancel(); }}
+        title="Confirm Change"
+        description={
+          fieldChangeConfirm.pendingChange?.field === 'ssn'
+            ? "Changing the Employer ID will reset all form data, employee entries, and calculated values. Do you want to proceed?"
+            : "Changing the Period will reset all form data, employee entries, and calculated values. Do you want to proceed?"
+        }
+        confirmLabel="Yes, Reset & Continue"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleFieldChangeConfirm}
       />
     </div>
   );

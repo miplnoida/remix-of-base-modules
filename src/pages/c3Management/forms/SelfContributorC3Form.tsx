@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ import {
   calculateSelfContributorDueDate
 } from "@/utils/selfContributorPenaltyCalculations";
 import { postingStatusToDisplayStatus } from "@/hooks/useC3Management";
+import { useC3FieldChangeConfirmation } from "@/hooks/useC3FieldChangeConfirmation";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 // PreviewField component for view mode
 const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
@@ -56,6 +58,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const { toast } = useToast();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
+  const fieldChangeConfirm = useC3FieldChangeConfirmation();
+  const lastValidatedSSN = useRef<string>('');
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
@@ -202,8 +206,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   };
 
-  // Validate SSN against ip_self_category
-  const validateSSN = useCallback(async () => {
+  // Validate SSN against ip_self_category - with change confirmation
+  const handleSSNBlur = useCallback(async () => {
     if (!ssn || ssn.length < 1) {
       setSsnError(null);
       setSsnValid(false);
@@ -217,13 +221,22 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       return;
     }
 
+    // If SSN changed from a previously validated one, ask for confirmation
+    if (lastValidatedSSN.current && lastValidatedSSN.current !== ssn) {
+      const canProceed = fieldChangeConfirm.requestChange('ssn', ssn);
+      if (!canProceed) return;
+    }
+
+    await runSSNValidation(ssn);
+  }, [ssn, period, fieldChangeConfirm]);
+
+  const runSSNValidation = useCallback(async (ssnValue: string) => {
     setSSNValidating(true);
     setSsnError(null);
     setConfigWarning(null);
 
     try {
-      // First get person details
-      const personResult = await getPersonBySSN(ssn);
+      const personResult = await getPersonBySSN(ssnValue);
       
       if (!personResult.isValid) {
         setSsnError(personResult.message);
@@ -243,9 +256,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       setName(personResult.name);
       setAddress(personResult.address);
 
-      // If period is selected, validate wage category
       if (period) {
-        const categoryResult = await validateSelfContributorSSN(ssn, period.year, period.month);
+        const categoryResult = await validateSelfContributorSSN(ssnValue, period.year, period.month);
         
         if (!categoryResult.isValid) {
           setSsnError(categoryResult.message);
@@ -257,7 +269,6 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           setPenaltyRate(null);
           setConfigFound(true);
         } else if (categoryResult.wageCategory) {
-          // Fetch wage category details with period-aware config lookup
           const wageDetails = await getWageCategoryDetails(
             categoryResult.wageCategory,
             period.year,
@@ -276,14 +287,16 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
               );
             }
             setSsnValid(true);
+            lastValidatedSSN.current = ssnValue;
+            fieldChangeConfirm.markDataCommitted(ssnValue, period);
           } else {
             setSsnError("Could not fetch wage category details");
             setSsnValid(false);
           }
         }
       } else {
-        // Period not selected yet - defer wage category validation
         setSsnValid(true);
+        lastValidatedSSN.current = ssnValue;
         setPeriodError("Please select a period to validate wage category");
       }
     } catch (error: any) {
@@ -292,19 +305,53 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     } finally {
       setSSNValidating(false);
     }
-  }, [ssn, period]);
+  }, [period, fieldChangeConfirm]);
+
+  // Handle period change with confirmation
+  const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
+    if (ssnValid && period) {
+      const canProceed = fieldChangeConfirm.requestChange('period', value);
+      if (!canProceed) return;
+    }
+    setPeriod(value);
+  }, [ssnValid, period, fieldChangeConfirm]);
 
   // Re-validate when period changes and clear period error
   useEffect(() => {
     if (period) {
-      // Clear the period error since a period is now selected
       setPeriodError(null);
       
       if (ssn) {
-        validateSSN();
+        runSSNValidation(ssn);
       }
     }
   }, [period]);
+
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    // Full reset
+    resetForm();
+
+    // Apply the new value
+    if (change.field === 'ssn') {
+      setSSN(change.newValue);
+      setTimeout(() => runSSNValidation(change.newValue), 50);
+    } else if (change.field === 'period') {
+      setPeriod(change.newValue);
+    }
+  }, [fieldChangeConfirm]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    if (pending?.field === 'ssn') {
+      setSSN(lastValidatedSSN.current);
+    }
+  }, [fieldChangeConfirm]);
 
   // Fetch schedule number when SSN or period changes
   useEffect(() => {
@@ -339,7 +386,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   };
 
   // Reset form
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSSN("");
     setPeriod(undefined);
     setDateReceived(new Date());
@@ -362,7 +409,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setSsnError(null);
     setSsnValid(false);
     setPeriodError(null);
-  };
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {
@@ -505,7 +555,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                       id="ssn"
                       value={ssn}
                       onChange={(e) => setSSN(e.target.value)}
-                      onBlur={validateSSN}
+                      onBlur={handleSSNBlur}
                       placeholder="Enter SSN"
                       className={ssnError ? "border-destructive pr-10" : "pr-10"}
                       readOnly={isReadOnly}
@@ -524,7 +574,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   <Label>Period <span className="text-red-500">*</span></Label>
                   <MonthYearPicker
                     value={period}
-                    onChange={setPeriod}
+                    onChange={handlePeriodChange}
                     placeholder="Select period"
                     disabled={isReadOnly}
                     error={periodError || undefined}
@@ -801,6 +851,22 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           </CardContent>
         </Card>
       )}
+
+      {/* Confirm dialog for SSN/Period change */}
+      <ConfirmDialog
+        open={fieldChangeConfirm.showConfirm}
+        onOpenChange={(open) => { if (!open) handleFieldChangeCancel(); }}
+        title="Confirm Change"
+        description={
+          fieldChangeConfirm.pendingChange?.field === 'ssn'
+            ? "Changing the SSN will reset all form data, wage details, and calculated values. Do you want to proceed?"
+            : "Changing the Period will reset all form data, wage details, and calculated values. Do you want to proceed?"
+        }
+        confirmLabel="Yes, Reset & Continue"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleFieldChangeConfirm}
+      />
     </div>
   );
 }
