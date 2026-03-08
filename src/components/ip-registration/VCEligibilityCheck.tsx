@@ -36,7 +36,7 @@ export function VCEligibilityCheck({ ssn, personName }: VCEligibilityCheckProps)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showCeaseDialog, setShowCeaseDialog] = useState(false);
   
-  const { data: eligibility, isLoading: eligibilityLoading, refetch } = useCheckVCEligibility(ssn);
+  const { data: eligibility, isLoading: eligibilityLoading, error: eligibilityError, refetch } = useCheckVCEligibility(ssn);
   const { data: vcRecord, isLoading: vcLoading } = useVCRecord(ssn);
   const ceaseVC = useCeaseVC();
 
@@ -199,8 +199,15 @@ export function VCEligibilityCheck({ ssn, personName }: VCEligibilityCheckProps)
   if (!eligibility) {
     return (
       <Card>
-        <CardContent className="py-6 text-center text-muted-foreground">
-          Unable to check eligibility. Please try again.
+        <CardContent className="py-6 text-center space-y-3">
+          <p className="text-muted-foreground">
+            {eligibilityError 
+              ? `Eligibility check failed: ${(eligibilityError as Error).message}` 
+              : 'Unable to check eligibility. Please try again.'}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry Eligibility Check
+          </Button>
         </CardContent>
       </Card>
     );
