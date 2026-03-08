@@ -36,7 +36,7 @@ export function VCEligibilityCheck({ ssn, personName }: VCEligibilityCheckProps)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showCeaseDialog, setShowCeaseDialog] = useState(false);
   
-  const { data: eligibility, isLoading: eligibilityLoading, refetch } = useCheckVCEligibility(ssn);
+  const { data: eligibility, isLoading: eligibilityLoading, error: eligibilityError, refetch } = useCheckVCEligibility(ssn);
   const { data: vcRecord, isLoading: vcLoading } = useVCRecord(ssn);
   const ceaseVC = useCeaseVC();
 
