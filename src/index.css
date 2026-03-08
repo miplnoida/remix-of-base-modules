@@ -202,3 +202,17 @@
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Fixed 5-week calendar grid ──
+   react-day-picker fixedWeeks renders 6 rows (42 cells).
+   We cap the visible tbody to exactly 5 rows so the calendar
+   height stays stable across all months.                      */
+.rdp-fixed-5weeks table tbody {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(5 * (2.25rem + 0.5rem)); /* 5 × (h-9 + mt-2) */
+  overflow: hidden;
+}
+.rdp-fixed-5weeks table tbody tr:nth-child(n+6) {
+  display: none;
+}
