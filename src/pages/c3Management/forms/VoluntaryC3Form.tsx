@@ -468,7 +468,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
                       id="ssn"
                       value={ssn}
                       onChange={(e) => setSSN(e.target.value)}
-                      onBlur={validateSSN}
+                      onBlur={handleSSNBlur}
                       placeholder="Enter SSN"
                       className={ssnError ? "border-destructive pr-10" : "pr-10"}
                       readOnly={isReadOnly}
