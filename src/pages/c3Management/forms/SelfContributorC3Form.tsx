@@ -206,8 +206,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   };
 
-  // Validate SSN against ip_self_category
-  const validateSSN = useCallback(async () => {
+  // Validate SSN against ip_self_category - with change confirmation
+  const handleSSNBlur = useCallback(async () => {
     if (!ssn || ssn.length < 1) {
       setSsnError(null);
       setSsnValid(false);
@@ -221,13 +221,22 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       return;
     }
 
+    // If SSN changed from a previously validated one, ask for confirmation
+    if (lastValidatedSSN.current && lastValidatedSSN.current !== ssn) {
+      const canProceed = fieldChangeConfirm.requestChange('ssn', ssn);
+      if (!canProceed) return;
+    }
+
+    await runSSNValidation(ssn);
+  }, [ssn, period, fieldChangeConfirm]);
+
+  const runSSNValidation = useCallback(async (ssnValue: string) => {
     setSSNValidating(true);
     setSsnError(null);
     setConfigWarning(null);
 
     try {
-      // First get person details
-      const personResult = await getPersonBySSN(ssn);
+      const personResult = await getPersonBySSN(ssnValue);
       
       if (!personResult.isValid) {
         setSsnError(personResult.message);
@@ -247,9 +256,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
       setName(personResult.name);
       setAddress(personResult.address);
 
-      // If period is selected, validate wage category
       if (period) {
-        const categoryResult = await validateSelfContributorSSN(ssn, period.year, period.month);
+        const categoryResult = await validateSelfContributorSSN(ssnValue, period.year, period.month);
         
         if (!categoryResult.isValid) {
           setSsnError(categoryResult.message);
@@ -261,7 +269,6 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           setPenaltyRate(null);
           setConfigFound(true);
         } else if (categoryResult.wageCategory) {
-          // Fetch wage category details with period-aware config lookup
           const wageDetails = await getWageCategoryDetails(
             categoryResult.wageCategory,
             period.year,
@@ -280,14 +287,16 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
               );
             }
             setSsnValid(true);
+            lastValidatedSSN.current = ssnValue;
+            fieldChangeConfirm.markDataCommitted(ssnValue, period);
           } else {
             setSsnError("Could not fetch wage category details");
             setSsnValid(false);
           }
         }
       } else {
-        // Period not selected yet - defer wage category validation
         setSsnValid(true);
+        lastValidatedSSN.current = ssnValue;
         setPeriodError("Please select a period to validate wage category");
       }
     } catch (error: any) {
@@ -296,19 +305,53 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     } finally {
       setSSNValidating(false);
     }
-  }, [ssn, period]);
+  }, [period, fieldChangeConfirm]);
+
+  // Handle period change with confirmation
+  const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
+    if (ssnValid && period) {
+      const canProceed = fieldChangeConfirm.requestChange('period', value);
+      if (!canProceed) return;
+    }
+    setPeriod(value);
+  }, [ssnValid, period, fieldChangeConfirm]);
 
   // Re-validate when period changes and clear period error
   useEffect(() => {
     if (period) {
-      // Clear the period error since a period is now selected
       setPeriodError(null);
       
       if (ssn) {
-        validateSSN();
+        runSSNValidation(ssn);
       }
     }
   }, [period]);
+
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    // Full reset
+    resetForm();
+
+    // Apply the new value
+    if (change.field === 'ssn') {
+      setSSN(change.newValue);
+      setTimeout(() => runSSNValidation(change.newValue), 50);
+    } else if (change.field === 'period') {
+      setPeriod(change.newValue);
+    }
+  }, [fieldChangeConfirm]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    if (pending?.field === 'ssn') {
+      setSSN(lastValidatedSSN.current);
+    }
+  }, [fieldChangeConfirm]);
 
   // Fetch schedule number when SSN or period changes
   useEffect(() => {
