@@ -8265,21 +8265,39 @@ export type Database = {
       ip_vol_contrib_wages: {
         Row: {
           contrib_amt: number | null
+          created_at: string | null
+          date_entered: string | null
+          date_modified: string | null
+          entered_by: string | null
+          modified_by: string | null
           payment_sequence_no: number
           period: string | null
           ssn: string
+          updated_at: string | null
         }
         Insert: {
           contrib_amt?: number | null
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
           payment_sequence_no: number
           period?: string | null
           ssn: string
+          updated_at?: string | null
         }
         Update: {
           contrib_amt?: number | null
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
           payment_sequence_no?: number
           period?: string | null
           ssn?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
