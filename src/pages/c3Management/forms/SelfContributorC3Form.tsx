@@ -571,7 +571,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                   <Label>Period <span className="text-red-500">*</span></Label>
                   <MonthYearPicker
                     value={period}
-                    onChange={setPeriod}
+                    onChange={handlePeriodChange}
                     placeholder="Select period"
                     disabled={isReadOnly}
                     error={periodError || undefined}
