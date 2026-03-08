@@ -1260,6 +1260,7 @@ export async function validateVoluntaryContributorSSN(
   address: string;
   avgWeeklyWage: number;
   contribAmount: number;
+  dateCommenced: string | null;
   message: string;
 }> {
   try {
