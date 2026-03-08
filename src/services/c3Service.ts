@@ -643,7 +643,9 @@ export async function submitC3Record(c3Id: string, userId?: string): Promise<{ s
   }
 }
 
-// Verify a C3 record (change status from PEN to VAC)
+// Verify/Accept a C3 record (change status from PEN to VAC)
+// IMPORTANT: Requires ALL wage records to be verified (is_verified = true)
+// For Employer C3, all employee detail lines must be verified before acceptance
 export async function verifyC3Record(c3Id: string, userId?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('verify_c3_record', {
