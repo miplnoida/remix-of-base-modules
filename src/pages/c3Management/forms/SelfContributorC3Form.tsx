@@ -307,14 +307,37 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [period, fieldChangeConfirm]);
 
+  // Reset only period-dependent data (keep SSN, name, address)
+  const resetPeriodDependentData = useCallback(() => {
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setWeeklyWage(0);
+    setWeeklyContribution(0);
+    setWageCategory(null);
+    setSsRate(0);
+    setPenaltyRate(null);
+    setConfigFound(true);
+    setConfigWarning(null);
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setPeriodError(null);
+    setRecordId(null);
+  }, [userCode]);
+
   // Handle period change with confirmation
   const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
     if (ssnValid && period) {
       const canProceed = fieldChangeConfirm.requestChange('period', value);
       if (!canProceed) return;
     }
+    // Reset period-dependent data, keep SSN
+    resetPeriodDependentData();
     setPeriod(value);
-  }, [ssnValid, period, fieldChangeConfirm]);
+  }, [ssnValid, period, fieldChangeConfirm, resetPeriodDependentData]);
 
   // Re-validate when period changes and clear period error
   useEffect(() => {
@@ -327,65 +350,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [period]);
 
-  // Handle field change confirmation
-  const handleFieldChangeConfirm = useCallback(async () => {
-    const change = fieldChangeConfirm.confirmChange();
-    if (!change) return;
-
-    // Full reset
-    resetForm();
-
-    // Apply the new value
-    if (change.field === 'ssn') {
-      setSSN(change.newValue);
-      setTimeout(() => runSSNValidation(change.newValue), 50);
-    } else if (change.field === 'period') {
-      setPeriod(change.newValue);
-    }
-  }, [fieldChangeConfirm]);
-
-  const handleFieldChangeCancel = useCallback(() => {
-    const pending = fieldChangeConfirm.pendingChange;
-    fieldChangeConfirm.cancelChange();
-    
-    if (pending?.field === 'ssn') {
-      setSSN(lastValidatedSSN.current);
-    }
-  }, [fieldChangeConfirm]);
-
-  // Fetch schedule number when SSN or period changes
-  useEffect(() => {
-    const fetchScheduleNo = async () => {
-      if (ssn && period && !data?.id) {
-        const periodStr = new Date(period.year, period.month, 1).toISOString();
-        const nextSchedule = await getNextScheduleNo(ssn, 'SE', periodStr);
-        setScheduleNo(nextSchedule);
-      }
-    };
-    fetchScheduleNo();
-  }, [ssn, period, data?.id]);
-
-  // Handle week checkbox change
-  const handleWeekChange = (index: number, checked: boolean) => {
-    if (isReadOnly || nilReturn) return;
-    if (index >= mondaysInMonth) return; // Don't allow selecting weeks beyond Mondays in month
-    
-    const newWeeks = [...selectedWeeks];
-    newWeeks[index] = checked;
-    setSelectedWeeks(newWeeks);
-  };
-
-  // Handle Nil Return toggle
-  const handleNilReturnChange = (checked: boolean) => {
-    if (isReadOnly) return;
-    setNilReturn(checked);
-    if (checked) {
-      // Clear wages data when Nil Return is selected
-      setSelectedWeeks([false, false, false, false, false]);
-    }
-  };
-
-  // Reset form
+  // Reset form (full reset including SSN)
   const resetForm = useCallback(() => {
     setSSN("");
     setPeriod(undefined);
@@ -413,6 +378,61 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     lastValidatedSSN.current = '';
     fieldChangeConfirm.resetCommitted();
   }, [userCode, fieldChangeConfirm]);
+
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    if (change.field === 'ssn') {
+      resetForm();
+      setSSN(change.newValue);
+      setTimeout(() => runSSNValidation(change.newValue), 50);
+    } else if (change.field === 'period') {
+      resetPeriodDependentData();
+      setPeriod(change.newValue);
+    }
+  }, [fieldChangeConfirm, resetForm, resetPeriodDependentData]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    if (pending?.field === 'ssn') {
+      setSSN(lastValidatedSSN.current);
+    }
+  }, [fieldChangeConfirm]);
+
+  // Fetch schedule number when SSN or period changes
+  useEffect(() => {
+    const fetchScheduleNo = async () => {
+      if (ssn && period && !data?.id) {
+        const periodStr = new Date(period.year, period.month, 1).toISOString();
+        const nextSchedule = await getNextScheduleNo(ssn, 'SE', periodStr);
+        setScheduleNo(nextSchedule);
+      }
+    };
+    fetchScheduleNo();
+  }, [ssn, period, data?.id]);
+
+  // Handle week checkbox change
+  const handleWeekChange = (index: number, checked: boolean) => {
+    if (isReadOnly || nilReturn) return;
+    if (index >= mondaysInMonth) return;
+    
+    const newWeeks = [...selectedWeeks];
+    newWeeks[index] = checked;
+    setSelectedWeeks(newWeeks);
+  };
+
+  // Handle Nil Return toggle
+  const handleNilReturnChange = (checked: boolean) => {
+    if (isReadOnly) return;
+    setNilReturn(checked);
+    if (checked) {
+      setSelectedWeeks([false, false, false, false, false]);
+    }
+  };
 
   // Handle reset trigger from parent
   useEffect(() => {

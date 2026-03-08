@@ -216,14 +216,30 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     }
   }, [ssn, period, fieldChangeConfirm]);
 
+  // Reset only period-dependent data (keep SSN, name, address, wage config)
+  const resetPeriodDependentData = useCallback(() => {
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setPeriodError(null);
+    setRecordId(null);
+  }, [userCode]);
+
   // Handle period change with confirmation
   const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
     if (ssnValid && period) {
       const canProceed = fieldChangeConfirm.requestChange('period', value);
       if (!canProceed) return;
     }
+    // Reset period-dependent data, keep SSN
+    resetPeriodDependentData();
     setPeriod(value);
-  }, [ssnValid, period, fieldChangeConfirm]);
+  }, [ssnValid, period, fieldChangeConfirm, resetPeriodDependentData]);
 
   // Fetch schedule number when SSN or period changes
   useEffect(() => {
@@ -254,22 +270,45 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     }
   }, [period, vcDateCommenced]);
 
+  // Reset form (full reset including SSN)
+  const resetForm = useCallback(() => {
+    setSSN("");
+    setPeriod(undefined);
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setName("");
+    setAddress("");
+    setWeeklyWage(0);
+    setWeeklyContribution(0);
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setSsnError(null);
+    setVcDateCommenced(null);
+    setPeriodError(null);
+    setSsnValid(false);
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
+
   // Handle field change confirmation
   const handleFieldChangeConfirm = useCallback(async () => {
     const change = fieldChangeConfirm.confirmChange();
     if (!change) return;
 
-    // Full reset
-    resetForm();
-
-    // Apply the new value
     if (change.field === 'ssn') {
+      resetForm();
       setSSN(change.newValue);
       setTimeout(() => runSSNValidation(change.newValue), 50);
     } else if (change.field === 'period') {
+      resetPeriodDependentData();
       setPeriod(change.newValue);
     }
-  }, [fieldChangeConfirm]);
+  }, [fieldChangeConfirm, resetForm, resetPeriodDependentData]);
 
   const handleFieldChangeCancel = useCallback(() => {
     const pending = fieldChangeConfirm.pendingChange;
@@ -298,31 +337,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       setSelectedWeeks([false, false, false, false, false]);
     }
   };
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setSSN("");
-    setPeriod(undefined);
-    setDateReceived(new Date());
-    setReceivedBy(userCode || "");
-    setNilReturn(false);
-    setScheduleNo(1);
-    setStatus('DFT');
-    setNotes("");
-    setName("");
-    setAddress("");
-    setWeeklyWage(0);
-    setWeeklyContribution(0);
-    setSelectedWeeks([false, false, false, false, false]);
-    setIsVerified(false);
-    setSsnError(null);
-    setVcDateCommenced(null);
-    setPeriodError(null);
-    setSsnValid(false);
-    setRecordId(null);
-    lastValidatedSSN.current = '';
-    fieldChangeConfirm.resetCommitted();
-  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {
