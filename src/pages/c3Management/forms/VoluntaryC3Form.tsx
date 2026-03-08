@@ -436,6 +436,12 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
                     placeholder="Select period"
                     disabled={isReadOnly}
                   />
+                  {periodError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {periodError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Date Received */}
