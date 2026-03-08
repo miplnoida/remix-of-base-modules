@@ -266,6 +266,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     setSelectedWeeks([false, false, false, false, false]);
     setIsVerified(false);
     setSsnError(null);
+    setVcDateCommenced(null);
+    setPeriodError(null);
     setSsnValid(false);
   };
 
