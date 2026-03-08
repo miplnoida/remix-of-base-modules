@@ -495,7 +495,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   };
 
   // Reset form functionality
-  const resetFormToDefaults = () => {
+  const resetFormToDefaults = useCallback(() => {
     setFormData({
       employerId: "",
       period: defaultPeriod,
@@ -511,16 +511,50 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     setEmployees([]);
     setEmployerValidated(false);
     setEmployerError('');
+    lastValidatedEmployerId.current = '';
+    fieldChangeConfirm.resetCommitted();
+    clearCalculation();
     // Re-focus employer ID after reset
     setTimeout(() => employerIdInputRef.current?.focus(), 100);
-  };
+  }, [userCode, defaultPeriod, fieldChangeConfirm, clearCalculation]);
+
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    // Full reset
+    resetFormToDefaults();
+
+    // Apply the new value
+    if (change.field === 'ssn') {
+      // Set the new employer ID and trigger validation
+      setFormData(prev => ({ ...prev, employerId: change.newValue }));
+      setTimeout(async () => {
+        await runEmployerValidation(change.newValue);
+      }, 50);
+    } else if (change.field === 'period') {
+      setFormData(prev => ({ ...prev, period: change.newValue }));
+    }
+  }, [fieldChangeConfirm, resetFormToDefaults, runEmployerValidation]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    // Revert the value
+    if (pending?.field === 'ssn') {
+      setFormData(prev => ({ ...prev, employerId: lastValidatedEmployerId.current }));
+    }
+    // For period, no revert needed since we didn't apply it yet
+  }, [fieldChangeConfirm]);
 
   // Handle reset trigger from parent component
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0 && mode === 'add') {
       resetFormToDefaults();
     }
-  }, [resetTrigger, mode]);
+  }, [resetTrigger, mode, resetFormToDefaults]);
 
   // Handle save trigger from parent component (header Save button)
   useEffect(() => {
