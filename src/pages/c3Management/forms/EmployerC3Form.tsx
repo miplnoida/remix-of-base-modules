@@ -56,7 +56,11 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   const { validateEmployer, getScheduleNumber, isValidating } = useEmployerValidation();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
-  const { calculate: calculateServerSide, isCalculating, calculationResult } = useC3ServerCalculations();
+  const { calculate: calculateServerSide, isCalculating, calculationResult, clearCalculation } = useC3ServerCalculations();
+  const fieldChangeConfirm = useC3FieldChangeConfirmation();
+  
+  // Ref to track the last validated employer ID for change detection
+  const lastValidatedEmployerId = useRef<string>('');
   
   // Ref to track calculation debounce
   const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
