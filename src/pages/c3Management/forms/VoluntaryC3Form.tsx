@@ -212,6 +212,23 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     fetchScheduleNo();
   }, [ssn, period, data?.id]);
 
+  // Validate filing period against VC effective date
+  useEffect(() => {
+    if (period && vcDateCommenced) {
+      const commenced = new Date(vcDateCommenced);
+      const commencedYM = commenced.getUTCFullYear() * 12 + commenced.getUTCMonth();
+      const filingYM = period.year * 12 + period.month;
+      if (filingYM < commencedYM) {
+        const commencedDisplay = commenced.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        setPeriodError(`C3 cannot be filed for a period before ${commencedDisplay}. This person became a voluntary contributor from ${commencedDisplay}.`);
+      } else {
+        setPeriodError(null);
+      }
+    } else {
+      setPeriodError(null);
+    }
+  }, [period, vcDateCommenced]);
+
   // Handle week checkbox change
   const handleWeekChange = (index: number, checked: boolean) => {
     if (isReadOnly || nilReturn) return;
