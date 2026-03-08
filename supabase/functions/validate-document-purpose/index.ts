@@ -105,11 +105,25 @@ Deno.serve(async (req) => {
         .from('ip-documents')
         .download(filePath);
       if (downloadError || !fileData) {
-        console.error('Storage download error:', downloadError);
+        const storageStatus = (downloadError as any)?.originalError?.status;
+        const storageStatusText = (downloadError as any)?.originalError?.statusText;
+        const storageErrorName = (downloadError as any)?.name || 'StorageError';
+        const storageErrorMessage = (downloadError as any)?.message
+          || `${storageErrorName}${storageStatus ? ` (${storageStatus} ${storageStatusText || ''})` : ''}`;
+
+        console.error('Storage download error', {
+          doc_code: docCode,
+          file_path: filePath,
+          error_name: storageErrorName,
+          error_message: storageErrorMessage,
+          status: storageStatus,
+          status_text: storageStatusText,
+        });
+
         return new Response(JSON.stringify({
           is_valid: false,
           confidence: 0,
-          reason: `Storage error: ${downloadError?.message || 'File not found'}`,
+          reason: `Storage error: ${storageErrorMessage}`,
           user_message: 'The uploaded file could not be retrieved for verification. Please try uploading again.',
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
