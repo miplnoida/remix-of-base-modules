@@ -215,7 +215,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }));
   }, [employees]);
 
-  // Validate employer on blur
+  // Validate employer on blur - with change confirmation
   const handleEmployerBlur = useCallback(async () => {
     if (!formData.employerId) {
       setEmployerError('Employer ID is required');
@@ -223,7 +223,18 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       return;
     }
 
-    const result = await validateEmployer(formData.employerId);
+    // If employer ID changed from a previously validated one, ask for confirmation
+    if (lastValidatedEmployerId.current && lastValidatedEmployerId.current !== formData.employerId) {
+      const canProceed = fieldChangeConfirm.requestChange('ssn', formData.employerId);
+      if (!canProceed) return; // Dialog shown, wait for user
+    }
+
+    await runEmployerValidation(formData.employerId);
+  }, [formData.employerId, formData.period, validateEmployer, getScheduleNumber, fieldChangeConfirm]);
+
+  // Extracted validation logic for reuse after confirmation
+  const runEmployerValidation = useCallback(async (empId: string) => {
+    const result = await validateEmployer(empId);
     
     if (result.isValid) {
       setFormData(prev => ({
@@ -233,11 +244,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       }));
       setEmployerError('');
       setEmployerValidated(true);
+      lastValidatedEmployerId.current = empId;
+      fieldChangeConfirm.markDataCommitted(empId, formData.period);
       
       // Recalculate schedule number
       if (formData.period) {
         const periodStr = formatPeriodForStorage(formData.period.year, formData.period.month);
-        const scheduleNo = await getScheduleNumber(formData.employerId, 'ER', periodStr);
+        const scheduleNo = await getScheduleNumber(empId, 'ER', periodStr);
         setFormData(prev => ({ ...prev, schedule: String(scheduleNo) }));
       }
     } else {
@@ -249,10 +262,21 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         address: ''
       }));
     }
-  }, [formData.employerId, formData.period, validateEmployer, getScheduleNumber]);
+  }, [formData.period, validateEmployer, getScheduleNumber, fieldChangeConfirm]);
 
-  // Update schedule number when period changes
+  // Update schedule number when period changes - with change confirmation
   const handlePeriodChange = useCallback(async (value: { year: number; month: number }) => {
+    // If we have committed data and period is changing, ask for confirmation
+    if (employerValidated && formData.period) {
+      const canProceed = fieldChangeConfirm.requestChange('period', value);
+      if (!canProceed) return; // Dialog shown, wait for user
+    }
+
+    applyPeriodChange(value);
+  }, [employerValidated, formData.employerId, formData.period, getScheduleNumber, fieldChangeConfirm]);
+
+  // Extracted period change logic for reuse after confirmation
+  const applyPeriodChange = useCallback(async (value: { year: number; month: number }) => {
     setFormData(prev => ({ ...prev, period: value }));
     
     if (employerValidated && formData.employerId) {
