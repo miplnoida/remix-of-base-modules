@@ -15180,19 +15180,7 @@ export type Database = {
         Returns: Json
       }
       check_sep_eligibility: { Args: { p_ssn: string }; Returns: Json }
-      check_vc_eligibility:
-        | {
-            Args: { p_ssn: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.check_vc_eligibility(p_ssn => text), public.check_vc_eligibility(p_ssn => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { p_ssn: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.check_vc_eligibility(p_ssn => text), public.check_vc_eligibility(p_ssn => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
+      check_vc_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_workflow_task_access: {
         Args: {
           _action?: string
