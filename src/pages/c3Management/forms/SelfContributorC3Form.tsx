@@ -552,7 +552,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
                       id="ssn"
                       value={ssn}
                       onChange={(e) => setSSN(e.target.value)}
-                      onBlur={validateSSN}
+                      onBlur={handleSSNBlur}
                       placeholder="Enter SSN"
                       className={ssnError ? "border-destructive pr-10" : "pr-10"}
                       readOnly={isReadOnly}
