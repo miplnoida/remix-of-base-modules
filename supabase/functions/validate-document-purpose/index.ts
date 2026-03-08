@@ -179,22 +179,24 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    // Log full technical details server-side
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    // Log full technical details server-side for support/debugging
     console.error('Document validation unhandled error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
     });
 
     // Return user-friendly error without exposing internals
     return new Response(JSON.stringify({
       is_valid: false,
       confidence: 0,
-      reason: `Internal validation error: ${error.message}`,
-      user_message: 'Document verification is temporarily unavailable. Your document will be accepted and can be verified later.',
-      _fallback: true,
+      reason: `Internal validation error: ${err.message}`,
+      user_message: 'Document verification could not be completed due to a technical issue. Please try again.',
+      _fallback: false,
     }), {
-      status: 200, // Don't return 500 — let frontend handle gracefully
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
