@@ -660,7 +660,9 @@ export async function verifyC3Record(c3Id: string, userId?: string): Promise<{ s
   }
 }
 
-// Reject a C3 record (change status from PEN to REJ)
+// Reject a C3 record
+// IMPORTANT: Can be called on submitted (PEN) records WITHOUT requiring verification
+// Rejection does NOT check verification status - only requires submitted status
 export async function rejectC3Record(c3Id: string, userId?: string, reason?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('reject_c3_record', {
@@ -675,6 +677,25 @@ export async function rejectC3Record(c3Id: string, userId?: string, reason?: str
   } catch (error: any) {
     console.error('Error rejecting C3 record:', error);
     return { success: false, error: error.message };
+  }
+}
+
+// Check if C3 is ready for acceptance (all wages verified)
+export async function isC3ReadyForAcceptance(c3Id: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('is_c3_ready_for_acceptance', {
+      p_c3_id: c3Id
+    });
+
+    if (error) {
+      console.error('Error checking C3 acceptance readiness:', error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error: any) {
+    console.error('Error checking C3 acceptance readiness:', error);
+    return false;
   }
 }
 
