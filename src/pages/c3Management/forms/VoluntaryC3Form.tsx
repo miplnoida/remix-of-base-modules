@@ -131,10 +131,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     return Math.round(weeklyContribution * weeksSelected * 100) / 100;
   }, [weeklyContribution, selectedWeeks, nilReturn]);
 
-    if (periodError) {
-      toast({ title: "Validation Error", description: periodError, variant: "destructive" });
-      return;
-    }
 
   // Format money
   const formatMoney = (amount: number) => {
