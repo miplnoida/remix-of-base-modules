@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import {
 } from "@/services/c3Service";
 import { getMondaysInMonth } from "@/utils/selfContributorPenaltyCalculations";
 import { postingStatusToDisplayStatus } from "@/hooks/useC3Management";
+import { useC3FieldChangeConfirmation } from "@/hooks/useC3FieldChangeConfirmation";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 // PreviewField component for view mode
 const PreviewField = ({ label, value, required = false }: { label: string; value: string | number | null | undefined; required?: boolean }) => (
