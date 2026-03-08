@@ -1337,6 +1337,7 @@ export async function validateVoluntaryContributorSSN(
       address: '',
       avgWeeklyWage: 0,
       contribAmount: 0,
+      dateCommenced: null,
       message: error.message
     };
   }
