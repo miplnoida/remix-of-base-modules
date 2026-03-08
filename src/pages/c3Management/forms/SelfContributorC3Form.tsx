@@ -58,6 +58,8 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const { toast } = useToast();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
+  const fieldChangeConfirm = useC3FieldChangeConfirmation();
+  const lastValidatedSSN = useRef<string>('');
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");

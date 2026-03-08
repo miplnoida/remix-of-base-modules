@@ -1138,6 +1138,22 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         }}
         allEmployees={employees}
       />
+
+      {/* Confirm dialog for SSN/Period change */}
+      <ConfirmDialog
+        open={fieldChangeConfirm.showConfirm}
+        onOpenChange={(open) => { if (!open) handleFieldChangeCancel(); }}
+        title="Confirm Change"
+        description={
+          fieldChangeConfirm.pendingChange?.field === 'ssn'
+            ? "Changing the Employer ID will reset all form data, employee entries, and calculated values. Do you want to proceed?"
+            : "Changing the Period will reset all form data, employee entries, and calculated values. Do you want to proceed?"
+        }
+        confirmLabel="Yes, Reset & Continue"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleFieldChangeConfirm}
+      />
     </div>
   );
 }

@@ -50,6 +50,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   const { toast } = useToast();
   const { userCode } = useUserCode();
   const { submitC3Record, isSubmitting } = useC3Submit();
+  const fieldChangeConfirm = useC3FieldChangeConfirmation();
+  const lastValidatedSSN = useRef<string>('');
 
   // Form state
   const [ssn, setSSN] = useState(data?.payerId || data?.ssn || "");
