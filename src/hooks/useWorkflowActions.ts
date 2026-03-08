@@ -1169,8 +1169,8 @@ async function updateSourceRecordStatus(
     }
   } else if (
     sourceModule === 'c3_er_submission' ||
-    sourceModule === 'c3_vol_submission' ||
-    sourceModule === 'c3_self_submission'
+    sourceModule === 'c3_se_submission' ||
+    sourceModule === 'c3_vc_submission'
   ) {
     // C3 submission workflow: update posting_status on cn_c3_reported and ip_wages
     const updateData: Record<string, any> = {
