@@ -166,12 +166,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       });
       
       // If we have employer data already loaded (name/address), mark as validated without error
-      if ((initialData.payerId || initialData.employerId) && (initialData.payerName || initialData.employerName)) {
+      const empId = initialData.payerId || initialData.employerId || "";
+      if (empId && (initialData.payerName || initialData.employerName)) {
         setEmployerValidated(true);
         setEmployerError('');
-      } else if (initialData.payerId || initialData.employerId) {
+        lastValidatedEmployerId.current = empId;
+        fieldChangeConfirm.markDataCommitted(empId, periodParsed);
+      } else if (empId) {
         // Have ID but no name — run validation silently
-        const empId = initialData.payerId || initialData.employerId;
         validateEmployer(empId).then(result => {
           if (result.isValid) {
             setFormData(prev => ({
@@ -181,6 +183,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
             }));
             setEmployerValidated(true);
             setEmployerError('');
+            lastValidatedEmployerId.current = empId;
+            fieldChangeConfirm.markDataCommitted(empId, periodParsed);
           }
         });
       }
