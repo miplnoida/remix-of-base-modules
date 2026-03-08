@@ -851,6 +851,22 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
           </CardContent>
         </Card>
       )}
+
+      {/* Confirm dialog for SSN/Period change */}
+      <ConfirmDialog
+        open={fieldChangeConfirm.showConfirm}
+        onOpenChange={(open) => { if (!open) handleFieldChangeCancel(); }}
+        title="Confirm Change"
+        description={
+          fieldChangeConfirm.pendingChange?.field === 'ssn'
+            ? "Changing the SSN will reset all form data, wage details, and calculated values. Do you want to proceed?"
+            : "Changing the Period will reset all form data, wage details, and calculated values. Do you want to proceed?"
+        }
+        confirmLabel="Yes, Reset & Continue"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleFieldChangeConfirm}
+      />
     </div>
   );
 }

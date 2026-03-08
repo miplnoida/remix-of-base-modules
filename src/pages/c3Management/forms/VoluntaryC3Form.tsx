@@ -163,8 +163,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     }
   };
 
-  // Validate SSN against ip_vol_contrib
-  const validateSSN = useCallback(async () => {
+  // Validate SSN against ip_vol_contrib - with change confirmation
+  const handleSSNBlur = useCallback(async () => {
     if (!ssn || ssn.length < 1) {
       setSsnError(null);
       setSsnValid(false);
@@ -175,11 +175,21 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       return;
     }
 
+    // If SSN changed from a previously validated one, ask for confirmation
+    if (lastValidatedSSN.current && lastValidatedSSN.current !== ssn) {
+      const canProceed = fieldChangeConfirm.requestChange('ssn', ssn);
+      if (!canProceed) return;
+    }
+
+    await runSSNValidation(ssn);
+  }, [ssn, fieldChangeConfirm]);
+
+  const runSSNValidation = useCallback(async (ssnValue: string) => {
     setSSNValidating(true);
     setSsnError(null);
 
     try {
-      const result = await validateVoluntaryContributorSSN(ssn);
+      const result = await validateVoluntaryContributorSSN(ssnValue);
       
       if (!result.isValid) {
         setSsnError(result.message);
@@ -195,6 +205,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
         setWeeklyContribution(result.contribAmount);
         setVcDateCommenced(result.dateCommenced || null);
         setSsnValid(true);
+        lastValidatedSSN.current = ssnValue;
+        fieldChangeConfirm.markDataCommitted(ssnValue, period || null);
       }
     } catch (error: any) {
       setSsnError(error.message || "Error validating SSN");
@@ -202,7 +214,16 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     } finally {
       setSSNValidating(false);
     }
-  }, [ssn]);
+  }, [ssn, period, fieldChangeConfirm]);
+
+  // Handle period change with confirmation
+  const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
+    if (ssnValid && period) {
+      const canProceed = fieldChangeConfirm.requestChange('period', value);
+      if (!canProceed) return;
+    }
+    setPeriod(value);
+  }, [ssnValid, period, fieldChangeConfirm]);
 
   // Fetch schedule number when SSN or period changes
   useEffect(() => {
@@ -233,10 +254,36 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     }
   }, [period, vcDateCommenced]);
 
+  // Handle field change confirmation
+  const handleFieldChangeConfirm = useCallback(async () => {
+    const change = fieldChangeConfirm.confirmChange();
+    if (!change) return;
+
+    // Full reset
+    resetForm();
+
+    // Apply the new value
+    if (change.field === 'ssn') {
+      setSSN(change.newValue);
+      setTimeout(() => runSSNValidation(change.newValue), 50);
+    } else if (change.field === 'period') {
+      setPeriod(change.newValue);
+    }
+  }, [fieldChangeConfirm]);
+
+  const handleFieldChangeCancel = useCallback(() => {
+    const pending = fieldChangeConfirm.pendingChange;
+    fieldChangeConfirm.cancelChange();
+    
+    if (pending?.field === 'ssn') {
+      setSSN(lastValidatedSSN.current);
+    }
+  }, [fieldChangeConfirm]);
+
   // Handle week checkbox change
   const handleWeekChange = (index: number, checked: boolean) => {
     if (isReadOnly || nilReturn) return;
-    if (index >= mondaysInMonth) return; // Don't allow selecting weeks beyond Mondays in month
+    if (index >= mondaysInMonth) return;
     
     const newWeeks = [...selectedWeeks];
     newWeeks[index] = checked;
@@ -248,13 +295,12 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     if (isReadOnly) return;
     setNilReturn(checked);
     if (checked) {
-      // Clear wages data when Nil Return is selected
       setSelectedWeeks([false, false, false, false, false]);
     }
   };
 
   // Reset form
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSSN("");
     setPeriod(undefined);
     setDateReceived(new Date());
@@ -273,7 +319,10 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     setVcDateCommenced(null);
     setPeriodError(null);
     setSsnValid(false);
-  };
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {
