@@ -350,18 +350,45 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [period]);
 
+  // Reset form (full reset including SSN)
+  const resetForm = useCallback(() => {
+    setSSN("");
+    setPeriod(undefined);
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setName("");
+    setAddress("");
+    setWeeklyWage(0);
+    setWeeklyContribution(0);
+    setWageCategory(null);
+    setSsRate(0);
+    setPenaltyRate(null);
+    setConfigFound(true);
+    setConfigWarning(null);
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setSsnError(null);
+    setSsnValid(false);
+    setPeriodError(null);
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
+
   // Handle field change confirmation
   const handleFieldChangeConfirm = useCallback(async () => {
     const change = fieldChangeConfirm.confirmChange();
     if (!change) return;
 
     if (change.field === 'ssn') {
-      // SSN change: full reset, then apply new SSN
       resetForm();
       setSSN(change.newValue);
       setTimeout(() => runSSNValidation(change.newValue), 50);
     } else if (change.field === 'period') {
-      // Period change: reset dependent data only, keep SSN
       resetPeriodDependentData();
       setPeriod(change.newValue);
     }
@@ -391,7 +418,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   // Handle week checkbox change
   const handleWeekChange = (index: number, checked: boolean) => {
     if (isReadOnly || nilReturn) return;
-    if (index >= mondaysInMonth) return; // Don't allow selecting weeks beyond Mondays in month
+    if (index >= mondaysInMonth) return;
     
     const newWeeks = [...selectedWeeks];
     newWeeks[index] = checked;
@@ -403,39 +430,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     if (isReadOnly) return;
     setNilReturn(checked);
     if (checked) {
-      // Clear wages data when Nil Return is selected
       setSelectedWeeks([false, false, false, false, false]);
     }
   };
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setSSN("");
-    setPeriod(undefined);
-    setDateReceived(new Date());
-    setReceivedBy(userCode || "");
-    setNilReturn(false);
-    setScheduleNo(1);
-    setStatus('DFT');
-    setNotes("");
-    setName("");
-    setAddress("");
-    setWeeklyWage(0);
-    setWeeklyContribution(0);
-    setWageCategory(null);
-    setSsRate(0);
-    setPenaltyRate(null);
-    setConfigFound(true);
-    setConfigWarning(null);
-    setSelectedWeeks([false, false, false, false, false]);
-    setIsVerified(false);
-    setSsnError(null);
-    setSsnValid(false);
-    setPeriodError(null);
-    setRecordId(null);
-    lastValidatedSSN.current = '';
-    fieldChangeConfirm.resetCommitted();
-  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {

@@ -270,18 +270,41 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     }
   }, [period, vcDateCommenced]);
 
+  // Reset form (full reset including SSN)
+  const resetForm = useCallback(() => {
+    setSSN("");
+    setPeriod(undefined);
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setName("");
+    setAddress("");
+    setWeeklyWage(0);
+    setWeeklyContribution(0);
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setSsnError(null);
+    setVcDateCommenced(null);
+    setPeriodError(null);
+    setSsnValid(false);
+    setRecordId(null);
+    lastValidatedSSN.current = '';
+    fieldChangeConfirm.resetCommitted();
+  }, [userCode, fieldChangeConfirm]);
+
   // Handle field change confirmation
   const handleFieldChangeConfirm = useCallback(async () => {
     const change = fieldChangeConfirm.confirmChange();
     if (!change) return;
 
     if (change.field === 'ssn') {
-      // SSN change: full reset, then apply new SSN
       resetForm();
       setSSN(change.newValue);
       setTimeout(() => runSSNValidation(change.newValue), 50);
     } else if (change.field === 'period') {
-      // Period change: reset dependent data only, keep SSN
       resetPeriodDependentData();
       setPeriod(change.newValue);
     }
@@ -314,31 +337,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       setSelectedWeeks([false, false, false, false, false]);
     }
   };
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setSSN("");
-    setPeriod(undefined);
-    setDateReceived(new Date());
-    setReceivedBy(userCode || "");
-    setNilReturn(false);
-    setScheduleNo(1);
-    setStatus('DFT');
-    setNotes("");
-    setName("");
-    setAddress("");
-    setWeeklyWage(0);
-    setWeeklyContribution(0);
-    setSelectedWeeks([false, false, false, false, false]);
-    setIsVerified(false);
-    setSsnError(null);
-    setVcDateCommenced(null);
-    setPeriodError(null);
-    setSsnValid(false);
-    setRecordId(null);
-    lastValidatedSSN.current = '';
-    fieldChangeConfirm.resetCommitted();
-  }, [userCode, fieldChangeConfirm]);
 
   // Handle reset trigger from parent
   useEffect(() => {
