@@ -326,14 +326,21 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({
                     {/* Validation result inline */}
                     {vResult && !isCurrentlyValidating && (
                       vResult.is_valid ? (
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          <span>Verified ({Math.round(vResult.confidence * 100)}% match)</span>
-                        </div>
+                        vResult._fallback ? (
+                          <div className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                            <span>{vResult.user_message || 'Document accepted pending manual review.'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>{vResult.user_message || 'Document verified'} ({Math.round(vResult.confidence * 100)}% match)</span>
+                          </div>
+                        )
                       ) : (
                         <div className="flex items-start gap-1.5 text-xs text-destructive">
                           <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                          <span>{vResult.reason}</span>
+                          <span>{vResult.user_message || vResult.reason}</span>
                         </div>
                       )
                     )}

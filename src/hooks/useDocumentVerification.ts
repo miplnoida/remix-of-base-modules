@@ -334,9 +334,10 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
         setUploadProgress(prev => ({ ...prev, [uploadKey]: 100 }));
         
         const isFallback = validationResult._fallback;
+        const confidencePct = Math.round((validationResult.confidence || 0) * 100);
         const successMsg = isFallback
           ? (validationResult.user_message || 'Document accepted for manual review.')
-          : `${validationResult.confidence >= 0.8 ? 'High' : 'Moderate'} confidence match for ${slot.docDescription}`;
+          : `${validationResult.user_message || `Document verified for ${slot.docDescription}.`} (${confidencePct}% confidence)`;
         toast.success(`"${file.name}" uploaded successfully`, {
           description: successMsg,
           icon: React.createElement(CheckCircle2, { className: 'h-4 w-4 text-emerald-500' }),

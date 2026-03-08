@@ -196,20 +196,29 @@ export function DocumentUploadStep({
                 {/* Document purpose validation status */}
                 {slotValidation?.result && !slotValidation.validating && (
                   slotValidation.result.is_valid ? (
-                    <div className="flex items-start gap-2 p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 mb-2">
-                      <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <div className="text-xs text-emerald-700 dark:text-emerald-400">
-                        <strong>Document verified:</strong> {slotValidation.result.reason}
-                        {slotValidation.result.confidence !== undefined && (
-                          <span className="ml-1 opacity-75">({Math.round(slotValidation.result.confidence * 100)}% confidence)</span>
-                        )}
+                    slotValidation.result._fallback ? (
+                      <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 mb-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-700 dark:text-amber-400">
+                          <strong>Manual review:</strong> {slotValidation.result.user_message || slotValidation.result.reason}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-start gap-2 p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 mb-2">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="text-xs text-emerald-700 dark:text-emerald-400">
+                          <strong>Document verified:</strong> {slotValidation.result.user_message || slotValidation.result.reason}
+                          {slotValidation.result.confidence !== undefined && (
+                            <span className="ml-1 opacity-75">({Math.round(slotValidation.result.confidence * 100)}% confidence)</span>
+                          )}
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/30 mb-2">
                       <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                       <div className="text-xs text-destructive">
-                        <strong>Validation failed:</strong> {slotValidation.result.reason}
+                        <strong>Validation failed:</strong> {slotValidation.result.user_message || slotValidation.result.reason}
                       </div>
                     </div>
                   )
