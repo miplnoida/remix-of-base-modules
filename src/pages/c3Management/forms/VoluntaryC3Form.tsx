@@ -302,7 +302,11 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       return;
     }
 
-    if (!nilReturn && !ssnValid) {
+    if (periodError) {
+      toast({ title: "Validation Error", description: periodError, variant: "destructive" });
+      return;
+    }
+
       toast({ title: "Error", description: "Please enter a valid SSN with voluntary contribution data", variant: "destructive" });
       return;
     }
