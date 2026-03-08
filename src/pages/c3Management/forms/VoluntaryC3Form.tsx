@@ -73,6 +73,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   const [address, setAddress] = useState(data?.payerAddress || "");
   const [weeklyWage, setWeeklyWage] = useState<number>(0); // avg_weekly_wage from ip_vol_contrib
   const [weeklyContribution, setWeeklyContribution] = useState<number>(0); // contrib_amt from ip_vol_contrib
+  const [vcDateCommenced, setVcDateCommenced] = useState<string | null>(null); // VC effective start date
+  const [periodError, setPeriodError] = useState<string | null>(null);
 
   // Validation states
   const [ssnValidating, setSSNValidating] = useState(false);
@@ -187,6 +189,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
         setAddress(result.address);
         setWeeklyWage(result.avgWeeklyWage);
         setWeeklyContribution(result.contribAmount);
+        setVcDateCommenced(result.dateCommenced || null);
         setSsnValid(true);
       }
     } catch (error: any) {
@@ -208,6 +211,23 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     };
     fetchScheduleNo();
   }, [ssn, period, data?.id]);
+
+  // Validate filing period against VC effective date
+  useEffect(() => {
+    if (period && vcDateCommenced) {
+      const commenced = new Date(vcDateCommenced);
+      const commencedYM = commenced.getUTCFullYear() * 12 + commenced.getUTCMonth();
+      const filingYM = period.year * 12 + period.month;
+      if (filingYM < commencedYM) {
+        const commencedDisplay = commenced.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        setPeriodError(`C3 cannot be filed for a period before ${commencedDisplay}. This person became a voluntary contributor from ${commencedDisplay}.`);
+      } else {
+        setPeriodError(null);
+      }
+    } else {
+      setPeriodError(null);
+    }
+  }, [period, vcDateCommenced]);
 
   // Handle week checkbox change
   const handleWeekChange = (index: number, checked: boolean) => {
@@ -246,6 +266,8 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     setSelectedWeeks([false, false, false, false, false]);
     setIsVerified(false);
     setSsnError(null);
+    setVcDateCommenced(null);
+    setPeriodError(null);
     setSsnValid(false);
   };
 
@@ -275,6 +297,11 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
 
     if (!period) {
       toast({ title: "Error", description: "Please select a period", variant: "destructive" });
+      return;
+    }
+
+    if (periodError) {
+      toast({ title: "Validation Error", description: periodError, variant: "destructive" });
       return;
     }
 
@@ -411,6 +438,12 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
                     placeholder="Select period"
                     disabled={isReadOnly}
                   />
+                  {periodError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {periodError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Date Received */}

@@ -1260,6 +1260,7 @@ export async function validateVoluntaryContributorSSN(
   address: string;
   avgWeeklyWage: number;
   contribAmount: number;
+  dateCommenced: string | null;
   message: string;
 }> {
   try {
@@ -1277,6 +1278,7 @@ export async function validateVoluntaryContributorSSN(
         address: '',
         avgWeeklyWage: 0,
         contribAmount: 0,
+        dateCommenced: null,
         message: 'SSN not found in the system'
       };
     }
@@ -1284,13 +1286,15 @@ export async function validateVoluntaryContributorSSN(
     const name = [personData.firstname, personData.surname].filter(Boolean).join(' ').trim();
     const address = [personData.resident_addr1, personData.resident_addr2].filter(Boolean).join(' ').trim();
 
-    // Check ip_vol_contrib for avg_weekly_wage and contrib_amt (note: column is contrib_amt not contrib_amount)
+    // Check ip_vol_contrib for avg_weekly_wage, contrib_amt, and date_commenced
     const { data: volContribData, error: volContribError } = await supabase
       .from('ip_vol_contrib')
-      .select('avg_weekly_wage, contrib_amt')
+      .select('avg_weekly_wage, contrib_amt, date_commenced')
       .eq('ssn', ssn)
+      .is('date_ceased', null)
+      .order('date_registered', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (volContribError || !volContribData) {
       return {
@@ -1299,7 +1303,8 @@ export async function validateVoluntaryContributorSSN(
         address,
         avgWeeklyWage: 0,
         contribAmount: 0,
-        message: 'No voluntary contribution record found for this SSN. Please ensure the SSN has a declared avg_weekly_wage and contrib_amt in ip_vol_contrib.'
+        dateCommenced: null,
+        message: 'No active voluntary contribution record found for this SSN. Please ensure the SSN has a declared avg_weekly_wage and contrib_amt in ip_vol_contrib.'
       };
     }
 
@@ -1310,6 +1315,7 @@ export async function validateVoluntaryContributorSSN(
         address,
         avgWeeklyWage: 0,
         contribAmount: 0,
+        dateCommenced: volContribData.date_commenced || null,
         message: 'Voluntary contribution record is incomplete. Both avg_weekly_wage and contrib_amt are required.'
       };
     }
@@ -1320,6 +1326,7 @@ export async function validateVoluntaryContributorSSN(
       address,
       avgWeeklyWage: Number(volContribData.avg_weekly_wage) || 0,
       contribAmount: Number(volContribData.contrib_amt) || 0,
+      dateCommenced: volContribData.date_commenced || null,
       message: 'Voluntary contributor validated successfully'
     };
   } catch (error: any) {
@@ -1330,6 +1337,7 @@ export async function validateVoluntaryContributorSSN(
       address: '',
       avgWeeklyWage: 0,
       contribAmount: 0,
+      dateCommenced: null,
       message: error.message
     };
   }
@@ -1348,6 +1356,34 @@ export async function saveVoluntaryContributorC3(
   try {
     const currentDate = new Date().toISOString();
     
+    // SERVER-SIDE VALIDATION: Check that the filing period is not before the VC effective date
+    const periodStr = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : String(record.period)) : null;
+    if (periodStr && record.payer_id) {
+      const { data: vcRecord } = await supabase
+        .from('ip_vol_contrib')
+        .select('date_commenced')
+        .eq('ssn', record.payer_id)
+        .is('date_ceased', null)
+        .order('date_registered', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (vcRecord?.date_commenced) {
+        const commencedDate = new Date(vcRecord.date_commenced);
+        const filingPeriod = new Date(periodStr);
+        // Compare year/month: filing period must be >= commenced month
+        const commencedYM = commencedDate.getUTCFullYear() * 12 + commencedDate.getUTCMonth();
+        const filingYM = filingPeriod.getUTCFullYear() * 12 + filingPeriod.getUTCMonth();
+        if (filingYM < commencedYM) {
+          const commencedDisplay = commencedDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+          return {
+            success: false,
+            error: `C3 cannot be filed for a period before the voluntary contribution effective date. This person became a voluntary contributor from ${commencedDisplay}. Please select a period on or after ${commencedDisplay}.`
+          };
+        }
+      }
+    }
+
     // If no userCode provided, try to get the current user's code
     let effectiveUserCode = userCode;
     if (!effectiveUserCode) {
