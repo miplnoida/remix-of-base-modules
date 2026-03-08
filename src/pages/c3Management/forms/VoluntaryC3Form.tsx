@@ -487,7 +487,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
                   <Label>Period <span className="text-red-500">*</span></Label>
                   <MonthYearPicker
                     value={period}
-                    onChange={setPeriod}
+                    onChange={handlePeriodChange}
                     placeholder="Select period"
                     disabled={isReadOnly}
                   />
