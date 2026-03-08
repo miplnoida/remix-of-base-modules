@@ -1518,7 +1518,7 @@ export async function saveVoluntaryContributorC3(
 
       if (wageError) {
         console.error('Error saving VC wage record:', wageError);
-        return { success: true, data: c3Record, error: `C3 saved but wage record failed: ${wageError.message}` };
+        return { success: false, error: `Failed to save wage details: ${wageError.message}` };
       }
       console.log('Successfully upserted VC wage record');
     }
