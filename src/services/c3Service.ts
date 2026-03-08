@@ -1460,7 +1460,7 @@ export async function saveVoluntaryContributorC3(
       const periodDate = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : null;
       if (!periodDate) {
         console.error('VC save - missing period for wage record');
-        return { success: true, data: c3Record, error: 'Missing period for wage record' };
+        return { success: false, error: 'Missing period for wage record' };
       }
 
       const wages1 = hasSelectedWeeks && selectedWeeks[0] ? toNumericOrNull(weeklyWage) : null;
