@@ -268,6 +268,21 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
   }, [formData.period, validateEmployer, getScheduleNumber, fieldChangeConfirm]);
 
+  // Reset only period-dependent data (keep employer ID, name, address, validation)
+  const resetPeriodDependentData = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      dateReceived: new Date().toISOString().split('T')[0],
+      receivedBy: userCode || "",
+      schedule: "",
+      numberOfEmployees: "0",
+      status: "Draft",
+      nilReturn: false
+    }));
+    setEmployees([]);
+    clearCalculation();
+  }, [userCode, clearCalculation]);
+
   // Update schedule number when period changes - with change confirmation
   const handlePeriodChange = useCallback(async (value: { year: number; month: number }) => {
     // If we have committed data and period is changing, ask for confirmation
@@ -276,8 +291,10 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       if (!canProceed) return; // Dialog shown, wait for user
     }
 
+    // Reset period-dependent data, keep employer
+    resetPeriodDependentData();
     applyPeriodChange(value);
-  }, [employerValidated, formData.employerId, formData.period, getScheduleNumber, fieldChangeConfirm]);
+  }, [employerValidated, formData.employerId, formData.period, fieldChangeConfirm, resetPeriodDependentData]);
 
   // Extracted period change logic for reuse after confirmation
   const applyPeriodChange = useCallback(async (value: { year: number; month: number }) => {
@@ -498,7 +515,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     window.print();
   };
 
-  // Reset form functionality
+  // Reset form functionality (full reset including employer)
   const resetFormToDefaults = useCallback(() => {
     setFormData({
       employerId: "",
@@ -527,20 +544,19 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     const change = fieldChangeConfirm.confirmChange();
     if (!change) return;
 
-    // Full reset
-    resetFormToDefaults();
-
-    // Apply the new value
     if (change.field === 'ssn') {
-      // Set the new employer ID and trigger validation
+      // Employer ID change: full reset, then apply new employer ID
+      resetFormToDefaults();
       setFormData(prev => ({ ...prev, employerId: change.newValue }));
       setTimeout(async () => {
         await runEmployerValidation(change.newValue);
       }, 50);
     } else if (change.field === 'period') {
-      setFormData(prev => ({ ...prev, period: change.newValue }));
+      // Period change: reset dependent data only, keep employer
+      resetPeriodDependentData();
+      applyPeriodChange(change.newValue);
     }
-  }, [fieldChangeConfirm, resetFormToDefaults, runEmployerValidation]);
+  }, [fieldChangeConfirm, resetFormToDefaults, resetPeriodDependentData, runEmployerValidation, applyPeriodChange]);
 
   const handleFieldChangeCancel = useCallback(() => {
     const pending = fieldChangeConfirm.pendingChange;

@@ -307,14 +307,37 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [period, fieldChangeConfirm]);
 
+  // Reset only period-dependent data (keep SSN, name, address)
+  const resetPeriodDependentData = useCallback(() => {
+    setDateReceived(new Date());
+    setReceivedBy(userCode || "");
+    setNilReturn(false);
+    setScheduleNo(1);
+    setStatus('DFT');
+    setNotes("");
+    setWeeklyWage(0);
+    setWeeklyContribution(0);
+    setWageCategory(null);
+    setSsRate(0);
+    setPenaltyRate(null);
+    setConfigFound(true);
+    setConfigWarning(null);
+    setSelectedWeeks([false, false, false, false, false]);
+    setIsVerified(false);
+    setPeriodError(null);
+    setRecordId(null);
+  }, [userCode]);
+
   // Handle period change with confirmation
   const handlePeriodChange = useCallback((value: { year: number; month: number }) => {
     if (ssnValid && period) {
       const canProceed = fieldChangeConfirm.requestChange('period', value);
       if (!canProceed) return;
     }
+    // Reset period-dependent data, keep SSN
+    resetPeriodDependentData();
     setPeriod(value);
-  }, [ssnValid, period, fieldChangeConfirm]);
+  }, [ssnValid, period, fieldChangeConfirm, resetPeriodDependentData]);
 
   // Re-validate when period changes and clear period error
   useEffect(() => {
@@ -332,17 +355,17 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     const change = fieldChangeConfirm.confirmChange();
     if (!change) return;
 
-    // Full reset
-    resetForm();
-
-    // Apply the new value
     if (change.field === 'ssn') {
+      // SSN change: full reset, then apply new SSN
+      resetForm();
       setSSN(change.newValue);
       setTimeout(() => runSSNValidation(change.newValue), 50);
     } else if (change.field === 'period') {
+      // Period change: reset dependent data only, keep SSN
+      resetPeriodDependentData();
       setPeriod(change.newValue);
     }
-  }, [fieldChangeConfirm]);
+  }, [fieldChangeConfirm, resetForm, resetPeriodDependentData]);
 
   const handleFieldChangeCancel = useCallback(() => {
     const pending = fieldChangeConfirm.pendingChange;
