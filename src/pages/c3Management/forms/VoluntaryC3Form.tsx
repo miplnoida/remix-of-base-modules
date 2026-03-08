@@ -122,6 +122,15 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   // Check if record can be submitted (only DFT/Draft status)
   const canSubmit = recordId && (status === 'DFT' || status === 'Z');
 
+  // Auto-validate SSN on mount for edit/view mode to populate weeklyWage/weeklyContribution
+  const hasAutoValidated = useRef(false);
+  useEffect(() => {
+    if ((mode === 'edit' || mode === 'view') && ssn && !hasAutoValidated.current) {
+      hasAutoValidated.current = true;
+      runSSNValidation(ssn);
+    }
+  }, [mode, ssn]);
+
   // Set default received by to current user on mount
   useEffect(() => {
     if (!receivedBy && userCode) {
