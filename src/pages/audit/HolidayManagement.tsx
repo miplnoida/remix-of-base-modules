@@ -21,6 +21,26 @@ export default function HolidayManagement() {
   const [editHoliday, setEditHoliday] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'name', label: 'Holiday Name', required: true },
+    { key: 'date', label: 'Holiday Date', required: true, type: 'date' },
+    { key: 'country', label: 'Country/Region' },
+    { key: 'is_ssb_specific', label: 'SSB Specific (yes/no)' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          name: row.name, date: row.date, country: row.country || 'St. Kitts & Nevis',
+          is_ssb_specific: String(row.is_ssb_specific).toLowerCase() === 'yes',
+          created_by: (profile as any)?.user_code || '',
+        }, { onSuccess: () => resolve(), onError: () => reject() });
+      });
+    }
+  };
 
   const resetForm = () => setForm({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
 
