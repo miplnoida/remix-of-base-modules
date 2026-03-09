@@ -129,6 +129,7 @@ export default function AuditUniverse() {
           <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
         </div>
       }
+      isLoading={isLoading} error={isError ? 'Failed to load audit universe' : null}>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Entities" value={stats.total} icon={Globe} variant="info" />
