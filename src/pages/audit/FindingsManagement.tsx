@@ -307,6 +307,15 @@ const FindingsManagement = () => {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding? This action cannot be undone." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Findings"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="findings-template"
+      />
     </PageShell>
   );
 };

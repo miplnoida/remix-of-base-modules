@@ -189,6 +189,15 @@ export default function ActionTracking() {
           </div>
         )}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Actions"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="actions-template"
+      />
     </PageShell>
   );
 }

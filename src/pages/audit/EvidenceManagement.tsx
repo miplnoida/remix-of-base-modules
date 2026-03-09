@@ -120,7 +120,28 @@ export default function EvidenceManagement() {
       subtitle="Upload and manage audit evidence with file attachments"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Evidence Management' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => setIsDialogOpen(true)}><Upload className="w-4 h-4 mr-2" />Upload Evidence</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredEvidence.map((ev: any) => ({
+              ...ev,
+              plan_name: plans.find((p: any) => p.id === ev.annual_plan_id)?.title || '',
+              activity_name: activities.find((a: any) => a.id === ev.activity_id)?.title || '',
+            }))}
+            columns={[
+              { key: 'title', header: 'Evidence Name' },
+              { key: 'evidence_type', header: 'Type' },
+              { key: 'activity_name', header: 'Activity' },
+              { key: 'plan_name', header: 'Plan' },
+              { key: 'file_name', header: 'File' },
+              { key: 'created_at', header: 'Date' },
+            ]}
+            fileName="evidence-list"
+            title="Evidence List"
+          />
+          <Button onClick={() => setIsDialogOpen(true)}><Upload className="w-4 h-4 mr-2" />Upload Evidence</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
