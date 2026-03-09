@@ -138,6 +138,10 @@ const iconMap: Record<string, LucideIcon> = {
   'arrow-left-right': ArrowLeftRight,
   'wrench': Wrench,
   'rows3': Layers,
+  'clock': Clock,
+  'target': Target,
+  'filebarchart': FileBarChart,
+  'file-bar-chart': FileBarChart,
 };
 
 // Map icon name string to Lucide icon component
