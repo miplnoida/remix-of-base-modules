@@ -26,15 +26,15 @@ import CardManagement from '@/pages/crd/CardManagement';
 import CRDPrintedSpoiledCardsReport from '@/pages/crd/reports/PrintedSpoiledCardsReport';
 
 // Compliance Module
-import ViolationsManagement from '@/pages/compliance/ViolationsManagement';
-import ViolationDetails from '@/pages/compliance/ViolationDetails';
-import InspectorPlans from '@/pages/compliance/InspectorPlans';
-import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
-import FieldOperations from '@/pages/compliance/FieldOperations';
-import NoticesManagement from '@/pages/compliance/NoticesManagement';
-import EmployerStatements from '@/pages/compliance/EmployerStatements';
-import ComplianceSettings from '@/pages/compliance/ComplianceSettings';
-import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+import ViolationsManagement from '@/pages/compliance/violations/ViolationsManagement';
+import ViolationDetails from '@/pages/compliance/violations/ViolationDetails';
+import InspectorPlans from '@/pages/compliance/audit-planning/InspectorPlans';
+import PaymentArrangements from '@/pages/compliance/arrangements/PaymentArrangements';
+import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
+import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
+import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
+import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
+import ComplianceDashboard from '@/pages/compliance/dashboards/ComplianceDashboard';
 import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
 import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
 import InspectorPerformance from '@/pages/compliance/reports/InspectorPerformance';
