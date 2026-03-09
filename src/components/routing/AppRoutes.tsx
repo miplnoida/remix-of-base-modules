@@ -26,15 +26,15 @@ import CardManagement from '@/pages/crd/CardManagement';
 import CRDPrintedSpoiledCardsReport from '@/pages/crd/reports/PrintedSpoiledCardsReport';
 
 // Compliance Module
-import ViolationsManagement from '@/pages/compliance/ViolationsManagement';
-import ViolationDetails from '@/pages/compliance/ViolationDetails';
-import InspectorPlans from '@/pages/compliance/InspectorPlans';
-import PaymentArrangements from '@/pages/compliance/PaymentArrangements';
-import FieldOperations from '@/pages/compliance/FieldOperations';
-import NoticesManagement from '@/pages/compliance/NoticesManagement';
-import EmployerStatements from '@/pages/compliance/EmployerStatements';
-import ComplianceSettings from '@/pages/compliance/ComplianceSettings';
-import ComplianceDashboard from '@/pages/compliance/ComplianceDashboard';
+import ViolationsManagement from '@/pages/compliance/violations/ViolationsManagement';
+import ViolationDetails from '@/pages/compliance/violations/ViolationDetails';
+import InspectorPlans from '@/pages/compliance/audit-planning/InspectorPlans';
+import PaymentArrangements from '@/pages/compliance/arrangements/PaymentArrangements';
+import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
+import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
+import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
+import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
+import ComplianceDashboard from '@/pages/compliance/dashboards/ComplianceDashboard';
 import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
 import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
 import InspectorPerformance from '@/pages/compliance/reports/InspectorPerformance';
@@ -48,8 +48,8 @@ import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
 import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
 import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
-import LegalEscalationPolicy from '@/pages/compliance/LegalEscalationPolicy';
-import LegalRecommendationQueue from '@/pages/compliance/LegalRecommendationQueue';
+import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
+import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // New Compliance & Enforcement pages
@@ -81,7 +81,7 @@ import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSu
 import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationEntry';
 import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
-import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
+import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
 import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
@@ -102,7 +102,7 @@ import EmployerRegistration from '@/pages/employersManagement/EmployerRegistrati
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
 import EmployerDirectory from '@/pages/employersManagement/EmployerDirectory';
 import ContributionEntry from '@/pages/employersManagement/ContributionEntry';
-import ComplianceMonitoring from '@/pages/compliance/ComplianceMonitoring';
+import ComplianceMonitoring from '@/pages/compliance/dashboards/ComplianceMonitoring';
 import ContributionTracking from '@/pages/employersManagement/ContributionTracking';
 
 // Insured Persons - New consolidated page
@@ -171,10 +171,10 @@ import DeathBenefits from '@/pages/benefits/DeathBenefits';
 import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit (ComplianceDashboard already imported above)
-import EmployerComplianceManagement from '@/pages/compliance/EmployerComplianceManagement';
-import LegalProceedings from '@/pages/compliance/LegalProceedings';
-import AuditManagement from '@/pages/compliance/AuditManagement';
-import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
+import EmployerComplianceManagement from '@/pages/compliance/employers/EmployerComplianceManagement';
+import LegalProceedings from '@/pages/compliance/legal/LegalProceedings';
+import AuditManagement from '@/pages/compliance/audit-planning/AuditManagement';
+import PenaltyManagement from '@/pages/compliance/cases/PenaltyManagement';
 
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
