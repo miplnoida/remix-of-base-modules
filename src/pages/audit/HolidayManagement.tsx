@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Trash2, CalendarDays, Building2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, CalendarDays, Building2, Upload } from 'lucide-react';
 import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
