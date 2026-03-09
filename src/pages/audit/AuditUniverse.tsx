@@ -105,8 +105,30 @@ export default function AuditUniverse() {
   return (
     <PageShell title="Audit Universe" subtitle="Master list of all auditable entities across the organization"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Audit Universe' }]}
-      actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>}
-      isLoading={isLoading} error={isError ? 'Failed to load audit universe' : null}>
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filtered}
+            columns={[
+              { key: 'entity_code', header: 'Code' },
+              { key: 'entity_name', header: 'Entity Name' },
+              { key: 'entity_type', header: 'Type' },
+              { key: 'process_owner', header: 'Process Owner' },
+              { key: 'risk_category', header: 'Risk Category' },
+              { key: 'audit_frequency', header: 'Audit Frequency' },
+              { key: 'last_audit_date', header: 'Last Audit' },
+              { key: 'next_audit_due', header: 'Next Due' },
+              { key: 'status', header: 'Status' },
+            ]}
+            fileName="audit-universe"
+            title="Audit Universe Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
+        </div>
+      }
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Entities" value={stats.total} icon={Globe} variant="info" />
