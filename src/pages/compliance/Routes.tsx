@@ -35,17 +35,17 @@ import RiskScoringConfig from './settings/RiskScoringConfig';
 import RiskRulePolicy from './settings/RiskRulePolicy';
 
 // Existing pages
-import LegalRecommendationQueue from './LegalRecommendationQueue';
-import LegalReferralWizard from './LegalReferralWizard';
-import ComplianceSettings from './ComplianceSettings';
-import LegalEscalationPolicy from './LegalEscalationPolicy';
+import LegalRecommendationQueue from './legal/LegalRecommendationQueue';
+import LegalReferralWizard from './legal/LegalReferralWizard';
+import ComplianceSettings from './settings/ComplianceSettings';
+import LegalEscalationPolicy from './settings/LegalEscalationPolicy';
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
 import MyPlans from './audit-planning/MyPlans';
 import FieldExecution from './audit-planning/FieldExecution';
 import PendingReview from './audit-planning/PendingReview';
 import WeeklyReports from './audit-planning/WeeklyReports';
-import ViolationDetails from './ViolationDetails';
-import AuditDetails from './AuditDetails';
+import ViolationDetails from './violations/ViolationDetails';
+import AuditDetails from './audit-planning/AuditDetails';
 import CaseAnalytics from './reports/CaseAnalytics';
 import InspectorPerformance from './reports/InspectorPerformance';
 import C3Compliance from './reports/C3Compliance';
