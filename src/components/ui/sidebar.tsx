@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Module-level variable to persist mobile sidebar open state across remounts
+let _sidebarMobileOpen = false
 import {
   Tooltip,
   TooltipContent,
