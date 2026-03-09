@@ -1,63 +1,36 @@
 
-Goal: fully fix search/filter alignment by rebuilding the shared toolbar logic (not page-by-page hacks), then run route-by-route visual QA across all Internal Audit pages.
 
-What I found (from code + current preview):
-1) The current StandardSearchFilterBar is still unstable:
-- Desktop column math creates oversized empty reset areas when filters are few.
-- Multi-row logic distributes row 2 unevenly (especially 5-filter pages like Follow-up Tracker).
-- Inline `gridColumn` spans apply at all breakpoints, causing awkward tablet wrapping/alignment.
-- Dynamic class names like `lg:col-span-${colSpan}` are unreliable.
-2) Most Internal Audit list routes do use the shared component, so fixing it centrally will correct nearly all pages at once.
+# Fix: Company Mapping — Load Existing Child Companies on Parent Selection
 
-Implementation plan:
-1) Rebuild `src/components/common/StandardSearchFilterBar.tsx` layout engine with strict deterministic rules:
-- Desktop: true 12-col grid only.
-- Default spans: Search=4, each filter=2, Reset fixed at far right.
-- No unpredictable flex growth.
-- Compact uniform controls (`h-9`), consistent label spacing, uniform gaps/padding.
-2) Replace current multi-row algorithm with controlled wrapping:
-- If controls fit comfortably, single row.
-- If not, split into two explicit rows.
-- Follow-up Tracker special requirement supported via reusable prop (config-driven, not custom page markup): row 1 = Search + first 2 filters; row 2 = remaining filters + Reset.
-3) Keep API/backward compatibility of the component, but add optional layout config props (e.g., first-row filter cap / desktop split strategy) so pages can declare structure without custom UI code.
-4) Remove dynamic Tailwind span strings and breakpoint-conflicting inline grid behavior; use explicit grid templates per breakpoint.
-5) Fix debounce effect dependencies in the component to avoid stale search updates.
+## Problem
+When a parent employer is selected in the Mapping dialog, existing child companies are **not fetched or displayed**. The `parentId` state change triggers no lookup. The `get_companies_dropdown` API only returns `id, company_name, registration_number` — no `parent_company_id` field.
 
-Page wiring updates:
-- Keep all existing filters/business logic.
-- Add only layout-config props where required:
-  - `/audit/follow-up-tracker` (explicit 2-row distribution).
-  - Any other high-density filter pages if needed after QA (likely `/audit/activity-workbench`, `/audit/audit-reports`).
+## Solution
 
-QA/test plan (must be completed before finalizing):
-Desktop + Tablet + Mobile checks for:
-- /audit/auditors
-- /audit/leave
-- /audit/holidays
-- /audit/audit-plans
-- /audit/activity-workbench
-- /audit/evidence
-- /audit/working-papers
-- /audit/findings
-- /audit/responses
-- /audit/actions
-- /audit/follow-up-tracker
-- /audit/plan-closeout
-- /audit/departments
-- /audit/functions
-- /audit/plan-approval
-- /audit/audit-reports
-- /audit/calendar
-- /audit/letters
-- /audit/communication-center
+### 1. Add `parent_company_id` to `get_companies_dropdown` response (edge function)
+In `supabase/functions/wiz-admin-api/index.ts`, update the `get_companies_dropdown` select to include `parent_company_id`:
+```sql
+select("id, company_name, registration_number, parent_company_id")
+```
 
-Acceptance checklist:
-- Search not over-dominant.
-- Dropdown/date widths balanced and equal-height.
-- Reset always right-aligned and visually connected.
-- No cramped date inputs.
-- Clean wrap behavior (no overflow/squeezing).
-- Consistent spacing/label alignment across all audited routes.
+Update `WizCompanyDropdown` interface in `wizAdminApiService.ts` to include `parent_company_id: number | null`.
 
-Deliverable:
-- One corrected shared toolbar system + small page config touches only where needed + verified screenshots/route-by-route QA notes for the key problematic pages (Auditors, Audit Plans, Activity Workbench, Follow-up Tracker, Plan Closeout, Department Master).
+### 2. Auto-populate child companies when parent is selected (UI)
+In `WizEmployerList.tsx`, add a `useEffect` on `parentId` change:
+- Filter `companies` where `parent_company_id === Number(parentId)`
+- Set those IDs into `childIds` state
+- This gives immediate display of existing mappings, matching the legacy behavior
+
+### 3. Clear children when parent changes
+When `parentId` changes, reset `childIds` to only the fetched existing children (not carry over from a previous selection).
+
+## Files to Change
+
+| File | Change |
+|---|---|
+| `supabase/functions/wiz-admin-api/index.ts` | Add `parent_company_id` to `get_companies_dropdown` select |
+| `src/services/wizAdminApiService.ts` | Add `parent_company_id` to `WizCompanyDropdown` interface |
+| `src/pages/c3Management/employers/WizEmployerList.tsx` | Add `useEffect` on `parentId` to auto-populate existing children |
+
+No new API needed from C3-Wizard team — the data is already in the `c3_companies` table, just not included in the dropdown response.
+
