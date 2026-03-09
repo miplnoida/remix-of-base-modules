@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
+import { Plus, Building2, Eye, Trash2, Upload } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 export default function DepartmentMaster() {
   const { profile } = useSupabaseAuth();
