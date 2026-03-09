@@ -181,7 +181,32 @@ const FindingsManagement = () => {
       subtitle="Document and track audit findings using CCCE methodology"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Findings & Recommendations' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Finding</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredFindings.map((f: any) => ({
+              ...f,
+              plan_name: plans.find((p: any) => p.id === f.annual_plan_id)?.title || '',
+              department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+            }))}
+            columns={[
+              { key: 'finding_id', header: 'Finding ID' },
+              { key: 'title', header: 'Title' },
+              { key: 'risk_rating', header: 'Risk Level' },
+              { key: 'plan_name', header: 'Audit Plan' },
+              { key: 'department_name', header: 'Department' },
+              { key: 'status', header: 'Status' },
+              { key: 'condition', header: 'Description' },
+            ]}
+            fileName="findings-register"
+            title="Findings Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Finding</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
