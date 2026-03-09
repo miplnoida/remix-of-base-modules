@@ -104,7 +104,25 @@ export default function HolidayManagement() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Holiday Management' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load holidays' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Holiday</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredHolidays.map(h => ({ ...h, type: h.is_ssb_specific ? 'SSB-Specific' : 'Public Holiday' }))}
+            columns={[
+              { key: 'name', header: 'Holiday Name' },
+              { key: 'date', header: 'Date' },
+              { key: 'country', header: 'Country/Region' },
+              { key: 'type', header: 'Type' },
+            ]}
+            fileName="holidays"
+            title="Holiday Calendar"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Holiday</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
