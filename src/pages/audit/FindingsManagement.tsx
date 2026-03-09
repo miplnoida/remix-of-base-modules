@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,8 @@ import { useIAFindings, useIAFindingMutations, useIADepartments, useIAActivities
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
 const RISKS = ['High', 'Medium', 'Low'];
@@ -38,6 +38,30 @@ const FindingsManagement = () => {
   const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'title', label: 'Finding Title', required: true },
+    { key: 'risk_rating', label: 'Risk Level', allowedValues: RISKS },
+    { key: 'condition', label: 'Description', required: true },
+    { key: 'criteria', label: 'Recommendation' },
+    { key: 'impact_area', label: 'Impact Area' },
+    { key: 'status', label: 'Status', allowedValues: STATUSES },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      create.mutate({
+        title: row.title, condition: row.condition || '', criteria: row.criteria || '',
+        risk_rating: row.risk_rating || 'Medium', impact_area: row.impact_area || '',
+        status: row.status || 'Draft', finding_id: findingId,
+        cause: '', effect: '',
+        department_id: null, activity_id: null, annual_plan_id: null, department_audit_id: null,
+        ...getCreateFields(),
+      });
+    }
+  };
 
   const filteredFindings = findings.filter((f: any) => {
     const matchesSearch = (f.title || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,7 +181,32 @@ const FindingsManagement = () => {
       subtitle="Document and track audit findings using CCCE methodology"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Findings & Recommendations' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Finding</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredFindings.map((f: any) => ({
+              ...f,
+              plan_name: plans.find((p: any) => p.id === f.annual_plan_id)?.title || '',
+              department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+            }))}
+            columns={[
+              { key: 'finding_id', header: 'Finding ID' },
+              { key: 'title', header: 'Title' },
+              { key: 'risk_rating', header: 'Risk Level' },
+              { key: 'plan_name', header: 'Audit Plan' },
+              { key: 'department_name', header: 'Department' },
+              { key: 'status', header: 'Status' },
+              { key: 'condition', header: 'Description' },
+            ]}
+            fileName="findings-register"
+            title="Findings Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Finding</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
@@ -258,6 +307,15 @@ const FindingsManagement = () => {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding? This action cannot be undone." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Findings"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="findings-template"
+      />
     </PageShell>
   );
 };

@@ -7,7 +7,7 @@ import { Eye, Download, FileText, RefreshCw, Share2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useIAAuditReports, useIAAuditReportMutations } from '@/hooks/useAuditReports';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

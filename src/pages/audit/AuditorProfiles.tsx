@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Award, X } from 'lucide-react';
+import { Plus, Award, X, Upload } from 'lucide-react';
 import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField, ExportColumn } from '@/components/common';
 
 const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
 const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
@@ -25,6 +25,33 @@ export default function AuditorProfiles() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editAuditor, setEditAuditor] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'name', label: 'Auditor Name', required: true },
+    { key: 'employee_no', label: 'Employee ID', required: true },
+    { key: 'email', label: 'Email', required: true },
+    { key: 'phone', label: 'Phone' },
+    { key: 'role', label: 'Role', allowedValues: ['Auditor', 'Audit Manager', 'Audit Director'] },
+    { key: 'seniority_level', label: 'Seniority Level', allowedValues: ['Junior', 'Mid', 'Senior', 'Lead'] },
+    { key: 'work_location', label: 'Work Location' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          name: row.name, employee_no: row.employee_no, email: row.email,
+          phone: row.phone || '', role: row.role || 'Auditor',
+          seniority_level: row.seniority_level || 'Junior',
+          work_location: row.work_location || '',
+          skills: [], certifications: [],
+          created_by: (profile as any)?.user_code || '',
+        }, { onSuccess: () => resolve(), onError: () => reject() });
+      });
+    }
+    refetch();
+  };
 
   const resetForm = () => setForm({ ...emptyForm, skills: [], certifications: [] });
 
@@ -114,7 +141,28 @@ export default function AuditorProfiles() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Auditor Profiles' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load auditor profiles' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredAuditors}
+            columns={[
+              { key: 'employee_no', header: 'Employee ID' },
+              { key: 'name', header: 'Auditor Name' },
+              { key: 'email', header: 'Email' },
+              { key: 'phone', header: 'Phone' },
+              { key: 'role', header: 'Role' },
+              { key: 'seniority_level', header: 'Seniority' },
+              { key: 'work_location', header: 'Location' },
+            ]}
+            fileName="auditor-profiles"
+            title="Auditor Profiles"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>
+        </div>
+      }
     >
       <StandardSearchFilterBar
         searchValue={searchTerm}
@@ -173,6 +221,15 @@ export default function AuditorProfiles() {
       <EntityModal open={editAuditor !== null} onOpenChange={o => { if (!o) { setEditAuditor(null); resetForm(); } }} title="Edit Auditor" mode="edit" onSave={handleEdit} isSaving={update.isPending} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Auditors"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="auditor-profiles-template"
+      />
     </PageShell>
   );
 }

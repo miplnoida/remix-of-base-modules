@@ -11,3 +11,7 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { PageShell } from './PageShell';
 export { PageHeader } from './PageHeader';
 export { StatusBadge } from './StatusBadge';
+export { BulkUploadModal } from './BulkUploadModal';
+export type { BulkUploadField } from './BulkUploadModal';
+export { ExportDropdown } from './ExportDropdown';
+export type { ExportColumn } from './ExportDropdown';

@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Globe, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
-import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { Plus, Globe, AlertTriangle, Shield, CheckCircle, Upload } from 'lucide-react';
+import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 import { useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -29,6 +29,29 @@ export default function AuditUniverse() {
   const [filters, setFilters] = useState<Record<string, string>>({ entity_type: 'all', risk_category: 'all', status: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'view' | 'edit' | 'create' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'entity_name', label: 'Entity Name', required: true },
+    { key: 'entity_code', label: 'Entity Code', required: true },
+    { key: 'entity_type', label: 'Entity Type', allowedValues: ENTITY_TYPES },
+    { key: 'process_owner', label: 'Process Owner' },
+    { key: 'risk_category', label: 'Risk Category', allowedValues: RISK_CATEGORIES },
+    { key: 'audit_frequency', label: 'Audit Frequency', allowedValues: FREQUENCIES },
+    { key: 'status', label: 'Status', allowedValues: ['Active', 'Inactive'] },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      create.mutate({
+        entity_name: row.entity_name, entity_code: row.entity_code,
+        entity_type: row.entity_type || 'Department', process_owner: row.process_owner || '',
+        risk_category: row.risk_category || 'Medium', audit_frequency: row.audit_frequency || 'Annual',
+        status: row.status || 'Active', inherent_risk_score: 0, residual_risk_score: 0,
+        ...getCreateFields(),
+      } as any);
+    }
+  };
 
   const filtered = data.filter((r: any) => {
     const s = searchTerm.toLowerCase();
@@ -82,7 +105,30 @@ export default function AuditUniverse() {
   return (
     <PageShell title="Audit Universe" subtitle="Master list of all auditable entities across the organization"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Audit Universe' }]}
-      actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filtered}
+            columns={[
+              { key: 'entity_code', header: 'Code' },
+              { key: 'entity_name', header: 'Entity Name' },
+              { key: 'entity_type', header: 'Type' },
+              { key: 'process_owner', header: 'Process Owner' },
+              { key: 'risk_category', header: 'Risk Category' },
+              { key: 'audit_frequency', header: 'Audit Frequency' },
+              { key: 'last_audit_date', header: 'Last Audit' },
+              { key: 'next_audit_due', header: 'Next Due' },
+              { key: 'status', header: 'Status' },
+            ]}
+            fileName="audit-universe"
+            title="Audit Universe Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
+        </div>
+      }
       isLoading={isLoading} error={isError ? 'Failed to load audit universe' : null}>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -145,6 +191,15 @@ export default function AuditUniverse() {
           <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
         </div>
       </StandardModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Audit Universe"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="audit-universe-template"
+      />
     </PageShell>
   );
 }

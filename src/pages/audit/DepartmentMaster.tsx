@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
+import { Plus, Building2, Eye, Trash2, Upload } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 export default function DepartmentMaster() {
   const { profile } = useSupabaseAuth();
@@ -21,6 +21,28 @@ export default function DepartmentMaster() {
   const [editDept, setEditDept] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', head: '', email: '', phone: '', location: '', risk_rating: 'Medium' });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'name', label: 'Department Name', required: true },
+    { key: 'head', label: 'Head of Department', required: true },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'location', label: 'Location' },
+    { key: 'risk_rating', label: 'Risk Rating', allowedValues: ['High', 'Medium', 'Low'] },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          name: row.name, head: row.head, email: row.email || '', phone: row.phone || '',
+          location: row.location || '', risk_rating: row.risk_rating || 'Medium',
+          created_by: (profile as any)?.user_code || '',
+        }, { onSuccess: () => resolve(), onError: () => reject() });
+      });
+    }
+  };
 
   const filteredDepartments = departments.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.head.toLowerCase().includes(searchTerm.toLowerCase());
@@ -87,7 +109,26 @@ export default function DepartmentMaster() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Department Master' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load departments' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredDepartments}
+            columns={[
+              { key: 'name', header: 'Department Name' },
+              { key: 'head', header: 'Department Head' },
+              { key: 'email', header: 'Email' },
+              { key: 'location', header: 'Location' },
+              { key: 'risk_rating', header: 'Risk Rating' },
+            ]}
+            fileName="departments"
+            title="Department Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
@@ -141,6 +182,15 @@ export default function DepartmentMaster() {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Remove Department" description="Are you sure you want to remove this department? It will be deactivated." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Departments"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="departments-template"
+      />
     </PageShell>
   );
 }

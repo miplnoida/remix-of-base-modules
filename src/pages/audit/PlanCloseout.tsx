@@ -12,7 +12,7 @@ import {
   useIAFindings,
   useIAFollowUps,
 } from '@/hooks/useAuditData';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 interface CloseoutRow {

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function AuditPlans() {
@@ -51,7 +51,22 @@ export default function AuditPlans() {
       subtitle="Create and manage audit plans"
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Audit Plans' }]}
       isLoading={isLoading}
-      actions={hasPermission('create_audit_plans') ? <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}><Plus className="w-4 h-4 mr-2" />Create Plan</Button> : undefined}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredPlans}
+            columns={[
+              { key: 'fiscal_year', header: 'Fiscal Year' },
+              { key: 'title', header: 'Title' },
+              { key: 'status', header: 'Status' },
+              { key: 'objective', header: 'Objective' },
+            ]}
+            fileName="audit-plans"
+            title="Audit Plan Register"
+          />
+          {hasPermission('create_audit_plans') && <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}><Plus className="w-4 h-4 mr-2" />Create Plan</Button>}
+        </div>
+      }
     >
       <StandardSearchFilterBar
         searchValue={searchTerm}

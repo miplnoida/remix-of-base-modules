@@ -5,11 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 const ACTION_STATUSES = ['Not Started', 'In Progress', 'Implemented', 'Verified', 'Closed'];
 
@@ -25,6 +25,27 @@ export default function ActionTracking() {
   const [viewItem, setViewItem] = useState<any>(null);
   const [formData, setFormData] = useState({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
   const resetForm = () => setFormData({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'finding_title', label: 'Finding Title', required: true },
+    { key: 'action_description', label: 'Action Description', required: true },
+    { key: 'responsible_person', label: 'Owner' },
+    { key: 'target_date', label: 'Due Date', type: 'date' },
+    { key: 'status', label: 'Status', allowedValues: ACTION_STATUSES },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const finding = findings.find((f: any) => f.title === row.finding_title);
+      if (!finding) continue;
+      create.mutate({
+        finding_id: finding.id, action_description: row.action_description,
+        responsible_person: row.responsible_person || '', target_date: row.target_date || null,
+        notes: '', status: row.status || 'Not Started', ...getCreateFields(),
+      });
+    }
+  };
 
   const filteredActions = actions.filter((a: any) => {
     const matchesStatus = filters.status === 'all' || a.status === filters.status;
@@ -72,7 +93,29 @@ export default function ActionTracking() {
       subtitle="Track corrective actions from findings"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Action Tracking' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Action</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredActions.map((a: any) => ({
+              ...a,
+              finding_title: findings.find((f: any) => f.id === a.finding_id)?.title || '',
+            }))}
+            columns={[
+              { key: 'finding_title', header: 'Finding' },
+              { key: 'action_description', header: 'Action' },
+              { key: 'responsible_person', header: 'Owner' },
+              { key: 'target_date', header: 'Due Date' },
+              { key: 'status', header: 'Status' },
+            ]}
+            fileName="action-tracking"
+            title="Action Tracking Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Action</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statCards.map((card) => (
@@ -146,6 +189,15 @@ export default function ActionTracking() {
           </div>
         )}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Actions"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="actions-template"
+      />
     </PageShell>
   );
 }

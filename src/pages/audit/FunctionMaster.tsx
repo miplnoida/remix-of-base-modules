@@ -6,11 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Shield, Target } from 'lucide-react';
+import { Plus, Shield, Target, Upload } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 export default function FunctionMaster() {
   const { toast } = useToast();
@@ -24,6 +24,30 @@ export default function FunctionMaster() {
   const [editFunc, setEditFunc] = useState<any>(null);
   const [viewFunc, setViewFunc] = useState<any>(null);
   const [formData, setFormData] = useState({ departmentId: '', functionName: '', description: '', likelihood: 'Medium', impact: 'Medium', controlEffectiveness: 'Effective', responsiblePerson: '', notes: '' });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'functionName', label: 'Function Name', required: true },
+    { key: 'departmentName', label: 'Department', required: true, allowedValues: departments.map(d => d.name) },
+    { key: 'description', label: 'Description' },
+    { key: 'likelihood', label: 'Likelihood', allowedValues: ['Low', 'Medium', 'High'] },
+    { key: 'impact', label: 'Impact', allowedValues: ['Low', 'Medium', 'High'] },
+    { key: 'responsiblePerson', label: 'Responsible Person' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const dept = departments.find(d => d.name === row.departmentName);
+      if (!dept) continue;
+      const l = row.likelihood || 'Medium';
+      const i = row.impact || 'Medium';
+      createFn.mutate({
+        department_id: dept.id, function_name: row.functionName, description: row.description || '',
+        risk_rating: calculateInherentRisk(l, i), likelihood: l, impact: i,
+        control_effectiveness: 'Effective', responsible_person: row.responsiblePerson || '', notes: '',
+      });
+    }
+  };
 
   const filteredFunctions = allFunctions.filter((f: any) => (f.function_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (f.description || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -87,7 +111,28 @@ export default function FunctionMaster() {
       subtitle="Manage department functions and risk matrices for audit planning"
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Function Master' }]}
       isLoading={deptsLoading || funcsLoading}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Function</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredFunctions.map((f: any) => ({ ...f, department_name: departments.find((d: any) => d.id === f.department_id)?.name || '' }))}
+            columns={[
+              { key: 'function_name', header: 'Function Name' },
+              { key: 'department_name', header: 'Department' },
+              { key: 'description', header: 'Description' },
+              { key: 'risk_rating', header: 'Risk Rating' },
+              { key: 'likelihood', header: 'Likelihood' },
+              { key: 'impact', header: 'Impact' },
+              { key: 'responsible_person', header: 'Responsible' },
+            ]}
+            fileName="functions"
+            title="Functions List"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Function</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
@@ -176,6 +221,15 @@ export default function FunctionMaster() {
       <EntityModal open={editFunc !== null} onOpenChange={o => { if (!o) { setEditFunc(null); resetForm(); } }} title="Edit Function" mode="edit" onSave={handleEdit} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Functions"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="functions-template"
+      />
     </PageShell>
   );
 }

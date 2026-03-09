@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Trash2, CalendarDays, Building2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, CalendarDays, Building2, Upload } from 'lucide-react';
 import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
@@ -21,6 +21,26 @@ export default function HolidayManagement() {
   const [editHoliday, setEditHoliday] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'name', label: 'Holiday Name', required: true },
+    { key: 'date', label: 'Holiday Date', required: true, type: 'date' },
+    { key: 'country', label: 'Country/Region' },
+    { key: 'is_ssb_specific', label: 'SSB Specific (yes/no)' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          name: row.name, date: row.date, country: row.country || 'St. Kitts & Nevis',
+          is_ssb_specific: String(row.is_ssb_specific).toLowerCase() === 'yes',
+          created_by: (profile as any)?.user_code || '',
+        }, { onSuccess: () => resolve(), onError: () => reject() });
+      });
+    }
+  };
 
   const resetForm = () => setForm({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
 
@@ -84,7 +104,25 @@ export default function HolidayManagement() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Holiday Management' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load holidays' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Holiday</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredHolidays.map(h => ({ ...h, type: h.is_ssb_specific ? 'SSB-Specific' : 'Public Holiday' }))}
+            columns={[
+              { key: 'name', header: 'Holiday Name' },
+              { key: 'date', header: 'Date' },
+              { key: 'country', header: 'Country/Region' },
+              { key: 'type', header: 'Type' },
+            ]}
+            fileName="holidays"
+            title="Holiday Calendar"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Holiday</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
@@ -138,6 +176,15 @@ export default function HolidayManagement() {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Holiday" description="Are you sure you want to delete this holiday?" onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Holidays"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="holidays-template"
+      />
     </PageShell>
   );
 }

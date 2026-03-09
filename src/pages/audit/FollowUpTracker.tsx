@@ -9,7 +9,7 @@ import { Upload, Eye, Edit3, MessageSquare, Plus } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
 import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities } from '@/hooks/useAuditData';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function FollowUpTracker() {
