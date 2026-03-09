@@ -98,7 +98,7 @@ export default function AuditPlans() {
       {isEditDialogOpen && selectedPlan && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Edit Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardConteonCreate={(data) => create.mutate(data)} onUpdate={(data) => update.mutate(data)} nt><AnnualPlanForm plan={selectedPlan} onClose={() => setIsEditDialogOpen(false)} /></CardContent>
+          <CardContent><AnnualPlanForm plan={selectedPlan} onClose={() => setIsEditDialogOpen(false)} onCreate={(data) => create.mutate(data)} onUpdate={(data) => update.mutate(data)} /></CardContent>
         </Card>
       )}
 
