@@ -4,8 +4,7 @@ import { PageShell } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { BarChart3, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, FileText } from 'lucide-react';
 import { useIAAuditUniverse, useIAEngagements, useIAControlTests, useIAQualityReviews } from '@/hooks/useAuditDataPhase2';
-import { useIAFindings } from '@/hooks/useAuditDataExtended2';
-import { useIAActions } from '@/hooks/useAuditData';
+import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--muted))'];
@@ -16,7 +15,7 @@ export default function ExecutiveDashboard() {
   const { data: controlTests = [] } = useIAControlTests();
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
-  const { data: actions = [] } = useIAActions();
+  const { data: actions = [] } = useIAActionTracking();
 
   const stats = {
     totalPlanned: engagements.length,
