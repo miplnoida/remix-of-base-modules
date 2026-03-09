@@ -221,6 +221,15 @@ export default function FunctionMaster() {
       <EntityModal open={editFunc !== null} onOpenChange={o => { if (!o) { setEditFunc(null); resetForm(); } }} title="Edit Function" mode="edit" onSave={handleEdit} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Functions"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="functions-template"
+      />
     </PageShell>
   );
 }
