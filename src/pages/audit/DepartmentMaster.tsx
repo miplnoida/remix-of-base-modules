@@ -9,7 +9,11 @@ import { useIADepartments, useIADepartmentMutations } from '@/hooks/useAuditData
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { DEPARTMENT_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+
+const bulkUploadFields = toBulkUploadFields(DEPARTMENT_SCHEMA);
+const exportColumns = toExportColumns(DEPARTMENT_SCHEMA);
 
 export default function DepartmentMaster() {
   const { profile } = useSupabaseAuth();
@@ -22,15 +26,6 @@ export default function DepartmentMaster() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', head: '', email: '', phone: '', location: '', risk_rating: 'Medium' });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'name', label: 'Department Name', required: true },
-    { key: 'head', label: 'Head of Department', required: true },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
-    { key: 'location', label: 'Location' },
-    { key: 'risk_rating', label: 'Risk Rating', allowedValues: ['High', 'Medium', 'Low'] },
-  ];
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
@@ -87,12 +82,15 @@ export default function DepartmentMaster() {
 
   const formFields = (
     <div className="space-y-4">
-      <div><Label>Department Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Benefits Department" /></div>
+      <div><Label>Department Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Benefits Department" /></div>
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Department Head</Label><Input value={form.head} onChange={e => setForm(f => ({ ...f, head: e.target.value }))} placeholder="Full name" /></div>
+        <div><Label>Department Head *</Label><Input value={form.head} onChange={e => setForm(f => ({ ...f, head: e.target.value }))} placeholder="Full name" /></div>
         <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="head@ssb.kn" /></div>
       </div>
-      <div><Label>Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g., Main Building - Floor 2" /></div>
+      <div className="grid grid-cols-2 gap-4">
+        <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(869) 465-0000" /></div>
+        <div><Label>Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g., Main Building - Floor 2" /></div>
+      </div>
       <div><Label>Risk Rating</Label>
         <Select value={form.risk_rating} onValueChange={v => setForm(f => ({ ...f, risk_rating: v }))}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -111,18 +109,7 @@ export default function DepartmentMaster() {
       error={isError ? 'Failed to load departments' : null}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredDepartments}
-            columns={[
-              { key: 'name', header: 'Department Name' },
-              { key: 'head', header: 'Department Head' },
-              { key: 'email', header: 'Email' },
-              { key: 'location', header: 'Location' },
-              { key: 'risk_rating', header: 'Risk Rating' },
-            ]}
-            fileName="departments"
-            title="Department Register"
-          />
+          <ExportDropdown data={filteredDepartments} columns={exportColumns} fileName={DEPARTMENT_SCHEMA.exportFileName} title={DEPARTMENT_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
           </Button>
@@ -146,15 +133,7 @@ export default function DepartmentMaster() {
         ))}
       </div>
 
-      <StandardSearchFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by department name or head..."
-        filters={filterFields}
-        filterValues={filters}
-        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ risk: 'all' })}
-      />
+      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search by department name or head..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ risk: 'all' })} />
 
       <Card>
         <CardContent className="pt-6">
@@ -183,14 +162,7 @@ export default function DepartmentMaster() {
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Remove Department" description="Are you sure you want to remove this department? It will be deactivated." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
 
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Departments"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName="departments-template"
-      />
+      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Departments" fields={bulkUploadFields} onImport={handleBulkImport} templateName={DEPARTMENT_SCHEMA.templateFileName} />
     </PageShell>
   );
 }

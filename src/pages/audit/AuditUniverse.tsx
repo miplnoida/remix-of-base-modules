@@ -7,14 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Globe, AlertTriangle, Shield, CheckCircle, Upload } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { AUDIT_UNIVERSE_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const ENTITY_TYPES = ['Department', 'Function', 'Process', 'System', 'Location', 'Project'];
 const RISK_CATEGORIES = ['High', 'Medium', 'Low', 'Critical'];
 const FREQUENCIES = ['Annual', 'Bi-Annual', 'Quarterly', 'Ad-hoc'];
+
+const bulkUploadFields = toBulkUploadFields(AUDIT_UNIVERSE_SCHEMA);
+const exportColumns = toExportColumns(AUDIT_UNIVERSE_SCHEMA);
 
 const emptyForm = {
   entity_name: '', entity_code: '', entity_type: 'Department', process_owner: '',
@@ -31,23 +35,16 @@ export default function AuditUniverse() {
   const [form, setForm] = useState(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'entity_name', label: 'Entity Name', required: true },
-    { key: 'entity_code', label: 'Entity Code', required: true },
-    { key: 'entity_type', label: 'Entity Type', allowedValues: ENTITY_TYPES },
-    { key: 'process_owner', label: 'Process Owner' },
-    { key: 'risk_category', label: 'Risk Category', allowedValues: RISK_CATEGORIES },
-    { key: 'audit_frequency', label: 'Audit Frequency', allowedValues: FREQUENCIES },
-    { key: 'status', label: 'Status', allowedValues: ['Active', 'Inactive'] },
-  ];
-
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
       create.mutate({
         entity_name: row.entity_name, entity_code: row.entity_code,
         entity_type: row.entity_type || 'Department', process_owner: row.process_owner || '',
         risk_category: row.risk_category || 'Medium', audit_frequency: row.audit_frequency || 'Annual',
-        status: row.status || 'Active', inherent_risk_score: 0, residual_risk_score: 0,
+        status: row.status || 'Active',
+        inherent_risk_score: Number(row.inherent_risk_score) || 0,
+        residual_risk_score: Number(row.residual_risk_score) || 0,
+        materiality: row.materiality || '',
         ...getCreateFields(),
       } as any);
     }
@@ -85,14 +82,12 @@ export default function AuditUniverse() {
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'entity_code', header: 'Code' },
+    { key: 'entity_code', header: 'Entity Code' },
     { key: 'entity_name', header: 'Entity Name' },
-    { key: 'entity_type', header: 'Type', render: (r) => <StatusBadge status={r.entity_type} /> },
+    { key: 'entity_type', header: 'Entity Type', render: (r) => <StatusBadge status={r.entity_type} /> },
     { key: 'risk_category', header: 'Risk Category', render: (r) => <StatusBadge status={r.risk_category} /> },
-    { key: 'inherent_risk_score', header: 'Inherent Risk' },
-    { key: 'residual_risk_score', header: 'Residual Risk' },
-    { key: 'last_audit_date', header: 'Last Audit' },
-    { key: 'next_audit_due', header: 'Next Due' },
+    { key: 'inherent_risk_score', header: 'Inherent Risk Score' },
+    { key: 'residual_risk_score', header: 'Residual Risk Score' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   ];
 
@@ -107,22 +102,7 @@ export default function AuditUniverse() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Audit Universe' }]}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filtered}
-            columns={[
-              { key: 'entity_code', header: 'Code' },
-              { key: 'entity_name', header: 'Entity Name' },
-              { key: 'entity_type', header: 'Type' },
-              { key: 'process_owner', header: 'Process Owner' },
-              { key: 'risk_category', header: 'Risk Category' },
-              { key: 'audit_frequency', header: 'Audit Frequency' },
-              { key: 'last_audit_date', header: 'Last Audit' },
-              { key: 'next_audit_due', header: 'Next Due' },
-              { key: 'status', header: 'Status' },
-            ]}
-            fileName="audit-universe"
-            title="Audit Universe Register"
-          />
+          <ExportDropdown data={filtered} columns={exportColumns} fileName={AUDIT_UNIVERSE_SCHEMA.exportFileName} title={AUDIT_UNIVERSE_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />Bulk Upload
           </Button>
@@ -157,8 +137,8 @@ export default function AuditUniverse() {
         mode={modalState.mode || 'view'} onSave={handleSave} saveLabel={modalState.mode === 'create' ? 'Create' : 'Save Changes'} isSaving={create.isPending || update.isPending}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Entity Name</Label><Input value={form.entity_name} onChange={e => setForm(f => ({ ...f, entity_name: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
-            <div><Label>Entity Code</Label><Input value={form.entity_code} onChange={e => setForm(f => ({ ...f, entity_code: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+            <div><Label>Entity Name *</Label><Input value={form.entity_name} onChange={e => setForm(f => ({ ...f, entity_name: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+            <div><Label>Entity Code *</Label><Input value={form.entity_code} onChange={e => setForm(f => ({ ...f, entity_code: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Entity Type</Label>
@@ -189,17 +169,16 @@ export default function AuditUniverse() {
           </div>
           <div><Label>Materiality</Label><Input value={form.materiality} onChange={e => setForm(f => ({ ...f, materiality: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
           <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+          <div><Label>Status</Label>
+            <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={modalState.mode === 'view'}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
+            </Select>
+          </div>
         </div>
       </StandardModal>
 
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Audit Universe"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName="audit-universe-template"
-      />
+      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Audit Universe" fields={bulkUploadFields} onImport={handleBulkImport} templateName={AUDIT_UNIVERSE_SCHEMA.templateFileName} />
     </PageShell>
   );
 }

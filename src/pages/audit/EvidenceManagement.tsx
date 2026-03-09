@@ -14,6 +14,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
+import { EVIDENCE_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
+
+const exportColumns = toExportColumns(EVIDENCE_SCHEMA);
 
 export default function EvidenceManagement() {
   const { toast } = useToast();
@@ -40,7 +43,7 @@ export default function EvidenceManagement() {
 
   const handleUpload = async () => {
     if (!formData.title) {
-      toast({ title: 'Validation Error', description: 'Title is required', variant: 'destructive' });
+      toast({ title: 'Validation Error', description: 'Evidence Title is required', variant: 'destructive' });
       return;
     }
 
@@ -53,14 +56,9 @@ export default function EvidenceManagement() {
 
       if (selectedFile) {
         const filePath = `evidence/${Date.now()}-${selectedFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('ia-evidence')
-          .upload(filePath, selectedFile);
+        const { error: uploadError } = await supabase.storage.from('ia-evidence').upload(filePath, selectedFile);
         if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('ia-evidence')
-          .getPublicUrl(filePath);
+        const { data: urlData } = supabase.storage.from('ia-evidence').getPublicUrl(filePath);
         fileUrl = urlData.publicUrl;
         fileName = selectedFile.name;
         fileSize = selectedFile.size;
@@ -103,16 +101,23 @@ export default function EvidenceManagement() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'Document', label: 'Document' }, { value: 'Photo', label: 'Photo' }, { value: 'Interview', label: 'Interview Record' }] },
+    { key: 'type', label: 'Evidence Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'Document', label: 'Document' }, { value: 'Photo', label: 'Photo' }, { value: 'Interview', label: 'Interview Record' }] },
   ];
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'title', header: 'Title', render: (ev) => <span className="font-medium">{ev.title || ev.file_name || '-'}</span> },
-    { key: 'evidence_type', header: 'Type', render: (ev) => <Badge variant="outline">{ev.evidence_type || '-'}</Badge> },
-    { key: 'plan', header: 'Plan', render: (ev) => { const p = plans.find((p: any) => p.id === ev.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
-    { key: 'file_name', header: 'File', render: (ev) => ev.file_name ? <span className="text-sm flex items-center gap-1"><FileText className="h-3 w-3" />{ev.file_name}</span> : <span className="text-muted-foreground">No file</span> },
+    { key: 'title', header: 'Evidence Title', render: (ev) => <span className="font-medium">{ev.title || ev.file_name || '-'}</span> },
+    { key: 'evidence_type', header: 'Evidence Type', render: (ev) => <Badge variant="outline">{ev.evidence_type || '-'}</Badge> },
+    { key: 'plan', header: 'Audit Plan', render: (ev) => { const p = plans.find((p: any) => p.id === ev.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
+    { key: 'file_name', header: 'File Name', render: (ev) => ev.file_name ? <span className="text-sm flex items-center gap-1"><FileText className="h-3 w-3" />{ev.file_name}</span> : <span className="text-muted-foreground">No file</span> },
     { key: 'created_at', header: 'Date', render: (ev) => ev.created_at ? new Date(ev.created_at).toLocaleDateString() : '-' },
   ];
+
+  // Prepare export data with resolved names
+  const exportData = filteredEvidence.map((ev: any) => ({
+    ...ev,
+    plan_name: plans.find((p: any) => p.id === ev.annual_plan_id)?.title || '',
+    activity_name: activities.find((a: any) => a.id === ev.activity_id)?.title || '',
+  }));
 
   return (
     <PageShell
@@ -122,23 +127,7 @@ export default function EvidenceManagement() {
       isLoading={isLoading}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredEvidence.map((ev: any) => ({
-              ...ev,
-              plan_name: plans.find((p: any) => p.id === ev.annual_plan_id)?.title || '',
-              activity_name: activities.find((a: any) => a.id === ev.activity_id)?.title || '',
-            }))}
-            columns={[
-              { key: 'title', header: 'Evidence Name' },
-              { key: 'evidence_type', header: 'Type' },
-              { key: 'activity_name', header: 'Activity' },
-              { key: 'plan_name', header: 'Plan' },
-              { key: 'file_name', header: 'File' },
-              { key: 'created_at', header: 'Date' },
-            ]}
-            fileName="evidence-list"
-            title="Evidence List"
-          />
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={EVIDENCE_SCHEMA.exportFileName} title={EVIDENCE_SCHEMA.exportTitle} />
           <Button onClick={() => setIsDialogOpen(true)}><Upload className="w-4 h-4 mr-2" />Upload Evidence</Button>
         </div>
       }
@@ -154,15 +143,7 @@ export default function EvidenceManagement() {
         ))}
       </div>
 
-      <StandardSearchFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search evidence..."
-        filters={filterFields}
-        filterValues={filters}
-        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
-        onReset={() => setFilters({ type: 'all' })}
-      />
+      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search evidence..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ type: 'all' })} />
 
       <Card>
         <CardContent className="pt-6">
@@ -182,7 +163,7 @@ export default function EvidenceManagement() {
 
       <EntityModal open={isDialogOpen} onOpenChange={setIsDialogOpen} title="Upload Audit Evidence" mode="create" onSave={handleUpload} saveLabel="Upload Evidence" isSaving={isUploading || create.isPending}>
         <div className="space-y-4">
-          <div><Label>Title *</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Evidence title" /></div>
+          <div><Label>Evidence Title *</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Evidence title" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Related Activity</Label>
               <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
@@ -190,7 +171,7 @@ export default function EvidenceManagement() {
                 <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Type</Label>
+            <div><Label>Evidence Type</Label>
               <Select value={formData.evidence_type} onValueChange={v => setFormData({...formData, evidence_type: v})}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent><SelectItem value="Document">Document</SelectItem><SelectItem value="Photo">Photo</SelectItem><SelectItem value="Interview">Interview Record</SelectItem></SelectContent>
@@ -198,7 +179,7 @@ export default function EvidenceManagement() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Annual Plan</Label>
+            <div><Label>Audit Plan</Label>
               <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
                 <SelectContent>{plans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
@@ -223,13 +204,13 @@ export default function EvidenceManagement() {
       <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Evidence Details" mode="view">
         {viewItem && (
           <div className="space-y-4">
-            <div><Label className="text-muted-foreground">Title</Label><p className="font-medium">{viewItem.title || viewItem.file_name || '-'}</p></div>
+            <div><Label className="text-muted-foreground">Evidence Title</Label><p className="font-medium">{viewItem.title || viewItem.file_name || '-'}</p></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Evidence ID</Label><p>{viewItem.evidence_id || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Type</Label><p>{viewItem.evidence_type || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Evidence Type</Label><p>{viewItem.evidence_type || '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Annual Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Audit Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
               <div><Label className="text-muted-foreground">Department Audit</Label><p>{deptAudits.find((da: any) => da.id === viewItem.department_audit_id)?.department_name || '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -238,7 +219,7 @@ export default function EvidenceManagement() {
             </div>
             <div><Label className="text-muted-foreground">Description</Label><p>{viewItem.description || '-'}</p></div>
             {viewItem.file_name && (
-              <div><Label className="text-muted-foreground">File</Label>
+              <div><Label className="text-muted-foreground">File Name</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <FileText className="h-4 w-4" />
                   <span>{viewItem.file_name}</span>

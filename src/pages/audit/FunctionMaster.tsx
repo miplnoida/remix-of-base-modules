@@ -4,13 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Shield, Target, Upload } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { FUNCTION_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+
+const bulkUploadFields = toBulkUploadFields(FUNCTION_SCHEMA);
+const exportColumns = toExportColumns(FUNCTION_SCHEMA);
 
 export default function FunctionMaster() {
   const { toast } = useToast();
@@ -26,25 +29,22 @@ export default function FunctionMaster() {
   const [formData, setFormData] = useState({ departmentId: '', functionName: '', description: '', likelihood: 'Medium', impact: 'Medium', controlEffectiveness: 'Effective', responsiblePerson: '', notes: '' });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'functionName', label: 'Function Name', required: true },
-    { key: 'departmentName', label: 'Department', required: true, allowedValues: departments.map(d => d.name) },
-    { key: 'description', label: 'Description' },
-    { key: 'likelihood', label: 'Likelihood', allowedValues: ['Low', 'Medium', 'High'] },
-    { key: 'impact', label: 'Impact', allowedValues: ['Low', 'Medium', 'High'] },
-    { key: 'responsiblePerson', label: 'Responsible Person' },
-  ];
+  // Dynamically set allowed department names on the bulk upload field
+  const dynamicBulkFields = bulkUploadFields.map(f =>
+    f.key === 'department_name' ? { ...f, allowedValues: departments.map(d => d.name) } : f
+  );
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
-      const dept = departments.find(d => d.name === row.departmentName);
+      const dept = departments.find(d => d.name === row.department_name);
       if (!dept) continue;
       const l = row.likelihood || 'Medium';
       const i = row.impact || 'Medium';
       createFn.mutate({
-        department_id: dept.id, function_name: row.functionName, description: row.description || '',
+        department_id: dept.id, function_name: row.function_name, description: row.description || '',
         risk_rating: calculateInherentRisk(l, i), likelihood: l, impact: i,
-        control_effectiveness: 'Effective', responsible_person: row.responsiblePerson || '', notes: '',
+        control_effectiveness: row.control_effectiveness || 'Effective',
+        responsible_person: row.responsible_person || '', notes: row.notes || '',
       });
     }
   };
@@ -80,12 +80,18 @@ export default function FunctionMaster() {
     { key: 'function_name', header: 'Function Name' },
     { key: 'department_id', header: 'Department', render: (row) => departments.find((d: any) => d.id === row.department_id)?.name || '-' },
     { key: 'description', header: 'Description', className: 'max-w-xs truncate' },
-    { key: 'risk_rating', header: 'Risk', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
+    { key: 'risk_rating', header: 'Risk Rating', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
     { key: 'likelihood', header: 'Likelihood', render: (row) => <StatusBadge status={row.likelihood || 'Medium'} /> },
     { key: 'impact', header: 'Impact', render: (row) => <StatusBadge status={row.impact || 'Medium'} /> },
-    { key: 'control_effectiveness', header: 'Controls', render: (row) => <StatusBadge status={row.control_effectiveness || 'Effective'} /> },
-    { key: 'responsible_person', header: 'Responsible' },
+    { key: 'control_effectiveness', header: 'Control Effectiveness', render: (row) => <StatusBadge status={row.control_effectiveness || 'Effective'} /> },
+    { key: 'responsible_person', header: 'Responsible Person' },
   ];
+
+  // Prepare export data with department name resolved
+  const exportData = filteredFunctions.map((f: any) => ({
+    ...f,
+    department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+  }));
 
   const formFields = (
     <div className="space-y-4">
@@ -97,7 +103,7 @@ export default function FunctionMaster() {
         <div><Label>Impact</Label><Select value={formData.impact} onValueChange={v => setFormData(f => ({ ...f, impact: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Inherent Risk</Label><div className="p-2 border rounded-md bg-muted"><StatusBadge status={calculateInherentRisk(formData.likelihood, formData.impact)} /></div></div>
+        <div><Label>Risk Rating</Label><div className="p-2 border rounded-md bg-muted"><StatusBadge status={calculateInherentRisk(formData.likelihood, formData.impact)} /></div></div>
         <div><Label>Control Effectiveness</Label><Select value={formData.controlEffectiveness} onValueChange={v => setFormData(f => ({ ...f, controlEffectiveness: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
       </div>
       <div><Label>Responsible Person</Label><Input value={formData.responsiblePerson} onChange={e => setFormData(f => ({ ...f, responsiblePerson: e.target.value }))} placeholder="Name" /></div>
@@ -113,20 +119,7 @@ export default function FunctionMaster() {
       isLoading={deptsLoading || funcsLoading}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredFunctions.map((f: any) => ({ ...f, department_name: departments.find((d: any) => d.id === f.department_id)?.name || '' }))}
-            columns={[
-              { key: 'function_name', header: 'Function Name' },
-              { key: 'department_name', header: 'Department' },
-              { key: 'description', header: 'Description' },
-              { key: 'risk_rating', header: 'Risk Rating' },
-              { key: 'likelihood', header: 'Likelihood' },
-              { key: 'impact', header: 'Impact' },
-              { key: 'responsible_person', header: 'Responsible' },
-            ]}
-            fileName="functions"
-            title="Functions List"
-          />
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={FUNCTION_SCHEMA.exportFileName} title={FUNCTION_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
           </Button>
@@ -154,10 +147,10 @@ export default function FunctionMaster() {
       <Card>
         <CardContent className="pt-6">
           <DataTable
-        columns={columns}
-        data={filteredFunctions}
-        onView={(row) => setViewFunc(row)}
-        onEdit={(row) => openEdit(row)}
+            columns={columns}
+            data={filteredFunctions}
+            onView={(row) => setViewFunc(row)}
+            onEdit={(row) => openEdit(row)}
             emptyMessage="No functions found."
           />
         </CardContent>
@@ -212,12 +205,10 @@ export default function FunctionMaster() {
         )}
       </EntityModal>
 
-      {/* Add Modal */}
       <EntityModal open={isAddOpen} onOpenChange={o => { if (!o) resetForm(); setIsAddOpen(o); }} title="Add New Function" mode="create" onSave={handleAdd} saveLabel="Add Function">
         {formFields}
       </EntityModal>
 
-      {/* Edit Modal */}
       <EntityModal open={editFunc !== null} onOpenChange={o => { if (!o) { setEditFunc(null); resetForm(); } }} title="Edit Function" mode="edit" onSave={handleEdit} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
@@ -226,9 +217,9 @@ export default function FunctionMaster() {
         open={isBulkUploadOpen}
         onOpenChange={setIsBulkUploadOpen}
         title="Bulk Upload Functions"
-        fields={bulkUploadFields}
+        fields={dynamicBulkFields}
         onImport={handleBulkImport}
-        templateName="functions-template"
+        templateName={FUNCTION_SCHEMA.templateFileName}
       />
     </PageShell>
   );

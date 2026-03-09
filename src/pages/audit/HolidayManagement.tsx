@@ -9,7 +9,11 @@ import { useIAHolidays, useIAHolidayMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, ConfirmDialog, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { HOLIDAY_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+
+const bulkUploadFields = toBulkUploadFields(HOLIDAY_SCHEMA);
+const exportColumns = toExportColumns(HOLIDAY_SCHEMA);
 
 export default function HolidayManagement() {
   const { profile } = useSupabaseAuth();
@@ -23,19 +27,12 @@ export default function HolidayManagement() {
   const [form, setForm] = useState({ name: '', date: '', country: 'St. Kitts & Nevis', is_ssb_specific: false });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'name', label: 'Holiday Name', required: true },
-    { key: 'date', label: 'Holiday Date', required: true, type: 'date' },
-    { key: 'country', label: 'Country/Region' },
-    { key: 'is_ssb_specific', label: 'SSB Specific (yes/no)' },
-  ];
-
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
       await new Promise<void>((resolve, reject) => {
         create.mutate({
-          name: row.name, date: row.date, country: row.country || 'St. Kitts & Nevis',
-          is_ssb_specific: String(row.is_ssb_specific).toLowerCase() === 'yes',
+          name: row.name, date: row.date, country: row['country'] || 'St. Kitts & Nevis',
+          is_ssb_specific: String(row.holiday_type || '').toLowerCase().includes('ssb'),
           created_by: (profile as any)?.user_code || '',
         }, { onSuccess: () => resolve(), onError: () => reject() });
       });
@@ -68,7 +65,7 @@ export default function HolidayManagement() {
   };
 
   const filterFields: StandardFilterField[] = [
-    { key: 'type', label: 'Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'public', label: 'Public Holidays' }, { value: 'ssb', label: 'SSB-Specific' }] },
+    { key: 'type', label: 'Holiday Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'public', label: 'Public Holiday' }, { value: 'ssb', label: 'SSB-Specific' }] },
   ];
 
   const statCards = [
@@ -82,17 +79,23 @@ export default function HolidayManagement() {
     { key: 'date', header: 'Date', render: (row) => <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" />{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div> },
     { key: 'name', header: 'Holiday Name' },
     { key: 'country', header: 'Country/Region' },
-    { key: 'type', header: 'Type', render: (row) => row.is_ssb_specific ? <Badge variant="outline">SSB-Specific</Badge> : <StatusBadge status="Public Holiday" /> },
+    { key: 'holiday_type', header: 'Holiday Type', render: (row) => row.is_ssb_specific ? <Badge variant="outline">SSB-Specific</Badge> : <StatusBadge status="Public Holiday" /> },
   ];
+
+  // Prepare export data with holiday_type resolved
+  const exportData = filteredHolidays.map(h => ({
+    ...h,
+    holiday_type: h.is_ssb_specific ? 'SSB-Specific' : 'Public Holiday',
+  }));
 
   const formFields = (
     <div className="space-y-4">
-      <div><Label>Holiday Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Independence Day" /></div>
-      <div><Label>Date</Label><Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+      <div><Label>Holiday Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Independence Day" /></div>
+      <div><Label>Date *</Label><Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
       <div><Label>Country/Region</Label><Input value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="St. Kitts & Nevis" /></div>
       <div className="flex items-center space-x-2">
         <Checkbox id="ssbSpecific" checked={form.is_ssb_specific} onCheckedChange={c => setForm(f => ({ ...f, is_ssb_specific: !!c }))} />
-        <Label htmlFor="ssbSpecific" className="cursor-pointer">SSB-specific holiday</Label>
+        <Label htmlFor="ssbSpecific" className="cursor-pointer">SSB-specific holiday (Holiday Type: SSB-Specific)</Label>
       </div>
     </div>
   );
@@ -106,17 +109,7 @@ export default function HolidayManagement() {
       error={isError ? 'Failed to load holidays' : null}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredHolidays.map(h => ({ ...h, type: h.is_ssb_specific ? 'SSB-Specific' : 'Public Holiday' }))}
-            columns={[
-              { key: 'name', header: 'Holiday Name' },
-              { key: 'date', header: 'Date' },
-              { key: 'country', header: 'Country/Region' },
-              { key: 'type', header: 'Type' },
-            ]}
-            fileName="holidays"
-            title="Holiday Calendar"
-          />
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={HOLIDAY_SCHEMA.exportFileName} title={HOLIDAY_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
           </Button>
@@ -140,15 +133,7 @@ export default function HolidayManagement() {
         ))}
       </div>
 
-      <StandardSearchFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by holiday name or country..."
-        filters={filterFields}
-        filterValues={filters}
-        onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ type: 'all' })}
-      />
+      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search by holiday name or country..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} onReset={() => setFilters({ type: 'all' })} />
 
       <Card>
         <CardContent className="pt-6">
@@ -177,14 +162,7 @@ export default function HolidayManagement() {
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Holiday" description="Are you sure you want to delete this holiday?" onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
 
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Holidays"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName="holidays-template"
-      />
+      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Holidays" fields={bulkUploadFields} onImport={handleBulkImport} templateName={HOLIDAY_SCHEMA.templateFileName} />
     </PageShell>
   );
 }

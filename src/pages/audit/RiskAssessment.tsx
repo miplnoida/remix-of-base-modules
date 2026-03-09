@@ -12,8 +12,10 @@ import { useIARiskAssessments, useIAAuditUniverse } from '@/hooks/useAuditDataPh
 import { useIADepartments } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { RISK_ASSESSMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
+const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
 
 const emptyForm = {
   audit_universe_id: '', assessment_date: new Date().toISOString().slice(0, 10), assessed_by: '',
@@ -32,7 +34,6 @@ export default function RiskAssessment() {
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
-  // Build a map from universe entity to department
   const universeMap = new Map((universeData as any[]).map((u: any) => [u.id, u]));
 
   const filtered = data.filter((r: any) => {
@@ -93,11 +94,11 @@ export default function RiskAssessment() {
   const columns: DataTableColumn<any>[] = [
     { key: 'audit_universe_id', header: 'Entity', render: (r) => getEntityName(r.audit_universe_id) },
     { key: 'department', header: 'Department', render: (r) => getDeptForEntity(r.audit_universe_id) },
-    { key: 'assessment_date', header: 'Date' },
+    { key: 'assessment_date', header: 'Assessment Date' },
     { key: 'assessed_by', header: 'Assessed By' },
-    { key: 'impact_score', header: 'Impact' },
-    { key: 'likelihood_score', header: 'Likelihood' },
-    { key: 'overall_risk_score', header: 'Overall Score' },
+    { key: 'impact_score', header: 'Impact Score' },
+    { key: 'likelihood_score', header: 'Likelihood Score' },
+    { key: 'overall_risk_score', header: 'Overall Risk Score' },
     { key: 'risk_level', header: 'Risk Level', render: (r) => <StatusBadge status={r.risk_level} /> },
   ];
 
@@ -106,12 +107,24 @@ export default function RiskAssessment() {
     { key: 'department', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...(departments || []).map((d: any) => ({ label: d.name, value: d.id }))] },
   ];
 
+  // Prepare export data with entity and department names resolved
+  const exportData = filtered.map((r: any) => ({
+    ...r,
+    entity_name: getEntityName(r.audit_universe_id),
+    department_name: getDeptForEntity(r.audit_universe_id),
+  }));
+
   const isReadOnly = modalState.mode === 'view';
 
   return (
     <PageShell title="Risk Assessment" subtitle="Assess, score, and prioritize auditable entities for audit planning"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Risk Assessment' }]}
-      actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Assessment</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={RISK_ASSESSMENT_SCHEMA.exportFileName} title={RISK_ASSESSMENT_SCHEMA.exportTitle} />
+          <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Assessment</Button>
+        </div>
+      }
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -146,15 +159,15 @@ export default function RiskAssessment() {
           <div><Label>Assessed By</Label><Input value={form.assessed_by} onChange={e => setFormField('assessed_by', e.target.value)} disabled={isReadOnly} /></div>
           <p className="text-sm font-medium text-muted-foreground pt-2">Scoring Factors (0–100)</p>
           <div className="grid grid-cols-3 gap-4">
-            <div><Label>Impact (25%)</Label><Input type="number" min={0} max={100} value={form.impact_score} onChange={e => setFormField('impact_score', Number(e.target.value))} disabled={isReadOnly} /></div>
-            <div><Label>Likelihood (25%)</Label><Input type="number" min={0} max={100} value={form.likelihood_score} onChange={e => setFormField('likelihood_score', Number(e.target.value))} disabled={isReadOnly} /></div>
-            <div><Label>Control Eff. (15%)</Label><Input type="number" min={0} max={100} value={form.control_effectiveness_score} onChange={e => setFormField('control_effectiveness_score', Number(e.target.value))} disabled={isReadOnly} /></div>
-            <div><Label>Velocity (10%)</Label><Input type="number" min={0} max={100} value={form.velocity_score} onChange={e => setFormField('velocity_score', Number(e.target.value))} disabled={isReadOnly} /></div>
-            <div><Label>Regulatory (15%)</Label><Input type="number" min={0} max={100} value={form.regulatory_score} onChange={e => setFormField('regulatory_score', Number(e.target.value))} disabled={isReadOnly} /></div>
-            <div><Label>Reputational (10%)</Label><Input type="number" min={0} max={100} value={form.reputational_score} onChange={e => setFormField('reputational_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Impact Score (25%)</Label><Input type="number" min={0} max={100} value={form.impact_score} onChange={e => setFormField('impact_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Likelihood Score (25%)</Label><Input type="number" min={0} max={100} value={form.likelihood_score} onChange={e => setFormField('likelihood_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Control Effectiveness Score (15%)</Label><Input type="number" min={0} max={100} value={form.control_effectiveness_score} onChange={e => setFormField('control_effectiveness_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Velocity Score (10%)</Label><Input type="number" min={0} max={100} value={form.velocity_score} onChange={e => setFormField('velocity_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Regulatory Score (15%)</Label><Input type="number" min={0} max={100} value={form.regulatory_score} onChange={e => setFormField('regulatory_score', Number(e.target.value))} disabled={isReadOnly} /></div>
+            <div><Label>Reputational Score (10%)</Label><Input type="number" min={0} max={100} value={form.reputational_score} onChange={e => setFormField('reputational_score', Number(e.target.value))} disabled={isReadOnly} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4 p-3 rounded-md bg-muted">
-            <div><Label>Overall Score</Label><p className="text-lg font-bold">{form.overall_risk_score}</p></div>
+            <div><Label>Overall Risk Score</Label><p className="text-lg font-bold">{form.overall_risk_score}</p></div>
             <div><Label>Risk Level</Label><StatusBadge status={form.risk_level} /></div>
           </div>
           <div><Label>Notes</Label><Textarea value={form.notes} onChange={e => setFormField('notes', e.target.value)} disabled={isReadOnly} /></div>
