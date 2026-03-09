@@ -14,7 +14,18 @@ import {
   FileText as FileTextIcon,
   TrendingUp,
   Shield,
-  Mail
+  Mail,
+  Globe,
+  Target,
+  Briefcase,
+  BookOpen,
+  Grid3X3,
+  TestTube,
+  Clock,
+  Award,
+  LayoutDashboard,
+  FileBarChart,
+  Bell
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -22,6 +33,28 @@ export const auditMenuItems = [
     title: "Internal Audit",
     icon: Shield,
     subItems: [
+      // Governance & Risk
+      {
+        title: "Audit Universe",
+        url: "/audit/audit-universe",
+        icon: Globe,
+        requiresPermission: "configure_audit_system",
+        description: "Master list of all auditable entities"
+      },
+      {
+        title: "Risk Assessment",
+        url: "/audit/risk-assessment",
+        icon: Target,
+        requiresPermission: "configure_audit_system",
+        description: "Assess and score entity risks"
+      },
+      {
+        title: "Executive Dashboard",
+        url: "/audit/executive-dashboard",
+        icon: LayoutDashboard,
+        requiresPermission: "generate_reports",
+        description: "High-level audit performance overview"
+      },
       // Auditor Management
       {
         title: "Auditor Profiles",
@@ -36,6 +69,13 @@ export const auditMenuItems = [
         icon: TrendingUp,
         requiresPermission: "assign_auditors",
         description: "View auditor capacity and assignments"
+      },
+      {
+        title: "Time Tracking",
+        url: "/audit/time-tracking",
+        icon: Clock,
+        requiresPermission: "execute_audit_activities",
+        description: "Track auditor time and utilization"
       },
       {
         title: "Leave and Vacation Management",
@@ -65,6 +105,35 @@ export const auditMenuItems = [
         icon: CheckSquare,
         requiresPermission: "approve_audit_plans",
         description: "Approve or reject audit plans"
+      },
+      {
+        title: "Audit Engagements",
+        url: "/audit/engagements",
+        icon: Briefcase,
+        requiresPermission: "create_audit_plans",
+        description: "Manage formal audit engagements"
+      },
+      // Methodology
+      {
+        title: "Audit Programs",
+        url: "/audit/audit-programs",
+        icon: BookOpen,
+        requiresPermission: "create_audit_plans",
+        description: "Reusable audit programs and procedures"
+      },
+      {
+        title: "Risk Control Matrix",
+        url: "/audit/rcm",
+        icon: Grid3X3,
+        requiresPermission: "enter_audit_findings",
+        description: "Map processes, risks, controls and tests"
+      },
+      {
+        title: "Control Testing",
+        url: "/audit/control-testing",
+        icon: TestTube,
+        requiresPermission: "execute_audit_activities",
+        description: "Test and evaluate control effectiveness"
       },
       // Audit Execution
       {
@@ -131,6 +200,13 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_closeouts",
         description: "Review and approve plan closeouts"
       },
+      {
+        title: "Quality Assurance Review",
+        url: "/audit/quality-review",
+        icon: Award,
+        requiresPermission: "approve_audit_closeouts",
+        description: "Independent review of completed audits"
+      },
       // Reports & Communications
       {
         title: "Audit Reports",
@@ -138,6 +214,13 @@ export const auditMenuItems = [
         icon: BarChart3,
         requiresPermission: "generate_reports",
         description: "Generate audit reports and analytics"
+      },
+      {
+        title: "Committee Reports",
+        url: "/audit/committee-reports",
+        icon: FileBarChart,
+        requiresPermission: "generate_reports",
+        description: "Board and committee reporting packs"
       },
       {
         title: "Letter Generation",
@@ -167,6 +250,13 @@ export const auditMenuItems = [
         icon: Settings,
         requiresPermission: "configure_audit_system",
         description: "Configure audit system settings"
+      },
+      {
+        title: "SLA & Escalation Rules",
+        url: "/audit/sla-rules",
+        icon: Bell,
+        requiresPermission: "configure_audit_system",
+        description: "Manage SLA rules and escalation workflows"
       },
       {
         title: "Department Master",

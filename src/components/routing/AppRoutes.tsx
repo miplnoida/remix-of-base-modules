@@ -851,6 +851,19 @@ export const AppRoutes = () => {
       <Route path="/audit/functions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FUNCTION_MASTER"><FunctionMaster /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
 
+      {/* New Internal Audit Modules — Phase 1-9 */}
+      <Route path="/audit/audit-universe" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_UNIVERSE"><AuditUniverse /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/engagements" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/audit-programs" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PROGRAMS"><AuditPrograms /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/rcm" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RCM"><RiskControlMatrix /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/control-testing" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_CONTROL_TESTING"><ControlTesting /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/time-tracking" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_TIME_TRACKING"><TimeTracking /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/quality-review" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_QUALITY_REVIEW"><QualityReview /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/executive-dashboard" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_EXECUTIVE_DASHBOARD"><ExecutiveDashboard /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/committee-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_COMMITTEE_REPORTS"><CommitteeReports /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/sla-rules" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><SLARules /></AuditFeatureGate></ProtectedLayout>} />
+
       {/* Registration Rules & Process Routes */}
       <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
       <Route path="/registration/employer-rules" element={<ProtectedLayout><EmployerRules /></ProtectedLayout>} />
