@@ -161,7 +161,7 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   // First pass: organize modules
   modules.forEach(module => {
     moduleMap.set(module.id, module);
-    
+
     if (module.parent_id) {
       const siblings = childrenMap.get(module.parent_id) || [];
       siblings.push(module);
@@ -172,7 +172,7 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   });
 
   // Sort by sort_order
-  const sortModules = (a: ModuleRow, b: ModuleRow) => 
+  const sortModules = (a: ModuleRow, b: ModuleRow) =>
     (a.sort_order ?? 999) - (b.sort_order ?? 999);
 
   // Recursive function to build menu items
@@ -201,6 +201,127 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   // Build the tree starting from root modules
   rootModules.sort(sortModules);
   return rootModules.map(buildMenuItem);
+}
+
+const INTERNAL_AUDIT_SECTION_CONFIG: Array<{
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  routes: string[];
+}> = [
+  {
+    id: 'ia-section-governance',
+    title: 'Governance & Setup',
+    icon: Settings,
+    routes: ['/audit/config', '/audit/sla-rules', '/audit/departments', '/audit/functions', '/audit/templates'],
+  },
+  {
+    id: 'ia-section-resources',
+    title: 'Resource Management',
+    icon: Users,
+    routes: ['/audit/auditors', '/audit/workload', '/audit/time-tracking', '/audit/leave', '/audit/holidays'],
+  },
+  {
+    id: 'ia-section-universe-risk',
+    title: 'Audit Universe & Risk',
+    icon: Shield,
+    routes: ['/audit/audit-universe', '/audit/risk-assessment', '/audit/rcm'],
+  },
+  {
+    id: 'ia-section-planning',
+    title: 'Audit Planning',
+    icon: ClipboardList,
+    routes: ['/audit/audit-plans', '/audit/plan-approval', '/audit/engagements'],
+  },
+  {
+    id: 'ia-section-preparation',
+    title: 'Audit Preparation',
+    icon: FolderTree,
+    routes: ['/audit/audit-programs', '/audit/calendar'],
+  },
+  {
+    id: 'ia-section-execution',
+    title: 'Audit Execution',
+    icon: Activity,
+    routes: ['/audit/activity-workbench', '/audit/control-testing', '/audit/evidence', '/audit/working-papers', '/audit/findings'],
+  },
+  {
+    id: 'ia-section-issue',
+    title: 'Issue Management',
+    icon: AlertTriangle,
+    routes: ['/audit/responses', '/audit/actions', '/audit/follow-up-tracker'],
+  },
+  {
+    id: 'ia-section-closure',
+    title: 'Audit Closure',
+    icon: CheckCircle,
+    routes: ['/audit/quality-review', '/audit/plan-closeout'],
+  },
+  {
+    id: 'ia-section-reporting',
+    title: 'Reporting',
+    icon: BarChart3,
+    routes: ['/audit/dashboard', '/audit/executive-dashboard', '/audit/audit-reports', '/audit/report-builder', '/audit/committee-reports', '/audit/letters'],
+  },
+  {
+    id: 'ia-section-communication',
+    title: 'Communication',
+    icon: Mail,
+    routes: ['/audit/communication-center'],
+  },
+];
+
+function normalizePath(path?: string): string {
+  if (!path) return '';
+  return path.trim().replace(/\/+$/, '') || '/';
+}
+
+function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
+  return items.map((item) => {
+    const isInternalAuditRoot = item.title.toLowerCase() === 'internal audit';
+    const children = item.subItems || [];
+
+    if (!isInternalAuditRoot || children.length === 0) return item;
+
+    // If already grouped, keep it untouched
+    if (children.some((child) => (child.subItems?.length || 0) > 0)) {
+      return item;
+    }
+
+    const assignedRoutes = new Set<string>();
+
+    const groupedSections = INTERNAL_AUDIT_SECTION_CONFIG.map((section) => {
+      const routeSet = new Set(section.routes.map(normalizePath));
+
+      const sectionItems = children.filter((child) => {
+        const childPath = normalizePath(child.url);
+        if (!childPath || !routeSet.has(childPath)) return false;
+        assignedRoutes.add(childPath);
+        return true;
+      });
+
+      if (sectionItems.length === 0) return null;
+
+      return {
+        id: section.id,
+        title: section.title,
+        icon: section.icon,
+        description: `${section.title} modules`,
+        subItems: sectionItems,
+      } as MenuItem;
+    }).filter(Boolean) as MenuItem[];
+
+    // Keep unmatched modules visible at the end (safety fallback)
+    const unmatched = children.filter((child) => {
+      const childPath = normalizePath(child.url);
+      return !childPath || !assignedRoutes.has(childPath);
+    });
+
+    return {
+      ...item,
+      subItems: [...groupedSections, ...unmatched],
+    };
+  });
 }
 
 export function useDynamicNavigation() {
