@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Module-level variable to persist mobile sidebar open state across remounts
+let _sidebarMobileOpen = false
 import {
   Tooltip,
   TooltipContent,
@@ -66,7 +69,14 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const isMobile = useIsMobile()
-    const [openMobile, setOpenMobile] = React.useState(false)
+    const [openMobile, _setOpenMobile] = React.useState(_sidebarMobileOpen)
+    const setOpenMobile = React.useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+      _setOpenMobile(prev => {
+        const next = typeof value === 'function' ? value(prev) : value
+        _sidebarMobileOpen = next
+        return next
+      })
+    }, [])
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
