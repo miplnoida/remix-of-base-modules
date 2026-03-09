@@ -25,6 +25,33 @@ export default function AuditorProfiles() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editAuditor, setEditAuditor] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'name', label: 'Auditor Name', required: true },
+    { key: 'employee_no', label: 'Employee ID', required: true },
+    { key: 'email', label: 'Email', required: true },
+    { key: 'phone', label: 'Phone' },
+    { key: 'role', label: 'Role', allowedValues: ['Auditor', 'Audit Manager', 'Audit Director'] },
+    { key: 'seniority_level', label: 'Seniority Level', allowedValues: ['Junior', 'Mid', 'Senior', 'Lead'] },
+    { key: 'work_location', label: 'Work Location' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          name: row.name, employee_no: row.employee_no, email: row.email,
+          phone: row.phone || '', role: row.role || 'Auditor',
+          seniority_level: row.seniority_level || 'Junior',
+          work_location: row.work_location || '',
+          skills: [], certifications: [],
+          created_by: (profile as any)?.user_code || '',
+        }, { onSuccess: () => resolve(), onError: () => reject() });
+      });
+    }
+    refetch();
+  };
 
   const resetForm = () => setForm({ ...emptyForm, skills: [], certifications: [] });
 
