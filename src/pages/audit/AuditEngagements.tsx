@@ -139,7 +139,7 @@ export default function AuditEngagements() {
                 <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
                   <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
                   <SelectContent>
-                    {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.plan_name} ({p.audit_year})</SelectItem>)}
+                    {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title} ({p.fiscal_year})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
