@@ -38,6 +38,30 @@ const FindingsManagement = () => {
   const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'title', label: 'Finding Title', required: true },
+    { key: 'risk_rating', label: 'Risk Level', allowedValues: RISKS },
+    { key: 'condition', label: 'Description', required: true },
+    { key: 'criteria', label: 'Recommendation' },
+    { key: 'impact_area', label: 'Impact Area' },
+    { key: 'status', label: 'Status', allowedValues: STATUSES },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      create.mutate({
+        title: row.title, condition: row.condition || '', criteria: row.criteria || '',
+        risk_rating: row.risk_rating || 'Medium', impact_area: row.impact_area || '',
+        status: row.status || 'Draft', finding_id: findingId,
+        cause: '', effect: '',
+        department_id: null, activity_id: null, annual_plan_id: null, department_audit_id: null,
+        ...getCreateFields(),
+      });
+    }
+  };
 
   const filteredFindings = findings.filter((f: any) => {
     const matchesSearch = (f.title || '').toLowerCase().includes(searchTerm.toLowerCase());
