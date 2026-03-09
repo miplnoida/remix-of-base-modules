@@ -221,6 +221,15 @@ export default function AuditorProfiles() {
       <EntityModal open={editAuditor !== null} onOpenChange={o => { if (!o) { setEditAuditor(null); resetForm(); } }} title="Edit Auditor" mode="edit" onSave={handleEdit} isSaving={update.isPending} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Auditors"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="auditor-profiles-template"
+      />
     </PageShell>
   );
 }
