@@ -1,7 +1,6 @@
-
-import { 
-  Shield, 
-  LayoutDashboard, 
+import {
+  Shield,
+  LayoutDashboard,
   FolderOpen,
   Calendar,
   MapPin,
@@ -16,26 +15,63 @@ import {
   DollarSign,
   BarChart3,
   AlertTriangle,
-  Building2
+  Building2,
+  Gavel,
+  ShieldAlert,
+  Cog,
+  Timer,
+  Search,
+  Target,
+  Zap,
+  Hash,
+  ListChecks,
+  Eye,
+  Briefcase,
+  UserCheck
 } from "lucide-react";
 
 export const complianceMenuItems = [
   {
-    title: "Compliance & Audit",
+    title: "Compliance & Enforcement",
     icon: Shield,
     subItems: [
+      // ── Dashboards ──
       {
-        title: "Compliance Dashboard",
-        url: "/compliance/dashboard",
+        title: "Dashboards",
         icon: LayoutDashboard,
         requiresPermission: "manage_compliance",
-        description: "Visual overview of compliance metrics and trends"
+        description: "Role-based compliance dashboards",
+        subItems: [
+          {
+            title: "Manager Dashboard",
+            url: "/compliance/dashboard/manager",
+            icon: LayoutDashboard,
+            requiresPermission: "manage_compliance",
+            description: "Overview of all compliance metrics and KPIs"
+          },
+          {
+            title: "Inspector Dashboard",
+            url: "/compliance/dashboard/inspector",
+            icon: UserCheck,
+            requiresPermission: "manage_compliance",
+            description: "Field inspector workload and assignments"
+          },
+          {
+            title: "Legal Dashboard",
+            url: "/compliance/dashboard/legal",
+            icon: Gavel,
+            requiresPermission: "manage_compliance",
+            description: "Legal escalation pipeline and court tracking"
+          }
+        ]
       },
+
+      // ── Violations Management ──
       {
         title: "Violations Management",
-        icon: FolderOpen,
+        icon: AlertTriangle,
         requiresPermission: "manage_compliance",
-        description: "View and manage all compliance violations",
+        description: "Manage compliance violations",
         subItems: [
           {
             title: "All Violations",
@@ -53,12 +89,61 @@ export const complianceMenuItems = [
           }
         ]
       },
+
+      // ── Compliance Cases ──
       {
-        title: "Employer Inspections",
-        icon: Building2,
+        title: "Compliance Cases",
+        icon: Briefcase,
         requiresPermission: "manage_compliance",
-        description: "Employer visit workspace and findings",
+        description: "Case management with full lifecycle",
         subItems: [
+          {
+            title: "Case Management",
+            url: "/compliance/cases",
+            icon: Briefcase,
+            requiresPermission: "manage_compliance",
+            description: "View and manage all compliance cases"
+          },
+          {
+            title: "Case Queue",
+            url: "/compliance/cases/queue",
+            icon: ListChecks,
+            requiresPermission: "manage_compliance",
+            description: "Prioritized queue of cases requiring action"
+          }
+        ]
+      },
+
+      // ── Employer Risk Profiles ──
+      {
+        title: "Employer Risk Profiles",
+        url: "/compliance/risk-profiles",
+        icon: Target,
+        requiresPermission: "manage_compliance",
+        description: "Risk scoring bands and employer risk assessment"
+      },
+
+      // ── Inspections ──
+      {
+        title: "Inspections",
+        icon: Search,
+        requiresPermission: "manage_compliance",
+        description: "Field compliance inspections",
+        subItems: [
+          {
+            title: "Inspection Management",
+            url: "/compliance/inspections",
+            icon: ClipboardCheck,
+            requiresPermission: "manage_compliance",
+            description: "Schedule and manage inspections"
+          },
+          {
+            title: "Field Execution",
+            url: "/compliance/inspections/field-execution",
+            icon: MapPin,
+            requiresPermission: "conduct_inspections",
+            description: "Check-in, execute visits, collect evidence"
+          },
           {
             title: "Employer Findings",
             url: "/compliance/employers/findings",
@@ -68,6 +153,8 @@ export const complianceMenuItems = [
           }
         ]
       },
+
+      // ── Weekly Audit Planning (existing) ──
       {
         title: "Weekly Audit Planning",
         icon: Calendar,
@@ -96,35 +183,78 @@ export const complianceMenuItems = [
             description: "Review and approve submitted inspector plans"
           },
           {
-            title: "Field Execution",
-            url: "/compliance/audit-planning/field-execution",
-            icon: MapPin,
-            requiresPermission: "conduct_inspections",
-            description: "Check-in, execute visits, collect evidence"
-          },
-          {
             title: "Weekly Report Submission",
             url: "/compliance/violations/weekly-reports",
             icon: FileText,
             requiresPermission: "manage_compliance",
-            description: "Submit weekly inspection reports with visit tracking"
+            description: "Submit weekly inspection reports"
           }
         ]
       },
-      {
-        title: "Notices & Communication",
-        url: "/compliance/notices",
-        icon: Bell,
-        requiresPermission: "manage_compliance",
-        description: "Send and track compliance notices"
-      },
+
+      // ── Payment Arrangements ──
       {
         title: "Payment Arrangements",
-        url: "/compliance/arrangements",
         icon: HandshakeIcon,
         requiresPermission: "manage_compliance",
-        description: "Manage payment arrangements and installments"
+        description: "Installment arrangements and breach monitoring",
+        subItems: [
+          {
+            title: "Arrangement Management",
+            url: "/compliance/arrangements",
+            icon: HandshakeIcon,
+            requiresPermission: "manage_compliance",
+            description: "View and manage payment arrangements"
+          },
+          {
+            title: "Breach Monitoring",
+            url: "/compliance/arrangements/breaches",
+            icon: ShieldAlert,
+            requiresPermission: "manage_compliance",
+            description: "Automatic breach detection and tracking"
+          }
+        ]
       },
+
+      // ── Legal Escalation ──
+      {
+        title: "Legal Escalation",
+        icon: Scale,
+        requiresPermission: "manage_compliance",
+        description: "Legal workflow and enforcement",
+        subItems: [
+          {
+            title: "Legal Queue",
+            url: "/compliance/legal/queue",
+            icon: Scale,
+            requiresPermission: "manage_compliance",
+            description: "Cases ready for legal escalation"
+          },
+          {
+            title: "Legal Proceedings",
+            url: "/compliance/legal/proceedings",
+            icon: Gavel,
+            requiresPermission: "manage_compliance",
+            description: "Active legal cases and court tracking"
+          },
+          {
+            title: "Notices Management",
+            url: "/compliance/notices",
+            icon: Bell,
+            requiresPermission: "manage_compliance",
+            description: "Send and track compliance notices"
+          },
+          {
+            title: "Waivers & Overrides",
+            url: "/compliance/waivers",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Waiver requests and approval workflow"
+          }
+        ]
+      },
+
+      // ── Employer Statements (existing) ──
       {
         title: "Employer Statements",
         url: "/compliance/employer-statements",
@@ -132,6 +262,8 @@ export const complianceMenuItems = [
         requiresPermission: "view_financial_data",
         description: "Generate as-of-date employer statements"
       },
+
+      // ── Reports (keep existing structure) ──
       {
         title: "Reports",
         icon: TrendingUp,
@@ -144,30 +276,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Violation analytics, trends, and status tracking",
             subItems: [
-              {
-                title: "Violations by Status",
-                url: "/compliance/reports/violations-analytics",
-                icon: FileText,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Violations by Type",
-                url: "/compliance/reports/violations-analytics",
-                icon: FileText,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Violation Resolution Time",
-                url: "/compliance/reports/violations-analytics",
-                icon: FileText,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Violations by Zone",
-                url: "/compliance/reports/violations-analytics",
-                icon: FileText,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Violations by Status", url: "/compliance/reports/violations-analytics", icon: FileText, requiresPermission: "generate_reports" },
+              { title: "Violations by Type", url: "/compliance/reports/violations-analytics", icon: FileText, requiresPermission: "generate_reports" },
+              { title: "Violation Resolution Time", url: "/compliance/reports/violations-analytics", icon: FileText, requiresPermission: "generate_reports" },
+              { title: "Violations by Zone", url: "/compliance/reports/violations-analytics", icon: FileText, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -176,30 +288,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Field activity, plan compliance, and productivity metrics",
             subItems: [
-              {
-                title: "Weekly Plan Compliance",
-                url: "/compliance/reports/inspector-performance",
-                icon: Users,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Field Activities Summary",
-                url: "/compliance/reports/inspector-performance",
-                icon: Users,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Check-In/Check-Out Audit",
-                url: "/compliance/reports/inspector-performance",
-                icon: Users,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Violations Handled by Inspector",
-                url: "/compliance/reports/inspector-performance",
-                icon: Users,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Weekly Plan Compliance", url: "/compliance/reports/inspector-performance", icon: Users, requiresPermission: "generate_reports" },
+              { title: "Field Activities Summary", url: "/compliance/reports/inspector-performance", icon: Users, requiresPermission: "generate_reports" },
+              { title: "Check-In/Check-Out Audit", url: "/compliance/reports/inspector-performance", icon: Users, requiresPermission: "generate_reports" },
+              { title: "Violations Handled by Inspector", url: "/compliance/reports/inspector-performance", icon: Users, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -208,30 +300,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "C3 submission rates, timeliness, and employer compliance",
             subItems: [
-              {
-                title: "On-Time vs Late Submissions",
-                url: "/compliance/reports/c3-compliance",
-                icon: ClipboardCheck,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Missing C3 Submissions",
-                url: "/compliance/reports/c3-compliance",
-                icon: ClipboardCheck,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "C3 Without Payment",
-                url: "/compliance/reports/c3-compliance",
-                icon: ClipboardCheck,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Compliance Rate by Zone",
-                url: "/compliance/reports/c3-compliance",
-                icon: ClipboardCheck,
-                requiresPermission: "generate_reports"
-              }
+              { title: "On-Time vs Late Submissions", url: "/compliance/reports/c3-compliance", icon: ClipboardCheck, requiresPermission: "generate_reports" },
+              { title: "Missing C3 Submissions", url: "/compliance/reports/c3-compliance", icon: ClipboardCheck, requiresPermission: "generate_reports" },
+              { title: "C3 Without Payment", url: "/compliance/reports/c3-compliance", icon: ClipboardCheck, requiresPermission: "generate_reports" },
+              { title: "Compliance Rate by Zone", url: "/compliance/reports/c3-compliance", icon: ClipboardCheck, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -240,30 +312,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Outstanding balances, payment trends, and recovery metrics",
             subItems: [
-              {
-                title: "Total Arrears by Zone",
-                url: "/compliance/reports/arrears",
-                icon: DollarSign,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Arrears Aging Analysis",
-                url: "/compliance/reports/arrears",
-                icon: DollarSign,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Collections Over Time",
-                url: "/compliance/reports/arrears",
-                icon: DollarSign,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Top 50 Arrears Employers",
-                url: "/compliance/reports/arrears",
-                icon: DollarSign,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Total Arrears by Zone", url: "/compliance/reports/arrears", icon: DollarSign, requiresPermission: "generate_reports" },
+              { title: "Arrears Aging Analysis", url: "/compliance/reports/arrears", icon: DollarSign, requiresPermission: "generate_reports" },
+              { title: "Collections Over Time", url: "/compliance/reports/arrears", icon: DollarSign, requiresPermission: "generate_reports" },
+              { title: "Top 50 Arrears Employers", url: "/compliance/reports/arrears", icon: DollarSign, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -272,30 +324,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Audit findings, inspection results, and risk assessments",
             subItems: [
-              {
-                title: "Audit Completion Rate",
-                url: "/compliance/reports/audit",
-                icon: BarChart3,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Findings by Severity",
-                url: "/compliance/reports/audit",
-                icon: BarChart3,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Inspection Coverage by Zone",
-                url: "/compliance/reports/audit",
-                icon: BarChart3,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Risk-Based Audit Results",
-                url: "/compliance/reports/audit",
-                icon: BarChart3,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Audit Completion Rate", url: "/compliance/reports/audit", icon: BarChart3, requiresPermission: "generate_reports" },
+              { title: "Findings by Severity", url: "/compliance/reports/audit", icon: BarChart3, requiresPermission: "generate_reports" },
+              { title: "Inspection Coverage by Zone", url: "/compliance/reports/audit", icon: BarChart3, requiresPermission: "generate_reports" },
+              { title: "Risk-Based Audit Results", url: "/compliance/reports/audit", icon: BarChart3, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -304,30 +336,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Active arrangements, defaults, and compliance tracking",
             subItems: [
-              {
-                title: "Active Arrangements",
-                url: "/compliance/reports/arrangements",
-                icon: HandshakeIcon,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Defaulted Arrangements",
-                url: "/compliance/reports/arrangements",
-                icon: HandshakeIcon,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Arrangement Success Rate",
-                url: "/compliance/reports/arrangements",
-                icon: HandshakeIcon,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Installment Payment Trends",
-                url: "/compliance/reports/arrangements",
-                icon: HandshakeIcon,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Active Arrangements", url: "/compliance/reports/arrangements", icon: HandshakeIcon, requiresPermission: "generate_reports" },
+              { title: "Defaulted Arrangements", url: "/compliance/reports/arrangements", icon: HandshakeIcon, requiresPermission: "generate_reports" },
+              { title: "Arrangement Success Rate", url: "/compliance/reports/arrangements", icon: HandshakeIcon, requiresPermission: "generate_reports" },
+              { title: "Installment Payment Trends", url: "/compliance/reports/arrangements", icon: HandshakeIcon, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -336,30 +348,10 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Cases escalated to legal, court proceedings, and outcomes",
             subItems: [
-              {
-                title: "Violations Escalated to Legal",
-                url: "/compliance/reports/legal",
-                icon: Scale,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Legal Stage Distribution",
-                url: "/compliance/reports/legal",
-                icon: Scale,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Court Proceedings Status",
-                url: "/compliance/reports/legal",
-                icon: Scale,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Judgements & Enforcement",
-                url: "/compliance/reports/legal",
-                icon: Scale,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Violations Escalated to Legal", url: "/compliance/reports/legal", icon: Scale, requiresPermission: "generate_reports" },
+              { title: "Legal Stage Distribution", url: "/compliance/reports/legal", icon: Scale, requiresPermission: "generate_reports" },
+              { title: "Court Proceedings Status", url: "/compliance/reports/legal", icon: Scale, requiresPermission: "generate_reports" },
+              { title: "Judgements & Enforcement", url: "/compliance/reports/legal", icon: Scale, requiresPermission: "generate_reports" }
             ]
           },
           {
@@ -368,57 +360,77 @@ export const complianceMenuItems = [
             requiresPermission: "generate_reports",
             description: "Historical trends and predictive analytics",
             subItems: [
-              {
-                title: "Compliance Trends (12 months)",
-                url: "/compliance/reports/trends",
-                icon: TrendingUp,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Violation Creation Trends",
-                url: "/compliance/reports/trends",
-                icon: TrendingUp,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Resolution Rate Trends",
-                url: "/compliance/reports/trends",
-                icon: TrendingUp,
-                requiresPermission: "generate_reports"
-              },
-              {
-                title: "Financial Recovery Trends",
-                url: "/compliance/reports/trends",
-                icon: TrendingUp,
-                requiresPermission: "generate_reports"
-              }
+              { title: "Compliance Trends (12 months)", url: "/compliance/reports/trends", icon: TrendingUp, requiresPermission: "generate_reports" },
+              { title: "Violation Creation Trends", url: "/compliance/reports/trends", icon: TrendingUp, requiresPermission: "generate_reports" },
+              { title: "Resolution Rate Trends", url: "/compliance/reports/trends", icon: TrendingUp, requiresPermission: "generate_reports" },
+              { title: "Financial Recovery Trends", url: "/compliance/reports/trends", icon: TrendingUp, requiresPermission: "generate_reports" }
             ]
           }
         ]
       },
+
+      // ── Automation & Jobs ──
       {
-        title: "Legal Recommendation Queue",
-        url: "/compliance/legal-recommendation-queue",
-        icon: Scale,
+        title: "Automation & Jobs",
+        icon: Zap,
         requiresPermission: "manage_compliance",
-        description: "Review violations ready for legal escalation"
+        description: "Scheduled compliance automation jobs",
+        subItems: [
+          {
+            title: "Job Configuration",
+            url: "/compliance/automation/jobs",
+            icon: Cog,
+            requiresPermission: "manage_compliance",
+            description: "Configure and manage automation jobs"
+          },
+          {
+            title: "Job History",
+            url: "/compliance/automation/history",
+            icon: Timer,
+            requiresPermission: "manage_compliance",
+            description: "View job execution history and logs"
+          }
+        ]
       },
+
+      // ── Settings ──
       {
         title: "Settings",
         icon: Settings,
         requiresPermission: "manage_compliance",
         subItems: [
           {
-            title: "Compliance Settings",
-            url: "/compliance/settings",
-            icon: Settings,
+            title: "Rule Engine",
+            url: "/compliance/settings/rule-engine",
+            icon: Cog,
             requiresPermission: "manage_compliance",
-            description: "Configure C3 grace periods, penalties, and automatic violation rules"
+            description: "Configure detection, calculation, and escalation rules"
+          },
+          {
+            title: "Violation Types",
+            url: "/compliance/settings/violation-types",
+            icon: AlertTriangle,
+            requiresPermission: "manage_compliance",
+            description: "Configure violation type definitions"
+          },
+          {
+            title: "Number Templates",
+            url: "/compliance/settings/number-templates",
+            icon: Hash,
+            requiresPermission: "manage_compliance",
+            description: "Configure violation number generation templates"
+          },
+          {
+            title: "Risk Scoring Config",
+            url: "/compliance/settings/risk-config",
+            icon: Target,
+            requiresPermission: "manage_compliance",
+            description: "Configure risk scoring weights and band thresholds"
           },
           {
             title: "Legal Escalation Policy",
-            url: "/compliance/legal-escalation-policy",
-            icon: Shield,
+            url: "/compliance/settings/legal-escalation-policy",
+            icon: Scale,
             requiresPermission: "manage_compliance",
             description: "Configure legal escalation rules and thresholds"
           },
@@ -431,7 +443,7 @@ export const complianceMenuItems = [
           },
           {
             title: "Templates",
-            url: "/compliance/templates",
+            url: "/compliance/settings/templates",
             icon: FileText,
             requiresPermission: "manage_compliance",
             description: "Manage compliance notification templates"
