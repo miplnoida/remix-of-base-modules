@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,8 @@ import { useIAFindings, useIAFindingMutations, useIADepartments, useIAActivities
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
 const RISKS = ['High', 'Medium', 'Low'];
