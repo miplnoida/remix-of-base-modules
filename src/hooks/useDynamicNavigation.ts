@@ -13,6 +13,7 @@ import {
   BellRing, Send, TestTube, FlaskConical, Terminal, MapPin, HardHat,
   Heart, Flag, BadgeCheck, Network, Workflow, Play, Eye, Plug, 
   ArrowLeftRight, ShieldAlert, ShieldCheck, Wrench, BarChart3,
+  Clock, Target, FileBarChart,
   type LucideIcon
 } from 'lucide-react';
 
