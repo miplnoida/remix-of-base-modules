@@ -111,7 +111,28 @@ export default function FunctionMaster() {
       subtitle="Manage department functions and risk matrices for audit planning"
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Function Master' }]}
       isLoading={deptsLoading || funcsLoading}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Function</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredFunctions.map((f: any) => ({ ...f, department_name: departments.find((d: any) => d.id === f.department_id)?.name || '' }))}
+            columns={[
+              { key: 'function_name', header: 'Function Name' },
+              { key: 'department_name', header: 'Department' },
+              { key: 'description', header: 'Description' },
+              { key: 'risk_rating', header: 'Risk Rating' },
+              { key: 'likelihood', header: 'Likelihood' },
+              { key: 'impact', header: 'Impact' },
+              { key: 'responsible_person', header: 'Responsible' },
+            ]}
+            fileName="functions"
+            title="Functions List"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Function</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
