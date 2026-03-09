@@ -837,6 +837,26 @@ export const AppRoutes = () => {
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
 
+      {/* New Compliance & Enforcement Routes */}
+      <Route path="/compliance/dashboard/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/dashboard/inspector" element={<ProtectedLayout><ComplianceInspectorDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/dashboard/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
+      <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
+      <Route path="/compliance/risk-profiles" element={<ProtectedLayout><ComplianceRiskProfiles /></ProtectedLayout>} />
+      <Route path="/compliance/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
+      <Route path="/compliance/arrangements/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
+      <Route path="/compliance/legal/queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
+      <Route path="/compliance/legal/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
+      <Route path="/compliance/waivers" element={<ProtectedLayout><ComplianceWaivers /></ProtectedLayout>} />
+      <Route path="/compliance/automation/jobs" element={<ProtectedLayout><ComplianceJobConfiguration /></ProtectedLayout>} />
+      <Route path="/compliance/automation/history" element={<ProtectedLayout><ComplianceJobHistory /></ProtectedLayout>} />
+      <Route path="/compliance/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
+      <Route path="/compliance/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
+      <Route path="/compliance/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
+      <Route path="/compliance/settings/risk-config" element={<ProtectedLayout><ComplianceRiskScoringConfig /></ProtectedLayout>} />
+      <Route path="/compliance/settings/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
+
       {/* Audit Module Routes — wrapped with AuditFeatureGate for rollback safety */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
       <Route path="/audit/auditors" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_AUDITOR_PROFILES"><AuditorProfiles /></AuditFeatureGate></ProtectedLayout>} />
