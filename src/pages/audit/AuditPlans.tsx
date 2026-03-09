@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { AUDIT_PLANS_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
+
+const exportColumns = toExportColumns(AUDIT_PLANS_SCHEMA);
 
 export default function AuditPlans() {
   const { hasPermission } = useAuth();
@@ -39,7 +42,7 @@ export default function AuditPlans() {
 
   const columns: DataTableColumn<any>[] = [
     { key: 'fiscal_year', header: 'Fiscal Year' },
-    { key: 'title', header: 'Title' },
+    { key: 'title', header: 'Plan Title' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     { key: 'objective', header: 'Objective', className: 'max-w-xs truncate' },
     { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '-' },
@@ -53,17 +56,7 @@ export default function AuditPlans() {
       isLoading={isLoading}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredPlans}
-            columns={[
-              { key: 'fiscal_year', header: 'Fiscal Year' },
-              { key: 'title', header: 'Title' },
-              { key: 'status', header: 'Status' },
-              { key: 'objective', header: 'Objective' },
-            ]}
-            fileName="audit-plans"
-            title="Audit Plan Register"
-          />
+          <ExportDropdown data={filteredPlans} columns={exportColumns} fileName={AUDIT_PLANS_SCHEMA.exportFileName} title={AUDIT_PLANS_SCHEMA.exportTitle} />
           {hasPermission('create_audit_plans') && <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}><Plus className="w-4 h-4 mr-2" />Create Plan</Button>}
         </div>
       }

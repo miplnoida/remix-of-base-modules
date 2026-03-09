@@ -9,11 +9,15 @@ import { Plus, Award, X, Upload } from 'lucide-react';
 import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField, ExportColumn } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { AUDITOR_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
 const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
 const emptyForm = { employee_no: '', name: '', email: '', phone: '', role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[] };
+
+const bulkUploadFields = toBulkUploadFields(AUDITOR_SCHEMA);
+const exportColumns = toExportColumns(AUDITOR_SCHEMA);
 
 export default function AuditorProfiles() {
   const { profile } = useSupabaseAuth();
@@ -26,16 +30,6 @@ export default function AuditorProfiles() {
   const [editAuditor, setEditAuditor] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'name', label: 'Auditor Name', required: true },
-    { key: 'employee_no', label: 'Employee ID', required: true },
-    { key: 'email', label: 'Email', required: true },
-    { key: 'phone', label: 'Phone' },
-    { key: 'role', label: 'Role', allowedValues: ['Auditor', 'Audit Manager', 'Audit Director'] },
-    { key: 'seniority_level', label: 'Seniority Level', allowedValues: ['Junior', 'Mid', 'Senior', 'Lead'] },
-    { key: 'work_location', label: 'Work Location' },
-  ];
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
@@ -81,11 +75,11 @@ export default function AuditorProfiles() {
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'employee_no', header: 'Employee No.' },
-    { key: 'name', header: 'Name' },
+    { key: 'employee_no', header: 'Employee Number' },
+    { key: 'name', header: 'Auditor Name' },
     { key: 'email', header: 'Email' },
     { key: 'role', header: 'Role', render: (row) => <StatusBadge status={row.role} /> },
-    { key: 'seniority_level', header: 'Seniority' },
+    { key: 'seniority_level', header: 'Seniority Level' },
     { key: 'certifications', header: 'Certifications', render: (row) => (
       <div className="flex gap-1 flex-wrap">{(row.certifications || []).map((c: string, i: number) => <Badge key={i} variant="outline" className="text-xs"><Award className="w-3 h-3 mr-1" />{c}</Badge>)}</div>
     )},
@@ -95,11 +89,11 @@ export default function AuditorProfiles() {
   const formFields = (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Employee Number</Label><Input value={form.employee_no} onChange={e => setForm(f => ({ ...f, employee_no: e.target.value }))} placeholder="EMP-AUD-001" disabled={!!editAuditor} /></div>
-        <div><Label>Full Name</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="John Doe" /></div>
+        <div><Label>Employee Number *</Label><Input value={form.employee_no} onChange={e => setForm(f => ({ ...f, employee_no: e.target.value }))} placeholder="EMP-AUD-001" disabled={!!editAuditor} /></div>
+        <div><Label>Auditor Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="John Doe" /></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="auditor@ssb.kn" /></div>
+        <div><Label>Email *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="auditor@ssb.kn" /></div>
         <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(869) 465-0000" /></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -145,17 +139,9 @@ export default function AuditorProfiles() {
         <div className="flex items-center gap-2">
           <ExportDropdown
             data={filteredAuditors}
-            columns={[
-              { key: 'employee_no', header: 'Employee ID' },
-              { key: 'name', header: 'Auditor Name' },
-              { key: 'email', header: 'Email' },
-              { key: 'phone', header: 'Phone' },
-              { key: 'role', header: 'Role' },
-              { key: 'seniority_level', header: 'Seniority' },
-              { key: 'work_location', header: 'Location' },
-            ]}
-            fileName="auditor-profiles"
-            title="Auditor Profiles"
+            columns={exportColumns}
+            fileName={AUDITOR_SCHEMA.exportFileName}
+            title={AUDITOR_SCHEMA.exportTitle}
           />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
@@ -192,7 +178,7 @@ export default function AuditorProfiles() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Employee Number</Label><p className="font-medium">{viewAuditor.employee_no}</p></div>
-              <div><Label className="text-muted-foreground">Name</Label><p className="font-medium">{viewAuditor.name}</p></div>
+              <div><Label className="text-muted-foreground">Auditor Name</Label><p className="font-medium">{viewAuditor.name}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Email</Label><p>{viewAuditor.email}</p></div>
@@ -200,7 +186,7 @@ export default function AuditorProfiles() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Role</Label><div className="mt-1"><StatusBadge status={viewAuditor.role} /></div></div>
-              <div><Label className="text-muted-foreground">Seniority</Label><p>{viewAuditor.seniority_level}</p></div>
+              <div><Label className="text-muted-foreground">Seniority Level</Label><p>{viewAuditor.seniority_level}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewAuditor.employment_status || 'Active'} /></div></div>
@@ -228,7 +214,7 @@ export default function AuditorProfiles() {
         title="Bulk Upload Auditors"
         fields={bulkUploadFields}
         onImport={handleBulkImport}
-        templateName="auditor-profiles-template"
+        templateName={AUDITOR_SCHEMA.templateFileName}
       />
     </PageShell>
   );

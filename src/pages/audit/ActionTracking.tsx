@@ -9,9 +9,13 @@ import { Plus, Upload } from 'lucide-react';
 import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { ACTION_TRACKING_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const ACTION_STATUSES = ['Not Started', 'In Progress', 'Implemented', 'Verified', 'Closed'];
+
+const bulkUploadFields = toBulkUploadFields(ACTION_TRACKING_SCHEMA);
+const exportColumns = toExportColumns(ACTION_TRACKING_SCHEMA);
 
 export default function ActionTracking() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
@@ -27,14 +31,6 @@ export default function ActionTracking() {
   const resetForm = () => setFormData({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'finding_title', label: 'Finding Title', required: true },
-    { key: 'action_description', label: 'Action Description', required: true },
-    { key: 'responsible_person', label: 'Owner' },
-    { key: 'target_date', label: 'Due Date', type: 'date' },
-    { key: 'status', label: 'Status', allowedValues: ACTION_STATUSES },
-  ];
-
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
       const finding = findings.find((f: any) => f.title === row.finding_title);
@@ -42,7 +38,7 @@ export default function ActionTracking() {
       create.mutate({
         finding_id: finding.id, action_description: row.action_description,
         responsible_person: row.responsible_person || '', target_date: row.target_date || null,
-        notes: '', status: row.status || 'Not Started', ...getCreateFields(),
+        notes: row.notes || '', status: row.status || 'Not Started', ...getCreateFields(),
       });
     }
   };
@@ -81,11 +77,17 @@ export default function ActionTracking() {
       const finding = findings.find((f: any) => f.id === a.finding_id);
       return <span className="font-medium">{finding?.title || '-'}</span>;
     }},
-    { key: 'action_description', header: 'Action', className: 'max-w-md', render: (a) => <span className="text-sm truncate block max-w-md">{a.action_description || a.notes || '-'}</span> },
-    { key: 'responsible_person', header: 'Responsible', render: (a) => a.responsible_person || '-' },
+    { key: 'action_description', header: 'Action Description', className: 'max-w-md', render: (a) => <span className="text-sm truncate block max-w-md">{a.action_description || a.notes || '-'}</span> },
+    { key: 'responsible_person', header: 'Responsible Person', render: (a) => a.responsible_person || '-' },
     { key: 'target_date', header: 'Target Date', render: (a) => a.target_date ? new Date(a.target_date).toLocaleDateString() : '-' },
     { key: 'status', header: 'Status', render: (a) => <StatusBadge status={a.status || a.action_status || 'Not Started'} /> },
   ];
+
+  // Prepare export data with finding title resolved
+  const exportData = filteredActions.map((a: any) => ({
+    ...a,
+    finding_title: findings.find((f: any) => f.id === a.finding_id)?.title || '',
+  }));
 
   return (
     <PageShell
@@ -95,21 +97,7 @@ export default function ActionTracking() {
       isLoading={isLoading}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredActions.map((a: any) => ({
-              ...a,
-              finding_title: findings.find((f: any) => f.id === a.finding_id)?.title || '',
-            }))}
-            columns={[
-              { key: 'finding_title', header: 'Finding' },
-              { key: 'action_description', header: 'Action' },
-              { key: 'responsible_person', header: 'Owner' },
-              { key: 'target_date', header: 'Due Date' },
-              { key: 'status', header: 'Status' },
-            ]}
-            fileName="action-tracking"
-            title="Action Tracking Register"
-          />
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={ACTION_TRACKING_SCHEMA.exportFileName} title={ACTION_TRACKING_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
           </Button>
@@ -128,15 +116,7 @@ export default function ActionTracking() {
         ))}
       </div>
 
-      <StandardSearchFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search actions..."
-        filters={filterFields}
-        filterValues={filters}
-        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
-        onReset={() => setFilters({ status: 'all' })}
-      />
+      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search actions..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
 
       <Card>
         <CardContent className="pt-6">
@@ -157,7 +137,7 @@ export default function ActionTracking() {
 
       <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Corrective Action" mode="create" onSave={handleCreate} saveLabel="Create Action" isSaving={create.isPending}>
         <div className="space-y-4">
-          <div className="space-y-2"><Label>Related Finding *</Label>
+          <div className="space-y-2"><Label>Finding *</Label>
             <Select value={formData.finding_id} onValueChange={v => setFormData({...formData, finding_id: v})}>
               <SelectTrigger><SelectValue placeholder="Select finding" /></SelectTrigger>
               <SelectContent>{findings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}</SelectContent>
@@ -178,7 +158,7 @@ export default function ActionTracking() {
             <div><Label className="text-muted-foreground">Finding</Label><p className="font-medium">{findings.find((f: any) => f.id === viewItem.finding_id)?.title || '-'}</p></div>
             <div><Label className="text-muted-foreground">Action Description</Label><p>{viewItem.action_description || viewItem.notes || '-'}</p></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Responsible</Label><p>{viewItem.responsible_person || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Responsible Person</Label><p>{viewItem.responsible_person || '-'}</p></div>
               <div><Label className="text-muted-foreground">Target Date</Label><p>{viewItem.target_date ? new Date(viewItem.target_date).toLocaleDateString() : '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -190,14 +170,7 @@ export default function ActionTracking() {
         )}
       </EntityModal>
 
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Actions"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName="actions-template"
-      />
+      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Actions" fields={bulkUploadFields} onImport={handleBulkImport} templateName={ACTION_TRACKING_SCHEMA.templateFileName} />
     </PageShell>
   );
 }

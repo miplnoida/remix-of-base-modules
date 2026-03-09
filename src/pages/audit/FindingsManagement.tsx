@@ -11,10 +11,14 @@ import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
-import type { DataTableColumn, StandardFilterField, BulkUploadField } from '@/components/common';
+import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { FINDINGS_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
 const RISKS = ['High', 'Medium', 'Low'];
+
+const bulkUploadFields = toBulkUploadFields(FINDINGS_SCHEMA);
+const exportColumns = toExportColumns(FINDINGS_SCHEMA);
 
 const FindingsManagement = () => {
   const { toast } = useToast();
@@ -40,24 +44,16 @@ const FindingsManagement = () => {
   const resetForm = () => setFormData(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  const bulkUploadFields: BulkUploadField[] = [
-    { key: 'title', label: 'Finding Title', required: true },
-    { key: 'risk_rating', label: 'Risk Level', allowedValues: RISKS },
-    { key: 'condition', label: 'Description', required: true },
-    { key: 'criteria', label: 'Recommendation' },
-    { key: 'impact_area', label: 'Impact Area' },
-    { key: 'status', label: 'Status', allowedValues: STATUSES },
-  ];
-
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
       const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      const dept = departments.find((d: any) => d.name === row.department_name);
       create.mutate({
         title: row.title, condition: row.condition || '', criteria: row.criteria || '',
+        cause: row.cause || '', effect: row.effect || '',
         risk_rating: row.risk_rating || 'Medium', impact_area: row.impact_area || '',
         status: row.status || 'Draft', finding_id: findingId,
-        cause: '', effect: '',
-        department_id: null, activity_id: null, annual_plan_id: null, department_audit_id: null,
+        department_id: dept?.id || null, activity_id: null, annual_plan_id: null, department_audit_id: null,
         ...getCreateFields(),
       });
     }
@@ -72,7 +68,7 @@ const FindingsManagement = () => {
 
   const handleCreate = () => {
     if (!formData.title || !formData.condition) {
-      toast({ title: "Validation Error", description: "Title and Condition are required", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
       return;
     }
     const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
@@ -86,7 +82,7 @@ const FindingsManagement = () => {
 
   const handleEdit = () => {
     if (!editItem || !formData.title || !formData.condition) {
-      toast({ title: "Validation Error", description: "Title and Condition are required", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
       return;
     }
     update.mutate({
@@ -117,7 +113,7 @@ const FindingsManagement = () => {
   };
 
   const filterFields: StandardFilterField[] = [
-    { key: 'risk', label: 'Risk', type: 'select', options: [{ value: 'all', label: 'All Risks' }, ...RISKS.map(r => ({ value: r, label: r }))] },
+    { key: 'risk', label: 'Risk Level', type: 'select', options: [{ value: 'all', label: 'All Risk Levels' }, ...RISKS.map(r => ({ value: r, label: r }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, ...STATUSES.map(s => ({ value: s, label: s }))] },
   ];
 
@@ -130,17 +126,24 @@ const FindingsManagement = () => {
 
   const columns: DataTableColumn<any>[] = [
     { key: 'finding_id', header: 'Finding ID', render: (f) => <span className="text-xs font-mono">{f.finding_id || f.id.slice(0,8)}</span> },
-    { key: 'title', header: 'Title', render: (f) => <span className="font-medium">{f.title}</span> },
-    { key: 'risk_rating', header: 'Risk', render: (f) => <StatusBadge status={f.risk_rating || 'Medium'} /> },
-    { key: 'plan', header: 'Plan', render: (f) => { const p = plans.find((p: any) => p.id === f.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
+    { key: 'title', header: 'Finding Title', render: (f) => <span className="font-medium">{f.title}</span> },
+    { key: 'risk_rating', header: 'Risk Level', render: (f) => <StatusBadge status={f.risk_rating || 'Medium'} /> },
+    { key: 'plan', header: 'Audit Plan', render: (f) => { const p = plans.find((p: any) => p.id === f.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
     { key: 'status', header: 'Status', render: (f) => <StatusBadge status={f.status} /> },
-    { key: 'created_at', header: 'Created', render: (f) => f.created_at ? new Date(f.created_at).toLocaleDateString() : '-' },
+    { key: 'created_at', header: 'Date', render: (f) => f.created_at ? new Date(f.created_at).toLocaleDateString() : '-' },
   ];
+
+  // Prepare export data with resolved names
+  const exportData = filteredFindings.map((f: any) => ({
+    ...f,
+    plan_name: plans.find((p: any) => p.id === f.annual_plan_id)?.title || '',
+    department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+  }));
 
   const linkingFields = (
     <>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Annual Plan</Label>
+        <div className="space-y-2"><Label>Audit Plan</Label>
           <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
             <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
             <SelectContent>{plans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
@@ -162,9 +165,9 @@ const FindingsManagement = () => {
 
   const formFields = (
     <div className="space-y-4">
-      <div className="space-y-2"><Label>Title *</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
+      <div className="space-y-2"><Label>Finding Title *</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Risk Rating</Label><Select value={formData.risk_rating} onValueChange={v => setFormData({...formData, risk_rating: v})}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{RISKS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>Risk Level</Label><Select value={formData.risk_rating} onValueChange={v => setFormData({...formData, risk_rating: v})}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{RISKS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>Impact Area</Label><Input value={formData.impact_area} onChange={e => setFormData({...formData, impact_area: e.target.value})} /></div>
       </div>
       {linkingFields}
@@ -183,24 +186,7 @@ const FindingsManagement = () => {
       isLoading={isLoading}
       actions={
         <div className="flex items-center gap-2">
-          <ExportDropdown
-            data={filteredFindings.map((f: any) => ({
-              ...f,
-              plan_name: plans.find((p: any) => p.id === f.annual_plan_id)?.title || '',
-              department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
-            }))}
-            columns={[
-              { key: 'finding_id', header: 'Finding ID' },
-              { key: 'title', header: 'Title' },
-              { key: 'risk_rating', header: 'Risk Level' },
-              { key: 'plan_name', header: 'Audit Plan' },
-              { key: 'department_name', header: 'Department' },
-              { key: 'status', header: 'Status' },
-              { key: 'condition', header: 'Description' },
-            ]}
-            fileName="findings-register"
-            title="Findings Register"
-          />
+          <ExportDropdown data={exportData} columns={exportColumns} fileName={FINDINGS_SCHEMA.exportFileName} title={FINDINGS_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />Bulk Upload
           </Button>
@@ -219,15 +205,7 @@ const FindingsManagement = () => {
         ))}
       </div>
 
-      <StandardSearchFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search findings..."
-        filters={filterFields}
-        filterValues={filters}
-        onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))}
-        onReset={() => setFilters({ status: 'all', risk: 'all' })}
-      />
+      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search findings..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', risk: 'all' })} />
 
       <Card>
         <CardContent className="pt-6">
@@ -279,7 +257,7 @@ const FindingsManagement = () => {
         {viewItem && (
           <div className="space-y-4">
             <div className="flex justify-between items-start">
-              <div><Label className="text-muted-foreground">Title</Label><p className="font-medium text-lg">{viewItem.title}</p></div>
+              <div><Label className="text-muted-foreground">Finding Title</Label><p className="font-medium text-lg">{viewItem.title}</p></div>
               <StatusBadge status={viewItem.risk_rating || 'Medium'} />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -287,16 +265,16 @@ const FindingsManagement = () => {
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status} /></div></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Annual Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Audit Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
               <div><Label className="text-muted-foreground">Department Audit</Label><p>{deptAudits.find((da: any) => da.id === viewItem.department_audit_id)?.department_name || '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Department</Label><p>{departments.find((d: any) => d.id === viewItem.department_id)?.name || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Activity</Label><p>{activities.find((a: any) => a.id === viewItem.activity_id)?.title || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Related Activity</Label><p>{activities.find((a: any) => a.id === viewItem.activity_id)?.title || '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Impact Area</Label><p>{viewItem.impact_area || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Created By</Label><p>{viewItem.created_by || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Risk Level</Label><div className="mt-1"><StatusBadge status={viewItem.risk_rating || 'Medium'} /></div></div>
             </div>
             <div><Label className="text-muted-foreground">Condition</Label><p>{viewItem.condition || '-'}</p></div>
             <div><Label className="text-muted-foreground">Criteria</Label><p>{viewItem.criteria || '-'}</p></div>
@@ -306,16 +284,9 @@ const FindingsManagement = () => {
         )}
       </EntityModal>
 
-      <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding? This action cannot be undone." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+      <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding?" onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
 
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Findings"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName="findings-template"
-      />
+      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Findings" fields={bulkUploadFields} onImport={handleBulkImport} templateName={FINDINGS_SCHEMA.templateFileName} />
     </PageShell>
   );
 };
