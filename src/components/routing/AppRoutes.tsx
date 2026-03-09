@@ -825,24 +825,24 @@ export const AppRoutes = () => {
       <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><LeaveAndVacationManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/holidays" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_HOLIDAY_MANAGEMENT"><HolidayManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-plans" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/plans" element={<Navigate to="/audit/audit-plans" replace />} />
+      <Route path="/audit/plans" element={<ProtectedLayout><Navigate to="/audit/audit-plans" replace /></ProtectedLayout>} />
       <Route path="/audit/plans-old" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLAN_APPROVAL"><PlanApproval /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/approvals" element={<Navigate to="/audit/plan-approval" replace />} />
+      <Route path="/audit/approvals" element={<ProtectedLayout><Navigate to="/audit/plan-approval" replace /></ProtectedLayout>} />
       <Route path="/audit/calendar" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ACTIVITY_CALENDAR"><ActivityCalendar /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/activity-workbench" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ACTIVITY_WORKBENCH"><ActivityWorkbench /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/workbench" element={<Navigate to="/audit/activity-workbench" replace />} />
+      <Route path="/audit/workbench" element={<ProtectedLayout><Navigate to="/audit/activity-workbench" replace /></ProtectedLayout>} />
       <Route path="/audit/evidence" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_EVIDENCE_MANAGEMENT"><EvidenceManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/working-papers" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_WORKING_PAPERS"><WorkingPapers /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/findings" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FINDINGS"><FindingsManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/responses" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_MANAGEMENT_RESPONSES"><ManagementResponses /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/actions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ACTION_TRACKING"><ActionTracking /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/follow-up-tracker" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FOLLOWUP_TRACKER"><FollowUpTracker /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/followups" element={<Navigate to="/audit/follow-up-tracker" replace />} />
+      <Route path="/audit/followups" element={<ProtectedLayout><Navigate to="/audit/follow-up-tracker" replace /></ProtectedLayout>} />
       <Route path="/audit/plan-closeout" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLAN_CLOSEOUT"><PlanCloseout /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/closeout" element={<Navigate to="/audit/plan-closeout" replace />} />
+      <Route path="/audit/closeout" element={<ProtectedLayout><Navigate to="/audit/plan-closeout" replace /></ProtectedLayout>} />
       <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/reports" element={<Navigate to="/audit/audit-reports" replace />} />
+      <Route path="/audit/reports" element={<ProtectedLayout><Navigate to="/audit/audit-reports" replace /></ProtectedLayout>} />
       <Route path="/audit/letters" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LETTER_GENERATION"><LetterGeneration /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/report-builder" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORT_BUILDER"><ReportBuilder /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/communication-center" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_COMMUNICATION_CENTER"><CommunicationCenter /></AuditFeatureGate></ProtectedLayout>} />
