@@ -29,6 +29,29 @@ export default function AuditUniverse() {
   const [filters, setFilters] = useState<Record<string, string>>({ entity_type: 'all', risk_category: 'all', status: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'view' | 'edit' | 'create' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'entity_name', label: 'Entity Name', required: true },
+    { key: 'entity_code', label: 'Entity Code', required: true },
+    { key: 'entity_type', label: 'Entity Type', allowedValues: ENTITY_TYPES },
+    { key: 'process_owner', label: 'Process Owner' },
+    { key: 'risk_category', label: 'Risk Category', allowedValues: RISK_CATEGORIES },
+    { key: 'audit_frequency', label: 'Audit Frequency', allowedValues: FREQUENCIES },
+    { key: 'status', label: 'Status', allowedValues: ['Active', 'Inactive'] },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      create.mutate({
+        entity_name: row.entity_name, entity_code: row.entity_code,
+        entity_type: row.entity_type || 'Department', process_owner: row.process_owner || '',
+        risk_category: row.risk_category || 'Medium', audit_frequency: row.audit_frequency || 'Annual',
+        status: row.status || 'Active', inherent_risk_score: 0, residual_risk_score: 0,
+        ...getCreateFields(),
+      } as any);
+    }
+  };
 
   const filtered = data.filter((r: any) => {
     const s = searchTerm.toLowerCase();
