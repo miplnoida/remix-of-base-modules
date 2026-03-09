@@ -91,7 +91,7 @@ export default function AuditPlans() {
       {isCreateDialogOpen && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Create New Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardContent><AnnualPlanForm onClose={() => setIsCreateDialogOpen(false)} onCreate={(data) => create.mutateAsync(data)} onUpdate={(data) => update.mutateAsyncutateAsync(data)} /></CardContent>
+          <CardContent><AnnualPlanForm onClose={() => setIsCreateDialogOpen(false)} onCreate={(data) => create.mutateAsync(data)} onUpdate={(data) => update.mutateAsync(data)} /></CardContent>
         </Card>
       )}
 
