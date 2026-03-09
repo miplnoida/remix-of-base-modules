@@ -54,7 +54,7 @@ export default function AuditEngagements() {
     draft: data.filter((d: any) => d.status === 'Draft').length,
   };
 
-  const getPlanName = (id: string) => plans?.find((p: any) => p.id === id)?.plan_name || id;
+  const getPlanName = (id: string) => plans?.find((p: any) => p.id === id)?.title || id;
   const getDeptName = (id: string) => departments?.find((d: any) => d.id === id)?.name || id;
   const getAuditorName = (id: string) => auditors?.find((a: any) => a.id === id)?.name || id;
 
