@@ -421,11 +421,11 @@ export const complianceMenuItems = [
             description: "Configure violation number generation templates"
           },
           {
-            title: "Risk Scoring Config",
-            url: "/compliance/settings/risk-config",
-            icon: Target,
+            title: "Risk Rule Policy",
+            url: "/compliance/settings/risk-policy",
+            icon: TrendingUp,
             requiresPermission: "manage_compliance",
-            description: "Configure risk scoring weights and band thresholds"
+            description: "Configure risk factors, weights, bands, and policies"
           },
           {
             title: "Legal Escalation Policy",
@@ -433,13 +433,6 @@ export const complianceMenuItems = [
             icon: Scale,
             requiresPermission: "manage_compliance",
             description: "Configure legal escalation rules and thresholds"
-          },
-          {
-            title: "Risk Rule Policy",
-            url: "/compliance/settings/risk-policy",
-            icon: TrendingUp,
-            requiresPermission: "manage_compliance",
-            description: "Configure risk factors, policies, and risk bands"
           },
           {
             title: "Templates",
