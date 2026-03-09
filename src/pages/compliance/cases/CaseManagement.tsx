@@ -1,42 +1,79 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, Plus, Search, Filter, Eye, Building2, Clock, DollarSign } from 'lucide-react';
+import { Briefcase, Plus, Search, Eye, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
+interface ComplianceCase {
+  id: string;
+  case_number: string;
+  employer_id: string;
+  employer_name: string | null;
+  territory: string | null;
+  status: string | null;
+  priority: string | null;
+  total_amount: number | null;
+  assigned_officer_name: string | null;
+  opened_date: string | null;
+  risk_band: string | null;
+}
 
 const caseStatuses = [
-  'All', 'Open', 'Under Review', 'Notice Issued', 'Awaiting Response',
-  'Payment Arrangement', 'Inspection Scheduled', 'Legal Review',
-  'Court Action', 'Judgment Monitoring', 'Enforcement in Progress', 'Resolved', 'Closed'
-];
-
-const mockCases = [
-  { id: 'CASE-2026-00001', employer: 'Caribbean Hotel Group', regNo: 'R-10234', status: 'Under Review', priority: 'High', arrears: '$45,200', violations: 3, assignedTo: 'J. Williams', created: '2026-01-15', territory: 'St Kitts' },
-  { id: 'CASE-2026-00002', employer: 'Island Construction Ltd', regNo: 'R-10567', status: 'Notice Issued', priority: 'Critical', arrears: '$128,500', violations: 5, assignedTo: 'M. Charles', created: '2026-01-22', territory: 'St Kitts' },
-  { id: 'CASE-2026-00003', employer: 'Nevis Traders Ltd', regNo: 'R-10892', status: 'Payment Arrangement', priority: 'Medium', arrears: '$12,800', violations: 1, assignedTo: 'S. Thomas', created: '2026-02-01', territory: 'Nevis' },
-  { id: 'CASE-2026-00004', employer: 'Palm View Resort', regNo: 'R-10456', status: 'Legal Review', priority: 'Critical', arrears: '$78,300', violations: 4, assignedTo: 'J. Williams', created: '2026-02-10', territory: 'St Kitts' },
-  { id: 'CASE-2026-00005', employer: 'Sandy Point Bakery', regNo: 'R-10789', status: 'Open', priority: 'Low', arrears: '$3,200', violations: 1, assignedTo: 'S. Thomas', created: '2026-02-18', territory: 'St Kitts' },
-  { id: 'CASE-2026-00006', employer: 'KN Shipping Services', regNo: 'R-11023', status: 'Court Action', priority: 'Critical', arrears: '$210,000', violations: 8, assignedTo: 'M. Charles', created: '2025-11-05', territory: 'St Kitts' },
-  { id: 'CASE-2026-00007', employer: 'Tropical Traders Inc', regNo: 'R-11245', status: 'Awaiting Response', priority: 'Medium', arrears: '$18,400', violations: 2, assignedTo: 'J. Williams', created: '2026-02-25', territory: 'Nevis' },
+  'All', 'OPEN', 'UNDER_REVIEW', 'NOTICE_ISSUED', 'AWAITING_RESPONSE',
+  'PAYMENT_ARRANGEMENT', 'INSPECTION_SCHEDULED', 'LEGAL_REVIEW',
+  'COURT_ACTION', 'JUDGMENT_MONITORING', 'ENFORCEMENT_IN_PROGRESS', 'RESOLVED', 'CLOSED'
 ];
 
 const statusColor = (s: string) => {
-  if (['Resolved', 'Closed'].includes(s)) return 'default';
-  if (['Legal Review', 'Court Action', 'Enforcement in Progress'].includes(s)) return 'destructive';
-  if (['Notice Issued', 'Awaiting Response'].includes(s)) return 'secondary';
-  return 'outline';
+  if (['RESOLVED', 'CLOSED'].includes(s)) return 'default' as const;
+  if (['LEGAL_REVIEW', 'COURT_ACTION', 'ENFORCEMENT_IN_PROGRESS'].includes(s)) return 'destructive' as const;
+  if (['NOTICE_ISSUED', 'AWAITING_RESPONSE'].includes(s)) return 'secondary' as const;
+  return 'outline' as const;
 };
+
+const formatStatus = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const CaseManagement = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = mockCases.filter(c =>
+  const { data: cases = [], isLoading } = useQuery({
+    queryKey: ['ce_cases'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_cases')
+        .select('*')
+        .eq('is_deleted', false)
+        .order('opened_date', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data || []) as unknown as ComplianceCase[];
+    },
+  });
+
+  const filtered = cases.filter(c =>
     (statusFilter === 'All' || c.status === statusFilter) &&
-    (searchTerm === '' || c.employer.toLowerCase().includes(searchTerm.toLowerCase()) || c.id.toLowerCase().includes(searchTerm.toLowerCase()) || c.regNo.toLowerCase().includes(searchTerm.toLowerCase()))
+    (searchTerm === '' ||
+      (c.employer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.case_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.employer_id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const openCount = cases.filter(c => !['RESOLVED', 'CLOSED'].includes(c.status || '')).length;
+  const legalCount = cases.filter(c => ['LEGAL_REVIEW', 'COURT_ACTION', 'ENFORCEMENT_IN_PROGRESS'].includes(c.status || '')).length;
+  const totalArrears = cases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -51,15 +88,13 @@ const CaseManagement = () => {
         <Button className="gap-2"><Plus className="h-4 w-4" />New Case</Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Cases</p><p className="text-2xl font-bold text-foreground">{mockCases.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open</p><p className="text-2xl font-bold text-warning">{mockCases.filter(c => !['Resolved','Closed'].includes(c.status)).length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Legal/Court</p><p className="text-2xl font-bold text-destructive">{mockCases.filter(c => ['Legal Review','Court Action','Enforcement in Progress'].includes(c.status)).length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Arrears</p><p className="text-2xl font-bold text-primary">$496K</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Cases</p><p className="text-2xl font-bold text-foreground">{cases.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open</p><p className="text-2xl font-bold text-warning">{openCount}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Legal/Court</p><p className="text-2xl font-bold text-destructive">{legalCount}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Arrears</p><p className="text-2xl font-bold text-primary">${totalArrears > 1000 ? `${(totalArrears / 1000).toFixed(0)}K` : totalArrears.toFixed(0)}</p></CardContent></Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -70,7 +105,7 @@ const CaseManagement = () => {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
               <SelectContent>
-                {caseStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {caseStatuses.map(s => <SelectItem key={s} value={s}>{s === 'All' ? 'All' : formatStatus(s)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -86,7 +121,7 @@ const CaseManagement = () => {
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Status</th>
                   <th className="text-center py-2 px-3 text-muted-foreground font-medium">Priority</th>
                   <th className="text-right py-2 px-3 text-muted-foreground font-medium">Arrears</th>
-                  <th className="text-center py-2 px-3 text-muted-foreground font-medium">Violations</th>
+                  <th className="text-center py-2 px-3 text-muted-foreground font-medium">Risk</th>
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Assigned To</th>
                   <th className="text-right py-2 px-3 text-muted-foreground font-medium">Actions</th>
                 </tr>
@@ -94,24 +129,26 @@ const CaseManagement = () => {
               <tbody>
                 {filtered.map((c) => (
                   <tr key={c.id} className="border-b last:border-0 border-border hover:bg-muted/50 transition-colors">
-                    <td className="py-2 px-3 font-mono text-xs font-medium text-foreground">{c.id}</td>
+                    <td className="py-2 px-3 font-mono text-xs font-medium text-foreground">{c.case_number}</td>
                     <td className="py-2 px-3">
-                      <p className="font-medium text-foreground">{c.employer}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{c.regNo}</p>
+                      <p className="font-medium text-foreground">{c.employer_name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{c.employer_id}</p>
                     </td>
                     <td className="py-2 px-3 text-foreground">{c.territory}</td>
-                    <td className="py-2 px-3"><Badge variant={statusColor(c.status)} className="text-[10px]">{c.status}</Badge></td>
+                    <td className="py-2 px-3"><Badge variant={statusColor(c.status || '')} className="text-[10px]">{formatStatus(c.status || '')}</Badge></td>
                     <td className="py-2 px-3 text-center">
                       <Badge variant={c.priority === 'Critical' ? 'destructive' : c.priority === 'High' ? 'default' : 'secondary'} className="text-[10px]">{c.priority}</Badge>
                     </td>
-                    <td className="py-2 px-3 text-right font-medium text-foreground">{c.arrears}</td>
-                    <td className="py-2 px-3 text-center">{c.violations}</td>
-                    <td className="py-2 px-3 text-foreground">{c.assignedTo}</td>
+                    <td className="py-2 px-3 text-right font-medium text-foreground">${(Number(c.total_amount) || 0).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-center">
+                      {c.risk_band && <Badge variant="outline" className="text-[10px]">{c.risk_band}</Badge>}
+                    </td>
+                    <td className="py-2 px-3 text-foreground">{c.assigned_officer_name || '—'}</td>
                     <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No cases match filters</td></tr>
+                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No cases found</td></tr>
                 )}
               </tbody>
             </table>
