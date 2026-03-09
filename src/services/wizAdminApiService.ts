@@ -197,6 +197,7 @@ export interface WizCompanyDropdown {
   id: number;
   company_name: string;
   registration_number: string;
+  parent_company_id: number | null;
 }
 
 export async function getCompaniesDropdown() {

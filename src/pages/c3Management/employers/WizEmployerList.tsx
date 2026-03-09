@@ -83,6 +83,18 @@ const WizEmployerList: React.FC = () => {
     }
   };
 
+  // Auto-populate existing child companies when parent is selected
+  useEffect(() => {
+    if (parentId && companies.length > 0) {
+      const existingChildren = companies
+        .filter(c => c.parent_company_id === Number(parentId))
+        .map(c => String(c.id));
+      setChildIds(existingChildren);
+    } else {
+      setChildIds([]);
+    }
+  }, [parentId, companies]);
+
   const saveMapping = async () => {
     if (!parentId) {
       toast.error('Please select a parent company');

@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
       case "get_companies_dropdown": {
         const { data, error } = await supabase
           .from("c3_companies")
-          .select("id, company_name, registration_number")
+          .select("id, company_name, registration_number, parent_company_id")
           .eq("is_deleted", false)
           .order("company_name", { ascending: true });
 
