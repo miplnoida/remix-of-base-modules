@@ -23,7 +23,7 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
-  const { update } = useIAAnnualPlanMutations();
+  const { create, update } = useIAAnnualPlanMutations();
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -91,14 +91,14 @@ export default function AuditPlans() {
       {isCreateDialogOpen && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Create New Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardContent><AnnualPlanForm onClose={() => setIsCreateDialogOpen(false)} /></CardContent>
+          <CardContent><AnnualPlanForm onClose={() => setIsCreateDialogOpen(false)} onCreate={(data) => create.mutate(data)} onUpdate={(data) => update.mutate(data)} /></CardContent>
         </Card>
       )}
 
       {isEditDialogOpen && selectedPlan && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Edit Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardContent><AnnualPlanForm plan={selectedPlan} onClose={() => setIsEditDialogOpen(false)} /></CardContent>
+          <CardContent><AnnualPlanForm plan={selectedPlan} onClose={() => setIsEditDialogOpen(false)} onCreate={(data) => create.mutate(data)} onUpdate={(data) => update.mutate(data)} /></CardContent>
         </Card>
       )}
 

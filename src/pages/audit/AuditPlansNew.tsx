@@ -35,8 +35,8 @@ export default function AuditPlansNew() {
   const { data: annualPlans = [], isLoading: plansLoading } = useIAAnnualPlans();
   const { data: departmentAudits = [], isLoading: auditsLoading } = useIADepartmentAudits();
   const { data: departments = [] } = useIADepartments();
-  const { update: updateAnnual } = useIAAnnualPlanMutations();
-  const { update: updateDept } = useIADepartmentAuditMutations();
+  const { create: createAnnual, update: updateAnnual } = useIAAnnualPlanMutations();
+  const { create: createDept, update: updateDept } = useIADepartmentAuditMutations();
 
   const planById = useMemo(
     () => new Map((annualPlans || []).map((plan: any) => [plan.id, plan])),
@@ -59,12 +59,12 @@ export default function AuditPlansNew() {
     const matchesFiscalYear = filters.fiscalYear === 'all' || (plan.fiscal_year || '') === filters.fiscalYear;
     const matchesDepartment =
       filters.departmentId === 'all' ||
-      (departmentAudits || []).some((audit: any) => audit.plan_id === plan.id && `${audit.department_id || ''}` === filters.departmentId);
+      (departmentAudits || []).some((audit: any) => audit.annual_plan_id === plan.id && `${audit.department_id || ''}` === filters.departmentId);
     return matchesSearch && matchesStatus && matchesFiscalYear && matchesDepartment;
   });
 
   const filteredDepartmentAudits = (departmentAudits || []).filter((audit: any) => {
-    const linkedPlan = planById.get(audit.plan_id);
+    const linkedPlan = planById.get(audit.annual_plan_id);
     const fiscalYear = linkedPlan?.fiscal_year || '';
     const matchesSearch =
       (audit.department_name || '').toLowerCase().includes(normalizedSearch) ||
@@ -88,7 +88,7 @@ export default function AuditPlansNew() {
     { key: 'id', header: 'Plan ID', render: (row) => <span className="font-medium">{(row.id || '').slice(0, 8)}</span> },
     { key: 'department_name', header: 'Department', render: (row) => row.department_name || '-' },
     { key: 'period', header: 'Period', render: (row) => row.period || '-' },
-    { key: 'fiscal_year', header: 'Fiscal Year', render: (row) => planById.get(row.plan_id)?.fiscal_year || '-' },
+    { key: 'fiscal_year', header: 'Fiscal Year', render: (row) => planById.get(row.annual_plan_id)?.fiscal_year || '-' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
   ];
 
@@ -175,7 +175,11 @@ export default function AuditPlansNew() {
       </EntityModal>
 
       <StandardModal open={isCreateAnnualOpen} onOpenChange={setIsCreateAnnualOpen} title="Create Annual Plan" mode="create" size="4xl">
-        <AnnualPlanForm onClose={() => setIsCreateAnnualOpen(false)} />
+        <AnnualPlanForm
+          onClose={() => setIsCreateAnnualOpen(false)}
+          onCreate={(data) => createAnnual.mutate(data)}
+          onUpdate={(data) => updateAnnual.mutate(data)}
+        />
       </StandardModal>
 
       <EntityModal
@@ -206,18 +210,36 @@ export default function AuditPlansNew() {
       </EntityModal>
 
       <StandardModal open={isCreateDeptOpen} onOpenChange={setIsCreateDeptOpen} title="Create Department Audit Plan" mode="create" size="4xl">
-        {selectedAnnualPlanId && <DepartmentAuditForm annualPlanId={selectedAnnualPlanId} onClose={() => setIsCreateDeptOpen(false)} />}
+        {selectedAnnualPlanId && (
+          <DepartmentAuditForm
+            annualPlanId={selectedAnnualPlanId}
+            onClose={() => setIsCreateDeptOpen(false)}
+            onCreate={(data) => createDept.mutate(data)}
+            onUpdate={(data) => updateDept.mutate(data)}
+          />
+        )}
       </StandardModal>
 
       {editAnnual && (
         <StandardModal open={!!editAnnual} onOpenChange={() => setEditAnnual(null)} title="Edit Annual Plan" mode="edit" size="4xl">
-          <AnnualPlanForm plan={editAnnual} onClose={() => setEditAnnual(null)} />
+          <AnnualPlanForm
+            plan={editAnnual}
+            onClose={() => setEditAnnual(null)}
+            onCreate={(data) => createAnnual.mutate(data)}
+            onUpdate={(data) => updateAnnual.mutate(data)}
+          />
         </StandardModal>
       )}
 
       {editDept && (
         <StandardModal open={!!editDept} onOpenChange={() => setEditDept(null)} title="Edit Department Audit Plan" mode="edit" size="4xl">
-          <DepartmentAuditForm annualPlanId={editDept.plan_id} departmentAudit={editDept} onClose={() => setEditDept(null)} />
+          <DepartmentAuditForm
+            annualPlanId={editDept.annual_plan_id}
+            departmentAudit={editDept}
+            onClose={() => setEditDept(null)}
+            onCreate={(data) => createDept.mutate(data)}
+            onUpdate={(data) => updateDept.mutate(data)}
+          />
         </StandardModal>
       )}
 
@@ -237,7 +259,7 @@ export default function AuditPlansNew() {
           <div className="space-y-3">
             <p><strong>Department:</strong> {viewDept.department_name || '-'}</p>
             <p><strong>Period:</strong> {viewDept.period || '-'}</p>
-            <p><strong>Fiscal Year:</strong> {planById.get(viewDept.plan_id)?.fiscal_year || '-'}</p>
+            <p><strong>Fiscal Year:</strong> {planById.get(viewDept.annual_plan_id)?.fiscal_year || '-'}</p>
             <p><strong>Status:</strong> <StatusBadge status={viewDept.status || 'Draft'} /></p>
           </div>
         )}

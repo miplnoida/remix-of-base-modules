@@ -8,9 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { departments, auditors } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 
-const DEPARTMENT_FUNCTIONS = {
+const DEPARTMENT_FUNCTIONS: Record<string, string[]> = {
   'Benefits': ['Claims Processing', 'Eligibility Verification', 'Payment Authorization', 'Appeals Management', 'Benefit Calculations'],
   'Contributions': ['Employer Compliance', 'Payment Processing', 'Contribution Verification', 'Arrears Management', 'Reconciliation'],
   'Finance': ['Accounting Operations', 'Budget Management', 'Financial Reporting', 'Audit Coordination', 'Cash Management'],
@@ -23,34 +22,36 @@ interface DepartmentAuditFormProps {
   departmentAudit?: any;
   onClose: () => void;
   onSuccess?: () => void;
+  onCreate?: (data: any) => void;
+  onUpdate?: (data: any) => void;
 }
 
-export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess }: DepartmentAuditFormProps) {
+export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess, onCreate, onUpdate }: DepartmentAuditFormProps) {
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    departmentId: departmentAudit?.departmentId || '',
+    departmentId: departmentAudit?.department_id || '',
     period: (departmentAudit?.period || 'Q1') as 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Monthly',
-    monthYear: departmentAudit?.monthYear || '',
+    monthYear: departmentAudit?.month_year || '',
     selectedFunctions: departmentAudit?.functions || [] as string[],
     objective: departmentAudit?.objective || '',
     scope: departmentAudit?.scope || '',
-    riskRating: (departmentAudit?.riskRating || 'Medium') as 'Low' | 'Medium' | 'High',
-    leadAuditor: departmentAudit?.leadAuditor || '',
-    teamMembers: departmentAudit?.teamMembers || [] as string[],
-    plannedStart: departmentAudit?.plannedStart || '',
-    plannedEnd: departmentAudit?.plannedEnd || ''
+    riskRating: (departmentAudit?.risk_rating || 'Medium') as 'Low' | 'Medium' | 'High',
+    leadAuditor: departmentAudit?.lead_auditor_id || '',
+    teamMembers: departmentAudit?.team_member_ids || [] as string[],
+    plannedStart: departmentAudit?.planned_start || '',
+    plannedEnd: departmentAudit?.planned_end || ''
   });
 
   const selectedDepartment = departments.find(d => d.id === formData.departmentId);
   const deptName = selectedDepartment?.name.replace('Department of ', '');
-  const availableFunctions = deptName ? DEPARTMENT_FUNCTIONS[deptName as keyof typeof DEPARTMENT_FUNCTIONS] || [] : [];
+  const availableFunctions = deptName ? DEPARTMENT_FUNCTIONS[deptName] || [] : [];
 
   const toggleFunction = (func: string) => {
     setFormData(prev => ({
       ...prev,
       selectedFunctions: prev.selectedFunctions.includes(func)
-        ? prev.selectedFunctions.filter(f => f !== func)
+        ? prev.selectedFunctions.filter((f: string) => f !== func)
         : [...prev.selectedFunctions, func]
     }));
   };
@@ -59,7 +60,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
     setFormData(prev => ({
       ...prev,
       teamMembers: prev.teamMembers.includes(auditorId)
-        ? prev.teamMembers.filter(id => id !== auditorId)
+        ? prev.teamMembers.filter((id: string) => id !== auditorId)
         : [...prev.teamMembers, auditorId]
     }));
   };
@@ -74,17 +75,40 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
       return;
     }
 
-    toast({
-      title: departmentAudit ? "Audit Updated" : "Department Audit Saved",
-      description: departmentAudit ? "Department audit plan has been updated successfully." : "Department audit plan has been added to the annual plan."
-    });
+    const deptObj = departments.find(d => d.id === formData.departmentId);
+    const payload: any = {
+      annual_plan_id: annualPlanId,
+      department_id: formData.departmentId,
+      department_name: deptObj?.name || '',
+      period: formData.period,
+      month_year: formData.monthYear,
+      functions: formData.selectedFunctions,
+      objective: formData.objective,
+      scope: formData.scope,
+      risk_rating: formData.riskRating,
+      lead_auditor_id: formData.leadAuditor || null,
+      team_member_ids: formData.teamMembers,
+      planned_start: formData.plannedStart || null,
+      planned_end: formData.plannedEnd || null,
+      status: 'Draft',
+    };
+
+    if (departmentAudit && onUpdate) {
+      onUpdate({ id: departmentAudit.id, ...payload });
+    } else if (onCreate) {
+      onCreate(payload);
+    } else {
+      toast({
+        title: departmentAudit ? "Audit Updated" : "Department Audit Saved",
+        description: departmentAudit ? "Department audit plan has been updated successfully." : "Department audit plan has been added to the annual plan."
+      });
+    }
     onSuccess?.();
     onClose();
   };
 
   return (
     <div className="space-y-6">
-      {/* Department Selection */}
       <Card>
         <CardHeader>
           <CardTitle>Department & Period</CardTitle>
@@ -150,7 +174,6 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         </CardContent>
       </Card>
 
-      {/* Functions to Audit */}
       {availableFunctions.length > 0 && (
         <Card>
           <CardHeader>
@@ -175,7 +198,6 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         </Card>
       )}
 
-      {/* Audit Details */}
       <Card>
         <CardHeader>
           <CardTitle>Audit Details</CardTitle>
@@ -202,7 +224,6 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         </CardContent>
       </Card>
 
-      {/* Team Assignment */}
       <Card>
         <CardHeader>
           <CardTitle>Audit Team Assignment</CardTitle>

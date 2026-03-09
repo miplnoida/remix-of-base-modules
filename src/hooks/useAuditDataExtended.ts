@@ -10,7 +10,7 @@ export function useIADepartmentAudits(planId?: string) {
       const { data, error } = await supabase.from('ia_department_audits' as any).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const result = data ?? [];
-      return planId ? result.filter((r: any) => r.plan_id === planId) : result;
+      return planId ? result.filter((r: any) => r.annual_plan_id === planId) : result;
     },
   });
 }

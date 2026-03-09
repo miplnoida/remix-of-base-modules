@@ -11,25 +11,50 @@ interface AnnualPlanFormProps {
   plan?: any;
   onClose: () => void;
   onSuccess?: () => void;
+  onCreate?: (data: any) => void;
+  onUpdate?: (data: any) => void;
 }
 
-export function AnnualPlanForm({ plan, onClose, onSuccess }: AnnualPlanFormProps) {
+export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }: AnnualPlanFormProps) {
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
   
   const [formData, setFormData] = useState({
-    fiscalYear: plan?.fiscalYear || `${currentYear}-${currentYear + 1}`,
+    fiscalYear: plan?.fiscal_year || `${currentYear}-${currentYear + 1}`,
     title: plan?.title || `Annual Internal Audit Plan ${currentYear}-${currentYear + 1}`,
     objective: plan?.objective || '',
     scope: plan?.scope || '',
     methodology: plan?.methodology || ''
   });
 
+  const mapToDbPayload = (status: string) => {
+    const payload: any = {
+      fiscal_year: formData.fiscalYear,
+      title: formData.title,
+      objective: formData.objective,
+      scope: formData.scope,
+      methodology: formData.methodology,
+      status,
+    };
+    if (status === 'Submitted') {
+      payload.submitted_date = new Date().toISOString();
+    }
+    return payload;
+  };
+
   const handleSaveDraft = () => {
-    toast({
-      title: "Draft Saved",
-      description: plan ? "Annual audit plan has been updated." : "Annual audit plan has been saved as draft."
-    });
+    const payload = mapToDbPayload('Draft');
+
+    if (plan && onUpdate) {
+      onUpdate({ id: plan.id, ...payload });
+    } else if (onCreate) {
+      onCreate(payload);
+    } else {
+      toast({
+        title: "Draft Saved",
+        description: plan ? "Annual audit plan has been updated." : "Annual audit plan has been saved as draft."
+      });
+    }
     onSuccess?.();
     onClose();
   };
@@ -44,10 +69,18 @@ export function AnnualPlanForm({ plan, onClose, onSuccess }: AnnualPlanFormProps
       return;
     }
 
-    toast({
-      title: plan ? "Plan Updated" : "Plan Submitted",
-      description: plan ? "Annual audit plan has been updated successfully." : "Annual audit plan has been submitted for review."
-    });
+    const payload = mapToDbPayload('Submitted');
+
+    if (plan && onUpdate) {
+      onUpdate({ id: plan.id, ...payload });
+    } else if (onCreate) {
+      onCreate(payload);
+    } else {
+      toast({
+        title: plan ? "Plan Updated" : "Plan Submitted",
+        description: plan ? "Annual audit plan has been updated successfully." : "Annual audit plan has been submitted for review."
+      });
+    }
     onSuccess?.();
     onClose();
   };

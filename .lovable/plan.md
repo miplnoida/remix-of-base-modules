@@ -1,45 +1,63 @@
 
+Goal: fully fix search/filter alignment by rebuilding the shared toolbar logic (not page-by-page hacks), then run route-by-route visual QA across all Internal Audit pages.
 
-# Fix: Annual Plan Submission → Approval Flow
+What I found (from code + current preview):
+1) The current StandardSearchFilterBar is still unstable:
+- Desktop column math creates oversized empty reset areas when filters are few.
+- Multi-row logic distributes row 2 unevenly (especially 5-filter pages like Follow-up Tracker).
+- Inline `gridColumn` spans apply at all breakpoints, causing awkward tablet wrapping/alignment.
+- Dynamic class names like `lg:col-span-${colSpan}` are unreliable.
+2) Most Internal Audit list routes do use the shared component, so fixing it centrally will correct nearly all pages at once.
 
-## Root Cause
+Implementation plan:
+1) Rebuild `src/components/common/StandardSearchFilterBar.tsx` layout engine with strict deterministic rules:
+- Desktop: true 12-col grid only.
+- Default spans: Search=4, each filter=2, Reset fixed at far right.
+- No unpredictable flex growth.
+- Compact uniform controls (`h-9`), consistent label spacing, uniform gaps/padding.
+2) Replace current multi-row algorithm with controlled wrapping:
+- If controls fit comfortably, single row.
+- If not, split into two explicit rows.
+- Follow-up Tracker special requirement supported via reusable prop (config-driven, not custom page markup): row 1 = Search + first 2 filters; row 2 = remaining filters + Reset.
+3) Keep API/backward compatibility of the component, but add optional layout config props (e.g., first-row filter cap / desktop split strategy) so pages can declare structure without custom UI code.
+4) Remove dynamic Tailwind span strings and breakpoint-conflicting inline grid behavior; use explicit grid templates per breakpoint.
+5) Fix debounce effect dependencies in the component to avoid stale search updates.
 
-The forms **never save data to the database**. Both `AnnualPlanForm` and `DepartmentAuditForm` only show toast messages and close — they never call any mutation hook. The `ia_annual_plans` table is completely empty.
+Page wiring updates:
+- Keep all existing filters/business logic.
+- Add only layout-config props where required:
+  - `/audit/follow-up-tracker` (explicit 2-row distribution).
+  - Any other high-density filter pages if needed after QA (likely `/audit/activity-workbench`, `/audit/audit-reports`).
 
-Additionally, there's a column name mismatch: code references `plan_id` but the actual DB column is `annual_plan_id`.
+QA/test plan (must be completed before finalizing):
+Desktop + Tablet + Mobile checks for:
+- /audit/auditors
+- /audit/leave
+- /audit/holidays
+- /audit/audit-plans
+- /audit/activity-workbench
+- /audit/evidence
+- /audit/working-papers
+- /audit/findings
+- /audit/responses
+- /audit/actions
+- /audit/follow-up-tracker
+- /audit/plan-closeout
+- /audit/departments
+- /audit/functions
+- /audit/plan-approval
+- /audit/audit-reports
+- /audit/calendar
+- /audit/letters
+- /audit/communication-center
 
-## Issues Found
+Acceptance checklist:
+- Search not over-dominant.
+- Dropdown/date widths balanced and equal-height.
+- Reset always right-aligned and visually connected.
+- No cramped date inputs.
+- Clean wrap behavior (no overflow/squeezing).
+- Consistent spacing/label alignment across all audited routes.
 
-1. **`AnnualPlanForm.tsx`** — `handleSaveDraft` and `handleSubmit` only show toasts. No `create.mutate()` or `update.mutate()` call.
-2. **`DepartmentAuditForm.tsx`** — `handleSave` only shows a toast. No database insert.
-3. **`useAuditDataExtended.ts`** — filters by `r.plan_id` but the DB column is `annual_plan_id`.
-4. **`PlanApproval.tsx`** — references `audit.plan_id` but should be `audit.annual_plan_id`.
-5. **`AuditPlansNew.tsx`** — references `row.plan_id` and `editDept.plan_id` but should be `annual_plan_id`.
-
-## Plan
-
-### 1. Fix `AnnualPlanForm.tsx`
-- Accept `onCreate` and `onUpdate` callback props (mutations passed from parent).
-- On "Save Draft": call `onCreate`/`onUpdate` with `status: 'Draft'` and form data mapped to DB columns (`fiscal_year`, `title`, `objective`, `scope`, `methodology`).
-- On "Submit for Review": same but with `status: 'Submitted'` and `submitted_date`.
-- Map camelCase form state to snake_case DB columns.
-
-### 2. Fix `DepartmentAuditForm.tsx`
-- Accept `onCreate`/`onUpdate` callback props.
-- On save: call mutation with data mapped to DB columns (`annual_plan_id`, `department_id`, `department_name`, `period`, `month_year`, `functions`, `objective`, `scope`, `risk_rating`, `lead_auditor_id`, `planned_start`, `planned_end`, `team_member_ids`).
-
-### 3. Fix `AuditPlansNew.tsx` (parent page)
-- Pass `create.mutate` and `update.mutate` from `useIAAnnualPlanMutations()` / `useIADepartmentAuditMutations()` into the form components.
-- Fix all `plan_id` references to `annual_plan_id`.
-
-### 4. Fix `useAuditDataExtended.ts`
-- Change `r.plan_id` filter to `r.annual_plan_id`.
-
-### 5. Fix `PlanApproval.tsx`
-- Change `audit.plan_id` references to `audit.annual_plan_id`.
-
-### 6. Fix `AuditPlans.tsx` (old page)
-- Pass mutations into `AnnualPlanForm` so the old route also works.
-
-No UI redesign. No route changes. Only wiring up the existing mutations to the existing forms.
-
+Deliverable:
+- One corrected shared toolbar system + small page config touches only where needed + verified screenshots/route-by-route QA notes for the key problematic pages (Auditors, Audit Plans, Activity Workbench, Follow-up Tracker, Plan Closeout, Department Master).
