@@ -81,7 +81,7 @@ import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSu
 import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationEntry';
 import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
-import EmployerStatementDetail from '@/pages/compliance/EmployerStatementDetail';
+import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
 import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
