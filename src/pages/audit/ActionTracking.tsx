@@ -93,7 +93,29 @@ export default function ActionTracking() {
       subtitle="Track corrective actions from findings"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Action Tracking' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Action</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredActions.map((a: any) => ({
+              ...a,
+              finding_title: findings.find((f: any) => f.id === a.finding_id)?.title || '',
+            }))}
+            columns={[
+              { key: 'finding_title', header: 'Finding' },
+              { key: 'action_description', header: 'Action' },
+              { key: 'responsible_person', header: 'Owner' },
+              { key: 'target_date', header: 'Due Date' },
+              { key: 'status', header: 'Status' },
+            ]}
+            fileName="action-tracking"
+            title="Action Tracking Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Action</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statCards.map((card) => (
