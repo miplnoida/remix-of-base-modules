@@ -171,10 +171,10 @@ import DeathBenefits from '@/pages/benefits/DeathBenefits';
 import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit (ComplianceDashboard already imported above)
-import EmployerComplianceManagement from '@/pages/compliance/EmployerComplianceManagement';
-import LegalProceedings from '@/pages/compliance/LegalProceedings';
-import AuditManagement from '@/pages/compliance/AuditManagement';
-import PenaltyManagement from '@/pages/compliance/PenaltyManagement';
+import EmployerComplianceManagement from '@/pages/compliance/employers/EmployerComplianceManagement';
+import LegalProceedings from '@/pages/compliance/legal/LegalProceedings';
+import AuditManagement from '@/pages/compliance/audit-planning/AuditManagement';
+import PenaltyManagement from '@/pages/compliance/cases/PenaltyManagement';
 
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
