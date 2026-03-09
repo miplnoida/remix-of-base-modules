@@ -90,15 +90,34 @@ export default function AuditPlans() {
 
       {isCreateDialogOpen && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Create New Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardContent><AnnualPlanForm onClose={() => setIsCreateDialogOpen(false)} onCreate={(data) => create.mutateAsync(data)} onUpdate={(data) => update.mutateAsync</CardContent>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Create New Audit Plan</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}><X className="h-4 w-4" /></Button>
+          </CardHeader>
+          <CardContent>
+            <AnnualPlanForm
+              onClose={() => setIsCreateDialogOpen(false)}
+              onCreate={(data) => create.mutateAsync(data)}
+              onUpdate={(data) => update.mutateAsync(data)}
+            />
+          </CardContent>
         </Card>
       )}
 
       {isEditDialogOpen && selectedPlan && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Edit Audit Plan</CardTitle><Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-          <CardContent><AnnualPlanForm plan={selectedPlan} onClose={() => setIsEditDialogOpen(false)} onCreate={(data) => creAsync(dataate.mutateAsync(data)} onUpdate={(data) => update.mutateAsync</CardContent>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Edit Audit Plan</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}><X className="h-4 w-4" /></Button>
+          </CardHeader>
+          <CardContent>
+            <AnnualPlanForm
+              plan={selectedPlan}
+              onClose={() => setIsEditDialogOpen(false)}
+              onCreate={(data) => create.mutateAsync(data)}
+              onUpdate={(data) => update.mutateAsync(data)}
+            />
+          </CardContent>
         </Card>
       )}
 
