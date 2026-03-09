@@ -102,7 +102,7 @@ import EmployerRegistration from '@/pages/employersManagement/EmployerRegistrati
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
 import EmployerDirectory from '@/pages/employersManagement/EmployerDirectory';
 import ContributionEntry from '@/pages/employersManagement/ContributionEntry';
-import ComplianceMonitoring from '@/pages/compliance/ComplianceMonitoring';
+import ComplianceMonitoring from '@/pages/compliance/dashboards/ComplianceMonitoring';
 import ContributionTracking from '@/pages/employersManagement/ContributionTracking';
 
 // Insured Persons - New consolidated page
