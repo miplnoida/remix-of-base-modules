@@ -9,7 +9,7 @@ import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle } from 'lucide-react
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments } from '@/hooks/useAuditData';
+import { useIADepartments, useIAAnnualPlans, useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 
@@ -17,19 +17,27 @@ const STATUSES = ['Draft', 'Submitted', 'Approved', 'In Progress', 'Fieldwork Co
 const RISK_RATINGS = ['High', 'Medium', 'Low'];
 
 const emptyForm = {
-  engagement_name: '', engagement_code: '', department_id: '', scope: '', objectives: '',
-  methodology: '', criteria: '', engagement_risk_rating: 'Medium', estimated_hours: 0,
-  budgeted_hours: 0, planned_start_date: '', planned_end_date: '', status: 'Draft',
+  engagement_name: '', engagement_code: '', annual_plan_id: '', department_id: '',
+  lead_auditor_id: '', scope: '', objectives: '', methodology: '', criteria: '',
+  engagement_risk_rating: 'Medium', estimated_hours: 0, budgeted_hours: 0,
+  planned_start_date: '', planned_end_date: '', status: 'Draft',
 };
 
 export default function AuditEngagements() {
   const { data = [], isLoading, isError, create, update } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
+  const { data: plans = [] } = useIAAnnualPlans();
+  const { data: auditors = [] } = useIAAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
+
+  // Only approved plans can be linked
+  const approvedPlans = (plans || []).filter((p: any) => 
+    p.status === 'Approved' || p.status === 'Internally Approved' || p.status === 'In Progress'
+  );
 
   const filtered = data.filter((r: any) => {
     const s = searchTerm.toLowerCase();
@@ -46,18 +54,36 @@ export default function AuditEngagements() {
     draft: data.filter((d: any) => d.status === 'Draft').length,
   };
 
+  const getPlanName = (id: string) => plans?.find((p: any) => p.id === id)?.plan_name || id;
+  const getDeptName = (id: string) => departments?.find((d: any) => d.id === id)?.name || id;
+  const getAuditorName = (id: string) => auditors?.find((a: any) => a.id === id)?.name || id;
+
   const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
   const openEdit = (r: any) => {
-    setForm({ engagement_name: r.engagement_name || '', engagement_code: r.engagement_code || '', department_id: r.department_id || '', scope: r.scope || '', objectives: r.objectives || '', methodology: r.methodology || '', criteria: r.criteria || '', engagement_risk_rating: r.engagement_risk_rating || 'Medium', estimated_hours: r.estimated_hours || 0, budgeted_hours: r.budgeted_hours || 0, planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '', status: r.status || 'Draft' });
+    setForm({
+      engagement_name: r.engagement_name || '', engagement_code: r.engagement_code || '',
+      annual_plan_id: r.annual_plan_id || '', department_id: r.department_id || '',
+      lead_auditor_id: r.lead_auditor_id || '', scope: r.scope || '',
+      objectives: r.objectives || '', methodology: r.methodology || '',
+      criteria: r.criteria || '', engagement_risk_rating: r.engagement_risk_rating || 'Medium',
+      estimated_hours: r.estimated_hours || 0, budgeted_hours: r.budgeted_hours || 0,
+      planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '',
+      status: r.status || 'Draft',
+    });
     setModalState({ mode: 'edit', record: r });
   };
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
 
   const handleSave = () => {
+    const payload = {
+      ...form,
+      annual_plan_id: form.annual_plan_id || null,
+      lead_auditor_id: form.lead_auditor_id || null,
+    };
     if (modalState.mode === 'create') {
-      create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     } else if (modalState.mode === 'edit' && modalState.record) {
-      update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      update.mutate({ id: modalState.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     }
   };
 
@@ -66,10 +92,11 @@ export default function AuditEngagements() {
   const columns: DataTableColumn<any>[] = [
     { key: 'engagement_code', header: 'Code' },
     { key: 'engagement_name', header: 'Engagement' },
+    { key: 'annual_plan_id', header: 'Annual Plan', render: (r) => r.annual_plan_id ? getPlanName(r.annual_plan_id) : <span className="text-muted-foreground text-xs">—</span> },
+    { key: 'department_id', header: 'Department', render: (r) => r.department_id ? getDeptName(r.department_id) : <span className="text-muted-foreground text-xs">—</span> },
+    { key: 'lead_auditor_id', header: 'Lead Auditor', render: (r) => r.lead_auditor_id ? getAuditorName(r.lead_auditor_id) : <span className="text-muted-foreground text-xs">—</span> },
     { key: 'engagement_risk_rating', header: 'Risk', render: (r) => <StatusBadge status={r.engagement_risk_rating} /> },
-    { key: 'estimated_hours', header: 'Est. Hours' },
     { key: 'planned_start_date', header: 'Start Date' },
-    { key: 'planned_end_date', header: 'End Date' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   ];
 
@@ -104,6 +131,29 @@ export default function AuditEngagements() {
         title={modalState.mode === 'create' ? 'New Engagement' : modalState.mode === 'edit' ? 'Edit Engagement' : 'View Engagement'}
         mode={modalState.mode || 'view'} onSave={handleSave} saveLabel="Save" isSaving={create.isPending || update.isPending} size="4xl">
         <div className="space-y-4">
+          {/* Lifecycle Link: Annual Plan */}
+          <div className="p-3 rounded-md bg-muted/50 border">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Lifecycle Linkage</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Annual Plan <span className="text-muted-foreground text-xs">(approved plans only)</span></Label>
+                <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
+                  <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
+                  <SelectContent>
+                    {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.plan_name} ({p.audit_year})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Lead Auditor</Label>
+                <Select value={form.lead_auditor_id} onValueChange={v => setForm(f => ({ ...f, lead_auditor_id: v }))} disabled={isReadOnly}>
+                  <SelectTrigger><SelectValue placeholder="Select lead auditor" /></SelectTrigger>
+                  <SelectContent>
+                    {(auditors || []).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Engagement Name</Label><Input value={form.engagement_name} onChange={e => setForm(f => ({ ...f, engagement_name: e.target.value }))} disabled={isReadOnly} /></div>
             <div><Label>Engagement Code</Label><Input value={form.engagement_code} onChange={e => setForm(f => ({ ...f, engagement_code: e.target.value }))} disabled={isReadOnly} /></div>
