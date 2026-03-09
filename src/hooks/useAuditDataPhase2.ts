@@ -25,7 +25,7 @@ function useIACrud<T extends Record<string, any>>(
       q = q.order(orderBy, { ascending: false });
       const { data, error } = await q;
       if (error) throw error;
-      return data as T[];
+      return (data as unknown) as T[];
     },
   });
 
