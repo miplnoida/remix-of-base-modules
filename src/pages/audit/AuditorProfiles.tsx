@@ -114,7 +114,28 @@ export default function AuditorProfiles() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Auditor Profiles' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load auditor profiles' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredAuditors}
+            columns={[
+              { key: 'employee_no', header: 'Employee ID' },
+              { key: 'name', header: 'Auditor Name' },
+              { key: 'email', header: 'Email' },
+              { key: 'phone', header: 'Phone' },
+              { key: 'role', header: 'Role' },
+              { key: 'seniority_level', header: 'Seniority' },
+              { key: 'work_location', header: 'Location' },
+            ]}
+            fileName="auditor-profiles"
+            title="Auditor Profiles"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>
+        </div>
+      }
     >
       <StandardSearchFilterBar
         searchValue={searchTerm}
