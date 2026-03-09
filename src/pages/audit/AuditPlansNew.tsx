@@ -225,8 +225,8 @@ export default function AuditPlansNew() {
           <AnnualPlanForm
             plan={editAnnual}
             onClose={() => setEditAnnual(null)}
-            onCreate={(data) => createAnnual.mutate(data)}
-            onUpdate={(data) => updateAnnual.mutate(data)}
+            onCreate={(data) => createAnnual.mutateAsync(data)}
+            onUpdate={(data) => updateAnnual.mutateAsync(data)}
           />
         </StandardModal>
       )}
