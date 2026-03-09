@@ -23,7 +23,7 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
-  const { update } = useIAAnnualPlanMutations();
+  const { create, update } = useIAAnnualPlanMutations();
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
