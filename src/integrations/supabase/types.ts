@@ -5259,6 +5259,7 @@ export type Database = {
           department_id: string | null
           description: string | null
           end_date: string | null
+          engagement_id: string | null
           function_area: string | null
           id: string
           location: string | null
@@ -5287,6 +5288,7 @@ export type Database = {
           department_id?: string | null
           description?: string | null
           end_date?: string | null
+          engagement_id?: string | null
           function_area?: string | null
           id?: string
           location?: string | null
@@ -5315,6 +5317,7 @@ export type Database = {
           department_id?: string | null
           description?: string | null
           end_date?: string | null
+          engagement_id?: string | null
           function_area?: string | null
           id?: string
           location?: string | null
@@ -5355,6 +5358,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_activities_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
         ]
