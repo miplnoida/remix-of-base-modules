@@ -16,15 +16,10 @@ interface SidebarMenuLinkProps {
 
 const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) => {
   const navigate = useNavigate();
-  const { isMobile, setOpenMobile } = useSidebar();
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(item.url);
-    // On mobile, close the sidebar sheet after navigation
-    if (isMobile) {
-      setOpenMobile(false);
-    }
   };
 
   const content = (
