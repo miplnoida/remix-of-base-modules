@@ -13,6 +13,7 @@ import {
   BellRing, Send, TestTube, FlaskConical, Terminal, MapPin, HardHat,
   Heart, Flag, BadgeCheck, Network, Workflow, Play, Eye, Plug, 
   ArrowLeftRight, ShieldAlert, ShieldCheck, Wrench, BarChart3,
+  Clock, Target, FileBarChart,
   type LucideIcon
 } from 'lucide-react';
 
@@ -137,6 +138,10 @@ const iconMap: Record<string, LucideIcon> = {
   'arrow-left-right': ArrowLeftRight,
   'wrench': Wrench,
   'rows3': Layers,
+  'clock': Clock,
+  'target': Target,
+  'filebarchart': FileBarChart,
+  'file-bar-chart': FileBarChart,
 };
 
 // Map icon name string to Lucide icon component
