@@ -1,31 +1,75 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Timer, CheckCircle, XCircle, Clock, Search, Eye, RefreshCw } from 'lucide-react';
+import { Timer, CheckCircle, XCircle, Search, Eye, RefreshCw, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
-const mockHistory = [
-  { id: 'JH-001', jobName: 'Daily Violation Scan', startTime: '2026-03-08 06:00:12', endTime: '2026-03-08 06:02:45', duration: '2m 33s', status: 'success', recordsProcessed: 1247, violationsCreated: 3, errors: 0 },
-  { id: 'JH-002', jobName: 'Weekly Escalation Review', startTime: '2026-03-03 07:00:00', endTime: '2026-03-03 07:01:18', duration: '1m 18s', status: 'success', recordsProcessed: 45, violationsCreated: 0, errors: 0 },
-  { id: 'JH-003', jobName: 'Monthly Penalty/Interest Recalc', startTime: '2026-03-01 02:00:00', endTime: '2026-03-01 02:08:42', duration: '8m 42s', status: 'success', recordsProcessed: 892, violationsCreated: 0, errors: 0 },
-  { id: 'JH-004', jobName: 'Monthly Risk Reclassification', startTime: '2026-03-01 04:00:00', endTime: '2026-03-01 04:03:15', duration: '3m 15s', status: 'failed', recordsProcessed: 156, violationsCreated: 0, errors: 12 },
-  { id: 'JH-005', jobName: 'Daily Violation Scan', startTime: '2026-03-07 06:00:08', endTime: '2026-03-07 06:02:30', duration: '2m 22s', status: 'success', recordsProcessed: 1247, violationsCreated: 1, errors: 0 },
-  { id: 'JH-006', jobName: 'Daily Violation Scan', startTime: '2026-03-06 06:00:05', endTime: '2026-03-06 06:02:18', duration: '2m 13s', status: 'success', recordsProcessed: 1245, violationsCreated: 5, errors: 0 },
-  { id: 'JH-007', jobName: 'Weekly Escalation Review', startTime: '2026-02-24 07:00:00', endTime: '2026-02-24 07:01:05', duration: '1m 05s', status: 'success', recordsProcessed: 38, violationsCreated: 0, errors: 0 },
-];
+interface AutomationRun {
+  id: string;
+  job_id: string;
+  started_at: string;
+  completed_at: string | null;
+  status: string;
+  records_processed: number | null;
+  records_affected: number | null;
+  error_message: string | null;
+  triggered_by: string | null;
+}
+
+interface AutomationJob {
+  id: string;
+  name: string;
+}
 
 const JobHistory = () => {
   const [jobFilter, setJobFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  const filtered = mockHistory.filter(h =>
-    (jobFilter === 'All' || h.jobName === jobFilter) &&
-    (search === '' || h.id.toLowerCase().includes(search.toLowerCase()))
-  );
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['ce_automation_jobs_list'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_automation_jobs').select('id, name');
+      if (error) throw error;
+      return (data || []) as unknown as AutomationJob[];
+    },
+  });
 
-  const jobNames = ['All', ...Array.from(new Set(mockHistory.map(h => h.jobName)))];
+  const { data: runs = [], isLoading, refetch } = useQuery({
+    queryKey: ['ce_automation_runs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_automation_runs').select('*').order('started_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      return (data || []) as unknown as AutomationRun[];
+    },
+  });
+
+  const jobNameMap = Object.fromEntries(jobs.map(j => [j.id, j.name]));
+  const jobNames = ['All', ...jobs.map(j => j.name)];
+
+  const filtered = runs.filter(h => {
+    const jName = jobNameMap[h.job_id] || 'Unknown';
+    return (jobFilter === 'All' || jName === jobFilter) &&
+      (search === '' || h.id.toLowerCase().includes(search.toLowerCase()));
+  });
+
+  const getDuration = (start: string, end: string | null) => {
+    if (!end) return 'Running...';
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    const s = Math.floor(ms / 1000);
+    return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -37,14 +81,14 @@ const JobHistory = () => {
           </div>
           <p className="text-muted-foreground">View execution logs and results for all automation jobs</p>
         </div>
-        <Button variant="outline" className="gap-2"><RefreshCw className="h-4 w-4" />Refresh</Button>
+        <Button variant="outline" className="gap-2" onClick={() => refetch()}><RefreshCw className="h-4 w-4" />Refresh</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Executions</p><p className="text-2xl font-bold text-foreground">{mockHistory.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Successful</p><p className="text-2xl font-bold text-success">{mockHistory.filter(h => h.status === 'success').length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Failed</p><p className="text-2xl font-bold text-destructive">{mockHistory.filter(h => h.status === 'failed').length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Violations Created</p><p className="text-2xl font-bold text-primary">{mockHistory.reduce((sum, h) => sum + h.violationsCreated, 0)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Executions</p><p className="text-2xl font-bold text-foreground">{runs.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Successful</p><p className="text-2xl font-bold text-success">{runs.filter(h => h.status === 'COMPLETED').length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Failed</p><p className="text-2xl font-bold text-destructive">{runs.filter(h => h.status === 'FAILED').length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Records Processed</p><p className="text-2xl font-bold text-primary">{runs.reduce((sum, h) => sum + (h.records_processed || 0), 0).toLocaleString()}</p></CardContent></Card>
       </div>
 
       <Card>
@@ -61,45 +105,45 @@ const JobHistory = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">ID</th>
-                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Job Name</th>
-                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Start Time</th>
-                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Duration</th>
-                  <th className="text-center py-2 px-3 text-muted-foreground font-medium">Status</th>
-                  <th className="text-right py-2 px-3 text-muted-foreground font-medium">Records</th>
-                  <th className="text-right py-2 px-3 text-muted-foreground font-medium">Violations</th>
-                  <th className="text-right py-2 px-3 text-muted-foreground font-medium">Errors</th>
-                  <th className="text-right py-2 px-3 text-muted-foreground font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(h => (
-                  <tr key={h.id} className="border-b last:border-0 border-border hover:bg-muted/50">
-                    <td className="py-2 px-3 font-mono text-xs text-foreground">{h.id}</td>
-                    <td className="py-2 px-3 text-foreground">{h.jobName}</td>
-                    <td className="py-2 px-3 text-foreground text-xs">{h.startTime}</td>
-                    <td className="py-2 px-3 text-muted-foreground">{h.duration}</td>
-                    <td className="py-2 px-3 text-center">
-                      <Badge variant={h.status === 'success' ? 'default' : 'destructive'} className="text-[10px] gap-1">
-                        {h.status === 'success' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                        {h.status}
-                      </Badge>
-                    </td>
-                    <td className="py-2 px-3 text-right text-foreground">{h.recordsProcessed.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right text-foreground">{h.violationsCreated}</td>
-                    <td className="py-2 px-3 text-right">
-                      <span className={h.errors > 0 ? 'text-destructive font-medium' : 'text-foreground'}>{h.errors}</span>
-                    </td>
-                    <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
+          {filtered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">No execution history found</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 px-3 text-muted-foreground font-medium">Job Name</th>
+                    <th className="text-left py-2 px-3 text-muted-foreground font-medium">Start Time</th>
+                    <th className="text-left py-2 px-3 text-muted-foreground font-medium">Duration</th>
+                    <th className="text-center py-2 px-3 text-muted-foreground font-medium">Status</th>
+                    <th className="text-right py-2 px-3 text-muted-foreground font-medium">Records</th>
+                    <th className="text-right py-2 px-3 text-muted-foreground font-medium">Affected</th>
+                    <th className="text-left py-2 px-3 text-muted-foreground font-medium">Triggered By</th>
+                    <th className="text-right py-2 px-3 text-muted-foreground font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map(h => (
+                    <tr key={h.id} className="border-b last:border-0 border-border hover:bg-muted/50">
+                      <td className="py-2 px-3 text-foreground">{jobNameMap[h.job_id] || 'Unknown'}</td>
+                      <td className="py-2 px-3 text-foreground text-xs">{new Date(h.started_at).toLocaleString()}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{getDuration(h.started_at, h.completed_at)}</td>
+                      <td className="py-2 px-3 text-center">
+                        <Badge variant={h.status === 'COMPLETED' ? 'default' : h.status === 'FAILED' ? 'destructive' : 'secondary'} className="text-[10px] gap-1">
+                          {h.status === 'COMPLETED' ? <CheckCircle className="h-3 w-3" /> : h.status === 'FAILED' ? <XCircle className="h-3 w-3" /> : null}
+                          {h.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-3 text-right text-foreground">{(h.records_processed || 0).toLocaleString()}</td>
+                      <td className="py-2 px-3 text-right text-foreground">{h.records_affected || 0}</td>
+                      <td className="py-2 px-3 text-foreground">{h.triggered_by}</td>
+                      <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

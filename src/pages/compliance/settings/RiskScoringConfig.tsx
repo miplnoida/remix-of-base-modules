@@ -1,33 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Target, Save, RotateCcw } from 'lucide-react';
+import { Target, Save, RotateCcw, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+interface RiskConfig {
+  id: string;
+  factor_code: string;
+  factor_name: string;
+  description: string | null;
+  weight: number;
+  max_score: number;
+  scoring_method: string | null;
+  is_enabled: boolean | null;
+}
+
+const bands = [
+  { name: 'Low', min: 0, max: 25, color: 'text-success', bg: 'bg-success/10 border-success/20', action: 'Standard monitoring' },
+  { name: 'Medium', min: 26, max: 50, color: 'text-warning', bg: 'bg-warning/10 border-warning/20', action: 'Enhanced monitoring, quarterly review' },
+  { name: 'High', min: 51, max: 75, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', action: 'Active case management, inspection priority' },
+  { name: 'Critical', min: 76, max: 100, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', action: 'Immediate escalation, legal review' },
+];
 
 const RiskScoringConfig = () => {
-  const [factors, setFactors] = useState([
-    { code: 'arrears', name: 'Arrears Amount', weight: 25, description: 'Total outstanding arrears across all funds (SS, LV, PE)' },
-    { code: 'violations', name: 'Repeated Violations', weight: 25, description: 'Number and recency of compliance violations in rolling 12 months' },
-    { code: 'filings', name: 'Missed Filings', weight: 20, description: 'Count of missed or late C3 submissions in rolling 12 months' },
-    { code: 'legal', name: 'Legal History', weight: 15, description: 'Prior legal escalations, court appearances, judgments' },
-    { code: 'payment', name: 'Payment Behavior', weight: 15, description: 'Payment timeliness, partial payments, arrangement compliance' },
-  ]);
+  const queryClient = useQueryClient();
+  const [localFactors, setLocalFactors] = useState<RiskConfig[]>([]);
 
-  const [bands, setBands] = useState([
-    { name: 'Low', min: 0, max: 25, color: 'text-success', bg: 'bg-success/10 border-success/20', action: 'Standard monitoring' },
-    { name: 'Medium', min: 26, max: 50, color: 'text-warning', bg: 'bg-warning/10 border-warning/20', action: 'Enhanced monitoring, quarterly review' },
-    { name: 'High', min: 51, max: 75, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', action: 'Active case management, inspection priority' },
-    { name: 'Critical', min: 76, max: 100, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', action: 'Immediate escalation, legal review' },
-  ]);
+  const { data: factors = [], isLoading } = useQuery({
+    queryKey: ['ce_risk_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_risk_config').select('*').order('weight', { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as RiskConfig[];
+    },
+  });
 
-  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
+  useEffect(() => {
+    if (factors.length > 0) setLocalFactors(factors);
+  }, [factors]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      for (const f of localFactors) {
+        const { error } = await supabase
+          .from('ce_risk_config')
+          .update({ weight: f.weight } as any)
+          .eq('id', f.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ce_risk_config'] });
+      toast.success('Risk configuration saved');
+    },
+    onError: () => toast.error('Failed to save configuration'),
+  });
+
+  const totalWeight = localFactors.reduce((sum, f) => sum + Number(f.weight), 0);
 
   const updateWeight = (code: string, value: number[]) => {
-    setFactors(prev => prev.map(f => f.code === code ? { ...f, weight: value[0] } : f));
+    setLocalFactors(prev => prev.map(f => f.factor_code === code ? { ...f, weight: value[0] } : f));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -40,12 +87,13 @@ const RiskScoringConfig = () => {
           <p className="text-muted-foreground">Configure risk factor weights and band thresholds for employer risk classification</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2"><RotateCcw className="h-4 w-4" />Reset</Button>
-          <Button className="gap-2"><Save className="h-4 w-4" />Save Configuration</Button>
+          <Button variant="outline" className="gap-2" onClick={() => setLocalFactors(factors)}><RotateCcw className="h-4 w-4" />Reset</Button>
+          <Button className="gap-2" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Save className="h-4 w-4" />{saveMutation.isPending ? 'Saving...' : 'Save Configuration'}
+          </Button>
         </div>
       </div>
 
-      {/* Risk Bands */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Risk Bands</CardTitle>
@@ -76,7 +124,6 @@ const RiskScoringConfig = () => {
         </CardContent>
       </Card>
 
-      {/* Risk Factor Weights */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -90,18 +137,18 @@ const RiskScoringConfig = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {factors.map((factor) => (
-            <div key={factor.code} className="space-y-2">
+          {localFactors.map((factor) => (
+            <div key={factor.factor_code} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{factor.name}</p>
+                  <p className="font-medium text-foreground">{factor.factor_name}</p>
                   <p className="text-xs text-muted-foreground">{factor.description}</p>
                 </div>
                 <span className="text-lg font-bold text-primary w-16 text-right">{factor.weight}%</span>
               </div>
               <Slider
-                value={[factor.weight]}
-                onValueChange={(val) => updateWeight(factor.code, val)}
+                value={[Number(factor.weight)]}
+                onValueChange={(val) => updateWeight(factor.factor_code, val)}
                 max={50}
                 min={5}
                 step={5}

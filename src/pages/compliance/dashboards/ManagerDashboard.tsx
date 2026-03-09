@@ -3,59 +3,90 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, AlertTriangle, Building2, DollarSign, Scale,
-  TrendingUp, CheckCircle, ArrowUpRight, ArrowDownRight, Clock,
-  Users, Briefcase, Eye
+  LayoutDashboard, AlertTriangle, DollarSign, Scale,
+  TrendingUp, CheckCircle, ArrowUpRight, Clock,
+  Briefcase, Eye, Loader2
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend
+  PieChart, Pie, Cell
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-
-const violationTrendData = [
-  { month: 'Sep', created: 18, resolved: 12 },
-  { month: 'Oct', created: 22, resolved: 15 },
-  { month: 'Nov', created: 15, resolved: 20 },
-  { month: 'Dec', created: 28, resolved: 18 },
-  { month: 'Jan', created: 20, resolved: 22 },
-  { month: 'Feb', created: 25, resolved: 19 },
-];
-
-const caseStatusData = [
-  { name: 'Open', value: 34, color: 'hsl(var(--primary))' },
-  { name: 'Under Review', value: 18, color: 'hsl(var(--warning))' },
-  { name: 'Notice Issued', value: 12, color: 'hsl(210, 70%, 55%)' },
-  { name: 'Legal Review', value: 8, color: 'hsl(var(--destructive))' },
-  { name: 'Resolved', value: 45, color: 'hsl(var(--success))' },
-];
-
-const riskDistribution = [
-  { band: 'Low', count: 142 },
-  { band: 'Medium', count: 87 },
-  { band: 'High', count: 34 },
-  { band: 'Critical', count: 12 },
-];
-
-const recentActivity = [
-  { id: 1, action: 'Violation VIO-2026-00142 created', type: 'Late Filing', time: '12 min ago', severity: 'Medium' },
-  { id: 2, action: 'Case CASE-2026-00089 escalated to Legal', type: 'Non Payment', time: '45 min ago', severity: 'High' },
-  { id: 3, action: 'Payment arrangement approved for R-10234', type: 'Arrangement', time: '1 hr ago', severity: 'Low' },
-  { id: 4, action: 'Inspection INS-2026-00056 completed', type: 'Inspection', time: '2 hrs ago', severity: 'Medium' },
-  { id: 5, action: 'Waiver WVR-2026-00012 pending approval', type: 'Waiver', time: '3 hrs ago', severity: 'High' },
-  { id: 6, action: 'Risk reclassification: R-10567 → Critical', type: 'Risk', time: '4 hrs ago', severity: 'Critical' },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 const ManagerDashboard = () => {
   const navigate = useNavigate();
 
+  const { data: violationCount = 0, isLoading: lv } = useQuery({
+    queryKey: ['ce_dashboard_violations'],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('ce_violations').select('*', { count: 'exact', head: true }).in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED']);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  const { data: caseStats = { total: 0, open: 0, legal: 0, totalAmount: 0 }, isLoading: lc } = useQuery({
+    queryKey: ['ce_dashboard_cases'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_cases').select('status, total_amount').eq('is_deleted', false);
+      if (error) throw error;
+      const cases = (data || []) as unknown as { status: string; total_amount: number | null }[];
+      return {
+        total: cases.length,
+        open: cases.filter(c => !['RESOLVED', 'CLOSED'].includes(c.status)).length,
+        legal: cases.filter(c => ['LEGAL_REVIEW', 'COURT_ACTION', 'ENFORCEMENT_IN_PROGRESS'].includes(c.status)).length,
+        totalAmount: cases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0),
+      };
+    },
+  });
+
+  const { data: riskDistribution = [], isLoading: lr } = useQuery({
+    queryKey: ['ce_dashboard_risk'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_risk_profiles').select('risk_band');
+      if (error) throw error;
+      const profiles = (data || []) as unknown as { risk_band: string }[];
+      const bands = ['Low', 'Medium', 'High', 'Critical'];
+      return bands.map(b => ({ band: b, count: profiles.filter(p => p.risk_band === b).length }));
+    },
+  });
+
+  const { data: caseStatusData = [], isLoading: ls } = useQuery({
+    queryKey: ['ce_dashboard_case_status'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_cases').select('status').eq('is_deleted', false);
+      if (error) throw error;
+      const cases = (data || []) as unknown as { status: string }[];
+      const groups = [
+        { name: 'Open', statuses: ['OPEN'], color: 'hsl(var(--primary))' },
+        { name: 'Under Review', statuses: ['UNDER_REVIEW'], color: 'hsl(var(--warning))' },
+        { name: 'Notice Issued', statuses: ['NOTICE_ISSUED', 'AWAITING_RESPONSE'], color: 'hsl(210, 70%, 55%)' },
+        { name: 'Legal', statuses: ['LEGAL_REVIEW', 'COURT_ACTION', 'ENFORCEMENT_IN_PROGRESS'], color: 'hsl(var(--destructive))' },
+        { name: 'Resolved', statuses: ['RESOLVED', 'CLOSED'], color: 'hsl(var(--success))' },
+      ];
+      return groups.map(g => ({ ...g, value: cases.filter(c => g.statuses.includes(c.status)).length })).filter(g => g.value > 0);
+    },
+  });
+
+  const isLoading = lv || lc || lr || ls;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const kpis = [
-    { label: 'Active Violations', value: '128', change: '+12', trend: 'up', icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Open Cases', value: '72', change: '-3', trend: 'down', icon: Briefcase, color: 'text-warning' },
-    { label: 'Total Arrears', value: '$2.4M', change: '+$180K', trend: 'up', icon: DollarSign, color: 'text-primary' },
-    { label: 'Legal Escalations', value: '18', change: '+5', trend: 'up', icon: Scale, color: 'text-destructive' },
-    { label: 'Compliance Rate', value: '76.3%', change: '+2.1%', trend: 'up', icon: CheckCircle, color: 'text-success' },
-    { label: 'At-Risk Employers', value: '46', change: '-4', trend: 'down', icon: TrendingUp, color: 'text-warning' },
+    { label: 'Active Violations', value: violationCount.toString(), icon: AlertTriangle, color: 'text-destructive' },
+    { label: 'Open Cases', value: caseStats.open.toString(), icon: Briefcase, color: 'text-warning' },
+    { label: 'Total Arrears', value: `$${caseStats.totalAmount > 1000 ? `${(caseStats.totalAmount / 1000).toFixed(0)}K` : caseStats.totalAmount.toFixed(0)}`, icon: DollarSign, color: 'text-primary' },
+    { label: 'Legal Escalations', value: caseStats.legal.toString(), icon: Scale, color: 'text-destructive' },
+    { label: 'Total Cases', value: caseStats.total.toString(), icon: CheckCircle, color: 'text-success' },
+    { label: 'At-Risk Employers', value: riskDistribution.filter(r => r.band === 'High' || r.band === 'Critical').reduce((s, r) => s + r.count, 0).toString(), icon: TrendingUp, color: 'text-warning' },
   ];
 
   return (
@@ -66,23 +97,18 @@ const ManagerDashboard = () => {
             <LayoutDashboard className="h-6 w-6 text-primary" />
             <h1 className="text-3xl font-semibold text-foreground">Compliance Manager Dashboard</h1>
           </div>
-          <p className="text-muted-foreground">
-            Overview of compliance operations, enforcement pipeline, and key performance indicators
-          </p>
+          <p className="text-muted-foreground">Overview of compliance operations, enforcement pipeline, and key performance indicators</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/compliance/cases')}>
-            <Eye className="h-4 w-4 mr-2" />
-            View Cases
+            <Eye className="h-4 w-4 mr-2" />View Cases
           </Button>
           <Button onClick={() => navigate('/compliance/reports/case-analytics')}>
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Full Reports
+            <TrendingUp className="h-4 w-4 mr-2" />Full Reports
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {kpis.map((kpi, idx) => (
           <Card key={idx} className="hover:shadow-md transition-shadow">
@@ -92,69 +118,32 @@ const ManagerDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{kpi.value}</div>
-              <div className="flex items-center gap-1 mt-1">
-                {kpi.trend === 'up' ? (
-                  <ArrowUpRight className={`h-3 w-3 ${kpi.label === 'Compliance Rate' ? 'text-success' : 'text-destructive'}`} />
-                ) : (
-                  <ArrowDownRight className={`h-3 w-3 ${kpi.label === 'Compliance Rate' ? 'text-destructive' : 'text-success'}`} />
-                )}
-                <span className="text-xs text-muted-foreground">{kpi.change} this month</span>
-              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Violation Trends (6 Months)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={violationTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip
-                  contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="created" stroke="hsl(var(--destructive))" strokeWidth={2} name="Created" />
-                <Line type="monotone" dataKey="resolved" stroke="hsl(var(--success))" strokeWidth={2} name="Resolved" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {caseStatusData.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Cases by Status</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={caseStatusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                    {caseStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Cases by Status</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Employer Risk Distribution</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={caseStatusData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                  {caseStatusData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Risk Distribution + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Employer Risk Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={riskDistribution} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -165,38 +154,15 @@ const ManagerDashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs">View All</Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentActivity.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0 border-border">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{item.action}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-[10px] h-5">{item.type}</Badge>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />{item.time}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge variant={
-                    item.severity === 'Critical' ? 'destructive' :
-                    item.severity === 'High' ? 'default' :
-                    item.severity === 'Medium' ? 'secondary' : 'outline'
-                  } className="ml-2 text-[10px]">
-                    {item.severity}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+      {caseStatusData.length === 0 && riskDistribution.every(r => r.count === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">No compliance data yet. Cases, violations, and risk profiles will appear here once created.</p>
           </CardContent>
         </Card>
-      </div>
+      )}
     </div>
   );
 };
