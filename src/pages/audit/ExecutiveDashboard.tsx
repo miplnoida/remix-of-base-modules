@@ -15,7 +15,7 @@ export default function ExecutiveDashboard() {
   const { data: controlTests = [] } = useIAControlTests();
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
-  const { data: actions = [] } = useIAActions();
+  const { data: actions = [] } = useIAActionTracking();
 
   const stats = {
     totalPlanned: engagements.length,

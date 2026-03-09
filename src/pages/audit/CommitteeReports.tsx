@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function CommitteeReports() {
   const { data: engagements = [] } = useIAEngagements();
   const { data: findings = [] } = useIAFindings();
-  const { data: actions = [] } = useIAActions();
+  const { data: actions = [] } = useIAActionTracking();
   const { data: universe = [] } = useIAAuditUniverse();
   const { toast } = useToast();
 
