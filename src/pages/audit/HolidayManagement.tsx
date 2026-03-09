@@ -176,6 +176,15 @@ export default function HolidayManagement() {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Holiday" description="Are you sure you want to delete this holiday?" onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Holidays"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="holidays-template"
+      />
     </PageShell>
   );
 }
