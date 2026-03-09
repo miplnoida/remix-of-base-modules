@@ -383,7 +383,7 @@ export function useDynamicNavigation() {
         severity: 'info',
       }, user.id);
 
-      return buildMenuTree((data as ModuleRow[]) || []);
+      return groupInternalAuditNavigation(buildMenuTree((data as ModuleRow[]) || []));
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
