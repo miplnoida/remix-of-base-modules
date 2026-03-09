@@ -54,7 +54,7 @@ export default function PlanApproval() {
         _source: 'department' as const,
         _typeLabel: 'Department',
         _displayTitle: audit.department_name || 'Department Audit Plan',
-        _fiscalYear: planById.get(audit.plan_id)?.fiscal_year || '-',
+        _fiscalYear: planById.get(audit.annual_plan_id)?.fiscal_year || '-',
       }));
 
     return [...annual, ...dept];
