@@ -194,6 +194,17 @@ import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
+import AuditUniverse from '@/pages/audit/AuditUniverse';
+import RiskAssessment from '@/pages/audit/RiskAssessment';
+import AuditEngagements from '@/pages/audit/AuditEngagements';
+import AuditPrograms from '@/pages/audit/AuditPrograms';
+import RiskControlMatrix from '@/pages/audit/RiskControlMatrix';
+import ControlTesting from '@/pages/audit/ControlTesting';
+import TimeTracking from '@/pages/audit/TimeTracking';
+import QualityReview from '@/pages/audit/QualityReview';
+import ExecutiveDashboard from '@/pages/audit/ExecutiveDashboard';
+import CommitteeReports from '@/pages/audit/CommitteeReports';
+import SLARules from '@/pages/audit/SLARules';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 
 // Reports
