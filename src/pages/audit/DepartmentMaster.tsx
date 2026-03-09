@@ -109,7 +109,26 @@ export default function DepartmentMaster() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Department Master' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load departments' : null}
-      actions={<Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            data={filteredDepartments}
+            columns={[
+              { key: 'name', header: 'Department Name' },
+              { key: 'head', header: 'Department Head' },
+              { key: 'email', header: 'Email' },
+              { key: 'location', header: 'Location' },
+              { key: 'risk_rating', header: 'Risk Rating' },
+            ]}
+            fileName="departments"
+            title="Department Register"
+          />
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />Bulk Upload
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
+        </div>
+      }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
