@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Send, Plus, Mail, FileText } from 'lucide-react';
 import { useIADocumentTemplates, useIAAnnualPlans, useIADepartments, useIACommunications, useIACommunicationMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 

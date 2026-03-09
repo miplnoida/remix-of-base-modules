@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageSquare, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
 import { useIAManagementResponses, useIAManagementResponseMutations, useIAFindings } from '@/hooks/useAuditData';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, EntityModal } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function ManagementResponses() {
