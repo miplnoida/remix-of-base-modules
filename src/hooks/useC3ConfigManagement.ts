@@ -144,16 +144,23 @@ export function useUpdateC3ConfigDetails() {
       oldDetails?: Partial<C3ConfigDetails>;
       periodInfo?: { start_date: string; end_date: string | null };
     }) => {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('c3_config_details')
         .update({
           ...details,
           modified_by: userCode,
-          modified_on: new Date().toISOString()
+          modified_on: now
         })
         .eq('config_period_id', configPeriodId);
 
       if (error) throw error;
+
+      // Also update parent period's modified_on so sync status detects the change
+      await supabase
+        .from('c3_config_periods')
+        .update({ modified_by: userCode, modified_on: now })
+        .eq('id', configPeriodId);
 
       // Log to unified audit
       const periodLabel = periodInfo 
