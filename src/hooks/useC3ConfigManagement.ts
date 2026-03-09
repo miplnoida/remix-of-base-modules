@@ -43,6 +43,7 @@ export interface C3ConfigDetails {
   ss_fine_initial_rate: number;
   ss_fine_subsequent_rate: number;
   levy_slab_id: string | null;
+  nwd_employee_levy_rate: number;
   // Monthly levy switching parameters
   levy_monthly_threshold: number;
   levy_use_monthly_when_exceeded: boolean;

@@ -225,6 +225,18 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
                 />
               </div>
               <div className="space-y-2">
+                <Label>NWD Employee Levy Rate (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formatRateForDisplay(formData.nwd_employee_levy_rate)}
+                  onChange={(e) => handleRateChange('nwd_employee_levy_rate', e.target.value)}
+                  min={0}
+                  max={100}
+                />
+                <p className="text-xs text-muted-foreground">Flat levy rate applied to Non-Working Directors</p>
+              </div>
+              <div className="space-y-2">
                 <Label>Levy Slab</Label>
                 <Select
                   value={formData.levy_slab_id || ''}
