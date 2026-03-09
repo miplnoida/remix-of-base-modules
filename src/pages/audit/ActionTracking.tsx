@@ -25,6 +25,27 @@ export default function ActionTracking() {
   const [viewItem, setViewItem] = useState<any>(null);
   const [formData, setFormData] = useState({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
   const resetForm = () => setFormData({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'finding_title', label: 'Finding Title', required: true },
+    { key: 'action_description', label: 'Action Description', required: true },
+    { key: 'responsible_person', label: 'Owner' },
+    { key: 'target_date', label: 'Due Date', type: 'date' },
+    { key: 'status', label: 'Status', allowedValues: ACTION_STATUSES },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const finding = findings.find((f: any) => f.title === row.finding_title);
+      if (!finding) continue;
+      create.mutate({
+        finding_id: finding.id, action_description: row.action_description,
+        responsible_person: row.responsible_person || '', target_date: row.target_date || null,
+        notes: '', status: row.status || 'Not Started', ...getCreateFields(),
+      });
+    }
+  };
 
   const filteredActions = actions.filter((a: any) => {
     const matchesStatus = filters.status === 'all' || a.status === filters.status;
