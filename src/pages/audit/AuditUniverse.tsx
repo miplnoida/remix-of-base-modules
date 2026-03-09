@@ -190,6 +190,15 @@ export default function AuditUniverse() {
           <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
         </div>
       </StandardModal>
+
+      <BulkUploadModal
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        title="Bulk Upload Audit Universe"
+        fields={bulkUploadFields}
+        onImport={handleBulkImport}
+        templateName="audit-universe-template"
+      />
     </PageShell>
   );
 }
