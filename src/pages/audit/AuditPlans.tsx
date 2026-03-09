@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 
 export default function AuditPlans() {
