@@ -237,8 +237,8 @@ export default function AuditPlansNew() {
             annualPlanId={editDept.annual_plan_id}
             departmentAudit={editDept}
             onClose={() => setEditDept(null)}
-            onCreate={(data) => createDept.mutate(data)}
-            onUpdate={(data) => updateDept.mutate(data)}
+            onCreate={(data) => createDept.mutateAsync(data)}
+            onUpdate={(data) => updateDept.mutateAsync(data)}
           />
         </StandardModal>
       )}

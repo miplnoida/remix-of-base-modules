@@ -5,19 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AnnualPlanFormProps {
   plan?: any;
   onClose: () => void;
   onSuccess?: () => void;
-  onCreate?: (data: any) => void;
-  onUpdate?: (data: any) => void;
+  onCreate?: (data: any) => Promise<any>;
+  onUpdate?: (data: any) => Promise<any>;
 }
 
 export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }: AnnualPlanFormProps) {
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     fiscalYear: plan?.fiscal_year || `${currentYear}-${currentYear + 1}`,
@@ -42,24 +44,34 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
     return payload;
   };
 
-  const handleSaveDraft = () => {
-    const payload = mapToDbPayload('Draft');
-
-    if (plan && onUpdate) {
-      onUpdate({ id: plan.id, ...payload });
-    } else if (onCreate) {
-      onCreate(payload);
-    } else {
+  const handleSaveDraft = async () => {
+    setIsSaving(true);
+    try {
+      const payload = mapToDbPayload('Draft');
+      if (plan && onUpdate) {
+        await onUpdate({ id: plan.id, ...payload });
+      } else if (onCreate) {
+        await onCreate(payload);
+      }
       toast({
         title: "Draft Saved",
         description: plan ? "Annual audit plan has been updated." : "Annual audit plan has been saved as draft."
       });
+      onSuccess?.();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to save draft:', error);
+      toast({
+        title: "Save Failed",
+        description: error?.message || "Could not save the plan. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
-    onSuccess?.();
-    onClose();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.objective || !formData.scope || !formData.methodology) {
       toast({
         title: "Validation Error",
@@ -69,20 +81,30 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       return;
     }
 
-    const payload = mapToDbPayload('Submitted');
-
-    if (plan && onUpdate) {
-      onUpdate({ id: plan.id, ...payload });
-    } else if (onCreate) {
-      onCreate(payload);
-    } else {
+    setIsSaving(true);
+    try {
+      const payload = mapToDbPayload('Submitted');
+      if (plan && onUpdate) {
+        await onUpdate({ id: plan.id, ...payload });
+      } else if (onCreate) {
+        await onCreate(payload);
+      }
       toast({
         title: plan ? "Plan Updated" : "Plan Submitted",
         description: plan ? "Annual audit plan has been updated successfully." : "Annual audit plan has been submitted for review."
       });
+      onSuccess?.();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to submit plan:', error);
+      toast({
+        title: "Submit Failed",
+        description: error?.message || "Could not submit the plan. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
-    onSuccess?.();
-    onClose();
   };
 
   return (
@@ -152,9 +174,15 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       </Card>
 
       <div className="flex justify-end space-x-4">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
-        <Button onClick={handleSubmit}>Submit for Review</Button>
+        <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+          {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Draft
+        </Button>
+        <Button onClick={handleSubmit} disabled={isSaving}>
+          {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Submit for Review
+        </Button>
       </div>
     </div>
   );
