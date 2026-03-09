@@ -1,63 +1,69 @@
 
-Goal: fully fix search/filter alignment by rebuilding the shared toolbar logic (not page-by-page hacks), then run route-by-route visual QA across all Internal Audit pages.
 
-What I found (from code + current preview):
-1) The current StandardSearchFilterBar is still unstable:
-- Desktop column math creates oversized empty reset areas when filters are few.
-- Multi-row logic distributes row 2 unevenly (especially 5-filter pages like Follow-up Tracker).
-- Inline `gridColumn` spans apply at all breakpoints, causing awkward tablet wrapping/alignment.
-- Dynamic class names like `lg:col-span-${colSpan}` are unreliable.
-2) Most Internal Audit list routes do use the shared component, so fixing it centrally will correct nearly all pages at once.
+# Add Configurable NWD Employee Levy Rate to C3 Configuration
 
-Implementation plan:
-1) Rebuild `src/components/common/StandardSearchFilterBar.tsx` layout engine with strict deterministic rules:
-- Desktop: true 12-col grid only.
-- Default spans: Search=4, each filter=2, Reset fixed at far right.
-- No unpredictable flex growth.
-- Compact uniform controls (`h-9`), consistent label spacing, uniform gaps/padding.
-2) Replace current multi-row algorithm with controlled wrapping:
-- If controls fit comfortably, single row.
-- If not, split into two explicit rows.
-- Follow-up Tracker special requirement supported via reusable prop (config-driven, not custom page markup): row 1 = Search + first 2 filters; row 2 = remaining filters + Reset.
-3) Keep API/backward compatibility of the component, but add optional layout config props (e.g., first-row filter cap / desktop split strategy) so pages can declare structure without custom UI code.
-4) Remove dynamic Tailwind span strings and breakpoint-conflicting inline grid behavior; use explicit grid templates per breakpoint.
-5) Fix debounce effect dependencies in the component to avoid stale search updates.
+## Summary
 
-Page wiring updates:
-- Keep all existing filters/business logic.
-- Add only layout-config props where required:
-  - `/audit/follow-up-tracker` (explicit 2-row distribution).
-  - Any other high-density filter pages if needed after QA (likely `/audit/activity-workbench`, `/audit/audit-reports`).
+Add a new `nwd_employee_levy_rate` column to `c3_config_details`, expose it in the Admin Configuration Details dialog (Levy tab), include it in the publish payload to C3-Wizard, and produce a migration guide for the C3-Wizard team.
 
-QA/test plan (must be completed before finalizing):
-Desktop + Tablet + Mobile checks for:
-- /audit/auditors
-- /audit/leave
-- /audit/holidays
-- /audit/audit-plans
-- /audit/activity-workbench
-- /audit/evidence
-- /audit/working-papers
-- /audit/findings
-- /audit/responses
-- /audit/actions
-- /audit/follow-up-tracker
-- /audit/plan-closeout
-- /audit/departments
-- /audit/functions
-- /audit/plan-approval
-- /audit/audit-reports
-- /audit/calendar
-- /audit/letters
-- /audit/communication-center
+## Database Change
 
-Acceptance checklist:
-- Search not over-dominant.
-- Dropdown/date widths balanced and equal-height.
-- Reset always right-aligned and visually connected.
-- No cramped date inputs.
-- Clean wrap behavior (no overflow/squeezing).
-- Consistent spacing/label alignment across all audited routes.
+Add one column to `c3_config_details`:
 
-Deliverable:
-- One corrected shared toolbar system + small page config touches only where needed + verified screenshots/route-by-route QA notes for the key problematic pages (Auditors, Audit Plans, Activity Workbench, Follow-up Tracker, Plan Closeout, Department Master).
+```sql
+ALTER TABLE c3_config_details 
+ADD COLUMN nwd_employee_levy_rate numeric DEFAULT 0.08;
+-- Stores as decimal (0.08 = 8%), consistent with all other rate columns
+```
+
+Default `0.08` ensures backward compatibility — existing periods automatically get the legacy 8% rate.
+
+## Code Changes
+
+### 1. `src/hooks/useC3ConfigManagement.ts`
+Add `nwd_employee_levy_rate: number` to the `C3ConfigDetails` interface.
+
+### 2. `src/components/admin/c3-period-config/C3ConfigDetailsDialog.tsx`
+Add a new field in the **Levy** tab, after the existing "Employer Levy Rate" field:
+
+```
+Label: "NWD Employee Levy Rate (%)"
+Helper: "Flat levy rate applied to Non-Working Directors"
+Input: number, step 0.01, uses handleRateChange (decimal ↔ percentage display)
+```
+
+### 3. `src/hooks/useC3ConfigPublish.ts` — `buildSyncPayload()`
+No code change needed. The payload already sends full `c3_config_details` rows via `details: details?.find(...)`. The new column will be automatically included once the migration runs and types regenerate.
+
+### 4. Sync Log Interface (`C3SyncLogEntry`)
+No changes needed — the NWD rate travels inside the existing `config_periods[].details` object.
+
+## C3-Wizard Team Integration Guide
+
+A markdown guide will be created at `docs/C3_WIZARD_NWD_LEVY_RATE_GUIDE.md` with:
+
+1. **What changed**: New field `nwd_employee_levy_rate` (decimal, e.g. `0.08` = 8%) in every `config_periods[].details` object of the sync payload.
+2. **Payload example**: Show the field location in the published JSON.
+3. **Migration steps for Wizard**:
+   - Read `nwd_employee_levy_rate` from the synced config for the active period.
+   - Replace all hardcoded `0.08` references with the dynamic value.
+   - Fallback: if field is `null` or missing (older payloads), default to `0.08`.
+4. **Calculation formula** (unchanged logic, dynamic rate):
+   ```
+   levyRate = config.nwd_employee_levy_rate  // e.g. 0.08
+   employeeLevy = totalWages * levyRate
+   penalty (if lateMonths >= 2) = employeeLevy * (levyRate + lateMonths/100)
+   ```
+5. **Testing checklist**: Verify with rate = 8%, then change to another value and republish.
+
+## Files to Change
+
+| File | Change |
+|---|---|
+| **Migration SQL** | Add `nwd_employee_levy_rate` column to `c3_config_details` |
+| `src/hooks/useC3ConfigManagement.ts` | Add field to `C3ConfigDetails` interface |
+| `src/components/admin/c3-period-config/C3ConfigDetailsDialog.tsx` | Add NWD rate input in Levy tab |
+| `docs/C3_WIZARD_NWD_LEVY_RATE_GUIDE.md` | New file — integration guide for C3-Wizard team |
+
+No changes needed to the publish hook or edge function — the new column flows through automatically.
+
