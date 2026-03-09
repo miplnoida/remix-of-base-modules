@@ -2132,6 +2132,7 @@ export type Database = {
           min_age_ss: number | null
           modified_by: string | null
           modified_on: string | null
+          nwd_employee_levy_rate: number | null
           severance_penalty_initial_rate: number | null
           severance_penalty_subsequent_rate: number | null
           ss_fine_initial_rate: number | null
@@ -2162,6 +2163,7 @@ export type Database = {
           min_age_ss?: number | null
           modified_by?: string | null
           modified_on?: string | null
+          nwd_employee_levy_rate?: number | null
           severance_penalty_initial_rate?: number | null
           severance_penalty_subsequent_rate?: number | null
           ss_fine_initial_rate?: number | null
@@ -2192,6 +2194,7 @@ export type Database = {
           min_age_ss?: number | null
           modified_by?: string | null
           modified_on?: string | null
+          nwd_employee_levy_rate?: number | null
           severance_penalty_initial_rate?: number | null
           severance_penalty_subsequent_rate?: number | null
           ss_fine_initial_rate?: number | null
