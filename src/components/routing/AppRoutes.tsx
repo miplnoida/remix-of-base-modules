@@ -48,8 +48,8 @@ import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
 import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
 import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
-import LegalEscalationPolicy from '@/pages/compliance/LegalEscalationPolicy';
-import LegalRecommendationQueue from '@/pages/compliance/LegalRecommendationQueue';
+import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
+import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // New Compliance & Enforcement pages
