@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 import { departments, auditors } from '@/data/auditData';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,12 +23,13 @@ interface DepartmentAuditFormProps {
   departmentAudit?: any;
   onClose: () => void;
   onSuccess?: () => void;
-  onCreate?: (data: any) => void;
-  onUpdate?: (data: any) => void;
+  onCreate?: (data: any) => Promise<any>;
+  onUpdate?: (data: any) => Promise<any>;
 }
 
 export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess, onCreate, onUpdate }: DepartmentAuditFormProps) {
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     departmentId: departmentAudit?.department_id || '',
@@ -65,7 +67,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.departmentId || !formData.monthYear || formData.selectedFunctions.length === 0) {
       toast({
         title: "Validation Error",
@@ -75,36 +77,47 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
       return;
     }
 
-    const deptObj = departments.find(d => d.id === formData.departmentId);
-    const payload: any = {
-      annual_plan_id: annualPlanId,
-      department_id: formData.departmentId,
-      department_name: deptObj?.name || '',
-      period: formData.period,
-      month_year: formData.monthYear,
-      functions: formData.selectedFunctions,
-      objective: formData.objective,
-      scope: formData.scope,
-      risk_rating: formData.riskRating,
-      lead_auditor_id: formData.leadAuditor || null,
-      team_member_ids: formData.teamMembers,
-      planned_start: formData.plannedStart || null,
-      planned_end: formData.plannedEnd || null,
-      status: 'Draft',
-    };
+    setIsSaving(true);
+    try {
+      const deptObj = departments.find(d => d.id === formData.departmentId);
+      const payload: any = {
+        annual_plan_id: annualPlanId,
+        department_id: formData.departmentId,
+        department_name: deptObj?.name || '',
+        period: formData.period,
+        month_year: formData.monthYear,
+        functions: formData.selectedFunctions,
+        objective: formData.objective,
+        scope: formData.scope,
+        risk_rating: formData.riskRating,
+        lead_auditor_id: formData.leadAuditor || null,
+        team_member_ids: formData.teamMembers,
+        planned_start: formData.plannedStart || null,
+        planned_end: formData.plannedEnd || null,
+        status: 'Draft',
+      };
 
-    if (departmentAudit && onUpdate) {
-      onUpdate({ id: departmentAudit.id, ...payload });
-    } else if (onCreate) {
-      onCreate(payload);
-    } else {
+      if (departmentAudit && onUpdate) {
+        await onUpdate({ id: departmentAudit.id, ...payload });
+      } else if (onCreate) {
+        await onCreate(payload);
+      }
       toast({
         title: departmentAudit ? "Audit Updated" : "Department Audit Saved",
         description: departmentAudit ? "Department audit plan has been updated successfully." : "Department audit plan has been added to the annual plan."
       });
+      onSuccess?.();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to save department audit:', error);
+      toast({
+        title: "Save Failed",
+        description: error?.message || "Could not save the department audit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
-    onSuccess?.();
-    onClose();
   };
 
   return (
@@ -285,8 +298,11 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
       </Card>
 
       <div className="flex justify-end space-x-4">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave}>Add Department Audit</Button>
+        <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Add Department Audit
+        </Button>
       </div>
     </div>
   );

@@ -1,56 +1,63 @@
 
+Goal: fully fix search/filter alignment by rebuilding the shared toolbar logic (not page-by-page hacks), then run route-by-route visual QA across all Internal Audit pages.
 
-# Fix: Annual Plan Not Persisting to Database
+What I found (from code + current preview):
+1) The current StandardSearchFilterBar is still unstable:
+- Desktop column math creates oversized empty reset areas when filters are few.
+- Multi-row logic distributes row 2 unevenly (especially 5-filter pages like Follow-up Tracker).
+- Inline `gridColumn` spans apply at all breakpoints, causing awkward tablet wrapping/alignment.
+- Dynamic class names like `lg:col-span-${colSpan}` are unreliable.
+2) Most Internal Audit list routes do use the shared component, so fixing it centrally will correct nearly all pages at once.
 
-## Root Cause Analysis
+Implementation plan:
+1) Rebuild `src/components/common/StandardSearchFilterBar.tsx` layout engine with strict deterministic rules:
+- Desktop: true 12-col grid only.
+- Default spans: Search=4, each filter=2, Reset fixed at far right.
+- No unpredictable flex growth.
+- Compact uniform controls (`h-9`), consistent label spacing, uniform gaps/padding.
+2) Replace current multi-row algorithm with controlled wrapping:
+- If controls fit comfortably, single row.
+- If not, split into two explicit rows.
+- Follow-up Tracker special requirement supported via reusable prop (config-driven, not custom page markup): row 1 = Search + first 2 filters; row 2 = remaining filters + Reset.
+3) Keep API/backward compatibility of the component, but add optional layout config props (e.g., first-row filter cap / desktop split strategy) so pages can declare structure without custom UI code.
+4) Remove dynamic Tailwind span strings and breakpoint-conflicting inline grid behavior; use explicit grid templates per breakpoint.
+5) Fix debounce effect dependencies in the component to avoid stale search updates.
 
-After thorough investigation:
-- The `ia_annual_plans` table exists, has correct schema, RLS is **disabled**, and `anon` role has full privileges
-- The table is **completely empty** -- no plans have ever been saved
-- The form code (`AnnualPlanForm.tsx`) correctly calls `onCreate(payload)` which maps to `createAnnual.mutate(data)`
-- The mutation hook correctly calls `supabase.from('ia_annual_plans').insert(plan)`
+Page wiring updates:
+- Keep all existing filters/business logic.
+- Add only layout-config props where required:
+  - `/audit/follow-up-tracker` (explicit 2-row distribution).
+  - Any other high-density filter pages if needed after QA (likely `/audit/activity-workbench`, `/audit/audit-reports`).
 
-**The real problem**: The form calls `onClose()` immediately after `onCreate(payload)`, regardless of whether the mutation succeeds or fails. The mutation runs asynchronously, but the modal closes instantly. If the mutation fails (e.g., network issue, Supabase client error), the error toast may never appear because the component unmounts. The user sees the form close and assumes it saved.
+QA/test plan (must be completed before finalizing):
+Desktop + Tablet + Mobile checks for:
+- /audit/auditors
+- /audit/leave
+- /audit/holidays
+- /audit/audit-plans
+- /audit/activity-workbench
+- /audit/evidence
+- /audit/working-papers
+- /audit/findings
+- /audit/responses
+- /audit/actions
+- /audit/follow-up-tracker
+- /audit/plan-closeout
+- /audit/departments
+- /audit/functions
+- /audit/plan-approval
+- /audit/audit-reports
+- /audit/calendar
+- /audit/letters
+- /audit/communication-center
 
-Additionally, there is no feedback loop -- the form provides no loading state, no success confirmation tied to actual DB write, and no error recovery.
+Acceptance checklist:
+- Search not over-dominant.
+- Dropdown/date widths balanced and equal-height.
+- Reset always right-aligned and visually connected.
+- No cramped date inputs.
+- Clean wrap behavior (no overflow/squeezing).
+- Consistent spacing/label alignment across all audited routes.
 
-## Plan
-
-### 1. Fix `AnnualPlanForm.tsx` -- Wait for mutation result before closing
-
-- Change `onCreate` and `onUpdate` props from fire-and-forget callbacks to **async functions** that return a Promise (or use `mutateAsync`)
-- Add `isSaving` loading state to disable buttons during submission
-- Only call `onClose()` after mutation succeeds
-- Show error inline if mutation fails (don't close the form)
-- Add `console.error` logging for debugging
-
-### 2. Fix `AuditPlansNew.tsx` -- Pass `mutateAsync` instead of `mutate`
-
-- Change `onCreate={(data) => createAnnual.mutate(data)}` to `onCreate={(data) => createAnnual.mutateAsync(data)}`
-- Same for `onUpdate` and all department audit form bindings
-- This allows the form to `await` the result
-
-### 3. Fix `DepartmentAuditForm.tsx` -- Same async pattern
-
-- Apply the same fix: await mutation, show loading, only close on success
-
-### 4. Fix `AuditPlans.tsx` (legacy route) -- Same pattern
-
-- Apply same `mutateAsync` wiring
-
-### 5. Add error logging to mutation hooks
-
-- In `useIAAnnualPlanMutations` and `useIADepartmentAuditMutations`, add `console.error` in `onError` callbacks for visibility
-
-## Files to Change
-
-| File | Change |
-|---|---|
-| `src/components/audit/AnnualPlanForm.tsx` | Make `onCreate`/`onUpdate` async, add loading state, only close on success |
-| `src/components/audit/DepartmentAuditForm.tsx` | Same async pattern |
-| `src/pages/audit/AuditPlansNew.tsx` | Use `mutateAsync` instead of `mutate` |
-| `src/pages/audit/AuditPlans.tsx` | Use `mutateAsync` instead of `mutate` |
-| `src/hooks/useAuditData.ts` | Add `console.error` to mutation error handlers |
-
-No database changes needed. No UI redesign.
-
+Deliverable:
+- One corrected shared toolbar system + small page config touches only where needed + verified screenshots/route-by-route QA notes for the key problematic pages (Auditors, Audit Plans, Activity Workbench, Follow-up Tracker, Plan Closeout, Department Master).

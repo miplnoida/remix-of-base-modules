@@ -308,7 +308,7 @@ export function useIAAnnualPlanMutations() {
       queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
       toast({ title: 'Plan Created', description: 'Audit plan has been created' });
     },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => { console.error('Annual plan create error:', e); toast({ title: 'Error', description: e.message, variant: 'destructive' }); },
   });
 
   const update = useMutation({
@@ -321,7 +321,7 @@ export function useIAAnnualPlanMutations() {
       queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
       toast({ title: 'Plan Updated' });
     },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => { console.error('Annual plan update error:', e); toast({ title: 'Error', description: e.message, variant: 'destructive' }); },
   });
 
   return { create, update };

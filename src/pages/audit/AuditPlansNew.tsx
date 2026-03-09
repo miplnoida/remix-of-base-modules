@@ -177,8 +177,8 @@ export default function AuditPlansNew() {
       <StandardModal open={isCreateAnnualOpen} onOpenChange={setIsCreateAnnualOpen} title="Create Annual Plan" mode="create" size="4xl">
         <AnnualPlanForm
           onClose={() => setIsCreateAnnualOpen(false)}
-          onCreate={(data) => createAnnual.mutate(data)}
-          onUpdate={(data) => updateAnnual.mutate(data)}
+          onCreate={(data) => createAnnual.mutateAsync(data)}
+          onUpdate={(data) => updateAnnual.mutateAsync(data)}
         />
       </StandardModal>
 
@@ -214,8 +214,8 @@ export default function AuditPlansNew() {
           <DepartmentAuditForm
             annualPlanId={selectedAnnualPlanId}
             onClose={() => setIsCreateDeptOpen(false)}
-            onCreate={(data) => createDept.mutate(data)}
-            onUpdate={(data) => updateDept.mutate(data)}
+            onCreate={(data) => createDept.mutateAsync(data)}
+            onUpdate={(data) => updateDept.mutateAsync(data)}
           />
         )}
       </StandardModal>
@@ -225,8 +225,8 @@ export default function AuditPlansNew() {
           <AnnualPlanForm
             plan={editAnnual}
             onClose={() => setEditAnnual(null)}
-            onCreate={(data) => createAnnual.mutate(data)}
-            onUpdate={(data) => updateAnnual.mutate(data)}
+            onCreate={(data) => createAnnual.mutateAsync(data)}
+            onUpdate={(data) => updateAnnual.mutateAsync(data)}
           />
         </StandardModal>
       )}
@@ -237,8 +237,8 @@ export default function AuditPlansNew() {
             annualPlanId={editDept.annual_plan_id}
             departmentAudit={editDept}
             onClose={() => setEditDept(null)}
-            onCreate={(data) => createDept.mutate(data)}
-            onUpdate={(data) => updateDept.mutate(data)}
+            onCreate={(data) => createDept.mutateAsync(data)}
+            onUpdate={(data) => updateDept.mutateAsync(data)}
           />
         </StandardModal>
       )}
