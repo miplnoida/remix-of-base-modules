@@ -24,6 +24,30 @@ export default function FunctionMaster() {
   const [editFunc, setEditFunc] = useState<any>(null);
   const [viewFunc, setViewFunc] = useState<any>(null);
   const [formData, setFormData] = useState({ departmentId: '', functionName: '', description: '', likelihood: 'Medium', impact: 'Medium', controlEffectiveness: 'Effective', responsiblePerson: '', notes: '' });
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  const bulkUploadFields: BulkUploadField[] = [
+    { key: 'functionName', label: 'Function Name', required: true },
+    { key: 'departmentName', label: 'Department', required: true, allowedValues: departments.map(d => d.name) },
+    { key: 'description', label: 'Description' },
+    { key: 'likelihood', label: 'Likelihood', allowedValues: ['Low', 'Medium', 'High'] },
+    { key: 'impact', label: 'Impact', allowedValues: ['Low', 'Medium', 'High'] },
+    { key: 'responsiblePerson', label: 'Responsible Person' },
+  ];
+
+  const handleBulkImport = async (data: Record<string, any>[]) => {
+    for (const row of data) {
+      const dept = departments.find(d => d.name === row.departmentName);
+      if (!dept) continue;
+      const l = row.likelihood || 'Medium';
+      const i = row.impact || 'Medium';
+      createFn.mutate({
+        department_id: dept.id, function_name: row.functionName, description: row.description || '',
+        risk_rating: calculateInherentRisk(l, i), likelihood: l, impact: i,
+        control_effectiveness: 'Effective', responsible_person: row.responsiblePerson || '', notes: '',
+      });
+    }
+  };
 
   const filteredFunctions = allFunctions.filter((f: any) => (f.function_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (f.description || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
