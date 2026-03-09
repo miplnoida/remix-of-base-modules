@@ -785,7 +785,10 @@ export default function C3Management() {
             {formMode === 'view' ? (
               <>
                 {/* Workflow Action Buttons for submitted records in view mode */}
-                {viewingRecord && viewingRecord.id && viewingRecord.postingStatus !== 'DFT' && viewingRecord.postingStatus !== 'Z' && (
+                {/* Show Accept/Reject for all submitted records (PEN status) */}
+                {/* IMPORTANT: Submission is the ONLY requirement to show these options */}
+                {/* Reject works without verification, Accept requires verification */}
+                {viewingRecord && viewingRecord.id && (viewingRecord.postingStatus === 'PEN' || viewingRecord.postingStatus === 'P') && (
                   <WorkflowActionButtons
                     sourceModule={`c3_${(viewingRecord.payerType || 'er').toLowerCase()}_submission`}
                     sourceRecordId={viewingRecord.id}
@@ -846,7 +849,10 @@ export default function C3Management() {
             ) : formMode === 'edit' ? (
               <>
                 {/* Workflow Action Buttons for submitted records in edit mode */}
-                {editingRecord && editingRecord.id && editingRecord.postingStatus !== 'DFT' && editingRecord.postingStatus !== 'Z' && (
+                {/* Show Accept/Reject for all submitted records (PEN status) */}
+                {/* IMPORTANT: Submission is the ONLY requirement to show these options */}
+                {/* Reject works without verification, Accept requires verification */}
+                {editingRecord && editingRecord.id && (editingRecord.postingStatus === 'PEN' || editingRecord.postingStatus === 'P') && (
                   <WorkflowActionButtons
                     sourceModule={`c3_${(editingRecord.payerType || 'er').toLowerCase()}_submission`}
                     sourceRecordId={editingRecord.id}
