@@ -28,7 +28,7 @@ export default function AuditEngagements() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
-  const [modalState, setModalState] = useState<{ mode: 'add' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
   const filtered = data.filter((r: any) => {
@@ -46,7 +46,7 @@ export default function AuditEngagements() {
     draft: data.filter((d: any) => d.status === 'Draft').length,
   };
 
-  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'add' }); };
+  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
   const openEdit = (r: any) => {
     setForm({ engagement_name: r.engagement_name || '', engagement_code: r.engagement_code || '', department_id: r.department_id || '', scope: r.scope || '', objectives: r.objectives || '', methodology: r.methodology || '', criteria: r.criteria || '', engagement_risk_rating: r.engagement_risk_rating || 'Medium', estimated_hours: r.estimated_hours || 0, budgeted_hours: r.budgeted_hours || 0, planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '', status: r.status || 'Draft' });
     setModalState({ mode: 'edit', record: r });
@@ -54,12 +54,14 @@ export default function AuditEngagements() {
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
 
   const handleSave = () => {
-    if (modalState.mode === 'add') {
+    if (modalState.mode === 'create') {
       create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     } else if (modalState.mode === 'edit' && modalState.record) {
       update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     }
   };
+
+  const isReadOnly = modalState.mode === 'view';
 
   const columns: DataTableColumn<any>[] = [
     { key: 'engagement_code', header: 'Code' },
@@ -72,11 +74,9 @@ export default function AuditEngagements() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'status', label: 'Status', options: [{ label: 'All', value: 'all' }, ...STATUSES.map(s => ({ label: s, value: s }))] },
-    { key: 'risk', label: 'Risk Rating', options: [{ label: 'All', value: 'all' }, ...RISK_RATINGS.map(r => ({ label: r, value: r }))] },
+    { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, ...STATUSES.map(s => ({ label: s, value: s }))] },
+    { key: 'risk', label: 'Risk Rating', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_RATINGS.map(r => ({ label: r, value: r }))] },
   ];
-
-  const isReadOnly = modalState.mode === 'view';
 
   return (
     <PageShell title="Audit Engagements" subtitle="Manage engagement-level planning and execution"
@@ -92,17 +92,17 @@ export default function AuditEngagements() {
       </div>
 
       <Card><CardContent className="p-4">
-        <StandardSearchFilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search engagements..." filters={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filterFields={filterFields} onReset={() => { setSearchTerm(''); setFilters({ status: 'all', risk: 'all' }); }} />
+        <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search engagements..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ status: 'all', risk: 'all' }); }} />
       </CardContent></Card>
 
       <Card><CardContent>
-        <DataTable columns={columns} data={filtered} onRowClick={openView}
-          actions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
+        <DataTable columns={columns} data={filtered} onView={openView}
+          renderActions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
       </CardContent></Card>
 
       <StandardModal open={modalState.mode !== null} onOpenChange={() => setModalState({ mode: null })}
-        title={modalState.mode === 'add' ? 'New Engagement' : modalState.mode === 'edit' ? 'Edit Engagement' : 'View Engagement'}
-        onSubmit={!isReadOnly ? handleSave : undefined} submitLabel="Save" isSubmitting={create.isPending || update.isPending} maxWidth="max-w-4xl">
+        title={modalState.mode === 'create' ? 'New Engagement' : modalState.mode === 'edit' ? 'Edit Engagement' : 'View Engagement'}
+        mode={modalState.mode || 'view'} onSave={handleSave} saveLabel="Save" isSaving={create.isPending || update.isPending} size="4xl">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Engagement Name</Label><Input value={form.engagement_name} onChange={e => setForm(f => ({ ...f, engagement_name: e.target.value }))} disabled={isReadOnly} /></div>

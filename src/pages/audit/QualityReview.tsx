@@ -15,12 +15,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 const REVIEW_TYPES = ['Post-Engagement', 'In-Progress', 'Peer Review', 'External'];
 const RATINGS = ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
 const DISPOSITIONS = ['Pending', 'Accepted', 'Rework Required', 'Closed'];
-
-const emptyForm = {
-  engagement_id: '', reviewer_id: '', review_date: new Date().toISOString().slice(0, 10),
-  review_type: 'Post-Engagement', quality_rating: 'Satisfactory', observations: '',
-  required_rework: false, final_disposition: 'Pending',
-};
+const emptyForm = { engagement_id: '', reviewer_id: '', review_date: new Date().toISOString().slice(0, 10), review_type: 'Post-Engagement', quality_rating: 'Satisfactory', observations: '', required_rework: false, final_disposition: 'Pending' };
 
 export default function QualityReview() {
   const { data = [], isLoading, isError, create, update } = useIAQualityReviews();
@@ -28,52 +23,29 @@ export default function QualityReview() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ rating: 'all', disposition: 'all' });
-  const [modalState, setModalState] = useState<{ mode: 'add' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
-  const filtered = data.filter((r: any) => {
-    const s = searchTerm.toLowerCase();
-    const ms = !s || r.reviewer_id?.toLowerCase().includes(s) || r.observations?.toLowerCase().includes(s);
-    const mRt = filters.rating === 'all' || r.quality_rating === filters.rating;
-    const mD = filters.disposition === 'all' || r.final_disposition === filters.disposition;
-    return ms && mRt && mD;
-  });
+  const filtered = data.filter((r: any) => (!searchTerm || r.reviewer_id?.toLowerCase().includes(searchTerm.toLowerCase())) && (filters.rating === 'all' || r.quality_rating === filters.rating) && (filters.disposition === 'all' || r.final_disposition === filters.disposition));
+  const stats = { total: data.length, excellent: data.filter((d: any) => d.quality_rating === 'Excellent' || d.quality_rating === 'Satisfactory').length, rework: data.filter((d: any) => d.required_rework).length, pending: data.filter((d: any) => d.final_disposition === 'Pending').length };
 
-  const stats = {
-    total: data.length,
-    excellent: data.filter((d: any) => d.quality_rating === 'Excellent' || d.quality_rating === 'Satisfactory').length,
-    rework: data.filter((d: any) => d.required_rework).length,
-    pending: data.filter((d: any) => d.final_disposition === 'Pending').length,
-  };
-
-  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'add' }); };
-  const openEdit = (r: any) => {
-    setForm({ engagement_id: r.engagement_id || '', reviewer_id: r.reviewer_id || '', review_date: r.review_date || '', review_type: r.review_type || 'Post-Engagement', quality_rating: r.quality_rating || 'Satisfactory', observations: r.observations || '', required_rework: r.required_rework || false, final_disposition: r.final_disposition || 'Pending' });
-    setModalState({ mode: 'edit', record: r });
-  };
+  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
+  const openEdit = (r: any) => { setForm({ engagement_id: r.engagement_id || '', reviewer_id: r.reviewer_id || '', review_date: r.review_date || '', review_type: r.review_type || 'Post-Engagement', quality_rating: r.quality_rating || 'Satisfactory', observations: r.observations || '', required_rework: r.required_rework || false, final_disposition: r.final_disposition || 'Pending' }); setModalState({ mode: 'edit', record: r }); };
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
-
   const handleSave = () => {
-    if (modalState.mode === 'add') {
-      create.mutate({ ...form, engagement_id: form.engagement_id || null, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
-    } else if (modalState.mode === 'edit' && modalState.record) {
-      update.mutate({ id: modalState.record.id, ...form, engagement_id: form.engagement_id || null, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
-    }
+    if (modalState.mode === 'create') create.mutate({ ...form, engagement_id: form.engagement_id || null, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+    else if (modalState.mode === 'edit' && modalState.record) update.mutate({ id: modalState.record.id, ...form, engagement_id: form.engagement_id || null, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'review_date', header: 'Date' },
-    { key: 'review_type', header: 'Type' },
-    { key: 'reviewer_id', header: 'Reviewer' },
+    { key: 'review_date', header: 'Date' }, { key: 'review_type', header: 'Type' }, { key: 'reviewer_id', header: 'Reviewer' },
     { key: 'quality_rating', header: 'Rating', render: (r) => <StatusBadge status={r.quality_rating} /> },
     { key: 'final_disposition', header: 'Disposition', render: (r) => <StatusBadge status={r.final_disposition} /> },
   ];
-
   const filterFields: StandardFilterField[] = [
-    { key: 'rating', label: 'Rating', options: [{ label: 'All', value: 'all' }, ...RATINGS.map(r => ({ label: r, value: r }))] },
-    { key: 'disposition', label: 'Disposition', options: [{ label: 'All', value: 'all' }, ...DISPOSITIONS.map(d => ({ label: d, value: d }))] },
+    { key: 'rating', label: 'Rating', type: 'select', options: [{ label: 'All', value: 'all' }, ...RATINGS.map(r => ({ label: r, value: r }))] },
+    { key: 'disposition', label: 'Disposition', type: 'select', options: [{ label: 'All', value: 'all' }, ...DISPOSITIONS.map(d => ({ label: d, value: d }))] },
   ];
-
   const isReadOnly = modalState.mode === 'view';
 
   return (
@@ -81,58 +53,34 @@ export default function QualityReview() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Quality Review' }]}
       actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Review</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Reviews" value={stats.total} icon={ClipboardCheck} variant="info" />
         <MetricCard title="Satisfactory+" value={stats.excellent} icon={Star} variant="success" />
         <MetricCard title="Rework Required" value={stats.rework} icon={AlertTriangle} variant="error" />
         <MetricCard title="Pending" value={stats.pending} icon={CheckCircle} variant="warning" />
       </div>
-
       <Card><CardContent className="p-4">
-        <StandardSearchFilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search reviews..." filters={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filterFields={filterFields} onReset={() => { setSearchTerm(''); setFilters({ rating: 'all', disposition: 'all' }); }} />
+        <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search reviews..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ rating: 'all', disposition: 'all' }); }} />
       </CardContent></Card>
-
       <Card><CardContent>
-        <DataTable columns={columns} data={filtered} onRowClick={openView}
-          actions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
+        <DataTable columns={columns} data={filtered} onView={openView}
+          renderActions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
       </CardContent></Card>
-
       <StandardModal open={modalState.mode !== null} onOpenChange={() => setModalState({ mode: null })}
-        title={modalState.mode === 'add' ? 'New Quality Review' : modalState.mode === 'edit' ? 'Edit Review' : 'View Review'}
-        onSubmit={!isReadOnly ? handleSave : undefined} submitLabel="Save" isSubmitting={create.isPending || update.isPending}>
+        title={modalState.mode === 'create' ? 'New Quality Review' : modalState.mode === 'edit' ? 'Edit Review' : 'View Review'}
+        mode={modalState.mode || 'view'} onSave={handleSave} saveLabel="Save" isSaving={create.isPending || update.isPending}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Engagement</Label>
-              <Select value={form.engagement_id} onValueChange={v => setForm(f => ({ ...f, engagement_id: v }))} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue placeholder="Select engagement" /></SelectTrigger>
-                <SelectContent>{engagements.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.engagement_name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+            <div><Label>Engagement</Label><Select value={form.engagement_id} onValueChange={v => setForm(f => ({ ...f, engagement_id: v }))} disabled={isReadOnly}><SelectTrigger><SelectValue placeholder="Select engagement" /></SelectTrigger><SelectContent>{engagements.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.engagement_name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Review Date</Label><Input type="date" value={form.review_date} onChange={e => setForm(f => ({ ...f, review_date: e.target.value }))} disabled={isReadOnly} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Review Type</Label>
-              <Select value={form.review_type} onValueChange={v => setForm(f => ({ ...f, review_type: v }))} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{REVIEW_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Quality Rating</Label>
-              <Select value={form.quality_rating} onValueChange={v => setForm(f => ({ ...f, quality_rating: v }))} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{RATINGS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+            <div><Label>Review Type</Label><Select value={form.review_type} onValueChange={v => setForm(f => ({ ...f, review_type: v }))} disabled={isReadOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{REVIEW_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Quality Rating</Label><Select value={form.quality_rating} onValueChange={v => setForm(f => ({ ...f, quality_rating: v }))} disabled={isReadOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RATINGS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div><Label>Reviewer</Label><Input value={form.reviewer_id} onChange={e => setForm(f => ({ ...f, reviewer_id: e.target.value }))} disabled={isReadOnly} /></div>
           <div><Label>Observations</Label><Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} disabled={isReadOnly} /></div>
-          <div><Label>Final Disposition</Label>
-            <Select value={form.final_disposition} onValueChange={v => setForm(f => ({ ...f, final_disposition: v }))} disabled={isReadOnly}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{DISPOSITIONS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+          <div><Label>Disposition</Label><Select value={form.final_disposition} onValueChange={v => setForm(f => ({ ...f, final_disposition: v }))} disabled={isReadOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{DISPOSITIONS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div>
         </div>
       </StandardModal>
     </PageShell>

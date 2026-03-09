@@ -27,7 +27,7 @@ export default function RiskAssessment() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ risk_level: 'all' });
-  const [modalState, setModalState] = useState<{ mode: 'add' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
   const filtered = data.filter((r: any) => {
@@ -54,14 +54,13 @@ export default function RiskAssessment() {
     setForm(f => {
       const updated = { ...f, [key]: val };
       if (['impact_score', 'likelihood_score', 'control_effectiveness_score', 'velocity_score', 'regulatory_score', 'reputational_score'].includes(key)) {
-        const calc = calcOverall(updated);
-        return { ...updated, ...calc };
+        return { ...updated, ...calcOverall(updated) };
       }
       return updated;
     });
   };
 
-  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'add' }); };
+  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
   const openEdit = (r: any) => {
     setForm({ audit_universe_id: r.audit_universe_id || '', assessment_date: r.assessment_date || '', assessed_by: r.assessed_by || '', impact_score: r.impact_score || 0, likelihood_score: r.likelihood_score || 0, control_effectiveness_score: r.control_effectiveness_score || 0, velocity_score: r.velocity_score || 0, regulatory_score: r.regulatory_score || 0, reputational_score: r.reputational_score || 0, overall_risk_score: r.overall_risk_score || 0, risk_level: r.risk_level || 'Medium', notes: r.notes || '' });
     setModalState({ mode: 'edit', record: r });
@@ -69,7 +68,7 @@ export default function RiskAssessment() {
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
 
   const handleSave = () => {
-    if (modalState.mode === 'add') {
+    if (modalState.mode === 'create') {
       create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     } else if (modalState.mode === 'edit' && modalState.record) {
       update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
@@ -86,7 +85,7 @@ export default function RiskAssessment() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'risk_level', label: 'Risk Level', options: [{ label: 'All', value: 'all' }, ...RISK_LEVELS.map(t => ({ label: t, value: t }))] },
+    { key: 'risk_level', label: 'Risk Level', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_LEVELS.map(t => ({ label: t, value: t }))] },
   ];
 
   const isReadOnly = modalState.mode === 'view';
@@ -105,17 +104,17 @@ export default function RiskAssessment() {
       </div>
 
       <Card><CardContent className="p-4">
-        <StandardSearchFilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search assessments..." filters={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filterFields={filterFields} onReset={() => { setSearchTerm(''); setFilters({ risk_level: 'all' }); }} />
+        <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search assessments..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ risk_level: 'all' }); }} />
       </CardContent></Card>
 
       <Card><CardContent>
-        <DataTable columns={columns} data={filtered} onRowClick={openView}
-          actions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
+        <DataTable columns={columns} data={filtered} onView={openView}
+          renderActions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
       </CardContent></Card>
 
       <StandardModal open={modalState.mode !== null} onOpenChange={() => setModalState({ mode: null })}
-        title={modalState.mode === 'add' ? 'New Risk Assessment' : modalState.mode === 'edit' ? 'Edit Assessment' : 'View Assessment'}
-        onSubmit={!isReadOnly ? handleSave : undefined} submitLabel="Save" isSubmitting={create.isPending || update.isPending}>
+        title={modalState.mode === 'create' ? 'New Risk Assessment' : modalState.mode === 'edit' ? 'Edit Assessment' : 'View Assessment'}
+        mode={modalState.mode || 'view'} onSave={handleSave} saveLabel="Save" isSaving={create.isPending || update.isPending}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Auditable Entity</Label>

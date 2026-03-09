@@ -27,7 +27,7 @@ export default function AuditUniverse() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ entity_type: 'all', risk_category: 'all', status: 'all' });
-  const [modalState, setModalState] = useState<{ mode: 'add' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [modalState, setModalState] = useState<{ mode: 'view' | 'edit' | 'create' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
   const filtered = data.filter((r: any) => {
@@ -46,7 +46,7 @@ export default function AuditUniverse() {
     active: data.filter((d: any) => d.status === 'Active').length,
   };
 
-  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'add' }); };
+  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
   const openEdit = (r: any) => {
     setForm({ entity_name: r.entity_name || '', entity_code: r.entity_code || '', entity_type: r.entity_type || 'Department', process_owner: r.process_owner || '', risk_category: r.risk_category || 'Medium', inherent_risk_score: r.inherent_risk_score || 0, residual_risk_score: r.residual_risk_score || 0, materiality: r.materiality || '', regulatory_impact: r.regulatory_impact || '', audit_frequency: r.audit_frequency || 'Annual', status: r.status || 'Active' });
     setModalState({ mode: 'edit', record: r });
@@ -54,7 +54,7 @@ export default function AuditUniverse() {
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
 
   const handleSave = () => {
-    if (modalState.mode === 'add') {
+    if (modalState.mode === 'create') {
       create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     } else if (modalState.mode === 'edit' && modalState.record) {
       update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
@@ -74,12 +74,10 @@ export default function AuditUniverse() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'entity_type', label: 'Entity Type', options: [{ label: 'All Types', value: 'all' }, ...ENTITY_TYPES.map(t => ({ label: t, value: t }))] },
-    { key: 'risk_category', label: 'Risk Category', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(t => ({ label: t, value: t }))] },
-    { key: 'status', label: 'Status', options: [{ label: 'All', value: 'all' }, { label: 'Active', value: 'Active' }, { label: 'Inactive', value: 'Inactive' }] },
+    { key: 'entity_type', label: 'Entity Type', type: 'select', options: [{ label: 'All Types', value: 'all' }, ...ENTITY_TYPES.map(t => ({ label: t, value: t }))] },
+    { key: 'risk_category', label: 'Risk Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(t => ({ label: t, value: t }))] },
+    { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, { label: 'Active', value: 'Active' }, { label: 'Inactive', value: 'Inactive' }] },
   ];
-
-  const isReadOnly = modalState.mode === 'view';
 
   return (
     <PageShell title="Audit Universe" subtitle="Master list of all auditable entities across the organization"
@@ -95,12 +93,12 @@ export default function AuditUniverse() {
       </div>
 
       <Card><CardContent className="p-4">
-        <StandardSearchFilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search entities..." filters={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filterFields={filterFields} onReset={() => { setSearchTerm(''); setFilters({ entity_type: 'all', risk_category: 'all', status: 'all' }); }} />
+        <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search entities..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ entity_type: 'all', risk_category: 'all', status: 'all' }); }} />
       </CardContent></Card>
 
       <Card><CardContent>
-        <DataTable columns={columns} data={filtered} onRowClick={openView}
-          actions={(row) => (
+        <DataTable columns={columns} data={filtered} onView={openView}
+          renderActions={(row) => (
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); archive.mutate(row.id); }}>Archive</Button>
@@ -109,42 +107,42 @@ export default function AuditUniverse() {
       </CardContent></Card>
 
       <StandardModal open={modalState.mode !== null} onOpenChange={() => setModalState({ mode: null })}
-        title={modalState.mode === 'add' ? 'Add Auditable Entity' : modalState.mode === 'edit' ? 'Edit Entity' : 'View Entity'}
-        onSubmit={!isReadOnly ? handleSave : undefined} submitLabel={modalState.mode === 'add' ? 'Create' : 'Save Changes'} isSubmitting={create.isPending || update.isPending}>
+        title={modalState.mode === 'create' ? 'Add Auditable Entity' : modalState.mode === 'edit' ? 'Edit Entity' : 'View Entity'}
+        mode={modalState.mode || 'view'} onSave={handleSave} saveLabel={modalState.mode === 'create' ? 'Create' : 'Save Changes'} isSaving={create.isPending || update.isPending}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Entity Name</Label><Input value={form.entity_name} onChange={e => setForm(f => ({ ...f, entity_name: e.target.value }))} disabled={isReadOnly} /></div>
-            <div><Label>Entity Code</Label><Input value={form.entity_code} onChange={e => setForm(f => ({ ...f, entity_code: e.target.value }))} disabled={isReadOnly} /></div>
+            <div><Label>Entity Name</Label><Input value={form.entity_name} onChange={e => setForm(f => ({ ...f, entity_name: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+            <div><Label>Entity Code</Label><Input value={form.entity_code} onChange={e => setForm(f => ({ ...f, entity_code: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Entity Type</Label>
-              <Select value={form.entity_type} onValueChange={v => setForm(f => ({ ...f, entity_type: v }))} disabled={isReadOnly}>
+              <Select value={form.entity_type} onValueChange={v => setForm(f => ({ ...f, entity_type: v }))} disabled={modalState.mode === 'view'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Process Owner</Label><Input value={form.process_owner} onChange={e => setForm(f => ({ ...f, process_owner: e.target.value }))} disabled={isReadOnly} /></div>
+            <div><Label>Process Owner</Label><Input value={form.process_owner} onChange={e => setForm(f => ({ ...f, process_owner: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Risk Category</Label>
-              <Select value={form.risk_category} onValueChange={v => setForm(f => ({ ...f, risk_category: v }))} disabled={isReadOnly}>
+              <Select value={form.risk_category} onValueChange={v => setForm(f => ({ ...f, risk_category: v }))} disabled={modalState.mode === 'view'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RISK_CATEGORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Audit Frequency</Label>
-              <Select value={form.audit_frequency} onValueChange={v => setForm(f => ({ ...f, audit_frequency: v }))} disabled={isReadOnly}>
+              <Select value={form.audit_frequency} onValueChange={v => setForm(f => ({ ...f, audit_frequency: v }))} disabled={modalState.mode === 'view'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{FREQUENCIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Inherent Risk Score</Label><Input type="number" value={form.inherent_risk_score} onChange={e => setForm(f => ({ ...f, inherent_risk_score: Number(e.target.value) }))} disabled={isReadOnly} /></div>
-            <div><Label>Residual Risk Score</Label><Input type="number" value={form.residual_risk_score} onChange={e => setForm(f => ({ ...f, residual_risk_score: Number(e.target.value) }))} disabled={isReadOnly} /></div>
+            <div><Label>Inherent Risk Score</Label><Input type="number" value={form.inherent_risk_score} onChange={e => setForm(f => ({ ...f, inherent_risk_score: Number(e.target.value) }))} disabled={modalState.mode === 'view'} /></div>
+            <div><Label>Residual Risk Score</Label><Input type="number" value={form.residual_risk_score} onChange={e => setForm(f => ({ ...f, residual_risk_score: Number(e.target.value) }))} disabled={modalState.mode === 'view'} /></div>
           </div>
-          <div><Label>Materiality</Label><Input value={form.materiality} onChange={e => setForm(f => ({ ...f, materiality: e.target.value }))} disabled={isReadOnly} /></div>
-          <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={isReadOnly} /></div>
+          <div><Label>Materiality</Label><Input value={form.materiality} onChange={e => setForm(f => ({ ...f, materiality: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+          <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
         </div>
       </StandardModal>
     </PageShell>
