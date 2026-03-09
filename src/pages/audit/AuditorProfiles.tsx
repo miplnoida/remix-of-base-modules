@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Award, X } from 'lucide-react';
+import { Plus, Award, X, Upload } from 'lucide-react';
 import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge } from '@/components/common';
-import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import type { DataTableColumn, StandardFilterField, BulkUploadField, ExportColumn } from '@/components/common';
 
 const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
 const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
