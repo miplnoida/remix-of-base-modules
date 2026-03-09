@@ -5,8 +5,7 @@ import { PageShell } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { FileText, AlertTriangle, Clock, Download } from 'lucide-react';
 import { useIAEngagements, useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
-import { useIAFindings } from '@/hooks/useAuditDataExtended2';
-import { useIAActions } from '@/hooks/useAuditData';
+import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CommitteeReports() {
