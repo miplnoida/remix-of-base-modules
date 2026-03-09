@@ -110,6 +110,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
 
   // ===== Administration =====
   { moduleKey: 'system-config', label: 'System Configuration', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'administration', component: 'AuditConfig' },
+  { moduleKey: 'sla-rules', label: 'SLA & Escalation Rules', path: '/audit/sla-rules', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SLA_RULES, category: 'administration', component: 'SLARules' },
   { moduleKey: 'department-master', label: 'Department Master', path: '/audit/departments', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_DEPARTMENT_MASTER, category: 'administration', component: 'DepartmentMaster' },
   { moduleKey: 'function-master', label: 'Function Master', path: '/audit/functions', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FUNCTION_MASTER, category: 'administration', component: 'FunctionMaster' },
   { moduleKey: 'templates', label: 'Templates', path: '/audit/templates', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_TEMPLATES, category: 'administration', component: 'ModuleTemplates' },
