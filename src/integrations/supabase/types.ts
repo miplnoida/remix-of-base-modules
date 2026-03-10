@@ -9032,6 +9032,39 @@ export type Database = {
           },
         ]
       }
+      ia_control_effectiveness_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          reduction_percentage: number
+          sort_order: number | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          reduction_percentage: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          reduction_percentage?: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_control_test_results: {
         Row: {
           control_test_id: string | null
@@ -10224,6 +10257,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           effectiveness: string | null
+          effectiveness_reduction: number | null
           frequency: string | null
           id: string
           is_active: boolean | null
@@ -10237,6 +10271,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           effectiveness?: string | null
+          effectiveness_reduction?: number | null
           frequency?: string | null
           id?: string
           is_active?: boolean | null
@@ -10250,6 +10285,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           effectiveness?: string | null
+          effectiveness_reduction?: number | null
           frequency?: string | null
           id?: string
           is_active?: boolean | null
@@ -10272,6 +10308,7 @@ export type Database = {
           created_by: string | null
           department_id: string | null
           description: string | null
+          function_id: string | null
           id: string
           is_active: boolean | null
           owner: string | null
@@ -10285,6 +10322,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           description?: string | null
+          function_id?: string | null
           id?: string
           is_active?: boolean | null
           owner?: string | null
@@ -10298,6 +10336,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           description?: string | null
+          function_id?: string | null
           id?: string
           is_active?: boolean | null
           owner?: string | null
@@ -10314,6 +10353,13 @@ export type Database = {
             referencedRelation: "ia_departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ia_rcm_processes_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_functions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ia_rcm_risks: {
@@ -10324,9 +10370,12 @@ export type Database = {
           description: string
           id: string
           impact: number | null
+          inherent_risk_score: number | null
           is_active: boolean | null
           likelihood: number | null
           process_id: string | null
+          residual_risk_score: number | null
+          risk_level: string | null
           risk_score: number | null
         }
         Insert: {
@@ -10336,9 +10385,12 @@ export type Database = {
           description: string
           id?: string
           impact?: number | null
+          inherent_risk_score?: number | null
           is_active?: boolean | null
           likelihood?: number | null
           process_id?: string | null
+          residual_risk_score?: number | null
+          risk_level?: string | null
           risk_score?: number | null
         }
         Update: {
@@ -10348,9 +10400,12 @@ export type Database = {
           description?: string
           id?: string
           impact?: number | null
+          inherent_risk_score?: number | null
           is_active?: boolean | null
           likelihood?: number | null
           process_id?: string | null
+          residual_risk_score?: number | null
+          risk_level?: string | null
           risk_score?: number | null
         }
         Relationships: [
@@ -10585,6 +10640,42 @@ export type Database = {
           },
         ]
       }
+      ia_risk_classification_thresholds: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          max_score: number
+          min_score: number
+          sort_order: number | null
+          updated_by: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          max_score: number
+          min_score: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          max_score?: number
+          min_score?: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_risk_criteria: {
         Row: {
           created_at: string
@@ -10661,6 +10752,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_risk_impact_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          score: number
+          sort_order: number | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          score: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          score?: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_risk_likelihood_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          score: number
+          sort_order: number | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          score: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          score?: number
+          sort_order?: number | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       ia_risk_scoring_models: {
         Row: {
