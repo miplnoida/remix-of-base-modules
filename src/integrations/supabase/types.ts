@@ -5960,6 +5960,453 @@ export type Database = {
           },
         ]
       }
+      db_diagram_access_log: {
+        Row: {
+          accessed_at: string | null
+          action: string
+          details: string | null
+          id: string
+          ip_address: string | null
+          module_id: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          action: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          module_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          module_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      db_diagram_analysis_logs: {
+        Row: {
+          analysis_scope: string | null
+          created_at: string | null
+          duration_ms: number | null
+          errors: string | null
+          id: string
+          module_id: string | null
+          relationships_found: number | null
+          status: string | null
+          tables_found: number | null
+          triggered_at: string | null
+          triggered_by: string | null
+          warnings: string | null
+        }
+        Insert: {
+          analysis_scope?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          errors?: string | null
+          id?: string
+          module_id?: string | null
+          relationships_found?: number | null
+          status?: string | null
+          tables_found?: number | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          warnings?: string | null
+        }
+        Update: {
+          analysis_scope?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          errors?: string | null
+          id?: string
+          module_id?: string | null
+          relationships_found?: number | null
+          status?: string | null
+          tables_found?: number | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          warnings?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_analysis_logs_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_module_dependencies: {
+        Row: {
+          created_at: string | null
+          criticality: string | null
+          dependency_type: string | null
+          description: string | null
+          id: string
+          last_analyzed_at: string | null
+          source_module_id: string | null
+          tables_involved: string | null
+          target_module_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          criticality?: string | null
+          dependency_type?: string | null
+          description?: string | null
+          id?: string
+          last_analyzed_at?: string | null
+          source_module_id?: string | null
+          tables_involved?: string | null
+          target_module_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          criticality?: string | null
+          dependency_type?: string | null
+          description?: string | null
+          id?: string
+          last_analyzed_at?: string | null
+          source_module_id?: string | null
+          tables_involved?: string | null
+          target_module_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_module_dependencies_source_module_id_fkey"
+            columns: ["source_module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "db_diagram_module_dependencies_target_module_id_fkey"
+            columns: ["target_module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_modules: {
+        Row: {
+          created_at: string | null
+          current_version_no: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_analyzed_at: string | null
+          last_analyzed_by: string | null
+          module_code: string
+          module_name: string
+          remarks: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_version_no?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_analyzed_at?: string | null
+          last_analyzed_by?: string | null
+          module_code: string
+          module_name: string
+          remarks?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_version_no?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_analyzed_at?: string | null
+          last_analyzed_by?: string | null
+          module_code?: string
+          module_name?: string
+          remarks?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      db_diagram_object_references: {
+        Row: {
+          created_at: string | null
+          id: string
+          module_id: string | null
+          object_name: string
+          object_type: string
+          reference_path: string | null
+          remarks: string | null
+          table_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          module_id?: string | null
+          object_name: string
+          object_type: string
+          reference_path?: string | null
+          remarks?: string | null
+          table_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          module_id?: string | null
+          object_name?: string
+          object_type?: string
+          reference_path?: string | null
+          remarks?: string | null
+          table_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_object_references_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "db_diagram_object_references_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_relationships: {
+        Row: {
+          cardinality: string | null
+          created_at: string | null
+          dependency_strength: string | null
+          description: string | null
+          id: string
+          is_inferred: boolean | null
+          is_physical_fk: boolean | null
+          last_analyzed_at: string | null
+          relationship_type: string | null
+          source_column: string
+          source_table_id: string | null
+          target_column: string
+          target_table_id: string | null
+        }
+        Insert: {
+          cardinality?: string | null
+          created_at?: string | null
+          dependency_strength?: string | null
+          description?: string | null
+          id?: string
+          is_inferred?: boolean | null
+          is_physical_fk?: boolean | null
+          last_analyzed_at?: string | null
+          relationship_type?: string | null
+          source_column: string
+          source_table_id?: string | null
+          target_column: string
+          target_table_id?: string | null
+        }
+        Update: {
+          cardinality?: string | null
+          created_at?: string | null
+          dependency_strength?: string | null
+          description?: string | null
+          id?: string
+          is_inferred?: boolean | null
+          is_physical_fk?: boolean | null
+          last_analyzed_at?: string | null
+          relationship_type?: string | null
+          source_column?: string
+          source_table_id?: string | null
+          target_column?: string
+          target_table_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_relationships_source_table_id_fkey"
+            columns: ["source_table_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "db_diagram_relationships_target_table_id_fkey"
+            columns: ["target_table_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_table_module_map: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          is_primary_owner: boolean | null
+          module_id: string | null
+          ownership_type: string | null
+          remarks: string | null
+          table_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          is_primary_owner?: boolean | null
+          module_id?: string | null
+          ownership_type?: string | null
+          remarks?: string | null
+          table_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          is_primary_owner?: boolean | null
+          module_id?: string | null
+          ownership_type?: string | null
+          remarks?: string | null
+          table_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_table_module_map_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "db_diagram_table_module_map_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_tables: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          estimated_row_count: number | null
+          foreign_key_summary: string | null
+          id: string
+          index_summary: string | null
+          is_physical_table: boolean | null
+          is_shared: boolean | null
+          is_view: boolean | null
+          last_analyzed_at: string | null
+          module_id: string | null
+          primary_key_summary: string | null
+          schema_name: string | null
+          table_category: string | null
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          estimated_row_count?: number | null
+          foreign_key_summary?: string | null
+          id?: string
+          index_summary?: string | null
+          is_physical_table?: boolean | null
+          is_shared?: boolean | null
+          is_view?: boolean | null
+          last_analyzed_at?: string | null
+          module_id?: string | null
+          primary_key_summary?: string | null
+          schema_name?: string | null
+          table_category?: string | null
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          estimated_row_count?: number | null
+          foreign_key_summary?: string | null
+          id?: string
+          index_summary?: string | null
+          is_physical_table?: boolean | null
+          is_shared?: boolean | null
+          is_view?: boolean | null
+          last_analyzed_at?: string | null
+          module_id?: string | null
+          primary_key_summary?: string | null
+          schema_name?: string | null
+          table_category?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_tables_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      db_diagram_versions: {
+        Row: {
+          created_at: string | null
+          generated_at: string | null
+          generated_by: string | null
+          generation_type: string | null
+          id: string
+          is_current: boolean | null
+          module_id: string | null
+          snapshot_json: Json | null
+          summary: string | null
+          version_no: number
+        }
+        Insert: {
+          created_at?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          generation_type?: string | null
+          id?: string
+          is_current?: boolean | null
+          module_id?: string | null
+          snapshot_json?: Json | null
+          summary?: string | null
+          version_no: number
+        }
+        Update: {
+          created_at?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          generation_type?: string | null
+          id?: string
+          is_current?: boolean | null
+          module_id?: string | null
+          snapshot_json?: Json | null
+          summary?: string | null
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_versions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       designation_hierarchy: {
         Row: {
           created_at: string
@@ -19223,6 +19670,16 @@ export type Database = {
           column_name: string
           data_type: string
           is_nullable: boolean
+        }[]
+      }
+      get_table_foreign_keys: {
+        Args: never
+        Returns: {
+          constraint_name: string
+          source_column: string
+          source_table: string
+          target_column: string
+          target_table: string
         }[]
       }
       get_user_accessible_modules: {
