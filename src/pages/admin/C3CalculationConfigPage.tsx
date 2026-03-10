@@ -52,7 +52,7 @@ export default function C3CalculationConfigPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="inline-flex w-max min-w-full md:w-full md:grid md:grid-cols-6 gap-1">
+            <TabsList className="inline-flex w-max min-w-full md:w-full md:grid md:grid-cols-7 gap-1">
               {groupedConfigs.map(group => (
                 <TabsTrigger 
                   key={group.category} 
