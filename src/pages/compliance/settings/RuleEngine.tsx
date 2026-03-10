@@ -621,7 +621,7 @@ const DetectionRuleDialog = ({
 // ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes,
+  open, onOpenChange, rule, onSave, saving, existingCodes, formulaOps,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -629,6 +629,7 @@ const CalculationRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  formulaOps: FormulaOperand[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
