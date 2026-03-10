@@ -756,7 +756,7 @@ const CalculationRuleDialog = ({
 const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
 
 const EscalationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes,
+  open, onOpenChange, rule, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -764,6 +764,7 @@ const EscalationRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  conditionVars: ConditionVar[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
