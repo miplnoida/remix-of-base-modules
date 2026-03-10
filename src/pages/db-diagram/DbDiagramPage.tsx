@@ -45,6 +45,7 @@ import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { TableNode } from './components/TableNode';
 import { ModuleDependencyView } from './components/ModuleDependencyView';
 import { exportDbDiagramToPdf } from './utils/pdfExport';
+import { PdfExportDialog, type PdfExportSettings } from './components/PdfExportDialog';
 
 const nodeTypes = { tableNode: TableNode };
 
