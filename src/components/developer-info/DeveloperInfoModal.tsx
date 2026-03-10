@@ -447,7 +447,7 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
               </CollapsibleSection>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
