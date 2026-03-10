@@ -1,24 +1,34 @@
-// Utility functions for calculating Mondays in a month for C3 Management
+// Utility functions for calculating week-start-days in a month for C3 Management
+// The "week start day" is configurable (1=Monday..7=Sunday). Default: 1 (Monday).
 
 /**
- * Get all Mondays in a given month and year
+ * Convert week start day (1=Mon..7=Sun) to JS Date.getDay() format (0=Sun..6=Sat)
  */
-export function getMondaysInMonth(year: number, month: number): Date[] {
-  const mondays: Date[] = [];
+function toJsDow(weekStartDay: number): number {
+  return weekStartDay === 7 ? 0 : weekStartDay;
+}
+
+/**
+ * Get all occurrences of the configured week-start-day in a given month and year
+ * @param weekStartDay 1=Monday, 2=Tuesday, ..., 7=Sunday (default: 1)
+ */
+export function getMondaysInMonth(year: number, month: number, weekStartDay: number = 1): Date[] {
+  const targetDow = toJsDow(weekStartDay);
+  const results: Date[] = [];
   const date = new Date(year, month, 1);
   
-  // Find the first Monday
-  while (date.getDay() !== 1) {
+  // Find the first occurrence
+  while (date.getDay() !== targetDow) {
     date.setDate(date.getDate() + 1);
   }
   
-  // Collect all Mondays in the month
+  // Collect all occurrences in the month
   while (date.getMonth() === month) {
-    mondays.push(new Date(date));
+    results.push(new Date(date));
     date.setDate(date.getDate() + 7);
   }
   
-  return mondays;
+  return results;
 }
 
 /**
