@@ -388,7 +388,7 @@ export default function DataEntryGrid({
     const w1Input = row.wageInputs[0];
     if (w1Value <= 0 || !w1Input) return;
 
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     
     // Only auto-fill if all other enabled weeks are blank/zero
     const allOthersBlank = generatedWeekIndices.every(j => j === 0 || (row.weeklyWages[j] || 0) === 0);
