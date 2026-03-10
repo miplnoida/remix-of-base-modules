@@ -145,6 +145,27 @@ const FALLBACK_FORMULA_OPERANDS = [
   { value: 'months_overdue', label: 'Months Overdue', group: 'Time', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
 ];
 
+const CONDITION_OPERATORS = [
+  { value: '>', label: '>' },
+  { value: '>=', label: '>=' },
+  { value: '<', label: '<' },
+  { value: '<=', label: '<=' },
+  { value: '==', label: '=' },
+  { value: '!=', label: '≠' },
+];
+
+const BOOLEAN_OPERATORS = [
+  { value: '==', label: 'is' },
+  { value: '!=', label: 'is not' },
+];
+
+const FORMULA_OPERATORS = [
+  { value: '*', label: '×' },
+  { value: '+', label: '+' },
+  { value: '-', label: '−' },
+  { value: '/', label: '÷' },
+];
+
 // ── Auto-generate rule code ──
 
 function generateNextCode(existingCodes: string[], prefix: string): string {
@@ -167,7 +188,6 @@ interface ConditionRow {
 
 function parseConditionExpression(expr: string | null): ConditionRow[] {
   if (!expr || !expr.trim()) return [{ variable: '', operator: '>', value: '', conjunction: 'AND' }];
-  // Try to parse conditions like "var > val AND var2 >= val2"
   const parts = expr.split(/\s+(AND|OR)\s+/i);
   const rows: ConditionRow[] = [];
   for (let i = 0; i < parts.length; i += 2) {
@@ -193,7 +213,17 @@ function buildConditionExpression(rows: ConditionRow[]): string {
     .join(' ');
 }
 
-const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+interface ConditionVar {
+  value: string;
+  label: string;
+  type: string;
+  description: string | null;
+  sourceTable: string | null;
+  sourceColumn: string | null;
+  c3ConfigKey: string | null;
+}
+
+const ConditionBuilder = ({ value, onChange, variables }: { value: string; onChange: (v: string) => void; variables: ConditionVar[] }) => {
   const [rows, setRows] = useState<ConditionRow[]>(() => parseConditionExpression(value));
 
   const updateRow = (idx: number, field: keyof ConditionRow, val: string) => {
@@ -218,7 +248,7 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
   return (
     <div className="space-y-2">
       {rows.map((row, idx) => {
-        const selectedVar = CONDITION_VARIABLES.find(v => v.value === row.variable);
+        const selectedVar = variables.find(v => v.value === row.variable);
         const isBool = selectedVar?.type === 'boolean';
         return (
           <div key={idx} className="space-y-1">
@@ -236,8 +266,11 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
                 <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select field..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__pick__">Select field...</SelectItem>
-                  {CONDITION_VARIABLES.map(v => (
-                    <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                  {variables.map(v => (
+                    <SelectItem key={v.value} value={v.value}>
+                      <span>{v.label}</span>
+                      {v.c3ConfigKey && <span className="text-muted-foreground ml-1 text-[10px]">(C3 Config)</span>}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -270,6 +303,12 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
+            {selectedVar?.description && (
+              <p className="text-[10px] text-muted-foreground ml-1">
+                {selectedVar.description}
+                {selectedVar.sourceTable && <span className="italic"> → {selectedVar.sourceTable}.{selectedVar.sourceColumn}</span>}
+              </p>
+            )}
           </div>
         );
       })}
@@ -293,9 +332,18 @@ interface FormulaStep {
   operator: string;
 }
 
+interface FormulaOperand {
+  value: string;
+  label: string;
+  group: string;
+  description: string | null;
+  sourceTable: string | null;
+  sourceColumn: string | null;
+  c3ConfigKey: string | null;
+}
+
 function parseFormulaExpression(expr: string): FormulaStep[] {
   if (!expr || !expr.trim()) return [{ operand: '', operator: '*' }];
-  // Tokenize: split by operators while keeping them
   const tokens = expr.split(/\s*([×+\-÷*/])\s*/).filter(Boolean);
   const steps: FormulaStep[] = [];
   for (let i = 0; i < tokens.length; i += 2) {
@@ -317,7 +365,7 @@ function buildFormulaExpression(steps: FormulaStep[]): string {
     .join(' ');
 }
 
-const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange: (v: string) => void; operands: FormulaOperand[] }) => {
   const [steps, setSteps] = useState<FormulaStep[]>(() => parseFormulaExpression(value));
 
   const updateStep = (idx: number, field: keyof FormulaStep, val: string) => {
@@ -339,37 +387,51 @@ const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: stri
     onChange(buildFormulaExpression(updated));
   };
 
-  const groups = Array.from(new Set(FORMULA_OPERANDS.map(o => o.group)));
+  const groups = Array.from(new Set(operands.map(o => o.group)));
 
   return (
     <div className="space-y-2">
       {steps.map((step, idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          {idx > 0 && (
-            <Select value={steps[idx - 1].operator} onValueChange={v => updateStep(idx - 1, 'operator', v)}>
-              <SelectTrigger className="w-14 h-9 text-sm text-center"><SelectValue /></SelectTrigger>
+        <div key={idx} className="space-y-1">
+          <div className="flex items-center gap-2">
+            {idx > 0 && (
+              <Select value={steps[idx - 1].operator} onValueChange={v => updateStep(idx - 1, 'operator', v)}>
+                <SelectTrigger className="w-14 h-9 text-sm text-center"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FORMULA_OPERATORS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={step.operand || '__pick__'} onValueChange={v => updateStep(idx, 'operand', v === '__pick__' ? '' : v)}>
+              <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select operand..." /></SelectTrigger>
               <SelectContent>
-                {FORMULA_OPERATORS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                <SelectItem value="__pick__">Select operand...</SelectItem>
+                {groups.map(g => (
+                  <React.Fragment key={g}>
+                    <SelectItem value={`__group_${g}__`} disabled className="text-xs font-semibold text-muted-foreground uppercase">{g}</SelectItem>
+                    {operands.filter(o => o.group === g).map(o => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <span>{o.label}</span>
+                        {o.c3ConfigKey && <span className="text-muted-foreground ml-1 text-[10px]">(C3)</span>}
+                      </SelectItem>
+                    ))}
+                  </React.Fragment>
+                ))}
               </SelectContent>
             </Select>
-          )}
-          <Select value={step.operand || '__pick__'} onValueChange={v => updateStep(idx, 'operand', v === '__pick__' ? '' : v)}>
-            <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select operand..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__pick__">Select operand...</SelectItem>
-              {groups.map(g => (
-                <React.Fragment key={g}>
-                  <SelectItem value={`__group_${g}__`} disabled className="text-xs font-semibold text-muted-foreground uppercase">{g}</SelectItem>
-                  {FORMULA_OPERANDS.filter(o => o.group === g).map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </React.Fragment>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeStep(idx)} disabled={steps.length <= 1}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeStep(idx)} disabled={steps.length <= 1}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {step.operand && (() => {
+            const op = operands.find(o => o.value === step.operand);
+            return op?.description ? (
+              <p className="text-[10px] text-muted-foreground ml-1">
+                {op.description}
+                {op.sourceTable && <span className="italic"> → {op.sourceTable}.{op.sourceColumn}</span>}
+              </p>
+            ) : null;
+          })()}
         </div>
       ))}
       <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addStep}>
