@@ -69,7 +69,8 @@ import ComplianceJobHistory from '@/pages/compliance/automation/JobHistory';
 import ComplianceRuleEngine from '@/pages/compliance/settings/RuleEngine';
 import ComplianceViolationTypes from '@/pages/compliance/settings/ViolationTypes';
 import ComplianceNumberTemplates from '@/pages/compliance/settings/NumberTemplates';
-// ComplianceRiskScoringConfig removed — consolidated into RiskRulePolicy
+import ComplianceRiskScoringConfig from '@/pages/compliance/settings/RiskScoringConfig';
+import ComplianceTemplates from '@/pages/compliance/settings/ComplianceTemplates';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
@@ -854,8 +855,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
       <Route path="/compliance/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
       <Route path="/compliance/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
-      {/* Risk Scoring Config consolidated into Risk Rule Policy at /compliance/settings/risk-policy */}
+      <Route path="/compliance/settings/risk-config" element={<ProtectedLayout><ComplianceRiskScoringConfig /></ProtectedLayout>} />
       <Route path="/compliance/settings/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
+      <Route path="/compliance/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
 
       {/* Audit Module Routes — wrapped with AuditFeatureGate for rollback safety */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
