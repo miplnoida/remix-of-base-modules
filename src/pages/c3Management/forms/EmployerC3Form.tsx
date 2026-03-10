@@ -635,9 +635,9 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
   };
 
-  // Period for employee modal
-  const periodYear = formData.period?.year || new Date().getFullYear();
-  const periodMonth = formData.period?.month || new Date().getMonth();
+  // Period for employee modal — use ?? to avoid treating month 0 (January) as falsy
+  const periodYear = formData.period?.year ?? new Date().getFullYear();
+  const periodMonth = formData.period?.month ?? new Date().getMonth();
 
   return (
     <div className="space-y-6">
