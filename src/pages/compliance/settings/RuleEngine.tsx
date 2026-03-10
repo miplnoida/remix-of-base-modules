@@ -175,10 +175,10 @@ const DetectionRuleDialog = ({
           </div>
           <div className="space-y-1.5">
             <Label>Linked Violation Type</Label>
-            <Select value={form.violation_type_id} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v }))}>
+            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Select violation type..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
               </SelectContent>
             </Select>
