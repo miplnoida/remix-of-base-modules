@@ -676,7 +676,7 @@ function DiagramCanvas({ nodes, edges, onNodesChange, onEdgesChange, onEdgeClick
   }
 
   return (
-    <Card className="h-[700px]">
+    <Card className="h-[700px]" id="db-diagram-canvas">
       <ReactFlow
         nodes={nodes}
         edges={edges}
