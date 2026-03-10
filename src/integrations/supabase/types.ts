@@ -19717,6 +19717,14 @@ export type Database = {
         }
         Returns: string
       }
+      evaluate_levy_amounts: {
+        Args: {
+          p_amounts: number[]
+          p_pay_period_code: string
+          p_slab_id: string
+        }
+        Returns: number
+      }
       find_eligible_approver: {
         Args: {
           _exclude_users?: string[]
@@ -20128,7 +20136,7 @@ export type Database = {
         Args: {
           p_month: number
           p_period_date: string
-          p_policy_type?: string
+          p_policy_type: string
           p_year: number
         }
         Returns: Json
