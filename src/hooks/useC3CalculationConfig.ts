@@ -164,3 +164,9 @@ export function useConfigValuesMap() {
   
   return { configMap, isLoading };
 }
+
+// Get the configured week start day (1=Monday..7=Sunday, default 1)
+export function useWeekStartDay(): number {
+  const value = useConfigValue('week_start_day');
+  return value ?? 1;
+}
