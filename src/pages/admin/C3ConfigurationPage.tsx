@@ -97,7 +97,10 @@ const C3ConfigurationPage: React.FC = () => {
           <C3PeriodConfigTab />
         </TabsContent>
 
-        <TabsContent value="levy-slabs" className="mt-6">
+        <TabsContent value="filing-config" className="mt-6">
+          <C3FilingConfigTab />
+        </TabsContent>
+
           <LevySlabsConfigTab />
         </TabsContent>
 
