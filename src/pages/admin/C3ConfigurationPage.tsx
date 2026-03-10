@@ -46,10 +46,6 @@ const C3ConfigurationPage: React.FC = () => {
             <span className="hidden sm:inline">Filing & Penalties</span>
             <span className="sm:hidden">Filing</span>
           </TabsTrigger>
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Period Configuration</span>
-            <span className="sm:hidden">Periods</span>
-          </TabsTrigger>
           <TabsTrigger value="levy-slabs" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">Levy Slabs</span>
