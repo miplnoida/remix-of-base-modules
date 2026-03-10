@@ -13,6 +13,7 @@ interface ExportData {
   columnsMap: Record<string, DbColumn[]>;
   pageSize?: string;
   orientation?: 'portrait' | 'landscape';
+  zoomLevel?: number;
   diagramElement?: HTMLElement | null;
 }
 
