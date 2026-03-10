@@ -83,6 +83,7 @@ import RiskScoringConfig from './settings/RiskScoringConfig';
 import RiskRulePolicy from './settings/RiskRulePolicy';
 import ComplianceSettings from './settings/ComplianceSettings';
 import LegalEscalationPolicy from './settings/LegalEscalationPolicy';
+import ComplianceTemplates from './settings/ComplianceTemplates';
 
 const ComplianceRoutes = () => {
   return (
