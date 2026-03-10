@@ -956,7 +956,19 @@ const RuleEngine = () => {
     },
   });
 
-  // ── Toggle mutations ──
+  // ── Variable mappings from backend ──
+  const { data: variableMappings = [] } = useQuery({
+    queryKey: ['ce_rule_variable_mappings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_rule_variable_mappings').select('*').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return (data || []) as unknown as VariableMapping[];
+    },
+  });
+
+  const conditionVars = React.useMemo(() => getConditionVariables(variableMappings), [variableMappings]);
+  const formulaOps = React.useMemo(() => getFormulaOperands(variableMappings), [variableMappings]);
+
 
   const toggleDetection = useMutation({
     mutationFn: async ({ id, is_enabled }: { id: string; is_enabled: boolean }) => {
