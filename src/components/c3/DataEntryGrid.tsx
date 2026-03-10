@@ -75,6 +75,9 @@ export default function DataEntryGrid({
     return indices;
   }, [mondayCount]);
 
+  // Fetch backend-driven bi-weekly enabled weeks (ISO even-week rule)
+  const { enabledWeeks: biweeklyEnabledWeeks } = useBiweeklyEnabledWeeks(periodYear, periodMonth);
+
   const periodTermStartDate = useMemo(() => {
     const monthStr = String(periodMonth + 1).padStart(2, '0');
     return `${periodYear}-${monthStr}-01`;
