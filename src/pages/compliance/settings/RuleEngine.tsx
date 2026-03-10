@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Cog, Plus, Zap, Calculator, TrendingUp, Edit, Loader2, Trash2 } from 'lucide-react';
+import { Cog, Plus, Zap, Calculator, TrendingUp, Edit, Loader2, Trash2, PlusCircle, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -64,10 +64,325 @@ interface ViolationType {
   name: string;
 }
 
+// ── Predefined options for intelligent dropdowns ──
+
+const TRIGGER_EVENTS = [
+  { value: 'c3_deadline_passed', label: 'C3 Filing Deadline Passed', description: 'Triggers when C3 submission deadline has elapsed' },
+  { value: 'payment_deadline_passed', label: 'Payment Deadline Passed', description: 'Triggers when contribution payment is overdue' },
+  { value: 'registration_not_found', label: 'Unregistered Employer Detected', description: 'Business operating without SSB registration' },
+  { value: 'employee_underreporting', label: 'Employee Count Discrepancy', description: 'Reported employees differ from field verification' },
+  { value: 'wage_underreporting', label: 'Wage Underreporting Detected', description: 'Declared wages below minimum or industry norms' },
+  { value: 'payment_plan_breach', label: 'Payment Plan Breach', description: 'Missed installment on an active payment arrangement' },
+  { value: 'benefit_fraud_indicator', label: 'Benefit Fraud Indicator', description: 'Suspicious benefit claim patterns detected' },
+  { value: 'audit_discrepancy_found', label: 'Audit Discrepancy Found', description: 'Field audit reveals compliance mismatch' },
+  { value: 'cessation_without_clearance', label: 'Cessation Without Clearance', description: 'Employer ceased operations without settling liabilities' },
+  { value: 'multiple_violations_threshold', label: 'Multiple Violations Threshold', description: 'Employer accumulates violation count past limit' },
+  { value: 'contribution_gap_detected', label: 'Contribution Gap Detected', description: 'Missing contribution periods for active employees' },
+  { value: 'late_registration', label: 'Late Employee Registration', description: 'Employee registered after statutory deadline' },
+];
+
+const CONDITION_VARIABLES = [
+  { value: 'days_overdue', label: 'Days Overdue', type: 'number' },
+  { value: 'months_overdue', label: 'Months Overdue', type: 'number' },
+  { value: 'grace_period', label: 'Grace Period (days)', type: 'number' },
+  { value: 'total_owed', label: 'Total Amount Owed ($)', type: 'number' },
+  { value: 'outstanding_balance', label: 'Outstanding Balance ($)', type: 'number' },
+  { value: 'violations_count', label: 'Active Violation Count', type: 'number' },
+  { value: 'missed_filings_count', label: 'Missed Filings Count', type: 'number' },
+  { value: 'employee_count', label: 'Employee Count', type: 'number' },
+  { value: 'reported_wages', label: 'Reported Wages ($)', type: 'number' },
+  { value: 'expected_wages', label: 'Expected Wages ($)', type: 'number' },
+  { value: 'payment_plan_missed', label: 'Missed Installments', type: 'number' },
+  { value: 'months_in_status', label: 'Months in Current Status', type: 'number' },
+  { value: 'risk_score', label: 'Risk Score', type: 'number' },
+  { value: 'is_registered', label: 'Is Registered', type: 'boolean' },
+  { value: 'has_active_plan', label: 'Has Active Payment Plan', type: 'boolean' },
+  { value: 'is_repeat_offender', label: 'Is Repeat Offender', type: 'boolean' },
+];
+
+const CONDITION_OPERATORS = [
+  { value: '>', label: '>' },
+  { value: '>=', label: '>=' },
+  { value: '<', label: '<' },
+  { value: '<=', label: '<=' },
+  { value: '==', label: '=' },
+  { value: '!=', label: '≠' },
+];
+
+const BOOLEAN_OPERATORS = [
+  { value: '==', label: 'is' },
+  { value: '!=', label: 'is not' },
+];
+
+const FORMULA_OPERANDS = [
+  { value: 'outstanding_amount', label: 'Outstanding Amount', group: 'Financial' },
+  { value: 'total_wages', label: 'Total Wages', group: 'Financial' },
+  { value: 'amount_owed', label: 'Amount Owed', group: 'Financial' },
+  { value: 'ss_contribution', label: 'SS Contribution', group: 'Financial' },
+  { value: 'ei_contribution', label: 'EI Contribution', group: 'Financial' },
+  { value: 'levy_amount', label: 'Levy Amount', group: 'Financial' },
+  { value: 'severance_amount', label: 'Severance Amount', group: 'Financial' },
+  { value: 'ss_fine_initial_rate', label: 'SS Fine Rate (from C3 Config)', group: 'Rate' },
+  { value: 'levy_penalty_initial_rate', label: 'Levy Penalty Rate (from C3 Config)', group: 'Rate' },
+  { value: 'severance_penalty_rate', label: 'Severance Penalty Rate (from C3 Config)', group: 'Rate' },
+  { value: 'interest_rate', label: 'Interest Rate (from C3 Config)', group: 'Rate' },
+  { value: 'penalty_rate', label: 'Penalty Rate', group: 'Rate' },
+  { value: 'months_overdue', label: 'Months Overdue', group: 'Time' },
+  { value: 'days_late', label: 'Days Late', group: 'Time' },
+  { value: 'additional_rate_per_month', label: 'Additional % Per Month (from C3 Config)', group: 'Rate' },
+];
+
+const FORMULA_OPERATORS = [
+  { value: '*', label: '×' },
+  { value: '+', label: '+' },
+  { value: '-', label: '−' },
+  { value: '/', label: '÷' },
+];
+
+// ── Auto-generate rule code ──
+
+function generateNextCode(existingCodes: string[], prefix: string): string {
+  const nums = existingCodes
+    .filter(c => c.startsWith(prefix))
+    .map(c => parseInt(c.replace(prefix, ''), 10))
+    .filter(n => !isNaN(n));
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `${prefix}${String(next).padStart(3, '0')}`;
+}
+
+// ── Condition Builder ──
+
+interface ConditionRow {
+  variable: string;
+  operator: string;
+  value: string;
+  conjunction: 'AND' | 'OR';
+}
+
+function parseConditionExpression(expr: string | null): ConditionRow[] {
+  if (!expr || !expr.trim()) return [{ variable: '', operator: '>', value: '', conjunction: 'AND' }];
+  // Try to parse conditions like "var > val AND var2 >= val2"
+  const parts = expr.split(/\s+(AND|OR)\s+/i);
+  const rows: ConditionRow[] = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const segment = parts[i].trim();
+    const conjunction = (parts[i + 1]?.toUpperCase() as 'AND' | 'OR') || 'AND';
+    const match = segment.match(/^(\w+)\s*(>=|<=|!=|==|>|<)\s*(.+)$/);
+    if (match) {
+      rows.push({ variable: match[1], operator: match[2], value: match[3].trim(), conjunction });
+    } else {
+      rows.push({ variable: '', operator: '>', value: segment, conjunction });
+    }
+  }
+  return rows.length > 0 ? rows : [{ variable: '', operator: '>', value: '', conjunction: 'AND' }];
+}
+
+function buildConditionExpression(rows: ConditionRow[]): string {
+  return rows
+    .filter(r => r.variable && r.value)
+    .map((r, i, arr) => {
+      const cond = `${r.variable} ${r.operator} ${r.value}`;
+      return i < arr.length - 1 ? `${cond} ${r.conjunction}` : cond;
+    })
+    .join(' ');
+}
+
+const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [rows, setRows] = useState<ConditionRow[]>(() => parseConditionExpression(value));
+
+  const updateRow = (idx: number, field: keyof ConditionRow, val: string) => {
+    const updated = [...rows];
+    updated[idx] = { ...updated[idx], [field]: val };
+    setRows(updated);
+    onChange(buildConditionExpression(updated));
+  };
+
+  const addRow = () => {
+    const updated = [...rows, { variable: '', operator: '>', value: '', conjunction: 'AND' as const }];
+    setRows(updated);
+  };
+
+  const removeRow = (idx: number) => {
+    if (rows.length <= 1) return;
+    const updated = rows.filter((_, i) => i !== idx);
+    setRows(updated);
+    onChange(buildConditionExpression(updated));
+  };
+
+  return (
+    <div className="space-y-2">
+      {rows.map((row, idx) => {
+        const selectedVar = CONDITION_VARIABLES.find(v => v.value === row.variable);
+        const isBool = selectedVar?.type === 'boolean';
+        return (
+          <div key={idx} className="space-y-1">
+            {idx > 0 && (
+              <Select value={rows[idx - 1].conjunction} onValueChange={v => updateRow(idx - 1, 'conjunction', v)}>
+                <SelectTrigger className="w-20 h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AND">AND</SelectItem>
+                  <SelectItem value="OR">OR</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <div className="flex items-center gap-2">
+              <Select value={row.variable || '__pick__'} onValueChange={v => updateRow(idx, 'variable', v === '__pick__' ? '' : v)}>
+                <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select field..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__pick__">Select field...</SelectItem>
+                  {CONDITION_VARIABLES.map(v => (
+                    <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={row.operator} onValueChange={v => updateRow(idx, 'operator', v)}>
+                <SelectTrigger className="w-16 h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(isBool ? BOOLEAN_OPERATORS : CONDITION_OPERATORS).map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isBool ? (
+                <Select value={row.value || 'true'} onValueChange={v => updateRow(idx, 'value', v)}>
+                  <SelectTrigger className="w-24 h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">True</SelectItem>
+                    <SelectItem value="false">False</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="w-28 h-9 text-sm"
+                  type="number"
+                  value={row.value}
+                  onChange={e => updateRow(idx, 'value', e.target.value)}
+                  placeholder="Value"
+                />
+              )}
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeRow(idx)} disabled={rows.length <= 1}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addRow}>
+        <PlusCircle className="h-3.5 w-3.5" /> Add Condition
+      </Button>
+      {buildConditionExpression(rows) && (
+        <div className="bg-muted/50 rounded px-3 py-1.5 mt-1">
+          <p className="text-[11px] text-muted-foreground">Generated:</p>
+          <p className="text-xs font-mono text-primary">{buildConditionExpression(rows)}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Formula Builder ──
+
+interface FormulaStep {
+  operand: string;
+  operator: string;
+}
+
+function parseFormulaExpression(expr: string): FormulaStep[] {
+  if (!expr || !expr.trim()) return [{ operand: '', operator: '*' }];
+  // Tokenize: split by operators while keeping them
+  const tokens = expr.split(/\s*([×+\-÷*/])\s*/).filter(Boolean);
+  const steps: FormulaStep[] = [];
+  for (let i = 0; i < tokens.length; i += 2) {
+    steps.push({
+      operand: tokens[i]?.trim() || '',
+      operator: tokens[i + 1] === '×' ? '*' : tokens[i + 1] === '÷' ? '/' : tokens[i + 1] === '−' ? '-' : tokens[i + 1] || '*',
+    });
+  }
+  return steps.length > 0 ? steps : [{ operand: '', operator: '*' }];
+}
+
+function buildFormulaExpression(steps: FormulaStep[]): string {
+  return steps
+    .filter(s => s.operand)
+    .map((s, i, arr) => {
+      const op = s.operator === '*' ? '×' : s.operator === '/' ? '÷' : s.operator === '-' ? '−' : s.operator;
+      return i < arr.length - 1 ? `${s.operand} ${op}` : s.operand;
+    })
+    .join(' ');
+}
+
+const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [steps, setSteps] = useState<FormulaStep[]>(() => parseFormulaExpression(value));
+
+  const updateStep = (idx: number, field: keyof FormulaStep, val: string) => {
+    const updated = [...steps];
+    updated[idx] = { ...updated[idx], [field]: val };
+    setSteps(updated);
+    onChange(buildFormulaExpression(updated));
+  };
+
+  const addStep = () => {
+    const updated = [...steps, { operand: '', operator: '*' }];
+    setSteps(updated);
+  };
+
+  const removeStep = (idx: number) => {
+    if (steps.length <= 1) return;
+    const updated = steps.filter((_, i) => i !== idx);
+    setSteps(updated);
+    onChange(buildFormulaExpression(updated));
+  };
+
+  const groups = Array.from(new Set(FORMULA_OPERANDS.map(o => o.group)));
+
+  return (
+    <div className="space-y-2">
+      {steps.map((step, idx) => (
+        <div key={idx} className="flex items-center gap-2">
+          {idx > 0 && (
+            <Select value={steps[idx - 1].operator} onValueChange={v => updateStep(idx - 1, 'operator', v)}>
+              <SelectTrigger className="w-14 h-9 text-sm text-center"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FORMULA_OPERATORS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={step.operand || '__pick__'} onValueChange={v => updateStep(idx, 'operand', v === '__pick__' ? '' : v)}>
+            <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select operand..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__pick__">Select operand...</SelectItem>
+              {groups.map(g => (
+                <React.Fragment key={g}>
+                  <SelectItem value={`__group_${g}__`} disabled className="text-xs font-semibold text-muted-foreground uppercase">{g}</SelectItem>
+                  {FORMULA_OPERANDS.filter(o => o.group === g).map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </React.Fragment>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeStep(idx)} disabled={steps.length <= 1}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addStep}>
+        <PlusCircle className="h-3.5 w-3.5" /> Add Operand
+      </Button>
+      {buildFormulaExpression(steps) && (
+        <div className="bg-muted/50 rounded px-3 py-1.5 mt-1">
+          <p className="text-[11px] text-muted-foreground">Generated Formula:</p>
+          <p className="text-xs font-mono text-primary">{buildFormulaExpression(steps)}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Detection Rule Dialog ──
 
 const DetectionRuleDialog = ({
-  open, onOpenChange, rule, violationTypes, onSave, saving,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -75,6 +390,7 @@ const DetectionRuleDialog = ({
   violationTypes: ViolationType[];
   onSave: (data: any) => void;
   saving: boolean;
+  existingCodes: string[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -92,8 +408,9 @@ const DetectionRuleDialog = ({
 
   React.useEffect(() => {
     if (open) {
+      const autoCode = isEdit ? (rule?.rule_code || '') : generateNextCode(existingCodes, 'DR-');
       setForm({
-        rule_code: rule?.rule_code || '',
+        rule_code: autoCode,
         name: rule?.name || '',
         description: rule?.description || '',
         trigger_event: rule?.trigger_event || '',
@@ -107,10 +424,19 @@ const DetectionRuleDialog = ({
     }
   }, [open, rule]);
 
+  const handleTriggerChange = (val: string) => {
+    const ev = TRIGGER_EVENTS.find(e => e.value === val);
+    setForm(p => ({
+      ...p,
+      trigger_event: val === '__pick__' ? '' : val,
+      description: ev ? ev.description : p.description,
+    }));
+  };
+
   const handleSave = () => {
-    if (!form.rule_code || !form.name || !form.trigger_event) {
+    if (!form.name || !form.trigger_event) {
       toast.error('Please check the form for valid information!', {
-        description: 'Rule Code, Name, and Trigger Event are required.',
+        description: 'Name and Trigger Event are required.',
         style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
         classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
       });
@@ -133,8 +459,9 @@ const DetectionRuleDialog = ({
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Rule Code <span className="text-destructive">*</span></Label>
-              <Input value={form.rule_code} onChange={e => setForm(p => ({ ...p, rule_code: e.target.value }))} placeholder="DR-008" />
+              <Label>Rule Code</Label>
+              <Input value={form.rule_code} readOnly className="bg-muted text-muted-foreground cursor-not-allowed font-mono" />
+              <p className="text-[11px] text-muted-foreground">Auto-generated</p>
             </div>
             <div className="space-y-1.5">
               <Label>Priority</Label>
@@ -151,27 +478,45 @@ const DetectionRuleDialog = ({
             <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Late C3 Submission" />
           </div>
           <div className="space-y-1.5">
+            <Label>Trigger Event <span className="text-destructive">*</span></Label>
+            <Select value={form.trigger_event || '__pick__'} onValueChange={handleTriggerChange}>
+              <SelectTrigger><SelectValue placeholder="Select trigger event..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__pick__">Select trigger event...</SelectItem>
+                {TRIGGER_EVENTS.map(e => (
+                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.trigger_event && (
+              <p className="text-[11px] text-muted-foreground">{TRIGGER_EVENTS.find(e => e.value === form.trigger_event)?.description}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
             <Label>Description</Label>
             <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe when this rule triggers..." rows={2} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Trigger Event <span className="text-destructive">*</span></Label>
-              <Input value={form.trigger_event} onChange={e => setForm(p => ({ ...p, trigger_event: e.target.value }))} placeholder="c3_deadline_passed" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Frequency</Label>
-              <Select value={form.frequency} onValueChange={v => setForm(p => ({ ...p, frequency: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['hourly', 'daily', 'weekly', 'monthly', 'on_event'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Frequency</Label>
+            <Select value={form.frequency || 'daily'} onValueChange={v => setForm(p => ({ ...p, frequency: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[
+                  { value: 'on_event', label: 'On Event (Real-time)' },
+                  { value: 'hourly', label: 'Hourly' },
+                  { value: 'daily', label: 'Daily' },
+                  { value: 'weekly', label: 'Weekly' },
+                  { value: 'monthly', label: 'Monthly' },
+                ].map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Condition Expression</Label>
-            <Input value={form.condition_expression} onChange={e => setForm(p => ({ ...p, condition_expression: e.target.value }))} placeholder="days_overdue > grace_period" className="font-mono text-sm" />
+            <Label>Conditions <span className="text-muted-foreground text-xs font-normal">(when should this trigger?)</span></Label>
+            <ConditionBuilder
+              value={form.condition_expression}
+              onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Linked Violation Type</Label>
@@ -206,13 +551,14 @@ const DetectionRuleDialog = ({
 // ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving,
+  open, onOpenChange, rule, onSave, saving, existingCodes,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: CalculationRule | null;
   onSave: (data: any) => void;
   saving: boolean;
+  existingCodes: string[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -228,8 +574,9 @@ const CalculationRuleDialog = ({
 
   React.useEffect(() => {
     if (open) {
+      const autoCode = isEdit ? (rule?.rule_code || '') : generateNextCode(existingCodes, 'CR-');
       setForm({
-        rule_code: rule?.rule_code || '',
+        rule_code: autoCode,
         name: rule?.name || '',
         description: rule?.description || '',
         applies_to: rule?.applies_to || 'penalty',
@@ -242,9 +589,9 @@ const CalculationRuleDialog = ({
   }, [open, rule]);
 
   const handleSave = () => {
-    if (!form.rule_code || !form.name || !form.formula_expression || !form.applies_to) {
+    if (!form.name || !form.formula_expression || !form.applies_to) {
       toast.error('Please check the form for valid information!', {
-        description: 'Rule Code, Name, Applies To, and Formula are required.',
+        description: 'Name, Applies To, and Formula are required.',
         style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
         classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
       });
@@ -266,8 +613,9 @@ const CalculationRuleDialog = ({
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Rule Code <span className="text-destructive">*</span></Label>
-              <Input value={form.rule_code} onChange={e => setForm(p => ({ ...p, rule_code: e.target.value }))} placeholder="CR-005" />
+              <Label>Rule Code</Label>
+              <Input value={form.rule_code} readOnly className="bg-muted text-muted-foreground cursor-not-allowed font-mono" />
+              <p className="text-[11px] text-muted-foreground">Auto-generated</p>
             </div>
             <div className="space-y-1.5">
               <Label>Applies To <span className="text-destructive">*</span></Label>
@@ -288,9 +636,11 @@ const CalculationRuleDialog = ({
             <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe calculation logic..." rows={2} />
           </div>
           <div className="space-y-1.5">
-            <Label>Formula Expression <span className="text-destructive">*</span></Label>
-            <Textarea value={form.formula_expression} onChange={e => setForm(p => ({ ...p, formula_expression: e.target.value }))} placeholder="total_wages * ss_fine_initial_rate (from c3_config)" className="font-mono text-sm" rows={3} />
-            <p className="text-[11px] text-muted-foreground">Use field names from C3 config (e.g., ss_fine_initial_rate, levy_penalty_initial_rate). Variables: total_wages, months_overdue, amount_owed.</p>
+            <Label>Formula <span className="text-destructive">*</span></Label>
+            <FormulaBuilder
+              value={form.formula_expression}
+              onChange={v => setForm(p => ({ ...p, formula_expression: v }))}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -308,7 +658,9 @@ const CalculationRuleDialog = ({
               <Select value={form.source_config || 'c3_config'} onValueChange={v => setForm(p => ({ ...p, source_config: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['c3_config', 'manual', 'api'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  <SelectItem value="c3_config">C3 Configuration</SelectItem>
+                  <SelectItem value="manual">Manual Entry</SelectItem>
+                  <SelectItem value="api">External API</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -332,13 +684,14 @@ const CalculationRuleDialog = ({
 const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
 
 const EscalationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving,
+  open, onOpenChange, rule, onSave, saving, existingCodes,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: EscalationRule | null;
   onSave: (data: any) => void;
   saving: boolean;
+  existingCodes: string[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -357,8 +710,9 @@ const EscalationRuleDialog = ({
 
   React.useEffect(() => {
     if (open) {
+      const autoCode = isEdit ? (rule?.rule_code || '') : generateNextCode(existingCodes, 'ER-');
       setForm({
-        rule_code: rule?.rule_code || '',
+        rule_code: autoCode,
         name: rule?.name || '',
         description: rule?.description || '',
         from_status: rule?.from_status || 'Open',
@@ -374,9 +728,9 @@ const EscalationRuleDialog = ({
   }, [open, rule]);
 
   const handleSave = () => {
-    if (!form.rule_code || !form.name || !form.from_status || !form.to_status) {
+    if (!form.name || !form.from_status || !form.to_status) {
       toast.error('Please check the form for valid information!', {
-        description: 'Rule Code, Name, From Status, and To Status are required.',
+        description: 'Name, From Status, and To Status are required.',
         style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
         classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
       });
@@ -400,8 +754,9 @@ const EscalationRuleDialog = ({
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Rule Code <span className="text-destructive">*</span></Label>
-              <Input value={form.rule_code} onChange={e => setForm(p => ({ ...p, rule_code: e.target.value }))} placeholder="ER-005" />
+              <Label>Rule Code</Label>
+              <Input value={form.rule_code} readOnly className="bg-muted text-muted-foreground cursor-not-allowed font-mono" />
+              <p className="text-[11px] text-muted-foreground">Auto-generated</p>
             </div>
             <div className="space-y-1.5">
               <Label>Name <span className="text-destructive">*</span></Label>
@@ -445,8 +800,11 @@ const EscalationRuleDialog = ({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Condition Expression</Label>
-            <Input value={form.condition_expression} onChange={e => setForm(p => ({ ...p, condition_expression: e.target.value }))} placeholder="violations_count >= 3 AND total_owed > 5000" className="font-mono text-sm" />
+            <Label>Additional Conditions <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+            <ConditionBuilder
+              value={form.condition_expression}
+              onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
+            />
           </div>
           <div className="flex items-center gap-6 pt-2">
             <div className="flex items-center gap-2">
@@ -670,6 +1028,11 @@ const RuleEngine = () => {
                       {rule.auto_create_violation && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Auto-Create</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
+                    {rule.trigger_event && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">Trigger:</span> {TRIGGER_EVENTS.find(e => e.value === rule.trigger_event)?.label || rule.trigger_event}
+                      </p>
+                    )}
                     {rule.condition_expression && <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>}
                   </div>
                   <div className="flex items-center gap-3 ml-4">
@@ -745,6 +1108,7 @@ const RuleEngine = () => {
         violationTypes={violationTypes}
         onSave={data => saveDetection.mutate(data)}
         saving={saveDetection.isPending}
+        existingCodes={detectionRules.map(r => r.rule_code)}
       />
       <CalculationRuleDialog
         open={calcDialogOpen}
@@ -752,6 +1116,7 @@ const RuleEngine = () => {
         rule={editingCalc}
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
+        existingCodes={calculationRules.map(r => r.rule_code)}
       />
       <EscalationRuleDialog
         open={escDialogOpen}
@@ -759,6 +1124,7 @@ const RuleEngine = () => {
         rule={editingEsc}
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
+        existingCodes={escalationRules.map(r => r.rule_code)}
       />
     </div>
   );
