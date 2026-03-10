@@ -6250,6 +6250,65 @@ export type Database = {
           },
         ]
       }
+      db_diagram_saved_layouts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          excluded_table_ids: string[]
+          id: string
+          included_table_ids: string[]
+          is_default: boolean
+          layout_name: string
+          module_id: string | null
+          node_positions: Json
+          updated_at: string
+          updated_by: string | null
+          viewport_x: number | null
+          viewport_y: number | null
+          zoom_level: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          excluded_table_ids?: string[]
+          id?: string
+          included_table_ids?: string[]
+          is_default?: boolean
+          layout_name?: string
+          module_id?: string | null
+          node_positions?: Json
+          updated_at?: string
+          updated_by?: string | null
+          viewport_x?: number | null
+          viewport_y?: number | null
+          zoom_level?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          excluded_table_ids?: string[]
+          id?: string
+          included_table_ids?: string[]
+          is_default?: boolean
+          layout_name?: string
+          module_id?: string | null
+          node_positions?: Json
+          updated_at?: string
+          updated_by?: string | null
+          viewport_x?: number | null
+          viewport_y?: number | null
+          zoom_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "db_diagram_saved_layouts_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "db_diagram_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       db_diagram_table_module_map: {
         Row: {
           confidence_score: number | null

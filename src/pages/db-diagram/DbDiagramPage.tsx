@@ -30,7 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
   Database, RefreshCw, Search, Table2, Link2, FileDown,
-  Key, Download, LayoutGrid, Sparkles,
+  Key, Download, LayoutGrid, Sparkles, Save, Settings2,
 } from 'lucide-react';
 
 import {
@@ -47,6 +47,12 @@ import { ModuleDependencyView } from './components/ModuleDependencyView';
 import { exportDbDiagramToPdf } from './utils/pdfExport';
 import { PdfExportDialog, type PdfExportSettings } from './components/PdfExportDialog';
 import { computeSmartLayout } from './utils/smartLayout';
+import { SaveLoadDiagramDialog } from './components/SaveLoadDiagramDialog';
+import { ManageTablesDialog } from './components/ManageTablesDialog';
+import {
+  fetchSavedLayouts, saveLayout, deleteLayout,
+  removeTableFromModuleMap, type SavedLayout,
+} from '@/services/dbDiagramLayoutService';
 
 const nodeTypes = { tableNode: TableNode };
 
@@ -68,6 +74,11 @@ function DbDiagramInner() {
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSaveLoadDialog, setShowSaveLoadDialog] = useState(false);
+  const [showManageTablesDialog, setShowManageTablesDialog] = useState(false);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
+  const [extraTableIds, setExtraTableIds] = useState<Set<string>>(new Set());
+  const [excludedTableIds, setExcludedTableIds] = useState<Set<string>>(new Set());
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -114,19 +125,57 @@ function DbDiagramInner() {
     enabled: !!currentModule?.id || viewMode === 'enterprise',
   });
 
+  // Fetch saved layouts for current module
+  const { data: savedLayouts = [], refetch: refetchLayouts } = useQuery({
+    queryKey: ['db-diagram-layouts', currentModule?.id],
+    queryFn: () => fetchSavedLayouts(currentModule!.id),
+    enabled: !!currentModule?.id,
+  });
+
+  // Fetch ALL tables for add-table picker
+  const { data: allDbTables = [] } = useQuery({
+    queryKey: ['db-diagram-all-tables'],
+    queryFn: fetchAllTables,
+  });
+
   useEffect(() => {
     if (user && currentModule) {
       logAccess(currentModule.id, user.id, user.email || '', 'view', `Viewed ${currentModule.module_name} diagram`);
     }
   }, [user, currentModule]);
 
+  // Reset extra/excluded when module changes
+  useEffect(() => {
+    setExtraTableIds(new Set());
+    setExcludedTableIds(new Set());
+  }, [currentModule?.id]);
+
+  // Load default layout on module change
+  useEffect(() => {
+    if (savedLayouts.length > 0 && currentModule) {
+      const defaultLayout = savedLayouts.find(l => l.is_default);
+      if (defaultLayout) {
+        applyLayout(defaultLayout);
+      }
+    }
+  }, [savedLayouts, currentModule?.id]);
+
   const filteredTables = useMemo(() => {
     let result = tables;
+    // Add extra tables from other modules
+    if (extraTableIds.size > 0) {
+      const extraTables = allDbTables.filter(t => extraTableIds.has(t.id) && !tables.some(mt => mt.id === t.id));
+      result = [...result, ...extraTables];
+    }
+    // Remove excluded tables
+    if (excludedTableIds.size > 0) {
+      result = result.filter(t => !excludedTableIds.has(t.id));
+    }
     if (!showAuditTables) result = result.filter(t => t.table_category !== 'audit_log');
     if (!showLookupTables) result = result.filter(t => t.table_category !== 'reference_lookup');
     if (searchTerm) result = result.filter(t => t.table_name.toLowerCase().includes(searchTerm.toLowerCase()));
     return result;
-  }, [tables, showAuditTables, showLookupTables, searchTerm]);
+  }, [tables, allDbTables, extraTableIds, excludedTableIds, showAuditTables, showLookupTables, searchTerm]);
 
   const filteredRelationships = useMemo(() => {
     const tableIds = new Set(filteredTables.map(t => t.id));
@@ -287,6 +336,136 @@ function DbDiagramInner() {
     toast.success('Smart layout applied — tables organized by relationships');
   }, [filteredTables, filteredRelationships, columnsMap, setNodes, reactFlowInstance]);
 
+  // Apply a saved layout
+  const applyLayout = useCallback((layout: SavedLayout) => {
+    // Set included/excluded tables
+    if (layout.included_table_ids.length > 0) {
+      const moduleIds = new Set(tables.map(t => t.id));
+      const extras = layout.included_table_ids.filter(id => !moduleIds.has(id));
+      setExtraTableIds(new Set(extras));
+    }
+    if (layout.excluded_table_ids.length > 0) {
+      setExcludedTableIds(new Set(layout.excluded_table_ids));
+    }
+
+    // Apply positions after a tick (to let filteredTables update)
+    setTimeout(() => {
+      if (layout.node_positions && Object.keys(layout.node_positions).length > 0) {
+        setNodes(prev => prev.map(node => ({
+          ...node,
+          position: layout.node_positions[node.id] || node.position,
+        })));
+      }
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.12, duration: 400 });
+      }, 100);
+    }, 100);
+  }, [tables, setNodes, reactFlowInstance]);
+
+  // Save current diagram
+  const handleSaveLayout = useCallback(async (name: string, isDefault: boolean) => {
+    if (!currentModule) return;
+    setIsSavingLayout(true);
+    try {
+      const positions: Record<string, { x: number; y: number }> = {};
+      nodes.forEach(n => { positions[n.id] = n.position; });
+
+      const viewport = reactFlowInstance.getViewport();
+      const currentTableIds = filteredTables.map(t => t.id);
+      const moduleIds = new Set(tables.map(t => t.id));
+      const excluded = tables.filter(t => !currentTableIds.includes(t.id)).map(t => t.id);
+
+      await saveLayout({
+        module_id: currentModule.id,
+        layout_name: name,
+        is_default: isDefault,
+        node_positions: positions,
+        included_table_ids: currentTableIds,
+        excluded_table_ids: excluded,
+        zoom_level: viewport.zoom,
+        viewport_x: viewport.x,
+        viewport_y: viewport.y,
+        user_code: user?.email || 'system',
+      });
+
+      await refetchLayouts();
+      toast.success(`Layout "${name}" saved successfully`);
+    } catch (err: any) {
+      toast.error('Failed to save layout: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSavingLayout(false);
+    }
+  }, [currentModule, nodes, filteredTables, tables, user, reactFlowInstance, refetchLayouts]);
+
+  // Load a saved layout
+  const handleLoadLayout = useCallback((layout: SavedLayout) => {
+    applyLayout(layout);
+    setShowSaveLoadDialog(false);
+    toast.success(`Layout "${layout.layout_name}" loaded`);
+  }, [applyLayout]);
+
+  // Delete a saved layout
+  const handleDeleteLayout = useCallback(async (layoutId: string) => {
+    try {
+      await deleteLayout(layoutId);
+      await refetchLayouts();
+      toast.success('Layout deleted');
+    } catch (err: any) {
+      toast.error('Failed to delete: ' + (err.message || 'Unknown error'));
+    }
+  }, [refetchLayouts]);
+
+  // Add tables to current diagram
+  const handleAddTables = useCallback((tableIds: string[]) => {
+    setExtraTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.add(id));
+      return next;
+    });
+    // Remove from excluded if was excluded
+    setExcludedTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.delete(id));
+      return next;
+    });
+    setShowManageTablesDialog(false);
+    toast.success(`${tableIds.length} table(s) added to diagram`);
+  }, []);
+
+  // Remove tables from current diagram
+  const handleRemoveTables = useCallback(async (tableIds: string[], updateMapping: boolean) => {
+    // Visual removal
+    setExcludedTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.add(id));
+      return next;
+    });
+    setExtraTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.delete(id));
+      return next;
+    });
+
+    // Admin: also update module mapping in DB
+    if (updateMapping && currentModule) {
+      try {
+        await Promise.all(
+          tableIds.map(id => removeTableFromModuleMap(id, currentModule.id))
+        );
+        queryClient.invalidateQueries({ queryKey: ['db-diagram-tables'] });
+        toast.success(`${tableIds.length} table(s) removed from module mapping`);
+      } catch (err: any) {
+        toast.error('Failed to update mapping: ' + (err.message || 'Unknown error'));
+      }
+    }
+
+    setShowManageTablesDialog(false);
+    toast.success(`${tableIds.length} table(s) removed from diagram`);
+  }, [currentModule, queryClient]);
+
+  const moduleTableIds = useMemo(() => new Set(tables.map(t => t.id)), [tables]);
+  const currentDiagramTableIds = useMemo(() => new Set(filteredTables.map(t => t.id)), [filteredTables]);
+
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
   const sharedCount = filteredTables.filter(t => t.is_shared).length;
@@ -315,6 +494,24 @@ function DbDiagramInner() {
           >
             <Sparkles className="h-4 w-4 mr-1" />
             Smart Layout
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSaveLoadDialog(true)}
+            disabled={!filteredTables.length}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save / Load
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManageTablesDialog(true)}
+            disabled={!currentModule}
+          >
+            <Settings2 className="h-4 w-4 mr-1" />
+            Manage Tables
           </Button>
           <Button
             variant="default"
@@ -640,6 +837,30 @@ function DbDiagramInner() {
         onExport={handleExportPdf}
         isExporting={isExporting}
         tableCount={filteredTables.length}
+      />
+
+      {/* Save / Load Dialog */}
+      <SaveLoadDiagramDialog
+        open={showSaveLoadDialog}
+        onClose={() => setShowSaveLoadDialog(false)}
+        savedLayouts={savedLayouts}
+        onSave={handleSaveLayout}
+        onLoad={handleLoadLayout}
+        onDelete={handleDeleteLayout}
+        isSaving={isSavingLayout}
+      />
+
+      {/* Manage Tables Dialog */}
+      <ManageTablesDialog
+        open={showManageTablesDialog}
+        onClose={() => setShowManageTablesDialog(false)}
+        currentTableIds={currentDiagramTableIds}
+        allTables={allDbTables}
+        moduleTableIds={moduleTableIds}
+        moduleName={currentModule?.module_name || 'Enterprise'}
+        isAdmin={isAdmin}
+        onAddTables={handleAddTables}
+        onRemoveTables={handleRemoveTables}
       />
     </div>
   );
