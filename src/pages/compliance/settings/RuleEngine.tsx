@@ -451,7 +451,7 @@ const DetectionRuleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Detection Rule' : 'Add Detection Rule'}</DialogTitle>
           <DialogDescription>Define when a compliance violation should be automatically detected.</DialogDescription>
