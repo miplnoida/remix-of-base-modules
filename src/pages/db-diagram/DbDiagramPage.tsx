@@ -74,6 +74,11 @@ function DbDiagramInner() {
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSaveLoadDialog, setShowSaveLoadDialog] = useState(false);
+  const [showManageTablesDialog, setShowManageTablesDialog] = useState(false);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
+  const [extraTableIds, setExtraTableIds] = useState<Set<string>>(new Set());
+  const [excludedTableIds, setExcludedTableIds] = useState<Set<string>>(new Set());
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
