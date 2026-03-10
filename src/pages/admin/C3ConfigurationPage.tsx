@@ -15,6 +15,7 @@ import { HolidayPayPolicyDefaultTab } from '@/components/admin/c3-configuration/
 import { HolidayPayPolicyExceptionsTab } from '@/components/admin/c3-configuration/HolidayPayPolicyExceptionsTab';
 import { IncomeCodePolicyDefaultTab } from '@/components/admin/c3-configuration/IncomeCodePolicyDefaultTab';
 import { IncomeCodePolicyExceptionsTab } from '@/components/admin/c3-configuration/IncomeCodePolicyExceptionsTab';
+import { C3FilingConfigTab } from '@/components/admin/c3-configuration/C3FilingConfigTab';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
