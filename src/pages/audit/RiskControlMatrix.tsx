@@ -175,7 +175,7 @@ export default function RiskControlMatrix() {
             const { data: allControls } = await supabase.from('ia_rcm_controls' as any).select('effectiveness_reduction').eq('risk_id', riskId).eq('is_active', true);
             if (riskData && allControls) {
               const maxRed = Math.max(...allControls.map((c: any) => Number(c.effectiveness_reduction) || 0), reduction);
-              const inh = Number(riskData.inherent_risk_score) || (Number(riskData.likelihood) * Number(riskData.impact));
+              const inh = Number((riskData as any).inherent_risk_score) || (Number((riskData as any).likelihood) * Number((riskData as any).impact));
               const res = Math.round(inh * (1 - maxRed / 100) * 100) / 100;
               const cls = classifyRisk(res, classificationThresholds);
               await supabase.from('ia_rcm_risks' as any).update({ residual_risk_score: res, risk_level: cls.label } as any).eq('id', riskId);
