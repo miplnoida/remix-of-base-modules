@@ -1,45 +1,55 @@
-// Utility functions for calculating Mondays in a month for C3 Management
+// Utility functions for calculating week-start-days in a month for C3 Management
+// The "week start day" is configurable (1=Monday..7=Sunday). Default: 1 (Monday).
 
 /**
- * Get all Mondays in a given month and year
+ * Convert week start day (1=Mon..7=Sun) to JS Date.getDay() format (0=Sun..6=Sat)
  */
-export function getMondaysInMonth(year: number, month: number): Date[] {
-  const mondays: Date[] = [];
+function toJsDow(weekStartDay: number): number {
+  return weekStartDay === 7 ? 0 : weekStartDay;
+}
+
+/**
+ * Get all occurrences of the configured week-start-day in a given month and year
+ * @param weekStartDay 1=Monday, 2=Tuesday, ..., 7=Sunday (default: 1)
+ */
+export function getMondaysInMonth(year: number, month: number, weekStartDay: number = 1): Date[] {
+  const targetDow = toJsDow(weekStartDay);
+  const results: Date[] = [];
   const date = new Date(year, month, 1);
   
-  // Find the first Monday
-  while (date.getDay() !== 1) {
+  // Find the first occurrence
+  while (date.getDay() !== targetDow) {
     date.setDate(date.getDate() + 1);
   }
   
-  // Collect all Mondays in the month
+  // Collect all occurrences in the month
   while (date.getMonth() === month) {
-    mondays.push(new Date(date));
+    results.push(new Date(date));
     date.setDate(date.getDate() + 7);
   }
   
-  return mondays;
+  return results;
 }
 
 /**
  * Get the count of Mondays in a month (4 or 5)
  */
-export function getMondayCount(year: number, month: number): number {
-  return getMondaysInMonth(year, month).length;
+export function getMondayCount(year: number, month: number, weekStartDay: number = 1): number {
+  return getMondaysInMonth(year, month, weekStartDay).length;
 }
 
 /**
  * Determine which week checkboxes should be enabled based on the selected period
  * Returns an array of 5 booleans (one for each week checkbox)
  */
-export function getEnabledWeekCheckboxes(year: number, month: number): boolean[] {
-  const mondayCount = getMondayCount(year, month);
+export function getEnabledWeekCheckboxes(year: number, month: number, weekStartDay: number = 1): boolean[] {
+  const count = getMondayCount(year, month, weekStartDay);
   return [
     true,  // Week 1
     true,  // Week 2
     true,  // Week 3
     true,  // Week 4
-    mondayCount >= 5  // Week 5 - only enabled if month has 5 Mondays
+    count >= 5  // Week 5 - only enabled if month has 5 occurrences
   ];
 }
 
@@ -56,9 +66,10 @@ export function getEnabledWeekTextboxes(
   year: number,
   month: number,
   termStartDate?: string,
-  biweeklyOverride?: boolean[]
+  biweeklyOverride?: boolean[],
+  weekStartDay: number = 1
 ): boolean[] {
-  const mondayCount = getMondayCount(year, month);
+  const mondayCount = getMondayCount(year, month, weekStartDay);
   
   switch (payPeriod) {
     case 'Monthly': {

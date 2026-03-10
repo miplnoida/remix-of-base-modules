@@ -17,6 +17,28 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const WEEKDAY_OPTIONS = [
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+  { value: '7', label: 'Sunday' },
+];
+
+const UNIT_OPTIONS = [
+  { value: '1', label: 'Months' },
+  { value: '2', label: 'Days' },
+];
 
 interface C3ConfigCategoryCardProps {
   group: ConfigCategoryGroup;
@@ -36,6 +58,39 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
   
   const updateConfig = useUpdateC3Config();
 
+  // Determine the filing_window_unit value for dynamic suffix display
+  const filingUnitConfig = group.configs.find(c => c.config_key === 'filing_window_unit');
+  const filingUnitValue = filingUnitConfig?.config_value ?? 1;
+  const filingUnitLabel = filingUnitValue === 2 ? 'days' : 'months';
+
+  const isSpecialSelect = (configKey: string) => 
+    configKey === 'week_start_day' || configKey === 'filing_window_unit';
+
+  const getSelectOptions = (configKey: string) => {
+    if (configKey === 'week_start_day') return WEEKDAY_OPTIONS;
+    if (configKey === 'filing_window_unit') return UNIT_OPTIONS;
+    return [];
+  };
+
+  const getSpecialDisplayValue = (configKey: string, value: number): string => {
+    if (configKey === 'week_start_day') {
+      return WEEKDAY_OPTIONS.find(o => o.value === String(value))?.label || String(value);
+    }
+    if (configKey === 'filing_window_unit') {
+      return UNIT_OPTIONS.find(o => o.value === String(value))?.label || String(value);
+    }
+    return String(value);
+  };
+
+  const getDynamicSuffix = (configKey: string, configType: string): string => {
+    // For threshold/window value fields, show dynamic unit based on filing_window_unit
+    if (['filing_window_value', 'penalty_initial_threshold', 'penalty_subsequent_threshold'].includes(configKey)) {
+      return filingUnitLabel;
+    }
+    const typeInfo = CONFIG_TYPE_INFO[configType as keyof typeof CONFIG_TYPE_INFO];
+    return typeInfo?.suffix || '';
+  };
+
   const formatDisplayValue = (value: number, configType: string): string => {
     const typeInfo = CONFIG_TYPE_INFO[configType as keyof typeof CONFIG_TYPE_INFO];
     if (!typeInfo) return value.toString();
@@ -53,7 +108,11 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
 
   const handleEdit = (config: typeof group.configs[0]) => {
     setEditingId(config.id);
-    setEditValue(formatDisplayValue(config.config_value, config.config_type));
+    if (isSpecialSelect(config.config_key)) {
+      setEditValue(String(config.config_value));
+    } else {
+      setEditValue(formatDisplayValue(config.config_value, config.config_type));
+    }
   };
 
   const handleCancel = () => {
@@ -62,7 +121,12 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
   };
 
   const handleSave = (config: typeof group.configs[0]) => {
-    const newValue = parseInputValue(editValue, config.config_type);
+    let newValue: number;
+    if (isSpecialSelect(config.config_key)) {
+      newValue = parseFloat(editValue) || 0;
+    } else {
+      newValue = parseInputValue(editValue, config.config_type);
+    }
     
     if (newValue === config.config_value) {
       handleCancel();
@@ -116,6 +180,8 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
                 {group.configs.map(config => {
                 const typeInfo = CONFIG_TYPE_INFO[config.config_type as keyof typeof CONFIG_TYPE_INFO];
                 const isEditing = editingId === config.id;
+                const isSelect = isSpecialSelect(config.config_key);
+                const suffix = getDynamicSuffix(config.config_key, config.config_type);
                 
                 return (
                   <TableRow key={config.id}>
@@ -138,28 +204,46 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
                     </TableCell>
                     <TableCell>
                       {isEditing ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            className="w-24"
-                            step={typeInfo?.decimals === 0 ? 1 : 0.01}
-                            min={0}
-                          />
-                          <span className="text-muted-foreground text-sm">
-                            {typeInfo?.suffix}
-                          </span>
-                        </div>
+                        isSelect ? (
+                          <Select value={editValue} onValueChange={setEditValue}>
+                            <SelectTrigger className="w-36">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getSelectOptions(config.config_key).map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-24"
+                              step={typeInfo?.decimals === 0 ? 1 : 0.01}
+                              min={0}
+                            />
+                            <span className="text-muted-foreground text-sm">
+                              {suffix}
+                            </span>
+                          </div>
+                        )
                       ) : (
                         <span>
-                          {formatDisplayValue(config.config_value, config.config_type)} {typeInfo?.suffix}
+                          {isSelect
+                            ? getSpecialDisplayValue(config.config_key, config.config_value)
+                            : `${formatDisplayValue(config.config_value, config.config_type)} ${suffix}`
+                          }
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <span className="capitalize text-muted-foreground text-xs sm:text-sm">
-                        {config.config_type.replace('_', ' ')}
+                        {isSelect ? 'selection' : config.config_type.replace('_', ' ')}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -217,10 +301,18 @@ export function C3ConfigCategoryCard({ group }: C3ConfigCategoryCardProps) {
                   <strong>Parameter:</strong> {pendingUpdate.config_key}
                 </p>
                 <p className="text-sm">
-                  <strong>Old Value:</strong> {pendingUpdate.oldValue}
+                  <strong>Old Value:</strong> {
+                    isSpecialSelect(pendingUpdate.config_key)
+                      ? getSpecialDisplayValue(pendingUpdate.config_key, pendingUpdate.oldValue)
+                      : pendingUpdate.oldValue
+                  }
                 </p>
                 <p className="text-sm">
-                  <strong>New Value:</strong> {pendingUpdate.newValue}
+                  <strong>New Value:</strong> {
+                    isSpecialSelect(pendingUpdate.config_key)
+                      ? getSpecialDisplayValue(pendingUpdate.config_key, pendingUpdate.newValue)
+                      : pendingUpdate.newValue
+                  }
                 </p>
               </div>
               

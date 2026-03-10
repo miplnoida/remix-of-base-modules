@@ -1,7 +1,7 @@
 // C3 Calculation Configuration Types
 
 export type ConfigType = 'rate' | 'amount' | 'age' | 'days' | 'weeks' | 'months';
-export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty' | 'voluntary_contributor';
+export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty' | 'voluntary_contributor' | 'filing';
 
 export interface C3CalculationConfig {
   id: string;
@@ -67,6 +67,11 @@ export const CATEGORY_INFO: Record<ConfigCategory, { displayName: string; descri
     displayName: 'Voluntary Contributor',
     description: 'Configure eligibility rules, contribution rates, and grace periods for voluntary contributors',
     icon: 'UserPlus'
+  },
+  filing: {
+    displayName: 'Filing & Penalties',
+    description: 'Configure week start day, filing window, and penalty/fine thresholds for C3 submissions',
+    icon: 'Calendar'
   }
 };
 
