@@ -316,6 +316,56 @@ export const systemAdminMenuItems = [
             requiresPermission: "system_administration"
           }
         ]
+      },
+      {
+        title: "DB Diagram",
+        icon: Database,
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Enterprise DB Diagram",
+            url: "/db-diagram",
+            icon: Database,
+            requiresPermission: "system_administration",
+            description: "View entire database architecture"
+          },
+          {
+            title: "System Config",
+            url: "/db-diagram/system",
+            icon: Settings,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Users & Auth",
+            url: "/db-diagram/users",
+            icon: Users,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Engine",
+            url: "/db-diagram/workflow",
+            icon: GitBranch,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "API Management",
+            url: "/db-diagram/api",
+            icon: Globe,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Notifications",
+            url: "/db-diagram/notifications",
+            icon: Bell,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "Audit & Logging",
+            url: "/db-diagram/audit",
+            icon: History,
+            requiresPermission: "system_administration"
+          }
+        ]
       }
     ]
   },
