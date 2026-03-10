@@ -6035,6 +6035,436 @@ export type Database = {
         }
         Relationships: []
       }
+      dev_info_access_log: {
+        Row: {
+          accessed_at: string | null
+          accessed_by: string | null
+          action_type: string | null
+          id: string
+          ip_address: string | null
+          remarks: string | null
+          screen_code: string | null
+          screen_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          accessed_by?: string | null
+          action_type?: string | null
+          id?: string
+          ip_address?: string | null
+          remarks?: string | null
+          screen_code?: string | null
+          screen_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          accessed_by?: string | null
+          action_type?: string | null
+          id?: string
+          ip_address?: string | null
+          remarks?: string | null
+          screen_code?: string | null
+          screen_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_access_log_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_actions: {
+        Row: {
+          action_description: string | null
+          action_name: string
+          action_type: string | null
+          api_or_service_called: string | null
+          business_logic: string | null
+          created_at: string | null
+          downstream_effect: string | null
+          id: string
+          permission_required: string | null
+          remarks: string | null
+          screen_id: string
+          tables_affected: string | null
+        }
+        Insert: {
+          action_description?: string | null
+          action_name: string
+          action_type?: string | null
+          api_or_service_called?: string | null
+          business_logic?: string | null
+          created_at?: string | null
+          downstream_effect?: string | null
+          id?: string
+          permission_required?: string | null
+          remarks?: string | null
+          screen_id: string
+          tables_affected?: string | null
+        }
+        Update: {
+          action_description?: string | null
+          action_name?: string
+          action_type?: string | null
+          api_or_service_called?: string | null
+          business_logic?: string | null
+          created_at?: string | null
+          downstream_effect?: string | null
+          id?: string
+          permission_required?: string | null
+          remarks?: string | null
+          screen_id?: string
+          tables_affected?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_actions_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_audit: {
+        Row: {
+          audit_description: string | null
+          audit_type: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          remarks: string | null
+          screen_id: string
+        }
+        Insert: {
+          audit_description?: string | null
+          audit_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          remarks?: string | null
+          screen_id: string
+        }
+        Update: {
+          audit_description?: string | null
+          audit_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          remarks?: string | null
+          screen_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_audit_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_dependencies: {
+        Row: {
+          created_at: string | null
+          dependency_details: string | null
+          dependency_name: string
+          dependency_type: string
+          id: string
+          remarks: string | null
+          screen_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dependency_details?: string | null
+          dependency_name: string
+          dependency_type: string
+          id?: string
+          remarks?: string | null
+          screen_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dependency_details?: string | null
+          dependency_name?: string
+          dependency_type?: string
+          id?: string
+          remarks?: string | null
+          screen_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_dependencies_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_documents: {
+        Row: {
+          created_at: string | null
+          document_name: string | null
+          document_reference: string | null
+          document_type: string | null
+          id: string
+          remarks: string | null
+          screen_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_name?: string | null
+          document_reference?: string | null
+          document_type?: string | null
+          id?: string
+          remarks?: string | null
+          screen_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_name?: string | null
+          document_reference?: string | null
+          document_type?: string | null
+          id?: string
+          remarks?: string | null
+          screen_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_documents_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_fields: {
+        Row: {
+          control_type: string | null
+          created_at: string | null
+          data_type: string | null
+          default_logic: string | null
+          edit_rule: string | null
+          field_label: string | null
+          field_name: string
+          id: string
+          is_required: boolean | null
+          remarks: string | null
+          screen_id: string
+          sort_order: number | null
+          source_column: string | null
+          source_table: string | null
+          validation_rule: string | null
+          visibility_rule: string | null
+        }
+        Insert: {
+          control_type?: string | null
+          created_at?: string | null
+          data_type?: string | null
+          default_logic?: string | null
+          edit_rule?: string | null
+          field_label?: string | null
+          field_name: string
+          id?: string
+          is_required?: boolean | null
+          remarks?: string | null
+          screen_id: string
+          sort_order?: number | null
+          source_column?: string | null
+          source_table?: string | null
+          validation_rule?: string | null
+          visibility_rule?: string | null
+        }
+        Update: {
+          control_type?: string | null
+          created_at?: string | null
+          data_type?: string | null
+          default_logic?: string | null
+          edit_rule?: string | null
+          field_label?: string | null
+          field_name?: string
+          id?: string
+          is_required?: boolean | null
+          remarks?: string | null
+          screen_id?: string
+          sort_order?: number | null
+          source_column?: string | null
+          source_table?: string | null
+          validation_rule?: string | null
+          visibility_rule?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_fields_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_logic: {
+        Row: {
+          created_at: string | null
+          execution_order: number | null
+          id: string
+          logic_description: string | null
+          logic_title: string
+          logic_type: string
+          screen_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          execution_order?: number | null
+          id?: string
+          logic_description?: string | null
+          logic_title: string
+          logic_type: string
+          screen_id: string
+        }
+        Update: {
+          created_at?: string | null
+          execution_order?: number | null
+          id?: string
+          logic_description?: string | null
+          logic_title?: string
+          logic_type?: string
+          screen_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_logic_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dev_info_screens: {
+        Row: {
+          business_purpose: string | null
+          created_at: string | null
+          created_by: string | null
+          documentation_status: string | null
+          downstream_screens: string | null
+          functional_summary: string | null
+          id: string
+          is_active: boolean | null
+          last_ai_analysis_at: string | null
+          menu_path: string | null
+          module_name: string | null
+          primary_user_roles: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          route_url: string | null
+          screen_code: string
+          screen_name: string
+          screen_type: string | null
+          submodule_name: string | null
+          trigger_context: string | null
+          updated_at: string | null
+          updated_by: string | null
+          upstream_screens: string | null
+        }
+        Insert: {
+          business_purpose?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          documentation_status?: string | null
+          downstream_screens?: string | null
+          functional_summary?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_ai_analysis_at?: string | null
+          menu_path?: string | null
+          module_name?: string | null
+          primary_user_roles?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_url?: string | null
+          screen_code: string
+          screen_name: string
+          screen_type?: string | null
+          submodule_name?: string | null
+          trigger_context?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upstream_screens?: string | null
+        }
+        Update: {
+          business_purpose?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          documentation_status?: string | null
+          downstream_screens?: string | null
+          functional_summary?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_ai_analysis_at?: string | null
+          menu_path?: string | null
+          module_name?: string | null
+          primary_user_roles?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_url?: string | null
+          screen_code?: string
+          screen_name?: string
+          screen_type?: string | null
+          submodule_name?: string | null
+          trigger_context?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upstream_screens?: string | null
+        }
+        Relationships: []
+      }
+      dev_info_table_maps: {
+        Row: {
+          created_at: string | null
+          id: string
+          purpose: string | null
+          remarks: string | null
+          screen_id: string
+          table_name: string
+          table_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          purpose?: string | null
+          remarks?: string | null
+          screen_id: string
+          table_name: string
+          table_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          purpose?: string | null
+          remarks?: string | null
+          screen_id?: string
+          table_name?: string
+          table_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_info_table_maps_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "dev_info_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_purpose_rules: {
         Row: {
           ai_prompt_hint: string | null
