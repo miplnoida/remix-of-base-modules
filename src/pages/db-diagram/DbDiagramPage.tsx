@@ -248,8 +248,6 @@ function DbDiagramInner() {
       if (Object.keys(cols).length === 0) {
         cols = await fetchColumnsForMultipleTables(filteredTables.map(t => t.table_name));
       }
-      // Grab the actual ReactFlow diagram DOM element
-      const diagramEl = document.getElementById('db-diagram-canvas');
       await exportDbDiagramToPdf({
         module: currentModule || null,
         tables: filteredTables,
@@ -258,7 +256,6 @@ function DbDiagramInner() {
         pageSize: settings.pageSize,
         orientation: settings.orientation,
         zoomLevel: settings.zoomLevel,
-        diagramElement: diagramEl,
       });
       toast.success('PDF exported successfully');
       setShowExportDialog(false);
