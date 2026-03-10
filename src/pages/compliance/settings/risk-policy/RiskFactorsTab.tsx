@@ -1,85 +1,96 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, Search, Edit, Power } from 'lucide-react';
-import { riskFactorService } from '@/services/riskFactorService';
-import { RiskFactor } from '@/types/riskPolicy';
+import { Plus, Search, Edit, Power, Save, RotateCcw, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import RiskFactorDialog from '@/components/compliance/risk-policy/RiskFactorDialog';
+
+interface RiskConfigRow {
+  id: string;
+  factor_code: string;
+  factor_name: string;
+  description: string | null;
+  weight: number;
+  max_score: number;
+  scoring_method: string | null;
+  is_enabled: boolean | null;
+}
 
 export default function RiskFactorsTab() {
-  const [factors, setFactors] = useState<RiskFactor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingFactor, setEditingFactor] = useState<RiskFactor | undefined>();
+  const [localFactors, setLocalFactors] = useState<RiskConfigRow[]>([]);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
-  useEffect(() => {
-    loadFactors();
-  }, []);
+  const { data: factors = [], isLoading } = useQuery({
+    queryKey: ['ce_risk_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_risk_config')
+        .select('*')
+        .order('weight', { ascending: false });
+      if (error) throw error;
+      const rows = (data || []) as unknown as RiskConfigRow[];
+      setLocalFactors(rows);
+      setHasLocalChanges(false);
+      return rows;
+    },
+  });
 
-  const loadFactors = async () => {
-    try {
-      setLoading(true);
-      const data = await riskFactorService.getAllFactors();
-      setFactors(data);
-    } catch (error) {
-      toast.error('Failed to load risk factors');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      for (const f of localFactors) {
+        const { error } = await supabase
+          .from('ce_risk_config')
+          .update({ weight: f.weight, is_enabled: f.is_enabled } as any)
+          .eq('id', f.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ce_risk_config'] });
+      toast.success('Risk factor configuration saved');
+      setHasLocalChanges(false);
+    },
+    onError: () => toast.error('Failed to save configuration'),
+  });
+
+  const totalWeight = localFactors
+    .filter(f => f.is_enabled !== false)
+    .reduce((sum, f) => sum + Number(f.weight), 0);
+
+  const updateWeight = (id: string, value: number[]) => {
+    setLocalFactors(prev => prev.map(f => f.id === id ? { ...f, weight: value[0] } : f));
+    setHasLocalChanges(true);
   };
 
-  const handleToggleStatus = async (id: string) => {
-    try {
-      await riskFactorService.toggleFactorStatus(id);
-      await loadFactors();
-      toast.success('Risk factor status updated');
-    } catch (error) {
-      toast.error('Failed to update status');
-      console.error(error);
-    }
+  const toggleEnabled = (id: string) => {
+    setLocalFactors(prev => prev.map(f => f.id === id ? { ...f, is_enabled: !f.is_enabled } : f));
+    setHasLocalChanges(true);
   };
 
-  const handleEdit = (factor: RiskFactor) => {
-    setEditingFactor(factor);
-    setDialogOpen(true);
-  };
-
-  const handleCreate = () => {
-    setEditingFactor(undefined);
-    setDialogOpen(true);
-  };
-
-  const handleSave = async (factorData: Omit<RiskFactor, 'id' | 'code' | 'createdDate' | 'lastModified'>) => {
-    if (editingFactor) {
-      await riskFactorService.updateFactor(editingFactor.id, factorData);
-    } else {
-      await riskFactorService.createFactor(factorData);
-    }
-    await loadFactors();
-  };
-
-  const filteredFactors = factors.filter(factor =>
-    factor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    factor.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    factor.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFactors = localFactors.filter(f =>
+    f.factor_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    f.factor_code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Header Actions */}
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -90,127 +101,89 @@ export default function RiskFactorsTab() {
             className="pl-10"
           />
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Risk Factor
-        </Button>
+        <div className="flex items-center gap-3">
+          <Badge variant={totalWeight === 100 ? 'default' : 'destructive'} className="text-sm px-3 py-1">
+            Total Weight: {totalWeight}%
+          </Badge>
+          {hasLocalChanges && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => { setLocalFactors(factors); setHasLocalChanges(false); }}>
+                <RotateCcw className="h-4 w-4 mr-1" /> Reset
+              </Button>
+              <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Risk Factors Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Factor Code</TableHead>
-              <TableHead>Factor Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Data Source</TableHead>
-              <TableHead>Calculation Method</TableHead>
-              <TableHead>Default Weight</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Modified</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  Loading risk factors...
-                </TableCell>
-              </TableRow>
-            ) : filteredFactors.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  No risk factors found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredFactors.map((factor) => (
-                <TableRow key={factor.id}>
-                  <TableCell className="font-medium">{factor.code}</TableCell>
-                  <TableCell>{factor.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{factor.category}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {factor.dataSource.replace(/_/g, ' ')}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {factor.calculationMethod.replace(/_/g, ' ')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{factor.defaultWeight}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {factor.active ? (
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {format(new Date(factor.lastModified), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(factor)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(factor.id)}
-                      >
-                        <Power
-                          className={`h-4 w-4 ${
-                            factor.active ? 'text-green-600' : 'text-muted-foreground'
-                          }`}
-                        />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+      {/* Factors with Sliders */}
+      <div className="space-y-4">
+        {filteredFactors.map((factor) => (
+          <div
+            key={factor.id}
+            className={`p-4 border rounded-lg space-y-3 transition-opacity ${factor.is_enabled === false ? 'opacity-50 bg-muted/30' : 'bg-card'}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-mono">{factor.factor_code}</Badge>
+                  <p className="font-medium text-foreground">{factor.factor_name}</p>
+                </div>
+                {factor.description && (
+                  <p className="text-xs text-muted-foreground mt-1">{factor.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-lg font-bold text-primary w-16 text-right">{factor.weight}%</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleEnabled(factor.id)}
+                  title={factor.is_enabled !== false ? 'Disable factor' : 'Enable factor'}
+                >
+                  <Power className={`h-4 w-4 ${factor.is_enabled !== false ? 'text-green-600' : 'text-muted-foreground'}`} />
+                </Button>
+              </div>
+            </div>
+            {factor.is_enabled !== false && (
+              <Slider
+                value={[Number(factor.weight)]}
+                onValueChange={(val) => updateWeight(factor.id, val)}
+                max={50}
+                min={5}
+                step={5}
+                className="w-full"
+              />
             )}
-          </TableBody>
-        </Table>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span>Max Score: {factor.max_score}</span>
+              {factor.scoring_method && <span>Method: {factor.scoring_method}</span>}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-card border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Total Factors</div>
-          <div className="text-2xl font-semibold mt-1">{factors.length}</div>
+          <div className="text-2xl font-semibold mt-1">{localFactors.length}</div>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Active Factors</div>
           <div className="text-2xl font-semibold mt-1 text-green-600">
-            {factors.filter(f => f.active).length}
+            {localFactors.filter(f => f.is_enabled !== false).length}
           </div>
         </div>
         <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">Compliance Factors</div>
-          <div className="text-2xl font-semibold mt-1">
-            {factors.filter(f => f.category === 'COMPLIANCE').length}
-          </div>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">Financial Factors</div>
-          <div className="text-2xl font-semibold mt-1">
-            {factors.filter(f => f.category === 'FINANCIAL').length}
+          <div className="text-sm text-muted-foreground">Weight Status</div>
+          <div className={`text-2xl font-semibold mt-1 ${totalWeight === 100 ? 'text-green-600' : 'text-destructive'}`}>
+            {totalWeight === 100 ? '✓ Balanced' : `${totalWeight}% (need 100%)`}
           </div>
         </div>
       </div>
-
-      <RiskFactorDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        factor={editingFactor}
-        onSave={handleSave}
-      />
     </div>
   );
 }
