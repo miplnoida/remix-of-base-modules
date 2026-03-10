@@ -15,7 +15,7 @@ import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 
 // DB Diagram
-import DbDiagramPage from '@/pages/db-diagram/DbDiagramPage';
+const DbDiagramPage = lazy(() => import('@/pages/db-diagram/DbDiagramPage'));
 
 // Page imports
 import Index from '@/pages/dashboard/Index';
@@ -1541,8 +1541,8 @@ export const AppRoutes = () => {
 
 
       {/* DB Diagram */}
-      <Route path="/db-diagram" element={<ProtectedLayout><DbDiagramPage /></ProtectedLayout>} />
-      <Route path="/db-diagram/:moduleCode" element={<ProtectedLayout><DbDiagramPage /></ProtectedLayout>} />
+      <Route path="/db-diagram" element={<ProtectedLayout><Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense></ProtectedLayout>} />
+      <Route path="/db-diagram/:moduleCode" element={<ProtectedLayout><Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense></ProtectedLayout>} />
 
       {/* Maintenance / Lockdown */}
       <Route path="/maintenance" element={<Maintenance />} />
