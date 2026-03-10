@@ -838,6 +838,30 @@ function DbDiagramInner() {
         isExporting={isExporting}
         tableCount={filteredTables.length}
       />
+
+      {/* Save / Load Dialog */}
+      <SaveLoadDiagramDialog
+        open={showSaveLoadDialog}
+        onClose={() => setShowSaveLoadDialog(false)}
+        savedLayouts={savedLayouts}
+        onSave={handleSaveLayout}
+        onLoad={handleLoadLayout}
+        onDelete={handleDeleteLayout}
+        isSaving={isSavingLayout}
+      />
+
+      {/* Manage Tables Dialog */}
+      <ManageTablesDialog
+        open={showManageTablesDialog}
+        onClose={() => setShowManageTablesDialog(false)}
+        currentTableIds={currentDiagramTableIds}
+        allTables={allDbTables}
+        moduleTableIds={moduleTableIds}
+        moduleName={currentModule?.module_name || 'Enterprise'}
+        isAdmin={isAdmin}
+        onAddTables={handleAddTables}
+        onRemoveTables={handleRemoveTables}
+      />
     </div>
   );
 }
