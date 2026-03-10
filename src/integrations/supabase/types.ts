@@ -20033,22 +20033,39 @@ export type Database = {
         }
         Returns: string
       }
-      log_c3_config_change: {
-        Args: {
-          p_action: string
-          p_changed_by?: string
-          p_changed_by_name?: string
-          p_config_type: string
-          p_entity_name: string
-          p_field_name?: string
-          p_metadata?: Json
-          p_new_value?: string
-          p_old_value?: string
-          p_reason?: string
-          p_record_id: string
-        }
-        Returns: string
-      }
+      log_c3_config_change:
+        | {
+            Args: {
+              p_action: string
+              p_changed_by?: string
+              p_changed_by_name?: string
+              p_config_type: string
+              p_entity_name: string
+              p_field_name?: string
+              p_metadata?: Json
+              p_new_value?: string
+              p_old_value?: string
+              p_reason?: string
+              p_record_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_action: string
+              p_changed_by?: string
+              p_changed_by_name?: string
+              p_config_type: string
+              p_entity_name: string
+              p_field_name?: string
+              p_metadata?: string
+              p_new_value?: string
+              p_old_value?: string
+              p_reason?: string
+              p_record_id: string
+            }
+            Returns: string
+          }
       log_workflow_security_event: {
         Args: {
           _access_granted?: boolean
