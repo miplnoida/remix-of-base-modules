@@ -38,7 +38,7 @@ export const AUDIT_FEATURE_FLAGS = {
   FEATURE_AUDIT_FUNCTION_MASTER: true,
   FEATURE_AUDIT_TEMPLATES: true,
   // New Phase 1–9 flags
-  FEATURE_AUDIT_UNIVERSE: false,
+  // FEATURE_AUDIT_UNIVERSE removed — Audit Universe is replaced by Function Master
   FEATURE_AUDIT_RISK_ASSESSMENT: true,
   FEATURE_AUDIT_ENGAGEMENTS: true,
   FEATURE_AUDIT_PROGRAMS: true,
