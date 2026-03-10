@@ -66,9 +66,10 @@ export function getEnabledWeekTextboxes(
   year: number,
   month: number,
   termStartDate?: string,
-  biweeklyOverride?: boolean[]
+  biweeklyOverride?: boolean[],
+  weekStartDay: number = 1
 ): boolean[] {
-  const mondayCount = getMondayCount(year, month);
+  const mondayCount = getMondayCount(year, month, weekStartDay);
   
   switch (payPeriod) {
     case 'Monthly': {
