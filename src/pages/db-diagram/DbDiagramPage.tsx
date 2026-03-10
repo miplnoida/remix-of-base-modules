@@ -8,10 +8,9 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  Node,
-  Edge,
+  type Node,
+  type Edge,
   BackgroundVariant,
-  Panel,
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
