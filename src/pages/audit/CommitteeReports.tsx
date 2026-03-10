@@ -4,28 +4,29 @@ import { Button } from '@/components/ui/button';
 import { PageShell } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { FileText, AlertTriangle, Clock, Download } from 'lucide-react';
-import { useIAEngagements, useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
+import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
+import { useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CommitteeReports() {
   const { data: engagements = [] } = useIAEngagements();
   const { data: findings = [] } = useIAFindings();
   const { data: actions = [] } = useIAActionTracking();
-  const { data: universe = [] } = useIAAuditUniverse();
+  const { data: functions = [] } = useIADepartmentFunctions();
   const { toast } = useToast();
 
   const openFindings = findings.filter((f: any) => f.status !== 'Closed');
   const criticalFindings = openFindings.filter((f: any) => f.severity === 'Critical' || f.severity === 'High');
   const overdueActions = actions.filter((a: any) => a.status !== 'Closed' && a.target_date && new Date(a.target_date) < new Date());
-  const highRiskEntities = universe.filter((u: any) => u.risk_category === 'High' || u.risk_category === 'Critical');
+  const highRiskFunctions = (functions as any[]).filter((f: any) => f.risk_rating === 'High' || f.risk_rating === 'Critical');
 
   const handleExport = (reportName: string) => { toast({ title: 'Export', description: `${reportName} export will be available in PDF format.` }); };
 
   const reports = [
     { title: 'Committee Summary Report', description: 'Overview of audit activities, key findings, and management actions.', count: engagements.length, icon: FileText },
     { title: 'Open Critical Issues', description: 'All open findings rated Critical or High.', count: criticalFindings.length, icon: AlertTriangle },
-    { title: 'High-Risk Entity List', description: 'Entities rated as High or Critical risk.', count: highRiskEntities.length, icon: AlertTriangle },
+    { title: 'High-Risk Functions', description: 'Functions rated as High or Critical risk.', count: highRiskFunctions.length, icon: AlertTriangle },
     { title: 'Overdue Management Responses', description: 'Actions that have exceeded their target dates.', count: overdueActions.length, icon: Clock },
     { title: 'Audit Plan Progress', description: 'Status of all planned engagements.', count: engagements.filter((e: any) => e.status === 'Closed').length, icon: FileText },
   ];
@@ -37,7 +38,7 @@ export default function CommitteeReports() {
         <MetricCard title="Total Engagements" value={engagements.length} icon={FileText} variant="info" />
         <MetricCard title="Critical Issues" value={criticalFindings.length} icon={AlertTriangle} variant="error" />
         <MetricCard title="Overdue Actions" value={overdueActions.length} icon={Clock} variant="warning" />
-        <MetricCard title="High-Risk Entities" value={highRiskEntities.length} icon={AlertTriangle} variant="error" />
+        <MetricCard title="High-Risk Functions" value={highRiskFunctions.length} icon={AlertTriangle} variant="error" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {reports.map((report, idx) => (

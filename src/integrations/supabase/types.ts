@@ -10512,6 +10512,7 @@ export type Database = {
           control_effectiveness_score: number | null
           created_at: string | null
           created_by: string | null
+          function_id: string | null
           id: string
           impact_score: number | null
           is_active: boolean | null
@@ -10532,6 +10533,7 @@ export type Database = {
           control_effectiveness_score?: number | null
           created_at?: string | null
           created_by?: string | null
+          function_id?: string | null
           id?: string
           impact_score?: number | null
           is_active?: boolean | null
@@ -10552,6 +10554,7 @@ export type Database = {
           control_effectiveness_score?: number | null
           created_at?: string | null
           created_by?: string | null
+          function_id?: string | null
           id?: string
           impact_score?: number | null
           is_active?: boolean | null
@@ -10571,6 +10574,13 @@ export type Database = {
             columns: ["audit_universe_id"]
             isOneToOne: false
             referencedRelation: "ia_audit_universe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_risk_assessments_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_functions"
             referencedColumns: ["id"]
           },
         ]

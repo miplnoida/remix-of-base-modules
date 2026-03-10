@@ -3,26 +3,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageShell } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { BarChart3, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, FileText } from 'lucide-react';
-import { useIAAuditUniverse, useIAEngagements, useIAControlTests, useIAQualityReviews } from '@/hooks/useAuditDataPhase2';
+import { useIAEngagements, useIAControlTests, useIAQualityReviews } from '@/hooks/useAuditDataPhase2';
 import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
+import { useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--muted))'];
 
 export default function ExecutiveDashboard() {
-  const { data: universe = [] } = useIAAuditUniverse();
+  const { data: functions = [] } = useIADepartmentFunctions();
   const { data: engagements = [] } = useIAEngagements();
   const { data: controlTests = [] } = useIAControlTests();
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
   const { data: actions = [] } = useIAActionTracking();
 
+  const highRiskFunctions = (functions as any[]).filter((f: any) => f.risk_rating === 'High' || f.risk_rating === 'Critical');
+
   const stats = {
     totalPlanned: engagements.length,
     completed: engagements.filter((e: any) => e.status === 'Closed').length,
     openFindings: findings.filter((f: any) => f.status !== 'Closed').length,
     overdueActions: actions.filter((a: any) => a.status !== 'Closed' && a.target_date && new Date(a.target_date) < new Date()).length,
-    highRiskEntities: universe.filter((u: any) => u.risk_category === 'High' || u.risk_category === 'Critical').length,
+    highRiskFunctions: highRiskFunctions.length,
     controlTestPass: controlTests.filter((t: any) => t.result === 'Pass').length,
     closureRate: engagements.length ? Math.round(engagements.filter((e: any) => e.status === 'Closed').length / engagements.length * 100) : 0,
     qaReviews: qualityReviews.length,
@@ -53,7 +56,7 @@ export default function ExecutiveDashboard() {
         <MetricCard title="Overdue Actions" value={stats.overdueActions} icon={Clock} variant="warning" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="High-Risk Entities" value={stats.highRiskEntities} icon={Shield} variant="error" />
+        <MetricCard title="High-Risk Functions" value={stats.highRiskFunctions} icon={Shield} variant="error" />
         <MetricCard title="Controls Passed" value={stats.controlTestPass} icon={CheckCircle} variant="success" />
         <MetricCard title="Closure Rate" value={`${stats.closureRate}%`} icon={TrendingUp} variant="info" />
         <MetricCard title="QA Reviews" value={stats.qaReviews} icon={FileText} variant="default" />

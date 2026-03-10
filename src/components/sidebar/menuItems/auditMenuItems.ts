@@ -35,13 +35,6 @@ export const auditMenuItems = [
     subItems: [
       // Governance & Risk
       {
-        title: "Audit Universe",
-        url: "/audit/audit-universe",
-        icon: Globe,
-        requiresPermission: "configure_audit_system",
-        description: "Master list of all auditable entities"
-      },
-      {
         title: "Risk Assessment",
         url: "/audit/risk-assessment",
         icon: Target,
