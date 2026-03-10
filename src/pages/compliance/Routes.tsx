@@ -162,6 +162,7 @@ const ComplianceRoutes = () => {
       <Route path="/settings/risk-config" element={<RiskScoringConfig />} />
       <Route path="/settings/risk-policy" element={<RiskRulePolicy />} />
       <Route path="/settings/legal-escalation-policy" element={<LegalEscalationPolicy />} />
+      <Route path="/settings/templates" element={<ComplianceTemplates />} />
 
       {/* Reports */}
       <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
