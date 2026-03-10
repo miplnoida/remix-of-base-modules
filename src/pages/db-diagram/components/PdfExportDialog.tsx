@@ -99,6 +99,24 @@ export function PdfExportDialog({ open, onClose, onExport, isExporting, tableCou
               </div>
             </RadioGroup>
           </div>
+
+          {/* Zoom Level */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Diagram Zoom / Scale</Label>
+            <Select value={String(zoomLevel)} onValueChange={(v) => setZoomLevel(Number(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ZOOM_LEVELS.map(z => (
+                  <SelectItem key={z.value} value={String(z.value)}>{z.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Lower zoom fits more tables on one page. Use 25–50% for large modules.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
