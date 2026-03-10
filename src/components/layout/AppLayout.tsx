@@ -36,6 +36,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </main>
         </div>
       </div>
+      <TooltipProvider>
+        <DeveloperInfoFAB />
+      </TooltipProvider>
     </SidebarProvider>
   );
 };
