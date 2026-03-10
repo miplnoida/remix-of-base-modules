@@ -19802,6 +19802,16 @@ export type Database = {
           submission_due_day: number
         }[]
       }
+      get_c3_filing_config: {
+        Args: never
+        Returns: {
+          config_key: string
+          config_type: string
+          config_value: number
+          description: string
+          display_name: string
+        }[]
+      }
       get_c3_records_filtered: {
         Args: {
           p_date_entered?: string
