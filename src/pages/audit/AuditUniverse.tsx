@@ -12,7 +12,10 @@ import { useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
 import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
-import { AUDIT_UNIVERSE_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+// AUDIT_UNIVERSE_SCHEMA removed — this module is deprecated
+const AUDIT_UNIVERSE_SCHEMA = { moduleKey: 'audit_universe', moduleLabel: 'Audit Universe', templateFileName: 'audit-universe-template', exportFileName: 'audit-universe', exportTitle: 'Audit Universe', fields: [] };
+const toBulkUploadFields = (_s: any) => [];
+const toExportColumns = (_s: any) => [];
 
 const ENTITY_TYPES = ['Function', 'Process', 'System', 'Location', 'Project'];
 const RISK_CATEGORIES = ['High', 'Medium', 'Low', 'Critical'];

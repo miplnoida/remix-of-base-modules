@@ -160,27 +160,8 @@ export const HOLIDAY_SCHEMA: ModuleSchema = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 5. AUDIT UNIVERSE
+// 5. AUDIT UNIVERSE — REMOVED (replaced by Function Master)
 // ═══════════════════════════════════════════════════════════════
-export const AUDIT_UNIVERSE_SCHEMA: ModuleSchema = {
-  moduleKey: 'audit_universe',
-  moduleLabel: 'Audit Universe',
-  templateFileName: 'audit-universe-template',
-  exportFileName: 'audit-universe',
-  exportTitle: 'Audit Universe Register',
-  fields: [
-    { key: 'entity_code', label: 'Entity Code', required: true, type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 1 },
-    { key: 'entity_name', label: 'Entity Name', required: true, type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 2 },
-    { key: 'entity_type', label: 'Entity Type', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 3, allowedValues: ['Department', 'Function', 'Process', 'System', 'Location', 'Project'], renderHint: 'badge' },
-    { key: 'process_owner', label: 'Process Owner', type: 'string', showInTable: false, showInImport: true, showInExport: true, sortOrder: 4 },
-    { key: 'risk_category', label: 'Risk Category', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 5, allowedValues: ['Critical', 'High', 'Medium', 'Low'], renderHint: 'badge' },
-    { key: 'inherent_risk_score', label: 'Inherent Risk Score', type: 'number', showInTable: true, showInImport: true, showInExport: true, sortOrder: 6 },
-    { key: 'residual_risk_score', label: 'Residual Risk Score', type: 'number', showInTable: true, showInImport: true, showInExport: true, sortOrder: 7 },
-    { key: 'audit_frequency', label: 'Audit Frequency', type: 'string', showInTable: false, showInImport: true, showInExport: true, sortOrder: 8, allowedValues: ['Annual', 'Bi-Annual', 'Quarterly', 'Ad-hoc'] },
-    { key: 'materiality', label: 'Materiality', type: 'string', showInTable: false, showInImport: true, showInExport: true, sortOrder: 9 },
-    { key: 'status', label: 'Status', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 10, allowedValues: ['Active', 'Inactive'], renderHint: 'badge' },
-  ],
-};
 
 // ═══════════════════════════════════════════════════════════════
 // 6. FINDINGS & RECOMMENDATIONS

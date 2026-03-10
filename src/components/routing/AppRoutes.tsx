@@ -217,7 +217,7 @@ import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
-import AuditUniverse from '@/pages/audit/AuditUniverse';
+// AuditUniverse removed — replaced by Function Master
 import RiskAssessment from '@/pages/audit/RiskAssessment';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import AuditPrograms from '@/pages/audit/AuditPrograms';
@@ -896,7 +896,7 @@ export const AppRoutes = () => {
       <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
 
       {/* New Internal Audit Modules — Phase 1-9 */}
-      <Route path="/audit/audit-universe" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_UNIVERSE"><AuditUniverse /></AuditFeatureGate></ProtectedLayout>} />
+      {/* Audit Universe route removed — replaced by Function Master */}
       <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/engagements" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-programs" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PROGRAMS"><AuditPrograms /></AuditFeatureGate></ProtectedLayout>} />
