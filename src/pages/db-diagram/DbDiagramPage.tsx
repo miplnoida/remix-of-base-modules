@@ -30,7 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
   Database, RefreshCw, Search, Table2, Link2, FileDown,
-  Key, Download, LayoutGrid, Sparkles,
+  Key, Download, LayoutGrid, Sparkles, Save, Settings2,
 } from 'lucide-react';
 
 import {
