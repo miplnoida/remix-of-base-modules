@@ -44,8 +44,10 @@ interface Props {
 export function PdfExportDialog({ open, onClose, onExport, isExporting, tableCount }: Props) {
   // Default to landscape + larger page for many tables
   const defaultSize = tableCount > 20 ? 'a1' : tableCount > 10 ? 'a2' : tableCount > 5 ? 'a3' : 'legal';
+  const defaultZoom = tableCount > 20 ? 25 : tableCount > 10 ? 50 : 75;
   const [pageSize, setPageSize] = useState(defaultSize);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  const [zoomLevel, setZoomLevel] = useState(defaultZoom);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
