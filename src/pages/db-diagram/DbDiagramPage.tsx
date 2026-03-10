@@ -309,14 +309,23 @@ function DbDiagramInner() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAutoLayout}
+            disabled={!filteredTables.length}
+          >
+            <LayoutGrid className="h-4 w-4 mr-1" />
+            Auto Layout
+          </Button>
           <Button
             variant="default"
             size="sm"
-            onClick={handleExportPdf}
-            disabled={isExporting || !filteredTables.length}
+            onClick={() => setShowExportDialog(true)}
+            disabled={!filteredTables.length}
           >
-            <FileDown className={`h-4 w-4 mr-1 ${isExporting ? 'animate-bounce' : ''}`} />
+            <FileDown className="h-4 w-4 mr-1" />
             Export PDF
           </Button>
           {isAdmin && (
