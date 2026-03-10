@@ -310,11 +310,11 @@ function DbDiagramInner() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleAutoLayout}
+            onClick={handleSmartLayout}
             disabled={!filteredTables.length}
           >
-            <LayoutGrid className="h-4 w-4 mr-1" />
-            Auto Layout
+            <Sparkles className="h-4 w-4 mr-1" />
+            Smart Layout
           </Button>
           <Button
             variant="default"
