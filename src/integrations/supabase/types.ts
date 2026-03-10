@@ -19672,6 +19672,16 @@ export type Database = {
           is_nullable: boolean
         }[]
       }
+      get_table_foreign_keys: {
+        Args: never
+        Returns: {
+          constraint_name: string
+          source_column: string
+          source_table: string
+          target_column: string
+          target_table: string
+        }[]
+      }
       get_user_accessible_modules: {
         Args: { _user_id: string }
         Returns: {

@@ -1537,6 +1537,10 @@ export const AppRoutes = () => {
 
 
 
+      {/* DB Diagram */}
+      <Route path="/db-diagram" element={<ProtectedLayout><DbDiagramPage /></ProtectedLayout>} />
+      <Route path="/db-diagram/:moduleCode" element={<ProtectedLayout><DbDiagramPage /></ProtectedLayout>} />
+
       {/* Maintenance / Lockdown */}
       <Route path="/maintenance" element={<Maintenance />} />
 
