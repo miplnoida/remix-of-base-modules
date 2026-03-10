@@ -25,6 +25,7 @@ export async function exportDbDiagramToPdf({
   module, tables, relationships, columnsMap,
   pageSize = 'a2',
   orientation = 'landscape',
+  zoomLevel = 75,
   diagramElement,
 }: ExportData) {
   const doc = new jsPDF({ orientation, unit: 'mm', format: pageSize });
