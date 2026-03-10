@@ -19760,6 +19760,18 @@ export type Database = {
         }[]
       }
       get_app_security_state: { Args: never; Returns: Json }
+      get_biweekly_enabled_weeks: {
+        Args: { p_month: number; p_year: number }
+        Returns: boolean[]
+      }
+      get_biweekly_valid_weeks: {
+        Args: { p_year: number }
+        Returns: {
+          week_end: string
+          week_number: number
+          week_start: string
+        }[]
+      }
       get_c3_config_for_period: {
         Args: { p_period_date: string }
         Returns: {
@@ -20202,6 +20214,10 @@ export type Database = {
           p_title?: string
           p_witness_name?: string
         }
+        Returns: Json
+      }
+      validate_biweekly_week: {
+        Args: { p_month: number; p_week_index: number; p_year: number }
         Returns: Json
       }
       validate_meeting_office_hours: {
