@@ -65,6 +65,7 @@ function DbDiagramInner() {
   const [showInferredLinks, setShowInferredLinks] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
