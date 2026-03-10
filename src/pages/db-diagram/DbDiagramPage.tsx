@@ -152,9 +152,9 @@ function DbDiagramInner() {
     };
 
     const NODE_W = 300;
-    const GAP_X = 100;
-    const GAP_Y = 40;
-    const COLS = Math.max(2, Math.min(5, Math.ceil(Math.sqrt(filteredTables.length))));
+    const GAP_X = 160;
+    const GAP_Y = 80;
+    const COLS = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(filteredTables.length * 0.6))));
 
     // Group by category for better visual organization
     const catOrder: Record<string, number> = {
