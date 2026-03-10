@@ -90,13 +90,14 @@ export function C3SyncHistoryTab() {
     },
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary, isLoading: summaryLoading, error: summaryError } = useQuery({
     queryKey: ['wiz-config-change-summary', selectedLog?.id],
     queryFn: async () => {
       const res = await getConfigChangeSummary(selectedLog!.id);
       return res.data!;
     },
     enabled: !!selectedLog,
+    retry: false,
   });
 
   if (isLoading) {
