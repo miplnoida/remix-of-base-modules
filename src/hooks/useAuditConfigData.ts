@@ -205,3 +205,65 @@ export function useIAFrequencyMapping() {
     },
   });
 }
+
+// ============= LIKELIHOOD LEVELS =============
+function useIAConfigCrud<T extends Record<string, any>>(table: string, queryKey: string, orderBy = 'sort_order') {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const query = useQuery({
+    queryKey: [queryKey],
+    queryFn: async (): Promise<T[]> => {
+      const { data, error } = await supabase.from(table as any).select('*').eq('is_active', true).order(orderBy);
+      if (error) throw error;
+      return (data as unknown as T[]) ?? [];
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async (record: Partial<T>) => {
+      const { data, error } = await supabase.from(table as any).insert(record as any).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [queryKey] }); toast({ title: 'Created' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
+      const { data, error } = await supabase.from(table as any).update(u as any).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [queryKey] }); toast({ title: 'Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from(table as any).update({ is_active: false } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [queryKey] }); toast({ title: 'Removed' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  return { ...query, create, update, remove };
+}
+
+export function useIALikelihoodLevels() {
+  return useIAConfigCrud('ia_risk_likelihood_levels', 'ia_risk_likelihood_levels');
+}
+
+export function useIAImpactLevels() {
+  return useIAConfigCrud('ia_risk_impact_levels', 'ia_risk_impact_levels');
+}
+
+export function useIAControlEffectivenessLevels() {
+  return useIAConfigCrud('ia_control_effectiveness_levels', 'ia_control_effectiveness_levels');
+}
+
+export function useIARiskClassificationThresholds() {
+  return useIAConfigCrud('ia_risk_classification_thresholds', 'ia_risk_classification_thresholds');
+}

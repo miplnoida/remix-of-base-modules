@@ -896,7 +896,7 @@ export const AppRoutes = () => {
       <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
 
       {/* New Internal Audit Modules — Phase 1-9 */}
-      <Route path="/audit/audit-universe" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_UNIVERSE"><AuditUniverse /></AuditFeatureGate></ProtectedLayout>} />
+      {/* Audit Universe route removed — replaced by Function Master */}
       <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/engagements" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-programs" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PROGRAMS"><AuditPrograms /></AuditFeatureGate></ProtectedLayout>} />

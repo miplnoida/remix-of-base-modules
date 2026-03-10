@@ -73,7 +73,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'time-tracking', label: 'Time Tracking', path: '/audit/time-tracking', permission: 'execute_audit_activities', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_TIME_TRACKING, category: 'management', component: 'TimeTracking' },
 
   // ===== Governance & Risk =====
-  { moduleKey: 'universe', label: 'Audit Universe', path: '/audit/audit-universe', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_UNIVERSE, category: 'governance', component: 'AuditUniverse' },
+  // Audit Universe removed — replaced by Function Master
   { moduleKey: 'risk-assessment', label: 'Risk Assessment', path: '/audit/risk-assessment', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_RISK_ASSESSMENT, category: 'governance', component: 'RiskAssessment' },
 
   // ===== Audit Planning =====
