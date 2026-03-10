@@ -11,7 +11,16 @@ import { FileDown } from 'lucide-react';
 export interface PdfExportSettings {
   pageSize: string;
   orientation: 'portrait' | 'landscape';
+  zoomLevel: number;
 }
+
+const ZOOM_LEVELS = [
+  { value: 25, label: '25% – Ultra compact (most tables on one page)' },
+  { value: 50, label: '50% – Compact overview' },
+  { value: 75, label: '75% – Balanced (recommended)' },
+  { value: 100, label: '100% – Full size (as on screen)' },
+  { value: 150, label: '150% – Enlarged detail' },
+];
 
 const PAGE_SIZES = [
   { value: 'a4', label: 'A4 (210 × 297 mm)' },
@@ -35,8 +44,10 @@ interface Props {
 export function PdfExportDialog({ open, onClose, onExport, isExporting, tableCount }: Props) {
   // Default to landscape + larger page for many tables
   const defaultSize = tableCount > 20 ? 'a1' : tableCount > 10 ? 'a2' : tableCount > 5 ? 'a3' : 'legal';
+  const defaultZoom = tableCount > 20 ? 25 : tableCount > 10 ? 50 : 75;
   const [pageSize, setPageSize] = useState(defaultSize);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  const [zoomLevel, setZoomLevel] = useState(defaultZoom);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -88,11 +99,29 @@ export function PdfExportDialog({ open, onClose, onExport, isExporting, tableCou
               </div>
             </RadioGroup>
           </div>
+
+          {/* Zoom Level */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Diagram Zoom / Scale</Label>
+            <Select value={String(zoomLevel)} onValueChange={(v) => setZoomLevel(Number(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ZOOM_LEVELS.map(z => (
+                  <SelectItem key={z.value} value={String(z.value)}>{z.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Lower zoom fits more tables on one page. Use 25–50% for large modules.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isExporting}>Cancel</Button>
-          <Button onClick={() => onExport({ pageSize, orientation })} disabled={isExporting}>
+          <Button onClick={() => onExport({ pageSize, orientation, zoomLevel })} disabled={isExporting}>
             {isExporting ? (
               <>
                 <FileDown className="h-4 w-4 mr-1 animate-bounce" />
