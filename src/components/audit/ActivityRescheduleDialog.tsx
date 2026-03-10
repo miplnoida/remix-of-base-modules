@@ -5,11 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, MapPin, User, AlertCircle, History } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AuditActivity } from '@/types/audit';
-import { departments } from '@/data/auditData';
+import { useIADepartments } from '@/hooks/useAuditData';
 import { StandardModal } from '@/components/common/StandardModal';
 
 interface ActivityRescheduleDialogProps {
@@ -21,6 +21,7 @@ interface ActivityRescheduleDialogProps {
 export function ActivityRescheduleDialog({ activity, open, onOpenChange }: ActivityRescheduleDialogProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { data: departments = [] } = useIADepartments();
   const [newStartDate, setNewStartDate] = React.useState('');
   const [newStartTime, setNewStartTime] = React.useState('');
   const [newEndDate, setNewEndDate] = React.useState('');
@@ -29,28 +30,15 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
 
   if (!activity) return null;
 
-  const department = departments.find(d => d.id === activity.departmentId);
+  const department = departments.find((d: any) => d.id === activity.departmentId);
 
   const handleReschedule = () => {
     if (!newStartDate || !newStartTime || !newEndDate || !newEndTime || !reason) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill all required fields.",
-        variant: "destructive"
-      });
+      toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
-
-    toast({
-      title: "Activity Rescheduled",
-      description: `${activity.title} has been rescheduled successfully.`
-    });
-    
-    setNewStartDate('');
-    setNewStartTime('');
-    setNewEndDate('');
-    setNewEndTime('');
-    setReason('');
+    toast({ title: "Activity Rescheduled", description: `${activity.title} has been rescheduled successfully.` });
+    setNewStartDate(''); setNewStartTime(''); setNewEndDate(''); setNewEndTime(''); setReason('');
     onOpenChange(false);
   };
 
@@ -65,17 +53,8 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
   };
 
   return (
-    <StandardModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Reschedule Activity"
-      mode="edit"
-      size="4xl"
-      onSave={handleReschedule}
-      saveLabel="Reschedule Activity"
-    >
+    <StandardModal open={open} onOpenChange={onOpenChange} title="Reschedule Activity" mode="edit" size="4xl" onSave={handleReschedule} saveLabel="Reschedule Activity">
       <div className="space-y-6">
-        {/* Activity Details */}
         <div className="space-y-4 p-4 bg-muted rounded-lg">
           <div className="flex items-start justify-between">
             <div>
@@ -87,44 +66,17 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
               <Badge className={getPriorityColor(activity.priority)}>{activity.priority}</Badge>
             </div>
           </div>
-
           <Separator />
-
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Auditor</div>
-                <div className="text-muted-foreground">{activity.auditorName}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Location</div>
-                <div className="text-muted-foreground">{activity.location}</div>
-              </div>
-            </div>
+            <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /><div><div className="font-medium">Auditor</div><div className="text-muted-foreground">{activity.auditorName}</div></div></div>
+            <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /><div><div className="font-medium">Location</div><div className="text-muted-foreground">{activity.location}</div></div></div>
             {department && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">Department</div>
-                  <div className="text-muted-foreground">{department.name}</div>
-                </div>
-              </div>
+              <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /><div><div className="font-medium">Department</div><div className="text-muted-foreground">{department.name}</div></div></div>
             )}
             {activity.functionArea && (
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">Function Area</div>
-                  <div className="text-muted-foreground">{activity.functionArea}</div>
-                </div>
-              </div>
+              <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-muted-foreground" /><div><div className="font-medium">Function Area</div><div className="text-muted-foreground">{activity.functionArea}</div></div></div>
             )}
           </div>
-
           <div className="space-y-2">
             <div className="font-medium text-sm">Activity Type</div>
             <Badge variant="outline">{activity.type}</Badge>
@@ -132,61 +84,26 @@ export function ActivityRescheduleDialog({ activity, open, onOpenChange }: Activ
           </div>
         </div>
 
-        {/* Previous Schedule */}
         <div className="space-y-3 p-4 border-l-4 border-l-warning bg-warning/10 dark:bg-warning/5 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <h4 className="font-semibold">Previous Schedule</h4>
-          </div>
+          <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><h4 className="font-semibold">Previous Schedule</h4></div>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="font-medium text-muted-foreground">Start Date & Time</div>
-              <div className="mt-1">
-                {new Date(activity.startDate).toLocaleDateString()} at{' '}
-                {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-            <div>
-              <div className="font-medium text-muted-foreground">End Date & Time</div>
-              <div className="mt-1">
-                {new Date(activity.endDate).toLocaleDateString()} at{' '}
-                {new Date(activity.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
+            <div><div className="font-medium text-muted-foreground">Start Date & Time</div><div className="mt-1">{new Date(activity.startDate).toLocaleDateString()} at {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div>
+            <div><div className="font-medium text-muted-foreground">End Date & Time</div><div className="mt-1">{new Date(activity.endDate).toLocaleDateString()} at {new Date(activity.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div>
           </div>
         </div>
 
-        {/* New Schedule */}
         <div className="space-y-4 p-4 border-l-4 border-l-success bg-success/10 dark:bg-success/5 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <h4 className="font-semibold">New Schedule *</h4>
-          </div>
-          
+          <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /><h4 className="font-semibold">New Schedule *</h4></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="newStartDate">New Start Date *</Label>
-              <Input id="newStartDate" type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newStartTime">New Start Time *</Label>
-              <Input id="newStartTime" type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)} />
-            </div>
+            <div className="space-y-2"><Label htmlFor="newStartDate">New Start Date *</Label><Input id="newStartDate" type="date" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="newStartTime">New Start Time *</Label><Input id="newStartTime" type="time" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)} /></div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="newEndDate">New End Date *</Label>
-              <Input id="newEndDate" type="date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newEndTime">New End Time *</Label>
-              <Input id="newEndTime" type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)} />
-            </div>
+            <div className="space-y-2"><Label htmlFor="newEndDate">New End Date *</Label><Input id="newEndDate" type="date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="newEndTime">New End Time *</Label><Input id="newEndTime" type="time" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)} /></div>
           </div>
         </div>
 
-        {/* Reason for Rescheduling */}
         <div className="space-y-2">
           <Label htmlFor="reason">Reason for Rescheduling *</Label>
           <Textarea id="reason" placeholder="Explain why this activity needs to be rescheduled..." value={reason} onChange={(e) => setReason(e.target.value)} rows={4} />

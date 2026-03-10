@@ -66,9 +66,29 @@ const FindingsManagement = () => {
     return matchesSearch && matchesStatus && matchesRisk;
   });
 
+  // When an activity is selected, auto-fill department and plan fields
+  const handleActivityChange = (activityId: string) => {
+    const activity = activities.find((a: any) => a.id === activityId);
+    if (activity) {
+      setFormData(prev => ({
+        ...prev,
+        activity_id: activityId,
+        department_id: activity.department_id || prev.department_id,
+        annual_plan_id: activity.annual_plan_id || prev.annual_plan_id,
+        department_audit_id: activity.department_audit_id || prev.department_audit_id,
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, activity_id: activityId }));
+    }
+  };
+
   const handleCreate = () => {
     if (!formData.title || !formData.condition) {
       toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
+      return;
+    }
+    if (!formData.activity_id) {
+      toast({ title: "Validation Error", description: "An Activity must be selected. Findings cannot exist without a linked activity.", variant: "destructive" });
       return;
     }
     const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
@@ -83,6 +103,10 @@ const FindingsManagement = () => {
   const handleEdit = () => {
     if (!editItem || !formData.title || !formData.condition) {
       toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
+      return;
+    }
+    if (!formData.activity_id) {
+      toast({ title: "Validation Error", description: "An Activity must be selected.", variant: "destructive" });
       return;
     }
     update.mutate({
@@ -128,12 +152,12 @@ const FindingsManagement = () => {
     { key: 'finding_id', header: 'Finding ID', render: (f) => <span className="text-xs font-mono">{f.finding_id || f.id.slice(0,8)}</span> },
     { key: 'title', header: 'Finding Title', render: (f) => <span className="font-medium">{f.title}</span> },
     { key: 'risk_rating', header: 'Risk Level', render: (f) => <StatusBadge status={f.risk_rating || 'Medium'} /> },
+    { key: 'activity', header: 'Activity', render: (f) => { const a = activities.find((a: any) => a.id === f.activity_id); return <span className="text-xs">{a?.title || '-'}</span>; }},
     { key: 'plan', header: 'Audit Plan', render: (f) => { const p = plans.find((p: any) => p.id === f.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
     { key: 'status', header: 'Status', render: (f) => <StatusBadge status={f.status} /> },
     { key: 'created_at', header: 'Date', render: (f) => f.created_at ? new Date(f.created_at).toLocaleDateString() : '-' },
   ];
 
-  // Prepare export data with resolved names
   const exportData = filteredFindings.map((f: any) => ({
     ...f,
     plan_name: plans.find((p: any) => p.id === f.annual_plan_id)?.title || '',
@@ -142,6 +166,13 @@ const FindingsManagement = () => {
 
   const linkingFields = (
     <>
+      <div className="space-y-2"><Label>Activity * (Required)</Label>
+        <Select value={formData.activity_id} onValueChange={handleActivityChange}>
+          <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
+          <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Selecting an activity will auto-fill the plan and department fields below.</p>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2"><Label>Audit Plan</Label>
           <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
@@ -156,10 +187,7 @@ const FindingsManagement = () => {
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Department</Label><Select value={formData.department_id} onValueChange={v => setFormData({...formData, department_id: v})}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label>Related Activity</Label><Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}><SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger><SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent></Select></div>
-      </div>
+      <div className="space-y-2"><Label>Department</Label><Select value={formData.department_id} onValueChange={v => setFormData({...formData, department_id: v})}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
     </>
   );
 
@@ -187,68 +215,39 @@ const FindingsManagement = () => {
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={exportData} columns={exportColumns} fileName={FINDINGS_SCHEMA.exportFileName} title={FINDINGS_SCHEMA.exportTitle} />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />Bulk Upload
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}><Upload className="mr-2 h-4 w-4" />Bulk Upload</Button>
           <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Finding</Button>
         </div>
       }
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
-          <Card key={card.label}>
-            <CardContent className="pt-6 text-center">
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-            </CardContent>
-          </Card>
+          <Card key={card.label}><CardContent className="pt-6 text-center"><p className="text-sm text-muted-foreground">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value}</p></CardContent></Card>
         ))}
       </div>
 
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search findings..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', risk: 'all' })} />
 
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={filteredFindings}
-            emptyMessage="No findings found"
-            onView={(f) => setViewItem(f)}
-            onEdit={(f) => openEdit(f)}
-            renderActions={(f) => (
-              <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => { setStatusItem(f); setNextStatus(f.status || 'Draft'); }}>
-                  Change Status
-                </Button>
-                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(f.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          />
-        </CardContent>
-      </Card>
+      <Card><CardContent className="pt-6">
+        <DataTable columns={columns} data={filteredFindings} emptyMessage="No findings found" onView={(f) => setViewItem(f)} onEdit={(f) => openEdit(f)}
+          renderActions={(f) => (
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" onClick={() => { setStatusItem(f); setNextStatus(f.status || 'Draft'); }}>Change Status</Button>
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(f.id)}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          )}
+        />
+      </CardContent></Card>
 
-      <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Finding (CCCE)" mode="create" onSave={handleCreate} saveLabel="Create Finding" isSaving={create.isPending} maxWidth="max-w-4xl">
-        {formFields}
-      </EntityModal>
-
-      <EntityModal open={!!editItem} onOpenChange={(o) => { if (!o) { setEditItem(null); resetForm(); } }} title="Edit Finding" mode="edit" onSave={handleEdit} saveLabel="Save Changes" isSaving={update.isPending} maxWidth="max-w-4xl">
-        {formFields}
-      </EntityModal>
+      <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Finding (CCCE)" mode="create" onSave={handleCreate} saveLabel="Create Finding" isSaving={create.isPending} maxWidth="max-w-4xl">{formFields}</EntityModal>
+      <EntityModal open={!!editItem} onOpenChange={(o) => { if (!o) { setEditItem(null); resetForm(); } }} title="Edit Finding" mode="edit" onSave={handleEdit} saveLabel="Save Changes" isSaving={update.isPending} maxWidth="max-w-4xl">{formFields}</EntityModal>
 
       <EntityModal open={!!statusItem} onOpenChange={() => { setStatusItem(null); setNextStatus(''); }} title="Change Finding Status" mode="edit" onSave={handleStatusChange} saveLabel="Update Status" isSaving={update.isPending}>
         {statusItem && (
           <div className="space-y-4">
             <div><Label className="text-muted-foreground">Finding</Label><p className="font-medium">{statusItem.title}</p></div>
             <div><Label className="text-muted-foreground">Current Status</Label><div className="mt-1"><StatusBadge status={statusItem.status} /></div></div>
-            <div className="space-y-2">
-              <Label>New Status</Label>
-              <Select value={nextStatus} onValueChange={setNextStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+            <div className="space-y-2"><Label>New Status</Label><Select value={nextStatus} onValueChange={setNextStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
           </div>
         )}
       </EntityModal>
@@ -256,10 +255,7 @@ const FindingsManagement = () => {
       <EntityModal open={!!viewItem} onOpenChange={() => setViewItem(null)} title="Finding Details" mode="view" maxWidth="max-w-4xl">
         {viewItem && (
           <div className="space-y-4">
-            <div className="flex justify-between items-start">
-              <div><Label className="text-muted-foreground">Finding Title</Label><p className="font-medium text-lg">{viewItem.title}</p></div>
-              <StatusBadge status={viewItem.risk_rating || 'Medium'} />
-            </div>
+            <div className="flex justify-between items-start"><div><Label className="text-muted-foreground">Finding Title</Label><p className="font-medium text-lg">{viewItem.title}</p></div><StatusBadge status={viewItem.risk_rating || 'Medium'} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Finding ID</Label><p>{viewItem.finding_id || '-'}</p></div>
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status} /></div></div>
@@ -285,7 +281,6 @@ const FindingsManagement = () => {
       </EntityModal>
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Delete Finding" description="Are you sure you want to delete this finding?" onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
-
       <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Findings" fields={bulkUploadFields} onImport={handleBulkImport} templateName={FINDINGS_SCHEMA.templateFileName} />
     </PageShell>
   );
