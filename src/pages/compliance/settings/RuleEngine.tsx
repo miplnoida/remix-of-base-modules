@@ -64,6 +64,22 @@ interface ViolationType {
   name: string;
 }
 
+interface VariableMapping {
+  id: string;
+  variable_key: string;
+  display_name: string;
+  description: string | null;
+  data_type: string;
+  variable_category: string;
+  group_name: string;
+  source_table: string | null;
+  source_column: string | null;
+  c3_config_key: string | null;
+  computation_logic: string | null;
+  applies_to_rule_type: string;
+  sort_order: number;
+}
+
 // ── Predefined options for intelligent dropdowns ──
 
 const TRIGGER_EVENTS = [
@@ -81,23 +97,52 @@ const TRIGGER_EVENTS = [
   { value: 'late_registration', label: 'Late Employee Registration', description: 'Employee registered after statutory deadline' },
 ];
 
-const CONDITION_VARIABLES = [
-  { value: 'days_overdue', label: 'Days Overdue', type: 'number' },
-  { value: 'months_overdue', label: 'Months Overdue', type: 'number' },
-  { value: 'grace_period', label: 'Grace Period (days)', type: 'number' },
-  { value: 'total_owed', label: 'Total Amount Owed ($)', type: 'number' },
-  { value: 'outstanding_balance', label: 'Outstanding Balance ($)', type: 'number' },
-  { value: 'violations_count', label: 'Active Violation Count', type: 'number' },
-  { value: 'missed_filings_count', label: 'Missed Filings Count', type: 'number' },
-  { value: 'employee_count', label: 'Employee Count', type: 'number' },
-  { value: 'reported_wages', label: 'Reported Wages ($)', type: 'number' },
-  { value: 'expected_wages', label: 'Expected Wages ($)', type: 'number' },
-  { value: 'payment_plan_missed', label: 'Missed Installments', type: 'number' },
-  { value: 'months_in_status', label: 'Months in Current Status', type: 'number' },
-  { value: 'risk_score', label: 'Risk Score', type: 'number' },
-  { value: 'is_registered', label: 'Is Registered', type: 'boolean' },
-  { value: 'has_active_plan', label: 'Has Active Payment Plan', type: 'boolean' },
-  { value: 'is_repeat_offender', label: 'Is Repeat Offender', type: 'boolean' },
+// Derived from backend mappings - these are fallbacks if DB hasn't loaded yet
+function getConditionVariables(mappings: VariableMapping[]) {
+  const filtered = mappings.filter(m => m.variable_category === 'condition' || m.variable_category === 'both');
+  if (filtered.length === 0) return FALLBACK_CONDITION_VARIABLES;
+  return filtered.map(m => ({
+    value: m.variable_key,
+    label: m.display_name,
+    type: m.data_type,
+    description: m.description,
+    sourceTable: m.source_table,
+    sourceColumn: m.source_column,
+    c3ConfigKey: m.c3_config_key,
+  }));
+}
+
+function getFormulaOperands(mappings: VariableMapping[]) {
+  const filtered = mappings.filter(m => m.variable_category === 'formula' || m.variable_category === 'both');
+  if (filtered.length === 0) return FALLBACK_FORMULA_OPERANDS;
+  return filtered.map(m => ({
+    value: m.variable_key,
+    label: m.display_name,
+    group: m.group_name,
+    description: m.description,
+    sourceTable: m.source_table,
+    sourceColumn: m.source_column,
+    c3ConfigKey: m.c3_config_key,
+  }));
+}
+
+// Fallbacks in case DB query fails
+const FALLBACK_CONDITION_VARIABLES = [
+  { value: 'days_overdue', label: 'Days Overdue', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'months_overdue', label: 'Months Overdue', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'total_owed', label: 'Total Amount Owed ($)', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'violations_count', label: 'Active Violation Count', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'risk_score', label: 'Risk Score', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'is_registered', label: 'Is Registered', type: 'boolean', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'is_repeat_offender', label: 'Is Repeat Offender', type: 'boolean', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+];
+
+const FALLBACK_FORMULA_OPERANDS = [
+  { value: 'outstanding_amount', label: 'Outstanding Amount', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'ss_contribution', label: 'SS Contribution', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'levy_amount', label: 'Levy Amount', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'ss_fine_initial_rate', label: 'SS Fine Rate', group: 'Rate', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'months_overdue', label: 'Months Overdue', group: 'Time', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
 ];
 
 const CONDITION_OPERATORS = [
@@ -112,24 +157,6 @@ const CONDITION_OPERATORS = [
 const BOOLEAN_OPERATORS = [
   { value: '==', label: 'is' },
   { value: '!=', label: 'is not' },
-];
-
-const FORMULA_OPERANDS = [
-  { value: 'outstanding_amount', label: 'Outstanding Amount', group: 'Financial' },
-  { value: 'total_wages', label: 'Total Wages', group: 'Financial' },
-  { value: 'amount_owed', label: 'Amount Owed', group: 'Financial' },
-  { value: 'ss_contribution', label: 'SS Contribution', group: 'Financial' },
-  { value: 'ei_contribution', label: 'EI Contribution', group: 'Financial' },
-  { value: 'levy_amount', label: 'Levy Amount', group: 'Financial' },
-  { value: 'severance_amount', label: 'Severance Amount', group: 'Financial' },
-  { value: 'ss_fine_initial_rate', label: 'SS Fine Rate (from C3 Config)', group: 'Rate' },
-  { value: 'levy_penalty_initial_rate', label: 'Levy Penalty Rate (from C3 Config)', group: 'Rate' },
-  { value: 'severance_penalty_rate', label: 'Severance Penalty Rate (from C3 Config)', group: 'Rate' },
-  { value: 'interest_rate', label: 'Interest Rate (from C3 Config)', group: 'Rate' },
-  { value: 'penalty_rate', label: 'Penalty Rate', group: 'Rate' },
-  { value: 'months_overdue', label: 'Months Overdue', group: 'Time' },
-  { value: 'days_late', label: 'Days Late', group: 'Time' },
-  { value: 'additional_rate_per_month', label: 'Additional % Per Month (from C3 Config)', group: 'Rate' },
 ];
 
 const FORMULA_OPERATORS = [
@@ -161,7 +188,6 @@ interface ConditionRow {
 
 function parseConditionExpression(expr: string | null): ConditionRow[] {
   if (!expr || !expr.trim()) return [{ variable: '', operator: '>', value: '', conjunction: 'AND' }];
-  // Try to parse conditions like "var > val AND var2 >= val2"
   const parts = expr.split(/\s+(AND|OR)\s+/i);
   const rows: ConditionRow[] = [];
   for (let i = 0; i < parts.length; i += 2) {
@@ -187,7 +213,17 @@ function buildConditionExpression(rows: ConditionRow[]): string {
     .join(' ');
 }
 
-const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+interface ConditionVar {
+  value: string;
+  label: string;
+  type: string;
+  description: string | null;
+  sourceTable: string | null;
+  sourceColumn: string | null;
+  c3ConfigKey: string | null;
+}
+
+const ConditionBuilder = ({ value, onChange, variables }: { value: string; onChange: (v: string) => void; variables: ConditionVar[] }) => {
   const [rows, setRows] = useState<ConditionRow[]>(() => parseConditionExpression(value));
 
   const updateRow = (idx: number, field: keyof ConditionRow, val: string) => {
@@ -212,7 +248,7 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
   return (
     <div className="space-y-2">
       {rows.map((row, idx) => {
-        const selectedVar = CONDITION_VARIABLES.find(v => v.value === row.variable);
+        const selectedVar = variables.find(v => v.value === row.variable);
         const isBool = selectedVar?.type === 'boolean';
         return (
           <div key={idx} className="space-y-1">
@@ -230,8 +266,11 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
                 <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select field..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__pick__">Select field...</SelectItem>
-                  {CONDITION_VARIABLES.map(v => (
-                    <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                  {variables.map(v => (
+                    <SelectItem key={v.value} value={v.value}>
+                      <span>{v.label}</span>
+                      {v.c3ConfigKey && <span className="text-muted-foreground ml-1 text-[10px]">(C3 Config)</span>}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -264,6 +303,12 @@ const ConditionBuilder = ({ value, onChange }: { value: string; onChange: (v: st
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
+            {selectedVar?.description && (
+              <p className="text-[10px] text-muted-foreground ml-1">
+                {selectedVar.description}
+                {selectedVar.sourceTable && <span className="italic"> → {selectedVar.sourceTable}.{selectedVar.sourceColumn}</span>}
+              </p>
+            )}
           </div>
         );
       })}
@@ -287,9 +332,18 @@ interface FormulaStep {
   operator: string;
 }
 
+interface FormulaOperand {
+  value: string;
+  label: string;
+  group: string;
+  description: string | null;
+  sourceTable: string | null;
+  sourceColumn: string | null;
+  c3ConfigKey: string | null;
+}
+
 function parseFormulaExpression(expr: string): FormulaStep[] {
   if (!expr || !expr.trim()) return [{ operand: '', operator: '*' }];
-  // Tokenize: split by operators while keeping them
   const tokens = expr.split(/\s*([×+\-÷*/])\s*/).filter(Boolean);
   const steps: FormulaStep[] = [];
   for (let i = 0; i < tokens.length; i += 2) {
@@ -311,7 +365,7 @@ function buildFormulaExpression(steps: FormulaStep[]): string {
     .join(' ');
 }
 
-const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange: (v: string) => void; operands: FormulaOperand[] }) => {
   const [steps, setSteps] = useState<FormulaStep[]>(() => parseFormulaExpression(value));
 
   const updateStep = (idx: number, field: keyof FormulaStep, val: string) => {
@@ -333,37 +387,51 @@ const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: stri
     onChange(buildFormulaExpression(updated));
   };
 
-  const groups = Array.from(new Set(FORMULA_OPERANDS.map(o => o.group)));
+  const groups = Array.from(new Set(operands.map(o => o.group)));
 
   return (
     <div className="space-y-2">
       {steps.map((step, idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          {idx > 0 && (
-            <Select value={steps[idx - 1].operator} onValueChange={v => updateStep(idx - 1, 'operator', v)}>
-              <SelectTrigger className="w-14 h-9 text-sm text-center"><SelectValue /></SelectTrigger>
+        <div key={idx} className="space-y-1">
+          <div className="flex items-center gap-2">
+            {idx > 0 && (
+              <Select value={steps[idx - 1].operator} onValueChange={v => updateStep(idx - 1, 'operator', v)}>
+                <SelectTrigger className="w-14 h-9 text-sm text-center"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FORMULA_OPERATORS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={step.operand || '__pick__'} onValueChange={v => updateStep(idx, 'operand', v === '__pick__' ? '' : v)}>
+              <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select operand..." /></SelectTrigger>
               <SelectContent>
-                {FORMULA_OPERATORS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                <SelectItem value="__pick__">Select operand...</SelectItem>
+                {groups.map(g => (
+                  <React.Fragment key={g}>
+                    <SelectItem value={`__group_${g}__`} disabled className="text-xs font-semibold text-muted-foreground uppercase">{g}</SelectItem>
+                    {operands.filter(o => o.group === g).map(o => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <span>{o.label}</span>
+                        {o.c3ConfigKey && <span className="text-muted-foreground ml-1 text-[10px]">(C3)</span>}
+                      </SelectItem>
+                    ))}
+                  </React.Fragment>
+                ))}
               </SelectContent>
             </Select>
-          )}
-          <Select value={step.operand || '__pick__'} onValueChange={v => updateStep(idx, 'operand', v === '__pick__' ? '' : v)}>
-            <SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder="Select operand..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__pick__">Select operand...</SelectItem>
-              {groups.map(g => (
-                <React.Fragment key={g}>
-                  <SelectItem value={`__group_${g}__`} disabled className="text-xs font-semibold text-muted-foreground uppercase">{g}</SelectItem>
-                  {FORMULA_OPERANDS.filter(o => o.group === g).map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </React.Fragment>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeStep(idx)} disabled={steps.length <= 1}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeStep(idx)} disabled={steps.length <= 1}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {step.operand && (() => {
+            const op = operands.find(o => o.value === step.operand);
+            return op?.description ? (
+              <p className="text-[10px] text-muted-foreground ml-1">
+                {op.description}
+                {op.sourceTable && <span className="italic"> → {op.sourceTable}.{op.sourceColumn}</span>}
+              </p>
+            ) : null;
+          })()}
         </div>
       ))}
       <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addStep}>
@@ -382,7 +450,7 @@ const FormulaBuilder = ({ value, onChange }: { value: string; onChange: (v: stri
 // ── Detection Rule Dialog ──
 
 const DetectionRuleDialog = ({
-  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -391,6 +459,7 @@ const DetectionRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  conditionVars: ConditionVar[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -451,7 +520,7 @@ const DetectionRuleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Detection Rule' : 'Add Detection Rule'}</DialogTitle>
           <DialogDescription>Define when a compliance violation should be automatically detected.</DialogDescription>
@@ -516,6 +585,7 @@ const DetectionRuleDialog = ({
             <ConditionBuilder
               value={form.condition_expression}
               onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
+              variables={conditionVars}
             />
           </div>
           <div className="space-y-1.5">
@@ -551,7 +621,7 @@ const DetectionRuleDialog = ({
 // ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes,
+  open, onOpenChange, rule, onSave, saving, existingCodes, formulaOps,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -559,6 +629,7 @@ const CalculationRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  formulaOps: FormulaOperand[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -605,7 +676,7 @@ const CalculationRuleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Calculation Rule' : 'Add Calculation Rule'}</DialogTitle>
           <DialogDescription>Define how penalties, interest, and fines are computed. Rates are dynamically referenced from C3 Configuration.</DialogDescription>
@@ -640,6 +711,7 @@ const CalculationRuleDialog = ({
             <FormulaBuilder
               value={form.formula_expression}
               onChange={v => setForm(p => ({ ...p, formula_expression: v }))}
+              operands={formulaOps}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -684,7 +756,7 @@ const CalculationRuleDialog = ({
 const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
 
 const EscalationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes,
+  open, onOpenChange, rule, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -692,6 +764,7 @@ const EscalationRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  conditionVars: ConditionVar[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
@@ -746,7 +819,7 @@ const EscalationRuleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Escalation Rule' : 'Add Escalation Rule'}</DialogTitle>
           <DialogDescription>Define when cases/violations should be escalated based on time, amount, or status conditions.</DialogDescription>
@@ -804,6 +877,7 @@ const EscalationRuleDialog = ({
             <ConditionBuilder
               value={form.condition_expression}
               onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
+              variables={conditionVars}
             />
           </div>
           <div className="flex items-center gap-6 pt-2">
@@ -882,7 +956,19 @@ const RuleEngine = () => {
     },
   });
 
-  // ── Toggle mutations ──
+  // ── Variable mappings from backend ──
+  const { data: variableMappings = [] } = useQuery({
+    queryKey: ['ce_rule_variable_mappings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ce_rule_variable_mappings').select('*').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return (data || []) as unknown as VariableMapping[];
+    },
+  });
+
+  const conditionVars = React.useMemo(() => getConditionVariables(variableMappings), [variableMappings]);
+  const formulaOps = React.useMemo(() => getFormulaOperands(variableMappings), [variableMappings]);
+
 
   const toggleDetection = useMutation({
     mutationFn: async ({ id, is_enabled }: { id: string; is_enabled: boolean }) => {
@@ -1109,6 +1195,7 @@ const RuleEngine = () => {
         onSave={data => saveDetection.mutate(data)}
         saving={saveDetection.isPending}
         existingCodes={detectionRules.map(r => r.rule_code)}
+        conditionVars={conditionVars}
       />
       <CalculationRuleDialog
         open={calcDialogOpen}
@@ -1117,6 +1204,7 @@ const RuleEngine = () => {
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
         existingCodes={calculationRules.map(r => r.rule_code)}
+        formulaOps={formulaOps}
       />
       <EscalationRuleDialog
         open={escDialogOpen}
@@ -1125,6 +1213,7 @@ const RuleEngine = () => {
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
+        conditionVars={conditionVars}
       />
     </div>
   );

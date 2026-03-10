@@ -4385,6 +4385,66 @@ export type Database = {
           },
         ]
       }
+      ce_rule_variable_mappings: {
+        Row: {
+          applies_to_rule_type: string
+          c3_config_key: string | null
+          computation_logic: string | null
+          created_at: string | null
+          data_type: string
+          description: string | null
+          display_name: string
+          group_name: string
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+          source_column: string | null
+          source_schema: string | null
+          source_table: string | null
+          updated_at: string | null
+          variable_category: string
+          variable_key: string
+        }
+        Insert: {
+          applies_to_rule_type?: string
+          c3_config_key?: string | null
+          computation_logic?: string | null
+          created_at?: string | null
+          data_type?: string
+          description?: string | null
+          display_name: string
+          group_name: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          source_column?: string | null
+          source_schema?: string | null
+          source_table?: string | null
+          updated_at?: string | null
+          variable_category: string
+          variable_key: string
+        }
+        Update: {
+          applies_to_rule_type?: string
+          c3_config_key?: string | null
+          computation_logic?: string | null
+          created_at?: string | null
+          data_type?: string
+          description?: string | null
+          display_name?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          source_column?: string | null
+          source_schema?: string | null
+          source_table?: string | null
+          updated_at?: string | null
+          variable_category?: string
+          variable_key?: string
+        }
+        Relationships: []
+      }
       ce_settings: {
         Row: {
           category: string | null
