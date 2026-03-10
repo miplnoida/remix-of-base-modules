@@ -217,7 +217,7 @@ import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
-import AuditUniverse from '@/pages/audit/AuditUniverse';
+// AuditUniverse removed — replaced by Function Master
 import RiskAssessment from '@/pages/audit/RiskAssessment';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import AuditPrograms from '@/pages/audit/AuditPrograms';
