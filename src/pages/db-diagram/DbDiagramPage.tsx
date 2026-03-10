@@ -55,6 +55,7 @@ function DbDiagramInner() {
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
+  const reactFlowInstance = useReactFlow();
   const queryClient = useQueryClient();
 
   const [viewMode, setViewMode] = useState<'module' | 'expanded' | 'enterprise'>('module');
