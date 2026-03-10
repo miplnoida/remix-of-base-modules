@@ -34,8 +34,8 @@ export function getMondaysInMonth(year: number, month: number, weekStartDay: num
 /**
  * Get the count of Mondays in a month (4 or 5)
  */
-export function getMondayCount(year: number, month: number): number {
-  return getMondaysInMonth(year, month).length;
+export function getMondayCount(year: number, month: number, weekStartDay: number = 1): number {
+  return getMondaysInMonth(year, month, weekStartDay).length;
 }
 
 /**
