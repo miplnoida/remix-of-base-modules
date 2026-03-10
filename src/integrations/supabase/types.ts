@@ -4294,8 +4294,11 @@ export type Database = {
       }
       ce_risk_config: {
         Row: {
+          calculation_formula: string | null
+          category: string | null
           created_at: string | null
           created_by: string | null
+          data_source: string | null
           description: string | null
           factor_code: string
           factor_name: string
@@ -4309,8 +4312,11 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          calculation_formula?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
+          data_source?: string | null
           description?: string | null
           factor_code: string
           factor_name: string
@@ -4324,8 +4330,11 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          calculation_formula?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
+          data_source?: string | null
           description?: string | null
           factor_code?: string
           factor_name?: string
