@@ -222,10 +222,10 @@ const INTERNAL_AUDIT_SECTION_CONFIG: Array<{
     routes: ['/audit/auditors', '/audit/workload', '/audit/time-tracking', '/audit/leave', '/audit/holidays'],
   },
   {
-    id: 'ia-section-universe-risk',
-    title: 'Audit Universe & Risk',
+    id: 'ia-section-risk',
+    title: 'Risk Assessment',
     icon: Shield,
-    routes: ['/audit/audit-universe', '/audit/risk-assessment', '/audit/rcm'],
+    routes: ['/audit/risk-assessment', '/audit/rcm'],
   },
   {
     id: 'ia-section-planning',

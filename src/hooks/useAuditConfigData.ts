@@ -22,7 +22,6 @@ export function useIAAuditSettingMutations() {
 
   const upsert = useMutation({
     mutationFn: async (settings: { setting_category: string; setting_key: string; setting_value: string; setting_type?: string; updated_by?: string }[]) => {
-      // Update each setting individually
       const promises = settings.map(async (s) => {
         const { data, error } = await supabase
           .from('ia_audit_settings')
@@ -71,7 +70,12 @@ export function useIARiskCriteriaMutations() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] }); toast({ title: 'Risk Criteria Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
-  return { create, update };
+  const remove = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from('ia_risk_criteria').delete().eq('id', id); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] }); toast({ title: 'Risk Criteria Removed' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update, remove };
 }
 
 // ============= ACTIVITY TYPES =============
@@ -100,4 +104,104 @@ export function useIAActivityTypeMutations() {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   return { create, update };
+}
+
+// ============= RISK SCORING MODELS =============
+export function useIARiskScoringModel() {
+  return useQuery({
+    queryKey: ['ia_risk_scoring_model_default'],
+    queryFn: async (): Promise<any | null> => {
+      const { data, error } = await supabase
+        .from('ia_risk_scoring_models' as any)
+        .select('*')
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data ?? null;
+    },
+  });
+}
+
+export function useIARiskScoringModelMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
+      const { data, error } = await supabase.from('ia_risk_scoring_models' as any).update(u as any).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_scoring_model_default'] });
+      toast({ title: 'Scoring Model Updated' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { update };
+}
+
+// ============= RISK CRITERIA WEIGHTS =============
+export function useIARiskCriteriaWeights(modelId?: string) {
+  return useQuery({
+    queryKey: ['ia_risk_criteria_weights', modelId],
+    queryFn: async (): Promise<any[]> => {
+      let q = supabase.from('ia_risk_criteria_weights' as any).select('*').eq('is_active', true).order('sort_order');
+      if (modelId) q = q.eq('model_id', modelId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+    enabled: !!modelId,
+  });
+}
+
+export function useIARiskCriteriaWeightMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const create = useMutation({
+    mutationFn: async (c: any) => {
+      const { data, error } = await supabase.from('ia_risk_criteria_weights' as any).insert(c as any).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria_weights'] }); toast({ title: 'Criterion Added' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const update = useMutation({
+    mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
+      const { data, error } = await supabase.from('ia_risk_criteria_weights' as any).update(u as any).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria_weights'] }); toast({ title: 'Criterion Updated' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('ia_risk_criteria_weights' as any).update({ is_active: false } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria_weights'] }); toast({ title: 'Criterion Removed' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+  return { create, update, remove };
+}
+
+// ============= FREQUENCY MAPPING (from audit settings) =============
+export function useIAFrequencyMapping() {
+  return useQuery({
+    queryKey: ['ia_audit_settings', 'risk_frequency'],
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from('ia_audit_settings')
+        .select('setting_key, setting_value')
+        .eq('setting_category', 'risk_frequency')
+        .eq('is_active', true);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((d: any) => { map[d.setting_key] = Number(d.setting_value) || 12; });
+      return map;
+    },
+  });
 }

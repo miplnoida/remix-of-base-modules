@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Shield, Flag, MapPin } from 'lucide-react';
+import { Settings, Bell, Shield, Flag, MapPin, Plus, Trash2, Target, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -15,7 +15,10 @@ import { PageShell } from '@/components/common';
 import {
   useIAAuditSettings, useIAAuditSettingMutations,
   useIARiskCriteria, useIARiskCriteriaMutations,
-  useIAActivityTypes, useIAActivityTypeMutations
+  useIAActivityTypes, useIAActivityTypeMutations,
+  useIARiskScoringModel, useIARiskScoringModelMutations,
+  useIARiskCriteriaWeights, useIARiskCriteriaWeightMutations,
+  useIAFrequencyMapping,
 } from '@/hooks/useAuditConfigData';
 
 export default function AuditConfig() {
@@ -28,8 +31,44 @@ export default function AuditConfig() {
   const { data: riskCriteria = [], isLoading: riskLoading } = useIARiskCriteria();
   const { data: activityTypes = [], isLoading: typesLoading } = useIAActivityTypes();
   const { upsert: upsertSettings } = useIAAuditSettingMutations();
-  const { update: updateRisk } = useIARiskCriteriaMutations();
+  const { update: updateRisk, create: createRisk, remove: removeRisk } = useIARiskCriteriaMutations();
   const { update: updateType } = useIAActivityTypeMutations();
+
+  // Scoring model
+  const { data: scoringModel, isLoading: modelLoading } = useIARiskScoringModel();
+  const { update: updateModel } = useIARiskScoringModelMutations();
+  const { data: criteriaWeights = [] } = useIARiskCriteriaWeights(scoringModel?.id);
+  const { create: createWeight, update: updateWeight, remove: removeWeight } = useIARiskCriteriaWeightMutations();
+  const { data: frequencyMap = {} } = useIAFrequencyMapping();
+
+  // Threshold state
+  const [thresholds, setThresholds] = useState({ critical: 90, high: 75, medium: 50 });
+  useEffect(() => {
+    if (scoringModel) {
+      setThresholds({
+        critical: Number(scoringModel.critical_threshold) || 90,
+        high: Number(scoringModel.high_threshold) || 75,
+        medium: Number(scoringModel.medium_threshold) || 50,
+      });
+    }
+  }, [scoringModel]);
+
+  // Frequency state
+  const [freqSettings, setFreqSettings] = useState<Record<string, string>>({ Critical: '6', High: '12', Medium: '24', Low: '36' });
+  useEffect(() => {
+    if (Object.keys(frequencyMap).length > 0) {
+      setFreqSettings({
+        Critical: String(frequencyMap['Critical'] || 6),
+        High: String(frequencyMap['High'] || 12),
+        Medium: String(frequencyMap['Medium'] || 24),
+        Low: String(frequencyMap['Low'] || 36),
+      });
+    }
+  }, [frequencyMap]);
+
+  // New criterion form
+  const [newCriterionName, setNewCriterionName] = useState('');
+  const [newCriterionWeight, setNewCriterionWeight] = useState('');
 
   const settingsMap = useMemo(() => {
     const map: Record<string, Record<string, string>> = {};
@@ -42,32 +81,21 @@ export default function AuditConfig() {
 
   // Notifications & SLA
   const [slaSettings, setSlaSettings] = useState({ defaultResponseDays: '14', reminderDaysBefore: '3', autoNotifyOnPlanApproval: false });
-  // Feature Flags
   const [featureFlags, setFeatureFlags] = useState({ enableReportBuilder: true });
-  // Reference Settings
   const [refSettings, setRefSettings] = useState({ defaultFiscalYear: '2026', locations: 'St Kitts, Nevis' });
 
   useEffect(() => {
     if (settingsMap.sla) {
       const s = settingsMap.sla;
-      setSlaSettings({
-        defaultResponseDays: s.defaultResponseDays || '14',
-        reminderDaysBefore: s.reminderDaysBefore || '3',
-        autoNotifyOnPlanApproval: s.autoNotifyOnPlanApproval === 'true',
-      });
+      setSlaSettings({ defaultResponseDays: s.defaultResponseDays || '14', reminderDaysBefore: s.reminderDaysBefore || '3', autoNotifyOnPlanApproval: s.autoNotifyOnPlanApproval === 'true' });
     }
     if (settingsMap.features) {
       const f = settingsMap.features;
-      setFeatureFlags({
-        enableReportBuilder: f.enableReportBuilder !== 'false',
-      });
+      setFeatureFlags({ enableReportBuilder: f.enableReportBuilder !== 'false' });
     }
     if (settingsMap.reference) {
       const r = settingsMap.reference;
-      setRefSettings({
-        defaultFiscalYear: r.defaultFiscalYear || '2026',
-        locations: r.locations || 'St Kitts, Nevis',
-      });
+      setRefSettings({ defaultFiscalYear: r.defaultFiscalYear || '2026', locations: r.locations || 'St Kitts, Nevis' });
     }
   }, [settingsMap]);
 
@@ -78,7 +106,42 @@ export default function AuditConfig() {
     upsertSettings.mutate(entries);
   };
 
-  const isLoading = settingsLoading || riskLoading || typesLoading;
+  const totalWeight = criteriaWeights.reduce((sum: number, c: any) => sum + Number(c.weight || 0), 0);
+
+  const handleAddCriterion = () => {
+    if (!newCriterionName.trim() || !newCriterionWeight.trim() || !scoringModel?.id) return;
+    createWeight.mutate({
+      model_id: scoringModel.id,
+      criterion_name: newCriterionName.trim(),
+      weight: Number(newCriterionWeight),
+      max_score: 100,
+      sort_order: criteriaWeights.length + 1,
+      is_active: true,
+    });
+    setNewCriterionName('');
+    setNewCriterionWeight('');
+  };
+
+  const handleSaveThresholds = () => {
+    if (!scoringModel?.id) return;
+    updateModel.mutate({
+      id: scoringModel.id,
+      critical_threshold: thresholds.critical,
+      high_threshold: thresholds.high,
+      medium_threshold: thresholds.medium,
+      low_threshold: 0,
+      updated_by: userCode,
+    });
+  };
+
+  const handleSaveFrequency = () => {
+    const entries = Object.entries(freqSettings).map(([key, value]) => ({
+      setting_category: 'risk_frequency', setting_key: key, setting_value: value, updated_by: userCode,
+    }));
+    upsertSettings.mutate(entries);
+  };
+
+  const isLoading = settingsLoading || riskLoading || typesLoading || modelLoading;
 
   return (
     <PageShell
@@ -87,14 +150,130 @@ export default function AuditConfig() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
       isLoading={isLoading}
     >
-      <Tabs defaultValue="sla" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="risk" className="space-y-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Assessment</TabsTrigger>
           <TabsTrigger value="sla"><Bell className="w-4 h-4 mr-2" />Notifications & SLA</TabsTrigger>
           <TabsTrigger value="features"><Flag className="w-4 h-4 mr-2" />Feature Flags</TabsTrigger>
           <TabsTrigger value="reference"><MapPin className="w-4 h-4 mr-2" />Reference Settings</TabsTrigger>
-          <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Criteria</TabsTrigger>
           <TabsTrigger value="activities"><Settings className="w-4 h-4 mr-2" />Activity Types</TabsTrigger>
         </TabsList>
+
+        {/* ===== Risk Assessment Configuration ===== */}
+        <TabsContent value="risk" className="space-y-6">
+          {/* Criteria Weights */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />Risk Criteria & Weights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2 text-sm">
+                <span>Total Weight:</span>
+                <Badge variant={totalWeight === 100 ? 'default' : 'destructive'} className={totalWeight === 100 ? 'bg-green-600' : ''}>
+                  {totalWeight}%
+                </Badge>
+                {totalWeight !== 100 && <span className="text-destructive text-xs">Weights must sum to 100%</span>}
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Criterion</TableHead>
+                    <TableHead className="w-24">Weight (%)</TableHead>
+                    <TableHead className="w-24">Max Score</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {criteriaWeights.map((c: any) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.criterion_name}</TableCell>
+                      <TableCell>
+                        <Input type="number" className="w-20 h-8" value={c.weight} min={0} max={100}
+                          onChange={(e) => updateWeight.mutate({ id: c.id, weight: Number(e.target.value), updated_by: userCode } as any)} />
+                      </TableCell>
+                      <TableCell>{c.max_score}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => removeWeight.mutate(c.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {criteriaWeights.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No criteria configured</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Add new criterion */}
+              <div className="flex items-end gap-3 pt-2 border-t">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs">Criterion Name</Label>
+                  <Input value={newCriterionName} onChange={(e) => setNewCriterionName(e.target.value)} placeholder="e.g., Management Concern" />
+                </div>
+                <div className="w-24 space-y-1">
+                  <Label className="text-xs">Weight (%)</Label>
+                  <Input type="number" value={newCriterionWeight} onChange={(e) => setNewCriterionWeight(e.target.value)} min={1} max={100} />
+                </div>
+                <Button onClick={handleAddCriterion} disabled={!newCriterionName.trim() || !newCriterionWeight.trim()}>
+                  <Plus className="h-4 w-4 mr-1" />Add
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Risk Thresholds */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Risk Level Thresholds</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Define the score boundaries for each risk level. Scores are evaluated top-down (Critical first).</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Critical ≥</Label>
+                  <Input type="number" value={thresholds.critical} onChange={(e) => setThresholds(t => ({ ...t, critical: Number(e.target.value) }))} min={0} max={100} />
+                </div>
+                <div className="space-y-2">
+                  <Label>High ≥</Label>
+                  <Input type="number" value={thresholds.high} onChange={(e) => setThresholds(t => ({ ...t, high: Number(e.target.value) }))} min={0} max={100} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Medium ≥</Label>
+                  <Input type="number" value={thresholds.medium} onChange={(e) => setThresholds(t => ({ ...t, medium: Number(e.target.value) }))} min={0} max={100} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Low = scores below Medium threshold ({thresholds.medium})</p>
+              <Button onClick={handleSaveThresholds} disabled={updateModel.isPending}>
+                {updateModel.isPending ? 'Saving...' : 'Save Thresholds'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Audit Frequency Mapping */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Audit Frequency Mapping</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Define how often each risk level should be audited (in months).</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(['Critical', 'High', 'Medium', 'Low'] as const).map(level => (
+                  <div key={level} className="space-y-2">
+                    <Label>{level} Risk</Label>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" value={freqSettings[level] || ''} onChange={(e) => setFreqSettings(f => ({ ...f, [level]: e.target.value }))} min={1} max={60} />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">months</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button onClick={handleSaveFrequency} disabled={upsertSettings.isPending}>
+                {upsertSettings.isPending ? 'Saving...' : 'Save Frequency Mapping'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Notifications & SLA */}
         <TabsContent value="sla">
@@ -159,30 +338,6 @@ export default function AuditConfig() {
               <Button onClick={() => saveCategory('reference', refSettings)} disabled={upsertSettings.isPending}>
                 {upsertSettings.isPending ? 'Saving...' : 'Save Reference Settings'}
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Risk Criteria */}
-        <TabsContent value="risk">
-          <Card>
-            <CardHeader><CardTitle>Risk Assessment Criteria</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow><TableHead>Criteria</TableHead><TableHead>Weight</TableHead><TableHead>Enabled</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {riskCriteria.map((c: any) => (
-                    <TableRow key={c.id}>
-                      <TableCell>{c.criteria}</TableCell>
-                      <TableCell><Badge className={c.weight === 'High' ? 'bg-destructive' : c.weight === 'Medium' ? 'bg-orange-600' : 'bg-green-500'}>{c.weight}</Badge></TableCell>
-                      <TableCell><Switch checked={c.is_enabled} onCheckedChange={(checked) => updateRisk.mutate({ id: c.id, is_enabled: checked, updated_by: userCode })} /></TableCell>
-                    </TableRow>
-                  ))}
-                  {riskCriteria.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No risk criteria configured</TableCell></TableRow>}
-                </TableBody>
-              </Table>
             </CardContent>
           </Card>
         </TabsContent>
