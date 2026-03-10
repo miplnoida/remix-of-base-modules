@@ -80,6 +80,7 @@ import RuleEngine from './settings/RuleEngine';
 import ViolationTypes from './settings/ViolationTypes';
 import NumberTemplates from './settings/NumberTemplates';
 import RiskRulePolicy from './settings/RiskRulePolicy';
+import RiskScoringConfig from './settings/RiskScoringConfig';
 import ComplianceSettings from './settings/ComplianceSettings';
 import ComplianceTemplates from './settings/ComplianceTemplates';
 
