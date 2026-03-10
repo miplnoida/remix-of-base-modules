@@ -46,6 +46,7 @@ import { TableNode } from './components/TableNode';
 import { ModuleDependencyView } from './components/ModuleDependencyView';
 import { exportDbDiagramToPdf } from './utils/pdfExport';
 import { PdfExportDialog, type PdfExportSettings } from './components/PdfExportDialog';
+import { computeSmartLayout } from './utils/smartLayout';
 
 const nodeTypes = { tableNode: TableNode };
 
