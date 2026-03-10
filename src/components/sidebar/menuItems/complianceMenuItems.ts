@@ -421,18 +421,11 @@ export const complianceMenuItems = [
             description: "Configure auto-numbering schemes for violations, cases, and notices"
           },
           {
-            title: "Risk Rule Policy",
+            title: "Risk & Escalation Policy",
             url: "/compliance/settings/risk-policy",
             icon: TrendingUp,
             requiresPermission: "manage_compliance",
-            description: "Configure risk factors, weights, bands, and policies"
-          },
-          {
-            title: "Legal Escalation Policy",
-            url: "/compliance/settings/legal-escalation-policy",
-            icon: Scale,
-            requiresPermission: "manage_compliance",
-            description: "Configure legal escalation rules and thresholds"
+            description: "Risk factors, weights, bands, policies, and legal escalation thresholds"
           },
           {
             title: "Templates",
