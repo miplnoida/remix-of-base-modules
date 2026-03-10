@@ -336,6 +336,136 @@ function DbDiagramInner() {
     toast.success('Smart layout applied — tables organized by relationships');
   }, [filteredTables, filteredRelationships, columnsMap, setNodes, reactFlowInstance]);
 
+  // Apply a saved layout
+  const applyLayout = useCallback((layout: SavedLayout) => {
+    // Set included/excluded tables
+    if (layout.included_table_ids.length > 0) {
+      const moduleIds = new Set(tables.map(t => t.id));
+      const extras = layout.included_table_ids.filter(id => !moduleIds.has(id));
+      setExtraTableIds(new Set(extras));
+    }
+    if (layout.excluded_table_ids.length > 0) {
+      setExcludedTableIds(new Set(layout.excluded_table_ids));
+    }
+
+    // Apply positions after a tick (to let filteredTables update)
+    setTimeout(() => {
+      if (layout.node_positions && Object.keys(layout.node_positions).length > 0) {
+        setNodes(prev => prev.map(node => ({
+          ...node,
+          position: layout.node_positions[node.id] || node.position,
+        })));
+      }
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.12, duration: 400 });
+      }, 100);
+    }, 100);
+  }, [tables, setNodes, reactFlowInstance]);
+
+  // Save current diagram
+  const handleSaveLayout = useCallback(async (name: string, isDefault: boolean) => {
+    if (!currentModule) return;
+    setIsSavingLayout(true);
+    try {
+      const positions: Record<string, { x: number; y: number }> = {};
+      nodes.forEach(n => { positions[n.id] = n.position; });
+
+      const viewport = reactFlowInstance.getViewport();
+      const currentTableIds = filteredTables.map(t => t.id);
+      const moduleIds = new Set(tables.map(t => t.id));
+      const excluded = tables.filter(t => !currentTableIds.includes(t.id)).map(t => t.id);
+
+      await saveLayout({
+        module_id: currentModule.id,
+        layout_name: name,
+        is_default: isDefault,
+        node_positions: positions,
+        included_table_ids: currentTableIds,
+        excluded_table_ids: excluded,
+        zoom_level: viewport.zoom,
+        viewport_x: viewport.x,
+        viewport_y: viewport.y,
+        user_code: user?.email || 'system',
+      });
+
+      await refetchLayouts();
+      toast.success(`Layout "${name}" saved successfully`);
+    } catch (err: any) {
+      toast.error('Failed to save layout: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSavingLayout(false);
+    }
+  }, [currentModule, nodes, filteredTables, tables, user, reactFlowInstance, refetchLayouts]);
+
+  // Load a saved layout
+  const handleLoadLayout = useCallback((layout: SavedLayout) => {
+    applyLayout(layout);
+    setShowSaveLoadDialog(false);
+    toast.success(`Layout "${layout.layout_name}" loaded`);
+  }, [applyLayout]);
+
+  // Delete a saved layout
+  const handleDeleteLayout = useCallback(async (layoutId: string) => {
+    try {
+      await deleteLayout(layoutId);
+      await refetchLayouts();
+      toast.success('Layout deleted');
+    } catch (err: any) {
+      toast.error('Failed to delete: ' + (err.message || 'Unknown error'));
+    }
+  }, [refetchLayouts]);
+
+  // Add tables to current diagram
+  const handleAddTables = useCallback((tableIds: string[]) => {
+    setExtraTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.add(id));
+      return next;
+    });
+    // Remove from excluded if was excluded
+    setExcludedTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.delete(id));
+      return next;
+    });
+    setShowManageTablesDialog(false);
+    toast.success(`${tableIds.length} table(s) added to diagram`);
+  }, []);
+
+  // Remove tables from current diagram
+  const handleRemoveTables = useCallback(async (tableIds: string[], updateMapping: boolean) => {
+    // Visual removal
+    setExcludedTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.add(id));
+      return next;
+    });
+    setExtraTableIds(prev => {
+      const next = new Set(prev);
+      tableIds.forEach(id => next.delete(id));
+      return next;
+    });
+
+    // Admin: also update module mapping in DB
+    if (updateMapping && currentModule) {
+      try {
+        await Promise.all(
+          tableIds.map(id => removeTableFromModuleMap(id, currentModule.id))
+        );
+        queryClient.invalidateQueries({ queryKey: ['db-diagram-tables'] });
+        toast.success(`${tableIds.length} table(s) removed from module mapping`);
+      } catch (err: any) {
+        toast.error('Failed to update mapping: ' + (err.message || 'Unknown error'));
+      }
+    }
+
+    setShowManageTablesDialog(false);
+    toast.success(`${tableIds.length} table(s) removed from diagram`);
+  }, [currentModule, queryClient]);
+
+  const moduleTableIds = useMemo(() => new Set(tables.map(t => t.id)), [tables]);
+  const currentDiagramTableIds = useMemo(() => new Set(filteredTables.map(t => t.id)), [filteredTables]);
+
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
   const sharedCount = filteredTables.filter(t => t.is_shared).length;
