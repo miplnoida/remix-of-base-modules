@@ -414,11 +414,11 @@ export const complianceMenuItems = [
             description: "Configure violation type definitions"
           },
           {
-            title: "Number Templates",
+            title: "Reference Numbering",
             url: "/compliance/settings/number-templates",
             icon: Hash,
             requiresPermission: "manage_compliance",
-            description: "Configure violation number generation templates"
+            description: "Configure auto-numbering schemes for violations, cases, and notices"
           },
           {
             title: "Risk Rule Policy",
