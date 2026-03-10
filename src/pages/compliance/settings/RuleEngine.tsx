@@ -295,10 +295,10 @@ const CalculationRuleDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Fund Type</Label>
-              <Select value={form.fund_type || ''} onValueChange={v => setForm(p => ({ ...p, fund_type: v }))}>
+              <Select value={form.fund_type || '__all__'} onValueChange={v => setForm(p => ({ ...p, fund_type: v === '__all__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="All Funds" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Funds</SelectItem>
+                  <SelectItem value="__all__">All Funds</SelectItem>
                   {['SS', 'LV', 'EI', 'SV'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                 </SelectContent>
               </Select>
