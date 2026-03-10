@@ -42,14 +42,14 @@ export function getMondayCount(year: number, month: number, weekStartDay: number
  * Determine which week checkboxes should be enabled based on the selected period
  * Returns an array of 5 booleans (one for each week checkbox)
  */
-export function getEnabledWeekCheckboxes(year: number, month: number): boolean[] {
-  const mondayCount = getMondayCount(year, month);
+export function getEnabledWeekCheckboxes(year: number, month: number, weekStartDay: number = 1): boolean[] {
+  const count = getMondayCount(year, month, weekStartDay);
   return [
     true,  // Week 1
     true,  // Week 2
     true,  // Week 3
     true,  // Week 4
-    mondayCount >= 5  // Week 5 - only enabled if month has 5 Mondays
+    count >= 5  // Week 5 - only enabled if month has 5 occurrences
   ];
 }
 
