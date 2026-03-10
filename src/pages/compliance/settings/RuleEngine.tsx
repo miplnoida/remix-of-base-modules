@@ -64,6 +64,22 @@ interface ViolationType {
   name: string;
 }
 
+interface VariableMapping {
+  id: string;
+  variable_key: string;
+  display_name: string;
+  description: string | null;
+  data_type: string;
+  variable_category: string;
+  group_name: string;
+  source_table: string | null;
+  source_column: string | null;
+  c3_config_key: string | null;
+  computation_logic: string | null;
+  applies_to_rule_type: string;
+  sort_order: number;
+}
+
 // ── Predefined options for intelligent dropdowns ──
 
 const TRIGGER_EVENTS = [
