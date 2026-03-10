@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Save, Trash2, Check, Loader2, AlertCircle, X, Keyboard, Palmtree } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getMondayCount, getEnabledWeekTextboxes } from '@/utils/weekCalculations';
+import { useBiweeklyEnabledWeeks } from '@/hooks/useBiweeklyEnabledWeeks';
 import { EmployeeData } from '@/components/c3/EmployeeModal';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,6 +74,9 @@ export default function DataEntryGrid({
     for (let i = 0; i < mondayCount && i < 5; i++) indices.push(i);
     return indices;
   }, [mondayCount]);
+
+  // Fetch backend-driven bi-weekly enabled weeks (ISO even-week rule)
+  const { enabledWeeks: biweeklyEnabledWeeks } = useBiweeklyEnabledWeeks(periodYear, periodMonth);
 
   const periodTermStartDate = useMemo(() => {
     const monthStr = String(periodMonth + 1).padStart(2, '0');
@@ -193,7 +197,7 @@ export default function DataEntryGrid({
   const findNextEnabledCol = useCallback((rowIdx: number, currentColIdx: number, forward: boolean): { rowIdx: number; field: string } | null => {
     const row = rows[rowIdx];
     if (!row) return null;
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     
     const step = forward ? 1 : -1;
     let nextCol = currentColIdx + step;
@@ -384,7 +388,7 @@ export default function DataEntryGrid({
     const w1Input = row.wageInputs[0];
     if (w1Value <= 0 || !w1Input) return;
 
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     
     // Only auto-fill if all other enabled weeks are blank/zero
     const allOthersBlank = generatedWeekIndices.every(j => j === 0 || (row.weeklyWages[j] || 0) === 0);
@@ -470,7 +474,7 @@ export default function DataEntryGrid({
 
     updateRow(rowIdx, { isSaving: true });
 
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     const effectiveWages = row.weeklyWages.map((w, i) => {
       if (i < 5) return (row.days[i] && enabledTextboxes[i]) ? w : 0;
       if (i === 5) return row.days[5] ? w : 0;
@@ -595,7 +599,7 @@ export default function DataEntryGrid({
           </thead>
           <tbody>
             {rows.map((row, rowIdx) => {
-              const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+              const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
               const totalWages = row.weeklyWages.reduce((a, b) => a + b, 0);
               const rowBg = row.ssnError
                 ? 'bg-destructive/5'

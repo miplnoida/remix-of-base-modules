@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, Gift, Palmtree, Clock } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/utils/weekCalculations';
+import { useBiweeklyEnabledWeeks } from '@/hooks/useBiweeklyEnabledWeeks';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { useBonusPolicyCalculation } from '@/hooks/useBonusPolicyCalculation';
 import { usePendingHolidayPay } from '@/hooks/useHolidayPayCalculation';
@@ -172,14 +173,18 @@ export default function EmployeeModal({
   const mondays = getMondaysInMonth(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
+  // Fetch backend-driven bi-weekly enabled weeks (ISO even-week rule)
+  const { enabledWeeks: biweeklyEnabledWeeks } = useBiweeklyEnabledWeeks(safePeriodYear, safePeriodMonth);
+
   const enabledTextboxes = useMemo(() => {
     return getEnabledWeekTextboxes(
       localEmployee.payPeriod || 'Monthly',
       safePeriodYear,
       safePeriodMonth,
-      localEmployee.termStartDate
+      localEmployee.termStartDate,
+      biweeklyEnabledWeeks
     ) || [false, false, false, false, false];
-  }, [localEmployee.payPeriod, safePeriodYear, safePeriodMonth, localEmployee.termStartDate]);
+  }, [localEmployee.payPeriod, safePeriodYear, safePeriodMonth, localEmployee.termStartDate, biweeklyEnabledWeeks]);
 
   // Which week indices are "generated" (exist in this month)
   const generatedWeekIndices = useMemo(() => {
