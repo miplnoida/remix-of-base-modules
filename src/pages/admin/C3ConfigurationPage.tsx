@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon } from 'lucide-react';
+import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
@@ -15,6 +15,7 @@ import { HolidayPayPolicyDefaultTab } from '@/components/admin/c3-configuration/
 import { HolidayPayPolicyExceptionsTab } from '@/components/admin/c3-configuration/HolidayPayPolicyExceptionsTab';
 import { IncomeCodePolicyDefaultTab } from '@/components/admin/c3-configuration/IncomeCodePolicyDefaultTab';
 import { IncomeCodePolicyExceptionsTab } from '@/components/admin/c3-configuration/IncomeCodePolicyExceptionsTab';
+import { C3FilingConfigTab } from '@/components/admin/c3-configuration/C3FilingConfigTab';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
@@ -34,11 +35,16 @@ const C3ConfigurationPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-11 lg:w-auto lg:inline-flex">
           <TabsTrigger value="period-config" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Period Configuration</span>
             <span className="sm:hidden">Periods</span>
+          </TabsTrigger>
+          <TabsTrigger value="filing-config" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Filing & Penalties</span>
+            <span className="sm:hidden">Filing</span>
           </TabsTrigger>
           <TabsTrigger value="levy-slabs" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
@@ -89,6 +95,10 @@ const C3ConfigurationPage: React.FC = () => {
 
         <TabsContent value="period-config" className="mt-6">
           <C3PeriodConfigTab />
+        </TabsContent>
+
+        <TabsContent value="filing-config" className="mt-6">
+          <C3FilingConfigTab />
         </TabsContent>
 
         <TabsContent value="levy-slabs" className="mt-6">
