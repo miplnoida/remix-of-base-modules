@@ -203,3 +203,65 @@ export interface WizCompanyDropdown {
 export async function getCompaniesDropdown() {
   return callWizApi<{ companies: WizCompanyDropdown[] }>("get_companies_dropdown");
 }
+
+// ─── Config Change History ─────────────────────────────
+
+export interface WizConfigSyncLog {
+  id: string;
+  sync_version: string;
+  payload_hash: string;
+  status: string;
+  config_periods_count: number;
+  levy_slabs_count: number;
+  bonus_policies_count: number;
+  bonus_exceptions_count: number;
+  holiday_policies_count: number;
+  holiday_exceptions_count: number;
+  received_from_admin_at: string;
+  received_at: string;
+  applied_at: string | null;
+  source_ip: string | null;
+  error_message: string | null;
+}
+
+export interface WizConfigChangeEntry {
+  id: string;
+  sync_log_id: string;
+  table_name: string;
+  record_admin_sync_id: string;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string | null;
+  changed_at: string;
+}
+
+export interface WizConfigChangeSummary {
+  sync_log: Pick<WizConfigSyncLog, 'id' | 'sync_version' | 'status' | 'received_from_admin_at' | 'applied_at'>;
+  changes_by_table: Record<string, Omit<WizConfigChangeEntry, 'id' | 'sync_log_id' | 'table_name' | 'record_admin_sync_id'>[]>;
+  total_changes: number;
+}
+
+export async function getConfigSyncLogs(params: {
+  page_offset?: number;
+  page_limit?: number;
+  status?: string | null;
+}) {
+  return callWizApi<{ logs: WizConfigSyncLog[]; total_records: number }>("get_config_sync_logs", params);
+}
+
+export async function getConfigChangeHistory(params: {
+  sync_log_id?: string;
+  table_name?: string;
+  field_name?: string;
+  from_date?: string;
+  to_date?: string;
+  page_offset?: number;
+  page_limit?: number;
+}) {
+  return callWizApi<{ changes: WizConfigChangeEntry[]; total_records: number }>("get_config_change_history", params);
+}
+
+export async function getConfigChangeSummary(syncLogId: string) {
+  return callWizApi<WizConfigChangeSummary>("get_config_change_summary", { sync_log_id: syncLogId });
+}
