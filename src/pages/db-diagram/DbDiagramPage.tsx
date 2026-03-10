@@ -268,30 +268,24 @@ function DbDiagramInner() {
     }
   }, [currentModule, filteredTables, filteredRelationships, columnsMap]);
 
-  // Auto-layout: recalculate positions with extra spacing
-  const handleAutoLayout = useCallback(() => {
-    if (!nodes.length) return;
-    const NODE_W = 300;
-    const GAP_X = 200;
-    const GAP_Y = 100;
-    const COLS = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(nodes.length * 0.5))));
+  // Smart auto-layout: uses graph topology to place tables intelligently
+  const handleSmartLayout = useCallback(() => {
+    if (!filteredTables.length) return;
 
-    const colYs = new Array(COLS).fill(0);
-    const newNodes = nodes.map((node: Node) => {
-      const cols_data = columnsMap[(node.data as any)?.table?.table_name] || [];
-      const displayCols = Math.min(cols_data.length, 15);
-      const nodeH = 28 + displayCols * 20 + (cols_data.length > 15 ? 18 : 8);
+    const { positions } = computeSmartLayout(filteredTables, filteredRelationships, columnsMap);
 
-      const col = colYs.indexOf(Math.min(...colYs));
-      const x = col * (NODE_W + GAP_X);
-      const y = colYs[col];
-      colYs[col] += nodeH + GAP_Y;
+    setNodes(prev => prev.map(node => ({
+      ...node,
+      position: positions[node.id] || node.position,
+    })));
 
-      return { ...node, position: { x, y } };
-    });
-    setNodes(newNodes);
-    toast.success('Layout adjusted — overlaps removed');
-  }, [nodes, columnsMap, setNodes]);
+    // Fit view after layout with slight delay for state to propagate
+    setTimeout(() => {
+      reactFlowInstance.fitView({ padding: 0.12, duration: 600 });
+    }, 50);
+
+    toast.success('Smart layout applied — tables organized by relationships');
+  }, [filteredTables, filteredRelationships, columnsMap, setNodes, reactFlowInstance]);
 
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
