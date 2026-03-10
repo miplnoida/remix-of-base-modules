@@ -257,6 +257,7 @@ function DbDiagramInner() {
         columnsMap: cols,
         pageSize: settings.pageSize,
         orientation: settings.orientation,
+        zoomLevel: settings.zoomLevel,
         diagramElement: diagramEl,
       });
       toast.success('PDF exported successfully');

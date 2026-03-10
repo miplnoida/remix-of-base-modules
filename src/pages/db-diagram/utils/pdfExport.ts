@@ -74,9 +74,11 @@ export async function exportDbDiagramToPdf({
     const availW = pageW - M * 2;
     const availH = pageH - diagramTopY - M - 4;
 
-    const scaleW = availW / imgW;
-    const scaleH = availH / imgH;
-    const scale = Math.min(scaleW, scaleH);
+    // Apply user-chosen zoom: zoomLevel 100 = fit-to-page, lower = shrink more to fit more content
+    const zoomFactor = zoomLevel / 100;
+    const scaleW = availW / (imgW * zoomFactor);
+    const scaleH = availH / (imgH * zoomFactor);
+    const scale = Math.min(scaleW, scaleH) * zoomFactor;
 
     const renderW = imgW * scale;
     const renderH = imgH * scale;

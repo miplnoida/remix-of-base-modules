@@ -121,7 +121,7 @@ export function PdfExportDialog({ open, onClose, onExport, isExporting, tableCou
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isExporting}>Cancel</Button>
-          <Button onClick={() => onExport({ pageSize, orientation })} disabled={isExporting}>
+          <Button onClick={() => onExport({ pageSize, orientation, zoomLevel })} disabled={isExporting}>
             {isExporting ? (
               <>
                 <FileDown className="h-4 w-4 mr-1 animate-bounce" />
