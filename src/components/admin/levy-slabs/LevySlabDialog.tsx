@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useCreateLevySlab, useUpdateLevySlab, LevySlab } from '@/hooks/useLevySlabsManagement';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface LevySlabDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export const LevySlabDialog: React.FC<LevySlabDialogProps> = ({
 }) => {
   const createMutation = useCreateLevySlab();
   const updateMutation = useUpdateLevySlab();
+  const { userCode } = useUserCode();
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -51,12 +53,14 @@ export const LevySlabDialog: React.FC<LevySlabDialogProps> = ({
         id: slab.id,
         startDate,
         endDate,
-        isActive
+        isActive,
+        userCode: userCode || undefined
       });
     } else {
       await createMutation.mutateAsync({
         startDate,
-        endDate
+        endDate,
+        userCode: userCode || undefined
       });
     }
 

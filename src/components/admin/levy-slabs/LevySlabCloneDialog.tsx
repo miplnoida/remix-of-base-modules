@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useCloneLevySlab } from '@/hooks/useLevySlabsManagement';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface LevySlabCloneDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ export const LevySlabCloneDialog: React.FC<LevySlabCloneDialogProps> = ({
   sourceSlabId
 }) => {
   const cloneMutation = useCloneLevySlab();
+  const { userCode } = useUserCode();
 
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
@@ -36,7 +38,8 @@ export const LevySlabCloneDialog: React.FC<LevySlabCloneDialogProps> = ({
     await cloneMutation.mutateAsync({
       sourceSlabId,
       newStartDate,
-      newEndDate
+      newEndDate,
+      userCode: userCode || undefined
     });
 
     setNewStartDate('');

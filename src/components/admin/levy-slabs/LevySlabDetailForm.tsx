@@ -23,6 +23,7 @@ import {
   useUpdateLevySlabDetail,
   LevySlabDetail
 } from '@/hooks/useLevySlabsManagement';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface LevySlabDetailFormProps {
   open: boolean;
@@ -46,6 +47,7 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
 }) => {
   const createMutation = useCreateLevySlabDetail();
   const updateMutation = useUpdateLevySlabDetail();
+  const { userCode } = useUserCode();
 
   const [payPeriod, setPayPeriod] = useState('W');
   const [overAmt, setOverAmt] = useState('0');
@@ -86,7 +88,8 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
         baseAmt: parseFloat(baseAmt),
         taxRate: taxRateDecimal,
         orderNo: parseInt(orderNo),
-        isActive
+        isActive,
+        userCode: userCode || undefined
       });
     } else {
       await createMutation.mutateAsync({
@@ -95,7 +98,8 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
         overAmt: parseFloat(overAmt),
         baseAmt: parseFloat(baseAmt),
         taxRate: taxRateDecimal,
-        orderNo: parseInt(orderNo)
+        orderNo: parseInt(orderNo),
+        userCode: userCode || undefined
       });
     }
 

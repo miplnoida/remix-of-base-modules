@@ -67,19 +67,20 @@ export function useUpdateHolidayPayPolicyDefault() {
 export function useDeleteHolidayPayPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_default')
         .delete()
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-defaults'] });
       toast.success('Holiday pay policy deleted');
       logC3ConfigChange({
-        configType: 'holiday_pay_policy', recordId: id, action: 'DELETE',
-        entityName: 'Holiday Pay Policy'
+        configType: 'holiday_pay_policy', recordId: variables.id, action: 'DELETE',
+        entityName: 'Holiday Pay Policy',
+        changedBy: variables.userCode
       });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -149,19 +150,20 @@ export function useUpdateHolidayPayPolicyException() {
 export function useDeleteHolidayPayPolicyException() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_exceptions')
         .delete()
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['holiday-pay-policy-exceptions'] });
       toast.success('Holiday pay exception deleted');
       logC3ConfigChange({
-        configType: 'holiday_pay_exception', recordId: id, action: 'DELETE',
-        entityName: 'Holiday Pay Exception'
+        configType: 'holiday_pay_exception', recordId: variables.id, action: 'DELETE',
+        entityName: 'Holiday Pay Exception',
+        changedBy: variables.userCode
       });
     },
     onError: (e: Error) => toast.error(e.message),
