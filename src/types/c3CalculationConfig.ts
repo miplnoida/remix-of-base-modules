@@ -1,7 +1,7 @@
 // C3 Calculation Configuration Types
 
 export type ConfigType = 'rate' | 'amount' | 'age' | 'days' | 'weeks' | 'months';
-export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty' | 'voluntary_contributor';
+export type ConfigCategory = 'social_security' | 'levy' | 'severance' | 'penalty' | 'voluntary_contributor' | 'filing';
 
 export interface C3CalculationConfig {
   id: string;
