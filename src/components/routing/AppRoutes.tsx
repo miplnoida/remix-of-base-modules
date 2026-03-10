@@ -15,7 +15,7 @@ import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 
 // DB Diagram
-import DbDiagramPage from '@/pages/db-diagram/DbDiagramPage';
+const DbDiagramPage = lazy(() => import('@/pages/db-diagram/DbDiagramPage'));
 
 // Page imports
 import Index from '@/pages/dashboard/Index';
