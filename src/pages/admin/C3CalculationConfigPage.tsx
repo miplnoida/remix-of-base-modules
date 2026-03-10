@@ -3,7 +3,7 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useGroupedC3Configs, useC3ConfigAuditHistory } from '@/hooks/useC3CalculationConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Shield, Building2, Briefcase, AlertTriangle, History, UserPlus } from 'lucide-react';
+import { Loader2, Shield, Building2, Briefcase, AlertTriangle, History, UserPlus, Calendar } from 'lucide-react';
 import { ConfigCategory } from '@/types/c3CalculationConfig';
 import { C3ConfigCategoryCard } from '@/components/admin/c3-config/C3ConfigCategoryCard';
 import { C3ConfigAuditLog } from '@/components/admin/c3-config/C3ConfigAuditLog';
@@ -13,7 +13,8 @@ const CATEGORY_ICONS: Record<ConfigCategory, React.ReactNode> = {
   levy: <Building2 className="h-5 w-5" />,
   severance: <Briefcase className="h-5 w-5" />,
   penalty: <AlertTriangle className="h-5 w-5" />,
-  voluntary_contributor: <UserPlus className="h-5 w-5" />
+  voluntary_contributor: <UserPlus className="h-5 w-5" />,
+  filing: <Calendar className="h-5 w-5" />
 };
 
 export default function C3CalculationConfigPage() {
