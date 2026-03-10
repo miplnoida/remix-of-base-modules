@@ -30,7 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
   Database, RefreshCw, Search, Table2, Link2, FileDown,
-  Key, Download,
+  Key, Download, LayoutGrid,
 } from 'lucide-react';
 
 import {
@@ -45,6 +45,7 @@ import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { TableNode } from './components/TableNode';
 import { ModuleDependencyView } from './components/ModuleDependencyView';
 import { exportDbDiagramToPdf } from './utils/pdfExport';
+import { PdfExportDialog, type PdfExportSettings } from './components/PdfExportDialog';
 
 const nodeTypes = { tableNode: TableNode };
 
@@ -64,6 +65,7 @@ function DbDiagramInner() {
   const [showInferredLinks, setShowInferredLinks] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -150,9 +152,9 @@ function DbDiagramInner() {
     };
 
     const NODE_W = 300;
-    const GAP_X = 100;
-    const GAP_Y = 40;
-    const COLS = Math.max(2, Math.min(5, Math.ceil(Math.sqrt(filteredTables.length))));
+    const GAP_X = 160;
+    const GAP_Y = 80;
+    const COLS = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(filteredTables.length * 0.6))));
 
     // Group by category for better visual organization
     const catOrder: Record<string, number> = {
@@ -239,10 +241,9 @@ function DbDiagramInner() {
     }
   }, [moduleCode, user, queryClient]);
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = useCallback(async (settings: PdfExportSettings) => {
     setIsExporting(true);
     try {
-      // Ensure we have columns for all tables
       let cols = columnsMap;
       if (Object.keys(cols).length === 0) {
         cols = await fetchColumnsForMultipleTables(filteredTables.map(t => t.table_name));
@@ -252,14 +253,42 @@ function DbDiagramInner() {
         tables: filteredTables,
         relationships: filteredRelationships,
         columnsMap: cols,
+        pageSize: settings.pageSize,
+        orientation: settings.orientation,
       });
       toast.success('PDF exported successfully');
+      setShowExportDialog(false);
     } catch (err: any) {
       toast.error('PDF export failed: ' + (err.message || 'Unknown error'));
     } finally {
       setIsExporting(false);
     }
   }, [currentModule, filteredTables, filteredRelationships, columnsMap]);
+
+  // Auto-layout: recalculate positions with extra spacing
+  const handleAutoLayout = useCallback(() => {
+    if (!nodes.length) return;
+    const NODE_W = 300;
+    const GAP_X = 200;
+    const GAP_Y = 100;
+    const COLS = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(nodes.length * 0.5))));
+
+    const colYs = new Array(COLS).fill(0);
+    const newNodes = nodes.map((node: Node) => {
+      const cols_data = columnsMap[(node.data as any)?.table?.table_name] || [];
+      const displayCols = Math.min(cols_data.length, 15);
+      const nodeH = 28 + displayCols * 20 + (cols_data.length > 15 ? 18 : 8);
+
+      const col = colYs.indexOf(Math.min(...colYs));
+      const x = col * (NODE_W + GAP_X);
+      const y = colYs[col];
+      colYs[col] += nodeH + GAP_Y;
+
+      return { ...node, position: { x, y } };
+    });
+    setNodes(newNodes);
+    toast.success('Layout adjusted — overlaps removed');
+  }, [nodes, columnsMap, setNodes]);
 
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
@@ -280,14 +309,23 @@ function DbDiagramInner() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAutoLayout}
+            disabled={!filteredTables.length}
+          >
+            <LayoutGrid className="h-4 w-4 mr-1" />
+            Auto Layout
+          </Button>
           <Button
             variant="default"
             size="sm"
-            onClick={handleExportPdf}
-            disabled={isExporting || !filteredTables.length}
+            onClick={() => setShowExportDialog(true)}
+            disabled={!filteredTables.length}
           >
-            <FileDown className={`h-4 w-4 mr-1 ${isExporting ? 'animate-bounce' : ''}`} />
+            <FileDown className="h-4 w-4 mr-1" />
             Export PDF
           </Button>
           {isAdmin && (
@@ -597,6 +635,15 @@ function DbDiagramInner() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* PDF Export Settings Dialog */}
+      <PdfExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExportPdf}
+        isExporting={isExporting}
+        tableCount={filteredTables.length}
+      />
     </div>
   );
 }

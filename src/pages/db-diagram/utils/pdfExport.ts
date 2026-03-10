@@ -10,12 +10,16 @@ interface ExportData {
   tables: DbTable[];
   relationships: DbRelationship[];
   columnsMap: Record<string, DbColumn[]>;
+  pageSize?: string;
+  orientation?: 'portrait' | 'landscape';
 }
 
-export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap }: ExportData) {
-  // Use A1 landscape (841 x 594 mm) for big overview; fallback A2 if fewer tables
-  const pageSize = tables.length > 20 ? 'a1' : tables.length > 8 ? 'a2' : 'a3';
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: pageSize });
+export function exportDbDiagramToPdf({
+  module, tables, relationships, columnsMap,
+  pageSize = 'a2',
+  orientation = 'landscape',
+}: ExportData) {
+  const doc = new jsPDF({ orientation, unit: 'mm', format: pageSize });
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -30,15 +34,15 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.text(`Generated: ${new Date().toLocaleString()}`, pageW / 2, 52, { align: 'center' });
+  doc.text(`Page Size: ${pageSize.toUpperCase()} ${orientation}`, pageW / 2, 60, { align: 'center' });
 
-  // Summary stats
   const fkCount = relationships.filter(r => r.is_physical_fk).length;
   const inferredCount = relationships.filter(r => r.is_inferred).length;
   const sharedCount = tables.filter(t => t.is_shared).length;
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Summary', margin, 75);
+  doc.text('Summary', margin, 80);
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
@@ -52,63 +56,72 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
     `Version: ${module?.current_version_no || 0}`,
   ];
   summaryLines.forEach((line, i) => {
-    doc.text(line, margin, 85 + i * 7);
+    doc.text(line, margin, 92 + i * 7);
   });
 
   // Category legend
-  let legendY = 85 + summaryLines.length * 7 + 10;
+  let legendY = 92 + summaryLines.length * 7 + 12;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('Table Categories:', margin, legendY);
-  legendY += 7;
+  legendY += 8;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   Object.entries(TABLE_CATEGORIES).forEach(([key, val]) => {
     doc.setFillColor(val.color);
     doc.rect(margin, legendY - 3, 4, 4, 'F');
-    doc.text(`  ${val.label}`, margin + 5, legendY);
-    legendY += 5;
+    doc.text(`  ${val.label}`, margin + 6, legendY);
+    legendY += 6;
   });
 
-  // === PAGE 2: Visual Overview - Table boxes with connections ===
-  doc.addPage(pageSize, 'landscape');
+  // === PAGE 2: Visual Overview ===
+  doc.addPage(pageSize, orientation);
+  const overviewPageW = doc.internal.pageSize.getWidth();
+  const overviewPageH = doc.internal.pageSize.getHeight();
+
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${moduleName} — Table Relationship Overview`, pageW / 2, margin + 5, { align: 'center' });
+  doc.setTextColor('#000000');
+  doc.text(`${moduleName} — Table Relationship Overview`, overviewPageW / 2, margin + 5, { align: 'center' });
 
-  // Draw table boxes in a grid layout
-  const boxW = 75;
-  const boxH_base = 22;
-  const gapX = 20;
-  const gapY = 15;
-  const startX = margin + 5;
-  const startY = margin + 18;
-  const cols = Math.max(3, Math.floor((pageW - margin * 2) / (boxW + gapX)));
+  // Calculate optimal box size based on available space and table count
+  const availW = overviewPageW - margin * 2;
+  const availH = overviewPageH - margin * 2 - 20;
+  const cols = Math.max(3, Math.min(8, Math.ceil(Math.sqrt(tables.length * 1.5))));
+  const rows = Math.ceil(tables.length / cols);
+  const gapX = 8;
+  const gapY = 8;
+  const boxW = Math.min(90, (availW - (cols - 1) * gapX) / cols);
+  const boxH_base = Math.min(30, (availH - (rows - 1) * gapY) / rows);
+  const startX = margin + (availW - cols * boxW - (cols - 1) * gapX) / 2;
+  const startY = margin + 20;
 
   const tablePositions: Record<string, { x: number; y: number; w: number; h: number }> = {};
-  
-  // Sort tables: primary first, then by name
+
+  const catOrder: Record<string, number> = {
+    core_master: 0, module_primary: 1, module_secondary: 2,
+    shared_transaction: 3, bridge_junction: 4, reference_lookup: 5,
+    audit_log: 6, temporary_work: 7, integration_staging: 8,
+  };
   const sortedTables = [...tables].sort((a, b) => {
-    const catOrder: Record<string, number> = {
-      core_master: 0, module_primary: 1, module_secondary: 2,
-      shared_transaction: 3, bridge_junction: 4, reference_lookup: 5,
-      audit_log: 6, temporary_work: 7
-    };
     const aO = catOrder[a.table_category] ?? 5;
     const bO = catOrder[b.table_category] ?? 5;
     return aO - bO || a.table_name.localeCompare(b.table_name);
   });
 
+  let currentOverviewPage = 0;
   sortedTables.forEach((table, idx) => {
     const col = idx % cols;
     const row = Math.floor(idx / cols);
-    const x = startX + col * (boxW + gapX);
-    const y = startY + row * (boxH_base + gapY);
+    const pageRow = row - currentOverviewPage * Math.floor(availH / (boxH_base + gapY));
 
-    // Check if we need a new page
-    if (y + boxH_base > pageH - margin) {
-      doc.addPage(pageSize, 'landscape');
-      return; // Skip for now, will handle overflow
+    let x = startX + col * (boxW + gapX);
+    let y = startY + pageRow * (boxH_base + gapY);
+
+    if (y + boxH_base > overviewPageH - margin) {
+      doc.addPage(pageSize, orientation);
+      currentOverviewPage++;
+      y = startY;
     }
 
     const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
@@ -119,46 +132,43 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
     doc.setFillColor('#ffffff');
     doc.roundedRect(x, y, boxW, boxH_base, 2, 2, 'FD');
 
-    // Color header bar
+    // Color header
+    const headerH = Math.min(8, boxH_base * 0.3);
     doc.setFillColor(cat.color);
-    doc.roundedRect(x, y, boxW, 7, 2, 2, 'F');
-    doc.rect(x, y + 3, boxW, 4, 'F'); // Fill bottom part of header rounded rect
+    doc.roundedRect(x, y, boxW, headerH, 2, 2, 'F');
+    doc.rect(x, y + headerH - 2, boxW, 2, 'F');
 
     // Table name
-    doc.setFontSize(7);
+    const fontSize = Math.min(7, boxW / 14);
+    doc.setFontSize(fontSize);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#ffffff');
-    const displayName = table.table_name.length > 28 
-      ? table.table_name.slice(0, 26) + '...' 
+    const maxChars = Math.floor(boxW / (fontSize * 0.45));
+    const displayName = table.table_name.length > maxChars
+      ? table.table_name.slice(0, maxChars - 2) + '..'
       : table.table_name;
-    doc.text(displayName, x + 2, y + 5);
+    doc.text(displayName, x + 2, y + headerH - 2);
 
-    // Category + columns count
+    // Info below header
     doc.setTextColor('#333333');
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
+    doc.setFontSize(Math.max(5, fontSize - 1.5));
     const colCount = columnsMap[table.table_name]?.length || 0;
-    doc.text(`${cat.label} | ${colCount} cols`, x + 2, y + 12);
+    const infoY = y + headerH + 4;
+    doc.text(`${cat.label} | ${colCount} cols`, x + 2, infoY);
 
-    // Show PK info
-    if (table.primary_key_summary) {
-      doc.setFontSize(5.5);
+    if (table.primary_key_summary && boxH_base > 20) {
+      doc.setFontSize(5);
       doc.setTextColor('#888888');
-      doc.text(`PK: ${table.primary_key_summary}`, x + 2, y + 16);
-    }
-
-    // FK count
-    const fkRels = relationships.filter(r => r.source_table_id === table.id);
-    if (fkRels.length > 0) {
-      doc.text(`${fkRels.length} FK(s)`, x + 2, y + 20);
+      doc.text(`PK: ${table.primary_key_summary}`, x + 2, infoY + 4);
     }
 
     tablePositions[table.id] = { x, y, w: boxW, h: boxH_base };
     doc.setTextColor('#000000');
   });
 
-  // Draw relationship lines
-  doc.setLineWidth(0.3);
+  // Draw relationship lines on overview
+  doc.setLineWidth(0.25);
   relationships.forEach(rel => {
     const src = tablePositions[rel.source_table_id];
     const tgt = tablePositions[rel.target_table_id];
@@ -172,7 +182,6 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
       doc.setLineDashPattern([], 0);
     }
 
-    // Draw line from source bottom to target top
     const sx = src.x + src.w / 2;
     const sy = src.y + src.h;
     const tx = tgt.x + tgt.w / 2;
@@ -180,7 +189,6 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
 
     doc.line(sx, sy, tx, ty);
 
-    // Arrow head
     const angle = Math.atan2(ty - sy, tx - sx);
     const arrowLen = 2;
     doc.line(tx, ty, tx - arrowLen * Math.cos(angle - 0.4), ty - arrowLen * Math.sin(angle - 0.4));
@@ -188,40 +196,39 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
   });
   doc.setLineDashPattern([], 0);
 
-  // === PAGES 3+: Detailed Table Schemas ===
-  doc.addPage('a3', 'landscape');
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor('#000000');
-  doc.text(`${moduleName} — Detailed Table Schemas`, margin, margin + 5);
-
-  let currentY = margin + 15;
+  // === DETAILED TABLE SCHEMAS ===
+  doc.addPage(pageSize, orientation);
   const detailPageW = doc.internal.pageSize.getWidth();
   const detailPageH = doc.internal.pageSize.getHeight();
 
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor('#000000');
+  doc.text(`${moduleName} — Detailed Table Schemas (Data Dictionary)`, margin, margin + 5);
+
+  let currentY = margin + 15;
+
   sortedTables.forEach((table) => {
     const cols_data = columnsMap[table.table_name] || [];
-    const tableHeight = 12 + cols_data.length * 5 + 10;
+    const tableHeight = 14 + cols_data.length * 5 + 10;
 
-    // Check if we need a new page
-    if (currentY + Math.min(tableHeight, 80) > detailPageH - margin) {
-      doc.addPage('a3', 'landscape');
+    if (currentY + Math.min(tableHeight, 60) > detailPageH - margin) {
+      doc.addPage(pageSize, orientation);
       currentY = margin;
     }
 
     const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
 
-    // Table header
+    // Table header bar
     doc.setFillColor(cat.color);
     doc.roundedRect(margin, currentY, detailPageW - margin * 2, 8, 1, 1, 'F');
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#ffffff');
-    doc.text(`${table.table_name}  —  ${cat.label}${table.is_shared ? '  [SHARED]' : ''}`, margin + 3, currentY + 5.5);
+    doc.text(`${table.table_name}  —  ${cat.label}${table.is_shared ? '  [SHARED]' : ''}  (${cols_data.length} columns)`, margin + 3, currentY + 5.5);
     doc.setTextColor('#000000');
     currentY += 10;
 
-    // Description
     if (table.description) {
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
@@ -229,49 +236,51 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
       currentY += 5;
     }
 
-    // Columns table
     if (cols_data.length > 0) {
       autoTable(doc, {
         startY: currentY,
         margin: { left: margin + 2, right: margin + 2 },
-        head: [['#', 'Column Name', 'Data Type', 'Nullable', 'PK', 'FK']],
+        head: [['#', 'Column Name', 'Data Type', 'Nullable', 'PK', 'FK', 'Default']],
         body: cols_data.map((c, i) => [
           String(i + 1),
           c.column_name,
           c.data_type,
           c.is_nullable ? 'YES' : 'NO',
-          c.is_primary_key ? '🔑' : '',
-          c.is_foreign_key ? '🔗' : '',
+          c.is_primary_key ? 'PK' : '',
+          c.is_foreign_key ? 'FK' : '',
+          c.column_default || '-',
         ]),
         styles: { fontSize: 7, cellPadding: 1.5 },
-        headStyles: { fillColor: [100, 100, 100], fontSize: 7 },
+        headStyles: { fillColor: [100, 100, 100], fontSize: 7, fontStyle: 'bold' },
         columnStyles: {
           0: { cellWidth: 8 },
           1: { cellWidth: 55, font: 'courier' },
           2: { cellWidth: 40, font: 'courier' },
-          3: { cellWidth: 15 },
+          3: { cellWidth: 15, halign: 'center' },
           4: { cellWidth: 10, halign: 'center' },
           5: { cellWidth: 10, halign: 'center' },
+          6: { cellWidth: 40, font: 'courier' },
         },
         theme: 'grid',
+        alternateRowStyles: { fillColor: [248, 250, 252] },
       });
-      currentY = (doc as any).lastAutoTable.finalY + 8;
+      currentY = (doc as any).lastAutoTable.finalY + 10;
     } else {
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
       doc.text('No column data available', margin + 5, currentY + 3);
-      currentY += 8;
+      currentY += 10;
     }
   });
 
-  // === Relationships Page ===
-  doc.addPage('a3', 'landscape');
+  // === RELATIONSHIPS PAGE ===
+  doc.addPage(pageSize, orientation);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(`${moduleName} — Relationships`, margin, margin + 5);
 
   const tableNameMap = new Map(tables.map(t => [t.id, t.table_name]));
-  
+
   autoTable(doc, {
     startY: margin + 12,
     margin: { left: margin, right: margin },
@@ -287,14 +296,26 @@ export function exportDbDiagramToPdf({ module, tables, relationships, columnsMap
       r.cardinality || 'N/A',
     ]),
     styles: { fontSize: 7, cellPadding: 2 },
-    headStyles: { fillColor: [99, 102, 241] },
-    columnStyles: {
-      2: { cellWidth: 8, halign: 'center' },
-    },
+    headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold' },
+    columnStyles: { 2: { cellWidth: 8, halign: 'center' } },
     theme: 'grid',
+    alternateRowStyles: { fillColor: [248, 250, 252] },
   });
 
-  // Save
+  // Add page numbers to all pages
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(
+      `Page ${i} of ${totalPages}  |  ${moduleName}  |  Generated ${new Date().toLocaleDateString()}`,
+      doc.internal.pageSize.getWidth() / 2,
+      doc.internal.pageSize.getHeight() - 6,
+      { align: 'center' }
+    );
+  }
+
   const filename = `DB_Diagram_${moduleName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
 }

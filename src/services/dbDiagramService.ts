@@ -33,6 +33,7 @@ export interface DbColumn {
   is_nullable: boolean;
   is_primary_key?: boolean;
   is_foreign_key?: boolean;
+  column_default?: string | null;
 }
 
 export interface DbRelationship {
