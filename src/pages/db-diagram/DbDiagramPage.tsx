@@ -496,6 +496,24 @@ function DbDiagramInner() {
             Smart Layout
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSaveLoadDialog(true)}
+            disabled={!filteredTables.length}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save / Load
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManageTablesDialog(true)}
+            disabled={!currentModule}
+          >
+            <Settings2 className="h-4 w-4 mr-1" />
+            Manage Tables
+          </Button>
+          <Button
             variant="default"
             size="sm"
             onClick={() => setShowExportDialog(true)}
