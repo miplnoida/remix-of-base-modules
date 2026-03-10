@@ -47,6 +47,12 @@ import { ModuleDependencyView } from './components/ModuleDependencyView';
 import { exportDbDiagramToPdf } from './utils/pdfExport';
 import { PdfExportDialog, type PdfExportSettings } from './components/PdfExportDialog';
 import { computeSmartLayout } from './utils/smartLayout';
+import { SaveLoadDiagramDialog } from './components/SaveLoadDiagramDialog';
+import { ManageTablesDialog } from './components/ManageTablesDialog';
+import {
+  fetchSavedLayouts, saveLayout, deleteLayout,
+  removeTableFromModuleMap, type SavedLayout,
+} from '@/services/dbDiagramLayoutService';
 
 const nodeTypes = { tableNode: TableNode };
 
