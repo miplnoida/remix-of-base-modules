@@ -48,16 +48,17 @@ export function getEnabledWeekCheckboxes(year: number, month: number): boolean[]
  * @param payPeriod - 'Weekly' | 'Bi-Weekly' | 'Monthly' | '2 Monthly'
  * @param year - Year of the period
  * @param month - Month of the period (0-indexed)
- * @param termStartDate - Employee's term start date for bi-weekly calculation
+ * @param termStartDate - Employee's term start date (unused for bi-weekly, kept for API compat)
+ * @param biweeklyOverride - Backend-provided bi-weekly enabled weeks (from useBiweeklyEnabledWeeks hook)
  */
 export function getEnabledWeekTextboxes(
   payPeriod: string,
   year: number,
   month: number,
-  termStartDate?: string
+  termStartDate?: string,
+  biweeklyOverride?: boolean[]
 ): boolean[] {
   const mondayCount = getMondayCount(year, month);
-  const mondays = getMondaysInMonth(year, month);
   
   switch (payPeriod) {
     case 'Monthly': {
@@ -82,31 +83,12 @@ export function getEnabledWeekTextboxes(
     }
     
     case 'Bi-Weekly': {
-      // Use term start date to determine which Mondays are even-numbered
-      const enabled = [false, false, false, false, false];
-      
-      if (!termStartDate) {
-        // If no term start date, enable even weeks (2nd, 4th)
-        enabled[1] = true;
-        enabled[3] = true;
-        return enabled;
+      // Use backend-provided ISO even-week validation
+      if (biweeklyOverride && biweeklyOverride.length === 5) {
+        return [...biweeklyOverride];
       }
-      
-      const startDate = new Date(termStartDate);
-      
-      // Calculate which Mondays fall on even pay periods from the start date
-      mondays.forEach((monday, index) => {
-        // Calculate weeks since term start
-        const diffTime = monday.getTime() - startDate.getTime();
-        const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000));
-        
-        // Enable if it's an even week number from start date
-        if (diffWeeks >= 0 && diffWeeks % 2 === 1) {
-          enabled[index] = true;
-        }
-      });
-      
-      return enabled;
+      // Fallback: disable all (backend data not yet loaded)
+      return [false, false, false, false, false];
     }
     
     case '2 Monthly': {
