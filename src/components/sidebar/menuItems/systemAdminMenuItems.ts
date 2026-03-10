@@ -33,7 +33,8 @@ import {
   Activity,
   Fingerprint,
   FlaskConical,
-  BookOpen
+  BookOpen,
+  Database
 } from "lucide-react";
 
 export const systemAdminMenuItems = [
