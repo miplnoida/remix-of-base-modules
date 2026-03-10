@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logC3ConfigChange } from '@/lib/c3AuditLogger';
 import type { BonusPolicyDefault, BonusPolicyException } from '@/types/bonusPolicy';
 
 // ---- Default Policies (now multiple) ----
@@ -43,10 +44,15 @@ export function useCreateBonusPolicyDefault() {
         .insert({ ...policy, created_by: userCode || null, modified_by: userCode || null } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-defaults'] });
       qc.invalidateQueries({ queryKey: ['bonus-policy-default'] });
       toast.success('Bonus policy created');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: 'new', action: 'CREATE',
+        entityName: 'Bonus Policy Default',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -62,10 +68,15 @@ export function useUpdateBonusPolicyDefault() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-defaults'] });
       qc.invalidateQueries({ queryKey: ['bonus-policy-default'] });
       toast.success('Bonus policy saved');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: variables.id, action: 'UPDATE',
+        entityName: 'Bonus Policy Default',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -74,17 +85,22 @@ export function useUpdateBonusPolicyDefault() {
 export function useDeleteBonusPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_default')
         .delete()
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-defaults'] });
       qc.invalidateQueries({ queryKey: ['bonus-policy-default'] });
       toast.success('Bonus policy deleted');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: variables.id, action: 'DELETE',
+        entityName: 'Bonus Policy Default',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -114,9 +130,14 @@ export function useCreateBonusPolicyException() {
         .insert({ ...exception, created_by: userCode || null, modified_by: userCode || null } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
       toast.success('Exception created');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: 'new', action: 'CREATE',
+        entityName: `Bonus Exception - ${variables.exception.exception_month ? 'Month ' + variables.exception.exception_month : 'New'}`,
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -132,9 +153,14 @@ export function useUpdateBonusPolicyException() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
       toast.success('Exception updated');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: variables.id, action: 'UPDATE',
+        entityName: 'Bonus Exception',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -143,16 +169,21 @@ export function useUpdateBonusPolicyException() {
 export function useDeleteBonusPolicyException() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_exceptions')
         .delete()
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['bonus-policy-exceptions'] });
       toast.success('Exception deleted');
+      logC3ConfigChange({
+        configType: 'bonus_exemption', recordId: variables.id, action: 'DELETE',
+        entityName: 'Bonus Exception',
+        changedBy: variables.userCode
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });

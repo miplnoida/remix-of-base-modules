@@ -150,7 +150,7 @@ export function BonusPolicyExceptionsTab() {
 
   const handleDelete = async () => {
     if (deleteId) {
-      await deleteMutation.mutateAsync(deleteId);
+      await deleteMutation.mutateAsync({ id: deleteId, userCode: userCode || undefined });
       setDeleteId(null);
     }
   };
