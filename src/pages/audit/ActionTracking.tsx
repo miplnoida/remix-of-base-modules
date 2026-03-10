@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Upload } from 'lucide-react';
-import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings } from '@/hooks/useAuditData';
+import { useIAActionTracking, useIAActionTrackingMutations, useIAFindings, useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
@@ -23,6 +23,7 @@ export default function ActionTracking() {
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: actions = [], isLoading } = useIAActionTracking();
   const { data: findings = [] } = useIAFindings();
+  const { data: auditors = [] } = useIAAuditors();
   const { create, update } = useIAActionTrackingMutations();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -60,6 +61,8 @@ export default function ActionTracking() {
     update.mutate({ id, status: newStatus, ...getUpdateFields(), ...(newStatus === 'Verified' ? { verified_date: new Date().toISOString() } : {}) });
   };
 
+  const getAuditorName = (id: string) => auditors.find((a: any) => a.id === id)?.name || id || '-';
+
   const filterFields: StandardFilterField[] = [
     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, ...ACTION_STATUSES.map(s => ({ value: s, label: s }))] },
   ];
@@ -78,15 +81,15 @@ export default function ActionTracking() {
       return <span className="font-medium">{finding?.title || '-'}</span>;
     }},
     { key: 'action_description', header: 'Action Description', className: 'max-w-md', render: (a) => <span className="text-sm truncate block max-w-md">{a.action_description || a.notes || '-'}</span> },
-    { key: 'responsible_person', header: 'Responsible Person', render: (a) => a.responsible_person || '-' },
+    { key: 'responsible_person', header: 'Responsible Person', render: (a) => getAuditorName(a.responsible_person) },
     { key: 'target_date', header: 'Target Date', render: (a) => a.target_date ? new Date(a.target_date).toLocaleDateString() : '-' },
     { key: 'status', header: 'Status', render: (a) => <StatusBadge status={a.status || a.action_status || 'Not Started'} /> },
   ];
 
-  // Prepare export data with finding title resolved
   const exportData = filteredActions.map((a: any) => ({
     ...a,
     finding_title: findings.find((f: any) => f.id === a.finding_id)?.title || '',
+    responsible_person_name: getAuditorName(a.responsible_person),
   }));
 
   return (
@@ -98,42 +101,29 @@ export default function ActionTracking() {
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={exportData} columns={exportColumns} fileName={ACTION_TRACKING_SCHEMA.exportFileName} title={ACTION_TRACKING_SCHEMA.exportTitle} />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />Bulk Upload
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}><Upload className="w-4 h-4 mr-2" />Bulk Upload</Button>
           <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Action</Button>
         </div>
       }
     >
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statCards.map((card) => (
-          <Card key={card.label}>
-            <CardContent className="pt-6 text-center">
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-            </CardContent>
-          </Card>
+          <Card key={card.label}><CardContent className="pt-6 text-center"><p className="text-sm text-muted-foreground">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value}</p></CardContent></Card>
         ))}
       </div>
 
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search actions..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all' })} />
 
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={filteredActions}
-            emptyMessage="No corrective actions found"
-            onView={(a) => setViewItem(a)}
-            renderActions={(action) => (
-              <Select defaultValue={action.status || action.action_status || 'Not Started'} onValueChange={v => handleUpdateStatus(action.id, v)}>
-                <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
-                <SelectContent>{ACTION_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
-          />
-        </CardContent>
-      </Card>
+      <Card><CardContent className="pt-6">
+        <DataTable columns={columns} data={filteredActions} emptyMessage="No corrective actions found" onView={(a) => setViewItem(a)}
+          renderActions={(action) => (
+            <Select defaultValue={action.status || action.action_status || 'Not Started'} onValueChange={v => handleUpdateStatus(action.id, v)}>
+              <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>{ACTION_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+        />
+      </CardContent></Card>
 
       <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Corrective Action" mode="create" onSave={handleCreate} saveLabel="Create Action" isSaving={create.isPending}>
         <div className="space-y-4">
@@ -145,7 +135,12 @@ export default function ActionTracking() {
           </div>
           <div className="space-y-2"><Label>Action Description *</Label><Textarea value={formData.action_description} onChange={e => setFormData({...formData, action_description: e.target.value})} placeholder="Describe the corrective action..." /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Responsible Person</Label><Input value={formData.responsible_person} onChange={e => setFormData({...formData, responsible_person: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Responsible Person</Label>
+              <Select value={formData.responsible_person} onValueChange={v => setFormData({...formData, responsible_person: v})}>
+                <SelectTrigger><SelectValue placeholder="Select auditor" /></SelectTrigger>
+                <SelectContent>{auditors.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2"><Label>Target Date</Label><Input type="date" value={formData.target_date} onChange={e => setFormData({...formData, target_date: e.target.value})} /></div>
           </div>
           <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Additional notes..." /></div>
@@ -158,7 +153,7 @@ export default function ActionTracking() {
             <div><Label className="text-muted-foreground">Finding</Label><p className="font-medium">{findings.find((f: any) => f.id === viewItem.finding_id)?.title || '-'}</p></div>
             <div><Label className="text-muted-foreground">Action Description</Label><p>{viewItem.action_description || viewItem.notes || '-'}</p></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Responsible Person</Label><p>{viewItem.responsible_person || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Responsible Person</Label><p>{getAuditorName(viewItem.responsible_person)}</p></div>
               <div><Label className="text-muted-foreground">Target Date</Label><p>{viewItem.target_date ? new Date(viewItem.target_date).toLocaleDateString() : '-'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">

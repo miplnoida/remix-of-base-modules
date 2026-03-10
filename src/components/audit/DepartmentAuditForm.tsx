@@ -7,16 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
-import { departments, auditors } from '@/data/auditData';
+import { useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
-
-const DEPARTMENT_FUNCTIONS: Record<string, string[]> = {
-  'Benefits': ['Claims Processing', 'Eligibility Verification', 'Payment Authorization', 'Appeals Management', 'Benefit Calculations'],
-  'Contributions': ['Employer Compliance', 'Payment Processing', 'Contribution Verification', 'Arrears Management', 'Reconciliation'],
-  'Finance': ['Accounting Operations', 'Budget Management', 'Financial Reporting', 'Audit Coordination', 'Cash Management'],
-  'IT': ['System Maintenance', 'Data Security', 'System Development', 'User Support', 'Backup & Recovery'],
-  'HR': ['Recruitment', 'Performance Management', 'Training & Development', 'Employee Relations', 'Payroll Administration']
-};
 
 interface DepartmentAuditFormProps {
   annualPlanId: string;
@@ -30,6 +22,9 @@ interface DepartmentAuditFormProps {
 export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess, onCreate, onUpdate }: DepartmentAuditFormProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  
+  const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
   
   const [formData, setFormData] = useState({
     departmentId: departmentAudit?.department_id || '',
@@ -45,9 +40,10 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
     plannedEnd: departmentAudit?.planned_end || ''
   });
 
-  const selectedDepartment = departments.find(d => d.id === formData.departmentId);
-  const deptName = selectedDepartment?.name.replace('Department of ', '');
-  const availableFunctions = deptName ? DEPARTMENT_FUNCTIONS[deptName] || [] : [];
+  const { data: departmentFunctions = [] } = useIADepartmentFunctions(formData.departmentId || undefined);
+
+  const selectedDepartment = departments.find((d: any) => d.id === formData.departmentId);
+  const activeAuditors = auditors.filter((a: any) => a.employment_status === 'Active' || a.status === 'Active');
 
   const toggleFunction = (func: string) => {
     setFormData(prev => ({
@@ -79,11 +75,10 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
 
     setIsSaving(true);
     try {
-      const deptObj = departments.find(d => d.id === formData.departmentId);
       const payload: any = {
         annual_plan_id: annualPlanId,
         department_id: formData.departmentId,
-        department_name: deptObj?.name || '',
+        department_name: selectedDepartment?.name || '',
         period: formData.period,
         month_year: formData.monthYear,
         functions: formData.selectedFunctions,
@@ -135,10 +130,10 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map(dept => (
+                  {departments.map((dept: any) => (
                     <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}
-                      {dept.riskRating && ` (${dept.riskRating} Risk)`}
+                      {dept.risk_rating && ` (${dept.risk_rating} Risk)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -187,26 +182,36 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         </CardContent>
       </Card>
 
-      {availableFunctions.length > 0 && (
+      {departmentFunctions.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Functions to Audit *</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {availableFunctions.map((func) => (
-                <div key={func} className="flex items-center space-x-2">
+              {departmentFunctions.map((func: any) => (
+                <div key={func.id} className="flex items-center space-x-2">
                   <Checkbox 
-                    id={func}
-                    checked={formData.selectedFunctions.includes(func)}
-                    onCheckedChange={() => toggleFunction(func)}
+                    id={func.id}
+                    checked={formData.selectedFunctions.includes(func.function_name)}
+                    onCheckedChange={() => toggleFunction(func.function_name)}
                   />
-                  <Label htmlFor={func} className="cursor-pointer text-sm">
-                    {func}
+                  <Label htmlFor={func.id} className="cursor-pointer text-sm">
+                    {func.function_name}
                   </Label>
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {formData.departmentId && departmentFunctions.length === 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground text-center">
+              No functions configured for this department. Please add functions in the Department Functions module first.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -249,9 +254,9 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
                 <SelectValue placeholder="Select lead auditor" />
               </SelectTrigger>
               <SelectContent>
-                {auditors.filter(a => a.employmentStatus === 'Active').map(auditor => (
+                {activeAuditors.map((auditor: any) => (
                   <SelectItem key={auditor.id} value={auditor.id}>
-                    {auditor.name} ({auditor.seniorityLevel})
+                    {auditor.name} {auditor.seniority_level ? `(${auditor.seniority_level})` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -261,7 +266,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
           <div className="space-y-2">
             <Label>Team Members</Label>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
-              {auditors.filter(a => a.employmentStatus === 'Active' && a.id !== formData.leadAuditor).map(auditor => (
+              {activeAuditors.filter((a: any) => a.id !== formData.leadAuditor).map((auditor: any) => (
                 <div key={auditor.id} className="flex items-center space-x-2">
                   <Checkbox 
                     id={`auditor-${auditor.id}`}

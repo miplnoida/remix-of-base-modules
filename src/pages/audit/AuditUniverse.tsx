@@ -9,11 +9,12 @@ import { Plus, Globe, AlertTriangle, Shield, CheckCircle, Upload } from 'lucide-
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAAuditUniverse } from '@/hooks/useAuditDataPhase2';
+import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { AUDIT_UNIVERSE_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
-const ENTITY_TYPES = ['Department', 'Function', 'Process', 'System', 'Location', 'Project'];
+const ENTITY_TYPES = ['Function', 'Process', 'System', 'Location', 'Project'];
 const RISK_CATEGORIES = ['High', 'Medium', 'Low', 'Critical'];
 const FREQUENCIES = ['Annual', 'Bi-Annual', 'Quarterly', 'Ad-hoc'];
 
@@ -21,13 +22,16 @@ const bulkUploadFields = toBulkUploadFields(AUDIT_UNIVERSE_SCHEMA);
 const exportColumns = toExportColumns(AUDIT_UNIVERSE_SCHEMA);
 
 const emptyForm = {
-  entity_name: '', entity_code: '', entity_type: 'Department', process_owner: '',
+  entity_name: '', entity_code: '', entity_type: 'Function', process_owner: '',
+  department_id: '',
   risk_category: 'Medium', inherent_risk_score: 0, residual_risk_score: 0,
   materiality: '', regulatory_impact: '', audit_frequency: 'Annual', status: 'Active',
 };
 
 export default function AuditUniverse() {
   const { data = [], isLoading, isError, create, update, archive } = useIAAuditUniverse();
+  const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ entity_type: 'all', risk_category: 'all', status: 'all' });
@@ -37,9 +41,11 @@ export default function AuditUniverse() {
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
+      const dept = departments.find((d: any) => d.name === row.department_name);
       create.mutate({
         entity_name: row.entity_name, entity_code: row.entity_code,
-        entity_type: row.entity_type || 'Department', process_owner: row.process_owner || '',
+        entity_type: row.entity_type || 'Function', process_owner: row.process_owner || '',
+        department_id: dept?.id || null,
         risk_category: row.risk_category || 'Medium', audit_frequency: row.audit_frequency || 'Annual',
         status: row.status || 'Active',
         inherent_risk_score: Number(row.inherent_risk_score) || 0,
@@ -68,26 +74,28 @@ export default function AuditUniverse() {
 
   const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
   const openEdit = (r: any) => {
-    setForm({ entity_name: r.entity_name || '', entity_code: r.entity_code || '', entity_type: r.entity_type || 'Department', process_owner: r.process_owner || '', risk_category: r.risk_category || 'Medium', inherent_risk_score: r.inherent_risk_score || 0, residual_risk_score: r.residual_risk_score || 0, materiality: r.materiality || '', regulatory_impact: r.regulatory_impact || '', audit_frequency: r.audit_frequency || 'Annual', status: r.status || 'Active' });
+    setForm({ entity_name: r.entity_name || '', entity_code: r.entity_code || '', entity_type: r.entity_type || 'Function', process_owner: r.process_owner || '', department_id: r.department_id || '', risk_category: r.risk_category || 'Medium', inherent_risk_score: r.inherent_risk_score || 0, residual_risk_score: r.residual_risk_score || 0, materiality: r.materiality || '', regulatory_impact: r.regulatory_impact || '', audit_frequency: r.audit_frequency || 'Annual', status: r.status || 'Active' });
     setModalState({ mode: 'edit', record: r });
   };
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
 
   const handleSave = () => {
     if (modalState.mode === 'create') {
-      create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      create.mutate({ ...form, department_id: form.department_id || null, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     } else if (modalState.mode === 'edit' && modalState.record) {
-      update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      update.mutate({ id: modalState.record.id, ...form, department_id: form.department_id || null, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     }
   };
+
+  const getDeptName = (deptId: string) => departments.find((d: any) => d.id === deptId)?.name || '-';
 
   const columns: DataTableColumn<any>[] = [
     { key: 'entity_code', header: 'Entity Code' },
     { key: 'entity_name', header: 'Entity Name' },
     { key: 'entity_type', header: 'Entity Type', render: (r) => <StatusBadge status={r.entity_type} /> },
+    { key: 'department', header: 'Department', render: (r) => getDeptName(r.department_id) },
     { key: 'risk_category', header: 'Risk Category', render: (r) => <StatusBadge status={r.risk_category} /> },
-    { key: 'inherent_risk_score', header: 'Inherent Risk Score' },
-    { key: 'residual_risk_score', header: 'Residual Risk Score' },
+    { key: 'process_owner', header: 'Process Owner' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   ];
 
@@ -98,14 +106,12 @@ export default function AuditUniverse() {
   ];
 
   return (
-    <PageShell title="Audit Universe" subtitle="Master list of all auditable entities across the organization"
+    <PageShell title="Audit Universe" subtitle="Master list of all auditable functions and processes across the organization"
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Audit Universe' }]}
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={filtered} columns={exportColumns} fileName={AUDIT_UNIVERSE_SCHEMA.exportFileName} title={AUDIT_UNIVERSE_SCHEMA.exportTitle} />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />Bulk Upload
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}><Upload className="h-4 w-4 mr-2" />Bulk Upload</Button>
           <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
         </div>
       }
@@ -147,19 +153,38 @@ export default function AuditUniverse() {
                 <SelectContent>{ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Process Owner</Label><Input value={form.process_owner} onChange={e => setForm(f => ({ ...f, process_owner: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
+            <div><Label>Department</Label>
+              <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v }))} disabled={modalState.mode === 'view'}>
+                <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <div><Label>Process Owner</Label>
+              <Select value={form.process_owner} onValueChange={v => setForm(f => ({ ...f, process_owner: v }))} disabled={modalState.mode === 'view'}>
+                <SelectTrigger><SelectValue placeholder="Select process owner" /></SelectTrigger>
+                <SelectContent>{auditors.map((a: any) => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label>Risk Category</Label>
               <Select value={form.risk_category} onValueChange={v => setForm(f => ({ ...f, risk_category: v }))} disabled={modalState.mode === 'view'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RISK_CATEGORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div><Label>Audit Frequency</Label>
               <Select value={form.audit_frequency} onValueChange={v => setForm(f => ({ ...f, audit_frequency: v }))} disabled={modalState.mode === 'view'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{FREQUENCIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={modalState.mode === 'view'}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
               </Select>
             </div>
           </div>
@@ -169,12 +194,6 @@ export default function AuditUniverse() {
           </div>
           <div><Label>Materiality</Label><Input value={form.materiality} onChange={e => setForm(f => ({ ...f, materiality: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
           <div><Label>Regulatory Impact</Label><Textarea value={form.regulatory_impact} onChange={e => setForm(f => ({ ...f, regulatory_impact: e.target.value }))} disabled={modalState.mode === 'view'} /></div>
-          <div><Label>Status</Label>
-            <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={modalState.mode === 'view'}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
-            </Select>
-          </div>
         </div>
       </StandardModal>
 

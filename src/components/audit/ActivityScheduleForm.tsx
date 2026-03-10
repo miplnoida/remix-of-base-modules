@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { departments, departmentAuditPlans } from '@/data/auditData';
+import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 
 interface ActivityScheduleFormProps {
   onClose: () => void;
@@ -13,6 +14,11 @@ interface ActivityScheduleFormProps {
 
 export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const { toast } = useToast();
+  const { data: departments = [] } = useIADepartments();
+  const { data: departmentAudits = [] } = useIADepartmentAudits();
+  const { data: auditors = [] } = useIAAuditors();
+  const activeAuditors = auditors.filter((a: any) => a.employment_status === 'Active' || a.status === 'Active');
+
   const [formData, setFormData] = useState({
     title: '',
     type: '',
@@ -53,19 +59,12 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="title">Activity Title *</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Enter activity title"
-          />
+          <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Enter activity title" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="type">Activity Type *</Label>
           <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Compliance Check">Compliance Check</SelectItem>
               <SelectItem value="Records Review">Records Review</SelectItem>
@@ -82,22 +81,20 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
       <div className="space-y-2">
         <Label htmlFor="departmentAuditId">Department Audit Plan *</Label>
         <Select value={formData.departmentAuditId} onValueChange={(value) => {
-          const plan = departmentAuditPlans.find(p => p.id === value);
+          const plan = departmentAudits.find((p: any) => p.id === value);
           setFormData({ 
             ...formData, 
             departmentAuditId: value,
-            departmentId: plan?.departmentId || ''
+            departmentId: plan?.department_id || ''
           });
         }}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select department audit plan" />
-          </SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Select department audit plan" /></SelectTrigger>
           <SelectContent>
-            {departmentAuditPlans.map(plan => {
-              const dept = departments.find(d => d.id === plan.departmentId);
+            {departmentAudits.map((plan: any) => {
+              const dept = departments.find((d: any) => d.id === plan.department_id);
               return (
                 <SelectItem key={plan.id} value={plan.id}>
-                  {dept?.name} - {plan.objective.substring(0, 50)}... ({plan.monthYear})
+                  {dept?.name || plan.department_name || 'Unknown'} - {(plan.objective || '').substring(0, 50)}... ({plan.month_year})
                 </SelectItem>
               );
             })}
@@ -108,62 +105,33 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="departmentId">Department</Label>
-          <Input
-            id="departmentId"
-            value={departments.find(d => d.id === formData.departmentId)?.name || 'Select audit plan first'}
-            disabled
-          />
+          <Input id="departmentId" value={departments.find((d: any) => d.id === formData.departmentId)?.name || 'Select audit plan first'} disabled />
         </div>
         <div className="space-y-2">
           <Label htmlFor="functionArea">Function Area</Label>
-          <Input
-            id="functionArea"
-            value={formData.functionArea}
-            onChange={(e) => setFormData({ ...formData, functionArea: e.target.value })}
-            placeholder="Enter function area"
-          />
+          <Input id="functionArea" value={formData.functionArea} onChange={(e) => setFormData({ ...formData, functionArea: e.target.value })} placeholder="Enter function area" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startDate">Start Date *</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-          />
+          <Input id="startDate" type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="startTime">Start Time *</Label>
-          <Input
-            id="startTime"
-            type="time"
-            value={formData.startTime}
-            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-          />
+          <Input id="startTime" type="time" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            type="date"
-            value={formData.endDate}
-            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-          />
+          <Input id="endDate" type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="endTime">End Time</Label>
-          <Input
-            id="endTime"
-            type="time"
-            value={formData.endTime}
-            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-          />
+          <Input id="endTime" type="time" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} />
         </div>
       </div>
 
@@ -171,21 +139,18 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
         <div className="space-y-2">
           <Label htmlFor="auditor">Assigned Auditor *</Label>
           <Select value={formData.auditor} onValueChange={(value) => setFormData({ ...formData, auditor: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select auditor" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Select auditor" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="auditor.jdoe@secureserve.gov">John Doe</SelectItem>
-              <SelectItem value="auditor.asmith@secureserve.gov">Alice Smith</SelectItem>
+              {activeAuditors.map((auditor: any) => (
+                <SelectItem key={auditor.id} value={auditor.id}>{auditor.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="priority">Priority</Label>
           <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Low">Low</SelectItem>
               <SelectItem value="Medium">Medium</SelectItem>
@@ -197,31 +162,17 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="location">Location</Label>
-        <Input
-          id="location"
-          value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          placeholder="Enter location/address"
-        />
+        <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Enter location/address" />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Enter activity description"
-        />
+        <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Enter activity description" />
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          Schedule Activity
-        </Button>
+        <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+        <Button type="submit">Schedule Activity</Button>
       </div>
     </form>
   );

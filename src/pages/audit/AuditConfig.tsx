@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Bell, Shield, Flag, MapPin } from 'lucide-react';
@@ -45,7 +43,7 @@ export default function AuditConfig() {
   // Notifications & SLA
   const [slaSettings, setSlaSettings] = useState({ defaultResponseDays: '14', reminderDaysBefore: '3', autoNotifyOnPlanApproval: false });
   // Feature Flags
-  const [featureFlags, setFeatureFlags] = useState({ enableEmployerAudit: false, enableReportBuilder: true });
+  const [featureFlags, setFeatureFlags] = useState({ enableReportBuilder: true });
   // Reference Settings
   const [refSettings, setRefSettings] = useState({ defaultFiscalYear: '2026', locations: 'St Kitts, Nevis' });
 
@@ -61,7 +59,6 @@ export default function AuditConfig() {
     if (settingsMap.features) {
       const f = settingsMap.features;
       setFeatureFlags({
-        enableEmployerAudit: f.enableEmployerAudit === 'true',
         enableReportBuilder: f.enableReportBuilder !== 'false',
       });
     }
@@ -89,7 +86,6 @@ export default function AuditConfig() {
       subtitle="Configure Internal Audit system settings"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
       isLoading={isLoading}
-      
     >
       <Tabs defaultValue="sla" className="space-y-4">
         <TabsList>
@@ -133,10 +129,6 @@ export default function AuditConfig() {
           <Card>
             <CardHeader><CardTitle>Feature Flags</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between border rounded-lg p-4">
-                <div><Label>Enable Employer Audit</Label><p className="text-sm text-muted-foreground">Enable employer audit capabilities</p></div>
-                <Switch checked={featureFlags.enableEmployerAudit} onCheckedChange={(checked) => setFeatureFlags({ ...featureFlags, enableEmployerAudit: checked })} />
-              </div>
               <div className="flex items-center justify-between border rounded-lg p-4">
                 <div><Label>Enable Report Builder</Label><p className="text-sm text-muted-foreground">Enable the report builder module</p></div>
                 <Switch checked={featureFlags.enableReportBuilder} onCheckedChange={(checked) => setFeatureFlags({ ...featureFlags, enableReportBuilder: checked })} />
