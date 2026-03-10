@@ -241,10 +241,9 @@ function DbDiagramInner() {
     }
   }, [moduleCode, user, queryClient]);
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = useCallback(async (settings: PdfExportSettings) => {
     setIsExporting(true);
     try {
-      // Ensure we have columns for all tables
       let cols = columnsMap;
       if (Object.keys(cols).length === 0) {
         cols = await fetchColumnsForMultipleTables(filteredTables.map(t => t.table_name));
@@ -254,14 +253,42 @@ function DbDiagramInner() {
         tables: filteredTables,
         relationships: filteredRelationships,
         columnsMap: cols,
+        pageSize: settings.pageSize,
+        orientation: settings.orientation,
       });
       toast.success('PDF exported successfully');
+      setShowExportDialog(false);
     } catch (err: any) {
       toast.error('PDF export failed: ' + (err.message || 'Unknown error'));
     } finally {
       setIsExporting(false);
     }
   }, [currentModule, filteredTables, filteredRelationships, columnsMap]);
+
+  // Auto-layout: recalculate positions with extra spacing
+  const handleAutoLayout = useCallback(() => {
+    if (!nodes.length) return;
+    const NODE_W = 300;
+    const GAP_X = 200;
+    const GAP_Y = 100;
+    const COLS = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(nodes.length * 0.5))));
+
+    const colYs = new Array(COLS).fill(0);
+    const newNodes = nodes.map((node: Node) => {
+      const cols_data = columnsMap[(node.data as any)?.table?.table_name] || [];
+      const displayCols = Math.min(cols_data.length, 15);
+      const nodeH = 28 + displayCols * 20 + (cols_data.length > 15 ? 18 : 8);
+
+      const col = colYs.indexOf(Math.min(...colYs));
+      const x = col * (NODE_W + GAP_X);
+      const y = colYs[col];
+      colYs[col] += nodeH + GAP_Y;
+
+      return { ...node, position: { x, y } };
+    });
+    setNodes(newNodes);
+    toast.success('Layout adjusted — overlaps removed');
+  }, [nodes, columnsMap, setNodes]);
 
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
