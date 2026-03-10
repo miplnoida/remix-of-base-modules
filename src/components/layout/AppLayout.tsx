@@ -3,6 +3,8 @@ import { ReactNode, useMemo } from 'react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { DeveloperInfoFAB } from "@/components/developer-info/DeveloperInfoFAB";
 
 interface AppLayoutProps {
   children: ReactNode;
