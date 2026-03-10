@@ -4224,6 +4224,74 @@ export type Database = {
           },
         ]
       }
+      ce_risk_bands: {
+        Row: {
+          audit_frequency: string | null
+          auto_select_enabled: boolean | null
+          auto_select_type: string | null
+          auto_select_value: number | null
+          band_name: string
+          color: string | null
+          created_at: string | null
+          escalation_action: string | null
+          escalation_enabled: boolean | null
+          escalation_months_in_band: number | null
+          follow_up_intensity: string | null
+          id: string
+          mandatory_audit: boolean | null
+          policy_id: string
+          score_range_max: number
+          score_range_min: number
+          updated_at: string | null
+        }
+        Insert: {
+          audit_frequency?: string | null
+          auto_select_enabled?: boolean | null
+          auto_select_type?: string | null
+          auto_select_value?: number | null
+          band_name: string
+          color?: string | null
+          created_at?: string | null
+          escalation_action?: string | null
+          escalation_enabled?: boolean | null
+          escalation_months_in_band?: number | null
+          follow_up_intensity?: string | null
+          id?: string
+          mandatory_audit?: boolean | null
+          policy_id: string
+          score_range_max?: number
+          score_range_min?: number
+          updated_at?: string | null
+        }
+        Update: {
+          audit_frequency?: string | null
+          auto_select_enabled?: boolean | null
+          auto_select_type?: string | null
+          auto_select_value?: number | null
+          band_name?: string
+          color?: string | null
+          created_at?: string | null
+          escalation_action?: string | null
+          escalation_enabled?: boolean | null
+          escalation_months_in_band?: number | null
+          follow_up_intensity?: string | null
+          id?: string
+          mandatory_audit?: boolean | null
+          policy_id?: string
+          score_range_max?: number
+          score_range_min?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_risk_bands_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_risk_config: {
         Row: {
           created_at: string | null
@@ -4271,6 +4339,105 @@ export type Database = {
           weight?: number | null
         }
         Relationships: []
+      }
+      ce_risk_policies: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          applicable_employer_types: string[] | null
+          applicable_zones: string[] | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          policy_code: string
+          policy_name: string
+          status: string
+          update_frequency: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          applicable_employer_types?: string[] | null
+          applicable_zones?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          policy_code: string
+          policy_name: string
+          status?: string
+          update_frequency?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          applicable_employer_types?: string[] | null
+          applicable_zones?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          policy_code?: string
+          policy_name?: string
+          status?: string
+          update_frequency?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_risk_policy_factors: {
+        Row: {
+          created_at: string | null
+          factor_id: string
+          id: string
+          is_active: boolean | null
+          policy_id: string
+          weight_override: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          factor_id: string
+          id?: string
+          is_active?: boolean | null
+          policy_id: string
+          weight_override?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          factor_id?: string
+          id?: string
+          is_active?: boolean | null
+          policy_id?: string
+          weight_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_risk_policy_factors_factor_id_fkey"
+            columns: ["factor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_risk_policy_factors_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_risk_profiles: {
         Row: {
