@@ -8,7 +8,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
   CollapsibleContent,
@@ -174,7 +173,7 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -448,7 +447,7 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
               </CollapsibleSection>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
