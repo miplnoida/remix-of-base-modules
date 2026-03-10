@@ -97,62 +97,52 @@ const TRIGGER_EVENTS = [
   { value: 'late_registration', label: 'Late Employee Registration', description: 'Employee registered after statutory deadline' },
 ];
 
-const CONDITION_VARIABLES = [
-  { value: 'days_overdue', label: 'Days Overdue', type: 'number' },
-  { value: 'months_overdue', label: 'Months Overdue', type: 'number' },
-  { value: 'grace_period', label: 'Grace Period (days)', type: 'number' },
-  { value: 'total_owed', label: 'Total Amount Owed ($)', type: 'number' },
-  { value: 'outstanding_balance', label: 'Outstanding Balance ($)', type: 'number' },
-  { value: 'violations_count', label: 'Active Violation Count', type: 'number' },
-  { value: 'missed_filings_count', label: 'Missed Filings Count', type: 'number' },
-  { value: 'employee_count', label: 'Employee Count', type: 'number' },
-  { value: 'reported_wages', label: 'Reported Wages ($)', type: 'number' },
-  { value: 'expected_wages', label: 'Expected Wages ($)', type: 'number' },
-  { value: 'payment_plan_missed', label: 'Missed Installments', type: 'number' },
-  { value: 'months_in_status', label: 'Months in Current Status', type: 'number' },
-  { value: 'risk_score', label: 'Risk Score', type: 'number' },
-  { value: 'is_registered', label: 'Is Registered', type: 'boolean' },
-  { value: 'has_active_plan', label: 'Has Active Payment Plan', type: 'boolean' },
-  { value: 'is_repeat_offender', label: 'Is Repeat Offender', type: 'boolean' },
+// Derived from backend mappings - these are fallbacks if DB hasn't loaded yet
+function getConditionVariables(mappings: VariableMapping[]) {
+  const filtered = mappings.filter(m => m.variable_category === 'condition' || m.variable_category === 'both');
+  if (filtered.length === 0) return FALLBACK_CONDITION_VARIABLES;
+  return filtered.map(m => ({
+    value: m.variable_key,
+    label: m.display_name,
+    type: m.data_type,
+    description: m.description,
+    sourceTable: m.source_table,
+    sourceColumn: m.source_column,
+    c3ConfigKey: m.c3_config_key,
+  }));
+}
+
+function getFormulaOperands(mappings: VariableMapping[]) {
+  const filtered = mappings.filter(m => m.variable_category === 'formula' || m.variable_category === 'both');
+  if (filtered.length === 0) return FALLBACK_FORMULA_OPERANDS;
+  return filtered.map(m => ({
+    value: m.variable_key,
+    label: m.display_name,
+    group: m.group_name,
+    description: m.description,
+    sourceTable: m.source_table,
+    sourceColumn: m.source_column,
+    c3ConfigKey: m.c3_config_key,
+  }));
+}
+
+// Fallbacks in case DB query fails
+const FALLBACK_CONDITION_VARIABLES = [
+  { value: 'days_overdue', label: 'Days Overdue', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'months_overdue', label: 'Months Overdue', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'total_owed', label: 'Total Amount Owed ($)', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'violations_count', label: 'Active Violation Count', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'risk_score', label: 'Risk Score', type: 'number', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'is_registered', label: 'Is Registered', type: 'boolean', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'is_repeat_offender', label: 'Is Repeat Offender', type: 'boolean', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
 ];
 
-const CONDITION_OPERATORS = [
-  { value: '>', label: '>' },
-  { value: '>=', label: '>=' },
-  { value: '<', label: '<' },
-  { value: '<=', label: '<=' },
-  { value: '==', label: '=' },
-  { value: '!=', label: '≠' },
-];
-
-const BOOLEAN_OPERATORS = [
-  { value: '==', label: 'is' },
-  { value: '!=', label: 'is not' },
-];
-
-const FORMULA_OPERANDS = [
-  { value: 'outstanding_amount', label: 'Outstanding Amount', group: 'Financial' },
-  { value: 'total_wages', label: 'Total Wages', group: 'Financial' },
-  { value: 'amount_owed', label: 'Amount Owed', group: 'Financial' },
-  { value: 'ss_contribution', label: 'SS Contribution', group: 'Financial' },
-  { value: 'ei_contribution', label: 'EI Contribution', group: 'Financial' },
-  { value: 'levy_amount', label: 'Levy Amount', group: 'Financial' },
-  { value: 'severance_amount', label: 'Severance Amount', group: 'Financial' },
-  { value: 'ss_fine_initial_rate', label: 'SS Fine Rate (from C3 Config)', group: 'Rate' },
-  { value: 'levy_penalty_initial_rate', label: 'Levy Penalty Rate (from C3 Config)', group: 'Rate' },
-  { value: 'severance_penalty_rate', label: 'Severance Penalty Rate (from C3 Config)', group: 'Rate' },
-  { value: 'interest_rate', label: 'Interest Rate (from C3 Config)', group: 'Rate' },
-  { value: 'penalty_rate', label: 'Penalty Rate', group: 'Rate' },
-  { value: 'months_overdue', label: 'Months Overdue', group: 'Time' },
-  { value: 'days_late', label: 'Days Late', group: 'Time' },
-  { value: 'additional_rate_per_month', label: 'Additional % Per Month (from C3 Config)', group: 'Rate' },
-];
-
-const FORMULA_OPERATORS = [
-  { value: '*', label: '×' },
-  { value: '+', label: '+' },
-  { value: '-', label: '−' },
-  { value: '/', label: '÷' },
+const FALLBACK_FORMULA_OPERANDS = [
+  { value: 'outstanding_amount', label: 'Outstanding Amount', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'ss_contribution', label: 'SS Contribution', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'levy_amount', label: 'Levy Amount', group: 'Financial', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'ss_fine_initial_rate', label: 'SS Fine Rate', group: 'Rate', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
+  { value: 'months_overdue', label: 'Months Overdue', group: 'Time', description: null, sourceTable: null, sourceColumn: null, c3ConfigKey: null },
 ];
 
 // ── Auto-generate rule code ──
