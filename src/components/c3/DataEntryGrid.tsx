@@ -599,7 +599,7 @@ export default function DataEntryGrid({
           </thead>
           <tbody>
             {rows.map((row, rowIdx) => {
-              const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+              const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
               const totalWages = row.weeklyWages.reduce((a, b) => a + b, 0);
               const rowBg = row.ssnError
                 ? 'bg-destructive/5'
