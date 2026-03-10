@@ -105,12 +105,12 @@ export default function RiskControlMatrix() {
   const riskResiduals = useMemo(() => {
     const map: Record<string, { inherent: number; residual: number; level: string; color: string }> = {};
     risks.forEach((risk: any) => {
-      const iScore = Number(risk.inherent_risk_score) || (Number(risk.likelihood) * Number(risk.impact));
-      const riskControls = controls.filter((c: any) => c.risk_id === risk.id);
+      const iScore = Number((risk as any).inherent_risk_score) || (Number((risk as any).likelihood) * Number((risk as any).impact));
+      const riskControls = controls.filter((c: any) => c.risk_id === (risk as any).id);
       const maxReduction = riskControls.length > 0 ? Math.max(...riskControls.map((c: any) => Number(c.effectiveness_reduction) || 0)) : 0;
       const residual = Math.round(iScore * (1 - maxReduction / 100) * 100) / 100;
       const cls = classifyRisk(residual, classificationThresholds);
-      map[risk.id] = { inherent: iScore, residual, level: cls.label, color: cls.color };
+      map[(risk as any).id] = { inherent: iScore, residual, level: cls.label, color: cls.color };
     });
     return map;
   }, [risks, controls, classificationThresholds]);
