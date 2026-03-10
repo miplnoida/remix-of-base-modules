@@ -27,6 +27,14 @@ export interface DbTable {
   estimated_row_count: number | null;
 }
 
+export interface DbColumn {
+  column_name: string;
+  data_type: string;
+  is_nullable: boolean;
+  is_primary_key?: boolean;
+  is_foreign_key?: boolean;
+}
+
 export interface DbRelationship {
   id: string;
   source_table_id: string;
@@ -72,14 +80,12 @@ export async function fetchModuleByCode(code: string): Promise<DbModule | null> 
 }
 
 export async function fetchTablesForModule(moduleId: string): Promise<DbTable[]> {
-  // Get tables that belong to this module (primary or mapped)
   const { data: mappings, error: mapErr } = await supabase
     .from('db_diagram_table_module_map' as any)
     .select('table_id')
     .eq('module_id', moduleId);
   
   if (mapErr || !mappings?.length) {
-    // Fallback: get tables directly linked
     const { data, error } = await supabase
       .from('db_diagram_tables' as any)
       .select('*')
@@ -106,6 +112,39 @@ export async function fetchAllTables(): Promise<DbTable[]> {
     .order('table_name');
   if (error) throw error;
   return (data || []) as any;
+}
+
+export async function fetchTableColumns(tableName: string): Promise<DbColumn[]> {
+  const { data, error } = await supabase.rpc('get_table_columns' as any, {
+    p_table_name: tableName
+  });
+  if (error || !data) {
+    return [];
+  }
+  return (data as any[]).map(c => ({
+    column_name: c.column_name,
+    data_type: c.data_type,
+    is_nullable: c.is_nullable === 'YES' || c.is_nullable === true,
+    is_primary_key: c.column_name === 'id',
+    is_foreign_key: c.column_name.endsWith('_id') && c.column_name !== 'id',
+  }));
+}
+
+export async function fetchColumnsForMultipleTables(tableNames: string[]): Promise<Record<string, DbColumn[]>> {
+  const result: Record<string, DbColumn[]> = {};
+  // Batch fetch in parallel groups of 10
+  const batches: string[][] = [];
+  for (let i = 0; i < tableNames.length; i += 10) {
+    batches.push(tableNames.slice(i, i + 10));
+  }
+  for (const batch of batches) {
+    const promises = batch.map(async (name) => {
+      const cols = await fetchTableColumns(name);
+      result[name] = cols;
+    });
+    await Promise.all(promises);
+  }
+  return result;
 }
 
 export async function fetchRelationships(tableIds?: string[]): Promise<DbRelationship[]> {
@@ -146,16 +185,35 @@ export async function logAccess(moduleId: string | null, userId: string, userEma
   } as any);
 }
 
-// Table categories for display
 export const TABLE_CATEGORIES: Record<string, { label: string; color: string }> = {
   core_master: { label: 'Core / Master', color: '#6366f1' },
-  module_primary: { label: 'Module Primary', color: '#3b82f6' },
-  module_secondary: { label: 'Module Secondary', color: '#60a5fa' },
-  shared_transaction: { label: 'Shared Transaction', color: '#f59e0b' },
-  reference_lookup: { label: 'Reference / Lookup', color: '#10b981' },
-  audit_log: { label: 'Audit / Log', color: '#8b5cf6' },
-  bridge_junction: { label: 'Bridge / Junction', color: '#ec4899' },
-  reporting_view: { label: 'Reporting View', color: '#14b8a6' },
-  temporary_work: { label: 'Temporary / Work', color: '#94a3b8' },
-  integration_staging: { label: 'Integration / Staging', color: '#f97316' },
+  module_primary: { label: 'Primary', color: '#3b82f6' },
+  module_secondary: { label: 'Secondary', color: '#60a5fa' },
+  shared_transaction: { label: 'Shared', color: '#f59e0b' },
+  reference_lookup: { label: 'Lookup', color: '#10b981' },
+  audit_log: { label: 'Audit', color: '#8b5cf6' },
+  bridge_junction: { label: 'Bridge', color: '#ec4899' },
+  reporting_view: { label: 'View', color: '#14b8a6' },
+  temporary_work: { label: 'Temp', color: '#94a3b8' },
+  integration_staging: { label: 'Staging', color: '#f97316' },
 };
+
+// Shortened data type labels for display
+export function shortDataType(dt: string): string {
+  if (!dt) return '?';
+  const t = dt.toLowerCase();
+  if (t.includes('uuid')) return 'uuid';
+  if (t.includes('timestamp')) return 'timestamp';
+  if (t.includes('boolean') || t === 'bool') return 'bool';
+  if (t.includes('integer') || t === 'int4' || t === 'int8') return 'int';
+  if (t.includes('bigint')) return 'bigint';
+  if (t.includes('numeric') || t.includes('decimal')) return 'numeric';
+  if (t.includes('double') || t.includes('float') || t === 'real') return 'float';
+  if (t.includes('json')) return 'json';
+  if (t.includes('text')) return 'text';
+  if (t.includes('character varying') || t.includes('varchar')) return 'varchar';
+  if (t.includes('date')) return 'date';
+  if (t.includes('array')) return 'array';
+  if (t.includes('user-defined') || t.includes('enum')) return 'enum';
+  return dt.slice(0, 10);
+}

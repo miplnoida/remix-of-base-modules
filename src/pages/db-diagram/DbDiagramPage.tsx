@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,10 +12,12 @@ import {
   type Edge,
   BackgroundVariant,
   MarkerType,
+  useReactFlow,
+  ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -27,24 +29,26 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
-  Database, RefreshCw, Search, Table2, ArrowRight, Link2, Eye, EyeOff,
-  Maximize, ZoomIn, ZoomOut, Download, Layers, GitBranch, Shield, Clock, User,
-  ChevronRight, Info, Box, AlertTriangle
+  Database, RefreshCw, Search, Table2, Link2, FileDown,
+  Key, Download,
 } from 'lucide-react';
 
 import {
   fetchModules, fetchModuleByCode, fetchTablesForModule, fetchAllTables,
   fetchRelationships, fetchModuleDependencies, triggerReanalysis, logAccess,
-  TABLE_CATEGORIES, DbModule, DbTable, DbRelationship, DbModuleDependency,
+  fetchColumnsForMultipleTables,
+  TABLE_CATEGORIES, shortDataType,
+  type DbModule, type DbTable, type DbRelationship, type DbModuleDependency, type DbColumn,
 } from '@/services/dbDiagramService';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { TableNode } from './components/TableNode';
 import { ModuleDependencyView } from './components/ModuleDependencyView';
+import { exportDbDiagramToPdf } from './utils/pdfExport';
 
 const nodeTypes = { tableNode: TableNode };
 
-export default function DbDiagramPage() {
+function DbDiagramInner() {
   const { moduleCode } = useParams<{ moduleCode: string }>();
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
@@ -59,23 +63,21 @@ export default function DbDiagramPage() {
   const [showLookupTables, setShowLookupTables] = useState(true);
   const [showInferredLinks, setShowInferredLinks] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Fetch all modules
   const { data: modules = [] } = useQuery({
     queryKey: ['db-diagram-modules'],
     queryFn: fetchModules,
   });
 
-  // Fetch current module
   const { data: currentModule } = useQuery({
     queryKey: ['db-diagram-module', moduleCode],
     queryFn: () => fetchModuleByCode(moduleCode || ''),
     enabled: !!moduleCode,
   });
 
-  // Fetch tables
   const { data: tables = [], isLoading: tablesLoading } = useQuery({
     queryKey: ['db-diagram-tables', currentModule?.id, viewMode],
     queryFn: async () => {
@@ -86,7 +88,6 @@ export default function DbDiagramPage() {
     enabled: viewMode === 'enterprise' || !!currentModule?.id,
   });
 
-  // Fetch relationships
   const { data: relationships = [] } = useQuery({
     queryKey: ['db-diagram-relationships', tables.map(t => t.id).join(',')],
     queryFn: () => {
@@ -96,21 +97,25 @@ export default function DbDiagramPage() {
     enabled: tables.length > 0,
   });
 
-  // Fetch module dependencies
+  // Fetch columns for all visible tables
+  const { data: columnsMap = {} } = useQuery({
+    queryKey: ['db-diagram-columns', tables.map(t => t.table_name).sort().join(',')],
+    queryFn: () => fetchColumnsForMultipleTables(tables.map(t => t.table_name)),
+    enabled: tables.length > 0,
+  });
+
   const { data: moduleDeps = [] } = useQuery({
     queryKey: ['db-diagram-deps', currentModule?.id],
     queryFn: () => fetchModuleDependencies(currentModule?.id),
     enabled: !!currentModule?.id || viewMode === 'enterprise',
   });
 
-  // Log access
   useEffect(() => {
     if (user && currentModule) {
       logAccess(currentModule.id, user.id, user.email || '', 'view', `Viewed ${currentModule.module_name} diagram`);
     }
   }, [user, currentModule]);
 
-  // Filter tables
   const filteredTables = useMemo(() => {
     let result = tables;
     if (!showAuditTables) result = result.filter(t => t.table_category !== 'audit_log');
@@ -119,7 +124,6 @@ export default function DbDiagramPage() {
     return result;
   }, [tables, showAuditTables, showLookupTables, searchTerm]);
 
-  // Filter relationships
   const filteredRelationships = useMemo(() => {
     const tableIds = new Set(filteredTables.map(t => t.id));
     let result = relationships.filter(r => tableIds.has(r.source_table_id) || tableIds.has(r.target_table_id));
@@ -127,7 +131,7 @@ export default function DbDiagramPage() {
     return result;
   }, [relationships, filteredTables, showInferredLinks]);
 
-  // Build React Flow nodes and edges
+  // Build nodes and edges with dynamic node height based on column count
   useEffect(() => {
     if (!filteredTables.length) {
       setNodes([]);
@@ -135,22 +139,51 @@ export default function DbDiagramPage() {
       return;
     }
 
-    const COLS = Math.max(3, Math.ceil(Math.sqrt(filteredTables.length)));
-    const NODE_W = 280;
-    const NODE_H = 120;
-    const GAP_X = 60;
-    const GAP_Y = 50;
+    // Calculate node height based on column count
+    const getNodeHeight = (tableName: string) => {
+      const cols = columnsMap[tableName] || [];
+      const displayCols = Math.min(cols.length, 15);
+      const headerH = 28;
+      const colRowH = 20;
+      const extraH = cols.length > 15 ? 18 : 8;
+      return headerH + displayCols * colRowH + extraH;
+    };
 
-    const newNodes: Node[] = filteredTables.map((table, idx) => {
-      const col = idx % COLS;
-      const row = Math.floor(idx / COLS);
+    const NODE_W = 300;
+    const GAP_X = 100;
+    const GAP_Y = 40;
+    const COLS = Math.max(2, Math.min(5, Math.ceil(Math.sqrt(filteredTables.length))));
+
+    // Group by category for better visual organization
+    const catOrder: Record<string, number> = {
+      core_master: 0, module_primary: 1, module_secondary: 2,
+      shared_transaction: 3, bridge_junction: 4, reference_lookup: 5,
+      audit_log: 6, temporary_work: 7, integration_staging: 8,
+    };
+    const sorted = [...filteredTables].sort((a, b) => {
+      const aO = catOrder[a.table_category] ?? 5;
+      const bO = catOrder[b.table_category] ?? 5;
+      return aO - bO || a.table_name.localeCompare(b.table_name);
+    });
+
+    // Position nodes in columns, tracking Y per column
+    const colYs = new Array(COLS).fill(0);
+    const newNodes: Node[] = sorted.map((table, idx) => {
+      // Pick the shortest column
+      const col = colYs.indexOf(Math.min(...colYs));
+      const nodeH = getNodeHeight(table.table_name);
+      const x = col * (NODE_W + GAP_X);
+      const y = colYs[col];
+      colYs[col] += nodeH + GAP_Y;
+
       const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
       return {
         id: table.id,
         type: 'tableNode',
-        position: { x: col * (NODE_W + GAP_X), y: row * (NODE_H + GAP_Y) },
+        position: { x, y },
         data: {
           table,
+          columns: columnsMap[table.table_name] || [],
           color: cat.color,
           categoryLabel: cat.label,
           isSelected: selectedTable?.id === table.id,
@@ -162,25 +195,35 @@ export default function DbDiagramPage() {
     const tableIdSet = new Set(filteredTables.map(t => t.id));
     const newEdges: Edge[] = filteredRelationships
       .filter(r => tableIdSet.has(r.source_table_id) && tableIdSet.has(r.target_table_id))
-      .map(r => ({
+      .map((r, i) => ({
         id: r.id,
         source: r.source_table_id,
         target: r.target_table_id,
+        sourceHandle: i % 2 === 0 ? 'right-out' : undefined,
+        targetHandle: i % 2 === 0 ? 'left-in' : undefined,
         label: `${r.source_column} → ${r.target_column}`,
+        labelStyle: { fontSize: 9, fontWeight: 600, fill: '#333' },
+        labelBgStyle: { fill: 'rgba(255,255,255,0.85)', stroke: r.is_inferred ? '#f59e0b' : '#6366f1', strokeWidth: 0.5, rx: 3 },
+        labelBgPadding: [4, 2] as [number, number],
         type: 'smoothstep',
         animated: r.is_inferred,
         style: {
           stroke: r.is_inferred ? '#f59e0b' : '#6366f1',
-          strokeWidth: r.is_physical_fk ? 2 : 1,
-          strokeDasharray: r.is_inferred ? '5,5' : undefined,
+          strokeWidth: r.is_physical_fk ? 2.5 : 1.5,
+          strokeDasharray: r.is_inferred ? '6,4' : undefined,
         },
-        markerEnd: { type: MarkerType.ArrowClosed, color: r.is_inferred ? '#f59e0b' : '#6366f1' },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: r.is_inferred ? '#f59e0b' : '#6366f1',
+          width: 15,
+          height: 15,
+        },
         data: { relationship: r },
       }));
 
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [filteredTables, filteredRelationships, selectedTable]);
+  }, [filteredTables, filteredRelationships, selectedTable, columnsMap]);
 
   const handleReanalyze = useCallback(async (scope: 'module' | 'enterprise') => {
     if (!user?.email) return;
@@ -195,6 +238,28 @@ export default function DbDiagramPage() {
       setIsReanalyzing(false);
     }
   }, [moduleCode, user, queryClient]);
+
+  const handleExportPdf = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      // Ensure we have columns for all tables
+      let cols = columnsMap;
+      if (Object.keys(cols).length === 0) {
+        cols = await fetchColumnsForMultipleTables(filteredTables.map(t => t.table_name));
+      }
+      exportDbDiagramToPdf({
+        module: currentModule || null,
+        tables: filteredTables,
+        relationships: filteredRelationships,
+        columnsMap: cols,
+      });
+      toast.success('PDF exported successfully');
+    } catch (err: any) {
+      toast.error('PDF export failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [currentModule, filteredTables, filteredRelationships, columnsMap]);
 
   const tableCount = filteredTables.length;
   const relCount = filteredRelationships.length;
@@ -211,11 +276,20 @@ export default function DbDiagramPage() {
               DB Diagram {currentModule ? `— ${currentModule.module_name}` : '— Enterprise'}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Visual database relationship map and architecture explorer
+              Visual database architecture with table schemas and relationship mapping
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleExportPdf}
+            disabled={isExporting || !filteredTables.length}
+          >
+            <FileDown className={`h-4 w-4 mr-1 ${isExporting ? 'animate-bounce' : ''}`} />
+            Export PDF
+          </Button>
           {isAdmin && (
             <>
               <Button
@@ -281,8 +355,6 @@ export default function DbDiagramPage() {
             <TabsTrigger value="expanded" disabled={!moduleCode}>Expanded View</TabsTrigger>
             <TabsTrigger value="enterprise">Enterprise View</TabsTrigger>
           </TabsList>
-
-          {/* Module Selector */}
           <div className="flex items-center gap-2">
             <Select value={moduleCode || ''} onValueChange={(v) => navigate(`/db-diagram/${v}`)}>
               <SelectTrigger className="w-[220px]">
@@ -313,21 +385,30 @@ export default function DbDiagramPage() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <Switch id="audit" checked={showAuditTables} onCheckedChange={setShowAuditTables} />
-                  <Label htmlFor="audit" className="text-xs">Audit Tables</Label>
+                  <Label htmlFor="audit" className="text-xs">Audit</Label>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Switch id="lookup" checked={showLookupTables} onCheckedChange={setShowLookupTables} />
-                  <Label htmlFor="lookup" className="text-xs">Lookup Tables</Label>
+                  <Label htmlFor="lookup" className="text-xs">Lookup</Label>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Switch id="inferred" checked={showInferredLinks} onCheckedChange={setShowInferredLinks} />
-                  <Label htmlFor="inferred" className="text-xs">Inferred Links</Label>
+                  <Label htmlFor="inferred" className="text-xs">Inferred</Label>
                 </div>
               </div>
               {/* Legend */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-indigo-500 inline-block" /> Physical FK</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-amber-500 inline-block border-dashed border-t" /> Inferred</span>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <span className="w-5 h-[2.5px] rounded-full" style={{ backgroundColor: '#6366f1' }} />
+                  Physical FK
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-5 h-[2.5px] rounded-full" style={{ backgroundColor: '#f59e0b', backgroundImage: 'repeating-linear-gradient(90deg, #f59e0b 0px, #f59e0b 3px, transparent 3px, transparent 6px)' }} />
+                  Inferred
+                </span>
+                <span className="flex items-center gap-1"><Key className="h-3 w-3 text-amber-500" /> PK</span>
+                <span className="flex items-center gap-1"><Link2 className="h-3 w-3 text-blue-500" /> FK</span>
+                <span className="flex items-center gap-1 font-mono text-destructive text-[10px]">NN</span> Not Null
               </div>
             </div>
           </CardContent>
@@ -336,10 +417,8 @@ export default function DbDiagramPage() {
         {/* Diagram Canvas */}
         <TabsContent value="module" className="mt-0">
           <DiagramCanvas
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            nodes={nodes} edges={edges}
+            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
             onEdgeClick={(_, edge) => {
               const rel = edge.data?.relationship as DbRelationship;
               if (rel) setSelectedRelationship(rel);
@@ -349,10 +428,8 @@ export default function DbDiagramPage() {
         </TabsContent>
         <TabsContent value="expanded" className="mt-0">
           <DiagramCanvas
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            nodes={nodes} edges={edges}
+            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
             onEdgeClick={(_, edge) => {
               const rel = edge.data?.relationship as DbRelationship;
               if (rel) setSelectedRelationship(rel);
@@ -368,10 +445,8 @@ export default function DbDiagramPage() {
             </TabsList>
             <TabsContent value="diagram">
               <DiagramCanvas
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                nodes={nodes} edges={edges}
+                onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 onEdgeClick={(_, edge) => {
                   const rel = edge.data?.relationship as DbRelationship;
                   if (rel) setSelectedRelationship(rel);
@@ -388,7 +463,7 @@ export default function DbDiagramPage() {
 
       {/* Table Detail Sheet */}
       <Sheet open={!!selectedTable} onOpenChange={() => setSelectedTable(null)}>
-        <SheetContent className="w-[450px] sm:w-[500px] overflow-y-auto">
+        <SheetContent className="w-[500px] sm:w-[560px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Table2 className="h-5 w-5" />
@@ -397,57 +472,54 @@ export default function DbDiagramPage() {
           </SheetHeader>
           {selectedTable && (
             <div className="mt-4 space-y-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Category</Label>
-                <Badge variant="outline" className="mt-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
                   {TABLE_CATEGORIES[selectedTable.table_category]?.label || selectedTable.table_category}
                 </Badge>
+                {selectedTable.is_shared && <Badge variant="secondary">Shared</Badge>}
+                {selectedTable.is_view && <Badge variant="secondary">View</Badge>}
               </div>
+              <p className="text-sm text-muted-foreground">{selectedTable.description || 'No description'}</p>
+
+              <Separator />
+
+              {/* Full column listing */}
               <div>
-                <Label className="text-xs text-muted-foreground">Description</Label>
-                <p className="text-sm">{selectedTable.description || 'No description available'}</p>
+                <Label className="text-xs font-semibold">Columns ({(columnsMap[selectedTable.table_name] || []).length})</Label>
+                <div className="mt-2 rounded-md border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted text-muted-foreground">
+                        <th className="px-2 py-1.5 text-left">#</th>
+                        <th className="px-2 py-1.5 text-left">Column</th>
+                        <th className="px-2 py-1.5 text-left">Type</th>
+                        <th className="px-2 py-1.5 text-center">Null</th>
+                        <th className="px-2 py-1.5 text-center">Key</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(columnsMap[selectedTable.table_name] || []).map((c, i) => (
+                        <tr key={c.column_name} className="hover:bg-muted/50">
+                          <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
+                          <td className="px-2 py-1 font-mono font-medium">{c.column_name}</td>
+                          <td className="px-2 py-1 font-mono text-muted-foreground">{c.data_type}</td>
+                          <td className="px-2 py-1 text-center">{c.is_nullable ? '✓' : <span className="text-destructive font-bold">NN</span>}</td>
+                          <td className="px-2 py-1 text-center">
+                            {c.is_primary_key && <Key className="h-3 w-3 text-amber-500 inline" />}
+                            {c.is_foreign_key && <Link2 className="h-3 w-3 text-blue-500 inline" />}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
               <Separator />
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Schema</Label>
-                  <p>{selectedTable.schema_name}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Type</Label>
-                  <p>{selectedTable.is_view ? 'View' : 'Table'}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Shared</Label>
-                  <p>{selectedTable.is_shared ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Est. Rows</Label>
-                  <p>{selectedTable.estimated_row_count?.toLocaleString() || 'N/A'}</p>
-                </div>
-              </div>
-              <Separator />
-              {selectedTable.primary_key_summary && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Primary Keys</Label>
-                  <p className="text-sm font-mono bg-muted p-2 rounded">{selectedTable.primary_key_summary}</p>
-                </div>
-              )}
-              {selectedTable.foreign_key_summary && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Foreign Keys</Label>
-                  <p className="text-sm font-mono bg-muted p-2 rounded whitespace-pre-wrap">{selectedTable.foreign_key_summary}</p>
-                </div>
-              )}
-              {selectedTable.index_summary && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Indexes</Label>
-                  <p className="text-sm font-mono bg-muted p-2 rounded whitespace-pre-wrap">{selectedTable.index_summary}</p>
-                </div>
-              )}
-              <Separator />
+
+              {/* Relationships */}
               <div>
-                <Label className="text-xs text-muted-foreground">Relationships</Label>
+                <Label className="text-xs font-semibold">Relationships</Label>
                 <div className="mt-1 space-y-1">
                   {relationships
                     .filter(r => r.source_table_id === selectedTable.id || r.target_table_id === selectedTable.id)
@@ -457,13 +529,17 @@ export default function DbDiagramPage() {
                       const direction = r.source_table_id === selectedTable.id ? '→' : '←';
                       return (
                         <div key={r.id} className="text-xs p-2 bg-muted rounded flex items-center gap-2">
-                          <span className="font-mono">
-                            {r.source_column} {direction} {otherTable?.table_name || 'unknown'}.{r.target_column}
+                          <span className="font-mono flex-1">
+                            {r.source_column} {direction} {otherTable?.table_name || '?'}.{r.target_column}
                           </span>
                           {r.is_inferred && <Badge variant="secondary" className="text-[10px]">Inferred</Badge>}
+                          {r.is_physical_fk && <Badge className="text-[10px]">FK</Badge>}
                         </div>
                       );
                     })}
+                  {relationships.filter(r => r.source_table_id === selectedTable.id || r.target_table_id === selectedTable.id).length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">No relationships found</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -528,7 +604,7 @@ export default function DbDiagramPage() {
 function DiagramCanvas({ nodes, edges, onNodesChange, onEdgesChange, onEdgeClick, tablesLoading }: any) {
   if (tablesLoading) {
     return (
-      <Card className="h-[600px] flex items-center justify-center">
+      <Card className="h-[700px] flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
           <p>Loading diagram...</p>
@@ -539,18 +615,18 @@ function DiagramCanvas({ nodes, edges, onNodesChange, onEdgesChange, onEdgeClick
 
   if (!nodes.length) {
     return (
-      <Card className="h-[600px] flex items-center justify-center">
+      <Card className="h-[700px] flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <Database className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No diagram data available</p>
-          <p className="text-sm mt-1">Click "Reanalyze Module" to generate the diagram</p>
+          <p className="text-sm mt-1">Select a module or click "Reanalyze" to generate</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="h-[600px]">
+    <Card className="h-[700px]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -559,18 +635,31 @@ function DiagramCanvas({ nodes, edges, onNodesChange, onEdgesChange, onEdgeClick
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
         fitView
-        minZoom={0.1}
-        maxZoom={2}
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.05}
+        maxZoom={2.5}
         defaultEdgeOptions={{ type: 'smoothstep' }}
+        proOptions={{ hideAttribution: true }}
       >
-        <Controls />
+        <Controls position="bottom-right" />
         <MiniMap
           nodeStrokeColor="#6366f1"
           nodeColor={(n) => (n.data as any)?.color || '#3b82f6'}
           nodeBorderRadius={4}
+          position="bottom-left"
+          style={{ width: 180, height: 120 }}
         />
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--muted-foreground) / 0.15)" />
       </ReactFlow>
     </Card>
+  );
+}
+
+// Wrap in ReactFlowProvider for internal hooks
+export default function DbDiagramPage() {
+  return (
+    <ReactFlowProvider>
+      <DbDiagramInner />
+    </ReactFlowProvider>
   );
 }
