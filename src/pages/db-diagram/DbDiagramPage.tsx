@@ -635,6 +635,15 @@ function DbDiagramInner() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* PDF Export Settings Dialog */}
+      <PdfExportDialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExportPdf}
+        isExporting={isExporting}
+        tableCount={filteredTables.length}
+      />
     </div>
   );
 }
