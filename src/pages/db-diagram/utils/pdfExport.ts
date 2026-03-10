@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import {
   DbModule, DbTable, DbRelationship, DbColumn,
   TABLE_CATEGORIES,
@@ -12,87 +13,105 @@ interface ExportData {
   columnsMap: Record<string, DbColumn[]>;
   pageSize?: string;
   orientation?: 'portrait' | 'landscape';
+  diagramElement?: HTMLElement | null;
 }
 
 /**
- * Compact single-page-oriented PDF export.
- * Packs summary header, visual overview, data dictionary (multi-column),
- * and relationships all as tightly as possible.
+ * Captures the ACTUAL on-screen diagram via html2canvas,
+ * then appends a compact data dictionary + relationships.
  */
-export function exportDbDiagramToPdf({
+export async function exportDbDiagramToPdf({
   module, tables, relationships, columnsMap,
   pageSize = 'a2',
   orientation = 'landscape',
+  diagramElement,
 }: ExportData) {
   const doc = new jsPDF({ orientation, unit: 'mm', format: pageSize });
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const M = 10; // margin
+  const M = 10;
   const moduleName = module?.module_name || 'Enterprise';
 
-  // ─── SECTION 1: Compact header + summary + overview — ALL ON PAGE 1 ───
+  // ─── PAGE 1: Capture the actual on-screen diagram ───
+  if (diagramElement) {
+    // Capture the live ReactFlow diagram exactly as the user sees it
+    const canvas = await html2canvas(diagramElement, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      // Capture the full scrollable content
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: diagramElement.scrollWidth,
+      windowHeight: diagramElement.scrollHeight,
+    });
 
-  // Title bar
-  doc.setFillColor('#009B4C');
-  doc.rect(0, 0, pageW, 14, 'F');
-  doc.setFontSize(14);
+    const imgData = canvas.toDataURL('image/png');
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+
+    // Title bar
+    doc.setFillColor('#009B4C');
+    doc.rect(0, 0, pageW, 12, 'F');
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor('#ffffff');
+    doc.text(`DB Diagram: ${moduleName}`, M, 8);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Generated: ${new Date().toLocaleString()}  |  Tables: ${tables.length}  |  Relationships: ${relationships.length}`,
+      pageW - M, 8, { align: 'right' }
+    );
+    doc.setTextColor('#000000');
+
+    // Fit the captured diagram into the remaining page area
+    const diagramTopY = 14;
+    const availW = pageW - M * 2;
+    const availH = pageH - diagramTopY - M - 4;
+
+    const scaleW = availW / imgW;
+    const scaleH = availH / imgH;
+    const scale = Math.min(scaleW, scaleH);
+
+    const renderW = imgW * scale;
+    const renderH = imgH * scale;
+    const offsetX = M + (availW - renderW) / 2;
+
+    doc.addImage(imgData, 'PNG', offsetX, diagramTopY, renderW, renderH);
+  } else {
+    // Fallback: draw simplified overview if no DOM element available
+    drawSimplifiedOverview(doc, { tables, relationships, columnsMap, moduleName, pageW, pageH, M });
+  }
+
+  // ─── PAGE 2+: Data Dictionary ───
+  doc.addPage(pageSize, orientation);
+  const dictPageW = doc.internal.pageSize.getWidth();
+  const dictPageH = doc.internal.pageSize.getHeight();
+
+  // Title
+  doc.setFillColor('#333333');
+  doc.rect(0, 0, dictPageW, 10, 'F');
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor('#ffffff');
-  doc.text(`DB Diagram: ${moduleName}`, M, 9);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${new Date().toLocaleString()}  |  ${pageSize.toUpperCase()} ${orientation}  |  Tables: ${tables.length}  |  Relationships: ${relationships.length}`, pageW - M, 9, { align: 'right' });
+  const totalCols = Object.values(columnsMap).reduce((s, c) => s + c.length, 0);
+  doc.text(`${moduleName} — Data Dictionary (${tables.length} tables, ${totalCols} columns)`, M, 7);
   doc.setTextColor('#000000');
 
-  // Category legend — horizontal, compact
+  // Category legend — compact horizontal
   let lx = M;
-  const ly = 19;
-  doc.setFontSize(5.5);
+  const ly = 14;
+  doc.setFontSize(5);
   doc.setFont('helvetica', 'normal');
   Object.entries(TABLE_CATEGORIES).forEach(([, val]) => {
     doc.setFillColor(val.color);
-    doc.rect(lx, ly - 2.5, 3, 3, 'F');
-    doc.text(val.label, lx + 4, ly);
-    lx += doc.getTextWidth(val.label) + 7;
+    doc.rect(lx, ly - 2, 2.5, 2.5, 'F');
+    doc.text(val.label, lx + 3.5, ly);
+    lx += doc.getTextWidth(val.label) + 6;
   });
-
-  // ─── Visual overview: table boxes with relationship lines ───
-  const overviewStartY = ly + 5;
-  const availW = pageW - M * 2;
-  const availH = pageH - overviewStartY - M - 2;
-
-  // Calculate grid dimensions to fit ALL tables on this page
-  const totalTables = tables.length;
-  // Try to fill the available area optimally
-  const aspectRatio = availW / availH;
-  let cols = Math.max(2, Math.round(Math.sqrt(totalTables * aspectRatio)));
-  let rows = Math.ceil(totalTables / cols);
-
-  // Ensure it fits vertically; if not, add more columns
-  const gapX = 4;
-  const gapY = 4;
-  let boxW = (availW - (cols - 1) * gapX) / cols;
-  let boxH = (availH - (rows - 1) * gapY) / rows;
-
-  // Cap box dimensions for readability
-  boxW = Math.min(boxW, 120);
-  boxH = Math.min(boxH, 35);
-
-  // Recalculate cols/rows with capped sizes
-  cols = Math.max(2, Math.floor((availW + gapX) / (boxW + gapX)));
-  rows = Math.ceil(totalTables / cols);
-  
-  // If it still overflows vertically, shrink box height
-  const totalRowH = rows * boxH + (rows - 1) * gapY;
-  if (totalRowH > availH) {
-    boxH = Math.max(12, (availH - (rows - 1) * gapY) / rows);
-  }
-
-  // Center the grid
-  const gridW = cols * boxW + (cols - 1) * gapX;
-  const startX = M + (availW - gridW) / 2;
-  const startY = overviewStartY;
 
   const catOrder: Record<string, number> = {
     core_master: 0, module_primary: 1, module_secondary: 2,
@@ -105,136 +124,23 @@ export function exportDbDiagramToPdf({
     return aO - bO || a.table_name.localeCompare(b.table_name);
   });
 
-  const tablePositions: Record<string, { x: number; y: number; w: number; h: number; cx: number; cy: number }> = {};
-
-  sortedTables.forEach((table, idx) => {
-    const col = idx % cols;
-    const row = Math.floor(idx / cols);
-    const x = startX + col * (boxW + gapX);
-    const y = startY + row * (boxH + gapY);
-
-    const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
-    const colCount = columnsMap[table.table_name]?.length || 0;
-
-    // Box
-    doc.setDrawColor(cat.color);
-    doc.setLineWidth(0.4);
-    doc.setFillColor('#ffffff');
-    doc.roundedRect(x, y, boxW, boxH, 1.5, 1.5, 'FD');
-
-    // Header band
-    const hdrH = Math.min(6, boxH * 0.35);
-    doc.setFillColor(cat.color);
-    doc.roundedRect(x, y, boxW, hdrH, 1.5, 1.5, 'F');
-    doc.rect(x, y + hdrH - 1.5, boxW, 1.5, 'F');
-
-    // Table name
-    const fs = Math.max(4, Math.min(6, boxW / 16));
-    doc.setFontSize(fs);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor('#ffffff');
-    const maxChars = Math.floor(boxW / (fs * 0.42));
-    const name = table.table_name.length > maxChars ? table.table_name.slice(0, maxChars - 1) + '…' : table.table_name;
-    doc.text(name, x + 1.5, y + hdrH - 1.2);
-
-    // Info line
-    doc.setTextColor('#555555');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(Math.max(3.5, fs - 1.5));
-    if (boxH > 14) {
-      doc.text(`${colCount} cols${table.is_shared ? ' | SHARED' : ''}`, x + 1.5, y + hdrH + 3);
-    }
-    if (boxH > 20 && table.primary_key_summary) {
-      doc.setFontSize(3.5);
-      doc.setTextColor('#999999');
-      const pkText = table.primary_key_summary.length > maxChars ? table.primary_key_summary.slice(0, maxChars - 1) + '…' : table.primary_key_summary;
-      doc.text(`PK: ${pkText}`, x + 1.5, y + hdrH + 6.5);
-    }
-
-    tablePositions[table.id] = { x, y, w: boxW, h: boxH, cx: x + boxW / 2, cy: y + boxH / 2 };
-    doc.setTextColor('#000000');
-  });
-
-  // Draw relationship lines — connect from nearest edges, not just top/bottom
-  doc.setLineWidth(0.2);
-  relationships.forEach(rel => {
-    const src = tablePositions[rel.source_table_id];
-    const tgt = tablePositions[rel.target_table_id];
-    if (!src || !tgt) return;
-
-    if (rel.is_inferred) {
-      doc.setDrawColor('#f59e0b');
-      doc.setLineDashPattern([1, 0.8], 0);
-    } else {
-      doc.setDrawColor('#6366f1');
-      doc.setLineDashPattern([], 0);
-    }
-
-    // Connect from nearest edges
-    const dx = tgt.cx - src.cx;
-    const dy = tgt.cy - src.cy;
-    let sx: number, sy: number, tx: number, ty: number;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal connection
-      sx = dx > 0 ? src.x + src.w : src.x;
-      sy = src.cy;
-      tx = dx > 0 ? tgt.x : tgt.x + tgt.w;
-      ty = tgt.cy;
-    } else {
-      // Vertical connection
-      sx = src.cx;
-      sy = dy > 0 ? src.y + src.h : src.y;
-      tx = tgt.cx;
-      ty = dy > 0 ? tgt.y : tgt.y + tgt.h;
-    }
-
-    doc.line(sx, sy, tx, ty);
-
-    // Small arrowhead
-    const angle = Math.atan2(ty - sy, tx - sx);
-    const a = 1.5;
-    doc.line(tx, ty, tx - a * Math.cos(angle - 0.4), ty - a * Math.sin(angle - 0.4));
-    doc.line(tx, ty, tx - a * Math.cos(angle + 0.4), ty - a * Math.sin(angle + 0.4));
-  });
-  doc.setLineDashPattern([], 0);
-
-  // ─── SECTION 2: Data Dictionary — compact multi-column autoTable ───
-  // Place all table schemas in a dense format, multiple tables side-by-side if page is wide enough
-  doc.addPage(pageSize, orientation);
-  const dictPageW = doc.internal.pageSize.getWidth();
-  const dictPageH = doc.internal.pageSize.getHeight();
-
-  // Title
-  doc.setFillColor('#333333');
-  doc.rect(0, 0, dictPageW, 10, 'F');
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor('#ffffff');
-  doc.text(`${moduleName} — Data Dictionary (${tables.length} tables, ${Object.values(columnsMap).reduce((s, c) => s + c.length, 0)} columns)`, M, 7);
-  doc.setTextColor('#000000');
-
-  // Use two-column layout for data dictionary if page is wide enough (> 400mm)
+  // Two-column layout for wide pages
   const useTwoCols = dictPageW > 350;
   const colWidth = useTwoCols ? (dictPageW - M * 3) / 2 : dictPageW - M * 2;
-  let dictY = 14;
-  let dictCol = 0; // 0 = left, 1 = right
+  let dictY = 18;
+  let dictCol = 0;
 
   const getColX = (c: number) => M + c * (colWidth + M);
 
   sortedTables.forEach((table) => {
     const cols_data = columnsMap[table.table_name] || [];
-    // Estimate height: header(6) + rows * 3.5 + head(4) + padding(4)
     const estHeight = 6 + 4 + cols_data.length * 3.5 + 4;
 
-    // Check if fits on current column
     if (dictY + Math.min(estHeight, 40) > dictPageH - M) {
       if (useTwoCols && dictCol === 0) {
-        // Move to right column
         dictCol = 1;
-        dictY = 14;
+        dictY = 18;
       } else {
-        // New page
         doc.addPage(pageSize, orientation);
         dictY = M;
         dictCol = 0;
@@ -244,7 +150,6 @@ export function exportDbDiagramToPdf({
     const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
     const leftX = getColX(dictCol);
 
-    // Table header bar
     doc.setFillColor(cat.color);
     doc.roundedRect(leftX, dictY, colWidth, 5, 0.8, 0.8, 'F');
     doc.setFontSize(6.5);
@@ -259,12 +164,12 @@ export function exportDbDiagramToPdf({
         startY: dictY,
         margin: { left: leftX, right: dictPageW - leftX - colWidth },
         tableWidth: colWidth,
-        head: [['Column', 'Type', 'N', 'Key']],
+        head: [['Column', 'Type', 'Null', 'Key']],
         body: cols_data.map(c => [
           c.column_name,
           c.data_type,
           c.is_nullable ? '✓' : '✗',
-          (c.is_primary_key ? 'PK' : '') + (c.is_foreign_key ? 'FK' : ''),
+          (c.is_primary_key ? 'PK ' : '') + (c.is_foreign_key ? 'FK' : ''),
         ]),
         styles: { fontSize: 5, cellPadding: 0.8, lineWidth: 0.1 },
         headStyles: { fillColor: [80, 80, 80], fontSize: 5, cellPadding: 1 },
@@ -286,8 +191,7 @@ export function exportDbDiagramToPdf({
     }
   });
 
-  // ─── SECTION 3: Relationships table — compact ───
-  // Check if relationships fit on remaining space, otherwise new page
+  // ─── Relationships ───
   const relEstH = 10 + relationships.length * 3.5;
   if (dictY + Math.min(relEstH, 30) > dictPageH - M || dictCol === 1) {
     doc.addPage(pageSize, orientation);
@@ -330,7 +234,7 @@ export function exportDbDiagramToPdf({
     });
   }
 
-  // ─── Footer on all pages ───
+  // ─── Page numbers ───
   const totalPages = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -346,4 +250,94 @@ export function exportDbDiagramToPdf({
 
   const filename = `DB_Diagram_${moduleName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
+}
+
+/** Fallback simplified overview when html2canvas can't capture the diagram */
+function drawSimplifiedOverview(
+  doc: jsPDF,
+  { tables, relationships, columnsMap, moduleName, pageW, pageH, M }:
+  { tables: DbTable[]; relationships: DbRelationship[]; columnsMap: Record<string, DbColumn[]>; moduleName: string; pageW: number; pageH: number; M: number }
+) {
+  doc.setFillColor('#009B4C');
+  doc.rect(0, 0, pageW, 12, 'F');
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor('#ffffff');
+  doc.text(`DB Diagram: ${moduleName}`, M, 8);
+  doc.setTextColor('#000000');
+
+  const availW = pageW - M * 2;
+  const availH = pageH - 24 - M;
+  const aspectRatio = availW / availH;
+  let cols = Math.max(2, Math.round(Math.sqrt(tables.length * aspectRatio)));
+  const rows = Math.ceil(tables.length / cols);
+  const gapX = 4, gapY = 4;
+  let boxW = Math.min(90, (availW - (cols - 1) * gapX) / cols);
+  let boxH = Math.min(30, (availH - (rows - 1) * gapY) / rows);
+  cols = Math.max(2, Math.floor((availW + gapX) / (boxW + gapX)));
+  const totalRowH = Math.ceil(tables.length / cols) * boxH + (Math.ceil(tables.length / cols) - 1) * gapY;
+  if (totalRowH > availH) boxH = Math.max(12, (availH - (Math.ceil(tables.length / cols) - 1) * gapY) / Math.ceil(tables.length / cols));
+
+  const gridW = cols * boxW + (cols - 1) * gapX;
+  const startX = M + (availW - gridW) / 2;
+  const startY = 20;
+
+  const catOrder: Record<string, number> = {
+    core_master: 0, module_primary: 1, module_secondary: 2,
+    shared_transaction: 3, bridge_junction: 4, reference_lookup: 5,
+    audit_log: 6, temporary_work: 7, integration_staging: 8,
+  };
+  const sorted = [...tables].sort((a, b) => (catOrder[a.table_category] ?? 5) - (catOrder[b.table_category] ?? 5) || a.table_name.localeCompare(b.table_name));
+  const positions: Record<string, { cx: number; cy: number; x: number; y: number; w: number; h: number }> = {};
+
+  sorted.forEach((table, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const x = startX + col * (boxW + gapX);
+    const y = startY + row * (boxH + gapY);
+    const cat = TABLE_CATEGORIES[table.table_category] || TABLE_CATEGORIES.module_primary;
+
+    doc.setDrawColor(cat.color);
+    doc.setLineWidth(0.4);
+    doc.setFillColor('#ffffff');
+    doc.roundedRect(x, y, boxW, boxH, 1.5, 1.5, 'FD');
+
+    const hdrH = Math.min(6, boxH * 0.35);
+    doc.setFillColor(cat.color);
+    doc.roundedRect(x, y, boxW, hdrH, 1.5, 1.5, 'F');
+    doc.rect(x, y + hdrH - 1.5, boxW, 1.5, 'F');
+
+    const fs = Math.max(4, Math.min(6, boxW / 16));
+    doc.setFontSize(fs);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor('#ffffff');
+    const maxC = Math.floor(boxW / (fs * 0.42));
+    doc.text(table.table_name.length > maxC ? table.table_name.slice(0, maxC - 1) + '…' : table.table_name, x + 1.5, y + hdrH - 1.2);
+    doc.setTextColor('#555555');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(Math.max(3.5, fs - 1.5));
+    if (boxH > 14) doc.text(`${columnsMap[table.table_name]?.length || 0} cols`, x + 1.5, y + hdrH + 4);
+    doc.setTextColor('#000000');
+
+    positions[table.id] = { x, y, w: boxW, h: boxH, cx: x + boxW / 2, cy: y + boxH / 2 };
+  });
+
+  doc.setLineWidth(0.2);
+  relationships.forEach(rel => {
+    const src = positions[rel.source_table_id];
+    const tgt = positions[rel.target_table_id];
+    if (!src || !tgt) return;
+    doc.setDrawColor(rel.is_inferred ? '#f59e0b' : '#6366f1');
+    if (rel.is_inferred) doc.setLineDashPattern([1, 0.8], 0);
+    else doc.setLineDashPattern([], 0);
+    const dx = tgt.cx - src.cx, dy = tgt.cy - src.cy;
+    let sx: number, sy: number, tx: number, ty: number;
+    if (Math.abs(dx) > Math.abs(dy)) { sx = dx > 0 ? src.x + src.w : src.x; sy = src.cy; tx = dx > 0 ? tgt.x : tgt.x + tgt.w; ty = tgt.cy; }
+    else { sx = src.cx; sy = dy > 0 ? src.y + src.h : src.y; tx = tgt.cx; ty = dy > 0 ? tgt.y : tgt.y + tgt.h; }
+    doc.line(sx, sy, tx, ty);
+    const angle = Math.atan2(ty - sy, tx - sx);
+    doc.line(tx, ty, tx - 1.5 * Math.cos(angle - 0.4), ty - 1.5 * Math.sin(angle - 0.4));
+    doc.line(tx, ty, tx - 1.5 * Math.cos(angle + 0.4), ty - 1.5 * Math.sin(angle + 0.4));
+  });
+  doc.setLineDashPattern([], 0);
 }

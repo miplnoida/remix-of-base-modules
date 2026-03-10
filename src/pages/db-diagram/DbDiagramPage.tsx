@@ -248,13 +248,16 @@ function DbDiagramInner() {
       if (Object.keys(cols).length === 0) {
         cols = await fetchColumnsForMultipleTables(filteredTables.map(t => t.table_name));
       }
-      exportDbDiagramToPdf({
+      // Grab the actual ReactFlow diagram DOM element
+      const diagramEl = document.getElementById('db-diagram-canvas');
+      await exportDbDiagramToPdf({
         module: currentModule || null,
         tables: filteredTables,
         relationships: filteredRelationships,
         columnsMap: cols,
         pageSize: settings.pageSize,
         orientation: settings.orientation,
+        diagramElement: diagramEl,
       });
       toast.success('PDF exported successfully');
       setShowExportDialog(false);
@@ -673,7 +676,7 @@ function DiagramCanvas({ nodes, edges, onNodesChange, onEdgesChange, onEdgeClick
   }
 
   return (
-    <Card className="h-[700px]">
+    <Card className="h-[700px]" id="db-diagram-canvas">
       <ReactFlow
         nodes={nodes}
         edges={edges}
