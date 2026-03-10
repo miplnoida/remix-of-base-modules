@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon } from 'lucide-react';
+import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
