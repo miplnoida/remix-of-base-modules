@@ -197,7 +197,7 @@ export default function DataEntryGrid({
   const findNextEnabledCol = useCallback((rowIdx: number, currentColIdx: number, forward: boolean): { rowIdx: number; field: string } | null => {
     const row = rows[rowIdx];
     if (!row) return null;
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     
     const step = forward ? 1 : -1;
     let nextCol = currentColIdx + step;
