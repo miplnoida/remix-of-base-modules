@@ -11,7 +11,16 @@ import { FileDown } from 'lucide-react';
 export interface PdfExportSettings {
   pageSize: string;
   orientation: 'portrait' | 'landscape';
+  zoomLevel: number;
 }
+
+const ZOOM_LEVELS = [
+  { value: 25, label: '25% – Ultra compact (most tables on one page)' },
+  { value: 50, label: '50% – Compact overview' },
+  { value: 75, label: '75% – Balanced (recommended)' },
+  { value: 100, label: '100% – Full size (as on screen)' },
+  { value: 150, label: '150% – Enlarged detail' },
+];
 
 const PAGE_SIZES = [
   { value: 'a4', label: 'A4 (210 × 297 mm)' },
