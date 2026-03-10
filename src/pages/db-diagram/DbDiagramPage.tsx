@@ -125,19 +125,57 @@ function DbDiagramInner() {
     enabled: !!currentModule?.id || viewMode === 'enterprise',
   });
 
+  // Fetch saved layouts for current module
+  const { data: savedLayouts = [], refetch: refetchLayouts } = useQuery({
+    queryKey: ['db-diagram-layouts', currentModule?.id],
+    queryFn: () => fetchSavedLayouts(currentModule!.id),
+    enabled: !!currentModule?.id,
+  });
+
+  // Fetch ALL tables for add-table picker
+  const { data: allDbTables = [] } = useQuery({
+    queryKey: ['db-diagram-all-tables'],
+    queryFn: fetchAllTables,
+  });
+
   useEffect(() => {
     if (user && currentModule) {
       logAccess(currentModule.id, user.id, user.email || '', 'view', `Viewed ${currentModule.module_name} diagram`);
     }
   }, [user, currentModule]);
 
+  // Reset extra/excluded when module changes
+  useEffect(() => {
+    setExtraTableIds(new Set());
+    setExcludedTableIds(new Set());
+  }, [currentModule?.id]);
+
+  // Load default layout on module change
+  useEffect(() => {
+    if (savedLayouts.length > 0 && currentModule) {
+      const defaultLayout = savedLayouts.find(l => l.is_default);
+      if (defaultLayout) {
+        applyLayout(defaultLayout);
+      }
+    }
+  }, [savedLayouts, currentModule?.id]);
+
   const filteredTables = useMemo(() => {
     let result = tables;
+    // Add extra tables from other modules
+    if (extraTableIds.size > 0) {
+      const extraTables = allDbTables.filter(t => extraTableIds.has(t.id) && !tables.some(mt => mt.id === t.id));
+      result = [...result, ...extraTables];
+    }
+    // Remove excluded tables
+    if (excludedTableIds.size > 0) {
+      result = result.filter(t => !excludedTableIds.has(t.id));
+    }
     if (!showAuditTables) result = result.filter(t => t.table_category !== 'audit_log');
     if (!showLookupTables) result = result.filter(t => t.table_category !== 'reference_lookup');
     if (searchTerm) result = result.filter(t => t.table_name.toLowerCase().includes(searchTerm.toLowerCase()));
     return result;
-  }, [tables, showAuditTables, showLookupTables, searchTerm]);
+  }, [tables, allDbTables, extraTableIds, excludedTableIds, showAuditTables, showLookupTables, searchTerm]);
 
   const filteredRelationships = useMemo(() => {
     const tableIds = new Set(filteredTables.map(t => t.id));
