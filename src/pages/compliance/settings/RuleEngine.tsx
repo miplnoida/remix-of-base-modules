@@ -175,10 +175,10 @@ const DetectionRuleDialog = ({
           </div>
           <div className="space-y-1.5">
             <Label>Linked Violation Type</Label>
-            <Select value={form.violation_type_id} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v }))}>
+            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Select violation type..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -295,10 +295,10 @@ const CalculationRuleDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Fund Type</Label>
-              <Select value={form.fund_type || ''} onValueChange={v => setForm(p => ({ ...p, fund_type: v }))}>
+              <Select value={form.fund_type || '__all__'} onValueChange={v => setForm(p => ({ ...p, fund_type: v === '__all__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="All Funds" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Funds</SelectItem>
+                  <SelectItem value="__all__">All Funds</SelectItem>
                   {['SS', 'LV', 'EI', 'SV'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                 </SelectContent>
               </Select>
