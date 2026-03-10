@@ -157,9 +157,9 @@ const ComplianceRoutes = () => {
       <Route path="/settings/rule-engine" element={<RuleEngine />} />
       <Route path="/settings/violation-types" element={<ViolationTypes />} />
       <Route path="/settings/number-templates" element={<NumberTemplates />} />
-      <Route path="/settings/risk-config" element={<RiskScoringConfig />} />
+      <Route path="/settings/risk-config" element={<RiskRulePolicy />} />
       <Route path="/settings/risk-policy" element={<RiskRulePolicy />} />
-      <Route path="/settings/legal-escalation-policy" element={<LegalEscalationPolicy />} />
+      <Route path="/settings/legal-escalation-policy" element={<RiskRulePolicy />} />
       <Route path="/settings/templates" element={<ComplianceTemplates />} />
 
       {/* Reports */}
