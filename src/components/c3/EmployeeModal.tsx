@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Save, X, Loader2, AlertCircle, User, CalendarDays, DollarSign, ShieldCheck, Gift, Palmtree, Clock } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getEnabledWeekTextboxes, getMondayCount, getMondaysInMonth } from '@/utils/weekCalculations';
+import { useBiweeklyEnabledWeeks } from '@/hooks/useBiweeklyEnabledWeeks';
 import { useC3EmployeeCalculation, formatCurrency } from '@/hooks/useC3EmployeeCalculation';
 import { useBonusPolicyCalculation } from '@/hooks/useBonusPolicyCalculation';
 import { usePendingHolidayPay } from '@/hooks/useHolidayPayCalculation';

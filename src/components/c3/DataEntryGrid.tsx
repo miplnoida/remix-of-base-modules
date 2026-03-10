@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Save, Trash2, Check, Loader2, AlertCircle, X, Keyboard, Palmtree } from 'lucide-react';
 import { useEmployerValidation } from '@/hooks/useEmployerValidation';
 import { getMondayCount, getEnabledWeekTextboxes } from '@/utils/weekCalculations';
+import { useBiweeklyEnabledWeeks } from '@/hooks/useBiweeklyEnabledWeeks';
 import { EmployeeData } from '@/components/c3/EmployeeModal';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
