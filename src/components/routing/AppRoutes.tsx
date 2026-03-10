@@ -69,7 +69,7 @@ import ComplianceJobHistory from '@/pages/compliance/automation/JobHistory';
 import ComplianceRuleEngine from '@/pages/compliance/settings/RuleEngine';
 import ComplianceViolationTypes from '@/pages/compliance/settings/ViolationTypes';
 import ComplianceNumberTemplates from '@/pages/compliance/settings/NumberTemplates';
-// ComplianceRiskScoringConfig removed — consolidated into RiskRulePolicy
+import ComplianceRiskScoringConfig from '@/pages/compliance/settings/RiskScoringConfig';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
