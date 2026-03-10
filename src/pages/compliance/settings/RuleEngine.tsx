@@ -585,6 +585,7 @@ const DetectionRuleDialog = ({
             <ConditionBuilder
               value={form.condition_expression}
               onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
+              variables={conditionVars}
             />
           </div>
           <div className="space-y-1.5">
