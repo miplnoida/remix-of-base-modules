@@ -450,7 +450,7 @@ const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange
 // ── Detection Rule Dialog ──
 
 const DetectionRuleDialog = ({
-  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -459,6 +459,7 @@ const DetectionRuleDialog = ({
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
+  conditionVars: ConditionVar[];
 }) => {
   const isEdit = !!rule;
   const [form, setForm] = useState({
