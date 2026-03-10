@@ -20136,7 +20136,7 @@ export type Database = {
         Args: {
           p_month: number
           p_period_date: string
-          p_policy_type?: string
+          p_policy_type: string
           p_year: number
         }
         Returns: Json
