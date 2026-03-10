@@ -1195,6 +1195,7 @@ const RuleEngine = () => {
         onSave={data => saveDetection.mutate(data)}
         saving={saveDetection.isPending}
         existingCodes={detectionRules.map(r => r.rule_code)}
+        conditionVars={conditionVars}
       />
       <CalculationRuleDialog
         open={calcDialogOpen}
@@ -1203,6 +1204,7 @@ const RuleEngine = () => {
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
         existingCodes={calculationRules.map(r => r.rule_code)}
+        formulaOps={formulaOps}
       />
       <EscalationRuleDialog
         open={escDialogOpen}
@@ -1211,6 +1213,7 @@ const RuleEngine = () => {
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
+        conditionVars={conditionVars}
       />
     </div>
   );
