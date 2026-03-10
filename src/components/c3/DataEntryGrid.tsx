@@ -474,7 +474,7 @@ export default function DataEntryGrid({
 
     updateRow(rowIdx, { isSaving: true });
 
-    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate);
+    const enabledTextboxes = getEnabledWeekTextboxes(row.payPeriod || 'Monthly', periodYear, periodMonth, periodTermStartDate, biweeklyEnabledWeeks);
     const effectiveWages = row.weeklyWages.map((w, i) => {
       if (i < 5) return (row.days[i] && enabledTextboxes[i]) ? w : 0;
       if (i === 5) return row.days[5] ? w : 0;
