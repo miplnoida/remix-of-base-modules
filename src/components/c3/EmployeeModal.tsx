@@ -173,14 +173,18 @@ export default function EmployeeModal({
   const mondays = getMondaysInMonth(safePeriodYear, safePeriodMonth);
   const enabledWeekCheckboxes = [true, true, true, true, mondayCount >= 5];
 
+  // Fetch backend-driven bi-weekly enabled weeks (ISO even-week rule)
+  const { enabledWeeks: biweeklyEnabledWeeks } = useBiweeklyEnabledWeeks(safePeriodYear, safePeriodMonth);
+
   const enabledTextboxes = useMemo(() => {
     return getEnabledWeekTextboxes(
       localEmployee.payPeriod || 'Monthly',
       safePeriodYear,
       safePeriodMonth,
-      localEmployee.termStartDate
+      localEmployee.termStartDate,
+      biweeklyEnabledWeeks
     ) || [false, false, false, false, false];
-  }, [localEmployee.payPeriod, safePeriodYear, safePeriodMonth, localEmployee.termStartDate]);
+  }, [localEmployee.payPeriod, safePeriodYear, safePeriodMonth, localEmployee.termStartDate, biweeklyEnabledWeeks]);
 
   // Which week indices are "generated" (exist in this month)
   const generatedWeekIndices = useMemo(() => {
