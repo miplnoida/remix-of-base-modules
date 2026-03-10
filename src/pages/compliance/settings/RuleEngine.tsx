@@ -711,6 +711,7 @@ const CalculationRuleDialog = ({
             <FormulaBuilder
               value={form.formula_expression}
               onChange={v => setForm(p => ({ ...p, formula_expression: v }))}
+              operands={formulaOps}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
