@@ -75,9 +75,18 @@ export interface C3CalculationTotals {
   employersThreePercentLevyPlusSS: number;
   employersOnePercentSeverancePay: number;
   dueDate: string;
+  filingDeadline: string;
   daysLate: number;
   additional30DayPeriods: number;
   monthsLate: number;
+  delayPeriods: number;
+  initialPenaltyPeriods: number;
+  subsequentPenaltyPeriods: number;
+  filingWindowUnit: string;
+  filingWindowValue: number;
+  penaltyInitialThreshold: number;
+  penaltySubsequentThreshold: number;
+  weekStartDay: number;
   levyPenaltyBase: number;
   severancePenaltyBase: number;
   ssFinBase: number;
