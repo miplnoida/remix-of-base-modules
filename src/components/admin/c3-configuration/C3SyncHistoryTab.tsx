@@ -249,6 +249,15 @@ export function C3SyncHistoryTab() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : summaryError ? (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+              <p className="font-medium">Unable to load change details</p>
+              <p className="text-sm mt-1">
+                {(summaryError as Error).message?.includes('permission denied')
+                  ? 'The C3-Wizard system has not yet granted access to the change history table. Please contact the C3-Wizard team to enable the "wiz_config_change_history" table permissions.'
+                  : (summaryError as Error).message}
+              </p>
+            </div>
           ) : summary ? (
             <div className="space-y-6">
               {summary.total_changes === 0 ? (
