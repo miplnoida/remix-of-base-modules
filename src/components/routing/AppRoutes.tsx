@@ -352,6 +352,7 @@ import AdminRoleList from '@/pages/admin/roles/RoleList';
 import PasswordPolicySettings from '@/pages/admin/security/PasswordPolicySettings';
 import MFASettings from '@/pages/admin/security/MFASettings';
 import SecurityPolicySettingsPage from '@/pages/admin/security/SecurityPolicySettings';
+import IPAccessRulesManagement from '@/pages/admin/security/IPAccessRulesManagement';
 import Maintenance from '@/pages/Maintenance';
 
 // Profile Pages
