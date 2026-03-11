@@ -14518,6 +14518,75 @@ export type Database = {
           },
         ]
       }
+      module_doc_child_docs: {
+        Row: {
+          allowed_extensions: string[] | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          doc_type: string
+          document_name: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          max_file_size_mb: number | null
+          parent_alternate_id: string | null
+          parent_config_id: string
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_extensions?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          doc_type: string
+          document_name: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_file_size_mb?: number | null
+          parent_alternate_id?: string | null
+          parent_config_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_extensions?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          doc_type?: string
+          document_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_file_size_mb?: number | null
+          parent_alternate_id?: string | null
+          parent_config_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_doc_child_docs_parent_alternate_id_fkey"
+            columns: ["parent_alternate_id"]
+            isOneToOne: false
+            referencedRelation: "module_doc_child_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_doc_child_docs_parent_config_id_fkey"
+            columns: ["parent_config_id"]
+            isOneToOne: false
+            referencedRelation: "module_doc_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_doc_configs: {
         Row: {
           allow_alternate_doc: boolean | null
