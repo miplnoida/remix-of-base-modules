@@ -253,8 +253,8 @@ Deno.serve(async (req) => {
 
         if (fetchErr || !keyRow) return jsonResponse({ status: "error", message: "API key not found" }, 404);
 
-        if (!keyRow.encrypted_key) {
-          // Auto-regenerate the key since the original plain key cannot be recovered from a hash
+        // Helper to regenerate key
+        const regenerateKey = async () => {
           const newPlainKey = generateApiKey();
           const newKeyHash = await hashKey(newPlainKey);
           const newKeyPrefix = newPlainKey.substring(0, 8);
@@ -271,10 +271,21 @@ Deno.serve(async (req) => {
             status: "success",
             data: { id: keyRow.id, plain_key: newPlainKey, regenerated: true },
           });
+        };
+
+        if (!keyRow.encrypted_key) {
+          console.log("No encrypted key found, regenerating...");
+          return await regenerateKey();
         }
 
-        const plainKey = await decryptApiKey(keyRow.encrypted_key);
-        return jsonResponse({ status: "success", data: { id: keyRow.id, plain_key: plainKey } });
+        // Try to decrypt; if it fails (e.g. key rotation), auto-regenerate
+        try {
+          const plainKey = await decryptApiKey(keyRow.encrypted_key);
+          return jsonResponse({ status: "success", data: { id: keyRow.id, plain_key: plainKey } });
+        } catch (decryptErr) {
+          console.log("Decryption failed, auto-regenerating key:", decryptErr instanceof Error ? decryptErr.message : String(decryptErr));
+          return await regenerateKey();
+        }
       }
 
       case "regenerate": {
