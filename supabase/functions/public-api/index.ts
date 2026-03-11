@@ -297,6 +297,8 @@ async function executeHandler(
       return handleHealth(supabase);
     case "masterGet":
       return handleMasterGet(supabase, routeParams.resource, queryParams);
+    case "moduleDocuments":
+      return handleModuleDocuments(supabase, queryParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
