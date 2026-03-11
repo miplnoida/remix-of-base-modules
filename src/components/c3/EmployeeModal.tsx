@@ -400,7 +400,7 @@ export default function EmployeeModal({
       if (penaltyDebounceRef.current) clearTimeout(penaltyDebounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isViewMode, isOpen, effectiveWagesKey, otherPayments, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, receivedDate, periodYear, periodMonth, periodTermStartDate, allEmployees]);
+  }, [isViewMode, isOpen, effectiveWagesKey, otherPayments, localEmployee.payPeriod, localEmployee.dateOfBirth, localEmployee.termStartDate, localEmployee.ssn, localEmployee.name, localEmployee.holidayNoDates, localEmployee.holidayStartDate, localEmployee.holidayEndDate, receivedDate, periodYear, periodMonth, periodTermStartDate, allEmployees]);
 
   // Reset form when employee changes
   useEffect(() => {
