@@ -275,6 +275,7 @@ import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
 import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
 import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
+import DocumentConfigurationPage from '@/pages/admin/DocumentConfigurationPage';
 import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';
 import ExternalApiDocs from '@/pages/external/ExternalApiDocs';
 import PublicApiDocs from '@/pages/public/PublicApiDocs';
@@ -1077,6 +1078,7 @@ export const AppRoutes = () => {
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
+      <Route path="/admin/document-configuration" element={<ProtectedLayout><DocumentConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}

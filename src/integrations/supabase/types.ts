@@ -14471,6 +14471,124 @@ export type Database = {
           },
         ]
       }
+      module_doc_categories: {
+        Row: {
+          category_name: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          module_id: string
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category_name: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          module_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          module_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_doc_categories_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_doc_configs: {
+        Row: {
+          allow_alternate_doc: boolean | null
+          allowed_extensions: string[] | null
+          alternate_doc_name: string | null
+          alternate_requires_supportive: boolean | null
+          alternate_supportive_description: string | null
+          category_id: string
+          created_at: string | null
+          created_by: string | null
+          document_name: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          max_file_size_mb: number | null
+          requires_supportive_doc: boolean | null
+          sort_order: number | null
+          supportive_doc_description: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allow_alternate_doc?: boolean | null
+          allowed_extensions?: string[] | null
+          alternate_doc_name?: string | null
+          alternate_requires_supportive?: boolean | null
+          alternate_supportive_description?: string | null
+          category_id: string
+          created_at?: string | null
+          created_by?: string | null
+          document_name: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_file_size_mb?: number | null
+          requires_supportive_doc?: boolean | null
+          sort_order?: number | null
+          supportive_doc_description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allow_alternate_doc?: boolean | null
+          allowed_extensions?: string[] | null
+          alternate_doc_name?: string | null
+          alternate_requires_supportive?: boolean | null
+          alternate_supportive_description?: string | null
+          category_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          document_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_file_size_mb?: number | null
+          requires_supportive_doc?: boolean | null
+          sort_order?: number | null
+          supportive_doc_description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_doc_configs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "module_doc_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_tables: {
         Row: {
           created_at: string | null
