@@ -36,13 +36,13 @@ export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDel
         </Button>
       </div>
       {documents.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">No documents configured yet. Click "Add Document" to start.</p>
+        <p className="text-sm text-muted-foreground text-center py-6 italic">No documents configured yet. Click "Add Document" to start.</p>
       ) : (
         <div className="space-y-2">
           {documents.map(doc => {
             const isExpanded = expandedDocs.has(doc.id);
             return (
-              <div key={doc.id} className={`border rounded-lg ${!doc.is_active ? 'opacity-50' : ''}`}>
+              <div key={doc.id} className={`border rounded-lg transition-shadow ${!doc.is_active ? 'opacity-50' : 'hover:shadow-sm'}`}>
                 <Collapsible open={isExpanded} onOpenChange={() => toggleDoc(doc.id)}>
                   <div className="flex items-center justify-between p-3">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -51,16 +51,21 @@ export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDel
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       </CollapsibleTrigger>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{doc.document_name}</span>
                           <Badge variant={doc.is_required ? 'destructive' : 'secondary'} className="text-xs">
                             {doc.is_required ? 'Required' : 'Optional'}
                           </Badge>
+                          {doc.supportive_docs_rule === 'any_one_required' && (
+                            <Badge variant="outline" className="text-xs text-primary border-primary/40">
+                              Any 1 supportive
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">
                             {doc.allowed_extensions?.slice(0, 4).map(e => `.${e}`).join(', ')}
-                            {(doc.allowed_extensions?.length || 0) > 4 && ` +${doc.allowed_extensions.length - 4}`}
+                            {(doc.allowed_extensions?.length || 0) > 4 && ` +${doc.allowed_extensions!.length - 4}`}
                           </span>
                           <span className="text-xs text-muted-foreground">• Max {doc.max_file_size_mb} MB</span>
                         </div>
@@ -78,7 +83,7 @@ export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDel
                   </div>
                   <CollapsibleContent>
                     <div className="px-3 pb-3">
-                      <ChildDocumentsPanel configId={doc.id} moduleId={moduleId} />
+                      <ChildDocumentsPanel configId={doc.id} moduleId={moduleId} supportiveDocsRule={doc.supportive_docs_rule || 'all_required'} />
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
