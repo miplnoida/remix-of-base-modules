@@ -33,3 +33,37 @@
 ### Phase 5: Navigation Updated ✅
 - Sidebar group renamed "Audit Universe & Risk" → "Risk Assessment"
 - Removed `/audit/audit-universe` from navigation routes
+
+---
+
+# Document Configuration Feature — Completed
+
+## Changes Implemented
+
+### Database Schema ✅
+- Created `module_doc_categories` table (FK to `app_modules`, unique on module+name)
+- Created `module_doc_configs` table (FK to categories, unique on category+name)
+- Full audit fields (created_by, updated_by, timestamps)
+- Active/inactive status on both tables
+
+### Global Settings UI ✅
+- New route: `/admin/document-configuration`
+- Page: `DocumentConfigurationPage.tsx`
+- Components: `ModuleSelector`, `CategoryList`, `CategoryFormModal`, `DocumentFormModal`, `DocumentList`
+- Module dropdown loads from `app_modules` table
+- Collapsible category cards with document tables inside
+- Full CRUD for categories and documents
+- Toggle active/inactive on both levels
+- Document form includes: name, required/optional, allowed extensions, max file size, supportive doc rules, alternate doc rules
+
+### Public API Endpoint ✅
+- `GET /api/v1/module-documents?module=<module_name>`
+- Returns active categories and documents structured by category
+- Validates module identifier, returns 404 for invalid
+- Registered in `api_registry` table
+- Deployed to edge function `public-api`
+
+### Service Hook ✅
+- `useDocumentConfiguration.ts` with queries and mutations
+- All mutations use `useUserCode()` for audit trail
+- Proper cache invalidation via react-query
