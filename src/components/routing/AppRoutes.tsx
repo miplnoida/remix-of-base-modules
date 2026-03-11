@@ -275,6 +275,7 @@ import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
 import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
 import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
+import DocumentConfigurationPage from '@/pages/admin/DocumentConfigurationPage';
 import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';
 import ExternalApiDocs from '@/pages/external/ExternalApiDocs';
 import PublicApiDocs from '@/pages/public/PublicApiDocs';
