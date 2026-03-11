@@ -290,7 +290,7 @@ const IPAccessRulesManagement: React.FC = () => {
                             onCheckedChange={() => toggleMutation.mutate(rule)}
                             disabled={toggleMutation.isPending}
                           />
-                          <span className={rule.is_active ? 'text-green-600 text-sm' : 'text-muted-foreground text-sm'}>
+                          <span className={`text-sm ${rule.is_active ? 'text-primary' : 'text-muted-foreground'}`}>
                             {rule.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
