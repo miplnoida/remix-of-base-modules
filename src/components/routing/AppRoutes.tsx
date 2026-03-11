@@ -352,6 +352,7 @@ import AdminRoleList from '@/pages/admin/roles/RoleList';
 import PasswordPolicySettings from '@/pages/admin/security/PasswordPolicySettings';
 import MFASettings from '@/pages/admin/security/MFASettings';
 import SecurityPolicySettingsPage from '@/pages/admin/security/SecurityPolicySettings';
+import IPAccessRulesManagement from '@/pages/admin/security/IPAccessRulesManagement';
 import Maintenance from '@/pages/Maintenance';
 
 // Profile Pages
@@ -1063,6 +1064,7 @@ export const AppRoutes = () => {
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
       <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
       <Route path="/admin/security/policy" element={<ProtectedLayout><SecurityPolicySettingsPage /></ProtectedLayout>} />
+      <Route path="/admin/security/ip-access" element={<ProtectedLayout><IPAccessRulesManagement /></ProtectedLayout>} />
       <Route path="/admin/designations" element={<ProtectedLayout><DesignationManagement /></ProtectedLayout>} />
       <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />

@@ -107,6 +107,13 @@ export const userMenuItems = [
         description: "Configure multi-factor authentication"
       },
       {
+        title: "IP Access Control",
+        url: "/admin/security/ip-access",
+        icon: Shield,
+        requiresPermission: "system_admin",
+        description: "Manage IP whitelist rules"
+      },
+      {
         title: "Audit Logs",
         url: "/admin/audit-logs",
         icon: FileText,
