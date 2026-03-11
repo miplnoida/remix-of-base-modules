@@ -11319,6 +11319,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_access_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          range_end_ip: string | null
+          range_start_ip: string | null
+          remarks: string | null
+          rule_type: string
+          single_ip: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          range_end_ip?: string | null
+          range_start_ip?: string | null
+          remarks?: string | null
+          rule_type: string
+          single_ip?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          range_end_ip?: string | null
+          range_start_ip?: string | null
+          remarks?: string | null
+          rule_type?: string
+          single_ip?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ip_application_documents: {
         Row: {
           application_reference_number: string | null
@@ -19719,6 +19761,7 @@ export type Database = {
           ssn: string
         }[]
       }
+      check_ip_whitelist: { Args: { p_ip_address: string }; Returns: Json }
       check_meeting_overlap: {
         Args: {
           p_assigned_user_id: string
@@ -20344,7 +20387,7 @@ export type Database = {
         Args: {
           p_month: number
           p_period_date: string
-          p_policy_type: string
+          p_policy_type?: string
           p_year: number
         }
         Returns: Json
@@ -20405,6 +20448,19 @@ export type Database = {
           p_user_code?: string
         }
         Returns: boolean
+      }
+      validate_and_save_ip_rule: {
+        Args: {
+          p_id?: string
+          p_is_active?: boolean
+          p_range_end_ip?: string
+          p_range_start_ip?: string
+          p_remarks?: string
+          p_rule_type?: string
+          p_single_ip?: string
+          p_user_code?: string
+        }
+        Returns: Json
       }
       validate_application_for_conversion: {
         Args: {
