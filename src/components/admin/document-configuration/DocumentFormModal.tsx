@@ -7,6 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 import type { DocConfig } from '@/hooks/useDocumentConfiguration';
 
 interface Props {
@@ -21,7 +26,9 @@ interface Props {
 const COMMON_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'tif', 'tiff', 'bmp', 'gif'];
 
 export default function DocumentFormModal({ open, onClose, onSave, doc, categoryId, isPending }: Props) {
-  const [name, setName] = useState('');
+  const { data: verifyTypes = [] } = useVerifyTypes();
+  const [docCode, setDocCode] = useState('');
+  const [docCodeOpen, setDocCodeOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isRequired, setIsRequired] = useState(true);
   const [extensions, setExtensions] = useState<string[]>(['pdf', 'jpg', 'png']);
@@ -34,7 +41,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
 
   useEffect(() => {
     if (doc) {
-      setName(doc.document_name);
+      setDocCode(doc.document_name);
       setDescription((doc as any).description || '');
       setIsRequired(doc.is_required);
       setExtensions(doc.allowed_extensions || []);
@@ -43,7 +50,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
       setIsActive(doc.is_active);
       setSupportiveDocsRule(doc.supportive_docs_rule || 'all_required');
     } else {
-      setName(''); setDescription(''); setIsRequired(true);
+      setDocCode(''); setDescription(''); setIsRequired(true);
       setExtensions(['pdf', 'jpg', 'png']); setMaxSize(5);
       setSortOrder(0); setIsActive(true); setSupportiveDocsRule('all_required');
     }
@@ -61,7 +68,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Document name is required';
+    if (!docCode) e.name = 'Please select a document type from the list';
     if (extensions.length === 0) e.ext = 'At least one extension is required';
     if (maxSize <= 0 || maxSize > 100) e.maxSize = 'Must be 0.1–100 MB';
     setErrors(e);
@@ -72,7 +79,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
     if (!validate()) return;
     onSave({
       category_id: categoryId,
-      document_name: name.trim(),
+      document_name: docCode,
       is_required: isRequired,
       allowed_extensions: extensions,
       max_file_size_mb: maxSize,
@@ -94,19 +101,62 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
     } as any);
   };
 
+  const selectedVerify = verifyTypes.find(v => v.code === docCode);
+
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{doc ? 'Edit Document' : 'Add Document'}</DialogTitle>
           <DialogDescription>
-            Configure the main document settings. You can add supportive and alternate documents after saving.
+            Select a document type from the master list. You can add supportive and alternate documents after saving.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Document Name *</Label>
-            <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }} placeholder="e.g. National ID" />
+            <Label>Document Type *</Label>
+            <Popover open={docCodeOpen} onOpenChange={setDocCodeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={docCodeOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {selectedVerify
+                      ? `${selectedVerify.description} (${selectedVerify.code})`
+                      : 'Select document type…'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search document types…" />
+                  <CommandList>
+                    <CommandEmpty>No document type found.</CommandEmpty>
+                    <CommandGroup>
+                      {verifyTypes.map(vt => (
+                        <CommandItem
+                          key={vt.code}
+                          value={`${vt.description} ${vt.code}`}
+                          onSelect={() => {
+                            setDocCode(vt.code);
+                            setDocCodeOpen(false);
+                            setErrors(p => ({ ...p, name: '' }));
+                          }}
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', docCode === vt.code ? 'opacity-100' : 'opacity-0')} />
+                          <span className="flex-1 truncate">{vt.description}</span>
+                          <Badge variant="outline" className="ml-2 text-xs shrink-0">{vt.code}</Badge>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 

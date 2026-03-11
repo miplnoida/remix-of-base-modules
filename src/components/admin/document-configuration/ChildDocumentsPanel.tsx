@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useChildDocs, useChildDocMutations } from '@/hooks/useDocumentConfiguration';
+import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import type { ChildDoc } from '@/hooks/useDocumentConfiguration';
 import ChildDocFormModal from './ChildDocFormModal';
 
@@ -19,6 +20,7 @@ interface Props {
 export default function ChildDocumentsPanel({ configId, moduleId, supportiveDocsRule }: Props) {
   const { data: childDocs = [] } = useChildDocs(configId);
   const { createChildDoc, updateChildDoc, deleteChildDoc } = useChildDocMutations(moduleId);
+  const { resolveDocType } = useDocumentTypeResolver();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDocType, setModalDocType] = useState<'supportive' | 'alternate'>('supportive');
@@ -66,7 +68,8 @@ export default function ChildDocumentsPanel({ configId, moduleId, supportiveDocs
     <div key={child.id} className={`flex items-center justify-between py-2.5 px-3 rounded-lg border transition-colors ${!child.is_active ? 'opacity-50' : ''} ${isAltSupportive ? 'bg-muted/30 ml-6 border-dashed' : 'bg-background hover:bg-muted/20'}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-sm truncate">{child.document_name}</span>
+          <span className="font-medium text-sm truncate">{resolveDocType(child.document_name)}</span>
+          <Badge variant="outline" className="text-xs font-mono shrink-0">{child.document_name}</Badge>
           <Badge variant={child.is_required ? 'destructive' : 'secondary'} className="text-xs shrink-0">
             {child.is_required ? 'Required' : 'Optional'}
           </Badge>
@@ -168,7 +171,8 @@ export default function ChildDocumentsPanel({ configId, moduleId, supportiveDocs
                           <CollapsibleTrigger className="flex items-center gap-1 hover:text-primary">
                             {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                           </CollapsibleTrigger>
-                          <span className="font-medium text-sm truncate">{alt.document_name}</span>
+                          <span className="font-medium text-sm truncate">{resolveDocType(alt.document_name)}</span>
+                          <Badge variant="outline" className="text-xs font-mono shrink-0">{alt.document_name}</Badge>
                           <Badge variant={alt.is_required ? 'destructive' : 'secondary'} className="text-xs shrink-0">
                             {alt.is_required ? 'Required' : 'Optional'}
                           </Badge>

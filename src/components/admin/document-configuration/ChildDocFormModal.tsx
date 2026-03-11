@@ -6,6 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useVerifyTypes } from '@/hooks/useIPMasterLookups';
 import type { ChildDoc } from '@/hooks/useDocumentConfiguration';
 
 interface Props {
@@ -22,7 +27,9 @@ interface Props {
 const COMMON_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'tif', 'tiff', 'bmp', 'gif'];
 
 export default function ChildDocFormModal({ open, onClose, onSave, childDoc, parentConfigId, parentAlternateId, docType, isPending }: Props) {
-  const [name, setName] = useState('');
+  const { data: verifyTypes = [] } = useVerifyTypes();
+  const [docCode, setDocCode] = useState('');
+  const [docCodeOpen, setDocCodeOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isRequired, setIsRequired] = useState(false);
   const [extensions, setExtensions] = useState<string[]>(['pdf', 'jpg', 'png']);
@@ -34,7 +41,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
 
   useEffect(() => {
     if (childDoc) {
-      setName(childDoc.document_name);
+      setDocCode(childDoc.document_name);
       setDescription(childDoc.description || '');
       setIsRequired(childDoc.is_required);
       setExtensions(childDoc.allowed_extensions || []);
@@ -42,7 +49,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
       setSortOrder(childDoc.sort_order);
       setIsActive(childDoc.is_active);
     } else {
-      setName(''); setDescription(''); setIsRequired(docType === 'supportive' ? false : false);
+      setDocCode(''); setDescription(''); setIsRequired(false);
       setExtensions(['pdf', 'jpg', 'png']); setMaxSize(5);
       setSortOrder(0); setIsActive(true);
     }
@@ -60,7 +67,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Document name is required';
+    if (!docCode) e.name = 'Please select a document type from the list';
     if (extensions.length === 0) e.ext = 'At least one extension is required';
     if (maxSize <= 0 || maxSize > 100) e.maxSize = 'Must be 0.1–100 MB';
     setErrors(e);
@@ -73,7 +80,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
       parent_config_id: parentConfigId,
       parent_alternate_id: parentAlternateId || null,
       doc_type: docType,
-      document_name: name.trim(),
+      document_name: docCode,
       description: description.trim() || null,
       is_required: isRequired,
       allowed_extensions: extensions,
@@ -84,6 +91,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
   };
 
   const typeLabel = docType === 'supportive' ? 'Supportive Document' : 'Alternate Document';
+  const selectedVerify = verifyTypes.find(v => v.code === docCode);
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
@@ -93,8 +101,49 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Document Name *</Label>
-            <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }} placeholder={`e.g. ${docType === 'supportive' ? 'Cover Letter' : 'Passport'}`} />
+            <Label>Document Type *</Label>
+            <Popover open={docCodeOpen} onOpenChange={setDocCodeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={docCodeOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {selectedVerify
+                      ? `${selectedVerify.description} (${selectedVerify.code})`
+                      : 'Select document type…'}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search document types…" />
+                  <CommandList>
+                    <CommandEmpty>No document type found.</CommandEmpty>
+                    <CommandGroup>
+                      {verifyTypes.map(vt => (
+                        <CommandItem
+                          key={vt.code}
+                          value={`${vt.description} ${vt.code}`}
+                          onSelect={() => {
+                            setDocCode(vt.code);
+                            setDocCodeOpen(false);
+                            setErrors(p => ({ ...p, name: '' }));
+                          }}
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', docCode === vt.code ? 'opacity-100' : 'opacity-0')} />
+                          <span className="flex-1 truncate">{vt.description}</span>
+                          <Badge variant="outline" className="ml-2 text-xs shrink-0">{vt.code}</Badge>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
@@ -106,7 +155,7 @@ export default function ChildDocFormModal({ open, onClose, onSave, childDoc, par
           <div className="grid grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <Switch checked={isRequired} onCheckedChange={setIsRequired} />
-              <Label className="text-sm">{docType === 'supportive' ? 'Required' : 'Required'}</Label>
+              <Label className="text-sm">Required</Label>
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Sort Order</Label>
