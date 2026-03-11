@@ -1078,6 +1078,7 @@ export const AppRoutes = () => {
       <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
       <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
+      <Route path="/admin/document-configuration" element={<ProtectedLayout><DocumentConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
