@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Edit, Trash2, Plus, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { useDocumentTypeResolver } from '@/hooks/useDocumentTypeResolver';
 import type { DocConfig } from '@/hooks/useDocumentConfiguration';
 import ChildDocumentsPanel from './ChildDocumentsPanel';
 
@@ -18,6 +19,7 @@ interface Props {
 
 export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDelete, onToggleActive }: Props) {
   const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+  const { resolveDocType } = useDocumentTypeResolver();
 
   const toggleDoc = (id: string) => {
     setExpandedDocs(prev => {
@@ -52,7 +54,8 @@ export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDel
                       </CollapsibleTrigger>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{doc.document_name}</span>
+                          <span className="font-medium text-sm">{resolveDocType(doc.document_name)}</span>
+                          <Badge variant="outline" className="text-xs font-mono">{doc.document_name}</Badge>
                           <Badge variant={doc.is_required ? 'destructive' : 'secondary'} className="text-xs">
                             {doc.is_required ? 'Required' : 'Optional'}
                           </Badge>
