@@ -22,7 +22,6 @@ import { Loader2, Plus, Pencil, Trash2, Shield, Globe, ChevronLeft, ChevronRight
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { logAuditTrail } from '@/services/auditService';
-import { formatDateForDisplay } from '@/lib/format-config';
 
 const PAGE_SIZE = 20;
 
