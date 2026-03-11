@@ -238,7 +238,9 @@ Deno.serve(async (req) => {
         if (!key_id) return jsonResponse({ status: "error", message: "key_id is required" }, 400);
 
         // Admin-only check
+        console.log("Reveal key requested by user:", userId, "for key:", key_id);
         const adminCheck = await isAdmin(supabase, userId);
+        console.log("Admin check result:", adminCheck);
         if (!adminCheck) {
           return jsonResponse({ status: "error", message: "Only administrators can reveal API keys" }, 403);
         }
