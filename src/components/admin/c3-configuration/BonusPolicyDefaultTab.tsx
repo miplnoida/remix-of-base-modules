@@ -244,7 +244,8 @@ export function BonusPolicyDefaultTab() {
             </div>
 
             {/* 2. Calculation Method */}
-            <SectionLabel>Bonus Calculation Method</SectionLabel>
+            <div className={!form.include_in_levy ? 'opacity-50 pointer-events-none' : ''}>
+            <SectionLabel>Bonus Calculation Method {!form.include_in_levy && <Badge variant="outline" className="text-xs ml-2">Disabled — Levy excluded</Badge>}</SectionLabel>
             <div className="space-y-3">
               <RadioOption selected={form.calculation_method === 'merge'} onClick={() => setField('calculation_method', 'merge')} label="Merge bonus with regular earnings" hint="Bonus is combined into the standard pay run" />
               <RadioOption selected={form.calculation_method === 'separate'} onClick={() => setField('calculation_method', 'separate')} label="Calculate bonus separately" hint="Bonus is processed in an isolated calculation" />
@@ -264,6 +265,7 @@ export function BonusPolicyDefaultTab() {
                   )}
                 </div>
               )}
+            </div>
             </div>
 
             {/* 3. Distribution (only for merge) — single-select radio */}
