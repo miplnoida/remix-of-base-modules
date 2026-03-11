@@ -14522,9 +14522,13 @@ export type Database = {
         Row: {
           allow_alternate_doc: boolean | null
           allowed_extensions: string[] | null
+          alternate_allowed_extensions: string[] | null
           alternate_doc_name: string | null
+          alternate_max_file_size_mb: number | null
           alternate_requires_supportive: boolean | null
+          alternate_supportive_allowed_extensions: string[] | null
           alternate_supportive_description: string | null
+          alternate_supportive_max_file_size_mb: number | null
           category_id: string
           created_at: string | null
           created_by: string | null
@@ -14535,16 +14539,22 @@ export type Database = {
           max_file_size_mb: number | null
           requires_supportive_doc: boolean | null
           sort_order: number | null
+          supportive_allowed_extensions: string[] | null
           supportive_doc_description: string | null
+          supportive_max_file_size_mb: number | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
           allow_alternate_doc?: boolean | null
           allowed_extensions?: string[] | null
+          alternate_allowed_extensions?: string[] | null
           alternate_doc_name?: string | null
+          alternate_max_file_size_mb?: number | null
           alternate_requires_supportive?: boolean | null
+          alternate_supportive_allowed_extensions?: string[] | null
           alternate_supportive_description?: string | null
+          alternate_supportive_max_file_size_mb?: number | null
           category_id: string
           created_at?: string | null
           created_by?: string | null
@@ -14555,16 +14565,22 @@ export type Database = {
           max_file_size_mb?: number | null
           requires_supportive_doc?: boolean | null
           sort_order?: number | null
+          supportive_allowed_extensions?: string[] | null
           supportive_doc_description?: string | null
+          supportive_max_file_size_mb?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
           allow_alternate_doc?: boolean | null
           allowed_extensions?: string[] | null
+          alternate_allowed_extensions?: string[] | null
           alternate_doc_name?: string | null
+          alternate_max_file_size_mb?: number | null
           alternate_requires_supportive?: boolean | null
+          alternate_supportive_allowed_extensions?: string[] | null
           alternate_supportive_description?: string | null
+          alternate_supportive_max_file_size_mb?: number | null
           category_id?: string
           created_at?: string | null
           created_by?: string | null
@@ -14575,7 +14591,9 @@ export type Database = {
           max_file_size_mb?: number | null
           requires_supportive_doc?: boolean | null
           sort_order?: number | null
+          supportive_allowed_extensions?: string[] | null
           supportive_doc_description?: string | null
+          supportive_max_file_size_mb?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }

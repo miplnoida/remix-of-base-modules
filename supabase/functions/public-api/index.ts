@@ -237,7 +237,7 @@ async function handleModuleDocuments(
   if (catIds.length > 0) {
     const { data: docs, error: docErr } = await supabase
       .from("module_doc_configs")
-      .select("category_id, document_name, is_required, allowed_extensions, max_file_size_mb, requires_supportive_doc, supportive_doc_description, allow_alternate_doc, alternate_doc_name, alternate_requires_supportive, alternate_supportive_description, sort_order")
+      .select("category_id, document_name, is_required, allowed_extensions, max_file_size_mb, requires_supportive_doc, supportive_doc_description, supportive_allowed_extensions, supportive_max_file_size_mb, allow_alternate_doc, alternate_doc_name, alternate_allowed_extensions, alternate_max_file_size_mb, alternate_requires_supportive, alternate_supportive_description, alternate_supportive_allowed_extensions, alternate_supportive_max_file_size_mb, sort_order")
       .in("category_id", catIds)
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
