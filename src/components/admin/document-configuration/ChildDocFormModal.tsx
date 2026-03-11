@@ -6,23 +6,25 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import type { DocConfig } from '@/hooks/useDocumentConfiguration';
+import type { ChildDoc } from '@/hooks/useDocumentConfiguration';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Omit<DocConfig, 'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'>) => void;
-  doc?: DocConfig | null;
-  categoryId: string;
+  onSave: (data: Omit<ChildDoc, 'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'>) => void;
+  childDoc?: ChildDoc | null;
+  parentConfigId: string;
+  parentAlternateId?: string | null;
+  docType: 'supportive' | 'alternate';
   isPending?: boolean;
 }
 
 const COMMON_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'tif', 'tiff', 'bmp', 'gif'];
 
-export default function DocumentFormModal({ open, onClose, onSave, doc, categoryId, isPending }: Props) {
+export default function ChildDocFormModal({ open, onClose, onSave, childDoc, parentConfigId, parentAlternateId, docType, isPending }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isRequired, setIsRequired] = useState(true);
+  const [isRequired, setIsRequired] = useState(false);
   const [extensions, setExtensions] = useState<string[]>(['pdf', 'jpg', 'png']);
   const [maxSize, setMaxSize] = useState(5);
   const [sortOrder, setSortOrder] = useState(0);
@@ -31,21 +33,21 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (doc) {
-      setName(doc.document_name);
-      setDescription((doc as any).description || '');
-      setIsRequired(doc.is_required);
-      setExtensions(doc.allowed_extensions || []);
-      setMaxSize(doc.max_file_size_mb);
-      setSortOrder(doc.sort_order);
-      setIsActive(doc.is_active);
+    if (childDoc) {
+      setName(childDoc.document_name);
+      setDescription(childDoc.description || '');
+      setIsRequired(childDoc.is_required);
+      setExtensions(childDoc.allowed_extensions || []);
+      setMaxSize(childDoc.max_file_size_mb);
+      setSortOrder(childDoc.sort_order);
+      setIsActive(childDoc.is_active);
     } else {
-      setName(''); setDescription(''); setIsRequired(true);
+      setName(''); setDescription(''); setIsRequired(docType === 'supportive' ? false : false);
       setExtensions(['pdf', 'jpg', 'png']); setMaxSize(5);
       setSortOrder(0); setIsActive(true);
     }
     setExtInput(''); setErrors({});
-  }, [doc, open]);
+  }, [childDoc, open]);
 
   const addExt = () => {
     const ext = extInput.trim().toLowerCase().replace(/^\./, '');
@@ -68,51 +70,43 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
   const handleSubmit = () => {
     if (!validate()) return;
     onSave({
-      category_id: categoryId,
+      parent_config_id: parentConfigId,
+      parent_alternate_id: parentAlternateId || null,
+      doc_type: docType,
       document_name: name.trim(),
+      description: description.trim() || null,
       is_required: isRequired,
       allowed_extensions: extensions,
       max_file_size_mb: maxSize,
-      // Keep legacy fields with defaults
-      requires_supportive_doc: false,
-      supportive_doc_description: null,
-      supportive_allowed_extensions: null,
-      supportive_max_file_size_mb: null,
-      allow_alternate_doc: false,
-      alternate_doc_name: null,
-      alternate_allowed_extensions: null,
-      alternate_max_file_size_mb: null,
-      alternate_requires_supportive: false,
-      alternate_supportive_description: null,
-      alternate_supportive_allowed_extensions: null,
-      alternate_supportive_max_file_size_mb: null,
       sort_order: sortOrder,
       is_active: isActive,
-    } as any);
+    });
   };
+
+  const typeLabel = docType === 'supportive' ? 'Supportive Document' : 'Alternate Document';
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{doc ? 'Edit Document' : 'Add Document'}</DialogTitle>
+          <DialogTitle>{childDoc ? `Edit ${typeLabel}` : `Add ${typeLabel}`}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Document Name *</Label>
-            <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }} placeholder="e.g. National ID" />
+            <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }} placeholder={`e.g. ${docType === 'supportive' ? 'Cover Letter' : 'Passport'}`} />
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label>Description</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Brief description of this document" />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Brief description" />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <Switch checked={isRequired} onCheckedChange={setIsRequired} />
-              <Label className="text-sm">Required</Label>
+              <Label className="text-sm">{docType === 'supportive' ? 'Required' : 'Required'}</Label>
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Sort Order</Label>
@@ -154,7 +148,6 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
             {errors.ext && <p className="text-xs text-destructive">{errors.ext}</p>}
           </div>
 
-          {/* Max File Size */}
           <div className="space-y-1.5 max-w-[200px]">
             <Label>Max File Size (MB) *</Label>
             <Input type="number" step="0.1" min="0.1" max="100" value={maxSize} onChange={e => setMaxSize(Number(e.target.value))} />

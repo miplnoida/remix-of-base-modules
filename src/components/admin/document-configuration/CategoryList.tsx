@@ -117,6 +117,7 @@ export default function CategoryList({ moduleId }: Props) {
                   <CardContent className="pt-0 pb-4">
                     <DocumentList
                       documents={catDocs}
+                      moduleId={moduleId}
                       onAdd={() => { setEditingDoc(null); setDocModalCatId(cat.id); setDocModalOpen(true); }}
                       onEdit={doc => { setEditingDoc(doc); setDocModalCatId(cat.id); setDocModalOpen(true); }}
                       onDelete={doc => setDeleteDocTarget({ id: doc.id, category_id: doc.category_id })}

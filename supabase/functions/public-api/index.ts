@@ -237,7 +237,7 @@ async function handleModuleDocuments(
   if (catIds.length > 0) {
     const { data: docs, error: docErr } = await supabase
       .from("module_doc_configs")
-      .select("category_id, document_name, is_required, allowed_extensions, max_file_size_mb, requires_supportive_doc, supportive_doc_description, supportive_allowed_extensions, supportive_max_file_size_mb, allow_alternate_doc, alternate_doc_name, alternate_allowed_extensions, alternate_max_file_size_mb, alternate_requires_supportive, alternate_supportive_description, alternate_supportive_allowed_extensions, alternate_supportive_max_file_size_mb, sort_order")
+      .select("id, category_id, document_name, is_required, allowed_extensions, max_file_size_mb, sort_order")
       .in("category_id", catIds)
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
@@ -245,13 +245,49 @@ async function handleModuleDocuments(
     allDocs = docs || [];
   }
 
+  // Fetch all active child docs for these configs
+  const configIds = allDocs.map((d: any) => d.id);
+  let allChildDocs: any[] = [];
+  if (configIds.length > 0) {
+    const { data: children, error: childErr } = await supabase
+      .from("module_doc_child_docs")
+      .select("id, parent_config_id, parent_alternate_id, doc_type, document_name, description, is_required, allowed_extensions, max_file_size_mb, sort_order")
+      .in("parent_config_id", configIds)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (childErr) throw childErr;
+    allChildDocs = children || [];
+  }
+
+  // Build nested child doc structure
+  const buildChildDocs = (configId: string) => {
+    const supportive = allChildDocs
+      .filter((c: any) => c.parent_config_id === configId && c.doc_type === "supportive" && !c.parent_alternate_id)
+      .map(({ id, parent_config_id, parent_alternate_id, ...rest }: any) => rest);
+
+    const alternates = allChildDocs
+      .filter((c: any) => c.parent_config_id === configId && c.doc_type === "alternate" && !c.parent_alternate_id)
+      .map((alt: any) => {
+        const altSupportive = allChildDocs
+          .filter((c: any) => c.parent_alternate_id === alt.id && c.doc_type === "supportive")
+          .map(({ id, parent_config_id, parent_alternate_id, ...rest }: any) => rest);
+        const { id: altId, parent_config_id: _pc, parent_alternate_id: _pa, ...altRest } = alt;
+        return { ...altRest, supportive_documents: altSupportive };
+      });
+
+    return { supportive_documents: supportive, alternate_documents: alternates };
+  };
+
   // Structure response
   const result = (categories || []).map((cat: any) => ({
     category_name: cat.category_name,
     description: cat.description,
     documents: allDocs
       .filter((d: any) => d.category_id === cat.id)
-      .map(({ category_id, ...rest }: any) => rest),
+      .map(({ id, category_id, ...rest }: any) => ({
+        ...rest,
+        ...buildChildDocs(id),
+      })),
   }));
 
   return {
