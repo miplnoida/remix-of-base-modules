@@ -17,6 +17,7 @@ import { PIIUnlockDialog } from '@/components/security/PIIUnlockDialog';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
+import { IPAccessGate } from '@/components/security/IPAccessGate';
 import './App.css';
 
 // Setup global window error handlers
@@ -48,30 +49,32 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <SupabaseAuthProvider>
-            <SystemSettingsProvider>
-              <AuthProvider>
-                <NewBenefitAuthProvider>
-                  <LegalAuthProvider>
-                    <LegalCaseProvider>
-                      <Router>
-                        <SecurityPolicyProvider>
-                          <PIIMaskingProvider>
-                            <SystemLoggingProvider>
-                              <div className="min-h-screen bg-background">
-                                <AppRoutes />
-                                <Toaster />
-                                <SonnerToaster />
-                                <PIIUnlockDialog />
-                              </div>
-                            </SystemLoggingProvider>
-                          </PIIMaskingProvider>
-                        </SecurityPolicyProvider>
-                      </Router>
-                    </LegalCaseProvider>
-                  </LegalAuthProvider>
-                </NewBenefitAuthProvider>
-              </AuthProvider>
-            </SystemSettingsProvider>
+            <IPAccessGate>
+              <SystemSettingsProvider>
+                <AuthProvider>
+                  <NewBenefitAuthProvider>
+                    <LegalAuthProvider>
+                      <LegalCaseProvider>
+                        <Router>
+                          <SecurityPolicyProvider>
+                            <PIIMaskingProvider>
+                              <SystemLoggingProvider>
+                                <div className="min-h-screen bg-background">
+                                  <AppRoutes />
+                                  <Toaster />
+                                  <SonnerToaster />
+                                  <PIIUnlockDialog />
+                                </div>
+                              </SystemLoggingProvider>
+                            </PIIMaskingProvider>
+                          </SecurityPolicyProvider>
+                        </Router>
+                      </LegalCaseProvider>
+                    </LegalAuthProvider>
+                  </NewBenefitAuthProvider>
+                </AuthProvider>
+              </SystemSettingsProvider>
+            </IPAccessGate>
           </SupabaseAuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
