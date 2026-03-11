@@ -1,20 +1,32 @@
-import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Edit, Trash2, Plus, FileText, ShieldCheck, ArrowLeftRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import type { DocConfig } from '@/hooks/useDocumentConfiguration';
+import ChildDocumentsPanel from './ChildDocumentsPanel';
 
 interface Props {
   documents: DocConfig[];
+  moduleId: string;
   onAdd: () => void;
   onEdit: (doc: DocConfig) => void;
   onDelete: (doc: DocConfig) => void;
   onToggleActive: (doc: DocConfig) => void;
 }
 
-export default function DocumentList({ documents, onAdd, onEdit, onDelete, onToggleActive }: Props) {
+export default function DocumentList({ documents, moduleId, onAdd, onEdit, onDelete, onToggleActive }: Props) {
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+
+  const toggleDoc = (id: string) => {
+    setExpandedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -26,61 +38,54 @@ export default function DocumentList({ documents, onAdd, onEdit, onDelete, onTog
       {documents.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">No documents configured yet. Click "Add Document" to start.</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Document</TableHead>
-              <TableHead>Required</TableHead>
-              <TableHead>Extensions</TableHead>
-              <TableHead>Max Size</TableHead>
-              <TableHead>Rules</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map(doc => (
-              <TableRow key={doc.id} className={!doc.is_active ? 'opacity-50' : ''}>
-                <TableCell className="font-medium">{doc.document_name}</TableCell>
-                <TableCell>
-                  <Badge variant={doc.is_required ? 'destructive' : 'secondary'} className="text-xs">
-                    {doc.is_required ? 'Required' : 'Optional'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {doc.allowed_extensions?.slice(0, 4).map(ext => (
-                      <Badge key={ext} variant="outline" className="text-xs">.{ext}</Badge>
-                    ))}
-                    {(doc.allowed_extensions?.length || 0) > 4 && (
-                      <Badge variant="outline" className="text-xs">+{doc.allowed_extensions.length - 4}</Badge>
-                    )}
+        <div className="space-y-2">
+          {documents.map(doc => {
+            const isExpanded = expandedDocs.has(doc.id);
+            return (
+              <div key={doc.id} className={`border rounded-lg ${!doc.is_active ? 'opacity-50' : ''}`}>
+                <Collapsible open={isExpanded} onOpenChange={() => toggleDoc(doc.id)}>
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <CollapsibleTrigger className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                        {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </CollapsibleTrigger>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{doc.document_name}</span>
+                          <Badge variant={doc.is_required ? 'destructive' : 'secondary'} className="text-xs">
+                            {doc.is_required ? 'Required' : 'Optional'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-muted-foreground">
+                            {doc.allowed_extensions?.slice(0, 4).map(e => `.${e}`).join(', ')}
+                            {(doc.allowed_extensions?.length || 0) > 4 && ` +${doc.allowed_extensions.length - 4}`}
+                          </span>
+                          <span className="text-xs text-muted-foreground">• Max {doc.max_file_size_mb} MB</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <Switch checked={doc.is_active} onCheckedChange={() => onToggleActive(doc)} />
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(doc)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(doc)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell className="text-sm">{doc.max_file_size_mb} MB</TableCell>
-                <TableCell>
-                  <div className="flex gap-1.5">
-                    {doc.requires_supportive_doc && (
-                      <Badge variant="outline" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" />Support</Badge>
-                    )}
-                    {doc.allow_alternate_doc && (
-                      <Badge variant="outline" className="text-xs gap-1"><ArrowLeftRight className="h-3 w-3" />Alt</Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Switch checked={doc.is_active} onCheckedChange={() => onToggleActive(doc)} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => onEdit(doc)}><Edit className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => onDelete(doc)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <CollapsibleContent>
+                    <div className="px-3 pb-3">
+                      <ChildDocumentsPanel configId={doc.id} moduleId={moduleId} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

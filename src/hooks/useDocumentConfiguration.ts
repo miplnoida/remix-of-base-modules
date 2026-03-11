@@ -21,6 +21,7 @@ export interface DocConfig {
   id: string;
   category_id: string;
   document_name: string;
+  description?: string | null;
   is_required: boolean;
   allowed_extensions: string[];
   max_file_size_mb: number;
@@ -36,6 +37,24 @@ export interface DocConfig {
   alternate_supportive_description: string | null;
   alternate_supportive_allowed_extensions: string[] | null;
   alternate_supportive_max_file_size_mb: number | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface ChildDoc {
+  id: string;
+  parent_config_id: string;
+  parent_alternate_id: string | null;
+  doc_type: 'supportive' | 'alternate';
+  document_name: string;
+  description: string | null;
+  is_required: boolean;
+  allowed_extensions: string[];
+  max_file_size_mb: number;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -104,6 +123,56 @@ export function useAllDocConfigsForModule(moduleId: string | null) {
   });
 }
 
+// ── Fetch child docs for a config ──
+export function useChildDocs(configId: string | null) {
+  return useQuery({
+    queryKey: ['child-docs', configId],
+    queryFn: async () => {
+      if (!configId) return [];
+      const { data, error } = await supabase
+        .from('module_doc_child_docs')
+        .select('*')
+        .eq('parent_config_id', configId)
+        .order('doc_type', { ascending: true })
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data as ChildDoc[];
+    },
+    enabled: !!configId,
+  });
+}
+
+// ── Fetch all child docs for a module (bulk) ──
+export function useAllChildDocsForModule(moduleId: string | null) {
+  return useQuery({
+    queryKey: ['child-docs-all', moduleId],
+    queryFn: async () => {
+      if (!moduleId) return [];
+      // Get all config ids for this module
+      const { data: categories } = await supabase
+        .from('module_doc_categories')
+        .select('id')
+        .eq('module_id', moduleId);
+      if (!categories || categories.length === 0) return [];
+      const catIds = categories.map(c => c.id);
+      const { data: configs } = await supabase
+        .from('module_doc_configs')
+        .select('id')
+        .in('category_id', catIds);
+      if (!configs || configs.length === 0) return [];
+      const configIds = configs.map(c => c.id);
+      const { data, error } = await supabase
+        .from('module_doc_child_docs')
+        .select('*')
+        .in('parent_config_id', configIds)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data as ChildDoc[];
+    },
+    enabled: !!moduleId,
+  });
+}
+
 // ── Category Mutations ──
 export function useCategoryMutations(moduleId: string | null) {
   const qc = useQueryClient();
@@ -112,6 +181,7 @@ export function useCategoryMutations(moduleId: string | null) {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['doc-categories', moduleId] });
     qc.invalidateQueries({ queryKey: ['doc-configs-all', moduleId] });
+    qc.invalidateQueries({ queryKey: ['child-docs-all', moduleId] });
   };
 
   const createCategory = useMutation({
@@ -230,4 +300,60 @@ export function useDocConfigMutations(moduleId: string | null) {
   });
 
   return { createDoc, updateDoc, deleteDoc };
+}
+
+// ── Child Document Mutations ──
+export function useChildDocMutations(moduleId: string | null) {
+  const qc = useQueryClient();
+  const { userCode } = useUserCode();
+
+  const invalidate = (configId?: string) => {
+    if (configId) qc.invalidateQueries({ queryKey: ['child-docs', configId] });
+    qc.invalidateQueries({ queryKey: ['child-docs-all', moduleId] });
+  };
+
+  const createChildDoc = useMutation({
+    mutationFn: async (payload: Omit<ChildDoc, 'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'>) => {
+      const { data, error } = await supabase
+        .from('module_doc_child_docs')
+        .insert({
+          ...payload,
+          created_by: userCode || 'SYSTEM',
+          updated_by: userCode || 'SYSTEM',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, v) => { invalidate(v.parent_config_id); toast.success('Child document added'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateChildDoc = useMutation({
+    mutationFn: async (payload: Partial<ChildDoc> & { id: string; parent_config_id: string }) => {
+      const { id, parent_config_id, ...rest } = payload;
+      const { data, error } = await supabase
+        .from('module_doc_child_docs')
+        .update({ ...rest, updated_by: userCode || 'SYSTEM', updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, v) => { invalidate(v.parent_config_id); toast.success('Child document updated'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteChildDoc = useMutation({
+    mutationFn: async (params: { id: string; parent_config_id: string }) => {
+      const { error } = await supabase.from('module_doc_child_docs').delete().eq('id', params.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => { invalidate(v.parent_config_id); toast.success('Child document deleted'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { createChildDoc, updateChildDoc, deleteChildDoc };
 }
