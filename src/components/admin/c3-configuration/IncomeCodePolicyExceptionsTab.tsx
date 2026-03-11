@@ -394,8 +394,8 @@ export function IncomeCodePolicyExceptionsTab() {
                       <Switch checked={form.include_in_levy !== false} onCheckedChange={(v) => setField('include_in_levy', v)} />
                     </div>
                     {/* Bonus-style overrides */}
-                    <div className="border rounded-lg p-4 space-y-3">
-                      <span className="text-sm font-semibold uppercase tracking-wider">Calculation Method</span>
+                    <div className={`border rounded-lg p-4 space-y-3 ${form.include_in_levy === false ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <span className="text-sm font-semibold uppercase tracking-wider">Calculation Method {form.include_in_levy === false && <Badge variant="outline" className="text-xs ml-2">Disabled — Levy excluded</Badge>}</span>
                       <RadioOption selected={form.calculation_method === 'merge'} onClick={() => setField('calculation_method', 'merge')} label="Merge" hint="Combined into standard pay run" />
                       <RadioOption selected={form.calculation_method === 'separate'} onClick={() => setField('calculation_method', 'separate')} label="Separate" hint="Isolated calculation" />
                     </div>

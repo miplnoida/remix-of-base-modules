@@ -408,7 +408,8 @@ export function IncomeCodePolicyDefaultTab() {
                   <ToggleRow label="Include in Levy" hint="When OFF, this income code amount will be excluded from employee and employer levy calculations" checked={!!form.include_in_levy} onChange={(v) => setField('include_in_levy', v)} />
                 </div>
 
-                <SectionLabel>Calculation Method</SectionLabel>
+                <div className={!form.include_in_levy ? 'opacity-50 pointer-events-none' : ''}>
+                <SectionLabel>Calculation Method {!form.include_in_levy && <Badge variant="outline" className="text-xs ml-2">Disabled — Levy excluded</Badge>}</SectionLabel>
                 <div className="space-y-3">
                   <RadioOption selected={form.calculation_method === 'merge'} onClick={() => setField('calculation_method', 'merge')} label="Merge with regular earnings" hint="Combined into the standard pay run" />
                   <RadioOption selected={form.calculation_method === 'separate'} onClick={() => setField('calculation_method', 'separate')} label="Calculate separately" hint="Processed in an isolated calculation" />
@@ -437,6 +438,7 @@ export function IncomeCodePolicyDefaultTab() {
                     </div>
                   </>
                 )}
+                </div>
 
                 <SectionLabel>Contribution Base Calculation</SectionLabel>
                 <div className="border rounded-lg divide-y">

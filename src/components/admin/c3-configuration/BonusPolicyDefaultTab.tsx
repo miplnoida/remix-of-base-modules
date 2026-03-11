@@ -270,7 +270,7 @@ export function BonusPolicyDefaultTab() {
 
             {/* 3. Distribution (only for merge) — single-select radio */}
             {form.calculation_method === 'merge' && (
-              <>
+              <div className={!form.include_in_levy ? 'opacity-50 pointer-events-none' : ''}>
                 <SectionLabel>Bonus Distribution by Payroll Cycle</SectionLabel>
                 <p className="text-xs text-muted-foreground -mt-4">Select which payroll week/payment the bonus should be included in for each frequency (single selection).</p>
                 <div className="space-y-4">
@@ -279,7 +279,7 @@ export function BonusPolicyDefaultTab() {
                   <CycleBlock title="Semi-monthly" cycle="semimonthly" dist={dist} setDist={setDist} items={[{ key: 's1', label: 'Include in 1st payment' }, { key: 's2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
                   <CycleBlock title="Monthly" cycle="monthly" dist={dist} setDist={setDist} items={[{ key: 'm1', label: 'Include in monthly payment' }]} />
                 </div>
-              </>
+              </div>
             )}
 
             {/* 4. Capping */}
