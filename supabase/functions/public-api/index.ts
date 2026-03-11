@@ -200,10 +200,77 @@ async function handleHealth(supabase: ReturnType<typeof createClient>) {
   };
 }
 
+// ── Module Documents Handler ──
+async function handleModuleDocuments(
+  supabase: ReturnType<typeof createClient>,
+  queryParams: Record<string, string>
+) {
+  const moduleIdentifier = queryParams.module;
+  if (!moduleIdentifier) {
+    throw { code: "BAD_REQUEST", message: "Missing required query parameter: module" };
+  }
+
+  // Look up module by name
+  const { data: mod, error: modErr } = await supabase
+    .from("app_modules")
+    .select("id, name, display_name")
+    .eq("name", moduleIdentifier)
+    .single();
+
+  if (modErr || !mod) {
+    throw { code: "NOT_FOUND", message: `Module '${moduleIdentifier}' not found` };
+  }
+
+  // Fetch active categories
+  const { data: categories, error: catErr } = await supabase
+    .from("module_doc_categories")
+    .select("id, category_name, description, sort_order")
+    .eq("module_id", mod.id)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (catErr) throw catErr;
+
+  // Fetch active documents for all categories
+  const catIds = (categories || []).map((c: any) => c.id);
+  let allDocs: any[] = [];
+  if (catIds.length > 0) {
+    const { data: docs, error: docErr } = await supabase
+      .from("module_doc_configs")
+      .select("category_id, document_name, is_required, allowed_extensions, max_file_size_mb, requires_supportive_doc, supportive_doc_description, allow_alternate_doc, alternate_doc_name, alternate_requires_supportive, alternate_supportive_description, sort_order")
+      .in("category_id", catIds)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (docErr) throw docErr;
+    allDocs = docs || [];
+  }
+
+  // Structure response
+  const result = (categories || []).map((cat: any) => ({
+    category_name: cat.category_name,
+    description: cat.description,
+    documents: allDocs
+      .filter((d: any) => d.category_id === cat.id)
+      .map(({ category_id, ...rest }: any) => rest),
+  }));
+
+  return {
+    status: "success",
+    data: {
+      module: { id: mod.id, name: mod.name, display_name: mod.display_name },
+      categories: result,
+    },
+  };
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
     return { handler: "health", params: {} };
+  }
+
+  if (path === "/api/v1/module-documents" && method === "GET") {
+    return { handler: "moduleDocuments", params: {} };
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
