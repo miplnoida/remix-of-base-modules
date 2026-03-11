@@ -26,10 +26,16 @@ export interface DocConfig {
   max_file_size_mb: number;
   requires_supportive_doc: boolean;
   supportive_doc_description: string | null;
+  supportive_allowed_extensions: string[] | null;
+  supportive_max_file_size_mb: number | null;
   allow_alternate_doc: boolean;
   alternate_doc_name: string | null;
+  alternate_allowed_extensions: string[] | null;
+  alternate_max_file_size_mb: number | null;
   alternate_requires_supportive: boolean;
   alternate_supportive_description: string | null;
+  alternate_supportive_allowed_extensions: string[] | null;
+  alternate_supportive_max_file_size_mb: number | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
