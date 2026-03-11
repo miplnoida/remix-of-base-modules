@@ -23,18 +23,18 @@ describe('calculateFilingDeadline', () => {
     expect(d.getDate()).toBe(31);
   });
 
-  it('Jan 2025 + 2 months = March 31, 2025', () => {
+  it('Jan 2025 + 2 months = last day of March 2025', () => {
     const d = calculateFilingDeadline(2025, 0, 2);
     expect(d.getFullYear()).toBe(2025);
-    expect(d.getMonth()).toBe(1); // Feb
-    expect(d.getDate()).toBe(28);
+    expect(d.getMonth()).toBe(2); // March (0+2=2)
+    expect(d.getDate()).toBe(31);
   });
 
-  it('Nov 2025 + 3 months = Feb 28, 2026', () => {
+  it('Nov 2025 + 3 months = last day of Feb 2026', () => {
     const d = calculateFilingDeadline(2025, 10, 3);
     expect(d.getFullYear()).toBe(2026);
-    expect(d.getMonth()).toBe(0); // Jan
-    expect(d.getDate()).toBe(31);
+    expect(d.getMonth()).toBe(0 + 1); // Feb (10+3=13 → 1)
+    expect(d.getDate()).toBe(28);
   });
 });
 
