@@ -14610,6 +14610,7 @@ export type Database = {
           sort_order: number | null
           supportive_allowed_extensions: string[] | null
           supportive_doc_description: string | null
+          supportive_docs_rule: string
           supportive_max_file_size_mb: number | null
           updated_at: string | null
           updated_by: string | null
@@ -14636,6 +14637,7 @@ export type Database = {
           sort_order?: number | null
           supportive_allowed_extensions?: string[] | null
           supportive_doc_description?: string | null
+          supportive_docs_rule?: string
           supportive_max_file_size_mb?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -14662,6 +14664,7 @@ export type Database = {
           sort_order?: number | null
           supportive_allowed_extensions?: string[] | null
           supportive_doc_description?: string | null
+          supportive_docs_rule?: string
           supportive_max_file_size_mb?: number | null
           updated_at?: string | null
           updated_by?: string | null

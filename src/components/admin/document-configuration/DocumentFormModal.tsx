@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { DocConfig } from '@/hooks/useDocumentConfiguration';
 
 interface Props {
@@ -27,6 +28,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
   const [maxSize, setMaxSize] = useState(5);
   const [sortOrder, setSortOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
+  const [supportiveDocsRule, setSupportiveDocsRule] = useState<'all_required' | 'any_one_required'>('all_required');
   const [extInput, setExtInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -39,10 +41,11 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
       setMaxSize(doc.max_file_size_mb);
       setSortOrder(doc.sort_order);
       setIsActive(doc.is_active);
+      setSupportiveDocsRule(doc.supportive_docs_rule || 'all_required');
     } else {
       setName(''); setDescription(''); setIsRequired(true);
       setExtensions(['pdf', 'jpg', 'png']); setMaxSize(5);
-      setSortOrder(0); setIsActive(true);
+      setSortOrder(0); setIsActive(true); setSupportiveDocsRule('all_required');
     }
     setExtInput(''); setErrors({});
   }, [doc, open]);
@@ -73,7 +76,7 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
       is_required: isRequired,
       allowed_extensions: extensions,
       max_file_size_mb: maxSize,
-      // Keep legacy fields with defaults
+      supportive_docs_rule: supportiveDocsRule,
       requires_supportive_doc: false,
       supportive_doc_description: null,
       supportive_allowed_extensions: null,
@@ -93,9 +96,12 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{doc ? 'Edit Document' : 'Add Document'}</DialogTitle>
+          <DialogDescription>
+            Configure the main document settings. You can add supportive and alternate documents after saving.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
@@ -159,6 +165,30 @@ export default function DocumentFormModal({ open, onClose, onSave, doc, category
             <Label>Max File Size (MB) *</Label>
             <Input type="number" step="0.1" min="0.1" max="100" value={maxSize} onChange={e => setMaxSize(Number(e.target.value))} />
             {errors.maxSize && <p className="text-xs text-destructive">{errors.maxSize}</p>}
+          </div>
+
+          {/* Supportive Documents Rule */}
+          <div className="space-y-2 rounded-lg border border-border p-3 bg-muted/30">
+            <Label className="text-sm font-semibold">Supportive Documents Submission Rule</Label>
+            <p className="text-xs text-muted-foreground">
+              When multiple supportive documents are configured, how should they be validated?
+            </p>
+            <RadioGroup value={supportiveDocsRule} onValueChange={(v) => setSupportiveDocsRule(v as 'all_required' | 'any_one_required')}>
+              <div className="flex items-start gap-2">
+                <RadioGroupItem value="all_required" id="rule-all" className="mt-0.5" />
+                <div>
+                  <Label htmlFor="rule-all" className="text-sm font-medium cursor-pointer">All supportive documents are required</Label>
+                  <p className="text-xs text-muted-foreground">User must upload every supportive document marked as required</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <RadioGroupItem value="any_one_required" id="rule-any" className="mt-0.5" />
+                <div>
+                  <Label htmlFor="rule-any" className="text-sm font-medium cursor-pointer">Any one supportive document is sufficient</Label>
+                  <p className="text-xs text-muted-foreground">User only needs to upload at least one supportive document</p>
+                </div>
+              </div>
+            </RadioGroup>
           </div>
         </div>
         <DialogFooter>

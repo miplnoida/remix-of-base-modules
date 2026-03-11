@@ -25,6 +25,7 @@ export interface DocConfig {
   is_required: boolean;
   allowed_extensions: string[];
   max_file_size_mb: number;
+  supportive_docs_rule: 'all_required' | 'any_one_required';
   requires_supportive_doc: boolean;
   supportive_doc_description: string | null;
   supportive_allowed_extensions: string[] | null;
@@ -148,7 +149,6 @@ export function useAllChildDocsForModule(moduleId: string | null) {
     queryKey: ['child-docs-all', moduleId],
     queryFn: async () => {
       if (!moduleId) return [];
-      // Get all config ids for this module
       const { data: categories } = await supabase
         .from('module_doc_categories')
         .select('id')
