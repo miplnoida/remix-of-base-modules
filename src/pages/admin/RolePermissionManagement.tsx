@@ -355,7 +355,7 @@ const RolePermissionManagement = () => {
                 if (expandedModules.size > 0) {
                   setExpandedModules(new Set());
                 } else {
-                  setExpandedModules(new Set(parentModules.map((m) => m.id)));
+                  setExpandedModules(new Set(modules.filter(m => m.is_enabled).map((m) => m.id)));
                 }
               }}
             >
