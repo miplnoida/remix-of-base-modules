@@ -311,9 +311,6 @@ export default function DepartmentMaster() {
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={filteredDepartments} columns={exportColumns} fileName={DEPARTMENT_SCHEMA.exportFileName} title={DEPARTMENT_SCHEMA.exportTitle} />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />Bulk Upload
-          </Button>
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
         </div>
       }
