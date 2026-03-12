@@ -286,16 +286,6 @@ export default function DepartmentMaster() {
         </div>
       </div>
 
-      {/* Location */}
-      <div>
-        <Label>Location</Label>
-        <Input
-          value={form.location}
-          onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-          placeholder="e.g., Main Building - Floor 2"
-        />
-      </div>
-
       {/* Risk Rating */}
       <div>
         <Label>Risk Rating</Label>
