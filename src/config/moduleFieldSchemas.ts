@@ -111,6 +111,7 @@ export const DEPARTMENT_SCHEMA: ModuleSchema = {
   exportFileName: 'departments',
   exportTitle: 'Department Register',
   fields: [
+    { key: 'office_code', label: 'Office Location', required: true, type: 'string', showInTable: false, showInImport: true, showInExport: true, sortOrder: 0 },
     { key: 'name', label: 'Department Name', required: true, type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 1 },
     { key: 'head', label: 'Department Head', required: true, type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 2 },
     { key: 'email', label: 'Email', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 3 },

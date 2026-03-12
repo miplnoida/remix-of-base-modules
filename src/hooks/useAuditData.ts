@@ -48,7 +48,11 @@ export function useIADepartmentMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
-    mutationFn: async (dept: { name: string; head: string; email?: string; phone?: string; location?: string; risk_rating?: string; created_by?: string }) => {
+    mutationFn: async (dept: {
+      name: string; head: string; email?: string; phone?: string; location?: string;
+      risk_rating?: string; created_by?: string;
+      office_code?: string; source_department_id?: string | null; head_profile_id?: string | null;
+    }) => {
       const { data, error } = await supabase.from('ia_departments').insert(dept).select().single();
       if (error) throw error;
       return data;
