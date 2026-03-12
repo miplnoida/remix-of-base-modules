@@ -34,6 +34,7 @@ const getIcon = (iconName: string | null) => {
 interface ModuleTreeItemProps {
   module: AppModule;
   children: AppModule[];
+  allChildrenMap: Map<string, AppModule[]>;
   level: number;
   expandedModules: Set<string>;
   toggleExpand: (id: string) => void;
@@ -47,6 +48,7 @@ interface ModuleTreeItemProps {
 const ModuleTreeItem = ({
   module,
   children,
+  allChildrenMap,
   level,
   expandedModules,
   toggleExpand,
@@ -150,7 +152,8 @@ const ModuleTreeItem = ({
             <ModuleTreeItem
               key={child.id}
               module={child}
-              children={[]}
+              children={allChildrenMap.get(child.id) || []}
+              allChildrenMap={allChildrenMap}
               level={level + 1}
               expandedModules={expandedModules}
               toggleExpand={toggleExpand}
@@ -219,14 +222,22 @@ const RolePermissionManagement = () => {
       }
     });
 
-    const filtered = parents.filter((module) =>
-      module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (childMap.get(module.id) || []).some(
+    // Recursive search through all descendants
+    const matchesSearch = (moduleId: string, query: string): boolean => {
+      const children = childMap.get(moduleId) || [];
+      return children.some(
         (child) =>
-          child.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+          child.display_name.toLowerCase().includes(query) ||
+          child.name.toLowerCase().includes(query) ||
+          matchesSearch(child.id, query)
+      );
+    };
+
+    const lowerQuery = searchQuery.toLowerCase();
+    const filtered = parents.filter((module) =>
+      module.display_name.toLowerCase().includes(lowerQuery) ||
+      module.name.toLowerCase().includes(lowerQuery) ||
+      matchesSearch(module.id, lowerQuery)
     );
 
     return {
@@ -344,7 +355,7 @@ const RolePermissionManagement = () => {
                 if (expandedModules.size > 0) {
                   setExpandedModules(new Set());
                 } else {
-                  setExpandedModules(new Set(parentModules.map((m) => m.id)));
+                  setExpandedModules(new Set(modules.filter(m => m.is_enabled).map((m) => m.id)));
                 }
               }}
             >
@@ -371,6 +382,7 @@ const RolePermissionManagement = () => {
                   key={module.id}
                   module={module}
                   children={childModulesMap.get(module.id) || []}
+                  allChildrenMap={childModulesMap}
                   level={0}
                   expandedModules={expandedModules}
                   toggleExpand={toggleExpand}

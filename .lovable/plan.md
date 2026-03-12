@@ -1,49 +1,69 @@
 
+# Internal Audit Architecture — Completed
 
-## Problem
+## Changes Implemented
 
-The `ModuleTreeItem` component on line 153 passes `children={[]}` (empty array) when rendering child modules recursively. This means grandchildren and deeper levels never render — the tree stops at depth 1.
+### Phase 1: Database Changes ✅
+- Added `function_id` FK column to `ia_risk_assessments` → `ia_department_functions`
+- Replaced 5 employer-focused risk criteria with internal audit criteria: Operational Criticality (20%), Financial Exposure (25%), Compliance Sensitivity (20%), Control Weakness (20%), Time Since Last Audit (15%)
+- Seeded default risk scoring model with thresholds: Critical ≥90, High ≥75, Medium ≥50, Low <50
+- Populated `ia_risk_criteria_weights` with matching weights
+- Added `risk_frequency` audit settings: Critical=6mo, High=12mo, Medium=24mo, Low=36mo
 
-```text
-Current behavior:
-  Parent Module
-    └── Child Module (actions shown)
-         └── (grandchildren NEVER rendered — children={[]} hardcoded)
+### Phase 2: Risk Assessment Page ✅
+- Replaced Audit Universe dropdown with Department → Function cascading selectors
+- Dynamic criteria loaded from `ia_risk_criteria_weights` with slider inputs
+- Auto-calculates `overall_score = Σ(score × weight%)`
+- Auto-determines risk level from scoring model thresholds
+- Auto-suggests audit frequency from configurable mapping
 
-Expected behavior:
-  Parent Module
-    └── Child Module (actions shown)
-         └── Grandchild Module (actions shown)
-              └── ... (any depth)
-```
+### Phase 3: Enhanced Risk Configuration ✅
+- AuditConfig "Risk Assessment" tab with:
+  - Editable criteria weights table with add/remove
+  - Weight sum validation (must = 100%)
+  - Configurable risk level thresholds (Critical/High/Medium)
+  - Audit frequency mapping (months per risk level)
 
-## Root Cause
+### Phase 4: Audit Universe Disabled ✅
+- `FEATURE_AUDIT_UNIVERSE: false` in auditRouteConfig.ts
+- Removed from sidebar navigation
+- ExecutiveDashboard: "High-Risk Entities" → "High-Risk Functions" using Function Master
+- CommitteeReports: same replacement
 
-In `src/pages/admin/RolePermissionManagement.tsx`, line 150-153:
-```tsx
-<ModuleTreeItem
-  module={child}
-  children={[]}        // ← BUG: always empty
-  level={level + 1}
-  ...
-/>
-```
+### Phase 5: Navigation Updated ✅
+- Sidebar group renamed "Audit Universe & Risk" → "Risk Assessment"
+- Removed `/audit/audit-universe` from navigation routes
 
-The `childModulesMap` is built correctly in the parent component but is never passed down to `ModuleTreeItem`, so recursive children can't look up their own children.
+---
 
-## Fix (single file change)
+# Document Configuration Feature — Completed
 
-**File: `src/pages/admin/RolePermissionManagement.tsx`**
+## Changes Implemented
 
-1. **Add `allChildrenMap` prop** to `ModuleTreeItemProps` so the component can look up children for any module at any depth.
+### Database Schema ✅
+- Created `module_doc_categories` table (FK to `app_modules`, unique on module+name)
+- Created `module_doc_configs` table (FK to categories, unique on category+name)
+- Full audit fields (created_by, updated_by, timestamps)
+- Active/inactive status on both tables
 
-2. **Pass the map** from the parent render and within the recursive render.
+### Global Settings UI ✅
+- New route: `/admin/document-configuration`
+- Page: `DocumentConfigurationPage.tsx`
+- Components: `ModuleSelector`, `CategoryList`, `CategoryFormModal`, `DocumentFormModal`, `DocumentList`
+- Module dropdown loads from `app_modules` table
+- Collapsible category cards with document tables inside
+- Full CRUD for categories and documents
+- Toggle active/inactive on both levels
+- Document form includes: name, required/optional, allowed extensions, max file size, supportive doc rules, alternate doc rules
 
-3. **Replace `children={[]}`** on line 153 with `children={allChildrenMap.get(child.id) || []}`.
+### Public API Endpoint ✅
+- `GET /api/v1/module-documents?module=<module_name>`
+- Returns active categories and documents structured by category
+- Validates module identifier, returns 404 for invalid
+- Registered in `api_registry` table
+- Deployed to edge function `public-api`
 
-4. **Update "Expand All"** button (line 347) to expand all module IDs (not just parents) so deeply nested modules can also be toggled open.
-
-5. **Update search filtering** to also match deeply nested modules (recursive search through `childModulesMap`).
-
-No backend or database changes needed — `useAppModules` already fetches all modules with their `parent_id` and actions. The `childModulesMap` already maps every parent to its direct children at all levels. The only issue is the frontend not passing this map into the recursive component.
-
+### Service Hook ✅
+- `useDocumentConfiguration.ts` with queries and mutations
+- All mutations use `useUserCode()` for audit trail
+- Proper cache invalidation via react-query
