@@ -49,7 +49,7 @@ export default function DepartmentMaster() {
   const [editDept, setEditDept] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<DeptForm>({ ...emptyForm });
-  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  
 
   // Dept name select state: 'select' or 'other'
   const [deptSelectMode, setDeptSelectMode] = useState<'select' | 'other'>('select');
