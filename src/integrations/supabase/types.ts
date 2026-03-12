@@ -8901,6 +8901,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          profile_id: string | null
           role: string
           seniority_level: string | null
           signature_image: string | null
@@ -8921,6 +8922,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          profile_id?: string | null
           role?: string
           seniority_level?: string | null
           signature_image?: string | null
@@ -8941,6 +8943,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          profile_id?: string | null
           role?: string
           seniority_level?: string | null
           signature_image?: string | null
