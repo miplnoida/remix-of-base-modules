@@ -1,69 +1,60 @@
 
-# Internal Audit Architecture — Completed
 
-## Changes Implemented
+## Department Master Integration with Central System
 
-### Phase 1: Database Changes ✅
-- Added `function_id` FK column to `ia_risk_assessments` → `ia_department_functions`
-- Replaced 5 employer-focused risk criteria with internal audit criteria: Operational Criticality (20%), Financial Exposure (25%), Compliance Sensitivity (20%), Control Weakness (20%), Time Since Last Audit (15%)
-- Seeded default risk scoring model with thresholds: Critical ≥90, High ≥75, Medium ≥50, Low <50
-- Populated `ia_risk_criteria_weights` with matching weights
-- Added `risk_frequency` audit settings: Critical=6mo, High=12mo, Medium=24mo, Low=36mo
+### Problem
+The Department Master (`/audit/departments`) currently uses its own isolated `ia_departments` table with free-text fields for name, head, email, phone, and location. It should instead pull from the existing central system tables: `tb_office`, `tb_office_departments`, and `profiles`.
 
-### Phase 2: Risk Assessment Page ✅
-- Replaced Audit Universe dropdown with Department → Function cascading selectors
-- Dynamic criteria loaded from `ia_risk_criteria_weights` with slider inputs
-- Auto-calculates `overall_score = Σ(score × weight%)`
-- Auto-determines risk level from scoring model thresholds
-- Auto-suggests audit frequency from configurable mapping
+### Database Changes
 
-### Phase 3: Enhanced Risk Configuration ✅
-- AuditConfig "Risk Assessment" tab with:
-  - Editable criteria weights table with add/remove
-  - Weight sum validation (must = 100%)
-  - Configurable risk level thresholds (Critical/High/Medium)
-  - Audit frequency mapping (months per risk level)
+**Add columns to `ia_departments`:**
+- `office_code TEXT` — links to `tb_office.code`
+- `source_department_id UUID` — links to `tb_office_departments.id` (null when "Other" is selected)
+- `head_profile_id UUID` — links to `profiles.id` (null when "Other" is selected)
 
-### Phase 4: Audit Universe Disabled ✅
-- `FEATURE_AUDIT_UNIVERSE: false` in auditRouteConfig.ts
-- Removed from sidebar navigation
-- ExecutiveDashboard: "High-Risk Entities" → "High-Risk Functions" using Function Master
-- CommitteeReports: same replacement
+These are nullable so that "Other" (manually-entered) values still work via the existing `name`, `head`, `email`, `phone`, `location` text fields.
 
-### Phase 5: Navigation Updated ✅
-- Sidebar group renamed "Audit Universe & Risk" → "Risk Assessment"
-- Removed `/audit/audit-universe` from navigation routes
+### UI Changes — `DepartmentMaster.tsx` Form
 
----
+Replace the current free-text form with a cascading selection flow:
 
-# Document Configuration Feature — Completed
+1. **Office Location** — `<Select>` populated from `useTbOffices()` (`tb_office`). Displays `description`. Stores `code` as `office_code`.
 
-## Changes Implemented
+2. **Department Name** — `<Select>` populated from `useDepartments(selectedOfficeCode)` (`tb_office_departments` filtered by `office_code`), plus an **"Other"** option at the end. When "Other" is chosen, show a free-text `<Input>` for a custom department name. Otherwise, auto-set `name` from the selected department and store `source_department_id`.
 
-### Database Schema ✅
-- Created `module_doc_categories` table (FK to `app_modules`, unique on module+name)
-- Created `module_doc_configs` table (FK to categories, unique on category+name)
-- Full audit fields (created_by, updated_by, timestamps)
-- Active/inactive status on both tables
+3. **Department Head** — `<Select>` populated from `profiles` (query all active profiles), plus an **"Other"** option. When a profile is selected, auto-populate **Email** and **Phone** from `profiles.email` and `profiles.phone`. When "Other" is chosen, show a free-text `<Input>` for head name and keep email/phone editable.
 
-### Global Settings UI ✅
-- New route: `/admin/document-configuration`
-- Page: `DocumentConfigurationPage.tsx`
-- Components: `ModuleSelector`, `CategoryList`, `CategoryFormModal`, `DocumentFormModal`, `DocumentList`
-- Module dropdown loads from `app_modules` table
-- Collapsible category cards with document tables inside
-- Full CRUD for categories and documents
-- Toggle active/inactive on both levels
-- Document form includes: name, required/optional, allowed extensions, max file size, supportive doc rules, alternate doc rules
+4. **Email / Phone** — Auto-filled from selected profile, but remain editable. Fully manual when "Other" head is chosen.
 
-### Public API Endpoint ✅
-- `GET /api/v1/module-documents?module=<module_name>`
-- Returns active categories and documents structured by category
-- Validates module identifier, returns 404 for invalid
-- Registered in `api_registry` table
-- Deployed to edge function `public-api`
+5. **Location** — Auto-filled from `tb_office.description` (or `address1`) when office is selected, remain editable.
 
-### Service Hook ✅
-- `useDocumentConfiguration.ts` with queries and mutations
-- All mutations use `useUserCode()` for audit trail
-- Proper cache invalidation via react-query
+6. **Risk Rating** — Unchanged.
+
+### Deactivation Rule
+
+When rendering department dropdowns, check `tb_office_departments.is_active`:
+- Active departments render normally
+- Inactive departments render with `(Inactive)` suffix and are disabled for new records
+- If editing an existing `ia_departments` record whose `source_department_id` points to a now-inactive department, show it but mark it as inactive
+
+In `FunctionMaster.tsx`, when creating new functions, filter out `ia_departments` whose linked source department is inactive.
+
+### Hook Changes
+
+**New hook: `useProfiles()`** in `useAuditData.ts` — fetches `profiles` with `id, full_name, email, phone` where `is_active = true`, ordered by `full_name`.
+
+**Update `useIADepartmentMutations`** — `create` mutation accepts the new optional fields (`office_code`, `source_department_id`, `head_profile_id`).
+
+### Files to Modify
+1. **Database migration** — Add 3 columns to `ia_departments`
+2. **`src/hooks/useAuditData.ts`** — Add `useProfiles()` hook
+3. **`src/pages/audit/DepartmentMaster.tsx`** — Replace form with cascading selects + "Other" logic + auto-populate
+4. **`src/pages/audit/DepartmentView.tsx`** — Display office/department source info
+5. **`src/config/moduleFieldSchemas.ts`** — Add `office_location` field to `DEPARTMENT_SCHEMA`
+
+### What stays unchanged
+- `ia_departments` table structure (additive only — existing `name`, `head`, `email`, `phone`, `location` columns preserved)
+- All downstream references to `ia_departments` (functions, plans, activities, findings) continue working via `ia_departments.id`
+- No styling changes
+- Bulk upload continues to work (will accept office code and department name for matching)
+
