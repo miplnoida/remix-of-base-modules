@@ -116,8 +116,7 @@ export const DEPARTMENT_SCHEMA: ModuleSchema = {
     { key: 'head', label: 'Department Head', required: true, type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 2 },
     { key: 'email', label: 'Email', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 3 },
     { key: 'phone', label: 'Phone', type: 'string', showInTable: false, showInImport: true, showInExport: true, sortOrder: 4 },
-    { key: 'location', label: 'Location', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 5 },
-    { key: 'risk_rating', label: 'Risk Rating', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 6, allowedValues: ['High', 'Medium', 'Low'], renderHint: 'badge' },
+    { key: 'risk_rating', label: 'Risk Rating', type: 'string', showInTable: true, showInImport: true, showInExport: true, sortOrder: 5, allowedValues: ['High', 'Medium', 'Low'], renderHint: 'badge' },
   ],
 };
 

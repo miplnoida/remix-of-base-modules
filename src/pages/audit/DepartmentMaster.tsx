@@ -4,16 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building2, Eye, Trash2, Upload } from 'lucide-react';
+import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useTbOffices, useDepartments } from '@/hooks/useAdminData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
-import { DEPARTMENT_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+import { DEPARTMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 
-const bulkUploadFields = toBulkUploadFields(DEPARTMENT_SCHEMA);
 const exportColumns = toExportColumns(DEPARTMENT_SCHEMA);
 
 const OTHER_VALUE = '__OTHER__';
@@ -50,7 +49,7 @@ export default function DepartmentMaster() {
   const [editDept, setEditDept] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<DeptForm>({ ...emptyForm });
-  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  
 
   // Dept name select state: 'select' or 'other'
   const [deptSelectMode, setDeptSelectMode] = useState<'select' | 'other'>('select');
@@ -110,18 +109,6 @@ export default function DepartmentMaster() {
     }
   };
 
-  const handleBulkImport = async (data: Record<string, any>[]) => {
-    for (const row of data) {
-      await new Promise<void>((resolve, reject) => {
-        create.mutate({
-          name: row.name, head: row.head, email: row.email || '', phone: row.phone || '',
-          location: row.location || '', risk_rating: row.risk_rating || 'Medium',
-          office_code: row.office_code || '',
-          created_by: (profile as any)?.user_code || '',
-        }, { onSuccess: () => resolve(), onError: () => reject() });
-      });
-    }
-  };
 
   const filteredDepartments = departments.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.head.toLowerCase().includes(searchTerm.toLowerCase());
@@ -196,7 +183,7 @@ export default function DepartmentMaster() {
     { key: 'name', header: 'Department Name' },
     { key: 'head', header: 'Department Head' },
     { key: 'email', header: 'Email' },
-    { key: 'location', header: 'Location', className: 'text-muted-foreground' },
+    
     { key: 'risk_rating', header: 'Risk Rating', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
   ];
 
@@ -299,16 +286,6 @@ export default function DepartmentMaster() {
         </div>
       </div>
 
-      {/* Location */}
-      <div>
-        <Label>Location</Label>
-        <Input
-          value={form.location}
-          onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-          placeholder="e.g., Main Building - Floor 2"
-        />
-      </div>
-
       {/* Risk Rating */}
       <div>
         <Label>Risk Rating</Label>
@@ -334,9 +311,6 @@ export default function DepartmentMaster() {
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={filteredDepartments} columns={exportColumns} fileName={DEPARTMENT_SCHEMA.exportFileName} title={DEPARTMENT_SCHEMA.exportTitle} />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />Bulk Upload
-          </Button>
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
         </div>
       }
@@ -386,7 +360,6 @@ export default function DepartmentMaster() {
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Remove Department" description="Are you sure you want to remove this department? It will be deactivated." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
 
-      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Departments" fields={bulkUploadFields} onImport={handleBulkImport} templateName={DEPARTMENT_SCHEMA.templateFileName} />
     </PageShell>
   );
 }
