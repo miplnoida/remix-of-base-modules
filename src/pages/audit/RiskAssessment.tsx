@@ -10,7 +10,7 @@ import { Plus, BarChart3, AlertTriangle, TrendingUp, Shield } from 'lucide-react
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartments, useIADepartmentFunctions, useIAAuditors } from '@/hooks/useAuditData';
 import { useIARiskScoringModel, useIARiskCriteriaWeights, useIAFrequencyMapping } from '@/hooks/useAuditConfigData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -30,6 +30,7 @@ interface CriterionScore {
 export default function RiskAssessment() {
   const { data = [], isLoading, isError, create, update } = useIARiskAssessments();
   const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
   const { data: scoringModel } = useIARiskScoringModel();
   const { data: criteriaWeights = [] } = useIARiskCriteriaWeights(scoringModel?.id);
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
@@ -241,7 +242,17 @@ export default function RiskAssessment() {
 
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Assessment Date</Label><Input type="date" value={assessmentDate} onChange={e => setAssessmentDate(e.target.value)} disabled={isReadOnly} /></div>
-            <div><Label>Assessed By</Label><Input value={assessedBy} onChange={e => setAssessedBy(e.target.value)} disabled={isReadOnly} /></div>
+            <div>
+              <Label>Assessed By</Label>
+              <Select value={assessedBy} onValueChange={setAssessedBy} disabled={isReadOnly}>
+                <SelectTrigger><SelectValue placeholder="Select auditor" /></SelectTrigger>
+                <SelectContent>
+                  {(auditors as any[]).map((a: any) => (
+                    <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Dynamic criteria sliders */}
