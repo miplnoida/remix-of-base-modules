@@ -360,7 +360,6 @@ export default function DepartmentMaster() {
 
       <ConfirmDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)} title="Remove Department" description="Are you sure you want to remove this department? It will be deactivated." onConfirm={() => { if (deleteId) { remove.mutate(deleteId); setDeleteId(null); } }} variant="destructive" />
 
-      <BulkUploadModal open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen} title="Bulk Upload Departments" fields={bulkUploadFields} onImport={handleBulkImport} templateName={DEPARTMENT_SCHEMA.templateFileName} />
     </PageShell>
   );
 }
