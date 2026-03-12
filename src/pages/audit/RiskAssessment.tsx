@@ -242,7 +242,17 @@ export default function RiskAssessment() {
 
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Assessment Date</Label><Input type="date" value={assessmentDate} onChange={e => setAssessmentDate(e.target.value)} disabled={isReadOnly} /></div>
-            <div><Label>Assessed By</Label><Input value={assessedBy} onChange={e => setAssessedBy(e.target.value)} disabled={isReadOnly} /></div>
+            <div>
+              <Label>Assessed By</Label>
+              <Select value={assessedBy} onValueChange={setAssessedBy} disabled={isReadOnly}>
+                <SelectTrigger><SelectValue placeholder="Select auditor" /></SelectTrigger>
+                <SelectContent>
+                  {(auditors as any[]).map((a: any) => (
+                    <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Dynamic criteria sliders */}
