@@ -9364,12 +9364,15 @@ export type Database = {
           created_by: string | null
           email: string | null
           head: string
+          head_profile_id: string | null
           id: string
           is_active: boolean | null
           location: string | null
           name: string
+          office_code: string | null
           phone: string | null
           risk_rating: string | null
+          source_department_id: string | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -9378,12 +9381,15 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           head: string
+          head_profile_id?: string | null
           id?: string
           is_active?: boolean | null
           location?: string | null
           name: string
+          office_code?: string | null
           phone?: string | null
           risk_rating?: string | null
+          source_department_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -9392,12 +9398,15 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           head?: string
+          head_profile_id?: string | null
           id?: string
           is_active?: boolean | null
           location?: string | null
           name?: string
+          office_code?: string | null
           phone?: string | null
           risk_rating?: string | null
+          source_department_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
