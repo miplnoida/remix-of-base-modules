@@ -11,9 +11,8 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Link } from 'react-router-dom';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
-import { DEPARTMENT_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+import { DEPARTMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 
-const bulkUploadFields = toBulkUploadFields(DEPARTMENT_SCHEMA);
 const exportColumns = toExportColumns(DEPARTMENT_SCHEMA);
 
 const OTHER_VALUE = '__OTHER__';
