@@ -48,6 +48,7 @@ interface ModuleTreeItemProps {
 const ModuleTreeItem = ({
   module,
   children,
+  allChildrenMap,
   level,
   expandedModules,
   toggleExpand,
