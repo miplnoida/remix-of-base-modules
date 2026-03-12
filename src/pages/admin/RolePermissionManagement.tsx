@@ -34,6 +34,7 @@ const getIcon = (iconName: string | null) => {
 interface ModuleTreeItemProps {
   module: AppModule;
   children: AppModule[];
+  allChildrenMap: Map<string, AppModule[]>;
   level: number;
   expandedModules: Set<string>;
   toggleExpand: (id: string) => void;
