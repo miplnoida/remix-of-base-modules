@@ -183,7 +183,7 @@ export default function DepartmentMaster() {
     { key: 'name', header: 'Department Name' },
     { key: 'head', header: 'Department Head' },
     { key: 'email', header: 'Email' },
-    { key: 'location', header: 'Location', className: 'text-muted-foreground' },
+    
     { key: 'risk_rating', header: 'Risk Rating', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
   ];
 
