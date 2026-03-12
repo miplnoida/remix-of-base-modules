@@ -284,11 +284,38 @@ const IPAccessRulesManagement: React.FC = () => {
         </Button>
       </div>
 
+      {/* Global IP Policy Toggle */}
+      <Card>
+        <CardContent className="py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className={`h-5 w-5 ${policyEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div>
+              <p className="font-medium text-sm">IP Access Policy</p>
+              <p className="text-xs text-muted-foreground">
+                {policyEnabled
+                  ? 'Enabled — Only whitelisted IPs can access the application.'
+                  : 'Disabled — All IP addresses are allowed.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${policyEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+              {policyLoading ? '...' : policyEnabled ? 'Enabled' : 'Disabled'}
+            </span>
+            <Switch
+              checked={!!policyEnabled}
+              onCheckedChange={(checked) => togglePolicyMutation.mutate(checked)}
+              disabled={policyLoading || togglePolicyMutation.isPending}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-amber-500/30 bg-amber-500/5">
         <CardContent className="py-3 flex items-start gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            <strong>Important:</strong> If no active rules exist, all IPs are allowed. Once you add an active rule, only matching IPs will have access. Make sure to add your own IP before activating rules.
+            <strong>Important:</strong> When the IP Access Policy is enabled and active rules exist, only matching IPs will have access. Make sure to add your own IP before enabling the policy.
           </p>
         </CardContent>
       </Card>
