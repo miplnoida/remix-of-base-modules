@@ -152,7 +152,8 @@ const ModuleTreeItem = ({
             <ModuleTreeItem
               key={child.id}
               module={child}
-              children={[]}
+              children={allChildrenMap.get(child.id) || []}
+              allChildrenMap={allChildrenMap}
               level={level + 1}
               expandedModules={expandedModules}
               toggleExpand={toggleExpand}
