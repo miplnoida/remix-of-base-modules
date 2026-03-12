@@ -69,6 +69,49 @@ const IPAccessRulesManagement: React.FC = () => {
 
   const userCode = profile?.user_code || 'SYSTEM';
 
+  // Fetch IP policy enabled state
+  const { data: policyEnabled, isLoading: policyLoading } = useQuery({
+    queryKey: ['ip-access-policy-enabled'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('security_policy_config')
+        .select('config_value')
+        .eq('config_key', 'ip_access_policy_enabled')
+        .single();
+      if (error) throw error;
+      return data?.config_value === 'true';
+    },
+  });
+
+  // Toggle IP policy
+  const togglePolicyMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await (supabase as any)
+        .from('security_policy_config')
+        .update({ config_value: enabled ? 'true' : 'false', updated_by: userCode, updated_at: new Date().toISOString() })
+        .eq('config_key', 'ip_access_policy_enabled');
+      if (error) throw error;
+      return enabled;
+    },
+    onSuccess: async (enabled) => {
+      queryClient.invalidateQueries({ queryKey: ['ip-access-policy-enabled'] });
+      toast.success(`IP Access Policy ${enabled ? 'enabled' : 'disabled'}`);
+      await logAuditTrail({
+        action: enabled ? 'enable' : 'disable',
+        entityType: 'security_policy_config',
+        entityId: 'ip_access_policy_enabled',
+        module: 'Security',
+        userCode,
+        userId: user?.id,
+        beforeValue: { ip_access_policy_enabled: !enabled },
+        afterValue: { ip_access_policy_enabled: enabled },
+      });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to toggle IP policy');
+    },
+  });
+
   // Fetch rules
   const { data, isLoading } = useQuery({
     queryKey: ['ip-access-rules', page],
@@ -241,11 +284,38 @@ const IPAccessRulesManagement: React.FC = () => {
         </Button>
       </div>
 
+      {/* Global IP Policy Toggle */}
+      <Card>
+        <CardContent className="py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className={`h-5 w-5 ${policyEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div>
+              <p className="font-medium text-sm">IP Access Policy</p>
+              <p className="text-xs text-muted-foreground">
+                {policyEnabled
+                  ? 'Enabled — Only whitelisted IPs can access the application.'
+                  : 'Disabled — All IP addresses are allowed.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${policyEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+              {policyLoading ? '...' : policyEnabled ? 'Enabled' : 'Disabled'}
+            </span>
+            <Switch
+              checked={!!policyEnabled}
+              onCheckedChange={(checked) => togglePolicyMutation.mutate(checked)}
+              disabled={policyLoading || togglePolicyMutation.isPending}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-amber-500/30 bg-amber-500/5">
         <CardContent className="py-3 flex items-start gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            <strong>Important:</strong> If no active rules exist, all IPs are allowed. Once you add an active rule, only matching IPs will have access. Make sure to add your own IP before activating rules.
+            <strong>Important:</strong> When the IP Access Policy is enabled and active rules exist, only matching IPs will have access. Make sure to add your own IP before enabling the policy.
           </p>
         </CardContent>
       </Card>
