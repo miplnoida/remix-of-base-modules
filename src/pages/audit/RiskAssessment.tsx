@@ -10,7 +10,7 @@ import { Plus, BarChart3, AlertTriangle, TrendingUp, Shield } from 'lucide-react
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartments, useIADepartmentFunctions, useIAAuditors } from '@/hooks/useAuditData';
 import { useIARiskScoringModel, useIARiskCriteriaWeights, useIAFrequencyMapping } from '@/hooks/useAuditConfigData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
