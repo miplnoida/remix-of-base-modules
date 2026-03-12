@@ -30,6 +30,7 @@ interface CriterionScore {
 export default function RiskAssessment() {
   const { data = [], isLoading, isError, create, update } = useIARiskAssessments();
   const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
   const { data: scoringModel } = useIARiskScoringModel();
   const { data: criteriaWeights = [] } = useIARiskCriteriaWeights(scoringModel?.id);
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
