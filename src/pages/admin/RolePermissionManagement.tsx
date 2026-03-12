@@ -382,6 +382,7 @@ const RolePermissionManagement = () => {
                   key={module.id}
                   module={module}
                   children={childModulesMap.get(module.id) || []}
+                  allChildrenMap={childModulesMap}
                   level={0}
                   expandedModules={expandedModules}
                   toggleExpand={toggleExpand}
