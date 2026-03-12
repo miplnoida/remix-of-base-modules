@@ -109,18 +109,6 @@ export default function DepartmentMaster() {
     }
   };
 
-  const handleBulkImport = async (data: Record<string, any>[]) => {
-    for (const row of data) {
-      await new Promise<void>((resolve, reject) => {
-        create.mutate({
-          name: row.name, head: row.head, email: row.email || '', phone: row.phone || '',
-          location: row.location || '', risk_rating: row.risk_rating || 'Medium',
-          office_code: row.office_code || '',
-          created_by: (profile as any)?.user_code || '',
-        }, { onSuccess: () => resolve(), onError: () => reject() });
-      });
-    }
-  };
 
   const filteredDepartments = departments.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.head.toLowerCase().includes(searchTerm.toLowerCase());
