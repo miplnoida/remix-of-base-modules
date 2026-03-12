@@ -5,23 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Award, X, Upload } from 'lucide-react';
-import { useIAAuditors, useIAAuditorMutations } from '@/hooks/useAuditData';
+import { Plus, Award, X } from 'lucide-react';
+import { useIAAuditors, useIAAuditorMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
-import { AUDITOR_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+import { AUDITOR_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const AVAILABLE_SKILLS = ['Payroll Audit', 'Compliance Testing', 'IT Audit', 'Financial Analysis', 'Risk Assessment', 'Fraud Investigation', 'Data Analytics'];
 const AVAILABLE_CERTIFICATIONS = ['CIA', 'CISA', 'CFE', 'CPA', 'ACCA', 'CGAP', 'CRMA'];
-const emptyForm = { employee_no: '', name: '', email: '', phone: '', role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[] };
+const emptyForm = { employee_no: '', name: '', email: '', phone: '', role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[], profile_id: '' };
 
-const bulkUploadFields = toBulkUploadFields(AUDITOR_SCHEMA);
 const exportColumns = toExportColumns(AUDITOR_SCHEMA);
 
 export default function AuditorProfiles() {
   const { profile } = useSupabaseAuth();
-  const { data: auditors = [], isLoading, isError, refetch } = useIAAuditors();
+  const { data: auditors = [], isLoading, isError } = useIAAuditors();
+  const { data: profiles = [] } = useIAProfiles();
   const { create, update } = useIAAuditorMutations();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all' });
@@ -29,25 +29,26 @@ export default function AuditorProfiles() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editAuditor, setEditAuditor] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
-  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
-  const handleBulkImport = async (data: Record<string, any>[]) => {
-    for (const row of data) {
-      await new Promise<void>((resolve, reject) => {
-        create.mutate({
-          name: row.name, employee_no: row.employee_no, email: row.email,
-          phone: row.phone || '', role: row.role || 'Auditor',
-          seniority_level: row.seniority_level || 'Junior',
-          work_location: row.work_location || '',
-          skills: [], certifications: [],
-          created_by: (profile as any)?.user_code || '',
-        }, { onSuccess: () => resolve(), onError: () => reject() });
-      });
-    }
-    refetch();
-  };
 
   const resetForm = () => setForm({ ...emptyForm, skills: [], certifications: [] });
+
+  // Filter out profiles already added as auditors (for Add mode)
+  const usedProfileIds = auditors.map((a: any) => a.profile_id).filter(Boolean);
+  const availableProfiles = profiles.filter(p => !usedProfileIds.includes(p.id));
+
+  const handleProfileSelect = (profileId: string) => {
+    const selected = profiles.find(p => p.id === profileId);
+    if (selected) {
+      setForm(f => ({
+        ...f,
+        profile_id: selected.id,
+        name: selected.full_name || '',
+        email: selected.email || '',
+        phone: selected.phone || '',
+        employee_no: selected.user_code || '',
+      }));
+    }
+  };
 
   const filteredAuditors = auditors.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.email.toLowerCase().includes(searchTerm.toLowerCase()) || a.employee_no.toLowerCase().includes(searchTerm.toLowerCase());
@@ -56,7 +57,7 @@ export default function AuditorProfiles() {
   });
 
   const handleAdd = () => {
-    if (!form.employee_no || !form.name || !form.email) return;
+    if (!form.profile_id || !form.name || !form.email) return;
     create.mutate({ ...form, created_by: (profile as any)?.user_code || '' }, {
       onSuccess: () => { setIsAddOpen(false); resetForm(); }
     });
@@ -70,7 +71,7 @@ export default function AuditorProfiles() {
   };
 
   const openEdit = (a: any) => {
-    setForm({ employee_no: a.employee_no, name: a.name, email: a.email, phone: a.phone || '', role: a.role, seniority_level: a.seniority_level || 'Junior', work_location: a.work_location || '', skills: a.skills || [], certifications: a.certifications || [] });
+    setForm({ employee_no: a.employee_no, name: a.name, email: a.email, phone: a.phone || '', role: a.role, seniority_level: a.seniority_level || 'Junior', work_location: a.work_location || '', skills: a.skills || [], certifications: a.certifications || [], profile_id: a.profile_id || '' });
     setEditAuditor(a);
   };
 
@@ -79,22 +80,40 @@ export default function AuditorProfiles() {
     { key: 'name', header: 'Auditor Name' },
     { key: 'email', header: 'Email' },
     { key: 'role', header: 'Role', render: (row) => <StatusBadge status={row.role} /> },
-    { key: 'seniority_level', header: 'Seniority Level' },
     { key: 'certifications', header: 'Certifications', render: (row) => (
       <div className="flex gap-1 flex-wrap">{(row.certifications || []).map((c: string, i: number) => <Badge key={i} variant="outline" className="text-xs"><Award className="w-3 h-3 mr-1" />{c}</Badge>)}</div>
     )},
     { key: 'employment_status', header: 'Status', render: (row) => <StatusBadge status={row.employment_status || 'Active'} /> },
   ];
 
+  const isEditMode = !!editAuditor;
+
   const formFields = (
     <div className="space-y-4">
+      {/* Profile Selection - only in Add mode */}
+      {!isEditMode && (
+        <div>
+          <Label>Select User Profile *</Label>
+          <Select value={form.profile_id} onValueChange={handleProfileSelect}>
+            <SelectTrigger><SelectValue placeholder="Select a user profile..." /></SelectTrigger>
+            <SelectContent>
+              {availableProfiles.map(p => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.full_name} {p.user_code ? `(${p.user_code})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Employee Number *</Label><Input value={form.employee_no} onChange={e => setForm(f => ({ ...f, employee_no: e.target.value }))} placeholder="EMP-AUD-001" disabled={!!editAuditor} /></div>
-        <div><Label>Auditor Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="John Doe" /></div>
+        <div><Label>Employee Number</Label><Input value={form.employee_no} disabled className="bg-muted" /></div>
+        <div><Label>Auditor Name</Label><Input value={form.name} disabled className="bg-muted" /></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div><Label>Email *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="auditor@ssb.kn" /></div>
-        <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(869) 465-0000" /></div>
+        <div><Label>Email</Label><Input value={form.email} disabled className="bg-muted" /></div>
+        <div><Label>Phone</Label><Input value={form.phone} disabled className="bg-muted" /></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div><Label>Role</Label>
@@ -103,14 +122,8 @@ export default function AuditorProfiles() {
             <SelectContent><SelectItem value="Auditor">Auditor</SelectItem><SelectItem value="Audit Manager">Audit Manager</SelectItem><SelectItem value="Audit Director">Audit Director</SelectItem></SelectContent>
           </Select>
         </div>
-        <div><Label>Seniority Level</Label>
-          <Select value={form.seniority_level} onValueChange={v => setForm(f => ({ ...f, seniority_level: v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="Junior">Junior</SelectItem><SelectItem value="Mid">Mid</SelectItem><SelectItem value="Senior">Senior</SelectItem><SelectItem value="Lead">Lead</SelectItem></SelectContent>
-          </Select>
-        </div>
+        <div><Label>Work Location</Label><Input value={form.work_location} onChange={e => setForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" /></div>
       </div>
-      <div><Label>Work Location</Label><Input value={form.work_location} onChange={e => setForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" /></div>
       <div><Label>Skills</Label>
         <Select onValueChange={skill => { if (!form.skills.includes(skill)) setForm(f => ({ ...f, skills: [...f.skills, skill] })); }}>
           <SelectTrigger><SelectValue placeholder="Select skills" /></SelectTrigger>
@@ -143,9 +156,6 @@ export default function AuditorProfiles() {
             fileName={AUDITOR_SCHEMA.exportFileName}
             title={AUDITOR_SCHEMA.exportTitle}
           />
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />Bulk Upload
-          </Button>
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Auditor</Button>
         </div>
       }
@@ -186,12 +196,9 @@ export default function AuditorProfiles() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Role</Label><div className="mt-1"><StatusBadge status={viewAuditor.role} /></div></div>
-              <div><Label className="text-muted-foreground">Seniority Level</Label><p>{viewAuditor.seniority_level}</p></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewAuditor.employment_status || 'Active'} /></div></div>
-              <div><Label className="text-muted-foreground">Work Location</Label><p>{viewAuditor.work_location || '-'}</p></div>
             </div>
+            <div><Label className="text-muted-foreground">Work Location</Label><p>{viewAuditor.work_location || '-'}</p></div>
             <div><Label className="text-muted-foreground">Skills</Label><div className="flex flex-wrap gap-2 mt-1">{(viewAuditor.skills || []).map((s: string, i: number) => <Badge key={i} variant="secondary">{s}</Badge>)}</div></div>
             <div><Label className="text-muted-foreground">Certifications</Label><div className="flex flex-wrap gap-2 mt-1">{(viewAuditor.certifications || []).map((c: string, i: number) => <Badge key={i} variant="outline"><Award className="w-3 h-3 mr-1" />{c}</Badge>)}</div></div>
           </div>
@@ -207,15 +214,6 @@ export default function AuditorProfiles() {
       <EntityModal open={editAuditor !== null} onOpenChange={o => { if (!o) { setEditAuditor(null); resetForm(); } }} title="Edit Auditor" mode="edit" onSave={handleEdit} isSaving={update.isPending} saveLabel="Save Changes">
         {formFields}
       </EntityModal>
-
-      <BulkUploadModal
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        title="Bulk Upload Auditors"
-        fields={bulkUploadFields}
-        onImport={handleBulkImport}
-        templateName={AUDITOR_SCHEMA.templateFileName}
-      />
     </PageShell>
   );
 }
