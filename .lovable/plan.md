@@ -1,18 +1,49 @@
 
 
-## Plan: Add Your IP to the Whitelist
+## Problem
 
-Your current IP `122.176.104.29` needs to be added as a **single IP** rule to the `ip_access_rules` table.
+The `ModuleTreeItem` component on line 153 passes `children={[]}` (empty array) when rendering child modules recursively. This means grandchildren and deeper levels never render — the tree stops at depth 1.
 
-### Current Active Rules
-- Range: `204.137.206.1` – `204.137.206.255`
-- Range: `205.214.204.1` – `205.214.204.255`
-- Single: `106.214.9.65`
+```text
+Current behavior:
+  Parent Module
+    └── Child Module (actions shown)
+         └── (grandchildren NEVER rendered — children={[]} hardcoded)
 
-### What I'll Do
-1. **Insert** a new active single-IP rule for `122.176.104.29` into `ip_access_rules` via a database insert (not a migration, since this is data, not schema).
-2. The IP gate will pick it up immediately on your next page load — no restart needed.
+Expected behavior:
+  Parent Module
+    └── Child Module (actions shown)
+         └── Grandchild Module (actions shown)
+              └── ... (any depth)
+```
 
-### No File Changes Required
-This is a data-only operation.
+## Root Cause
+
+In `src/pages/admin/RolePermissionManagement.tsx`, line 150-153:
+```tsx
+<ModuleTreeItem
+  module={child}
+  children={[]}        // ← BUG: always empty
+  level={level + 1}
+  ...
+/>
+```
+
+The `childModulesMap` is built correctly in the parent component but is never passed down to `ModuleTreeItem`, so recursive children can't look up their own children.
+
+## Fix (single file change)
+
+**File: `src/pages/admin/RolePermissionManagement.tsx`**
+
+1. **Add `allChildrenMap` prop** to `ModuleTreeItemProps` so the component can look up children for any module at any depth.
+
+2. **Pass the map** from the parent render and within the recursive render.
+
+3. **Replace `children={[]}`** on line 153 with `children={allChildrenMap.get(child.id) || []}`.
+
+4. **Update "Expand All"** button (line 347) to expand all module IDs (not just parents) so deeply nested modules can also be toggled open.
+
+5. **Update search filtering** to also match deeply nested modules (recursive search through `childModulesMap`).
+
+No backend or database changes needed — `useAppModules` already fetches all modules with their `parent_id` and actions. The `childModulesMap` already maps every parent to its direct children at all levels. The only issue is the frontend not passing this map into the recursive component.
 
