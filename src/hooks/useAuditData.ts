@@ -2,6 +2,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// ============= PROFILES (for Department Head selection) =============
+export interface IAProfile {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  user_code: string | null;
+  is_active: boolean | null;
+}
+
+export function useIAProfiles() {
+  return useQuery({
+    queryKey: ['ia_profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone, user_code, is_active')
+        .eq('is_active', true)
+        .order('full_name');
+      if (error) throw error;
+      return (data || []) as IAProfile[];
+    },
+  });
+}
+
 // ============= DEPARTMENTS =============
 export function useIADepartments() {
   return useQuery({
@@ -23,7 +48,11 @@ export function useIADepartmentMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
-    mutationFn: async (dept: { name: string; head: string; email?: string; phone?: string; location?: string; risk_rating?: string; created_by?: string }) => {
+    mutationFn: async (dept: {
+      name: string; head: string; email?: string; phone?: string; location?: string;
+      risk_rating?: string; created_by?: string;
+      office_code?: string; source_department_id?: string | null; head_profile_id?: string | null;
+    }) => {
       const { data, error } = await supabase.from('ia_departments').insert(dept).select().single();
       if (error) throw error;
       return data;

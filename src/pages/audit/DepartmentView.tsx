@@ -137,6 +137,9 @@ export default function DepartmentView() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
+              {department.office_code && (
+                <div className="flex items-start gap-3"><Building2 className="h-5 w-5 text-muted-foreground mt-0.5" /><div><div className="text-sm font-medium text-muted-foreground">Office</div><div className="mt-1">{department.office_code}</div></div></div>
+              )}
               <div className="flex items-start gap-3"><Mail className="h-5 w-5 text-muted-foreground mt-0.5" /><div><div className="text-sm font-medium text-muted-foreground">Email</div><div className="mt-1">{department.email || 'N/A'}</div></div></div>
               <div className="flex items-start gap-3"><MapPin className="h-5 w-5 text-muted-foreground mt-0.5" /><div><div className="text-sm font-medium text-muted-foreground">Location</div><div className="mt-1">{department.location || 'N/A'}</div></div></div>
             </div>
