@@ -222,14 +222,22 @@ const RolePermissionManagement = () => {
       }
     });
 
-    const filtered = parents.filter((module) =>
-      module.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (childMap.get(module.id) || []).some(
+    // Recursive search through all descendants
+    const matchesSearch = (moduleId: string, query: string): boolean => {
+      const children = childMap.get(moduleId) || [];
+      return children.some(
         (child) =>
-          child.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+          child.display_name.toLowerCase().includes(query) ||
+          child.name.toLowerCase().includes(query) ||
+          matchesSearch(child.id, query)
+      );
+    };
+
+    const lowerQuery = searchQuery.toLowerCase();
+    const filtered = parents.filter((module) =>
+      module.display_name.toLowerCase().includes(lowerQuery) ||
+      module.name.toLowerCase().includes(lowerQuery) ||
+      matchesSearch(module.id, lowerQuery)
     );
 
     return {
