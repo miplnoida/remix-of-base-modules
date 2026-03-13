@@ -300,6 +300,19 @@ const FindingsManagement = () => {
             <div><Label className="text-muted-foreground">Criteria</Label><p>{viewItem.criteria || '-'}</p></div>
             <div><Label className="text-muted-foreground">Cause</Label><p>{viewItem.cause || '-'}</p></div>
             <div><Label className="text-muted-foreground">Effect</Label><p>{viewItem.effect || '-'}</p></div>
+            {(viewItem.root_cause_category || viewItem.corrective_action_description || viewItem.preventive_action) && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm font-semibold">Root Cause Analysis</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-muted-foreground">Root Cause Category</Label><p>{viewItem.root_cause_category || '-'}</p></div>
+                </div>
+                <div><Label className="text-muted-foreground">Corrective Action</Label><p>{viewItem.corrective_action_description || '-'}</p></div>
+                <div><Label className="text-muted-foreground">Preventive Action</Label><p>{viewItem.preventive_action || '-'}</p></div>
+              </div>
+            )}
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="finding" entityId={viewItem.id} />
+            </div>
           </div>
         )}
       </EntityModal>
