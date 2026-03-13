@@ -145,6 +145,7 @@ export default function RiskControlMatrix() {
         process_id: modalState.parentId,
         description: form.description,
         category: form.category,
+        risk_owner: form.risk_owner || null,
         likelihood: Number(lScore),
         impact: Number(iScore),
         risk_score: inherent,
