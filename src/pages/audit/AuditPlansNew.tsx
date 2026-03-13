@@ -286,13 +286,16 @@ export default function AuditPlansNew() {
       )}
 
       {/* View Annual Plan */}
-      <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view">
+      <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewAnnual && (
           <div className="space-y-3">
             <p><strong>Fiscal Year:</strong> {viewAnnual.fiscal_year || '-'}</p>
             <p><strong>Plan Name:</strong> {viewAnnual.title || '-'}</p>
             <p><strong>Status:</strong> <StatusBadge status={viewAnnual.status || 'Draft'} /></p>
             <p><strong>Objective:</strong> {viewAnnual.objective || '-'}</p>
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="annual_plan" entityId={viewAnnual.id} />
+            </div>
           </div>
         )}
       </EntityModal>
