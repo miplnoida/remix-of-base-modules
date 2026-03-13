@@ -1,0 +1,1 @@
+ALTER TABLE ia_rcm_risks ADD COLUMN IF NOT EXISTS risk_owner TEXT;

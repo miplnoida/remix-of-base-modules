@@ -10676,6 +10676,7 @@ export type Database = {
           process_id: string | null
           residual_risk_score: number | null
           risk_level: string | null
+          risk_owner: string | null
           risk_score: number | null
         }
         Insert: {
@@ -10691,6 +10692,7 @@ export type Database = {
           process_id?: string | null
           residual_risk_score?: number | null
           risk_level?: string | null
+          risk_owner?: string | null
           risk_score?: number | null
         }
         Update: {
@@ -10706,6 +10708,7 @@ export type Database = {
           process_id?: string | null
           residual_risk_score?: number | null
           risk_level?: string | null
+          risk_owner?: string | null
           risk_score?: number | null
         }
         Relationships: [

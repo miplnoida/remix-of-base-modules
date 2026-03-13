@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Shield,
   Mail,
-  Globe,
   Target,
   Briefcase,
   BookOpen,
@@ -33,7 +32,11 @@ export const auditMenuItems = [
     title: "Internal Audit",
     icon: Shield,
     subItems: [
-      // Governance & Risk
+      // ===== Governance & Risk =====
+      {
+        title: "Governance & Risk",
+        isSectionLabel: true,
+      },
       {
         title: "Risk Assessment",
         url: "/audit/risk-assessment",
@@ -42,13 +45,25 @@ export const auditMenuItems = [
         description: "Assess and score entity risks"
       },
       {
+        title: "Risk Control Matrix",
+        url: "/audit/rcm",
+        icon: Grid3X3,
+        requiresPermission: "enter_audit_findings",
+        description: "Map processes, risks, controls and tests"
+      },
+      {
         title: "Executive Dashboard",
         url: "/audit/executive-dashboard",
         icon: LayoutDashboard,
         requiresPermission: "generate_reports",
         description: "High-level audit performance overview"
       },
-      // Auditor Management
+
+      // ===== Resource Management =====
+      {
+        title: "Resource Management",
+        isSectionLabel: true,
+      },
       {
         title: "Auditor Profiles",
         url: "/audit/auditors",
@@ -71,11 +86,11 @@ export const auditMenuItems = [
         description: "Track auditor time and utilization"
       },
       {
-        title: "Leave and Vacation Management",
+        title: "Leave & Vacation",
         url: "/audit/leave",
         icon: CalendarDays,
         requiresPermission: "assign_auditors",
-        description: "Manage leave requests, vacation, and time off"
+        description: "Manage leave requests and time off"
       },
       {
         title: "Holiday Management",
@@ -84,7 +99,12 @@ export const auditMenuItems = [
         requiresPermission: "assign_auditors",
         description: "Manage public and SSB-specific holidays"
       },
-      // Audit Planning
+
+      // ===== Audit Planning =====
+      {
+        title: "Planning",
+        isSectionLabel: true,
+      },
       {
         title: "Audit Plans",
         url: "/audit/audit-plans",
@@ -106,7 +126,12 @@ export const auditMenuItems = [
         requiresPermission: "create_audit_plans",
         description: "Manage formal audit engagements"
       },
-      // Methodology
+
+      // ===== Preparation =====
+      {
+        title: "Preparation",
+        isSectionLabel: true,
+      },
       {
         title: "Audit Programs",
         url: "/audit/audit-programs",
@@ -122,26 +147,17 @@ export const auditMenuItems = [
         description: "Prepare audits with checklists and documents"
       },
       {
-        title: "Risk Control Matrix",
-        url: "/audit/rcm",
-        icon: Grid3X3,
-        requiresPermission: "enter_audit_findings",
-        description: "Map processes, risks, controls and tests"
-      },
-      {
-        title: "Control Testing",
-        url: "/audit/control-testing",
-        icon: TestTube,
-        requiresPermission: "execute_audit_activities",
-        description: "Test and evaluate control effectiveness"
-      },
-      // Audit Execution
-      {
         title: "Activity Calendar",
         url: "/audit/calendar",
         icon: Calendar,
         requiresPermission: "view_audit_assignments",
         description: "Schedule and manage audit activities"
+      },
+
+      // ===== Execution =====
+      {
+        title: "Execution",
+        isSectionLabel: true,
       },
       {
         title: "Activity Workbench",
@@ -149,6 +165,13 @@ export const auditMenuItems = [
         icon: Clipboard,
         requiresPermission: "execute_audit_activities",
         description: "Execute audit activities and enter findings"
+      },
+      {
+        title: "Control Testing",
+        url: "/audit/control-testing",
+        icon: TestTube,
+        requiresPermission: "execute_audit_activities",
+        description: "Test and evaluate control effectiveness"
       },
       {
         title: "Evidence Management",
@@ -162,7 +185,13 @@ export const auditMenuItems = [
         url: "/audit/working-papers",
         icon: FileText,
         requiresPermission: "enter_audit_findings",
-        description: "Create and manage working papers with traceability"
+        description: "Create and manage working papers"
+      },
+
+      // ===== Issues =====
+      {
+        title: "Issues",
+        isSectionLabel: true,
       },
       {
         title: "Findings & Recommendations",
@@ -171,7 +200,6 @@ export const auditMenuItems = [
         requiresPermission: "enter_audit_findings",
         description: "Document audit findings and recommendations"
       },
-      // Follow-up & Closure
       {
         title: "Management Responses",
         url: "/audit/responses",
@@ -193,12 +221,11 @@ export const auditMenuItems = [
         requiresPermission: "manage_audit_followups",
         description: "Track corrective actions and follow-ups"
       },
+
+      // ===== Closure =====
       {
-        title: "Plan Closeout",
-        url: "/audit/plan-closeout",
-        icon: CheckSquare,
-        requiresPermission: "approve_audit_closeouts",
-        description: "Review and approve plan closeouts"
+        title: "Closure",
+        isSectionLabel: true,
       },
       {
         title: "Quality Assurance Review",
@@ -207,7 +234,19 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_closeouts",
         description: "Independent review of completed audits"
       },
-      // Reports & Communications
+      {
+        title: "Plan Closeout",
+        url: "/audit/plan-closeout",
+        icon: CheckSquare,
+        requiresPermission: "approve_audit_closeouts",
+        description: "Review and approve plan closeouts"
+      },
+
+      // ===== Reporting & Communication =====
+      {
+        title: "Reporting",
+        isSectionLabel: true,
+      },
       {
         title: "Audit Reports",
         url: "/audit/audit-reports",
@@ -243,7 +282,12 @@ export const auditMenuItems = [
         requiresPermission: "create_audit_plans",
         description: "Send official audit communications"
       },
-      // Administration
+
+      // ===== Administration =====
+      {
+        title: "Administration",
+        isSectionLabel: true,
+      },
       {
         title: "System Configuration",
         url: "/audit/config",

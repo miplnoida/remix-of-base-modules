@@ -70,10 +70,9 @@ function useIACrud<T extends Record<string, any>>(
   return { ...query, create, update, archive };
 }
 
-// ============= AUDIT UNIVERSE =============
-export function useIAAuditUniverse() {
-  return useIACrud('ia_audit_universe', 'ia_audit_universe', { orderBy: 'entity_name' });
-}
+// ============= AUDIT UNIVERSE (DEPRECATED — removed) =============
+// useIAAuditUniverse removed — Audit Universe replaced by Function Master
+
 
 // ============= RISK ASSESSMENTS =============
 export function useIARiskAssessments() {
