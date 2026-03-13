@@ -139,6 +139,8 @@ const FindingsManagement = () => {
       status: f.status || 'Draft', department_id: f.department_id || '', activity_id: f.activity_id || '',
       annual_plan_id: f.annual_plan_id || '', department_audit_id: f.department_audit_id || '',
       finding_id: f.finding_id || '',
+      root_cause_category: f.root_cause_category || '', preventive_action: f.preventive_action || '',
+      corrective_action_description: f.corrective_action_description || '',
     });
     setEditItem(f);
   };
