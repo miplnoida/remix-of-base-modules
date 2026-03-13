@@ -17,7 +17,7 @@ import { FINDINGS_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/m
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
 const ROOT_CAUSE_CATEGORIES = ['Process Failure', 'Human Error', 'System Gap', 'Policy Gap', 'Training Gap'];
-const RISKS = ['High', 'Medium', 'Low'];
+const RISKS = ['Critical', 'High', 'Medium', 'Low'];
 
 const bulkUploadFields = toBulkUploadFields(FINDINGS_SCHEMA);
 const exportColumns = toExportColumns(FINDINGS_SCHEMA);

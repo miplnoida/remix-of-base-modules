@@ -145,6 +145,7 @@ export default function RiskControlMatrix() {
         process_id: modalState.parentId,
         description: form.description,
         category: form.category,
+        risk_owner: form.risk_owner || null,
         likelihood: Number(lScore),
         impact: Number(iScore),
         risk_score: inherent,
@@ -229,6 +230,7 @@ export default function RiskControlMatrix() {
                     <p className="font-medium">{risk.description}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Category: {risk.category}</span>
+                      {risk.risk_owner && <span>Owner: {risk.risk_owner}</span>}
                       <span>L: {risk.likelihood} × I: {risk.impact} = <strong>{res?.inherent || risk.risk_score}</strong></span>
                       <span>Residual: <strong>{res?.residual?.toFixed(1) || '-'}</strong></span>
                       {res && (
@@ -283,7 +285,10 @@ export default function RiskControlMatrix() {
           </>}
           {modalState.modalType === 'risk' && <>
             <div><Label>Risk Description</Label><Textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-            <div><Label>Risk Category</Label><Input value={form.category || ''} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g., Operational, Financial, Compliance" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Risk Category</Label><Input value={form.category || ''} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g., Operational, Financial, Compliance" /></div>
+              <div><Label>Risk Owner</Label><Input value={form.risk_owner || ''} onChange={e => setForm(f => ({ ...f, risk_owner: e.target.value }))} placeholder="Person responsible for this risk" /></div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Likelihood</Label>

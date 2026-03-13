@@ -60,6 +60,12 @@
 - Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
 - Created `useConfigChangeRequests.ts` hook
 
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
+
 ## Remaining (Next Iteration)
 - Apply approved config changes automatically (currently view-only approval)
 - Set up cron job for `audit-due-date-reminders`
