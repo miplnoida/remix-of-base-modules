@@ -50,9 +50,16 @@
 - Created `AuditHistoryTimeline.tsx` component
 - DB function for risk adjustment and dashboard integration pending next iteration
 
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
+
 ## Remaining (Next Iteration)
-- Wire `DiscussionThread` into finding/activity/plan modals
-- Create `calculate_historical_risk_adjustment` DB function
-- Integrate RiskHeatMap into AuditDashboard
-- Create AuditHistory page/tab
+- Apply approved config changes automatically (currently view-only approval)
 - Set up cron job for `audit-due-date-reminders`
