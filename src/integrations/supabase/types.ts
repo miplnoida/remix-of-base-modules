@@ -8372,6 +8372,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_approval_actions: {
+        Row: {
+          action: string
+          comments: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          performed_by: string | null
+          performer_name: string | null
+        }
+        Insert: {
+          action: string
+          comments?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Update: {
+          action?: string
+          comments?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Relationships: []
+      }
       ia_audit_config: {
         Row: {
           category: string | null
@@ -9189,7 +9222,8 @@ export type Database = {
           actual_end: string | null
           actual_start: string | null
           admin_override_close: boolean | null
-          annual_plan_id: string
+          annual_plan_id: string | null
+          audit_type: string
           closed_by: string | null
           closed_date: string | null
           created_at: string | null
@@ -9217,7 +9251,8 @@ export type Database = {
           actual_end?: string | null
           actual_start?: string | null
           admin_override_close?: boolean | null
-          annual_plan_id: string
+          annual_plan_id?: string | null
+          audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
           created_at?: string | null
@@ -9245,7 +9280,8 @@ export type Database = {
           actual_end?: string | null
           actual_start?: string | null
           admin_override_close?: boolean | null
-          annual_plan_id?: string
+          annual_plan_id?: string | null
+          audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
           created_at?: string | null
@@ -10088,6 +10124,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_plan_amendments: {
+        Row: {
+          amendment_type: string
+          approved_by: string | null
+          created_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          plan_id: string
+          plan_type: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amendment_type?: string
+          approved_by?: string | null
+          created_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id: string
+          plan_type?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amendment_type?: string
+          approved_by?: string | null
+          created_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id?: string
+          plan_type?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       ia_plan_carry_forward: {
         Row: {
