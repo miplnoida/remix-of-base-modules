@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DiscussionThread } from '@/components/audit/DiscussionThread';
 import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
