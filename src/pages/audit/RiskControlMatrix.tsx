@@ -230,6 +230,7 @@ export default function RiskControlMatrix() {
                     <p className="font-medium">{risk.description}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Category: {risk.category}</span>
+                      {risk.risk_owner && <span>Owner: {risk.risk_owner}</span>}
                       <span>L: {risk.likelihood} × I: {risk.impact} = <strong>{res?.inherent || risk.risk_score}</strong></span>
                       <span>Residual: <strong>{res?.residual?.toFixed(1) || '-'}</strong></span>
                       {res && (
