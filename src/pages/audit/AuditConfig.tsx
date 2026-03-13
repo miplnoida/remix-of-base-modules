@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Shield, Flag, MapPin, Plus, Trash2, Target, Clock, BarChart3 } from 'lucide-react';
+import { Settings, Bell, Shield, Flag, MapPin, Plus, Trash2, Target, Clock, BarChart3, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useConfigChangeRequests, useConfigChangeRequestMutations } from '@/hooks/useConfigChangeRequests';
 
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
