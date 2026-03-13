@@ -1,528 +1,1170 @@
-# Internal Audit Module — Complete Documentation
+# Internal Audit Module — Complete Technical & Functional Documentation
 
+**Document Version:** 2.0  
+**Last Updated:** 2026-03-13  
 **Module Prefix:** `ia_` (all database tables)  
 **Route Prefix:** `/audit/*`  
-**Last Updated:** 2026-03-09
+**Module Status:** Production-Ready (All 35 screens functional)
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#1-overview)
-2. [Architecture](#2-architecture)
+1. [Executive Summary](#1-executive-summary)
+2. [Module Architecture](#2-module-architecture)
 3. [Database Schema](#3-database-schema)
-4. [Module Inventory (23 Modules)](#4-module-inventory)
-5. [Data Hooks & CRUD Operations](#5-data-hooks--crud-operations)
-6. [UI Standards](#6-ui-standards)
-7. [Workflow Rules](#7-workflow-rules)
-8. [Permission Model](#8-permission-model)
-9. [Feature Flags](#9-feature-flags)
-10. [File Structure](#10-file-structure)
+4. [Screen Inventory](#4-screen-inventory)
+5. [Audit Lifecycle Workflow](#5-audit-lifecycle-workflow)
+6. [Risk Assessment & Scoring](#6-risk-assessment--scoring)
+7. [Audit Planning](#7-audit-planning)
+8. [Approval Workflow](#8-approval-workflow)
+9. [Audit Preparation](#9-audit-preparation)
+10. [Audit Execution](#10-audit-execution)
+11. [Issue Management](#11-issue-management)
+12. [Audit Closure](#12-audit-closure)
+13. [Reporting & Dashboards](#13-reporting--dashboards)
+14. [Communication & Collaboration](#14-communication--collaboration)
+15. [Email Notifications](#15-email-notifications)
+16. [Administration & Configuration](#16-administration--configuration)
+17. [Integration Points](#17-integration-points)
+18. [Security & Permissions](#18-security--permissions)
+19. [Edge Functions](#19-edge-functions)
+20. [Feature Flags](#20-feature-flags)
+21. [File Structure](#21-file-structure)
+22. [Remaining Items](#22-remaining-items)
 
 ---
 
-## 1. Overview
+## 1. Executive Summary
 
-The Internal Audit (IA) module provides a complete audit lifecycle management system covering:
+The Internal Audit Module is a fully integrated risk-based internal audit system built within the Social Security platform. It supports the complete audit lifecycle from risk identification through audit closure and reporting, while leveraging the platform's existing master data (offices, departments, user profiles) and services (RBAC, notifications).
 
-- **Auditor Management** — Profiles, workload, leave, holidays
-- **Audit Planning** — Annual plans, department audits, plan approval
-- **Audit Execution** — Activity scheduling, workbench, evidence, working papers, findings
-- **Follow-up & Closure** — Management responses, action tracking, follow-ups, plan closeout
-- **Reporting & Communication** — Reports, letters, report builder, communication center
-- **Administration** — System configuration, department master, function master, templates
-
-All 23 modules are currently **✅ Functional** (feature flags enabled).
+### Key Capabilities
+- **Risk-Based Planning:** Automated risk scoring drives audit frequency recommendations
+- **Full Lifecycle Management:** Risk Assessment → Planning → Preparation → Execution → Findings → Closure → Reporting
+- **Multi-Step Approval Workflow:** Lead Auditor review + Department Head acceptance with email notifications
+- **Ad-hoc Audit Support:** Audits can be created outside the annual plan
+- **Auto Corrective Actions:** Findings automatically generate corrective action tracking records
+- **Realtime Collaboration:** Discussion threads with @mentions and live updates
+- **Automated Reminders:** Scheduled edge function sends due date reminders (7/3/1 day + overdue)
+- **Historical Risk Adjustment:** Past findings automatically influence future risk scores
+- **Electronic Signatures:** Approval, closeout, and quality review sign-offs
+- **PDF/Excel Export:** All reports support multi-format export
 
 ---
 
-## 2. Architecture
+## 2. Module Architecture
 
-### 2.1 Route Configuration (Single Source of Truth)
+### Technology Stack
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + TypeScript + Vite |
+| UI Framework | Tailwind CSS + shadcn/ui |
+| State Management | TanStack React Query v5 |
+| Routing | React Router v6 |
+| Charts | Recharts |
+| Database | PostgreSQL (via Lovable Cloud) |
+| Edge Functions | Deno (Supabase Edge Functions) |
+| Email | Resend API (via send-notification edge function) |
+| File Storage | Supabase Storage (`ia-evidence` bucket) |
+| Realtime | Supabase Realtime (postgres_changes) |
 
-**File:** `src/config/auditRouteConfig.ts`
+### Architecture Principles
+1. **Existing Master Integration:** Uses `tb_office`, `tb_office_departments`, and `profiles` tables — no duplicate masters
+2. **Audit Trail:** All mutations inject `created_by` / `updated_by` via `useAuditTrail` hook (5-character `user_code`)
+3. **Feature Flags:** Each module controlled via `AUDIT_FEATURE_FLAGS` in `auditRouteConfig.ts`
+4. **Permission-Based Access:** RBAC permissions control screen-level access
+5. **No RLS:** Per architectural constraint, Row Level Security is not used; only role-based security
 
-All audit routes, feature flags, permissions, and categories are defined in this single file. Each route entry contains:
-
-```typescript
-interface AuditRouteEntry {
-  moduleKey: string;         // Unique identifier
-  label: string;             // Display name
-  path: string;              // Route path
-  permission: string;        // Required permission
-  enabled: boolean;          // Feature flag state
-  category: 'management' | 'planning' | 'execution' | 'followup' | 'reports' | 'administration';
-  component: string;         // Component file path
-}
+### Data Hierarchy
 ```
-
-### 2.2 Feature Gate Pattern
-
-**File:** `src/components/audit/AuditFeatureGate.tsx`
-
-Wraps each route. If the feature flag is disabled, renders `AuditModuleUnderActivation` placeholder instead of the real component.
-
-### 2.3 Sidebar Navigation
-
-**File:** `src/components/sidebar/menuItems/auditMenuItems.ts`
-
-All 23 modules are grouped under "Internal Audit" (Shield icon) with sub-items organized by category.
-
-### 2.4 Audit Trail
-
-**File:** `src/hooks/useAuditTrail.ts`
-
-All mutations inject `created_by` and `updated_by` fields using the logged-in user's 5-character `user_code` via the `useAuditFields()` hook:
-
-```typescript
-const { getCreateFields, getUpdateFields } = useAuditFields();
-// getCreateFields() → { created_by: 'ADMIN', updated_by: 'ADMIN' }
-// getUpdateFields() → { updated_by: 'ADMIN', updated_at: '2026-...' }
+Office (tb_office)
+  → Department (ia_departments)
+    → Function (ia_department_functions)
+      → Risk Assessment (ia_risk_assessments)
+        → Risk Control Matrix (ia_rcm_processes → ia_rcm_risks → ia_rcm_controls → ia_rcm_tests)
+          → Annual Plan (ia_annual_plans)
+            → Department Audit (ia_department_audits)
+              → Engagement (ia_audit_engagements)
+                → Activity (ia_activities)
+                  → Evidence (ia_evidence)
+                  → Working Paper (ia_working_papers)
+                  → Finding (ia_findings)
+                    → Management Response (ia_management_responses)
+                    → Action Tracking (ia_action_tracking)
+                      → Follow-Up (ia_follow_ups)
+                        → Quality Review (ia_quality_reviews)
+                          → Plan Closeout
+                            → Audit Report (ia_audit_reports)
 ```
-
-### 2.5 No RLS Policy
-
-Per architectural constraint (Entry 9 in custom knowledge), **no Row Level Security** is applied to `ia_` tables. Only role-based security via permissions is used.
 
 ---
 
 ## 3. Database Schema
 
-All tables use the `ia_` prefix. No foreign keys to `auth.users`. Created via migrations:
+### 3.1 All Tables (59 tables with `ia_` prefix)
 
-- `20260227061914` — Core tables
-- `20260227064212` — Settings, risk criteria, activity types (with seed data)
-- `20260305094241` — Audit reports table + action tracking enhancements
+#### Master Data Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_departments` | Audit-scope departments linked to `tb_office` and `tb_office_departments`. Fields: `office_code`, `source_department_id`, `head_profile_id`, `head`, `email`, `phone`, `status` |
+| `ia_department_functions` | Functions within departments. Fields: `department_id`, `function_name`, `description`, `risk_level`, `historical_risk_adjustment` (NUMERIC, default 0) |
+| `ia_auditors` | Auditor profiles linked to `profiles` table. Fields: `profile_id`, `name`, `email`, `specialization`, `qualification`, `status` |
+| `ia_auditor_workload` | Capacity and workload tracking per auditor |
+| `ia_holidays` | Holiday calendar for planning |
+| `ia_leave_requests` | Auditor leave/vacation records |
+| `ia_activity_types` | Configurable activity type definitions |
+| `ia_audit_universe` | Legacy audit universe entries |
 
-### 3.1 Master Data Tables
+#### Risk Assessment Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_risk_assessments` | Function-level risk assessment records |
+| `ia_risk_assessment_factors` | Factor scores per assessment |
+| `ia_risk_criteria` | Risk criteria definitions |
+| `ia_risk_criteria_weights` | Weighted scoring configuration |
+| `ia_risk_scoring_models` | Scoring model configuration |
+| `ia_risk_classification_thresholds` | Risk level thresholds (Low/Medium/High/Critical) |
+| `ia_risk_likelihood_levels` | Likelihood scale (1-5) |
+| `ia_risk_impact_levels` | Impact scale (1-5) |
+| `ia_control_effectiveness_levels` | Control effectiveness reduction percentages |
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_departments` | Department registry | `name`, `head`, `email`, `phone`, `location`, `risk_rating`, `is_active` |
-| `ia_department_functions` | Functions within departments | `department_id` (FK), `function_name`, `description`, `risk_level`, `last_audit_date`, `is_active` |
-| `ia_auditors` | Auditor profiles | `user_id`, `name`, `email`, `employee_id`, `designation`, `specializations`, `certifications`, `is_active`, `max_concurrent_audits` |
-| `ia_holidays` | Holiday calendar | `name`, `date`, `year`, `type` (Public/SSB-Specific/Other), `is_active` |
-| `ia_audit_settings` | Key-value system config | `setting_category`, `setting_key`, `setting_value`, `setting_type` |
-| `ia_risk_criteria` | Risk assessment criteria | `criteria`, `weight` (High/Medium/Low), `sort_order` |
-| `ia_activity_types` | Activity type catalog | `name`, `description`, `default_duration`, `sort_order` |
+#### Risk Control Matrix Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_rcm_processes` | Processes within functions |
+| `ia_rcm_risks` | Risks linked to processes with likelihood/impact/inherent score |
+| `ia_rcm_controls` | Controls linked to risks (preventive/detective), frequency, owner |
+| `ia_rcm_tests` | Tests linked to controls with procedure and expected result |
+| `ia_control_tests` | Control testing execution records |
+| `ia_control_test_results` | Test execution results (Pass/Fail/Partial) |
 
-### 3.2 Planning Tables
+#### Planning Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_annual_plans` | Annual audit plan headers. Fields: `title`, `year`, `status`, `approved_by`, `approved_date` |
+| `ia_department_audits` | Individual department audits. Fields: `annual_plan_id` (nullable), `audit_type` (planned/ad_hoc), `department_id`, `function_ids`, `objectives`, `scope`, `planned_start`, `planned_end`, `lead_auditor_id`, `team_members`, `status` |
+| `ia_planning_assumptions` | Planning assumptions and constraints |
+| `ia_plan_amendments` | Amendment history. Fields: `plan_id`, `amendment_type`, `field_changed`, `old_value`, `new_value`, `reason`, `requested_by`, `approved_by`, `status`, `created_at` |
+| `ia_plan_carry_forward` | Carry-forward rules from prior year plans |
+| `ia_approval_actions` | Full approval audit trail. Fields: `entity_type`, `entity_id`, `action`, `performed_by`, `comments`, `created_at` |
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_annual_plans` | Annual audit plans | `fiscal_year`, `title`, `status` (Draft/Submitted/Under Review/Approved/Internally Approved/Active/Completed), `objectives`, `start_date`, `end_date`, `total_departments`, `total_auditors` |
-| `ia_department_audits` | Department-level audit assignments within a plan | `annual_plan_id` (FK), `department_id` (FK), `period`, `status`, `scope`, `risk_rating`, `lead_auditor_id`, `team_member_ids[]`, `start_date`, `end_date` |
-| `ia_leave_requests` | Auditor leave management | `request_id` (unique), `auditor_id` (FK), `leave_type`, `start_date`, `end_date`, `reason`, `status` (Draft/Submitted/Approved/Rejected), `approver_id` |
+#### Engagement & Program Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_audit_engagements` | Audit engagement records |
+| `ia_audit_programs` | Structured audit programs |
+| `ia_audit_procedures` | Procedures within programs |
 
-### 3.3 Execution Tables
+#### Preparation Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_preparation_checklists` | Pre-execution checklists. Fields: `department_audit_id`, `item_text`, `is_completed`, `assigned_to`, `category` (General/Procedure/Objective/Risk), `sort_order`, `created_by`, `created_at` |
+| `ia_preparation_documents` | Preliminary document uploads. Fields: `department_audit_id`, `document_type`, `file_url`, `file_name`, `uploaded_by`, `created_at` |
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_activities` | Scheduled audit activities | `department_audit_id` (FK), `annual_plan_id` (FK), `department_id` (FK), `activity_type`, `title`, `description`, `assigned_auditor_id`, `status`, `scheduled_date`, `start_date`, `end_date`, `actual_hours` |
-| `ia_evidence` | Audit evidence attachments | `activity_id` (FK), `title`, `description`, `file_url`, `file_type`, `file_size`, `category`, `status` |
-| `ia_working_papers` | Audit working papers | `activity_id` (FK), `title`, `reference_number`, `content`, `status` (Draft/Under Review/Reviewed/Closed), `prepared_by`, `reviewed_by` |
-| `ia_findings` | Audit findings | `activity_id` (FK), `finding_number`, `title`, `description`, `severity` (Critical/High/Medium/Low), `status`, `root_cause`, `impact` |
-| `ia_recommendations` | Recommendations linked to findings | `finding_id` (FK), `recommendation`, `priority`, `target_date`, `responsible_person` |
+#### Execution Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_activities` | Audit activities linked to department audits and engagements |
+| `ia_evidence` | Evidence files linked to activities, stored in `ia-evidence` bucket |
+| `ia_working_papers` | Working paper documents linked to activities |
+| `ia_time_logs` | Time tracking per activity/auditor |
 
-### 3.4 Follow-up & Closure Tables
+#### Findings & Response Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_findings` | Audit findings. Fields: `title`, `description`, `severity` (High/Medium/Low), `root_cause`, `activity_id`, `status` (Draft/Under Review/For Mgmt Response/Closed) |
+| `ia_recommendations` | Recommendations linked to findings |
+| `ia_management_responses` | Department head responses to findings |
+| `ia_action_tracking` | Corrective action items (auto-generated). Fields: `finding_id`, `action_description`, `responsible_person`, `target_date`, `status` (Not Started/Open/In Progress/Completed/Overdue) |
+| `ia_action_plan_milestones` | Action plan milestone tracking |
+| `ia_action_plan_updates` | Progress updates on action plans |
+| `ia_follow_ups` | Follow-up verification records |
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_management_responses` | Responses from management to findings | `finding_id` (FK), `response_text`, `action_plan`, `target_date`, `responsible_person`, `status` |
-| `ia_action_tracking` | Corrective action tracking | `finding_id`, `action_description`, `responsible_person`, `target_date`, `status`, `completion_date`, `evidence` |
-| `ia_follow_ups` | Follow-up verification | `finding_id`, `follow_up_type` (Standard/SPOT_CHECK), `assigned_to`, `due_date`, `status`, `outcome`, `notes` |
+#### Closure & Quality Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_quality_reviews` | Quality assurance review records. Fields: `engagement_id`, `quality_rating`, `checklist_results`, `required_rework`, `signed_by`, `signature_date` |
+| `ia_quality_review_checklist` | QA checklist items |
 
-### 3.5 Reporting & Communication Tables
+#### Reporting Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_audit_reports` | Final audit reports linked to plans |
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_audit_reports` | Report builder persistence | `title`, `report_type`, `fiscal_year`, `period`, `department_id` (FK), `plan_id` (FK), `status`, `background`, `conclusion`, `key_findings`, `executive_summary` |
-| `ia_document_templates` | Letter/document templates | `name`, `category`, `content`, `variables`, `is_active` |
-| `ia_communications` | Sent communications log | `type`, `subject`, `body`, `recipients`, `sent_at`, `sent_by`, `template_id`, `related_entity_type`, `related_entity_id` |
+#### Communication Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_communications` | Template-based communications |
+| `ia_discussion_threads` | Discussion threads on any entity. Fields: `entity_type`, `entity_id`, `created_by`, `created_at` |
+| `ia_discussion_comments` | Comments within threads (**Realtime enabled**). Fields: `thread_id`, `author_id`, `author_name`, `content`, `mentioned_users` (UUID[]), `created_at` |
+| `ia_notification_logs` | Notification delivery tracking |
+| `ia_notification_queue` | Outbound notification queue |
 
-### 3.6 Workload View
-
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `ia_auditor_workload` | Auditor capacity view | `auditor_id`, `period_start`, `period_end`, `assigned_activities`, `completed_activities`, `capacity_percentage` |
-
-### 3.7 Default Seed Data
-
-**Settings** (category: general/notifications/compliance):
-- `defaultAuditPeriod`: Monthly
-- `autoAssignAuditors`: true
-- `maxConcurrentAudits`: 3
-- `notifyOnPlanApproval`: true
-- `notifyOnFindingCreated`: true
-- `managementResponseDays`: 14
-- `followUpReminderDays`: 7
-- `riskAssessmentFrequency`: Annual
-- `complianceFramework`: COSO
-
-**Risk Criteria** (5 defaults): Large employer, Financial institution, Government contract holder, Previous non-compliance, New registration
-
-**Activity Types** (5 defaults): Compliance Check (4h), Records Review (6h), Interviews (3h), Process Walkthrough (5h), Full Audit (40h)
-
----
-
-## 4. Module Inventory
-
-### Category: Auditor Management
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 1 | Auditor Profiles | `/audit/auditors` | `configure_audit_system` | `AuditorProfiles.tsx` |
-| 2 | Workload & Capacity | `/audit/workload` | `assign_auditors` | `WorkloadCapacity.tsx` |
-| 3 | Leave & Vacation Management | `/audit/leave` | `assign_auditors` | `LeaveManagement.tsx` |
-| 4 | Holiday Management | `/audit/holidays` | `assign_auditors` | `HolidayManagement.tsx` |
-
-### Category: Audit Planning
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 5 | Audit Plans | `/audit/audit-plans` | `create_audit_plans` | `AuditPlansNew.tsx` |
-| 6 | Plan Approval | `/audit/plan-approval` | `approve_audit_plans` | `PlanApproval.tsx` |
-
-### Category: Audit Execution
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 7 | Activity Calendar | `/audit/calendar` | `view_audit_assignments` | `ActivityCalendar.tsx` |
-| 8 | Activity Workbench | `/audit/activity-workbench` | `execute_audit_activities` | `ActivityWorkbench.tsx` |
-| 9 | Evidence Management | `/audit/evidence` | `enter_audit_findings` | `EvidenceManagement.tsx` |
-| 10 | Working Papers | `/audit/working-papers` | `enter_audit_findings` | `WorkingPapers.tsx` |
-| 11 | Findings & Recommendations | `/audit/findings` | `enter_audit_findings` | `FindingsManagement.tsx` |
-
-### Category: Follow-up & Closure
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 12 | Management Responses | `/audit/responses` | `view_audit_assignments` | `ManagementResponses.tsx` |
-| 13 | Action Tracking | `/audit/actions` | `manage_audit_followups` | `ActionTracking.tsx` |
-| 14 | Follow-Up Tracker | `/audit/follow-up-tracker` | `manage_audit_followups` | `FollowUpTracker.tsx` |
-| 15 | Plan Closeout | `/audit/plan-closeout` | `approve_audit_closeouts` | `PlanCloseout.tsx` |
-
-### Category: Reports & Communications
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 16 | Audit Reports | `/audit/audit-reports` | `generate_reports` | `AuditReports.tsx` |
-| 17 | Letter Generation | `/audit/letters` | `create_audit_plans` | `LetterGeneration.tsx` |
-| 18 | Report Builder | `/audit/report-builder` | `enter_audit_findings` | `ReportBuilder.tsx` |
-| 19 | Communication Center | `/audit/communication-center` | `create_audit_plans` | `CommunicationCenter.tsx` |
-
-### Category: Administration
-
-| # | Module | Route | Permission | Component |
-|---|--------|-------|------------|-----------|
-| 20 | System Configuration | `/audit/config` | `configure_audit_system` | `AuditConfig.tsx` |
-| 21 | Department Master | `/audit/departments` | `configure_audit_system` | `DepartmentMaster.tsx` |
-| 22 | Function Master | `/audit/functions` | `configure_audit_system` | `FunctionMaster.tsx` |
-| 23 | Templates | `/audit/templates` | `configure_audit_system` | `TemplatesManagement.tsx` |
+#### Configuration Tables
+| Table | Purpose |
+|-------|---------|
+| `ia_audit_config` | Module configuration key-value store |
+| `ia_audit_settings` | Audit settings (frequencies, thresholds) |
+| `ia_document_templates` | Letter/report templates |
+| `ia_sla_rules` | SLA and escalation rules |
+| `ia_escalation_rules` | Escalation policy definitions |
 
 ---
 
-## 5. Data Hooks & CRUD Operations
+## 4. Screen Inventory
 
-All hooks use `@tanstack/react-query` for caching and `supabase` client for data access. Organized across three files to avoid TypeScript deep instantiation errors:
+### 4.1 All 35 Screens
 
-### Hook File: `useAuditData.ts` (Primary)
+| # | Screen | Route | Page File | Category | Permission |
+|---|--------|-------|-----------|----------|------------|
+| 1 | Executive Dashboard | `/audit/executive-dashboard` | ExecutiveDashboard.tsx | Reports | `generate_reports` |
+| 2 | Risk Assessment | `/audit/risk-assessment` | RiskAssessment.tsx | Governance | `configure_audit_system` |
+| 3 | Auditor Profiles | `/audit/auditors` | AuditorProfiles.tsx | Management | `configure_audit_system` |
+| 4 | Workload & Capacity | `/audit/workload` | WorkloadCapacity.tsx | Management | `assign_auditors` |
+| 5 | Time Tracking | `/audit/time-tracking` | TimeTracking.tsx | Management | `execute_audit_activities` |
+| 6 | Leave & Vacation | `/audit/leave` | LeaveManagement.tsx | Management | `assign_auditors` |
+| 7 | Holiday Management | `/audit/holidays` | HolidayManagement.tsx | Management | `assign_auditors` |
+| 8 | Audit Plans | `/audit/audit-plans` | AuditPlansNew.tsx | Planning | `create_audit_plans` |
+| 9 | Plan Approval | `/audit/plan-approval` | PlanApproval.tsx | Planning | `approve_audit_plans` |
+| 10 | Audit Engagements | `/audit/engagements` | AuditEngagements.tsx | Planning | `create_audit_plans` |
+| 11 | Audit Programs | `/audit/audit-programs` | AuditPrograms.tsx | Methodology | `create_audit_plans` |
+| 12 | Audit Preparation | `/audit/preparation` | AuditPreparation.tsx | Methodology | `create_audit_plans` |
+| 13 | Risk Control Matrix | `/audit/rcm` | RiskControlMatrix.tsx | Methodology | `enter_audit_findings` |
+| 14 | Control Testing | `/audit/control-testing` | ControlTesting.tsx | Methodology | `execute_audit_activities` |
+| 15 | Activity Calendar | `/audit/calendar` | ActivityCalendar.tsx | Execution | `view_audit_assignments` |
+| 16 | Activity Workbench | `/audit/activity-workbench` | ActivityWorkbench.tsx | Execution | `execute_audit_activities` |
+| 17 | Evidence Management | `/audit/evidence` | EvidenceManagement.tsx | Execution | `enter_audit_findings` |
+| 18 | Working Papers | `/audit/working-papers` | WorkingPapers.tsx | Execution | `enter_audit_findings` |
+| 19 | Findings & Recommendations | `/audit/findings` | FindingsManagement.tsx | Execution | `enter_audit_findings` |
+| 20 | Management Responses | `/audit/responses` | ManagementResponses.tsx | Follow-up | `view_audit_assignments` |
+| 21 | Action Tracking | `/audit/actions` | ActionTracking.tsx | Follow-up | `manage_audit_followups` |
+| 22 | Follow-Up Tracker | `/audit/follow-up-tracker` | FollowUpTracker.tsx | Follow-up | `manage_audit_followups` |
+| 23 | Quality Assurance Review | `/audit/quality-review` | QualityReview.tsx | Follow-up | `approve_audit_closeouts` |
+| 24 | Plan Closeout | `/audit/plan-closeout` | PlanCloseout.tsx | Follow-up | `approve_audit_closeouts` |
+| 25 | Audit Reports | `/audit/audit-reports` | AuditReports.tsx | Reports | `generate_reports` |
+| 26 | Committee Reports | `/audit/committee-reports` | CommitteeReports.tsx | Reports | `generate_reports` |
+| 27 | Letter Generation | `/audit/letters` | LetterGeneration.tsx | Reports | `create_audit_plans` |
+| 28 | Report Builder | `/audit/report-builder` | ReportBuilder.tsx | Reports | `enter_audit_findings` |
+| 29 | Communication Center | `/audit/communication-center` | CommunicationCenter.tsx | Reports | `create_audit_plans` |
+| 30 | System Configuration | `/audit/config` | AuditConfig.tsx | Administration | `configure_audit_system` |
+| 31 | SLA & Escalation Rules | `/audit/sla-rules` | SLARules.tsx | Administration | `configure_audit_system` |
+| 32 | Department Master | `/audit/departments` | DepartmentMaster.tsx | Administration | `configure_audit_system` |
+| 33 | Function Master | `/audit/functions` | FunctionMaster.tsx | Administration | `configure_audit_system` |
+| 34 | Templates | `/audit/templates` | TemplatesManagement.tsx | Administration | `configure_audit_system` |
+| 35 | Audit Universe | `/audit/audit-universe` | AuditUniverse.tsx | Governance | (legacy) |
 
-| Hook | Table | Operations |
-|------|-------|------------|
-| `useIADepartments()` | `ia_departments` | Read (active only) |
-| `useIADepartmentMutations()` | `ia_departments` | Create, Update, Soft Delete |
-| `useIADepartmentFunctions(deptId?)` | `ia_department_functions` | Read (filterable) |
-| `useIADepartmentFunctionMutations()` | `ia_department_functions` | Create, Update, Soft Delete |
-| `useIAHolidays(year?)` | `ia_holidays` | Read (filterable by year) |
-| `useIAHolidayMutations()` | `ia_holidays` | Create, Update, Soft Delete |
-| `useIAAuditors()` | `ia_auditors` | Read |
-| `useIAAuditorMutations()` | `ia_auditors` | Create, Update |
-| `useIALeaveRequests()` | `ia_leave_requests` | Read |
-| `useIALeaveRequestMutations()` | `ia_leave_requests` | Create, UpdateStatus |
-| `useIAAnnualPlans()` | `ia_annual_plans` | Read |
-| `useIAAnnualPlanMutations()` | `ia_annual_plans` | Create, Update |
-
-### Hook File: `useAuditDataExtended.ts`
-
-| Hook | Table | Operations |
-|------|-------|------------|
-| `useIADepartmentAudits(planId?)` | `ia_department_audits` | Read (filterable) |
-| `useIADepartmentAuditMutations()` | `ia_department_audits` | Create, Update |
-| `useIAActivities(filters?)` | `ia_activities` | Read (filter by dept audit, auditor, status) |
-| `useIAActivityMutations()` | `ia_activities` | Create, Update |
-| `useIAEvidence(activityId?)` | `ia_evidence` | Read (filterable) |
-| `useIAEvidenceMutations()` | `ia_evidence` | Create, Update, Delete |
-| `useIAWorkingPapers(activityId?)` | `ia_working_papers` | Read (filterable) |
-| `useIAWorkingPaperMutations()` | `ia_working_papers` | Create, Update, Delete |
-
-### Hook File: `useAuditDataExtended2.ts`
-
-| Hook | Table | Operations |
-|------|-------|------------|
-| `useIAFindings(activityId?)` | `ia_findings` | Read (filterable) |
-| `useIAFindingMutations()` | `ia_findings` | Create, Update, Delete |
-| `useIARecommendations(findingId?)` | `ia_recommendations` | Read (filterable) |
-| `useIARecommendationMutations()` | `ia_recommendations` | Create, Update |
-| `useIAManagementResponses(findingId?)` | `ia_management_responses` | Read (filterable) |
-| `useIAManagementResponseMutations()` | `ia_management_responses` | Create, Update |
-| `useIAActionTracking()` | `ia_action_tracking` | Read |
-| `useIAActionTrackingMutations()` | `ia_action_tracking` | Create, Update |
-| `useIAFollowUps()` | `ia_follow_ups` | Read |
-| `useIAFollowUpMutations()` | `ia_follow_ups` | Create, Update |
-| `useIADocumentTemplates(category?)` | `ia_document_templates` | Read (filterable) |
-| `useIADocumentTemplateMutations()` | `ia_document_templates` | Create, Update |
-| `useIACommunications()` | `ia_communications` | Read |
-| `useIACommunicationMutations()` | `ia_communications` | Create, Update |
-| `useIAAuditorWorkload()` | `ia_auditor_workload` | Read-only |
-
-### Hook File: `useAuditConfigData.ts`
-
-| Hook | Table | Operations |
-|------|-------|------------|
-| `useIAAuditSettings(category?)` | `ia_audit_settings` | Read (active, filterable) |
-| `useIAAuditSettingMutations()` | `ia_audit_settings` | Upsert (batch update) |
-| `useIARiskCriteria()` | `ia_risk_criteria` | Read |
-| `useIARiskCriteriaMutations()` | `ia_risk_criteria` | Create, Update |
-| `useIAActivityTypes()` | `ia_activity_types` | Read |
-| `useIAActivityTypeMutations()` | `ia_activity_types` | Create, Update |
-
-### Hook File: `useAuditReports.ts`
-
-| Hook | Table | Operations |
-|------|-------|------------|
-| `useIAAuditReports()` | `ia_audit_reports` | Read |
-| `useIAAuditReportMutations()` | `ia_audit_reports` | Create, Update |
-
-### Deletion Pattern
-
-- **Soft Delete** (set `is_active = false`): Departments, Functions, Holidays
-- **Hard Delete**: Evidence, Working Papers, Findings
+### 4.2 UI Standards (All Screens)
+- **Layout:** `PageShell` wrapper with breadcrumbs
+- **Search/Filter:** `StandardSearchFilterBar` component
+- **Tables:** `DataTable` with sorting, pagination, column visibility
+- **Modals:** `StandardModal` with sticky header/footer
+- **Stats:** `MetricCard` components for KPIs
+- **Status:** `StatusBadge` with color-coded rendering
+- **Actions:** View/Edit pattern with permission-gated buttons
+- **Audit Trail:** `created_by`/`updated_by` via `useAuditTrail` hook
 
 ---
 
-## 6. UI Standards
+## 5. Audit Lifecycle Workflow
 
-### 6.1 Shared Components
+### 5.1 End-to-End Flow
 
-| Component | Purpose |
-|-----------|---------|
-| `PageShell` | Standard page wrapper with title & breadcrumbs |
-| `StandardModal` (EntityModal) | Create/Edit/View dialogs — max 85vh, sticky header/footer, scrollable body |
-| `ConfirmDialog` | Destructive action confirmation |
-| `StandardSearchFilterBar` | 12-column grid search + filters with responsive layout |
-| `DataTable` | Paginated table with 10/20/50 row options |
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                    INTERNAL AUDIT LIFECYCLE                         │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─────────────┐    ┌──────────────┐    ┌───────────────┐           │
+│  │ MASTER DATA │───▶│    RISK      │───▶│   PLANNING    │           │
+│  │ Department  │    │ Assessment   │    │ Annual Plan   │           │
+│  │ Function    │    │ RCM          │    │ Ad-hoc Audit  │           │
+│  │ Auditor     │    │ Scoring      │    │ Team Assign   │           │
+│  └─────────────┘    └──────────────┘    └───────┬───────┘           │
+│                                                  │                   │
+│                                          ┌───────▼───────┐           │
+│                                          │   APPROVAL    │           │
+│                                          │ Lead Review   │           │
+│                                          │ Dept Accept   │           │
+│                                          └───────┬───────┘           │
+│                                                  │                   │
+│                                          ┌───────▼───────┐           │
+│                                          │ PREPARATION   │           │
+│                                          │ Checklist     │           │
+│                                          │ Documents     │           │
+│                                          │ Team Tasks    │           │
+│                                          └───────┬───────┘           │
+│                                                  │                   │
+│  ┌─────────────┐    ┌──────────────┐    ┌───────▼───────┐           │
+│  │  CLOSURE    │◀───│   FINDINGS   │◀───│  EXECUTION    │           │
+│  │ Mgmt Resp   │    │ Auto Action  │    │ Activities    │           │
+│  │ Quality Rev │    │ Tracking     │    │ Evidence      │           │
+│  │ Closeout    │    │ Follow-up    │    │ Working Papers│           │
+│  └──────┬──────┘    └──────────────┘    └───────────────┘           │
+│         │                                                            │
+│  ┌──────▼──────┐                                                     │
+│  │ REPORTING   │                                                     │
+│  │ Audit Report│                                                     │
+│  │ Committee   │                                                     │
+│  │ Letters     │                                                     │
+│  │ Dashboard   │                                                     │
+│  └─────────────┘                                                     │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-### 6.2 Modal Sizes
+### 5.2 Status Transitions
 
-- **General forms:** `max-w-3xl`
-- **Data-heavy (Findings, Working Papers):** `max-w-4xl`
+#### Annual Plan Status Flow
+```
+Draft → Submitted → Under Review → Approved → Awaiting Dept Acceptance → Accepted → In Progress → Completed
+                  ↘ Rejected                ↘ Amendment Pending → (re-enters Under Review)
+```
 
-### 6.3 Stat Cards
+#### Department Audit Status Flow
+```
+Planned → Accepted → In Preparation → Ready for Execution → In Progress → Under Review → Completed → Closed
+```
 
-Standardized layout: Icon + left-aligned text with KPI value.
+#### Finding Status Flow
+```
+Draft → Under Review → For Management Response → Closed
+```
 
-### 6.4 Activity Calendar
-
-Uses `react-big-calendar` with Month/Week/Day/Agenda views. Events color-coded by status. Custom CSS in `audit-calendar.css`.
-
-### 6.5 Search/Filter Bar
-
-Deterministic 12-col grid:
-- Desktop: 12-col, Tablet: 2-col, Mobile: 1-col
-- Search: 3-4 cols, Filters: 2 cols each, Reset: far right
-- `maxFiltersFirstRow` prop for row-split control
-- All controls: `h-9` height
+#### Corrective Action Status Flow
+```
+Not Started → In Progress → Completed
+           → Open
+           → Overdue (auto-set by reminder function when past target_date)
+```
 
 ---
 
-## 7. Workflow Rules
+## 6. Risk Assessment & Scoring
 
-### 7.1 Annual Plan Status Flow
+### 6.1 Risk Scoring Model
 
+Risk is assessed at the **Function** level within each department using weighted criteria.
+
+#### Scoring Formula
 ```
-Draft → Submitted → Under Review → Approved → Internally Approved → Active → Completed
-```
+Weighted Score = Σ (Factor Score × Factor Weight)
 
-- **Internally Approved** requires committee meeting minutes upload
-- Notifications (Send Notice, Engagement Letter) are **manual**
-- Closed plans are **locked from editing**
+Factor Categories:
+  - Operational Risk
+  - Financial Risk
+  - Compliance Risk
+  - Control Weakness
+  - Time Since Last Audit
 
-### 7.2 Finding Status Flow
-
-```
-Draft → Under Review → Closed
-```
-
-### 7.3 Working Paper Status Flow
-
-```
-Draft → Under Review → Reviewed → Closed
+Final Score = Weighted Score + Historical Risk Adjustment
 ```
 
-### 7.4 Leave Request Flow
+#### Historical Risk Adjustment
+Past findings from closed audits automatically increase future risk scores:
+| Finding Severity | Points Added |
+|-----------------|-------------|
+| High | +5 |
+| Medium | +3 |
+| Low | +1 |
 
+Stored in `ia_department_functions.historical_risk_adjustment` (NUMERIC, default 0).
+
+### 6.2 Risk Classification Thresholds
+Configurable in Audit Settings (default):
+| Level | Score Range | Recommended Audit Frequency |
+|-------|-------------|---------------------------|
+| Low | 0–5 | Every 3 years |
+| Medium | 6–12 | Every 2 years |
+| High | 13–20 | Yearly (12 months) |
+| Critical | 21–25 | Immediate / Ad-hoc |
+
+### 6.3 Risk Control Matrix (RCM)
+
+#### Dual-Score Calculation
 ```
-Draft → Submitted → Approved/Rejected
+Inherent Risk = Likelihood Score (1-5) × Impact Score (1-5)
+Residual Risk = Inherent Risk × (1 − Control Effectiveness Reduction %)
 ```
 
-### 7.5 Management Response SLA
-
-- Configurable response window: default **14 days** (`managementResponseDays` setting)
-- Reminder threshold: **7 days** (`followUpReminderDays` setting)
-- Target dates must come from **department responses**, not auditor suggestions
-
-### 7.6 Follow-Up Types
-
-- **Standard** — Regular follow-up
-- **SPOT_CHECK** — Allows scheduling follow-up activities
-
-### 7.7 Traceability Chain
-
-All execution entities trace back through:
+#### RCM Hierarchy
 ```
-Annual Plan → Department Audit → Activity → {Finding, Evidence, Working Paper}
-                                         → Finding → {Recommendation, Management Response}
-                                                   → Action Tracking → Follow-Up
+Department → Function → Process (ia_rcm_processes)
+  → Risk (ia_rcm_risks): likelihood, impact, inherent score
+    → Control (ia_rcm_controls): type (Preventive/Detective), frequency, owner
+      → Test (ia_rcm_tests): test procedure, expected result
 ```
 
-### 7.8 Safety Rules
+#### Configurable Scales
+| Scale | Range | Table |
+|-------|-------|-------|
+| Likelihood | 1–5 | `ia_risk_likelihood_levels` |
+| Impact | 1–5 | `ia_risk_impact_levels` |
+| Control Effectiveness | 0%–100% reduction | `ia_control_effectiveness_levels` |
 
-- Activity Workbench and Evidence creation require **active plan + department selection**
-- Closed plans are **locked** — no further editing
+Risk configuration is controlled by the Audit Lead only. Changes go through approval workflow.
 
 ---
 
-## 8. Permission Model
+## 7. Audit Planning
 
-| Permission | Modules |
-|------------|---------|
-| `configure_audit_system` | Auditor Profiles, System Config, Department Master, Function Master, Templates |
-| `assign_auditors` | Workload & Capacity, Leave Management, Holiday Management |
-| `create_audit_plans` | Audit Plans, Letter Generation, Communication Center |
-| `approve_audit_plans` | Plan Approval |
-| `view_audit_assignments` | Activity Calendar, Management Responses |
-| `execute_audit_activities` | Activity Workbench |
-| `enter_audit_findings` | Evidence Management, Working Papers, Findings, Report Builder |
-| `manage_audit_followups` | Action Tracking, Follow-Up Tracker |
-| `approve_audit_closeouts` | Plan Closeout |
-| `generate_reports` | Audit Reports |
+### 7.1 Annual Audit Plan
+
+**Screen:** Audit Plans (`AuditPlansNew.tsx`)  
+**Table:** `ia_annual_plans`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | TEXT | Plan name |
+| `year` | INTEGER | Audit year |
+| `status` | TEXT | Current workflow status |
+| `approved_by` | TEXT | Lead Auditor who approved |
+| `approved_date` | TIMESTAMP | Approval timestamp |
+| `created_by` | TEXT | User code of creator |
+
+Each plan contains multiple **Department Audits**.
+
+### 7.2 Department Audit
+
+**Table:** `ia_department_audits`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `annual_plan_id` | UUID (nullable) | Link to annual plan (null for ad-hoc) |
+| `audit_type` | TEXT | `planned` or `ad_hoc` (default: `planned`) |
+| `department_id` | UUID | Target department |
+| `function_ids` | UUID[] | Functions to audit |
+| `objectives` | TEXT | Audit objectives |
+| `scope` | TEXT | Audit scope |
+| `planned_start` | DATE | Start date |
+| `planned_end` | DATE | End date |
+| `lead_auditor_id` | UUID | Lead auditor |
+| `team_members` | UUID[] | Array of auditor IDs |
+| `status` | TEXT | Current status |
+
+### 7.3 Ad-hoc Audits
+- Created without selecting an annual plan (`annual_plan_id` = null)
+- Directly defines department, function, scope, team, and timeline
+- `audit_type` set to `ad_hoc`
+- Filterable in the listing via type filter chips (All / Planned / Ad-hoc)
+- Uses `DepartmentAuditForm.tsx` with `isAdHoc` mode
+
+### 7.4 Plan Amendments
+
+**Component:** `PlanAmendmentHistory.tsx`  
+**Table:** `ia_plan_amendments`
+
+When an approved plan is modified:
+1. System captures field-level before/after snapshot
+2. Plan status resets to "Amendment Pending"
+3. Amendment record created with reason and requester
+4. Re-approval workflow triggered
+5. Full amendment history viewable inside plan detail modal
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `plan_id` | UUID | Linked annual plan |
+| `amendment_type` | TEXT | Type of change |
+| `field_changed` | TEXT | Specific field modified |
+| `old_value` | TEXT | Before value (JSON snapshot) |
+| `new_value` | TEXT | After value (JSON snapshot) |
+| `reason` | TEXT | Justification for amendment |
+| `requested_by` | TEXT | User who requested |
+| `approved_by` | TEXT | User who approved amendment |
+| `status` | TEXT | Pending / Approved / Rejected |
+| `created_at` | TIMESTAMP | Amendment timestamp |
 
 ---
 
-## 9. Feature Flags
+## 8. Approval Workflow
 
-All 23 flags defined in `AUDIT_FEATURE_FLAGS` (all currently `true`):
+### 8.1 Multi-Step Approval Process
+
+**Screen:** Plan Approval (`PlanApproval.tsx`)  
+**Table:** `ia_approval_actions`
+
+```
+Step 1: Plan Creator submits plan
+  → Status changes to: "Submitted"
+  → Email notification sent to Lead Auditor (notifyPlanSubmitted)
+
+Step 2: Lead Auditor reviews
+  → Approve → Status: "Approved"
+    → Email to assigned auditors + department head (notifyPlanApproved)
+  → Reject → Status: "Rejected"
+    → Email to plan creator
+
+Step 3: Department Head acceptance
+  → Accept → Status: "Accepted"
+    → Audit can proceed to preparation stage
+  → Decline → Status: "Rejected"
+    → Email to Lead Auditor
+```
+
+### 8.2 Plan Approval UI
+
+Tabbed interface with four views:
+| Tab | Content |
+|-----|---------|
+| **Pending Review** | Plans in "Submitted" status awaiting Lead Auditor action |
+| **Dept Acceptance** | Plans in "Approved" status awaiting Department Head acceptance |
+| **Decided** | Recently approved/rejected plans |
+| **History** | Complete approval action log from `ia_approval_actions` |
+
+Each action (approve/reject/accept) requires:
+- **Mandatory comments** explaining the decision
+- Logged in `ia_approval_actions` with: `entity_type`, `entity_id`, `action`, `performed_by`, `comments`, `created_at`
+
+---
+
+## 9. Audit Preparation
+
+### 9.1 Preparation Screen
+
+**Screen:** Audit Preparation (`AuditPreparation.tsx`)  
+**Hook:** `useAuditPreparation.ts`
+
+Shows all audits in "Accepted" / "In Preparation" / "Ready for Execution" status.
+
+#### Audit Selection Panel
+- Left panel lists audits by status
+- Click to select and view preparation details in the right panel
+
+#### Three Tabs
+
+**Checklist Tab**  
+Table: `ia_preparation_checklists`
+| Field | Type | Description |
+|-------|------|-------------|
+| `department_audit_id` | UUID | Linked audit |
+| `item_text` | TEXT | Checklist item description |
+| `is_completed` | BOOLEAN | Completion status |
+| `assigned_to` | UUID | Assigned auditor |
+| `category` | TEXT | General / Procedure / Objective / Risk |
+| `sort_order` | INTEGER | Display order |
+| `created_by` | TEXT | Creator user code |
+
+**Documents Tab**  
+Table: `ia_preparation_documents`
+| Field | Type | Description |
+|-------|------|-------------|
+| `department_audit_id` | UUID | Linked audit |
+| `document_type` | TEXT | Type classification |
+| `file_url` | TEXT | Storage URL |
+| `file_name` | TEXT | Original filename |
+| `uploaded_by` | TEXT | Uploader user code |
+
+Storage: `ia-evidence` Supabase bucket
+
+**Team Tab**
+- Shows assigned auditors from the department audit team
+- Displays auditor name, role, specialization
+
+#### Status Transitions
+```
+Accepted → In Preparation (when first checklist/doc added)
+In Preparation → Ready for Execution (manual transition)
+```
+
+---
+
+## 10. Audit Execution
+
+### 10.1 Activity Management
+
+**Screen:** Activity Workbench (`ActivityWorkbench.tsx`)  
+**Table:** `ia_activities`
+
+| Feature | Description |
+|---------|-------------|
+| Activity listing | All activities for a department audit |
+| Status tracking | Not Started / In Progress / Completed |
+| Auditor assignment | Each activity assigned to specific auditor |
+| Time logging | Hours tracked via `ia_time_logs` |
+| Rescheduling | Via `ActivityRescheduleDialog.tsx` |
+
+### 10.2 Activity Calendar
+
+**Screen:** Activity Calendar (`ActivityCalendar.tsx`)
+
+- Full calendar view (react-big-calendar) of all scheduled audit activities
+- Drag-and-drop rescheduling
+- Filter by auditor, department, status
+- Color-coded by activity status
+
+### 10.3 Evidence Management
+
+**Screen:** Evidence Management (`EvidenceManagement.tsx`)  
+**Table:** `ia_evidence`
+
+| Feature | Description |
+|---------|-------------|
+| File upload | Upload to `ia-evidence` storage bucket |
+| Activity linking | Evidence linked to specific activities |
+| Tagging | Tag by audit area |
+| Preview | In-browser document preview |
+| Multiple files | Supports multiple file uploads per activity |
+
+### 10.4 Working Papers
+
+**Screen:** Working Papers (`WorkingPapers.tsx`)  
+**Table:** `ia_working_papers`
+
+| Feature | Description |
+|---------|-------------|
+| Document creation | Structured working paper records |
+| Activity linking | Linked to audit activities |
+| Finding linking | Cross-reference with findings |
+| Audit trail | Created/updated by tracking |
+
+### 10.5 Control Testing
+
+**Screen:** Control Testing (`ControlTesting.tsx`)  
+**Tables:** `ia_control_tests`, `ia_control_test_results`
+
+| Feature | Description |
+|---------|-------------|
+| Test execution | Execute tests from RCM test definitions |
+| Result recording | Pass / Fail / Partial with evidence |
+| Exception tracking | Log control exceptions |
+| Linkage | Links back to RCM controls and risks |
+
+---
+
+## 11. Issue Management
+
+### 11.1 Findings
+
+**Screen:** Findings & Recommendations (`FindingsManagement.tsx`)  
+**Table:** `ia_findings`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | TEXT | Finding title |
+| `description` | TEXT | Detailed description |
+| `severity` | TEXT | High / Medium / Low |
+| `root_cause` | TEXT | Root cause analysis |
+| `activity_id` | UUID | Linked audit activity |
+| `evidence_ids` | UUID[] | Referenced evidence |
+| `status` | TEXT | Draft → Under Review → For Mgmt Response → Closed |
+| `created_by` | TEXT | User code of creator |
+
+### 11.2 Auto Corrective Action Generation
+
+When a finding is created (via `useIAFindingMutations`), the system **automatically**:
+1. Creates an `ia_action_tracking` record
+2. Sets `action_description`: "Address finding: [finding title]"
+3. Sets `responsible_person`: department head from linked department
+4. Sets `target_date`: finding creation date + 30 days (configurable)
+5. Sets `status`: "Not Started"
+6. Sends email notification to department head via `notifyFindingCreated()`
+
+### 11.3 Action Tracking
+
+**Screen:** Action Tracking (`ActionTracking.tsx`)  
+**Table:** `ia_action_tracking`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `finding_id` | UUID | Linked finding |
+| `action_description` | TEXT | What needs to be done |
+| `responsible_person` | UUID | Assigned person (from profiles) |
+| `target_date` | DATE | Due date |
+| `status` | TEXT | Not Started / Open / In Progress / Completed / Overdue |
+
+Supplementary tables:
+- `ia_action_plan_milestones` — Milestone tracking within action plans
+- `ia_action_plan_updates` — Progress update log
+
+### 11.4 Management Responses
+
+**Screen:** Management Responses (`ManagementResponses.tsx`)  
+**Table:** `ia_management_responses`
+
+- Department head responds to each finding
+- Response attached to finding record
+- Triggers finding status change to next lifecycle stage
+
+### 11.5 Follow-Up Tracker
+
+**Screen:** Follow-Up Tracker (`FollowUpTracker.tsx`)  
+**Table:** `ia_follow_ups`
+
+- Tracks verification of completed corrective actions
+- Links back to action tracking records
+- Supports multiple follow-up rounds per action
+
+---
+
+## 12. Audit Closure
+
+### 12.1 Quality Assurance Review
+
+**Screen:** Quality Assurance Review (`QualityReview.tsx`)  
+**Tables:** `ia_quality_reviews`, `ia_quality_review_checklist`
+
+| Feature | Description |
+|---------|-------------|
+| Independent review | Evaluates audit quality by independent reviewer |
+| Quality rating | Scored assessment |
+| Checklist | Structured QA criteria from `ia_quality_review_checklist` |
+| Required rework | Flag findings/papers needing revision |
+| Electronic signature | `signed_by`, `signature_date`, `signature_reference`, `signature_image_url` |
+
+### 12.2 Plan Closeout
+
+**Screen:** Plan Closeout (`PlanCloseout.tsx`)
+
+Closure prerequisites:
+1. ✅ All findings recorded
+2. ✅ Management responses submitted
+3. ✅ Corrective actions assigned
+4. ✅ Quality review completed
+
+| Feature | Description |
+|---------|-------------|
+| Closure checklist | All prerequisites verified |
+| Final sign-off | Electronic signature |
+| Status change | Audit status → Closed |
+| Report generation | Final audit report created |
+
+### 12.3 Governance Requirements
+- **Internally Approved** plan status requires upload of committee meeting minutes
+- Electronic signatures captured at 5 points: Annual Plan approval, Engagement approval, Report sign-off, Closeout sign-off, Quality Review sign-off
+- Signature fields: `signed_by`, `signature_date`, `signature_reference`, `signature_image_url`
+
+---
+
+## 13. Reporting & Dashboards
+
+### 13.1 Executive Dashboard (`ExecutiveDashboard.tsx`)
+
+KPI metrics:
+- Total audits (planned / completed / in-progress)
+- Open findings by severity
+- Overdue corrective actions
+- Risk coverage percentage
+- Audit completion rate
+
+### 13.2 Risk Heat Map
+
+**Component:** `RiskHeatMap.tsx`
+
+- Recharts scatter plot visualization
+- X-axis: Likelihood, Y-axis: Impact
+- Color-coded by risk level (Low=green, Medium=amber, High=red, Critical=dark red)
+- Interactive tooltips showing department/function details
+
+### 13.3 Audit History Timeline
+
+**Component:** `AuditHistoryTimeline.tsx`
+
+Per-department view:
+- Chronological timeline of past audits
+- Findings count and severity trend
+- Risk level evolution over time
+- Corrective action completion rates
+
+### 13.4 Audit Reports (`AuditReports.tsx`)
+- Table: `ia_audit_reports`
+- Final audit reports linked to plans
+- PDF and Excel export
+
+### 13.5 Committee Reports (`CommitteeReports.tsx`)
+- Board/committee-level reporting
+- Aggregated audit status and risk overview
+
+### 13.6 Report Builder (`ReportBuilder.tsx`)
+- Custom report construction
+- Field selection and filtering
+- Multi-format export (PDF/Excel)
+
+### 13.7 Letter Generation (`LetterGeneration.tsx`)
+- Template-based letter creation from `ia_document_templates`
+- Merge fields from audit data
+- Preview via `ReportPreviewDialog.tsx`
+
+---
+
+## 14. Communication & Collaboration
+
+### 14.1 Discussion Threads
+
+**Component:** `DiscussionThread.tsx`  
+**Hook:** `useAuditDiscussions.ts`  
+**Tables:** `ia_discussion_threads`, `ia_discussion_comments`
+
+| Feature | Description |
+|---------|-------------|
+| Entity-agnostic | Attach to any audit record via `entity_type` + `entity_id` |
+| Realtime | Supabase Realtime subscription on `ia_discussion_comments` |
+| @Mentions | Tag auditors/profiles; `mentioned_users` stored as UUID[] |
+| Chronological | Comments ordered by `created_at` ascending |
+| Auto-create thread | Creates thread on first comment if none exists |
+
+#### Usage Pattern
+```typescript
+import { useAuditDiscussions } from '@/hooks/useAuditDiscussions';
+
+const { thread, comments, createThread, addComment, isLoading } = 
+  useAuditDiscussions('finding', findingId);
+```
+
+### 14.2 Communication Center (`CommunicationCenter.tsx`)
+- Table: `ia_communications`
+- Template-based email composition
+- Uses `TemplateCommunicationDialog.tsx`
+
+---
+
+## 15. Email Notifications
+
+### 15.1 Notification Service
+
+**Service:** `src/services/auditNotificationService.ts`
+
+All notifications routed through the `send-notification` edge function → **Resend API**.
+
+### 15.2 Lifecycle Notification Triggers
+
+| Event | Function | Recipients |
+|-------|----------|-----------|
+| Plan submitted for review | `notifyPlanSubmitted(planId, title, leadAuditorId)` | Lead Auditor |
+| Plan approved | `notifyPlanApproved(planId, title, deptId, teamIds)` | Team members + Dept Head |
+| Dept acceptance required | `notifyDeptAcceptanceRequired(planId, title, deptId)` | Department Head |
+| Finding created | `notifyFindingCreated(title, deptId)` | Department Head |
+| Action assigned | `notifyActionAssigned(description, email, dueDate)` | Responsible person |
+| Action overdue | `notifyActionOverdue(description, email, dueDate)` | Responsible person |
+| Action reminder | `notifyActionReminder(description, email, dueDate, days)` | Responsible person |
+
+### 15.3 Automated Due Date Reminders
+
+**Edge Function:** `supabase/functions/audit-due-date-reminders/index.ts`
+
+| Trigger Point | Action |
+|---------------|--------|
+| 7 days before `target_date` | Send reminder email |
+| 3 days before `target_date` | Send reminder email |
+| 1 day before `target_date` | Send urgent reminder |
+| Past `target_date` | Send overdue alert + auto-update status to "Overdue" |
+
+**Logic:**
+1. Queries `ia_action_tracking` where `status` IN ('Not Started', 'In Progress', 'Open') AND `target_date` IS NOT NULL
+2. Calculates days remaining for each action
+3. Matches against reminder days [7, 3, 1] or overdue
+4. Looks up responsible person's email from `profiles`
+5. Invokes `send-notification` for each matching action
+6. Auto-updates status to "Overdue" for past-due items
+
+### 15.4 Email Delivery Infrastructure
+
+**Edge Function:** `supabase/functions/send-notification/index.ts`
+
+| Feature | Detail |
+|---------|--------|
+| Provider | Resend API (`https://api.resend.com/emails`) |
+| API Key | `RESEND_API_KEY` environment variable |
+| Fallback | Queues notification for manual processing if no API key |
+| Logging | `notification_logs` + `system_technical_logs` + `system_integration_logs` |
+| Correlation | UUID-based `x-correlation-id` header for tracing |
+| Default From | "SSBM Internal Audit" `<noreply@system.local>` |
+| Status Tracking | sent / queued / failed with `resend_message_id` |
+
+---
+
+## 16. Administration & Configuration
+
+### 16.1 System Configuration (`AuditConfig.tsx`)
+Tables: `ia_audit_config`, `ia_audit_settings`
+
+Configurable settings:
+- Risk scoring weights per factor category
+- Risk classification thresholds (Low/Medium/High/Critical score ranges)
+- Likelihood scale (1-5 labels and values)
+- Impact scale (1-5 labels and values)
+- Control effectiveness reduction percentages
+- Audit frequency recommendations per risk level
+- Reminder day configuration (default: 7, 3, 1)
+- Auto corrective action generation toggle (default: on)
+- Default corrective action due days (default: 30)
+
+### 16.2 SLA & Escalation Rules (`SLARules.tsx`)
+Tables: `ia_sla_rules`, `ia_escalation_rules`
+- Define SLA targets for each audit lifecycle stage
+- Configure escalation triggers, thresholds, and recipients
+- Auto-escalation based on SLA breach
+
+### 16.3 Department Master (`DepartmentMaster.tsx`)
+Table: `ia_departments`
+
+| Feature | Detail |
+|---------|--------|
+| Office integration | `office_code` links to `tb_office` |
+| Department integration | `source_department_id` links to `tb_office_departments` |
+| Cascading selection | Office → Department dropdown flow |
+| Head profile | `head_profile_id` links to `profiles` table |
+| Auto-populate | Selecting head auto-fills email and phone fields |
+| "Other" fallback | Manual text entry for entities not in central system |
+| Deactivation | Inactive source departments marked "(Inactive)" and disabled for new selections |
+| Bulk upload | Disabled per architectural constraint |
+
+### 16.4 Function Master (`FunctionMaster.tsx`)
+Table: `ia_department_functions`
+- Functions defined per department
+- `historical_risk_adjustment` field for automated risk scoring
+- Links to risk assessment and RCM hierarchy
+
+### 16.5 Templates (`TemplatesManagement.tsx`)
+Table: `ia_document_templates`
+- Letter, report, and communication templates
+- Merge field support for dynamic data insertion
+- Template versioning and categorization
+
+---
+
+## 17. Integration Points
+
+### 17.1 Platform Integration
+
+| External System | Table/Service | Integration Method |
+|----------------|---------------|-------------------|
+| Office Master | `tb_office` | Direct FK (`office_code`) |
+| Department Master | `tb_office_departments` | Direct FK (`source_department_id`) |
+| User Profiles | `profiles` | Direct FK (`head_profile_id`, auditor links) |
+| RBAC System | `app_modules`, permissions | Permission checks on route access |
+| File Storage | `ia-evidence` bucket | Supabase Storage SDK |
+| Email Service | `send-notification` edge function | Supabase Functions invoke |
+| Realtime | `ia_discussion_comments` | Supabase Realtime subscription |
+
+### 17.2 Data Flow Diagram
+```
+tb_office ──────────┐
+                     ├──▶ ia_departments ──▶ ia_department_functions ──▶ Risk Assessment
+tb_office_departments┘                                                        │
+                                                                               ▼
+profiles ──▶ ia_auditors ──▶ Audit Team Assignment                     Audit Planning
+                                    │                                        │
+                                    ▼                                        ▼
+                              ia_department_audits ──▶ ia_audit_engagements
+                                    │
+                                    ▼
+                              ia_activities ──▶ ia_evidence + ia_working_papers
+                                    │
+                                    ▼
+                              ia_findings ──▶ ia_action_tracking ──▶ ia_follow_ups
+                                    │
+                                    ▼
+                              ia_quality_reviews ──▶ Plan Closeout ──▶ ia_audit_reports
+```
+
+---
+
+## 18. Security & Permissions
+
+### 18.1 Permission Matrix
+
+| Permission | Description | Screens |
+|------------|-------------|---------|
+| `configure_audit_system` | System administration | Config, Dept Master, Function Master, Risk Assessment, SLA Rules, Templates, Auditor Profiles |
+| `create_audit_plans` | Plan creation and management | Plans, Engagements, Programs, Preparation, Letters, Communication Center |
+| `approve_audit_plans` | Plan approval authority | Plan Approval |
+| `assign_auditors` | Resource management | Workload, Leave, Holidays |
+| `view_audit_assignments` | Read-only assignments | Management Responses, Calendar |
+| `execute_audit_activities` | Fieldwork execution | Activity Workbench, Control Testing, Time Tracking |
+| `enter_audit_findings` | Finding documentation | Evidence, Working Papers, Findings, RCM, Report Builder |
+| `manage_audit_followups` | Follow-up management | Action Tracking, Follow-Up Tracker |
+| `approve_audit_closeouts` | Closure authority | Plan Closeout, Quality Review |
+| `generate_reports` | Report access | Executive Dashboard, Audit Reports, Committee Reports |
+
+### 18.2 Audit Trail Standards
+- All mutations use `useAuditTrail` hook providing `getCreateFields()` and `getUpdateFields()`
+- Fields injected: `created_by`, `updated_by` (5-character `user_code` from logged-in user)
+- Server-side timestamps for all records
+- Approval decisions logged in `ia_approval_actions` with performer, comments, timestamp
+- No RLS — only role-based security per architectural constraint
+
+---
+
+## 19. Edge Functions
+
+### 19.1 Deployed Edge Functions
+
+| Function | Location | Purpose | Trigger |
+|----------|----------|---------|---------|
+| `send-notification` | `supabase/functions/send-notification/` | Email delivery via Resend | Invoked by notification service |
+| `audit-due-date-reminders` | `supabase/functions/audit-due-date-reminders/` | Due date monitoring & alerts | Scheduled / manual HTTP call |
+
+### 19.2 Required Secrets
+| Secret | Function | Purpose |
+|--------|----------|---------|
+| `RESEND_API_KEY` | `send-notification` | Resend email API authentication |
+| `SUPABASE_URL` | Both | Auto-provided |
+| `SUPABASE_SERVICE_ROLE_KEY` | Both | Auto-provided |
+
+---
+
+## 20. Feature Flags
+
+All 34 module flags defined in `src/config/auditRouteConfig.ts` — **all currently enabled** (✅).
 
 ```typescript
-FEATURE_AUDIT_AUDITOR_PROFILES
-FEATURE_AUDIT_WORKLOAD_CAPACITY
-FEATURE_AUDIT_LEAVE_MANAGEMENT
-FEATURE_AUDIT_HOLIDAY_MANAGEMENT
-FEATURE_AUDIT_PLANS
-FEATURE_AUDIT_PLAN_APPROVAL
-FEATURE_AUDIT_ACTIVITY_CALENDAR
-FEATURE_AUDIT_ACTIVITY_WORKBENCH
-FEATURE_AUDIT_EVIDENCE_MANAGEMENT
-FEATURE_AUDIT_WORKING_PAPERS
-FEATURE_AUDIT_FINDINGS
-FEATURE_AUDIT_MANAGEMENT_RESPONSES
-FEATURE_AUDIT_ACTION_TRACKING
-FEATURE_AUDIT_FOLLOWUP_TRACKER
-FEATURE_AUDIT_PLAN_CLOSEOUT
-FEATURE_AUDIT_REPORTS
-FEATURE_AUDIT_LETTER_GENERATION
-FEATURE_AUDIT_REPORT_BUILDER
-FEATURE_AUDIT_COMMUNICATION_CENTER
-FEATURE_AUDIT_SYSTEM_CONFIG
-FEATURE_AUDIT_DEPARTMENT_MASTER
-FEATURE_AUDIT_FUNCTION_MASTER
-FEATURE_AUDIT_TEMPLATES
+export const AUDIT_FEATURE_FLAGS = {
+  FEATURE_AUDIT_AUDITOR_PROFILES: true,
+  FEATURE_AUDIT_WORKLOAD_CAPACITY: true,
+  FEATURE_AUDIT_LEAVE_MANAGEMENT: true,
+  FEATURE_AUDIT_HOLIDAY_MANAGEMENT: true,
+  FEATURE_AUDIT_TIME_TRACKING: true,
+  FEATURE_AUDIT_RISK_ASSESSMENT: true,
+  FEATURE_AUDIT_PLANS: true,
+  FEATURE_AUDIT_PLAN_APPROVAL: true,
+  FEATURE_AUDIT_ENGAGEMENTS: true,
+  FEATURE_AUDIT_PROGRAMS: true,
+  FEATURE_AUDIT_PREPARATION: true,
+  FEATURE_AUDIT_RCM: true,
+  FEATURE_AUDIT_CONTROL_TESTING: true,
+  FEATURE_AUDIT_ACTIVITY_CALENDAR: true,
+  FEATURE_AUDIT_ACTIVITY_WORKBENCH: true,
+  FEATURE_AUDIT_EVIDENCE_MANAGEMENT: true,
+  FEATURE_AUDIT_WORKING_PAPERS: true,
+  FEATURE_AUDIT_FINDINGS: true,
+  FEATURE_AUDIT_MANAGEMENT_RESPONSES: true,
+  FEATURE_AUDIT_ACTION_TRACKING: true,
+  FEATURE_AUDIT_FOLLOWUP_TRACKER: true,
+  FEATURE_AUDIT_QUALITY_REVIEW: true,
+  FEATURE_AUDIT_PLAN_CLOSEOUT: true,
+  FEATURE_AUDIT_EXECUTIVE_DASHBOARD: true,
+  FEATURE_AUDIT_REPORTS: true,
+  FEATURE_AUDIT_COMMITTEE_REPORTS: true,
+  FEATURE_AUDIT_LETTER_GENERATION: true,
+  FEATURE_AUDIT_REPORT_BUILDER: true,
+  FEATURE_AUDIT_COMMUNICATION_CENTER: true,
+  FEATURE_AUDIT_SYSTEM_CONFIG: true,
+  FEATURE_AUDIT_SLA_RULES: true,
+  FEATURE_AUDIT_DEPARTMENT_MASTER: true,
+  FEATURE_AUDIT_FUNCTION_MASTER: true,
+  FEATURE_AUDIT_TEMPLATES: true,
+} as const;
 ```
-
-To disable a module, set its flag to `false` in `auditRouteConfig.ts`. The `AuditFeatureGate` wrapper automatically shows the "Under Activation" placeholder.
 
 ---
 
-## 10. File Structure
+## 21. File Structure
 
+### Pages (39 files)
 ```
-src/
-├── config/
-│   └── auditRouteConfig.ts              # Route config, feature flags (SSOT)
-├── components/
-│   └── audit/
-│       ├── AuditFeatureGate.tsx          # Feature flag wrapper
-│       ├── ActivityRescheduleDialog.tsx   # Reschedule activity modal
-│       ├── ActivityScheduleForm.tsx       # Schedule new activity form
-│       ├── AnnualPlanForm.tsx            # Annual plan create/edit
-│       ├── AuditPlanForm.tsx             # Plan form component
-│       ├── DepartmentAuditForm.tsx       # Department audit form
-│       ├── ReportPreviewDialog.tsx       # Report preview modal
-│       └── TemplateCommunicationDialog.tsx# Template send dialog
-├── hooks/
-│   ├── useAuditData.ts                  # Core CRUD hooks (depts, auditors, plans, etc.)
-│   ├── useAuditDataExtended.ts          # Dept audits, activities, evidence, working papers
-│   ├── useAuditDataExtended2.ts         # Findings, responses, actions, follow-ups, comms
-│   ├── useAuditConfigData.ts            # Settings, risk criteria, activity types
-│   ├── useAuditReports.ts              # Report builder persistence
-│   └── useAuditTrail.ts                # Audit trail fields (created_by/updated_by)
-├── pages/
-│   └── audit/
-│       ├── AuditDashboard.tsx           # Dashboard with KPIs
-│       ├── AuditorProfiles.tsx          # Auditor CRUD
-│       ├── WorkloadCapacity.tsx         # Workload view
-│       ├── LeaveManagement.tsx          # Leave requests
-│       ├── HolidayManagement.tsx        # Holiday calendar
-│       ├── AuditPlansNew.tsx            # Annual plans
-│       ├── PlanApproval.tsx             # Plan approval workflow
-│       ├── ActivityCalendar.tsx         # react-big-calendar view
-│       ├── ActivityWorkbench.tsx        # Activity execution
-│       ├── EvidenceManagement.tsx       # Evidence CRUD + file upload
-│       ├── WorkingPapers.tsx            # Working papers CRUD
-│       ├── FindingsManagement.tsx       # Findings & recommendations
-│       ├── ManagementResponses.tsx      # Response tracking
-│       ├── ActionTracking.tsx           # Corrective actions
-│       ├── FollowUpTracker.tsx          # Follow-up verification
-│       ├── PlanCloseout.tsx             # Plan closure
-│       ├── AuditReports.tsx             # Report analytics
-│       ├── LetterGeneration.tsx         # Letter templates
-│       ├── ReportBuilder.tsx            # Report composition
-│       ├── CommunicationCenter.tsx      # Official communications
-│       ├── AuditConfig.tsx              # System settings
-│       ├── DepartmentMaster.tsx         # Department CRUD
-│       ├── DepartmentView.tsx           # Department detail view
-│       ├── FunctionMaster.tsx           # Function CRUD
-│       ├── TemplatesManagement.tsx      # Template management
-│       └── AuditModuleUnderActivation.tsx # Placeholder for disabled modules
-└── sidebar/
-    └── menuItems/
-        └── auditMenuItems.ts            # Sidebar navigation config
+src/pages/audit/
+├── ActionTracking.tsx          ├── LeaveManagement.tsx
+├── ActivityCalendar.tsx        ├── LetterGeneration.tsx
+├── ActivityWorkbench.tsx       ├── ManagementResponses.tsx
+├── AuditConfig.tsx             ├── PlanApproval.tsx
+├── AuditDashboard.tsx          ├── PlanCloseout.tsx
+├── AuditEngagements.tsx        ├── QualityReview.tsx
+├── AuditModuleUnderActivation.tsx ├── ReportBuilder.tsx
+├── AuditPlansNew.tsx           ├── RiskAssessment.tsx
+├── AuditPreparation.tsx        ├── RiskControlMatrix.tsx
+├── AuditPrograms.tsx           ├── SLARules.tsx
+├── AuditReports.tsx            ├── TemplatesManagement.tsx
+├── AuditUniverse.tsx           ├── TimeTracking.tsx
+├── AuditorProfiles.tsx         ├── WorkingPapers.tsx
+├── CommitteeReports.tsx        ├── WorkloadCapacity.tsx
+├── CommunicationCenter.tsx     ├── DepartmentView.tsx
+├── ControlTesting.tsx          ├── ExecutiveDashboard.tsx
+├── DepartmentMaster.tsx        ├── EvidenceManagement.tsx
+├── FindingsManagement.tsx      ├── FollowUpTracker.tsx
+├── FunctionMaster.tsx          └── HolidayManagement.tsx
 ```
 
-### Database Migrations
+### Components (12 files)
+```
+src/components/audit/
+├── ActivityRescheduleDialog.tsx  ├── DiscussionThread.tsx
+├── ActivityScheduleForm.tsx     ├── PlanAmendmentHistory.tsx
+├── AnnualPlanForm.tsx           ├── ReportPreviewDialog.tsx
+├── AuditFeatureGate.tsx         ├── RiskHeatMap.tsx
+├── AuditHistoryTimeline.tsx     ├── TemplateCommunicationDialog.tsx
+├── AuditPlanForm.tsx            └── DepartmentAuditForm.tsx
+```
 
-| Migration | Content |
-|-----------|---------|
-| `20260227061914` | Core tables: departments, functions, auditors, holidays, leave requests, annual plans, department audits, activities, evidence, working papers, findings, recommendations, management responses, action tracking, follow-ups, document templates, communications, auditor workload |
-| `20260227064212` | Configuration tables: audit settings, risk criteria, activity types + seed data |
-| `20260305094241` | Audit reports table + action tracking column enhancements |
+### Hooks (9 files)
+```
+src/hooks/
+├── useAuditConfigData.ts     ├── useAuditDiscussions.ts
+├── useAuditData.ts           ├── useAuditPreparation.ts
+├── useAuditDataExtended.ts   ├── useAuditReports.ts
+├── useAuditDataExtended2.ts  └── useAuditTrail.ts
+├── useAuditDataPhase2.ts
+```
 
-### Storage
+### Services (2 files)
+```
+src/services/
+├── auditNotificationService.ts
+└── auditService.ts
+```
 
-- **`ia-evidence`** Supabase storage bucket for file uploads in Evidence Management
+### Edge Functions (2 functions)
+```
+supabase/functions/
+├── audit-due-date-reminders/index.ts
+└── send-notification/index.ts
+```
+
+### Configuration (1 file)
+```
+src/config/auditRouteConfig.ts
+```
 
 ---
 
-## Summary Statistics
+## 22. Remaining Items
 
-| Metric | Count |
-|--------|-------|
-| Total Modules | 23 |
-| Functional Modules | 23 |
-| Database Tables | ~20 |
-| React Hooks | 34 (query + mutation hooks) |
-| Page Components | 27 |
-| Form Components | 8 |
-| Permissions | 10 unique |
-| Feature Flags | 23 |
+### Phase 6 Completion (Pending)
+| Item | Description | Priority |
+|------|-------------|----------|
+| Wire DiscussionThread into modals | Integrate `DiscussionThread.tsx` into finding/activity/plan detail modals | Medium |
+| `calculate_historical_risk_adjustment` DB function | PostgreSQL function to auto-calculate from closed audit findings | Medium |
+| Integrate RiskHeatMap into Dashboard | Add heat map to Executive Dashboard | Low |
+| AuditHistory page/tab | Dedicated per-department audit history view | Low |
+| Cron job for reminders | Set up scheduled invocation for `audit-due-date-reminders` | High |
+
+### Future Enhancements
+| Item | Description |
+|------|-------------|
+| Bulk audit operations | Bulk status updates, bulk team assignments |
+| Audit program templates | Reusable program templates per department type |
+| Risk trend analytics | Multi-year risk score trend visualization |
+| Mobile-responsive execution | Optimized mobile view for fieldwork activities |
+| DMS integration | Final storage location pending confirmation with stakeholders |
+
+---
+
+## Appendix A: Navigation Sidebar Order
+
+The sidebar follows the correct audit lifecycle:
+
+```
+Executive Dashboard (overview)
+───────────────────────────────
+Audit Universe → Risk Assessment (Governance)
+───────────────────────────────
+Auditor Profiles → Workload → Time Tracking → Leave → Holidays (Resources)
+───────────────────────────────
+Audit Plans → Plan Approval → Audit Engagements → Audit Programs (Planning)
+───────────────────────────────
+Audit Preparation → Activity Calendar → Activity Workbench → Control Testing (Execution)
+───────────────────────────────
+Evidence → Working Papers → Findings (Documentation)
+───────────────────────────────
+Management Responses → Action Tracking → Follow-Up Tracker (Response)
+───────────────────────────────
+Quality Review → Plan Closeout (Closure)
+───────────────────────────────
+Audit Reports → Committee Reports → Letter Generation → Report Builder (Reporting)
+───────────────────────────────
+Communication Center
+───────────────────────────────
+System Configuration → SLA Rules → Department Master → Function Master → Templates (Admin)
+```
+
+---
+
+*End of Document*
