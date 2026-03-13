@@ -97,6 +97,9 @@ const FindingsManagement = () => {
       ...formData, finding_id: findingId,
       department_id: formData.department_id || null, activity_id: formData.activity_id || null,
       annual_plan_id: formData.annual_plan_id || null, department_audit_id: formData.department_audit_id || null,
+      root_cause_category: formData.root_cause_category || null,
+      preventive_action: formData.preventive_action || null,
+      corrective_action_description: formData.corrective_action_description || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
