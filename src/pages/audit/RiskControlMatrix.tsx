@@ -284,7 +284,10 @@ export default function RiskControlMatrix() {
           </>}
           {modalState.modalType === 'risk' && <>
             <div><Label>Risk Description</Label><Textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-            <div><Label>Risk Category</Label><Input value={form.category || ''} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g., Operational, Financial, Compliance" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Risk Category</Label><Input value={form.category || ''} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g., Operational, Financial, Compliance" /></div>
+              <div><Label>Risk Owner</Label><Input value={form.risk_owner || ''} onChange={e => setForm(f => ({ ...f, risk_owner: e.target.value }))} placeholder="Person responsible for this risk" /></div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Likelihood</Label>
