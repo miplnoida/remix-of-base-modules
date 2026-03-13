@@ -484,6 +484,94 @@ export default function AuditConfig() {
           </Card>
         </TabsContent>
 
+        {/* ===== Config Change Approvals ===== */}
+        <TabsContent value="configApprovals" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5" />Pending Configuration Change Requests ({pendingRequests.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingRequests.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No pending change requests.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Config Type</TableHead>
+                      <TableHead>Field Changed</TableHead>
+                      <TableHead>Old Value</TableHead>
+                      <TableHead>New Value</TableHead>
+                      <TableHead>Requested By</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingRequests.map((req: any) => (
+                      <TableRow key={req.id}>
+                        <TableCell><Badge variant="outline">{req.config_type}</Badge></TableCell>
+                        <TableCell className="font-medium">{req.field_changed}</TableCell>
+                        <TableCell className="text-muted-foreground">{req.old_value || '-'}</TableCell>
+                        <TableCell className="font-semibold">{req.new_value}</TableCell>
+                        <TableCell>{req.requested_by || '-'}</TableCell>
+                        <TableCell className="text-xs">{req.created_at ? new Date(req.created_at).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="default" onClick={() => reviewChangeRequest.mutate({ id: req.id, status: 'Approved', approved_by: userCode })}>
+                              <CheckCircle className="h-3 w-3 mr-1" />Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => reviewChangeRequest.mutate({ id: req.id, status: 'Rejected', approved_by: userCode })}>
+                              <XCircle className="h-3 w-3 mr-1" />Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {decidedRequests.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Change Request History</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Config Type</TableHead>
+                      <TableHead>Field Changed</TableHead>
+                      <TableHead>New Value</TableHead>
+                      <TableHead>Requested By</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Reviewed By</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {decidedRequests.slice(0, 20).map((req: any) => (
+                      <TableRow key={req.id}>
+                        <TableCell><Badge variant="outline">{req.config_type}</Badge></TableCell>
+                        <TableCell>{req.field_changed}</TableCell>
+                        <TableCell>{req.new_value}</TableCell>
+                        <TableCell>{req.requested_by || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={req.status === 'Approved' ? 'default' : 'destructive'}>
+                            {req.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{req.approved_by || '-'}</TableCell>
+                        <TableCell className="text-xs">{req.reviewed_at ? new Date(req.reviewed_at).toLocaleDateString() : '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         {/* Notifications & SLA */}
         <TabsContent value="sla">
           <Card>
