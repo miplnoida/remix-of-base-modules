@@ -19,9 +19,39 @@ export function useIAFindings(activityId?: string) {
 export function useIAFindingMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Auto-generate corrective action when finding is created
+  const autoCreateAction = async (finding: any) => {
+    try {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + 30);
+      await supabase.from('ia_action_tracking').insert({
+        finding_id: finding.id,
+        action_description: `Address finding: ${finding.title}`,
+        responsible_person: null,
+        target_date: targetDate.toISOString().split('T')[0],
+        status: 'Not Started',
+        department_audit_id: finding.department_audit_id || null,
+        created_by: finding.created_by || null,
+      });
+      // Also send notification if department_id is set
+      if (finding.department_id) {
+        const { notifyFindingCreated } = await import('@/services/auditNotificationService');
+        await notifyFindingCreated(finding.title, finding.department_id);
+      }
+    } catch (err) {
+      console.error('Auto corrective action generation failed:', err);
+    }
+  };
+
   const create = useMutation({
     mutationFn: async (f: any) => { const { data, error } = await supabase.from('ia_findings').insert(f).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_findings'] }); toast({ title: 'Finding Created' }); },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['ia_findings'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_action_tracking'] });
+      toast({ title: 'Finding Created', description: 'A corrective action has been auto-generated.' });
+      autoCreateAction(data);
+    },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({

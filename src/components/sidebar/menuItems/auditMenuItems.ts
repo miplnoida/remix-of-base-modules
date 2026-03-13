@@ -115,6 +115,13 @@ export const auditMenuItems = [
         description: "Reusable audit programs and procedures"
       },
       {
+        title: "Audit Preparation",
+        url: "/audit/preparation",
+        icon: BookOpen,
+        requiresPermission: "create_audit_plans",
+        description: "Prepare audits with checklists and documents"
+      },
+      {
         title: "Risk Control Matrix",
         url: "/audit/rcm",
         icon: Grid3X3,

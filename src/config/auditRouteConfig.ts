@@ -49,6 +49,7 @@ export const AUDIT_FEATURE_FLAGS = {
   FEATURE_AUDIT_EXECUTIVE_DASHBOARD: true,
   FEATURE_AUDIT_COMMITTEE_REPORTS: true,
   FEATURE_AUDIT_SLA_RULES: true,
+  FEATURE_AUDIT_PREPARATION: true,
 } as const;
 
 export type AuditFeatureFlag = keyof typeof AUDIT_FEATURE_FLAGS;
@@ -83,6 +84,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
 
   // ===== Methodology =====
   { moduleKey: 'programs', label: 'Audit Programs', path: '/audit/audit-programs', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PROGRAMS, category: 'methodology', component: 'AuditPrograms' },
+  { moduleKey: 'preparation', label: 'Audit Preparation', path: '/audit/preparation', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PREPARATION, category: 'methodology', component: 'AuditPreparation' },
   { moduleKey: 'rcm', label: 'Risk Control Matrix', path: '/audit/rcm', permission: 'enter_audit_findings', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_RCM, category: 'methodology', component: 'RiskControlMatrix' },
   { moduleKey: 'control-testing', label: 'Control Testing', path: '/audit/control-testing', permission: 'execute_audit_activities', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_CONTROL_TESTING, category: 'methodology', component: 'ControlTesting' },
 

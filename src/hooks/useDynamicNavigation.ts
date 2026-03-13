@@ -237,7 +237,7 @@ const INTERNAL_AUDIT_SECTION_CONFIG: Array<{
     id: 'ia-section-preparation',
     title: 'Audit Preparation',
     icon: FolderTree,
-    routes: ['/audit/audit-programs', '/audit/calendar'],
+    routes: ['/audit/audit-programs', '/audit/preparation', '/audit/calendar'],
   },
   {
     id: 'ia-section-execution',

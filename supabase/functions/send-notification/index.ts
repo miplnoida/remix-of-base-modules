@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-correlation-id",
 };
 
+const RESEND_API = "https://api.resend.com/emails";
+
 interface SendNotificationRequest {
   notification_log_id?: string;
   recipient_email: string;
@@ -15,7 +17,6 @@ interface SendNotificationRequest {
   from_email?: string;
 }
 
-// Helper function to log to system tables
 async function logToSystem(
   supabase: any,
   tableName: string,
@@ -33,8 +34,39 @@ async function logToSystem(
   }
 }
 
+async function sendViaResend(
+  apiKey: string,
+  to: string,
+  subject: string,
+  html: string,
+  fromName: string,
+  fromEmail: string
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const res = await fetch(RESEND_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data?.message || `HTTP ${res.status}` };
+    }
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -45,6 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { 
@@ -52,14 +85,13 @@ const handler = async (req: Request): Promise<Response> => {
       recipient_email, 
       subject, 
       body,
-      from_name = "SSBM Workflow System",
+      from_name = "SSBM Internal Audit",
       from_email = "noreply@system.local"
     }: SendNotificationRequest = await req.json();
 
-    console.log("Queueing email notification to:", recipient_email);
+    console.log("Sending email notification to:", recipient_email);
     console.log("Subject:", subject);
 
-    // Log technical call start
     await logToSystem(supabase, 'system_technical_logs', {
       api_name: 'send-notification',
       module: 'Notifications',
@@ -68,88 +100,92 @@ const handler = async (req: Request): Promise<Response> => {
       payload_json: { recipient_email, subject, notification_log_id },
     }, correlationId);
 
+    let sendStatus = 'queued';
+    let resendMessageId: string | undefined;
+    let failureReason: string | undefined;
+
+    // Try sending via Resend if API key is configured
+    if (resendApiKey) {
+      const result = await sendViaResend(resendApiKey, recipient_email, subject, body, from_name, from_email);
+      if (result.success) {
+        sendStatus = 'sent';
+        resendMessageId = result.id;
+        console.log("Email sent successfully via Resend. ID:", result.id);
+      } else {
+        sendStatus = 'failed';
+        failureReason = result.error;
+        console.error("Resend send failed:", result.error);
+      }
+    } else {
+      console.log("No RESEND_API_KEY configured — queuing notification for manual processing.");
+    }
+
     const executionTime = Math.round(performance.now() - startTime);
 
-    // Instead of sending via Resend, we queue the notification in the database
-    // This allows for future integration with any email provider
+    // Update or create notification log
     if (notification_log_id) {
-      // Update existing notification log to queued status
-      const { error: updateError } = await supabase
+      await supabase
         .from('notification_logs')
         .update({
-          status: 'queued',
+          status: sendStatus,
+          resend_message_id: resendMessageId || null,
+          sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+          failure_reason: failureReason || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', notification_log_id);
-
-      if (updateError) {
-        console.error("Failed to update notification log:", updateError);
-      }
     } else {
-      // Create new notification log entry
-      const { data: newLog, error: insertError } = await supabase
+      await supabase
         .from('notification_logs')
         .insert({
           recipient_address: recipient_email,
-          subject: subject,
-          body: body,
+          subject,
+          body,
           channel: 'email',
-          status: 'queued',
+          status: sendStatus,
+          resend_message_id: resendMessageId || null,
+          sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+          failure_reason: failureReason || null,
           created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("Failed to create notification log:", insertError);
-      }
+        });
     }
 
-    // Log integration note (no external service called - just queued)
     await logToSystem(supabase, 'system_integration_logs', {
-      external_service: 'Internal Queue',
+      external_service: resendApiKey ? 'Resend' : 'Internal Queue',
       module: 'Notifications',
-      api_name: 'queue-email',
+      api_name: 'send-email',
       request_data: { recipient_email, subject, from_name, from_email },
-      response_data: { message: 'Email queued for delivery' },
-      status: 'success',
-      severity: 'info',
-      payload_json: { 
-        execution_time_ms: executionTime,
-        note: 'Email provider not configured - notification queued for manual processing or future integration',
-      },
+      response_data: { status: sendStatus, resend_id: resendMessageId },
+      status: sendStatus === 'sent' ? 'success' : (sendStatus === 'failed' ? 'error' : 'info'),
+      severity: sendStatus === 'failed' ? 'error' : 'info',
+      payload_json: { execution_time_ms: executionTime },
     }, correlationId);
 
-    // Log technical call completion
     await logToSystem(supabase, 'system_technical_logs', {
       api_name: 'send-notification',
       module: 'Notifications',
-      severity: 'info',
-      status: 'queued',
+      severity: sendStatus === 'failed' ? 'error' : 'info',
+      status: sendStatus,
       execution_time_ms: executionTime,
-      payload_json: { 
-        recipient_email, 
-        subject, 
-        message: 'Notification queued successfully',
-      },
+      payload_json: { recipient_email, subject, resend_message_id: resendMessageId },
     }, correlationId);
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: 'Notification queued successfully',
-        status: 'queued',
+        success: sendStatus !== 'failed', 
+        message: sendStatus === 'sent' ? 'Email sent successfully' : (sendStatus === 'queued' ? 'Notification queued' : 'Send failed'),
+        status: sendStatus,
+        resend_id: resendMessageId,
       }),
       {
-        status: 200,
+        status: sendStatus === 'failed' ? 500 : 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   } catch (error: any) {
     const executionTime = Math.round(performance.now() - startTime);
-    console.error("Error queueing notification:", error);
+    console.error("Error in send-notification:", error);
 
-    // Try to log error
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

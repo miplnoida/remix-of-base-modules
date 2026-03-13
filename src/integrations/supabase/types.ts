@@ -8372,6 +8372,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_approval_actions: {
+        Row: {
+          action: string
+          comments: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          performed_by: string | null
+          performer_name: string | null
+        }
+        Insert: {
+          action: string
+          comments?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Update: {
+          action?: string
+          comments?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Relationships: []
+      }
       ia_audit_config: {
         Row: {
           category: string | null
@@ -9189,7 +9222,8 @@ export type Database = {
           actual_end: string | null
           actual_start: string | null
           admin_override_close: boolean | null
-          annual_plan_id: string
+          annual_plan_id: string | null
+          audit_type: string
           closed_by: string | null
           closed_date: string | null
           created_at: string | null
@@ -9217,7 +9251,8 @@ export type Database = {
           actual_end?: string | null
           actual_start?: string | null
           admin_override_close?: boolean | null
-          annual_plan_id: string
+          annual_plan_id?: string | null
+          audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
           created_at?: string | null
@@ -9245,7 +9280,8 @@ export type Database = {
           actual_end?: string | null
           actual_start?: string | null
           admin_override_close?: boolean | null
-          annual_plan_id?: string
+          annual_plan_id?: string | null
+          audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
           created_at?: string | null
@@ -9301,6 +9337,7 @@ export type Database = {
           department_id: string
           description: string | null
           function_name: string
+          historical_risk_adjustment: number | null
           id: string
           impact: string | null
           is_active: boolean | null
@@ -9320,6 +9357,7 @@ export type Database = {
           department_id: string
           description?: string | null
           function_name: string
+          historical_risk_adjustment?: number | null
           id?: string
           impact?: string | null
           is_active?: boolean | null
@@ -9339,6 +9377,7 @@ export type Database = {
           department_id?: string
           description?: string | null
           function_name?: string
+          historical_risk_adjustment?: number | null
           id?: string
           impact?: string | null
           is_active?: boolean | null
@@ -9412,6 +9451,71 @@ export type Database = {
           source_department_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_discussion_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          content: string
+          created_at: string
+          id: string
+          mentioned_users: string[] | null
+          thread_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          mentioned_users?: string[] | null
+          thread_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          mentioned_users?: string[] | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_discussion_comments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "ia_discussion_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_discussion_threads: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          subject?: string | null
         }
         Relationships: []
       }
@@ -10089,6 +10193,54 @@ export type Database = {
           },
         ]
       }
+      ia_plan_amendments: {
+        Row: {
+          amendment_type: string
+          approved_by: string | null
+          created_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          plan_id: string
+          plan_type: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amendment_type?: string
+          approved_by?: string | null
+          created_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id: string
+          plan_type?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amendment_type?: string
+          approved_by?: string | null
+          created_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          plan_id?: string
+          plan_type?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ia_plan_carry_forward: {
         Row: {
           annual_plan_id: string | null
@@ -10157,6 +10309,91 @@ export type Database = {
           impact?: string | null
         }
         Relationships: []
+      }
+      ia_preparation_checklists: {
+        Row: {
+          assigned_to: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          department_audit_id: string
+          id: string
+          is_completed: boolean | null
+          item_text: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_audit_id: string
+          id?: string
+          is_completed?: boolean | null
+          item_text: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_audit_id?: string
+          id?: string
+          is_completed?: boolean | null
+          item_text?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_preparation_checklists_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_preparation_documents: {
+        Row: {
+          created_at: string
+          department_audit_id: string
+          document_type: string | null
+          file_name: string
+          file_url: string | null
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          department_audit_id: string
+          document_type?: string | null
+          file_name: string
+          file_url?: string | null
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          department_audit_id?: string
+          document_type?: string | null
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_preparation_documents_department_audit_id_fkey"
+            columns: ["department_audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_quality_review_checklist: {
         Row: {

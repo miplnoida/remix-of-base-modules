@@ -6,20 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Zap } from 'lucide-react';
 import { useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 
 interface DepartmentAuditFormProps {
-  annualPlanId: string;
+  annualPlanId?: string;
   departmentAudit?: any;
+  isAdHoc?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   onCreate?: (data: any) => Promise<any>;
   onUpdate?: (data: any) => Promise<any>;
 }
 
-export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, onSuccess, onCreate, onUpdate }: DepartmentAuditFormProps) {
+export function DepartmentAuditForm({ annualPlanId, departmentAudit, isAdHoc = false, onClose, onSuccess, onCreate, onUpdate }: DepartmentAuditFormProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   
@@ -76,7 +78,6 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
     setIsSaving(true);
     try {
       const payload: any = {
-        annual_plan_id: annualPlanId,
         department_id: formData.departmentId,
         department_name: selectedDepartment?.name || '',
         period: formData.period,
@@ -90,7 +91,13 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         planned_start: formData.plannedStart || null,
         planned_end: formData.plannedEnd || null,
         status: 'Draft',
+        audit_type: isAdHoc ? 'ad_hoc' : 'planned',
       };
+
+      // Only set annual_plan_id for planned audits
+      if (!isAdHoc && annualPlanId) {
+        payload.annual_plan_id = annualPlanId;
+      }
 
       if (departmentAudit && onUpdate) {
         await onUpdate({ id: departmentAudit.id, ...payload });
@@ -98,8 +105,12 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         await onCreate(payload);
       }
       toast({
-        title: departmentAudit ? "Audit Updated" : "Department Audit Saved",
-        description: departmentAudit ? "Department audit plan has been updated successfully." : "Department audit plan has been added to the annual plan."
+        title: departmentAudit ? "Audit Updated" : (isAdHoc ? "Ad-Hoc Audit Created" : "Department Audit Saved"),
+        description: departmentAudit 
+          ? "Department audit plan has been updated successfully." 
+          : (isAdHoc 
+            ? "Ad-hoc audit has been created successfully."
+            : "Department audit plan has been added to the annual plan.")
       });
       onSuccess?.();
       onClose();
@@ -117,6 +128,14 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
 
   return (
     <div className="space-y-6">
+      {isAdHoc && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/50 border border-accent">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">Ad-Hoc Audit</span>
+          <Badge variant="secondary" className="ml-auto">No Annual Plan Required</Badge>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Department & Period</CardTitle>
@@ -306,7 +325,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, onClose, on
         <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Add Department Audit
+          {isAdHoc ? 'Create Ad-Hoc Audit' : (departmentAudit ? 'Update Audit' : 'Add Department Audit')}
         </Button>
       </div>
     </div>
