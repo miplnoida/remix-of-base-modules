@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Eye, Edit, Send, History, Zap } from 'lucide-react';
+import { DiscussionThread } from '@/components/audit/DiscussionThread';
 
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
@@ -285,19 +286,22 @@ export default function AuditPlansNew() {
       )}
 
       {/* View Annual Plan */}
-      <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view">
+      <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewAnnual && (
           <div className="space-y-3">
             <p><strong>Fiscal Year:</strong> {viewAnnual.fiscal_year || '-'}</p>
             <p><strong>Plan Name:</strong> {viewAnnual.title || '-'}</p>
             <p><strong>Status:</strong> <StatusBadge status={viewAnnual.status || 'Draft'} /></p>
             <p><strong>Objective:</strong> {viewAnnual.objective || '-'}</p>
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="annual_plan" entityId={viewAnnual.id} />
+            </div>
           </div>
         )}
       </EntityModal>
 
       {/* View Department Audit */}
-      <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view">
+      <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewDept && (
           <div className="space-y-3">
             <p><strong>Type:</strong> <StatusBadge status={viewDept.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} /></p>
@@ -309,6 +313,9 @@ export default function AuditPlansNew() {
             <p><strong>Status:</strong> <StatusBadge status={viewDept.status || 'Draft'} /></p>
             <p><strong>Objective:</strong> {viewDept.objective || '-'}</p>
             <p><strong>Scope:</strong> {viewDept.scope || '-'}</p>
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="department_audit" entityId={viewDept.id} />
+            </div>
           </div>
         )}
       </EntityModal>

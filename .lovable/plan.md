@@ -1,68 +1,65 @@
 
+# Internal Audit Lifecycle Enhancement Plan
 
-# Gap Analysis Response: What Actually Exists vs What's Claimed Missing
+## Implementation Status
 
-Most items in the gap analysis are **already implemented**. Here's the factual status and the few genuine gaps that need work.
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-## Already Implemented (No Changes Needed)
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-| Claimed Gap | Actual Status |
-|---|---|
-| Risk Scoring Engine | **EXISTS** -- `AuditConfig.tsx` has full Risk Assessment tab with weighted criteria, thresholds (Critical/High/Medium/Low), and scoring model (`ia_risk_scoring_models`, `ia_risk_criteria_weights`) |
-| Risk Configuration (Likelihood/Impact/Control Effectiveness) | **EXISTS** -- `AuditConfig.tsx` "Risk Management" tab has full CRUD for Likelihood Levels, Impact Levels, Control Effectiveness Levels, and Risk Classification Thresholds |
-| Risk Control Matrix | **EXISTS** -- `RiskControlMatrix.tsx` with full hierarchy: Department → Function → Process (`ia_rcm_processes`) → Risk (`ia_rcm_risks`) → Control (`ia_rcm_controls`). Inherent risk = Likelihood x Impact; Residual = Inherent x (1 - max effectiveness reduction %) |
-| Process Management | **EXISTS** -- `ia_rcm_processes` table with `department_id`, `function_id`, `process_name`, `sub_process_name`. RCM screen manages processes linked to functions |
-| Automated Audit Planning | **EXISTS** -- `AuditConfig.tsx` has "Audit Frequency Mapping" (Critical=6mo, High=12mo, etc.). `RiskAssessment.tsx` calculates `suggestedFrequency` from scores |
-| Audit Universe Removal | **ALREADY DONE** -- No `ia_audit_universe` table or references exist. System uses Department → Function → Process |
-| Approval Workflow | **EXISTS** -- `PlanApproval.tsx` has 3 tabs: Pending Review, Dept Acceptance, History. Includes approve/reject with comments, department acceptance step, notification triggers |
-| Evidence Management | **EXISTS** -- `ia-evidence` storage bucket, `ia_preparation_documents` table, Evidence Management screen |
-| Communication Thread | **EXISTS** -- `DiscussionThread.tsx` component, `ia_discussion_threads`/`ia_discussion_comments` tables with Supabase Realtime |
-| Advanced Reporting | **EXISTS** -- `ExecutiveDashboard.tsx` with KPIs, `AuditReports.tsx`, `RiskHeatMap.tsx`, `AuditHistoryTimeline.tsx` |
-| Risk Learning from Past Audits | **EXISTS** -- `historical_risk_adjustment` column on `ia_department_functions`, documented formula (High=+5, Medium=+3, Low=+1) |
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-## Genuine Gaps (Need Implementation)
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-### Gap 1: Root Cause Analysis on Findings
-The `ia_findings` table has `cause` (CCCE methodology) but lacks dedicated **root cause analysis** fields.
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-**Changes needed:**
-- Add columns to `ia_findings`: `root_cause_category` (TEXT), `preventive_action` (TEXT), `corrective_action_description` (TEXT)
-- Update `FindingsManagement.tsx` form to include Root Cause Category dropdown (Process Failure, Human Error, System Gap, Policy Gap, Training Gap) and Preventive Action textarea
-- Update view modal to display these fields
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
-### Gap 2: Configuration Change Approval Workflow
-Risk configuration changes (likelihood scales, thresholds, etc.) are saved immediately without approval.
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
-**Changes needed:**
-- New table: `ia_config_change_requests` (id, config_type, field_changed, old_value, new_value, requested_by, approved_by, status, reason, created_at)
-- Modify `AuditConfig.tsx` Risk Management tab to submit changes as "pending" requests instead of direct saves when user is not Chief Auditor
-- Add a "Config Approvals" section to the config page for Chief Auditor to review/approve/reject
-
-### Gap 3: `calculate_historical_risk_adjustment` DB Function
-The `historical_risk_adjustment` column exists but the automated DB function to recalculate it from closed findings was not yet created.
-
-**Changes needed:**
-- Create DB function `calculate_historical_risk_adjustment(p_function_id UUID)` that queries `ia_findings` by department/function, counts by severity, and returns adjustment score
-- Create trigger or RPC to invoke on finding status change to "Closed"
-- Wire into `RiskAssessment.tsx` to display the adjustment alongside the weighted score
-
-### Gap 4: DiscussionThread Not Yet Embedded in Key Screens
-The component exists but isn't wired into findings, activities, or plan modals yet.
-
-**Changes needed:**
-- Embed `DiscussionThread` in `FindingsManagement.tsx` view modal
-- Embed in `ActivityWorkbench.tsx` activity detail
-- Embed in `AuditPlansNew.tsx` plan detail view
-
-## Implementation Approach
-
-**Phase A: Root Cause Analysis** -- Add 3 columns to `ia_findings`, update FindingsManagement form and view modal.
-
-**Phase B: Historical Risk Calculation** -- Create DB function + trigger, wire RiskAssessment to display adjusted scores.
-
-**Phase C: Config Approval Workflow** -- New `ia_config_change_requests` table, modify AuditConfig to use request-based saves for non-chief-auditor users.
-
-**Phase D: Embed Discussion Threads** -- Add `DiscussionThread` component to 3 existing view modals.
-
-Total estimated changes: 4 files modified, 1 new table, 1 DB function, 3 columns added.
-
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`

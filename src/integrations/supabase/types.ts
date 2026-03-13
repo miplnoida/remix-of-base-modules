@@ -9068,6 +9068,48 @@ export type Database = {
           },
         ]
       }
+      ia_config_change_requests: {
+        Row: {
+          approved_by: string | null
+          config_type: string
+          created_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+          requested_by: string | null
+          reviewed_at: string | null
+          status: string
+        }
+        Insert: {
+          approved_by?: string | null
+          config_type: string
+          created_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          requested_by?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Update: {
+          approved_by?: string | null
+          config_type?: string
+          created_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          requested_by?: string | null
+          reviewed_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       ia_control_effectiveness_levels: {
         Row: {
           created_at: string | null
@@ -9699,6 +9741,7 @@ export type Database = {
           annual_plan_id: string | null
           cause: string | null
           condition: string | null
+          corrective_action_description: string | null
           created_at: string | null
           created_by: string | null
           created_date: string | null
@@ -9713,7 +9756,9 @@ export type Database = {
           id: string
           impact_area: string | null
           owner_role: string | null
+          preventive_action: string | null
           risk_rating: string | null
+          root_cause_category: string | null
           status: string | null
           submitted_for_response_date: string | null
           title: string
@@ -9725,6 +9770,7 @@ export type Database = {
           annual_plan_id?: string | null
           cause?: string | null
           condition?: string | null
+          corrective_action_description?: string | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
@@ -9739,7 +9785,9 @@ export type Database = {
           id?: string
           impact_area?: string | null
           owner_role?: string | null
+          preventive_action?: string | null
           risk_rating?: string | null
+          root_cause_category?: string | null
           status?: string | null
           submitted_for_response_date?: string | null
           title: string
@@ -9751,6 +9799,7 @@ export type Database = {
           annual_plan_id?: string | null
           cause?: string | null
           condition?: string | null
+          corrective_action_description?: string | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
@@ -9765,7 +9814,9 @@ export type Database = {
           id?: string
           impact_area?: string | null
           owner_role?: string | null
+          preventive_action?: string | null
           risk_rating?: string | null
+          root_cause_category?: string | null
           status?: string | null
           submitted_for_response_date?: string | null
           title?: string
@@ -19938,6 +19989,10 @@ export type Database = {
           p_received_date: string
         }
         Returns: Json
+      }
+      calculate_historical_risk_adjustment: {
+        Args: { p_function_id: string }
+        Returns: number
       }
       calculate_other_payment_components: {
         Args: {

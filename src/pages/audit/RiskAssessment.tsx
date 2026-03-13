@@ -280,7 +280,7 @@ export default function RiskAssessment() {
           </div>
 
           {/* Auto-calculated results */}
-          <div className="grid grid-cols-3 gap-4 p-4 rounded-md bg-muted">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-md bg-muted">
             <div>
               <Label className="text-xs text-muted-foreground">Overall Risk Score</Label>
               <p className="text-2xl font-bold">{overallScore}</p>
@@ -292,6 +292,15 @@ export default function RiskAssessment() {
             <div>
               <Label className="text-xs text-muted-foreground">Suggested Frequency</Label>
               <p className="text-sm font-semibold mt-1">{suggestedFrequency || '—'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Historical Adjustment</Label>
+              <p className="text-sm font-semibold mt-1">
+                {selectedFunctionId
+                  ? ((deptFunctions as any[]).find((f: any) => f.id === selectedFunctionId)?.historical_risk_adjustment || 0)
+                  : '—'}
+                {selectedFunctionId && <span className="text-xs text-muted-foreground ml-1">(auto from closed findings)</span>}
+              </p>
             </div>
           </div>
 

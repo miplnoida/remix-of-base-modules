@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Eye, Play, CheckCircle, Edit, FileText, ClipboardPlus } from 'lucide-react';
+import { DiscussionThread } from '@/components/audit/DiscussionThread';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useIAActivities, useIAActivityMutations, useIAAnnualPlans, useIADepartmentAudits, useIAAuditors } from '@/hooks/useAuditData';
@@ -186,7 +187,7 @@ export default function ActivityWorkbench() {
         </CardContent>
       </Card>
 
-      <EntityModal open={!!viewActivity} onOpenChange={() => setViewActivity(null)} title="Activity Details" mode="view">
+      <EntityModal open={!!viewActivity} onOpenChange={() => setViewActivity(null)} title="Activity Details" mode="view" maxWidth="max-w-4xl">
         {viewActivity && (
           <div className="space-y-3">
             <p><strong>Activity ID:</strong> {(viewActivity.id || '').slice(0, 8)}</p>
@@ -194,6 +195,9 @@ export default function ActivityWorkbench() {
             <p><strong>Department:</strong> {departmentById.get(viewActivity.department_audit_id)?.department_name || '-'}</p>
             <p><strong>Assigned Auditor:</strong> {auditorById.get(viewActivity.auditor_id)?.name || '-'}</p>
             <p><strong>Status:</strong> <StatusBadge status={viewActivity.status || 'Planned'} /></p>
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="activity" entityId={viewActivity.id} />
+            </div>
           </div>
         )}
       </EntityModal>

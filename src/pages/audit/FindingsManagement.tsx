@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DiscussionThread } from '@/components/audit/DiscussionThread';
 import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { FINDINGS_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
+const ROOT_CAUSE_CATEGORIES = ['Process Failure', 'Human Error', 'System Gap', 'Policy Gap', 'Training Gap'];
 const RISKS = ['High', 'Medium', 'Low'];
 
 const bulkUploadFields = toBulkUploadFields(FINDINGS_SCHEMA);
@@ -39,7 +41,7 @@ const FindingsManagement = () => {
   const { data: deptAudits = [] } = useIADepartmentAudits();
   const { create, update, remove } = useIAFindingMutations();
 
-  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '' };
+  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '', root_cause_category: '', preventive_action: '', corrective_action_description: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
@@ -96,6 +98,9 @@ const FindingsManagement = () => {
       ...formData, finding_id: findingId,
       department_id: formData.department_id || null, activity_id: formData.activity_id || null,
       annual_plan_id: formData.annual_plan_id || null, department_audit_id: formData.department_audit_id || null,
+      root_cause_category: formData.root_cause_category || null,
+      preventive_action: formData.preventive_action || null,
+      corrective_action_description: formData.corrective_action_description || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
@@ -114,6 +119,9 @@ const FindingsManagement = () => {
       cause: formData.cause, effect: formData.effect, risk_rating: formData.risk_rating, impact_area: formData.impact_area,
       department_id: formData.department_id || null, activity_id: formData.activity_id || null,
       annual_plan_id: formData.annual_plan_id || null, department_audit_id: formData.department_audit_id || null,
+      root_cause_category: formData.root_cause_category || null,
+      preventive_action: formData.preventive_action || null,
+      corrective_action_description: formData.corrective_action_description || null,
       ...getUpdateFields(),
     }, { onSuccess: () => { setEditItem(null); resetForm(); } });
   };
@@ -132,6 +140,8 @@ const FindingsManagement = () => {
       status: f.status || 'Draft', department_id: f.department_id || '', activity_id: f.activity_id || '',
       annual_plan_id: f.annual_plan_id || '', department_audit_id: f.department_audit_id || '',
       finding_id: f.finding_id || '',
+      root_cause_category: f.root_cause_category || '', preventive_action: f.preventive_action || '',
+      corrective_action_description: f.corrective_action_description || '',
     });
     setEditItem(f);
   };
@@ -203,6 +213,20 @@ const FindingsManagement = () => {
       <div className="space-y-2"><Label>Criteria (What should be?)</Label><Textarea value={formData.criteria} onChange={e => setFormData({...formData, criteria: e.target.value})} /></div>
       <div className="space-y-2"><Label>Cause (Why did it happen?)</Label><Textarea value={formData.cause} onChange={e => setFormData({...formData, cause: e.target.value})} /></div>
       <div className="space-y-2"><Label>Effect (What is the impact?)</Label><Textarea value={formData.effect} onChange={e => setFormData({...formData, effect: e.target.value})} /></div>
+      <div className="border-t pt-4 mt-4">
+        <p className="text-sm font-semibold mb-3">Root Cause Analysis</p>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Root Cause Category</Label>
+            <Select value={formData.root_cause_category} onValueChange={v => setFormData({...formData, root_cause_category: v})}>
+              <SelectTrigger><SelectValue placeholder="Select root cause category" /></SelectTrigger>
+              <SelectContent>{ROOT_CAUSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label>Corrective Action</Label><Textarea value={formData.corrective_action_description} onChange={e => setFormData({...formData, corrective_action_description: e.target.value})} placeholder="What corrective action will address this finding?" /></div>
+          <div className="space-y-2"><Label>Preventive Action</Label><Textarea value={formData.preventive_action} onChange={e => setFormData({...formData, preventive_action: e.target.value})} placeholder="What preventive measures will stop recurrence?" /></div>
+        </div>
+      </div>
     </div>
   );
 
@@ -276,6 +300,19 @@ const FindingsManagement = () => {
             <div><Label className="text-muted-foreground">Criteria</Label><p>{viewItem.criteria || '-'}</p></div>
             <div><Label className="text-muted-foreground">Cause</Label><p>{viewItem.cause || '-'}</p></div>
             <div><Label className="text-muted-foreground">Effect</Label><p>{viewItem.effect || '-'}</p></div>
+            {(viewItem.root_cause_category || viewItem.corrective_action_description || viewItem.preventive_action) && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm font-semibold">Root Cause Analysis</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-muted-foreground">Root Cause Category</Label><p>{viewItem.root_cause_category || '-'}</p></div>
+                </div>
+                <div><Label className="text-muted-foreground">Corrective Action</Label><p>{viewItem.corrective_action_description || '-'}</p></div>
+                <div><Label className="text-muted-foreground">Preventive Action</Label><p>{viewItem.preventive_action || '-'}</p></div>
+              </div>
+            )}
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="finding" entityId={viewItem.id} />
+            </div>
           </div>
         )}
       </EntityModal>
