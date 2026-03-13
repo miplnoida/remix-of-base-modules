@@ -301,7 +301,7 @@ export default function AuditPlansNew() {
       </EntityModal>
 
       {/* View Department Audit */}
-      <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view">
+      <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewDept && (
           <div className="space-y-3">
             <p><strong>Type:</strong> <StatusBadge status={viewDept.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} /></p>
@@ -313,6 +313,9 @@ export default function AuditPlansNew() {
             <p><strong>Status:</strong> <StatusBadge status={viewDept.status || 'Draft'} /></p>
             <p><strong>Objective:</strong> {viewDept.objective || '-'}</p>
             <p><strong>Scope:</strong> {viewDept.scope || '-'}</p>
+            <div className="border-t pt-4">
+              <DiscussionThread entityType="department_audit" entityId={viewDept.id} />
+            </div>
           </div>
         )}
       </EntityModal>
