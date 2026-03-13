@@ -40,7 +40,7 @@ const FindingsManagement = () => {
   const { data: deptAudits = [] } = useIADepartmentAudits();
   const { create, update, remove } = useIAFindingMutations();
 
-  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '' };
+  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '', root_cause_category: '', preventive_action: '', corrective_action_description: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
