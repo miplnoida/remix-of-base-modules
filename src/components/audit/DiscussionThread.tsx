@@ -27,16 +27,16 @@ export function DiscussionThread({ entityType, entityId }: DiscussionThreadProps
   const handleSend = async () => {
     if (!newComment.trim()) return;
     
-    if (!thread) {
-      await createThread.mutateAsync({
+    let currentThread = thread;
+    if (!currentThread) {
+      currentThread = await createThread.mutateAsync({
         entity_type: entityType,
         entity_id: entityId,
         created_by: userCode || undefined,
       });
     }
     
-    // Need thread_id - get from thread or newly created
-    const threadId = thread?.id;
+    const threadId = currentThread?.id;
     if (threadId) {
       addComment.mutate({
         thread_id: threadId,

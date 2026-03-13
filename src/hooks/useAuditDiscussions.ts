@@ -7,13 +7,10 @@ export function useAuditDiscussions(entityType: string, entityId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch or find thread for this entity
   const { data: thread } = useQuery({
     queryKey: ['ia_discussion_threads', entityType, entityId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ia_discussion_threads' as any)
-        .select('*')
+    queryFn: async (): Promise<any> => {
+      const { data, error } = await (supabase.from('ia_discussion_threads' as any).select('*') as any)
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .maybeSingle();
@@ -22,48 +19,39 @@ export function useAuditDiscussions(entityType: string, entityId: string) {
     },
   });
 
-  // Fetch comments for thread
+  const threadId = thread?.id as string | undefined;
+
   const { data: comments = [], isLoading } = useQuery({
-    queryKey: ['ia_discussion_comments', thread?.id],
-    queryFn: async () => {
-      if (!thread?.id) return [];
-      const { data, error } = await supabase
-        .from('ia_discussion_comments' as any)
-        .select('*')
-        .eq('thread_id', thread.id)
+    queryKey: ['ia_discussion_comments', threadId],
+    queryFn: async (): Promise<any[]> => {
+      if (!threadId) return [];
+      const { data, error } = await (supabase.from('ia_discussion_comments' as any).select('*') as any)
+        .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!thread?.id,
+    enabled: !!threadId,
   });
 
-  // Subscribe to realtime updates
   useEffect(() => {
-    if (!thread?.id) return;
+    if (!threadId) return;
     const channel = supabase
-      .channel(`discussion-${thread.id}`)
+      .channel(`discussion-${threadId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ia_discussion_comments', filter: `thread_id=eq.${thread.id}` },
+        { event: 'INSERT', schema: 'public', table: 'ia_discussion_comments', filter: `thread_id=eq.${threadId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['ia_discussion_comments', thread.id] });
+          queryClient.invalidateQueries({ queryKey: ['ia_discussion_comments', threadId] });
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [thread?.id, queryClient]);
+    return () => { supabase.removeChannel(channel); };
+  }, [threadId, queryClient]);
 
   const createThread = useMutation({
     mutationFn: async (data: { entity_type: string; entity_id: string; created_by?: string }) => {
-      const { data: result, error } = await supabase
-        .from('ia_discussion_threads' as any)
-        .insert(data)
-        .select()
-        .single();
+      const { data: result, error } = await (supabase.from('ia_discussion_threads' as any).insert(data as any).select().single() as any);
       if (error) throw error;
       return result;
     },
@@ -75,16 +63,12 @@ export function useAuditDiscussions(entityType: string, entityId: string) {
 
   const addComment = useMutation({
     mutationFn: async (data: { thread_id: string; author_name: string; content: string; mentioned_users?: string[] }) => {
-      const { data: result, error } = await supabase
-        .from('ia_discussion_comments' as any)
-        .insert(data)
-        .select()
-        .single();
+      const { data: result, error } = await (supabase.from('ia_discussion_comments' as any).insert(data as any).select().single() as any);
       if (error) throw error;
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ia_discussion_comments', thread?.id] });
+      queryClient.invalidateQueries({ queryKey: ['ia_discussion_comments', threadId] });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
