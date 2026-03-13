@@ -175,6 +175,12 @@ export default function AuditConfig() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Assessment</TabsTrigger>
           <TabsTrigger value="riskMgmt"><BarChart3 className="w-4 h-4 mr-2" />Risk Management</TabsTrigger>
+          <TabsTrigger value="configApprovals" className="relative">
+            <CheckCircle className="w-4 h-4 mr-2" />Config Approvals
+            {pendingRequests.length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1 text-[10px]">{pendingRequests.length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="sla"><Bell className="w-4 h-4 mr-2" />Notifications & SLA</TabsTrigger>
           <TabsTrigger value="features"><Flag className="w-4 h-4 mr-2" />Feature Flags</TabsTrigger>
           <TabsTrigger value="reference"><MapPin className="w-4 h-4 mr-2" />Reference Settings</TabsTrigger>
