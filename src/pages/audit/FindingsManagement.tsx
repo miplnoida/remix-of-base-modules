@@ -15,6 +15,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { FINDINGS_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 
 const STATUSES = ['Draft', 'Under Review', 'For Mgmt Response', 'Closed'];
+const ROOT_CAUSE_CATEGORIES = ['Process Failure', 'Human Error', 'System Gap', 'Policy Gap', 'Training Gap'];
 const RISKS = ['High', 'Medium', 'Low'];
 
 const bulkUploadFields = toBulkUploadFields(FINDINGS_SCHEMA);
