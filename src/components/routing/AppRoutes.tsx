@@ -909,6 +909,7 @@ export const AppRoutes = () => {
       <Route path="/audit/executive-dashboard" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_EXECUTIVE_DASHBOARD"><ExecutiveDashboard /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/committee-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_COMMITTEE_REPORTS"><CommitteeReports /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/sla-rules" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><SLARules /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/preparation" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PREPARATION"><AuditPreparation /></AuditFeatureGate></ProtectedLayout>} />
 
       {/* Registration Rules & Process Routes */}
       <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
