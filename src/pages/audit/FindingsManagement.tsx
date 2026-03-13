@@ -212,6 +212,20 @@ const FindingsManagement = () => {
       <div className="space-y-2"><Label>Criteria (What should be?)</Label><Textarea value={formData.criteria} onChange={e => setFormData({...formData, criteria: e.target.value})} /></div>
       <div className="space-y-2"><Label>Cause (Why did it happen?)</Label><Textarea value={formData.cause} onChange={e => setFormData({...formData, cause: e.target.value})} /></div>
       <div className="space-y-2"><Label>Effect (What is the impact?)</Label><Textarea value={formData.effect} onChange={e => setFormData({...formData, effect: e.target.value})} /></div>
+      <div className="border-t pt-4 mt-4">
+        <p className="text-sm font-semibold mb-3">Root Cause Analysis</p>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Root Cause Category</Label>
+            <Select value={formData.root_cause_category} onValueChange={v => setFormData({...formData, root_cause_category: v})}>
+              <SelectTrigger><SelectValue placeholder="Select root cause category" /></SelectTrigger>
+              <SelectContent>{ROOT_CAUSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label>Corrective Action</Label><Textarea value={formData.corrective_action_description} onChange={e => setFormData({...formData, corrective_action_description: e.target.value})} placeholder="What corrective action will address this finding?" /></div>
+          <div className="space-y-2"><Label>Preventive Action</Label><Textarea value={formData.preventive_action} onChange={e => setFormData({...formData, preventive_action: e.target.value})} placeholder="What preventive measures will stop recurrence?" /></div>
+        </div>
+      </div>
     </div>
   );
 
