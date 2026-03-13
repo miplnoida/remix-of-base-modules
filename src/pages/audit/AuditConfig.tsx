@@ -85,6 +85,12 @@ export default function AuditConfig() {
   const [newEffectiveness, setNewEffectiveness] = useState({ label: '', reduction_percentage: '', description: '' });
   const [newClassification, setNewClassification] = useState({ label: '', min_score: '', max_score: '', color: '#gray' });
 
+  // Config Change Requests
+  const { data: changeRequests = [] } = useConfigChangeRequests();
+  const { review: reviewChangeRequest } = useConfigChangeRequestMutations();
+  const pendingRequests = changeRequests.filter((r: any) => r.status === 'Pending');
+  const decidedRequests = changeRequests.filter((r: any) => r.status !== 'Pending');
+
   const settingsMap = useMemo(() => {
     const map: Record<string, Record<string, string>> = {};
     allSettings.forEach((s: any) => {
