@@ -49,6 +49,7 @@ export const AUDIT_FEATURE_FLAGS = {
   FEATURE_AUDIT_EXECUTIVE_DASHBOARD: true,
   FEATURE_AUDIT_COMMITTEE_REPORTS: true,
   FEATURE_AUDIT_SLA_RULES: true,
+  FEATURE_AUDIT_PREPARATION: true,
 } as const;
 
 export type AuditFeatureFlag = keyof typeof AUDIT_FEATURE_FLAGS;
