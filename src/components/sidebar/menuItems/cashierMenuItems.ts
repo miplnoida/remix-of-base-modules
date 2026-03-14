@@ -19,6 +19,48 @@ import {
 
 export const cashierMenuItems = [
   {
+    title: "Contribution Payments",
+    icon: Banknote,
+    subItems: [
+      {
+        title: "Payment Data Entry",
+        url: "/cashier/payment-data-entry",
+        icon: CreditCard,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Historical Payment Entry",
+        url: "/cashier/payment-historical-entry",
+        icon: Archive,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Payment History Management",
+        url: "/cashier/payment-history-mgmt",
+        icon: ClipboardList,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Transfer Payments",
+        url: "/cashier/transfer-payments",
+        icon: Building,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Payment History Report",
+        url: "/cashier/payment-history-report",
+        icon: BarChart3,
+        requiresPermission: "cashier_operations"
+      },
+      {
+        title: "Update Voluntary Contributor",
+        url: "/cashier/vc-payment-update",
+        icon: Users,
+        requiresPermission: "cashier_operations"
+      },
+    ]
+  },
+  {
     title: "Cashier & Payments",
     icon: CreditCard,
     subItems: [
