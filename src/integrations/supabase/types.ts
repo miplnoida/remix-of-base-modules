@@ -4990,6 +4990,54 @@ export type Database = {
           },
         ]
       }
+      cn_batch: {
+        Row: {
+          balance_forward: number | null
+          balance_status: string | null
+          batch_date: string | null
+          batch_number: string
+          batch_status: string | null
+          date_entered: string | null
+          date_posted: string | null
+          date_verified: string | null
+          entered_by: string | null
+          office_code: string | null
+          offset_amount: number | null
+          posted_by: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_date?: string | null
+          batch_number: string
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_date?: string | null
+          batch_number?: string
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       cn_c3_reported: {
         Row: {
           created_at: string
