@@ -1262,6 +1262,14 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
 
+      {/* Contribution Payments Module */}
+      <Route path="/cashier/payment-data-entry" element={<ProtectedLayout><PaymentDataEntry /></ProtectedLayout>} />
+      <Route path="/cashier/payment-historical-entry" element={<ProtectedLayout><PaymentHistoricalEntry /></ProtectedLayout>} />
+      <Route path="/cashier/payment-history-mgmt" element={<ProtectedLayout><PaymentHistoryManagement /></ProtectedLayout>} />
+      <Route path="/cashier/transfer-payments" element={<ProtectedLayout><TransferPayments /></ProtectedLayout>} />
+      <Route path="/cashier/payment-history-report" element={<ProtectedLayout><PaymentHistoryReport /></ProtectedLayout>} />
+      <Route path="/cashier/vc-payment-update" element={<ProtectedLayout><VCPaymentUpdate /></ProtectedLayout>} />
+
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
       <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
