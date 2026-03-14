@@ -713,6 +713,14 @@ import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
 import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
 import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 
+// Contribution Payments Module
+import PaymentDataEntry from '@/pages/cashier/PaymentDataEntry';
+import PaymentHistoricalEntry from '@/pages/cashier/PaymentHistoricalEntry';
+import PaymentHistoryManagement from '@/pages/cashier/PaymentHistoryManagement';
+import TransferPayments from '@/pages/cashier/TransferPayments';
+import PaymentHistoryReport from '@/pages/cashier/PaymentHistoryReport';
+import VCPaymentUpdate from '@/pages/cashier/VCPaymentUpdate';
+
 export const AppRoutes = () => {
   return (
     <Routes>
