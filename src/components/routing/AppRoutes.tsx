@@ -713,6 +713,14 @@ import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
 import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
 import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 
+// Contribution Payments Module
+import PaymentDataEntry from '@/pages/cashier/PaymentDataEntry';
+import PaymentHistoricalEntry from '@/pages/cashier/PaymentHistoricalEntry';
+import PaymentHistoryManagement from '@/pages/cashier/PaymentHistoryManagement';
+import TransferPayments from '@/pages/cashier/TransferPayments';
+import PaymentHistoryReport from '@/pages/cashier/PaymentHistoryReport';
+import VCPaymentUpdate from '@/pages/cashier/VCPaymentUpdate';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -1253,6 +1261,14 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><DocumentTemplates /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
       <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
+
+      {/* Contribution Payments Module */}
+      <Route path="/cashier/payment-data-entry" element={<ProtectedLayout><PaymentDataEntry /></ProtectedLayout>} />
+      <Route path="/cashier/payment-historical-entry" element={<ProtectedLayout><PaymentHistoricalEntry /></ProtectedLayout>} />
+      <Route path="/cashier/payment-history-mgmt" element={<ProtectedLayout><PaymentHistoryManagement /></ProtectedLayout>} />
+      <Route path="/cashier/transfer-payments" element={<ProtectedLayout><TransferPayments /></ProtectedLayout>} />
+      <Route path="/cashier/payment-history-report" element={<ProtectedLayout><PaymentHistoryReport /></ProtectedLayout>} />
+      <Route path="/cashier/vc-payment-update" element={<ProtectedLayout><VCPaymentUpdate /></ProtectedLayout>} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}

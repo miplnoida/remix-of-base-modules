@@ -1,0 +1,237 @@
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+export interface PaymentHeaderData {
+  payment_id: number;
+  batch_number: string;
+  payer_type: string;
+  payer_id: string;
+  date_received: string | null;
+  remarks: string | null;
+  created_at: string | null;
+}
+
+export interface PaymentDetailData {
+  payment_id: number;
+  payment_sequence_no: number;
+  payment_code: string;
+  fund_code: string;
+  payment_amount: number | null;
+  mop_code: string;
+  period: string | null;
+  bank_code: string | null;
+  bank_lodgement_code: string | null;
+  credit_card_code: string | null;
+  expiration_date: string | null;
+  cheque_date: string | null;
+  mop_number: string | null;
+  mop_account_number: string | null;
+  mop_transit_number: string | null;
+  mop_notes1: string | null;
+  payment_date: string | null;
+}
+
+export interface PayerInfo {
+  id: string;
+  name: string;
+  status: string | null;
+}
+
+export function usePaymentEntry() {
+  const [currentHeader, setCurrentHeader] = useState<PaymentHeaderData | null>(null);
+  const [detailRows, setDetailRows] = useState<PaymentDetailData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getNextPaymentId = useCallback(async (): Promise<number> => {
+    const { data } = await supabase
+      .from('cn_payment_header')
+      .select('payment_id')
+      .order('payment_id', { ascending: false })
+      .limit(1);
+    return data && data.length > 0 ? data[0].payment_id + 1 : 1;
+  }, []);
+
+  const lookupPayer = useCallback(async (
+    payerType: string,
+    payerId: string
+  ): Promise<PayerInfo | null> => {
+    try {
+      if (payerType === 'ER' || payerType === 'SE') {
+        const { data, error } = await supabase
+          .from('er_master')
+          .select('regno, name, status')
+          .eq('regno', payerId)
+          .single();
+        if (error || !data) return null;
+        return { id: data.regno, name: data.name, status: data.status };
+      } else {
+        const { data, error } = await supabase
+          .from('ip_master')
+          .select('ssn, firstname, surname, status')
+          .eq('ssn', payerId)
+          .single();
+        if (error || !data) return null;
+        return {
+          id: data.ssn || payerId,
+          name: `${data.firstname} ${data.surname}`,
+          status: data.status,
+        };
+      }
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const searchPayers = useCallback(async (
+    payerType: string,
+    searchTerm: string
+  ): Promise<PayerInfo[]> => {
+    try {
+      if (payerType === 'ER' || payerType === 'SE') {
+        const { data } = await supabase
+          .from('er_master')
+          .select('regno, name, status')
+          .or(`regno.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
+          .limit(20);
+        return (data || []).map(d => ({ id: d.regno, name: d.name, status: d.status }));
+      } else {
+        const { data } = await supabase
+          .from('ip_master')
+          .select('ssn, firstname, surname, status')
+          .or(`ssn.ilike.%${searchTerm}%,firstname.ilike.%${searchTerm}%,surname.ilike.%${searchTerm}%`)
+          .limit(20);
+        return (data || []).map(d => ({
+          id: d.ssn || '',
+          name: `${d.firstname} ${d.surname}`,
+          status: d.status,
+        }));
+      }
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const createPaymentHeader = useCallback(async (
+    batchNumber: string,
+    payerType: string,
+    payerId: string,
+    dateReceived: string,
+    remarks: string
+  ): Promise<PaymentHeaderData | null> => {
+    setIsLoading(true);
+    try {
+      const paymentId = await getNextPaymentId();
+      const header: any = {
+        payment_id: paymentId,
+        batch_number: batchNumber,
+        payer_type: payerType,
+        payer_id: payerId,
+        date_received: dateReceived,
+        remarks: remarks || null,
+      };
+      const { data, error } = await supabase
+        .from('cn_payment_header')
+        .insert(header)
+        .select()
+        .single();
+      if (error) throw error;
+      setCurrentHeader(data);
+      setDetailRows([]);
+      return data;
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getNextPaymentId]);
+
+  const addDetailRow = useCallback(async (
+    paymentId: number,
+    detail: Omit<PaymentDetailData, 'payment_id' | 'payment_sequence_no'>
+  ): Promise<PaymentDetailData | null> => {
+    setIsLoading(true);
+    try {
+      const nextSeq = detailRows.length > 0
+        ? Math.max(...detailRows.map(r => r.payment_sequence_no)) + 1
+        : 1;
+      const row: any = {
+        payment_id: paymentId,
+        payment_sequence_no: nextSeq,
+        ...detail,
+      };
+      const { data, error } = await supabase
+        .from('cn_payment')
+        .insert(row)
+        .select()
+        .single();
+      if (error) throw error;
+      setDetailRows(prev => [...prev, data]);
+      return data;
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [detailRows]);
+
+  const deleteDetailRow = useCallback(async (
+    paymentId: number,
+    sequenceNo: number
+  ): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('cn_payment')
+        .delete()
+        .eq('payment_id', paymentId)
+        .eq('payment_sequence_no', sequenceNo);
+      if (error) throw error;
+      setDetailRows(prev => prev.filter(r => r.payment_sequence_no !== sequenceNo));
+      return true;
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadPaymentDetails = useCallback(async (paymentId: number) => {
+    const { data } = await supabase
+      .from('cn_payment')
+      .select('*')
+      .eq('payment_id', paymentId)
+      .order('payment_sequence_no');
+    setDetailRows(data || []);
+  }, []);
+
+  const loadPaymentsByBatch = useCallback(async (batchNumber: string): Promise<PaymentHeaderData[]> => {
+    const { data } = await supabase
+      .from('cn_payment_header')
+      .select('*')
+      .eq('batch_number', batchNumber)
+      .order('payment_id');
+    return data || [];
+  }, []);
+
+  const totalPaymentAmount = detailRows.reduce((sum, r) => sum + (r.payment_amount || 0), 0);
+
+  return {
+    currentHeader,
+    setCurrentHeader,
+    detailRows,
+    setDetailRows,
+    isLoading,
+    lookupPayer,
+    searchPayers,
+    createPaymentHeader,
+    addDetailRow,
+    deleteDetailRow,
+    loadPaymentDetails,
+    loadPaymentsByBatch,
+    totalPaymentAmount,
+  };
+}
