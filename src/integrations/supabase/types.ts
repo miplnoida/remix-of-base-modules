@@ -5185,6 +5185,7 @@ export type Database = {
           cancel_reason: string | null
           cancel_user: string | null
           created_at: string | null
+          created_by: string | null
           payment_id: number
           receipt_id: string
           receipt_total: number | null
@@ -5192,12 +5193,15 @@ export type Database = {
           status: string | null
           total_number_of_payments: number | null
           update_control: number | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           cancel_date?: string | null
           cancel_reason?: string | null
           cancel_user?: string | null
           created_at?: string | null
+          created_by?: string | null
           payment_id: number
           receipt_id: string
           receipt_total?: number | null
@@ -5205,12 +5209,15 @@ export type Database = {
           status?: string | null
           total_number_of_payments?: number | null
           update_control?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           cancel_date?: string | null
           cancel_reason?: string | null
           cancel_user?: string | null
           created_at?: string | null
+          created_by?: string | null
           payment_id?: number
           receipt_id?: string
           receipt_total?: number | null
@@ -5218,6 +5225,8 @@ export type Database = {
           status?: string | null
           total_number_of_payments?: number | null
           update_control?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
