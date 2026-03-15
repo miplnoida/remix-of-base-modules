@@ -75,10 +75,27 @@ const PaymentModuleConfig: React.FC = () => {
     await updateConfig.mutateAsync({ key, value });
   };
 
+  const { user } = useSupabaseAuth();
+
+  const auditLog = async (action: string, entityType: string, entityId: string, before: any, after: any, meta?: Record<string, any>) => {
+    const result = await logAuditTrail({
+      action,
+      entityType,
+      entityId,
+      module: 'Payment Module Configuration',
+      beforeValue: before,
+      afterValue: after,
+      userCode: profile?.user_code || undefined,
+      userId: user?.id,
+      metadata: { route: '/cashier/payment-module-config', ...meta },
+    });
+    if (!result) console.error('[PaymentConfig] Audit log failed:', action, entityType, entityId);
+  };
+
   const toggleCurrencyEnabled = async (currencyId: string, currentlyEnabled: boolean) => {
     setSavingCurrency(true);
+    const currencyName = allCurrencies?.find(c => c.id === currencyId)?.currency_code || currencyId;
     try {
-      // Check if config row exists
       const existing = currencyConfigs?.find(c => c.currency_id === currencyId);
       if (existing) {
         const { error } = await supabase
@@ -92,6 +109,13 @@ const PaymentModuleConfig: React.FC = () => {
           .insert({ currency_id: currencyId, is_enabled: true, sort_order: 99, updated_by: profile?.user_code || null });
         if (error) throw error;
       }
+      await auditLog(
+        currentlyEnabled ? 'disable' : 'enable',
+        'cashier_currency_config',
+        currencyId,
+        { currency: currencyName, is_enabled: currentlyEnabled },
+        { currency: currencyName, is_enabled: !currentlyEnabled },
+      );
       queryClient.invalidateQueries({ queryKey: ['cashier-currency-config-all'] });
       queryClient.invalidateQueries({ queryKey: ['cashier-currency-config-enabled'] });
       toast.success('Currency configuration updated');
