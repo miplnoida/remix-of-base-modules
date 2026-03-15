@@ -1312,7 +1312,8 @@ export const AppRoutes = () => {
       
       {/* Day-End and Management */}
       <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
-      <Route path="/cashier/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
+      <Route path="/cashier/batch-management" element={<ProtectedLayout><CashierBatchManagement /></ProtectedLayout>} />
+      <Route path="/cashier/payment-module-config" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
       <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
