@@ -364,69 +364,29 @@ const C3Payments: React.FC = () => {
     toast.success("Batch opened successfully!");
   };
 
-  if (!activeBatch) {
-    return (
-      <div className="p-6">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>No Active Batch</AlertTitle>
-          <AlertDescription>
-            No active batch found for today. Please open a batch before processing payments.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
+    <BatchSelectionGuard
+      isLoading={batchSel.isLoading}
+      isReady={batchSel.isReady}
+      noBatchesAvailable={batchSel.noBatchesAvailable}
+      showPopup={batchSel.showPopup}
+      openBatches={batchSel.openBatches}
+      canManageAllBatches={batchSel.canManageAllBatches}
+      selectedBatch={batchSel.selectedBatch}
+      onSelectBatch={batchSel.selectBatch}
+      onChangeBatch={batchSel.changeBatch}
+    >
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">C3 Contributions Payment</h1>
           <p className="text-muted-foreground">Process C3 contribution payments for all payer types</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-sm">
-            Batch: {activeBatch.batchNumber}
-          </Badge>
-          <Badge variant="outline" className="text-sm bg-red-100 text-red-700 border-red-300">
-            No Active
-          </Badge>
-          <Dialog open={showOpenDialog} onOpenChange={setShowOpenDialog}>
-            <DialogTrigger asChild>
-              <Button className="bema-btn-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Open New Batch
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="bema-h2">Open New Cashier Batch</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label className="bema-t1">Office Location *</Label>
-                  <div className="mt-1 bema-t1">Charlestown</div>
-                </div>
-                <div>
-                  <Label className="bema-t1">Opening Balance *</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newBatch.openingBalance}
-                    onChange={(e) => setNewBatch({ ...newBatch, openingBalance: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <Button onClick={handleOpenBatch} className="w-full bema-btn-primary">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Open Batch
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
       </div>
+
+      {batchSel.selectedBatch && (
+        <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+      )}
 
       <div className="space-y-6">
         {/* Payment Processing Form */}
