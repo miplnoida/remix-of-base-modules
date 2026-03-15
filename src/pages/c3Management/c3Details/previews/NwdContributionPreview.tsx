@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { X, Printer, Download } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import ssbLogo from '@/assets/ssb-logo.png';
+import ssbLogo from '@/assets/stkitts-logo.png';
 
 interface Props {
   open: boolean;
