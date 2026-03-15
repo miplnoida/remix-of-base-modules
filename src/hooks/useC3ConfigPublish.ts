@@ -1,6 +1,7 @@
 /**
  * Hook for C3 Configuration Publish to C3-Wizard
  * Handles payload building, publishing, sync log tracking, and pending change detection
+ * Sync Protocol v4.0 — includes all config tables
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +34,12 @@ export interface SyncPendingCounts {
   bonusExceptions: number;
   holidayPolicies: number;
   holidayExceptions: number;
+  calculationConfigs: number;
+  incomeCodes: number;
+  incomeCategories: number;
+  selfEmpRates: number;
+  incomeCodePolicies: number;
+  incomeCodeExceptions: number;
 }
 
 // Check if any config has been modified since last publish
@@ -51,15 +58,21 @@ export function useC3SyncStatus() {
       const lastPublishedAt = lastSync?.published_at || null;
 
       if (!lastPublishedAt) {
-        const [{ count: pCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }] = await Promise.all([
+        const [{ count: pCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
           supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }),
           supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }),
           supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
         ]);
-        const total = (pCount || 0) + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0);
+        const total = (pCount || 0) + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0) + (ccCount || 0) + (icCount || 0) + (catCount || 0) + (seCount || 0) + (icpCount || 0) + (iceCount || 0);
         return {
           hasPendingChanges: total > 0,
           lastPublishedAt: null,
@@ -67,6 +80,9 @@ export function useC3SyncStatus() {
             periods: pCount || 0, slabs: sCount || 0,
             bonusPolicies: bpCount || 0, bonusExceptions: beCount || 0,
             holidayPolicies: hpCount || 0, holidayExceptions: heCount || 0,
+            calculationConfigs: ccCount || 0, incomeCodes: icCount || 0,
+            incomeCategories: catCount || 0, selfEmpRates: seCount || 0,
+            incomeCodePolicies: icpCount || 0, incomeCodeExceptions: iceCount || 0,
           }
         };
       }
@@ -76,6 +92,8 @@ export function useC3SyncStatus() {
         { count: pMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
         { count: hpMod }, { count: heMod },
+        { count: ccMod },
+        { count: icpMod }, { count: iceMod },
       ] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
@@ -83,9 +101,12 @@ export function useC3SyncStatus() {
         supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
+        (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
-      // Check for never-published records
+      // Check for never-published records (tables with last_published_at column)
       const [
         { count: pNew }, { count: sNew },
         { count: bpNew }, { count: beNew },
@@ -99,17 +120,30 @@ export function useC3SyncStatus() {
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
+      // For tables without last_published_at tracking, always count all rows
+      const [{ count: icTotal }, { count: catTotal }, { count: seTotal }] = await Promise.all([
+        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
+      ]);
+
       const periods = (pMod || 0) + (pNew || 0);
       const slabs = (sMod || 0) + (sNew || 0);
       const bonusPolicies = (bpMod || 0) + (bpNew || 0);
       const bonusExceptions = (beMod || 0) + (beNew || 0);
       const holidayPolicies = (hpMod || 0) + (hpNew || 0);
       const holidayExceptions = (heMod || 0) + (heNew || 0);
+      const calculationConfigs = ccMod || 0;
+      const incomeCodes = icTotal || 0;
+      const incomeCategories = catTotal || 0;
+      const selfEmpRates = seTotal || 0;
+      const incomeCodePolicies = icpMod || 0;
+      const incomeCodeExceptions = iceMod || 0;
 
       return {
-        hasPendingChanges: periods + slabs + bonusPolicies + bonusExceptions + holidayPolicies + holidayExceptions > 0,
+        hasPendingChanges: periods + slabs + bonusPolicies + bonusExceptions + holidayPolicies + holidayExceptions + calculationConfigs + incomeCodes + incomeCategories + selfEmpRates + incomeCodePolicies + incomeCodeExceptions > 0,
         lastPublishedAt,
-        pendingCounts: { periods, slabs, bonusPolicies, bonusExceptions, holidayPolicies, holidayExceptions }
+        pendingCounts: { periods, slabs, bonusPolicies, bonusExceptions, holidayPolicies, holidayExceptions, calculationConfigs, incomeCodes, incomeCategories, selfEmpRates, incomeCodePolicies, incomeCodeExceptions }
       };
     },
     refetchInterval: 30000,
@@ -211,9 +245,55 @@ async function buildSyncPayload() {
     .order('year_from', { ascending: false });
   if (heErr) throw heErr;
 
+  // 7. Calculation Config (global rules — week_start_day, penalty thresholds, etc.)
+  const { data: calculationConfigs, error: ccErr } = await supabase
+    .from('c3_calculation_config')
+    .select('*')
+    .eq('is_active', true)
+    .order('category')
+    .order('display_order');
+  if (ccErr) throw ccErr;
+
+  // 8. Income Codes (master data)
+  const { data: incomeCodes, error: icErr } = await (supabase as any)
+    .from('tb_income_codes')
+    .select('*')
+    .order('code');
+  if (icErr) throw icErr;
+
+  // 9. Income Categories / Wage Categories (master data for self-employed)
+  const { data: incomeCategories, error: catErr } = await (supabase as any)
+    .from('tb_income_cat')
+    .select('*')
+    .order('wage_upper');
+  if (catErr) throw catErr;
+
+  // 10. Self-Employed Contribution Rates
+  const { data: selfEmpRates, error: seErr } = await (supabase as any)
+    .from('tb_self_emp_contrib_rate')
+    .select('*')
+    .order('effstart', { ascending: false });
+  if (seErr) throw seErr;
+
+  // 11. Income Code Policy Defaults
+  const { data: incomeCodePolicies, error: icpErr } = await (supabase as any)
+    .from('c3_income_code_policy_default')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (icpErr) throw icpErr;
+
+  // 12. Income Code Policy Exceptions
+  const { data: incomeCodeExceptions, error: iceErr } = await (supabase as any)
+    .from('c3_income_code_policy_exceptions')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (iceErr) throw iceErr;
+
   const syncTimestamp = new Date().toISOString();
   const payload = {
-    sync_version: '3.0',
+    sync_version: '4.0',
     sync_timestamp: syncTimestamp,
     config_periods: configPeriods,
     levy_slabs: levySlabs,
@@ -221,6 +301,12 @@ async function buildSyncPayload() {
     bonus_exceptions: bonusExceptions || [],
     holiday_policies: holidayPolicies || [],
     holiday_exceptions: holidayExceptions || [],
+    calculation_configs: calculationConfigs || [],
+    income_codes: incomeCodes || [],
+    income_categories: incomeCategories || [],
+    self_emp_contrib_rates: selfEmpRates || [],
+    income_code_policies: incomeCodePolicies || [],
+    income_code_exceptions: incomeCodeExceptions || [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
@@ -235,6 +321,12 @@ async function buildSyncPayload() {
       bonusExceptions: (bonusExceptions || []).length,
       holidayPolicies: (holidayPolicies || []).length,
       holidayExceptions: (holidayExceptions || []).length,
+      calculationConfigs: (calculationConfigs || []).length,
+      incomeCodes: (incomeCodes || []).length,
+      incomeCategories: (incomeCategories || []).length,
+      selfEmpRates: (selfEmpRates || []).length,
+      incomeCodePolicies: (incomeCodePolicies || []).length,
+      incomeCodeExceptions: (incomeCodeExceptions || []).length,
     }
   };
 }
@@ -261,6 +353,12 @@ export function usePublishToC3Wizard() {
           bonus_exceptions_count: counts.bonusExceptions,
           holiday_policies_count: counts.holidayPolicies,
           holiday_exceptions_count: counts.holidayExceptions,
+          calculation_configs_count: counts.calculationConfigs,
+          income_codes_count: counts.incomeCodes,
+          income_categories_count: counts.incomeCategories,
+          self_emp_rates_count: counts.selfEmpRates,
+          income_code_policies_count: counts.incomeCodePolicies,
+          income_code_exceptions_count: counts.incomeCodeExceptions,
           published_by: userCode || null,
         })
         .select('id')
@@ -325,6 +423,7 @@ export function usePublishToC3Wizard() {
             .eq('id', logEntry.id);
         }
 
+        // Mark all published tables as synced
         const now = new Date().toISOString();
         await Promise.all([
           supabase.from('c3_config_periods').update({ last_published_at: now }).eq('is_active', true),
@@ -333,6 +432,8 @@ export function usePublishToC3Wizard() {
           supabase.from('c3_bonus_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
+          // Note: c3_calculation_config, tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate
+          // don't have last_published_at columns — they are always fully synced on each publish
         ]);
 
         return { success: true, counts };
@@ -349,8 +450,9 @@ export function usePublishToC3Wizard() {
       queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      const c = result.counts;
       toast.success(
-        `Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs, ${result.counts.bonusPolicies} bonus policies, ${result.counts.bonusExceptions} bonus exceptions, ${result.counts.holidayPolicies} holiday policies, ${result.counts.holidayExceptions} holiday exceptions`
+        `Published to C3-Wizard (v4.0): ${c.periods} periods, ${c.slabs} levy slabs, ${c.bonusPolicies} bonus policies, ${c.bonusExceptions} bonus exceptions, ${c.holidayPolicies} holiday policies, ${c.holidayExceptions} holiday exceptions, ${c.calculationConfigs} calc configs, ${c.incomeCodes} income codes, ${c.incomeCategories} income categories, ${c.selfEmpRates} self-emp rates, ${c.incomeCodePolicies} IC policies, ${c.incomeCodeExceptions} IC exceptions`
       );
     },
     onError: (error: any) => {
