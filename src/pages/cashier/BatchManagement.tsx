@@ -459,14 +459,14 @@ function ViewBatchDialog({ batch, onClose }: { batch: any; onClose: () => void }
     { label: 'Balance Status', value: batch.balance_status || '—' },
     { label: 'Cashier (Entered By)', value: batch.entered_by || '—' },
     { label: 'Office Code', value: batch.office_code || '—' },
-    { label: 'Batch Date', value: batch.batch_date ? formatDateForDisplay(batch.batch_date) : '—' },
-    { label: 'Date Entered', value: batch.date_entered ? formatDateForDisplay(batch.date_entered) : '—' },
+    { label: 'Batch Date', value: batch.batch_date ? formatDisplayDate(batch.batch_date) : '—' },
+    { label: 'Date Entered', value: batch.date_entered ? formatDisplayDate(batch.date_entered) : '—' },
     { label: 'Balance Forward', value: (batch.balance_forward ?? 0).toFixed(2) },
     { label: 'Opening Balance (Offset)', value: (batch.offset_amount ?? 0).toFixed(2) },
     { label: 'Verified By', value: batch.verified_by || '—' },
-    { label: 'Date Verified', value: batch.date_verified ? formatDateForDisplay(batch.date_verified) : '—' },
+    { label: 'Date Verified', value: batch.date_verified ? formatDisplayDate(batch.date_verified) : '—' },
     { label: 'Posted By', value: batch.posted_by || '—' },
-    { label: 'Date Posted', value: batch.date_posted ? formatDateForDisplay(batch.date_posted) : '—' },
+    { label: 'Date Posted', value: batch.date_posted ? formatDisplayDate(batch.date_posted) : '—' },
   ];
 
   return (
