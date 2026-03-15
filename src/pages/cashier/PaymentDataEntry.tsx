@@ -11,16 +11,39 @@ import { MOPDetailModal } from '@/components/payments/MOPDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { PayerSearchModal } from '@/components/payments/PayerSearchModal';
 import { AddDetailModal } from '@/components/payments/AddDetailModal';
+import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
+import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 
 const PaymentDataEntry = () => {
+  const batchSel = useBatchSelection();
   const batch = usePaymentBatch();
   const payment = usePaymentEntry();
   const receipt = useReceiptActions();
 
-  // Header form state
+  // Sync batch hook with selected batch
+  React.useEffect(() => {
+    if (batchSel.selectedBatch) {
+      batch.setCurrentBatch({
+        batch_number: batchSel.selectedBatch.batch_number,
+        batch_status: batchSel.selectedBatch.batch_status,
+        batch_date: batchSel.selectedBatch.batch_date,
+        entered_by: batchSel.selectedBatch.entered_by,
+        office_code: batchSel.selectedBatch.office_code,
+        offset_amount: batchSel.selectedBatch.offset_amount,
+        balance_forward: batchSel.selectedBatch.balance_forward,
+        balance_status: null,
+        verified_by: null,
+        date_verified: null,
+        posted_by: null,
+        date_posted: null,
+        date_entered: null,
+      });
+    }
+  }, [batchSel.selectedBatch]);
+
   const [payerType, setPayerType] = useState('ER');
   const [payerId, setPayerId] = useState('');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
@@ -28,17 +51,14 @@ const PaymentDataEntry = () => {
   const [remarks, setRemarks] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
-  // Modal states
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showPayerSearch, setShowPayerSearch] = useState(false);
   const [showAddDetail, setShowAddDetail] = useState(false);
   const [showMOPModal, setShowMOPModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedDetailRow, setSelectedDetailRow] = useState<PaymentDetailData | null>(null);
-
   const [balanceForward, setBalanceForward] = useState(0);
 
-  // Batch creation
   const handleNewBatch = useCallback(async () => {
     const bf = await batch.getBalanceForward();
     setBalanceForward(bf);
@@ -51,7 +71,6 @@ const PaymentDataEntry = () => {
     resetPaymentForm();
   }, [batch]);
 
-  // Payer validation
   const handleValidatePayer = useCallback(async () => {
     if (!payerId.trim()) return;
     setIsValidating(true);
@@ -66,24 +85,16 @@ const PaymentDataEntry = () => {
     setPayerInfo(payer);
   }, []);
 
-  // New Payment
   const handleNewPayment = useCallback(async () => {
     if (!batch.currentBatch || !payerInfo) {
       toast({ title: 'Missing Data', description: 'Validate payer before creating payment.', variant: 'destructive' });
       return;
     }
     const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
-    await payment.createPaymentHeader(
-      batch.currentBatch.batch_number,
-      payerType,
-      payerId,
-      dateRcvd,
-      remarks
-    );
+    await payment.createPaymentHeader(batch.currentBatch.batch_number, payerType, payerId, dateRcvd, remarks);
     receipt.setCurrentReceipt(null);
   }, [batch.currentBatch, payerType, payerId, payerInfo, dateReceived, remarks, payment, receipt]);
 
-  // Detail lines
   const handleAddDetail = useCallback(async (detail: any) => {
     if (!payment.currentHeader) return;
     await payment.addDetailRow(payment.currentHeader.payment_id, detail);
@@ -102,25 +113,15 @@ const PaymentDataEntry = () => {
 
   const handleSaveMOP = useCallback(async (updates: Partial<PaymentDetailData>) => {
     if (!selectedDetailRow) return;
-    await supabase
-      .from('cn_payment')
-      .update(updates as any)
+    await supabase.from('cn_payment').update(updates as any)
       .eq('payment_id', selectedDetailRow.payment_id)
       .eq('payment_sequence_no', selectedDetailRow.payment_sequence_no);
-    if (payment.currentHeader) {
-      await payment.loadPaymentDetails(payment.currentHeader.payment_id);
-    }
+    if (payment.currentHeader) await payment.loadPaymentDetails(payment.currentHeader.payment_id);
   }, [selectedDetailRow, payment]);
 
-  // Receipt actions
   const handlePrintReceipt = useCallback(async () => {
     if (!payment.currentHeader) return;
-    await receipt.printReceipt(
-      payment.currentHeader.payment_id,
-      payment.totalPaymentAmount,
-      payment.detailRows.length,
-      'USR'
-    );
+    await receipt.printReceipt(payment.currentHeader.payment_id, payment.totalPaymentAmount, payment.detailRows.length, 'USR');
   }, [payment, receipt]);
 
   const handleReprintReceipt = useCallback(async () => {
@@ -148,91 +149,73 @@ const PaymentDataEntry = () => {
   const isDisabled = !batch.isBatchOpen || receipt.currentReceipt?.status === 'C';
 
   return (
-    <div className="space-y-4 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Payment Data Entry</h1>
-        <p className="text-sm text-muted-foreground">Current payment processing — enter new payments within an open batch.</p>
+    <BatchSelectionGuard
+      isLoading={batchSel.isLoading}
+      isReady={batchSel.isReady}
+      noBatchesAvailable={batchSel.noBatchesAvailable}
+      showPopup={batchSel.showPopup}
+      openBatches={batchSel.openBatches}
+      canManageAllBatches={batchSel.canManageAllBatches}
+      selectedBatch={batchSel.selectedBatch}
+      onSelectBatch={batchSel.selectBatch}
+      onChangeBatch={batchSel.changeBatch}
+    >
+      <div className="space-y-4 p-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Payment Data Entry</h1>
+          <p className="text-sm text-muted-foreground">Current payment processing — enter new payments within an open batch.</p>
+        </div>
+
+        {batchSel.selectedBatch && (
+          <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+        )}
+
+        <PaymentActionBar
+          onNewBatch={handleNewBatch}
+          onNewPayment={handleNewPayment}
+          onPrintReceipt={handlePrintReceipt}
+          onReprintReceipt={handleReprintReceipt}
+          onCancelReceipt={() => setShowCancelModal(true)}
+          onPayerSearch={() => setShowPayerSearch(true)}
+          hasBatch={!!batch.currentBatch}
+          hasPayment={!!payment.currentHeader}
+          receiptStatus={receipt.currentReceipt?.status || null}
+          isBatchOpen={batch.isBatchOpen}
+          isProcessing={batch.isLoading || payment.isLoading || receipt.isLoading}
+        />
+
+        <PaymentHeaderForm
+          payerType={payerType} setPayerType={setPayerType}
+          payerId={payerId} setPayerId={setPayerId}
+          payerInfo={payerInfo}
+          dateReceived={dateReceived} setDateReceived={setDateReceived}
+          remarks={remarks} setRemarks={setRemarks}
+          onValidatePayer={handleValidatePayer}
+          onPayerSearch={() => setShowPayerSearch(true)}
+          isValidating={isValidating}
+          disabled={isDisabled}
+        />
+
+        <PaymentDetailGrid
+          rows={payment.detailRows}
+          onAddRow={() => setShowAddDetail(true)}
+          onDeleteRow={handleDeleteDetail}
+          onEditMOP={handleEditMOP}
+          disabled={isDisabled || !payment.currentHeader}
+          totalAmount={payment.totalPaymentAmount}
+        />
+
+        <BatchCreationModal open={showBatchModal} onClose={() => setShowBatchModal(false)}
+          onCreateBatch={handleCreateBatch} balanceForward={balanceForward} isLoading={batch.isLoading} />
+        <PayerSearchModal open={showPayerSearch} onClose={() => setShowPayerSearch(false)}
+          payerType={payerType} onSelect={handlePayerSelect} searchFn={payment.searchPayers} />
+        <AddDetailModal open={showAddDetail} onClose={() => setShowAddDetail(false)} onAdd={handleAddDetail} />
+        <MOPDetailModal open={showMOPModal} onClose={() => { setShowMOPModal(false); setSelectedDetailRow(null); }}
+          detailRow={selectedDetailRow} onSave={handleSaveMOP} />
+        <ReceiptCancelModal open={showCancelModal} onClose={() => setShowCancelModal(false)}
+          onConfirm={handleCancelReceipt} isLoading={receipt.isLoading} receiptId={receipt.currentReceipt?.receipt_id} />
       </div>
-
-      <PaymentActionBar
-        onNewBatch={handleNewBatch}
-        onNewPayment={handleNewPayment}
-        onPrintReceipt={handlePrintReceipt}
-        onReprintReceipt={handleReprintReceipt}
-        onCancelReceipt={() => setShowCancelModal(true)}
-        onPayerSearch={() => setShowPayerSearch(true)}
-        hasBatch={!!batch.currentBatch}
-        hasPayment={!!payment.currentHeader}
-        receiptStatus={receipt.currentReceipt?.status || null}
-        isBatchOpen={batch.isBatchOpen}
-        isProcessing={batch.isLoading || payment.isLoading || receipt.isLoading}
-      />
-
-      <BatchHeader batch={batch.currentBatch} />
-
-      <PaymentHeaderForm
-        payerType={payerType}
-        setPayerType={setPayerType}
-        payerId={payerId}
-        setPayerId={setPayerId}
-        payerInfo={payerInfo}
-        dateReceived={dateReceived}
-        setDateReceived={setDateReceived}
-        remarks={remarks}
-        setRemarks={setRemarks}
-        onValidatePayer={handleValidatePayer}
-        onPayerSearch={() => setShowPayerSearch(true)}
-        isValidating={isValidating}
-        disabled={isDisabled}
-      />
-
-      <PaymentDetailGrid
-        rows={payment.detailRows}
-        onAddRow={() => setShowAddDetail(true)}
-        onDeleteRow={handleDeleteDetail}
-        onEditMOP={handleEditMOP}
-        disabled={isDisabled || !payment.currentHeader}
-        totalAmount={payment.totalPaymentAmount}
-      />
-
-      {/* Modals */}
-      <BatchCreationModal
-        open={showBatchModal}
-        onClose={() => setShowBatchModal(false)}
-        onCreateBatch={handleCreateBatch}
-        balanceForward={balanceForward}
-        isLoading={batch.isLoading}
-      />
-
-      <PayerSearchModal
-        open={showPayerSearch}
-        onClose={() => setShowPayerSearch(false)}
-        payerType={payerType}
-        onSelect={handlePayerSelect}
-        searchFn={payment.searchPayers}
-      />
-
-      <AddDetailModal
-        open={showAddDetail}
-        onClose={() => setShowAddDetail(false)}
-        onAdd={handleAddDetail}
-      />
-
-      <MOPDetailModal
-        open={showMOPModal}
-        onClose={() => { setShowMOPModal(false); setSelectedDetailRow(null); }}
-        detailRow={selectedDetailRow}
-        onSave={handleSaveMOP}
-      />
-
-      <ReceiptCancelModal
-        open={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        onConfirm={handleCancelReceipt}
-        isLoading={receipt.isLoading}
-        receiptId={receipt.currentReceipt?.receipt_id}
-      />
-    </div>
+    </BatchSelectionGuard>
   );
 };
 

@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
 import { usePaymentEntry, PayerInfo, PaymentDetailData } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
-import { BatchHeader } from '@/components/payments/BatchHeader';
 import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
 import { PaymentDetailGrid } from '@/components/payments/PaymentDetailGrid';
 import { PaymentActionBar } from '@/components/payments/PaymentActionBar';
@@ -11,6 +10,8 @@ import { MOPDetailModal } from '@/components/payments/MOPDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { PayerSearchModal } from '@/components/payments/PayerSearchModal';
 import { AddDetailModal } from '@/components/payments/AddDetailModal';
+import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
+import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,31 @@ import { formatDateForStorage } from '@/lib/dateFormat';
 import { UserCheck, Calculator, Loader2 } from 'lucide-react';
 
 const VCPaymentUpdate = () => {
+  const batchSel = useBatchSelection();
   const batch = usePaymentBatch();
   const payment = usePaymentEntry();
   const receipt = useReceiptActions();
+
+  // Sync batch hook with selected batch
+  React.useEffect(() => {
+    if (batchSel.selectedBatch) {
+      batch.setCurrentBatch({
+        batch_number: batchSel.selectedBatch.batch_number,
+        batch_status: batchSel.selectedBatch.batch_status,
+        batch_date: batchSel.selectedBatch.batch_date,
+        entered_by: batchSel.selectedBatch.entered_by,
+        office_code: batchSel.selectedBatch.office_code,
+        offset_amount: batchSel.selectedBatch.offset_amount,
+        balance_forward: batchSel.selectedBatch.balance_forward,
+        balance_status: null,
+        verified_by: null,
+        date_verified: null,
+        posted_by: null,
+        date_posted: null,
+        date_entered: null,
+      });
+    }
+  }, [batchSel.selectedBatch]);
 
   const [payerType, setPayerType] = useState('VC');
   const [payerId, setPayerId] = useState('');
@@ -39,7 +62,6 @@ const VCPaymentUpdate = () => {
   const [selectedDetailRow, setSelectedDetailRow] = useState<PaymentDetailData | null>(null);
   const [balanceForward, setBalanceForward] = useState(0);
 
-  // VC-specific state
   const [vcInfo, setVcInfo] = useState<any>(null);
   const [isApplyingVC, setIsApplyingVC] = useState(false);
 
@@ -63,7 +85,6 @@ const VCPaymentUpdate = () => {
     if (!info) {
       toast({ title: 'Not Found', description: 'Voluntary contributor not found.', variant: 'destructive' });
     } else {
-      // Load VC record
       const { data: vcData } = await supabase
         .from('ip_vol_contrib')
         .select('*')
@@ -85,9 +106,7 @@ const VCPaymentUpdate = () => {
       return;
     }
     const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
-    await payment.createPaymentHeader(
-      batch.currentBatch.batch_number, 'VC', payerId, dateRcvd, remarks
-    );
+    await payment.createPaymentHeader(batch.currentBatch.batch_number, 'VC', payerId, dateRcvd, remarks);
     receipt.setCurrentReceipt(null);
   }, [batch.currentBatch, payerId, payerInfo, dateReceived, remarks, payment, receipt]);
 
@@ -138,7 +157,6 @@ const VCPaymentUpdate = () => {
     }
     setIsApplyingVC(true);
     try {
-      // VC contribution logic — update contribution schedule based on payment
       toast({
         title: 'VC Contribution Applied',
         description: `Contribution schedule updated for SSN ${payerId}. Amount: $${payment.totalPaymentAmount.toFixed(2)}`,
@@ -165,113 +183,121 @@ const VCPaymentUpdate = () => {
   const isDisabled = !batch.isBatchOpen || receipt.currentReceipt?.status === 'C';
 
   return (
-    <div className="space-y-4 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Update Voluntary Contributor</h1>
-        <p className="text-sm text-muted-foreground">Specialist payment processing for voluntary contributors with contribution schedule updates.</p>
-      </div>
-
-      <div className="flex items-start gap-3 p-3 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-700">
-        <UserCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm">
-          <p className="font-semibold text-blue-800 dark:text-blue-300">Voluntary Contributor Mode</p>
-          <p className="text-blue-700 dark:text-blue-400">This screen processes VC payments and applies contribution schedule logic. Use the "Apply VC Contribution" action after entering payment details.</p>
+    <BatchSelectionGuard
+      isLoading={batchSel.isLoading}
+      isReady={batchSel.isReady}
+      noBatchesAvailable={batchSel.noBatchesAvailable}
+      showPopup={batchSel.showPopup}
+      openBatches={batchSel.openBatches}
+      canManageAllBatches={batchSel.canManageAllBatches}
+      selectedBatch={batchSel.selectedBatch}
+      onSelectBatch={batchSel.selectBatch}
+      onChangeBatch={batchSel.changeBatch}
+    >
+      <div className="space-y-4 p-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Update Voluntary Contributor</h1>
+          <p className="text-sm text-muted-foreground">Specialist payment processing for voluntary contributors with contribution schedule updates.</p>
         </div>
-      </div>
 
-      <PaymentActionBar
-        onNewBatch={handleNewBatch}
-        onNewPayment={handleNewPayment}
-        onPrintReceipt={handlePrintReceipt}
-        onReprintReceipt={handleReprintReceipt}
-        onCancelReceipt={() => setShowCancelModal(true)}
-        onPayerSearch={() => setShowPayerSearch(true)}
-        hasBatch={!!batch.currentBatch}
-        hasPayment={!!payment.currentHeader}
-        receiptStatus={receipt.currentReceipt?.status || null}
-        isBatchOpen={batch.isBatchOpen}
-        isProcessing={batch.isLoading || payment.isLoading || receipt.isLoading}
-      />
+        {batchSel.selectedBatch && (
+          <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+        )}
 
-      {/* VC Action */}
-      {payment.currentHeader && payment.detailRows.length > 0 && (
-        <div className="flex justify-end">
-          <Button
-            onClick={handleApplyVCContribution}
-            disabled={isApplyingVC || !vcInfo}
-            className="gap-2"
-          >
-            {isApplyingVC ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
-            Apply VC Contribution
-          </Button>
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-700">
+          <UserCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-blue-800 dark:text-blue-300">Voluntary Contributor Mode</p>
+            <p className="text-blue-700 dark:text-blue-400">This screen processes VC payments and applies contribution schedule logic. Use the "Apply VC Contribution" action after entering payment details.</p>
+          </div>
         </div>
-      )}
 
-      <BatchHeader batch={batch.currentBatch} />
+        <PaymentActionBar
+          onNewBatch={handleNewBatch}
+          onNewPayment={handleNewPayment}
+          onPrintReceipt={handlePrintReceipt}
+          onReprintReceipt={handleReprintReceipt}
+          onCancelReceipt={() => setShowCancelModal(true)}
+          onPayerSearch={() => setShowPayerSearch(true)}
+          hasBatch={!!batch.currentBatch}
+          hasPayment={!!payment.currentHeader}
+          receiptStatus={receipt.currentReceipt?.status || null}
+          isBatchOpen={batch.isBatchOpen}
+          isProcessing={batch.isLoading || payment.isLoading || receipt.isLoading}
+        />
 
-      {/* VC Info Panel */}
-      {vcInfo && (
-        <Card>
-          <CardHeader className="py-3 pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              VC Schedule Info
-              <Badge variant="secondary">Active</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground text-xs block">Avg Weekly Wage</span>
-                <span className="font-mono">${vcInfo.avg_weekly_wage?.toFixed(2) || '0.00'}</span>
+        {payment.currentHeader && payment.detailRows.length > 0 && (
+          <div className="flex justify-end">
+            <Button onClick={handleApplyVCContribution} disabled={isApplyingVC || !vcInfo} className="gap-2">
+              {isApplyingVC ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
+              Apply VC Contribution
+            </Button>
+          </div>
+        )}
+
+        {vcInfo && (
+          <Card>
+            <CardHeader className="py-3 pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                VC Schedule Info
+                <Badge variant="secondary">Active</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="py-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs block">Avg Weekly Wage</span>
+                  <span className="font-mono">${vcInfo.avg_weekly_wage?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs block">Contribution Amt</span>
+                  <span className="font-mono">${vcInfo.contrib_amt?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs block">Payment Interval</span>
+                  <span>{vcInfo.payment_interval || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs block">Category</span>
+                  <span>{vcInfo.category || '—'}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-muted-foreground text-xs block">Contribution Amt</span>
-                <span className="font-mono">${vcInfo.contrib_amt?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs block">Payment Interval</span>
-                <span>{vcInfo.payment_interval || '—'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs block">Category</span>
-                <span>{vcInfo.category || '—'}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
-      <PaymentHeaderForm
-        payerType={payerType} setPayerType={() => {}} // Fixed to VC
-        payerId={payerId} setPayerId={setPayerId}
-        payerInfo={payerInfo}
-        dateReceived={dateReceived} setDateReceived={setDateReceived}
-        remarks={remarks} setRemarks={setRemarks}
-        onValidatePayer={handleValidatePayer}
-        onPayerSearch={() => setShowPayerSearch(true)}
-        isValidating={isValidating}
-        disabled={isDisabled}
-      />
+        <PaymentHeaderForm
+          payerType={payerType} setPayerType={() => {}}
+          payerId={payerId} setPayerId={setPayerId}
+          payerInfo={payerInfo}
+          dateReceived={dateReceived} setDateReceived={setDateReceived}
+          remarks={remarks} setRemarks={setRemarks}
+          onValidatePayer={handleValidatePayer}
+          onPayerSearch={() => setShowPayerSearch(true)}
+          isValidating={isValidating}
+          disabled={isDisabled}
+        />
 
-      <PaymentDetailGrid
-        rows={payment.detailRows}
-        onAddRow={() => setShowAddDetail(true)}
-        onDeleteRow={handleDeleteDetail}
-        onEditMOP={handleEditMOP}
-        disabled={isDisabled || !payment.currentHeader}
-        totalAmount={payment.totalPaymentAmount}
-      />
+        <PaymentDetailGrid
+          rows={payment.detailRows}
+          onAddRow={() => setShowAddDetail(true)}
+          onDeleteRow={handleDeleteDetail}
+          onEditMOP={handleEditMOP}
+          disabled={isDisabled || !payment.currentHeader}
+          totalAmount={payment.totalPaymentAmount}
+        />
 
-      <BatchCreationModal open={showBatchModal} onClose={() => setShowBatchModal(false)}
-        onCreateBatch={handleCreateBatch} balanceForward={balanceForward} isLoading={batch.isLoading} />
-      <PayerSearchModal open={showPayerSearch} onClose={() => setShowPayerSearch(false)}
-        payerType="VC" onSelect={handlePayerSelect} searchFn={payment.searchPayers} />
-      <AddDetailModal open={showAddDetail} onClose={() => setShowAddDetail(false)} onAdd={handleAddDetail} />
-      <MOPDetailModal open={showMOPModal} onClose={() => { setShowMOPModal(false); setSelectedDetailRow(null); }}
-        detailRow={selectedDetailRow} onSave={handleSaveMOP} />
-      <ReceiptCancelModal open={showCancelModal} onClose={() => setShowCancelModal(false)}
-        onConfirm={handleCancelReceipt} isLoading={receipt.isLoading} receiptId={receipt.currentReceipt?.receipt_id} />
-    </div>
+        <BatchCreationModal open={showBatchModal} onClose={() => setShowBatchModal(false)}
+          onCreateBatch={handleCreateBatch} balanceForward={balanceForward} isLoading={batch.isLoading} />
+        <PayerSearchModal open={showPayerSearch} onClose={() => setShowPayerSearch(false)}
+          payerType="VC" onSelect={handlePayerSelect} searchFn={payment.searchPayers} />
+        <AddDetailModal open={showAddDetail} onClose={() => setShowAddDetail(false)} onAdd={handleAddDetail} />
+        <MOPDetailModal open={showMOPModal} onClose={() => { setShowMOPModal(false); setSelectedDetailRow(null); }}
+          detailRow={selectedDetailRow} onSave={handleSaveMOP} />
+        <ReceiptCancelModal open={showCancelModal} onClose={() => setShowCancelModal(false)}
+          onConfirm={handleCancelReceipt} isLoading={receipt.isLoading} receiptId={receipt.currentReceipt?.receipt_id} />
+      </div>
+    </BatchSelectionGuard>
   );
 };
 
