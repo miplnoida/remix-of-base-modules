@@ -288,7 +288,7 @@ function OpenBatchDialog({
           }
           // warning mode: show warning, user can proceed
           setDuplicateWarning(
-            `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDateForDisplay(batchDateStr)}. Do you want to continue?`
+            `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Do you want to continue?`
           );
           setIsCreating(false);
           return;
