@@ -793,6 +793,7 @@ const C3Payments: React.FC = () => {
         />
       )}
     </div>
+    </BatchSelectionGuard>
   );
 };
 
