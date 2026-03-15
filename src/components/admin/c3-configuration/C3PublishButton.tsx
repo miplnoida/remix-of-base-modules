@@ -67,6 +67,12 @@ export function C3PublishButton() {
                     <li>{syncStatus.pendingCounts.bonusExceptions} bonus policy exception(s)</li>
                     <li>{syncStatus.pendingCounts.holidayPolicies} holiday pay policy default(s)</li>
                     <li>{syncStatus.pendingCounts.holidayExceptions} holiday pay policy exception(s)</li>
+                    <li>{syncStatus.pendingCounts.calculationConfigs} calculation config(s)</li>
+                    <li>{syncStatus.pendingCounts.incomeCodes} income code(s)</li>
+                    <li>{syncStatus.pendingCounts.incomeCategories} income categor(ies)</li>
+                    <li>{syncStatus.pendingCounts.selfEmpRates} self-employed rate(s)</li>
+                    <li>{syncStatus.pendingCounts.incomeCodePolicies} income code policy default(s)</li>
+                    <li>{syncStatus.pendingCounts.incomeCodeExceptions} income code policy exception(s)</li>
                   </ul>
                 </div>
               )}
