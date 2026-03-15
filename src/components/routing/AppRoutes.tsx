@@ -101,7 +101,11 @@ import InjurySimulator from '@/pages/c3/settings/injury/InjurySimulator';
 import C3FormatsList from '@/pages/c3/settings/c3file/C3FormatsList';
 import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 
-// Employer Management
+// C3 Details Screens
+import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
+import NwDirectorList from '@/pages/c3Management/c3Details/NwDirectorList';
+import SelfEmployedContributionList from '@/pages/c3Management/c3Details/SelfEmployedContributionList';
+
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
 import EmployerDirectory from '@/pages/employersManagement/EmployerDirectory';
