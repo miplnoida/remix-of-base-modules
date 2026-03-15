@@ -164,6 +164,7 @@ const PaymentModuleConfig: React.FC = () => {
   };
 
   const toggleDenomActive = async (denomId: string, isActive: boolean) => {
+    const denom = denominations?.find(d => d.id === denomId);
     const { error } = await supabase
       .from('cashier_currency_denominations')
       .update({ is_active: !isActive, updated_by: profile?.user_code || null, updated_at: new Date().toISOString() })
@@ -172,12 +173,17 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Failed to update denomination');
       return;
     }
+    await auditLog(isActive ? 'disable' : 'enable', 'cashier_currency_denominations', denomId,
+      { denomination_value: denom?.denomination_value, is_active: isActive },
+      { denomination_value: denom?.denomination_value, is_active: !isActive },
+    );
     refetchDenoms();
     queryClient.invalidateQueries({ queryKey: ['cashier-denominations'] });
     toast.success('Denomination updated');
   };
 
   const deleteDenomination = async (denomId: string) => {
+    const denom = denominations?.find(d => d.id === denomId);
     const { error } = await supabase
       .from('cashier_currency_denominations')
       .delete()
@@ -186,6 +192,10 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Failed to delete denomination');
       return;
     }
+    await auditLog('delete', 'cashier_currency_denominations', denomId,
+      { denomination_value: denom?.denomination_value, label: denom?.label, denomination_type: denom?.denomination_type },
+      null,
+    );
     refetchDenoms();
     queryClient.invalidateQueries({ queryKey: ['cashier-denominations'] });
     toast.success('Denomination removed');

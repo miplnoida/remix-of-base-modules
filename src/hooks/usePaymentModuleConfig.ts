@@ -38,10 +38,19 @@ export function usePaymentConfig(key: string) {
 // ── Update a config value ──
 export function useUpdatePaymentConfig() {
   const queryClient = useQueryClient();
-  const { profile } = useSupabaseAuth();
+  const { profile, user } = useSupabaseAuth();
 
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      // Fetch current value before update for audit
+      const { data: existing } = await supabase
+        .from('payment_module_config')
+        .select('id, config_key, config_value')
+        .eq('config_key', key)
+        .single();
+
+      const beforeValue = existing?.config_value;
+
       const { error } = await supabase
         .from('payment_module_config')
         .update({
@@ -51,6 +60,22 @@ export function useUpdatePaymentConfig() {
         })
         .eq('config_key', key);
       if (error) throw error;
+
+      // Write audit log
+      const auditResult = await logAuditTrail({
+        action: 'update',
+        entityType: 'payment_module_config',
+        entityId: existing?.id || key,
+        module: 'Payment Module Configuration',
+        beforeValue: { config_key: key, config_value: beforeValue },
+        afterValue: { config_key: key, config_value: value },
+        userCode: profile?.user_code || undefined,
+        userId: user?.id,
+        metadata: { route: '/cashier/payment-module-config', config_key: key },
+      });
+      if (!auditResult) {
+        console.error('[PaymentConfig] Audit log creation failed for config key:', key);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-module-config'] });
