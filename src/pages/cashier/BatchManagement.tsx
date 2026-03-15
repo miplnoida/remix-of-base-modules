@@ -250,7 +250,8 @@ function OpenBatchDialog({
 }: OpenBatchDialogProps) {
   const { toast } = useToast();
   const [selectedCashierId, setSelectedCashierId] = useState<string>('');
-  const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
+  const batchDate = useMemo(() => new Date(), []);
+  const batchDateDisplay = format(batchDate, 'dd/MM/yyyy');
   const [openingBalance, setOpeningBalance] = useState<string>('0.00');
   const [isCreating, setIsCreating] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
