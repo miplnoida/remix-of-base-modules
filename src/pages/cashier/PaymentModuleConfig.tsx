@@ -133,19 +133,26 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Enter a valid denomination value');
       return;
     }
+    const currencyName = allCurrencies?.find(c => c.id === selectedDenomCurrencyId)?.currency_code || '';
+    const label = newDenomLabel || (val >= 1 ? `$${val}` : `${(val * 100).toFixed(0)}¢`);
     try {
       const maxSort = denominations?.length ? Math.max(...denominations.map(d => d.sort_order)) + 1 : 1;
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('cashier_currency_denominations')
         .insert({
           currency_id: selectedDenomCurrencyId,
           denomination_value: val,
           denomination_type: newDenomType,
-          label: newDenomLabel || (val >= 1 ? `$${val}` : `${(val * 100).toFixed(0)}¢`),
+          label,
           sort_order: maxSort,
           updated_by: profile?.user_code || null,
-        });
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+      await auditLog('create', 'cashier_currency_denominations', inserted?.id || '', null, {
+        currency: currencyName, denomination_value: val, denomination_type: newDenomType, label,
+      });
       setNewDenomValue('');
       setNewDenomLabel('');
       refetchDenoms();
