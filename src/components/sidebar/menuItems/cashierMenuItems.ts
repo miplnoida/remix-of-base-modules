@@ -165,6 +165,12 @@ export const cashierMenuItems = [
         url: "/cashier/reconciliation-accounts",
         icon: CheckSquare,
         requiresPermission: "admin"
+      },
+      {
+        title: "Payment Module Configuration",
+        url: "/cashier/payment-module-config",
+        icon: Settings,
+        requiresPermission: "admin"
       }
     ]
   },

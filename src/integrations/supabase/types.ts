@@ -15548,6 +15548,33 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_module_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          description: string | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payment_plan_installments: {
         Row: {
           amount: number
@@ -17369,6 +17396,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_batch_status: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          modified_by: string | null
+          modified_on: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Relationships: []
+      }
       tb_c3_status: {
         Row: {
           code: string
@@ -17922,6 +17976,33 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_receipt_status: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          modified_by: string | null
+          modified_on: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
         }
         Relationships: []
       }
