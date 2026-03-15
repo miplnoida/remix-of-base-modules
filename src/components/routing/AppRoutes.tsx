@@ -101,7 +101,11 @@ import InjurySimulator from '@/pages/c3/settings/injury/InjurySimulator';
 import C3FormatsList from '@/pages/c3/settings/c3file/C3FormatsList';
 import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 
-// Employer Management
+// C3 Details Screens
+import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
+import NwDirectorList from '@/pages/c3Management/c3Details/NwDirectorList';
+import SelfEmployedContributionList from '@/pages/c3Management/c3Details/SelfEmployedContributionList';
+
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
 import EmployerDirectory from '@/pages/employersManagement/EmployerDirectory';
@@ -784,6 +788,11 @@ export const AppRoutes = () => {
       <Route path="/c3-management/self-employed-details" element={<ProtectedLayout><WizSelfEmployedList /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<ProtectedLayout><WizSelfEmployedDetailsEdit /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-user/:userId" element={<ProtectedLayout><WizSelfEmployedUserEdit /></ProtectedLayout>} />
+
+      {/* C3 Details - Contribution Screens */}
+      <Route path="/c3-management/c3-contribution" element={<ProtectedLayout><C3ContributionList /></ProtectedLayout>} />
+      <Route path="/c3-management/nw-director" element={<ProtectedLayout><NwDirectorList /></ProtectedLayout>} />
+      <Route path="/c3-management/self-employed-c3" element={<ProtectedLayout><SelfEmployedContributionList /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Payment Details Route */}
       <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />

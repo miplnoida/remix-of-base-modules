@@ -47,6 +47,31 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "C3 Details",
+        icon: FileText,
+        requiresPermission: "view_dashboard",
+        subItems: [
+          {
+            title: "C3 Contribution",
+            url: "/c3-management/c3-contribution",
+            icon: DollarSign,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "NW Director",
+            url: "/c3-management/nw-director",
+            icon: Users,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Self Employed",
+            url: "/c3-management/self-employed-c3",
+            icon: UserCheck,
+            requiresPermission: "view_dashboard"
+          }
+        ]
+      },
+      {
         title: "Employer Details",
         url: "/c3-management/employer-details",
         icon: UserCheck,
