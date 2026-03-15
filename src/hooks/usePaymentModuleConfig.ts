@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
+import { logAuditTrail } from '@/services/auditService';
 
 // ── Fetch all config rows ──
 export function usePaymentModuleConfig() {
