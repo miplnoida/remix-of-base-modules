@@ -20219,6 +20219,10 @@ export type Database = {
         Returns: Json
       }
       check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
+      check_duplicate_open_batch: {
+        Args: { p_batch_date: string; p_cashier_user_code: string }
+        Returns: Json
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
