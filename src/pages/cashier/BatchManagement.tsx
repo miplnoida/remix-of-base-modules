@@ -161,8 +161,8 @@ const BatchManagement: React.FC = () => {
                     </TableCell>
                     <TableCell>{b.entered_by || '—'}</TableCell>
                     <TableCell>{b.office_code || '—'}</TableCell>
-                    <TableCell>{b.batch_date ? formatDateForDisplay(b.batch_date) : '—'}</TableCell>
-                    <TableCell>{b.date_entered ? formatDateForDisplay(b.date_entered) : '—'}</TableCell>
+                    <TableCell>{b.batch_date ? formatDisplayDate(b.batch_date) : '—'}</TableCell>
+                    <TableCell>{b.date_entered ? formatDisplayDate(b.date_entered) : '—'}</TableCell>
                     <TableCell className="text-right font-mono">
                       {(b.balance_forward ?? 0).toFixed(2)}
                     </TableCell>
