@@ -172,9 +172,31 @@ const BatchManagement: React.FC = () => {
                       {(b.offset_amount ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button size="sm" variant="ghost" onClick={() => setViewBatch(b)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => setViewBatch(b)} title="View Details">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {b.batch_status === 'O' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/cashier/cash-details?batch=${encodeURIComponent(b.batch_number)}`)}
+                              title="Enter Cash Detail"
+                            >
+                              <Coins className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/cashier/batch-closing?batch=${encodeURIComponent(b.batch_number)}`)}
+                              title="Close Batch"
+                            >
+                              <Lock className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
