@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { logAuditTrail } from '@/services/auditService';
 
 const PaymentModuleConfig: React.FC = () => {
   const { data: configs, isLoading } = usePaymentModuleConfig();
