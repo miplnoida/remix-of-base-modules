@@ -283,36 +283,37 @@ function OpenBatchDialog({
   };
 
   const handleCreate = async (force = false) => {
-    if (!selectedCashier || !batchDate) return;
+    if (!selectedCashier) return;
     setIsCreating(true);
     setDuplicateWarning(null);
 
     try {
       const batchDateStr = format(batchDate, 'yyyy-MM-dd');
 
-      // Duplicate check
+      // Server-side duplicate check via DB function
       if (!force) {
-        const { data: existing } = await supabase
-          .from('cn_batch')
-          .select('batch_number')
-          .eq('entered_by', selectedCashier.user_code)
-          .eq('batch_status', 'O')
-          .gte('batch_date', batchDateStr + 'T00:00:00')
-          .lt('batch_date', batchDateStr + 'T23:59:59.999');
+        const { data: dupResult, error: dupErr } = await supabase
+          .rpc('check_duplicate_open_batch', {
+            p_cashier_user_code: selectedCashier.user_code,
+            p_batch_date: batchDateStr,
+          });
 
-        if (existing && existing.length > 0) {
-          if (duplicateMode === 'restriction') {
+        if (dupErr) throw dupErr;
+
+        if (dupResult?.has_duplicate) {
+          const serverMode = dupResult.mode || 'warning';
+          if (serverMode === 'restriction') {
             toast({
               title: 'Batch Already Exists',
-              description: `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Creation is blocked by configuration.`,
+              description: `${dupResult.message}. Creation is blocked by configuration.`,
               variant: 'destructive',
             });
             setIsCreating(false);
             return;
           }
-          // warning mode: show warning, user can proceed
+          // warning mode
           setDuplicateWarning(
-            `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Do you want to continue?`
+            `${dupResult.message}. Do you want to continue?`
           );
           setIsCreating(false);
           return;
