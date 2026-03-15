@@ -1,425 +1,377 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Calculator, DollarSign, TrendingUp, TrendingDown, Save, FileText } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Calculator, DollarSign, Save, FileText, Loader2, Search } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useCanManageAllBatches } from '@/hooks/usePaymentModuleConfig';
+import { useEnabledCashierCurrencies, useCashierDenominations, EnabledCurrency, DenominationConfig } from '@/hooks/useCashierCurrencyConfig';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
-interface Denomination {
-  value: number;
-  count: number;
-  total: number;
-}
-
-interface CashCount {
-  currency: string;
-  denominations: Denomination[];
-  totalCash: number;
+interface BatchRow {
+  batch_number: string;
+  batch_status: string | null;
+  batch_date: string | null;
+  entered_by: string | null;
+  office_code: string | null;
+  offset_amount: number | null;
 }
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
-  
-  const [ecDenominations, setEcDenominations] = useState<Denomination[]>([
-    { value: 100, count: 0, total: 0 },
-    { value: 50, count: 0, total: 0 },
-    { value: 20, count: 0, total: 0 },
-    { value: 10, count: 0, total: 0 },
-    { value: 5, count: 0, total: 0 },
-    { value: 2, count: 0, total: 0 },
-    { value: 1, count: 0, total: 0 },
-    { value: 0.25, count: 0, total: 0 },
-    { value: 0.10, count: 0, total: 0 },
-    { value: 0.05, count: 0, total: 0 },
-    { value: 0.02, count: 0, total: 0 },
-    { value: 0.01, count: 0, total: 0 }
-  ]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const batchParam = searchParams.get('batch');
+  const { profile } = useSupabaseAuth();
+  const { canManageAllBatches } = useCanManageAllBatches();
 
-  const [usDenominations, setUsDenominations] = useState<Denomination[]>([
-    { value: 100, count: 0, total: 0 },
-    { value: 50, count: 0, total: 0 },
-    { value: 20, count: 0, total: 0 },
-    { value: 10, count: 0, total: 0 },
-    { value: 5, count: 0, total: 0 },
-    { value: 1, count: 0, total: 0 },
-    { value: 0.25, count: 0, total: 0 },
-    { value: 0.10, count: 0, total: 0 },
-    { value: 0.05, count: 0, total: 0 },
-    { value: 0.01, count: 0, total: 0 }
-  ]);
+  // ── Batch selection state ──
+  const [selectedBatch, setSelectedBatch] = useState<BatchRow | null>(null);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [batchSearchTerm, setBatchSearchTerm] = useState('');
+  const [batchLoading, setBatchLoading] = useState(false);
 
-  const [systemTotals] = useState({
-    ec: 8750.50,
-    us: 1250.00,
-    cardTotal: 2500.00,
-    checkTotal: 1800.00
+  // ── Denomination counts: { [currencyId]: { [denomId]: count } } ──
+  const [denomCounts, setDenomCounts] = useState<Record<string, Record<string, number>>>({});
+
+  // ── Load currencies & denominations from DB ──
+  const { data: enabledCurrencies, isLoading: currLoading } = useEnabledCashierCurrencies();
+  const currencyIds = useMemo(() => enabledCurrencies?.map(c => c.id) || [], [enabledCurrencies]);
+  const { data: allDenominations, isLoading: denomLoading } = useCashierDenominations(currencyIds);
+
+  // ── Fetch open batches for selection ──
+  const { data: openBatches, isLoading: batchesLoading } = useQuery({
+    queryKey: ['open-batches-for-cash', canManageAllBatches, profile?.user_code],
+    enabled: !batchParam,
+    queryFn: async () => {
+      let query = supabase
+        .from('cn_batch')
+        .select('batch_number, batch_status, batch_date, entered_by, office_code, offset_amount')
+        .eq('batch_status', 'O')
+        .order('batch_date', { ascending: false });
+
+      if (!canManageAllBatches && profile?.user_code) {
+        query = query.eq('entered_by', profile.user_code);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as BatchRow[];
+    },
   });
 
-  const [overShortReportOpen, setOverShortReportOpen] = useState(false);
-
-  const updateDenomination = (currency: 'EC' | 'US', index: number, count: string) => {
-    const countNum = parseInt(count) || 0;
-    
-    if (currency === 'EC') {
-      const updated = [...ecDenominations];
-      updated[index].count = countNum;
-      updated[index].total = countNum * updated[index].value;
-      setEcDenominations(updated);
-    } else {
-      const updated = [...usDenominations];
-      updated[index].count = countNum;
-      updated[index].total = countNum * updated[index].value;
-      setUsDenominations(updated);
+  // ── If batch param provided, load it directly ──
+  useEffect(() => {
+    if (batchParam && !selectedBatch) {
+      setBatchLoading(true);
+      supabase
+        .from('cn_batch')
+        .select('batch_number, batch_status, batch_date, entered_by, office_code, offset_amount')
+        .eq('batch_number', batchParam)
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) {
+            toast({ title: 'Error', description: 'Batch not found', variant: 'destructive' });
+            setBatchDialogOpen(true);
+          } else {
+            setSelectedBatch(data as BatchRow);
+          }
+          setBatchLoading(false);
+        });
     }
+  }, [batchParam]);
+
+  // ── Show dialog if no batch context ──
+  useEffect(() => {
+    if (!batchParam && !selectedBatch) {
+      setBatchDialogOpen(true);
+    }
+  }, [batchParam, selectedBatch]);
+
+  // ── Pick a batch ──
+  const handleSelectBatch = (batch: BatchRow) => {
+    setSelectedBatch(batch);
+    setBatchDialogOpen(false);
   };
 
-  const calculateCashTotal = (denominations: Denomination[]) => {
-    return denominations.reduce((sum, denom) => sum + denom.total, 0);
+  // ── Denomination helpers ──
+  const getDenominationsForCurrency = (currencyId: string): DenominationConfig[] => {
+    return (allDenominations || []).filter(d => d.currency_id === currencyId);
   };
 
-  const generateOverShortReport = () => {
-    const physicalEcTotal = calculateCashTotal(ecDenominations);
-    const physicalUsTotal = calculateCashTotal(usDenominations);
-    const totalPhysical = physicalEcTotal + physicalUsTotal + systemTotals.cardTotal + systemTotals.checkTotal;
-    const totalSystem = systemTotals.ec + systemTotals.us + systemTotals.cardTotal + systemTotals.checkTotal;
-    
-    return {
-      physicalEcTotal,
-      physicalUsTotal,
-      totalPhysical,
-      totalSystem,
-      ecVariance: physicalEcTotal - systemTotals.ec,
-      usVariance: physicalUsTotal - systemTotals.us,
-      totalVariance: totalPhysical - totalSystem
-    };
+  const getCount = (currencyId: string, denomId: string): number => {
+    return denomCounts[currencyId]?.[denomId] || 0;
+  };
+
+  const setCount = (currencyId: string, denomId: string, val: string) => {
+    const num = parseInt(val) || 0;
+    setDenomCounts(prev => ({
+      ...prev,
+      [currencyId]: { ...prev[currencyId], [denomId]: Math.max(0, num) },
+    }));
+  };
+
+  // ── Per-currency total ──
+  const getCurrencyTotal = (currencyId: string): number => {
+    const denoms = getDenominationsForCurrency(currencyId);
+    return denoms.reduce((sum, d) => sum + d.denomination_value * getCount(currencyId, d.id), 0);
+  };
+
+  // ── Main currency ──
+  const mainCurrency = useMemo(() => enabledCurrencies?.find(c => c.is_main_currency), [enabledCurrencies]);
+
+  // ── Physical count in main currency ──
+  const physicalCountInMain = useMemo(() => {
+    if (!enabledCurrencies || !mainCurrency) return 0;
+    return enabledCurrencies.reduce((total, c) => {
+      const currTotal = getCurrencyTotal(c.id);
+      if (c.is_main_currency) return total + currTotal;
+      // Convert: foreign * exchange_rate = main currency
+      return total + currTotal * c.exchange_rate;
+    }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledCurrencies, mainCurrency, denomCounts, allDenominations]);
+
+  const filteredBatches = useMemo(() => {
+    if (!openBatches) return [];
+    if (!batchSearchTerm) return openBatches;
+    const t = batchSearchTerm.toLowerCase();
+    return openBatches.filter(b =>
+      b.batch_number.toLowerCase().includes(t) ||
+      b.entered_by?.toLowerCase().includes(t) ||
+      b.office_code?.toLowerCase().includes(t)
+    );
+  }, [openBatches, batchSearchTerm]);
+
+  const getDenominationLabel = (d: DenominationConfig) => {
+    return d.label || (d.denomination_value >= 1 ? `$${d.denomination_value}` : `${(d.denomination_value * 100).toFixed(0)}¢`);
   };
 
   const saveCashCount = () => {
-    const report = generateOverShortReport();
-    
     toast({
-      title: "Cash Count Saved",
-      description: `Total variance: ${report.totalVariance >= 0 ? '+' : ''}$${Math.abs(report.totalVariance).toFixed(2)}`,
-      variant: report.totalVariance === 0 ? "default" : "destructive"
+      title: 'Cash Count Saved',
+      description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
     });
   };
 
-  const formatCurrency = (amount: number, currency: string = '') => {
-    return `${currency}${Math.abs(amount).toFixed(2)}`;
-  };
-
-  const getDenominationLabel = (value: number) => {
-    if (value >= 1) {
-      return `$${value}`;
-    } else {
-      return `${(value * 100).toFixed(0)}¢`;
-    }
-  };
-
-  const report = generateOverShortReport();
+  // ── Loading ──
+  if (batchLoading || currLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Cash Details Entry</h1>
-          <p className="text-muted-foreground">Enter physical cash count and generate over/short reports</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={saveCashCount}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Cash Count
-          </Button>
-          <Dialog open={overShortReportOpen} onOpenChange={setOverShortReportOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <FileText className="h-4 w-4 mr-2" />
-                Over/Short Report
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Over/Short Report</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        EC$ {formatCurrency(report.physicalEcTotal)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Physical EC$</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        US$ {formatCurrency(report.physicalUsTotal)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Physical US$</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className={`text-2xl font-bold ${report.totalVariance === 0 ? 'text-green-600' : report.totalVariance > 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                        {report.totalVariance >= 0 ? '+' : '-'}${formatCurrency(report.totalVariance)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Variance</div>
-                    </CardContent>
-                  </Card>
-                </div>
-
+      {/* ── Batch Selection Dialog ── */}
+      <Dialog open={batchDialogOpen} onOpenChange={(open) => { if (selectedBatch) setBatchDialogOpen(open); }}>
+        <DialogContent className="max-w-2xl" onInteractOutside={e => { if (!selectedBatch) e.preventDefault(); }}>
+          <DialogHeader>
+            <DialogTitle>Select Batch</DialogTitle>
+            <DialogDescription>
+              Select an open batch to enter cash details. {canManageAllBatches ? 'Showing all open batches.' : 'Showing your open batches.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by batch number, cashier, or office..."
+                value={batchSearchTerm}
+                onChange={e => setBatchSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {batchesLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : filteredBatches.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No open batches available.</p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto border rounded-md">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Currency</TableHead>
-                      <TableHead>System Total</TableHead>
-                      <TableHead>Physical Count</TableHead>
-                      <TableHead>Variance</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Batch Number</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Cashier</TableHead>
+                      <TableHead>Office</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell>EC$</TableCell>
-                      <TableCell>EC$ {formatCurrency(systemTotals.ec)}</TableCell>
-                      <TableCell>EC$ {formatCurrency(report.physicalEcTotal)}</TableCell>
-                      <TableCell>
-                        <span className={report.ecVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {report.ecVariance >= 0 ? '+' : ''}EC$ {formatCurrency(report.ecVariance)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={report.ecVariance === 0 ? "default" : report.ecVariance > 0 ? "secondary" : "destructive"}>
-                          {report.ecVariance === 0 ? 'Balanced' : report.ecVariance > 0 ? 'Over' : 'Short'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>US$</TableCell>
-                      <TableCell>US$ {formatCurrency(systemTotals.us)}</TableCell>
-                      <TableCell>US$ {formatCurrency(report.physicalUsTotal)}</TableCell>
-                      <TableCell>
-                        <span className={report.usVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {report.usVariance >= 0 ? '+' : ''}US$ {formatCurrency(report.usVariance)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={report.usVariance === 0 ? "default" : report.usVariance > 0 ? "secondary" : "destructive"}>
-                          {report.usVariance === 0 ? 'Balanced' : report.usVariance > 0 ? 'Over' : 'Short'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
+                    {filteredBatches.map(b => (
+                      <TableRow key={b.batch_number} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectBatch(b)}>
+                        <TableCell className="font-mono text-xs">{b.batch_number}</TableCell>
+                        <TableCell>{b.batch_date ? formatDisplayDate(b.batch_date) : '—'}</TableCell>
+                        <TableCell>{b.entered_by || '—'}</TableCell>
+                        <TableCell>{b.office_code || '—'}</TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline" onClick={() => handleSelectBatch(b)}>Select</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
-            </DialogContent>
-          </Dialog>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Main content (only when batch selected) ── */}
+      {selectedBatch ? (
+        <>
+          {/* Header */}
+          <div className="flex justify-between items-start flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Cash Details Entry</h1>
+              <p className="text-muted-foreground text-sm">Enter physical cash count for each currency denomination</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => { setSelectedBatch(null); setBatchDialogOpen(true); }}>
+                Change Batch
+              </Button>
+              <Button size="sm" onClick={saveCashCount}>
+                <Save className="h-4 w-4 mr-1" />
+                Save Cash Count
+              </Button>
+            </div>
+          </div>
+
+          {/* Batch info + Physical Count cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Batch Number</p>
+                <p className="font-mono text-sm font-semibold">{selectedBatch.batch_number}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Batch Date</p>
+                <p className="text-sm font-semibold">{selectedBatch.batch_date ? formatDisplayDate(selectedBatch.batch_date) : '—'}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Cashier / Office</p>
+                <p className="text-sm font-semibold">{selectedBatch.entered_by || '—'} • {selectedBatch.office_code || '—'}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground font-medium">Physical Count</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">
+                  {mainCurrency?.symbol || ''} {physicalCountInMain.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground">in {mainCurrency?.currency_code || 'main currency'}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Currency Tabs */}
+          {denomLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : enabledCurrencies && enabledCurrencies.length > 0 ? (
+            <Tabs defaultValue={enabledCurrencies[0]?.id} className="space-y-4">
+              <TabsList>
+                {enabledCurrencies.map(c => (
+                  <TabsTrigger key={c.id} value={c.id}>
+                    {c.symbol || c.currency_code} Cash Count
+                    {c.is_main_currency && <Badge variant="outline" className="ml-2 text-[10px] px-1">Main</Badge>}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {enabledCurrencies.map(currency => {
+                const denoms = getDenominationsForCurrency(currency.id);
+                const currencyTotal = getCurrencyTotal(currency.id);
+                const convertedTotal = currency.is_main_currency ? currencyTotal : currencyTotal * currency.exchange_rate;
+
+                return (
+                  <TabsContent key={currency.id} value={currency.id}>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">{currency.currency_code} — {currency.currency_name} Denomination Count</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {denoms.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-6">No denominations configured for {currency.currency_code}. Please configure in Payment Module Config.</p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {denoms.map(d => {
+                                const count = getCount(currency.id, d.id);
+                                const amount = d.denomination_value * count;
+                                return (
+                                  <div key={d.id} className="space-y-1">
+                                    <Label className="text-sm flex items-center gap-2">
+                                      {getDenominationLabel(d)}
+                                      <Badge variant="secondary" className="text-[10px] px-1">{d.denomination_type}</Badge>
+                                    </Label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        value={count || ''}
+                                        onChange={e => setCount(currency.id, d.id, e.target.value)}
+                                        placeholder="Count"
+                                        className="flex-1"
+                                      />
+                                      <div className="w-28 flex items-center justify-end bg-muted rounded px-2 text-sm font-medium">
+                                        {currency.symbol} {amount.toFixed(2)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-6 p-4 bg-muted rounded-lg space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Total {currency.currency_code}:</span>
+                                <span className="text-lg font-bold">{currency.symbol} {currencyTotal.toFixed(2)}</span>
+                              </div>
+                              {!currency.is_main_currency && mainCurrency && (
+                                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                  <span>Converted to {mainCurrency.currency_code} (rate: {currency.exchange_rate}):</span>
+                                  <span className="font-semibold">{mainCurrency.symbol} {convertedTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No currencies configured for cashier use. Please configure currencies in Payment Module Configuration.
+              </CardContent>
+            </Card>
+          )}
+        </>
+      ) : (
+        <div className="flex items-center justify-center p-12">
+          <p className="text-muted-foreground">Please select a batch to continue.</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <Calculator className="h-6 w-6 text-blue-600 mr-2" />
-              <span className="text-lg font-semibold">System Total</span>
-            </div>
-            <div className="text-2xl font-bold">
-              ${formatCurrency(systemTotals.ec + systemTotals.us)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <DollarSign className="h-6 w-6 text-green-600 mr-2" />
-              <span className="text-lg font-semibold">Physical Count</span>
-            </div>
-            <div className="text-2xl font-bold">
-              ${formatCurrency(calculateCashTotal(ecDenominations) + calculateCashTotal(usDenominations))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center mb-2">
-              {report.totalVariance >= 0 ? (
-                <TrendingUp className="h-6 w-6 text-green-600 mr-2" />
-              ) : (
-                <TrendingDown className="h-6 w-6 text-red-600 mr-2" />
-              )}
-              <span className="text-lg font-semibold">Variance</span>
-            </div>
-            <div className={`text-2xl font-bold ${report.totalVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {report.totalVariance >= 0 ? '+' : ''}${formatCurrency(report.totalVariance)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="ec" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="ec">EC$ Cash Count</TabsTrigger>
-          <TabsTrigger value="us">US$ Cash Count</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="ec" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>EC$ Denomination Count</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ecDenominations.map((denom, index) => (
-                  <div key={index} className="space-y-2">
-                    <Label>{getDenominationLabel(denom.value)}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        value={denom.count}
-                        onChange={(e) => updateDenomination('EC', index, e.target.value)}
-                        placeholder="Count"
-                        className="flex-1"
-                      />
-                      <div className="w-24 flex items-center justify-center bg-muted rounded px-2 text-sm">
-                        EC$ {denom.total.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Total EC$:</span>
-                  <span className="text-xl font-bold">EC$ {calculateCashTotal(ecDenominations).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-muted-foreground">System Total:</span>
-                  <span className="text-sm">EC$ {systemTotals.ec.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Variance:</span>
-                  <span className={`text-sm font-semibold ${report.ecVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {report.ecVariance >= 0 ? '+' : ''}EC$ {report.ecVariance.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="us" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>US$ Denomination Count</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {usDenominations.map((denom, index) => (
-                  <div key={index} className="space-y-2">
-                    <Label>{getDenominationLabel(denom.value)}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        value={denom.count}
-                        onChange={(e) => updateDenomination('US', index, e.target.value)}
-                        placeholder="Count"
-                        className="flex-1"
-                      />
-                      <div className="w-24 flex items-center justify-center bg-muted rounded px-2 text-sm">
-                        US$ {denom.total.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Total US$:</span>
-                  <span className="text-xl font-bold">US$ {calculateCashTotal(usDenominations).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-muted-foreground">System Total:</span>
-                  <span className="text-sm">US$ {systemTotals.us.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Variance:</span>
-                  <span className={`text-sm font-semibold ${report.usVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {report.usVariance >= 0 ? '+' : ''}US$ {report.usVariance.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="summary" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Complete Cash Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>System Total</TableHead>
-                    <TableHead>Physical Count</TableHead>
-                    <TableHead>Variance</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>EC$ Cash</TableCell>
-                    <TableCell>EC$ {systemTotals.ec.toFixed(2)}</TableCell>
-                    <TableCell>EC$ {report.physicalEcTotal.toFixed(2)}</TableCell>
-                    <TableCell className={report.ecVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {report.ecVariance >= 0 ? '+' : ''}EC$ {report.ecVariance.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>US$ Cash</TableCell>
-                    <TableCell>US$ {systemTotals.us.toFixed(2)}</TableCell>
-                    <TableCell>US$ {report.physicalUsTotal.toFixed(2)}</TableCell>
-                    <TableCell className={report.usVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {report.usVariance >= 0 ? '+' : ''}US$ {report.usVariance.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Card Payments</TableCell>
-                    <TableCell>$ {systemTotals.cardTotal.toFixed(2)}</TableCell>
-                    <TableCell>$ {systemTotals.cardTotal.toFixed(2)}</TableCell>
-                    <TableCell className="text-green-600">$0.00</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Check Payments</TableCell>
-                    <TableCell>$ {systemTotals.checkTotal.toFixed(2)}</TableCell>
-                    <TableCell>$ {systemTotals.checkTotal.toFixed(2)}</TableCell>
-                    <TableCell className="text-green-600">$0.00</TableCell>
-                  </TableRow>
-                  <TableRow className="font-semibold border-t-2">
-                    <TableCell>Total</TableCell>
-                    <TableCell>$ {(systemTotals.ec + systemTotals.us + systemTotals.cardTotal + systemTotals.checkTotal).toFixed(2)}</TableCell>
-                    <TableCell>$ {report.totalPhysical.toFixed(2)}</TableCell>
-                    <TableCell className={report.totalVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {report.totalVariance >= 0 ? '+' : ''}$ {report.totalVariance.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      )}
     </div>
   );
 };

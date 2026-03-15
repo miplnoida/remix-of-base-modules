@@ -3070,6 +3070,91 @@ export type Database = {
         }
         Relationships: []
       }
+      cashier_currency_config: {
+        Row: {
+          created_at: string
+          currency_id: string
+          id: string
+          is_enabled: boolean
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency_id: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency_id?: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashier_currency_config_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: true
+            referencedRelation: "tb_currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashier_currency_denominations: {
+        Row: {
+          created_at: string
+          currency_id: string
+          denomination_type: string
+          denomination_value: number
+          id: string
+          is_active: boolean
+          label: string | null
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency_id: string
+          denomination_type?: string
+          denomination_value: number
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency_id?: string
+          denomination_type?: string
+          denomination_value?: number
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashier_currency_denominations_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "tb_currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_arrangement_breaches: {
         Row: {
           arrangement_id: string | null
@@ -17480,6 +17565,51 @@ export type Database = {
           description?: string | null
           nationality?: string | null
           oecs?: number | null
+        }
+        Relationships: []
+      }
+      tb_currencies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          currency_name: string
+          exchange_rate: number
+          id: string
+          is_active: boolean
+          is_main_currency: boolean
+          sort_order: number | null
+          symbol: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency_code: string
+          currency_name: string
+          exchange_rate?: number
+          id?: string
+          is_active?: boolean
+          is_main_currency?: boolean
+          sort_order?: number | null
+          symbol?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          currency_name?: string
+          exchange_rate?: number
+          id?: string
+          is_active?: boolean
+          is_main_currency?: boolean
+          sort_order?: number | null
+          symbol?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
