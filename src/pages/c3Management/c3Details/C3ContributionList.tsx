@@ -304,8 +304,6 @@ const C3ContributionList: React.FC = () => {
         onClose={() => { setPreviewOpen(false); setPreviewData(null); }}
         data={previewData}
         loading={previewLoading}
-        companyName={selectedCompany?.company_name || ''}
-        registrationNumber={selectedCompany?.registration_number || ''}
       />
     </div>
   );

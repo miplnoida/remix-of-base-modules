@@ -248,8 +248,6 @@ const SelfEmployedContributionList: React.FC = () => {
         onClose={() => { setPreviewOpen(false); setPreviewData(null); }}
         data={previewData}
         loading={previewLoading}
-        seName={selectedSe?.name || ''}
-        seSsn={selectedSe?.social_security_number || ''}
       />
     </div>
   );
