@@ -57,15 +57,21 @@ export function useC3SyncStatus() {
       const lastPublishedAt = lastSync?.published_at || null;
 
       if (!lastPublishedAt) {
-        const [{ count: pCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }] = await Promise.all([
+        const [{ count: pCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
           supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }),
           supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }),
           supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
+          (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
         ]);
-        const total = (pCount || 0) + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0);
+        const total = (pCount || 0) + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0) + (ccCount || 0) + (icCount || 0) + (catCount || 0) + (seCount || 0) + (icpCount || 0) + (iceCount || 0);
         return {
           hasPendingChanges: total > 0,
           lastPublishedAt: null,
@@ -73,6 +79,9 @@ export function useC3SyncStatus() {
             periods: pCount || 0, slabs: sCount || 0,
             bonusPolicies: bpCount || 0, bonusExceptions: beCount || 0,
             holidayPolicies: hpCount || 0, holidayExceptions: heCount || 0,
+            calculationConfigs: ccCount || 0, incomeCodes: icCount || 0,
+            incomeCategories: catCount || 0, selfEmpRates: seCount || 0,
+            incomeCodePolicies: icpCount || 0, incomeCodeExceptions: iceCount || 0,
           }
         };
       }
