@@ -296,6 +296,12 @@ export function usePublishToC3Wizard() {
           bonus_exceptions_count: counts.bonusExceptions,
           holiday_policies_count: counts.holidayPolicies,
           holiday_exceptions_count: counts.holidayExceptions,
+          calculation_configs_count: counts.calculationConfigs,
+          income_codes_count: counts.incomeCodes,
+          income_categories_count: counts.incomeCategories,
+          self_emp_rates_count: counts.selfEmpRates,
+          income_code_policies_count: counts.incomeCodePolicies,
+          income_code_exceptions_count: counts.incomeCodeExceptions,
           published_by: userCode || null,
         })
         .select('id')
