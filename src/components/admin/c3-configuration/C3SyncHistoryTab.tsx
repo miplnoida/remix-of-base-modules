@@ -49,6 +49,12 @@ const TABLE_LABELS: Record<string, string> = {
   wiz_bonus_policy_exceptions: 'Bonus Policy Exceptions',
   wiz_holiday_pay_policy_defaults: 'Holiday Pay Policy Defaults',
   wiz_holiday_pay_policy_exceptions: 'Holiday Pay Policy Exceptions',
+  wiz_calculation_config: 'Calculation Config (Global Rules)',
+  wiz_income_codes: 'Income Codes',
+  wiz_income_cat: 'Income Categories',
+  wiz_self_emp_contrib_rate: 'Self-Employed Contribution Rates',
+  wiz_income_code_policy_default: 'Income Code Policy Defaults',
+  wiz_income_code_policy_exceptions: 'Income Code Policy Exceptions',
 };
 
 function formatDateTime(dateStr: string | null) {
