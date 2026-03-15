@@ -25,6 +25,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getActiveBanks } from '@/data/bankData';
 import { getActivePaymentHeads, type PaymentHead } from '@/data/c3PaymentHeads';
 import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
+import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
+import { useBatchSelection } from '@/hooks/useBatchSelection';
 
 interface PaymentSplit {
   id: string;
