@@ -274,7 +274,7 @@ function OpenBatchDialog({
 
   // Validation
   const notCashierError = !canManageAll && !isCashier;
-  const canCreate = !!selectedCashier && !!batchDate && !notCashierError;
+  const canCreate = !!selectedCashier && !notCashierError;
 
   const resetForm = () => {
     setSelectedCashierId('');
