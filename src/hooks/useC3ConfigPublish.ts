@@ -120,10 +120,9 @@ export function useC3SyncStatus() {
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
-      // For tables without last_published_at: compare modified_on against last publish timestamp
-      // tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate — check if any were modified after last publish
+      // For tables without last_published_at: compare modification timestamps against last publish
       const [{ count: icMod }, { count: catMod }, { count: seMod }] = await Promise.all([
-        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
         (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);

@@ -193,6 +193,10 @@ export function C3SyncHistoryTab() {
                     <TableCell className="text-center">{log.bonus_exceptions_count}</TableCell>
                     <TableCell className="text-center">{log.holiday_policies_count}</TableCell>
                     <TableCell className="text-center">{log.holiday_exceptions_count}</TableCell>
+                    <TableCell className="text-center">{(log as any).calculation_config_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).income_codes_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).se_contrib_rates_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).income_code_policies_count || 0}</TableCell>
                     <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                       {log.error_message || '—'}
                     </TableCell>
