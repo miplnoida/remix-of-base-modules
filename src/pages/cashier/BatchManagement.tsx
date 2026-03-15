@@ -18,7 +18,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { formatDateForDisplay } from '@/lib/dateFormat';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import {
   useCanManageAllBatches,
   useIsCashierRole,
