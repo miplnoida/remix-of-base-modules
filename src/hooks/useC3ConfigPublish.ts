@@ -391,7 +391,7 @@ export function usePublishToC3Wizard() {
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
       toast.success(
-        `Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs, ${result.counts.bonusPolicies} bonus policies, ${result.counts.bonusExceptions} bonus exceptions, ${result.counts.holidayPolicies} holiday policies, ${result.counts.holidayExceptions} holiday exceptions`
+        `Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs, ${result.counts.bonusPolicies} bonus policies, ${result.counts.bonusExceptions} bonus exceptions, ${result.counts.holidayPolicies} holiday policies, ${result.counts.holidayExceptions} holiday exceptions, ${result.counts.calculationConfigs} calc configs, ${result.counts.incomeCodes} income codes, ${result.counts.incomeCategories} income categories, ${result.counts.selfEmpRates} self-emp rates, ${result.counts.incomeCodePolicies} IC policies, ${result.counts.incomeCodeExceptions} IC exceptions`
       );
     },
     onError: (error: any) => {
