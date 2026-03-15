@@ -300,12 +300,12 @@ function OpenBatchDialog({
 
         if (dupErr) throw dupErr;
 
-        if (dupResult?.has_duplicate) {
-          const serverMode = dupResult.mode || 'warning';
+        if ((dupResult as any)?.has_duplicate) {
+          const serverMode = (dupResult as any).mode || 'warning';
           if (serverMode === 'restriction') {
             toast({
               title: 'Batch Already Exists',
-              description: `${dupResult.message}. Creation is blocked by configuration.`,
+              description: `${(dupResult as any).message}. Creation is blocked by configuration.`,
               variant: 'destructive',
             });
             setIsCreating(false);
@@ -313,7 +313,7 @@ function OpenBatchDialog({
           }
           // warning mode
           setDuplicateWarning(
-            `${dupResult.message}. Do you want to continue?`
+            `${(dupResult as any).message}. Do you want to continue?`
           );
           setIsCreating(false);
           return;
