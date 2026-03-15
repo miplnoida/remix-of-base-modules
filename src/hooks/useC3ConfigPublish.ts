@@ -1,6 +1,7 @@
 /**
  * Hook for C3 Configuration Publish to C3-Wizard
  * Handles payload building, publishing, sync log tracking, and pending change detection
+ * Sync Protocol v4.0 — includes all config tables
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -87,8 +88,6 @@ export function useC3SyncStatus() {
       }
 
       // Check for modifications since last publish
-      // Note: tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate don't have last_published_at
-      // so we always include them as pending when they have data
       const [
         { count: pMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
@@ -107,7 +106,7 @@ export function useC3SyncStatus() {
         (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
-      // Check for never-published records
+      // Check for never-published records (tables with last_published_at column)
       const [
         { count: pNew }, { count: sNew },
         { count: bpNew }, { count: beNew },
@@ -121,7 +120,7 @@ export function useC3SyncStatus() {
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
-      // For tables without last_published_at tracking, count all rows as always included
+      // For tables without last_published_at tracking, always count all rows
       const [{ count: icTotal }, { count: catTotal }, { count: seTotal }] = await Promise.all([
         (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
         (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
@@ -246,9 +245,55 @@ async function buildSyncPayload() {
     .order('year_from', { ascending: false });
   if (heErr) throw heErr;
 
+  // 7. Calculation Config (global rules — week_start_day, penalty thresholds, etc.)
+  const { data: calculationConfigs, error: ccErr } = await supabase
+    .from('c3_calculation_config')
+    .select('*')
+    .eq('is_active', true)
+    .order('category')
+    .order('display_order');
+  if (ccErr) throw ccErr;
+
+  // 8. Income Codes (master data)
+  const { data: incomeCodes, error: icErr } = await (supabase as any)
+    .from('tb_income_codes')
+    .select('*')
+    .order('code');
+  if (icErr) throw icErr;
+
+  // 9. Income Categories / Wage Categories (master data for self-employed)
+  const { data: incomeCategories, error: catErr } = await (supabase as any)
+    .from('tb_income_cat')
+    .select('*')
+    .order('wage_upper');
+  if (catErr) throw catErr;
+
+  // 10. Self-Employed Contribution Rates
+  const { data: selfEmpRates, error: seErr } = await (supabase as any)
+    .from('tb_self_emp_contrib_rate')
+    .select('*')
+    .order('effstart', { ascending: false });
+  if (seErr) throw seErr;
+
+  // 11. Income Code Policy Defaults
+  const { data: incomeCodePolicies, error: icpErr } = await (supabase as any)
+    .from('c3_income_code_policy_default')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (icpErr) throw icpErr;
+
+  // 12. Income Code Policy Exceptions
+  const { data: incomeCodeExceptions, error: iceErr } = await (supabase as any)
+    .from('c3_income_code_policy_exceptions')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (iceErr) throw iceErr;
+
   const syncTimestamp = new Date().toISOString();
   const payload = {
-    sync_version: '3.0',
+    sync_version: '4.0',
     sync_timestamp: syncTimestamp,
     config_periods: configPeriods,
     levy_slabs: levySlabs,
@@ -256,6 +301,12 @@ async function buildSyncPayload() {
     bonus_exceptions: bonusExceptions || [],
     holiday_policies: holidayPolicies || [],
     holiday_exceptions: holidayExceptions || [],
+    calculation_configs: calculationConfigs || [],
+    income_codes: incomeCodes || [],
+    income_categories: incomeCategories || [],
+    self_emp_contrib_rates: selfEmpRates || [],
+    income_code_policies: incomeCodePolicies || [],
+    income_code_exceptions: incomeCodeExceptions || [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
@@ -270,6 +321,12 @@ async function buildSyncPayload() {
       bonusExceptions: (bonusExceptions || []).length,
       holidayPolicies: (holidayPolicies || []).length,
       holidayExceptions: (holidayExceptions || []).length,
+      calculationConfigs: (calculationConfigs || []).length,
+      incomeCodes: (incomeCodes || []).length,
+      incomeCategories: (incomeCategories || []).length,
+      selfEmpRates: (selfEmpRates || []).length,
+      incomeCodePolicies: (incomeCodePolicies || []).length,
+      incomeCodeExceptions: (incomeCodeExceptions || []).length,
     }
   };
 }
@@ -366,6 +423,7 @@ export function usePublishToC3Wizard() {
             .eq('id', logEntry.id);
         }
 
+        // Mark all published tables as synced
         const now = new Date().toISOString();
         await Promise.all([
           supabase.from('c3_config_periods').update({ last_published_at: now }).eq('is_active', true),
@@ -374,6 +432,8 @@ export function usePublishToC3Wizard() {
           supabase.from('c3_bonus_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
+          // Note: c3_calculation_config, tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate
+          // don't have last_published_at columns — they are always fully synced on each publish
         ]);
 
         return { success: true, counts };
@@ -390,8 +450,9 @@ export function usePublishToC3Wizard() {
       queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      const c = result.counts;
       toast.success(
-        `Published to C3-Wizard: ${result.counts.periods} periods, ${result.counts.slabs} levy slabs, ${result.counts.bonusPolicies} bonus policies, ${result.counts.bonusExceptions} bonus exceptions, ${result.counts.holidayPolicies} holiday policies, ${result.counts.holidayExceptions} holiday exceptions, ${result.counts.calculationConfigs} calc configs, ${result.counts.incomeCodes} income codes, ${result.counts.incomeCategories} income categories, ${result.counts.selfEmpRates} self-emp rates, ${result.counts.incomeCodePolicies} IC policies, ${result.counts.incomeCodeExceptions} IC exceptions`
+        `Published to C3-Wizard (v4.0): ${c.periods} periods, ${c.slabs} levy slabs, ${c.bonusPolicies} bonus policies, ${c.bonusExceptions} bonus exceptions, ${c.holidayPolicies} holiday policies, ${c.holidayExceptions} holiday exceptions, ${c.calculationConfigs} calc configs, ${c.incomeCodes} income codes, ${c.incomeCategories} income categories, ${c.selfEmpRates} self-emp rates, ${c.incomeCodePolicies} IC policies, ${c.incomeCodeExceptions} IC exceptions`
       );
     },
     onError: (error: any) => {
