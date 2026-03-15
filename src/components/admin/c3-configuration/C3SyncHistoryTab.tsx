@@ -171,6 +171,10 @@ export function C3SyncHistoryTab() {
                   <TableHead className="text-center">Bonus Exc.</TableHead>
                   <TableHead className="text-center">Holiday Pol.</TableHead>
                   <TableHead className="text-center">Holiday Exc.</TableHead>
+                  <TableHead className="text-center">Calc Config</TableHead>
+                  <TableHead className="text-center">Income Codes</TableHead>
+                  <TableHead className="text-center">SE Rates</TableHead>
+                  <TableHead className="text-center">IC Pol.</TableHead>
                   <TableHead>Error</TableHead>
                   <TableHead className="text-center">Changes</TableHead>
                 </TableRow>
