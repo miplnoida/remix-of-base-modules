@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Eye, Loader2, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Eye, Loader2, AlertTriangle, Search, Lock, Coins } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -13,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { DatePicker } from '@/components/ui/date-picker';
+
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -46,6 +47,7 @@ const statusVariant = (s: string | null): 'default' | 'secondary' | 'outline' =>
 
 const BatchManagement: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { profile } = useSupabaseAuth();
   const queryClient = useQueryClient();
 
@@ -170,9 +172,31 @@ const BatchManagement: React.FC = () => {
                       {(b.offset_amount ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button size="sm" variant="ghost" onClick={() => setViewBatch(b)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => setViewBatch(b)} title="View Details">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {b.batch_status === 'O' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/cashier/cash-details?batch=${encodeURIComponent(b.batch_number)}`)}
+                              title="Enter Cash Detail"
+                            >
+                              <Coins className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/cashier/batch-closing?batch=${encodeURIComponent(b.batch_number)}`)}
+                              title="Close Batch"
+                            >
+                              <Lock className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -226,7 +250,8 @@ function OpenBatchDialog({
 }: OpenBatchDialogProps) {
   const { toast } = useToast();
   const [selectedCashierId, setSelectedCashierId] = useState<string>('');
-  const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
+  const batchDate = useMemo(() => new Date(), []);
+  const batchDateDisplay = format(batchDate, 'dd/MM/yyyy');
   const [openingBalance, setOpeningBalance] = useState<string>('0.00');
   const [isCreating, setIsCreating] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
@@ -249,46 +274,46 @@ function OpenBatchDialog({
 
   // Validation
   const notCashierError = !canManageAll && !isCashier;
-  const canCreate = !!selectedCashier && !!batchDate && !notCashierError;
+  const canCreate = !!selectedCashier && !notCashierError;
 
   const resetForm = () => {
     setSelectedCashierId('');
-    setBatchDate(new Date());
     setOpeningBalance('0.00');
     setDuplicateWarning(null);
   };
 
   const handleCreate = async (force = false) => {
-    if (!selectedCashier || !batchDate) return;
+    if (!selectedCashier) return;
     setIsCreating(true);
     setDuplicateWarning(null);
 
     try {
       const batchDateStr = format(batchDate, 'yyyy-MM-dd');
 
-      // Duplicate check
+      // Server-side duplicate check via DB function
       if (!force) {
-        const { data: existing } = await supabase
-          .from('cn_batch')
-          .select('batch_number')
-          .eq('entered_by', selectedCashier.user_code)
-          .eq('batch_status', 'O')
-          .gte('batch_date', batchDateStr + 'T00:00:00')
-          .lt('batch_date', batchDateStr + 'T23:59:59.999');
+        const { data: dupResult, error: dupErr } = await supabase
+          .rpc('check_duplicate_open_batch', {
+            p_cashier_user_code: selectedCashier.user_code,
+            p_batch_date: batchDateStr,
+          });
 
-        if (existing && existing.length > 0) {
-          if (duplicateMode === 'restriction') {
+        if (dupErr) throw dupErr;
+
+        if ((dupResult as any)?.has_duplicate) {
+          const serverMode = (dupResult as any).mode || 'warning';
+          if (serverMode === 'restriction') {
             toast({
               title: 'Batch Already Exists',
-              description: `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Creation is blocked by configuration.`,
+              description: `${(dupResult as any).message}. Creation is blocked by configuration.`,
               variant: 'destructive',
             });
             setIsCreating(false);
             return;
           }
-          // warning mode: show warning, user can proceed
+          // warning mode
           setDuplicateWarning(
-            `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Do you want to continue?`
+            `${(dupResult as any).message}. Do you want to continue?`
           );
           setIsCreating(false);
           return;
@@ -397,7 +422,7 @@ function OpenBatchDialog({
           {/* Batch Date */}
           <div className="space-y-1.5">
             <Label className="text-xs">Batch Date</Label>
-            <DatePicker date={batchDate} onDateChange={setBatchDate} />
+            <Input value={batchDateDisplay} disabled />
           </div>
 
           {/* Opening Balance */}
