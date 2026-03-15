@@ -259,37 +259,63 @@ export function C3SyncHistoryTab() {
             </DialogDescription>
           </DialogHeader>
 
-          {summaryLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : summaryError ? (
-            <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
-              <p className="font-medium">Unable to load change details</p>
-              <p className="text-sm mt-1">
-                {(summaryError as Error).message?.includes('permission denied')
-                  ? 'The C3-Wizard system has not yet granted access to the change history table. Please contact the C3-Wizard team to enable the "wiz_config_change_history" table permissions.'
-                  : (summaryError as Error).message}
-              </p>
-            </div>
-          ) : summary ? (
-            <div className="space-y-6">
-              {summary.total_changes === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="font-medium">No field-level changes detected</p>
-                  <p className="text-sm mt-1">All values were identical to the previous publish.</p>
+          {/* Always show record counts summary from the sync log */}
+          {selectedLog && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">Records Published (Full Sync)</h4>
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[
+                      { label: 'Period Configs', count: selectedLog.config_periods_count },
+                      { label: 'Levy Slabs', count: selectedLog.levy_slabs_count },
+                      { label: 'Bonus Policies', count: selectedLog.bonus_policies_count },
+                      { label: 'Bonus Exceptions', count: selectedLog.bonus_exceptions_count },
+                      { label: 'Holiday Pay Policies', count: selectedLog.holiday_policies_count },
+                      { label: 'Holiday Pay Exceptions', count: selectedLog.holiday_exceptions_count },
+                      { label: 'Calculation Configs', count: (selectedLog as any).calculation_config_count || 0 },
+                      { label: 'Income Codes', count: (selectedLog as any).income_codes_count || 0 },
+                      { label: 'Income Categories', count: (selectedLog as any).income_categories_count || 0 },
+                      { label: 'Self-Emp Rates', count: (selectedLog as any).se_contrib_rates_count || 0 },
+                      { label: 'IC Policy Defaults', count: (selectedLog as any).income_code_policies_count || 0 },
+                      { label: 'IC Policy Exceptions', count: (selectedLog as any).income_code_exceptions_count || 0 },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center justify-between bg-background rounded-md px-3 py-2 border">
+                        <span className="text-xs text-muted-foreground">{item.label}</span>
+                        <Badge variant={item.count > 0 ? 'default' : 'secondary'} className="ml-2">
+                          {item.count}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    <strong>{summary.total_changes}</strong> field{summary.total_changes !== 1 ? 's' : ''} changed across{' '}
-                    {Object.keys(summary.changes_by_table).length} table{Object.keys(summary.changes_by_table).length !== 1 ? 's' : ''}
+              </div>
+
+              {/* Field-level changes from Wizard (if available) */}
+              {summaryLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading field-level changes...</span>
+                </div>
+              ) : summaryError ? (
+                <div className="bg-muted/50 text-muted-foreground p-3 rounded-lg text-sm">
+                  <p>Field-level change tracking is not available for this publish.</p>
+                  <p className="text-xs mt-1">
+                    {(summaryError as Error).message?.includes('permission denied')
+                      ? 'The C3-Wizard team needs to grant access to the change history table.'
+                      : 'The C3-Wizard sync uses full-replace strategy for these tables.'}
                   </p>
+                </div>
+              ) : summary && summary.total_changes > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Field-Level Changes ({summary.total_changes} field{summary.total_changes !== 1 ? 's' : ''})
+                  </h4>
                   {Object.entries(summary.changes_by_table).map(([tableName, changes]) => (
                     <div key={tableName}>
-                      <h4 className="text-sm font-semibold text-foreground mb-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">
                         {TABLE_LABELS[tableName] || tableName}
-                      </h4>
+                      </p>
                       <div className="border rounded-lg overflow-hidden">
                         <Table>
                           <TableHeader>
@@ -328,10 +354,14 @@ export function C3SyncHistoryTab() {
                       </div>
                     </div>
                   ))}
-                </>
-              )}
+                </div>
+              ) : summary && summary.total_changes === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  No individual field-level value changes detected — all records were synced via full replace.
+                </p>
+              ) : null}
             </div>
-          ) : null}
+          )}
         </DialogContent>
       </Dialog>
     </>
