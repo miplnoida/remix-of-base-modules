@@ -87,10 +87,14 @@ export function useC3SyncStatus() {
       }
 
       // Check for modifications since last publish
+      // Note: tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate don't have last_published_at
+      // so we always include them as pending when they have data
       const [
         { count: pMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
         { count: hpMod }, { count: heMod },
+        { count: ccMod },
+        { count: icpMod }, { count: iceMod },
       ] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
@@ -98,6 +102,9 @@ export function useC3SyncStatus() {
         supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
+        (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
       // Check for never-published records
@@ -114,17 +121,30 @@ export function useC3SyncStatus() {
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
+      // For tables without last_published_at tracking, count all rows as always included
+      const [{ count: icTotal }, { count: catTotal }, { count: seTotal }] = await Promise.all([
+        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
+      ]);
+
       const periods = (pMod || 0) + (pNew || 0);
       const slabs = (sMod || 0) + (sNew || 0);
       const bonusPolicies = (bpMod || 0) + (bpNew || 0);
       const bonusExceptions = (beMod || 0) + (beNew || 0);
       const holidayPolicies = (hpMod || 0) + (hpNew || 0);
       const holidayExceptions = (heMod || 0) + (heNew || 0);
+      const calculationConfigs = ccMod || 0;
+      const incomeCodes = icTotal || 0;
+      const incomeCategories = catTotal || 0;
+      const selfEmpRates = seTotal || 0;
+      const incomeCodePolicies = icpMod || 0;
+      const incomeCodeExceptions = iceMod || 0;
 
       return {
-        hasPendingChanges: periods + slabs + bonusPolicies + bonusExceptions + holidayPolicies + holidayExceptions > 0,
+        hasPendingChanges: periods + slabs + bonusPolicies + bonusExceptions + holidayPolicies + holidayExceptions + calculationConfigs + incomeCodes + incomeCategories + selfEmpRates + incomeCodePolicies + incomeCodeExceptions > 0,
         lastPublishedAt,
-        pendingCounts: { periods, slabs, bonusPolicies, bonusExceptions, holidayPolicies, holidayExceptions }
+        pendingCounts: { periods, slabs, bonusPolicies, bonusExceptions, holidayPolicies, holidayExceptions, calculationConfigs, incomeCodes, incomeCategories, selfEmpRates, incomeCodePolicies, incomeCodeExceptions }
       };
     },
     refetchInterval: 30000,
