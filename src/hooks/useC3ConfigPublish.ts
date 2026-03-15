@@ -33,6 +33,12 @@ export interface SyncPendingCounts {
   bonusExceptions: number;
   holidayPolicies: number;
   holidayExceptions: number;
+  calculationConfigs: number;
+  incomeCodes: number;
+  incomeCategories: number;
+  selfEmpRates: number;
+  incomeCodePolicies: number;
+  incomeCodeExceptions: number;
 }
 
 // Check if any config has been modified since last publish
