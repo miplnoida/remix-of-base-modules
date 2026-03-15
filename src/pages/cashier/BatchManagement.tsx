@@ -280,7 +280,7 @@ function OpenBatchDialog({
           if (duplicateMode === 'restriction') {
             toast({
               title: 'Batch Already Exists',
-              description: `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDateForDisplay(batchDateStr)}. Creation is blocked by configuration.`,
+              description: `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDisplayDate(batchDateStr)}. Creation is blocked by configuration.`,
               variant: 'destructive',
             });
             setIsCreating(false);
