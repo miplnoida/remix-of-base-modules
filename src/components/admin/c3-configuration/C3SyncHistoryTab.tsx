@@ -356,9 +356,11 @@ export function C3SyncHistoryTab() {
                   ))}
                 </div>
               ) : summary && summary.total_changes === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  No individual field-level value changes detected — all records were synced via full replace.
-                </p>
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="font-medium">No field-level changes detected</p>
+                  <p className="text-sm mt-1">All values were identical to the previous publish, or the C3-Wizard has not yet implemented field-level change tracking for the new tables.</p>
+                  <p className="text-xs mt-2 italic">Please share the guide <strong>docs/C3_WIZARD_FIELD_LEVEL_CHANGE_TRACKING.md</strong> with the C3-Wizard team to enable this feature.</p>
+                </div>
               ) : null}
             </div>
           )}
