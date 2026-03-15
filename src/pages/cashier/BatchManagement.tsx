@@ -1,265 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Calculator, Lock, Receipt, AlertTriangle, Plus, User, CheckCircle, Clock } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
-import { Separator } from "@/components/ui/separator";
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Eye, Loader2, AlertTriangle, Search } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DatePicker } from '@/components/ui/date-picker';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { formatDateForDisplay } from '@/lib/dateFormat';
+import {
+  useCanManageAllBatches,
+  useIsCashierRole,
+  useCashierUsers,
+  useDuplicateBatchMode,
+  CashierUser,
+} from '@/hooks/usePaymentModuleConfig';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
-interface Denomination {
-  value: number;
-  count: number;
-  total: number;
-}
+// ── Status helpers ──
+const statusLabel = (s: string | null) => {
+  if (s === 'O') return 'Open';
+  if (s === 'V') return 'Verified';
+  if (s === 'P') return 'Posted';
+  return s || '—';
+};
 
-interface BatchSummary {
-  id: string;
-  cashierId: string;
-  cashierName: string;
-  date: Date;
-  status: 'open' | 'balanced' | 'closed';
-  systemTotal: number;
-  physicalTotal: number;
-  variance: number;
-  ecTotal: number;
-  usTotal: number;
-  transactionCount: number;
-}
+const statusVariant = (s: string | null): 'default' | 'secondary' | 'outline' => {
+  if (s === 'O') return 'default';
+  if (s === 'V') return 'secondary';
+  return 'outline';
+};
 
 const BatchManagement: React.FC = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [activeBatch, setActiveBatch] = useState<BatchSummary | null>(null);
-  const [createBatchOpen, setCreateBatchOpen] = useState(false);
-  
-  const [ecDenominations, setEcDenominations] = useState<Denomination[]>([
-    { value: 100, count: 0, total: 0 },
-    { value: 50, count: 0, total: 0 },
-    { value: 20, count: 0, total: 0 },
-    { value: 10, count: 0, total: 0 },
-    { value: 5, count: 0, total: 0 },
-    { value: 2, count: 0, total: 0 },
-    { value: 1, count: 0, total: 0 },
-    { value: 0.25, count: 0, total: 0 },
-    { value: 0.10, count: 0, total: 0 },
-    { value: 0.05, count: 0, total: 0 },
-    { value: 0.02, count: 0, total: 0 },
-    { value: 0.01, count: 0, total: 0 }
-  ]);
+  const { profile } = useSupabaseAuth();
+  const queryClient = useQueryClient();
 
-  const [usDenominations, setUsDenominations] = useState<Denomination[]>([
-    { value: 100, count: 0, total: 0 },
-    { value: 50, count: 0, total: 0 },
-    { value: 20, count: 0, total: 0 },
-    { value: 10, count: 0, total: 0 },
-    { value: 5, count: 0, total: 0 },
-    { value: 1, count: 0, total: 0 },
-    { value: 0.25, count: 0, total: 0 },
-    { value: 0.10, count: 0, total: 0 },
-    { value: 0.05, count: 0, total: 0 },
-    { value: 0.01, count: 0, total: 0 }
-  ]);
+  const { canManageAllBatches, isLoading: permLoading } = useCanManageAllBatches();
+  const { isCashier, isLoading: cashierRoleLoading } = useIsCashierRole();
+  const { data: cashierUsers, isLoading: cashierUsersLoading } = useCashierUsers();
+  const { mode: duplicateMode } = useDuplicateBatchMode();
 
-  const [cardTotal, setCardTotal] = useState('');
-  const [checkTotal, setCheckTotal] = useState('');
-  const [balancingOpen, setBalancingOpen] = useState(false);
-  
-  useEffect(() => {
-    // Check if user has an active batch on component mount
-    const checkActiveBatch = () => {
-      // In a real application, this would be an API call
-      // For demo purposes, let's create a sample batch for cashiers
-      if (user && (user.permissions?.includes('cashier_operations') || user.permissions?.includes('cashier_supervisor'))) {
-        const today = new Date();
-        const batchId = `BATCH-${user.email?.split('@')[0]?.toUpperCase() || 'USER'}-${today.toISOString().slice(0, 10).replace(/-/g, '')}`;
-        
-        const sampleBatch: BatchSummary = {
-          id: batchId,
-          cashierId: user.email?.split('@')[0] || "unknown",
-          cashierName: user.name || "Unknown User",
-          date: today,
-          status: "open",
-          systemTotal: 12750.50,
-          physicalTotal: 0,
-          variance: 0,
-          ecTotal: 11200.50,
-          usTotal: 1550.00,
-          transactionCount: 25
-        };
-        setActiveBatch(sampleBatch);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [viewBatch, setViewBatch] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // ── Batch list query ──
+  const { data: batches, isLoading: batchesLoading } = useQuery({
+    queryKey: ['cn-batches', canManageAllBatches, profile?.user_code],
+    enabled: !permLoading && !!profile,
+    queryFn: async () => {
+      let query = supabase
+        .from('cn_batch')
+        .select('*')
+        .order('date_entered', { ascending: false });
+
+      if (!canManageAllBatches && profile?.user_code) {
+        query = query.eq('entered_by', profile.user_code);
       }
-    };
-    
-    checkActiveBatch();
-  }, [user]);
 
-  const createNewBatch = () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "User information not available.",
-        variant: "destructive"
-      });
-      return;
-    }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-    const today = new Date();
-    const batchId = `BATCH-${user.email?.split('@')[0]?.toUpperCase() || 'USER'}-${today.toISOString().slice(0, 10).replace(/-/g, '')}`;
-    
-    const newBatch: BatchSummary = {
-      id: batchId,
-      cashierId: user.email?.split('@')[0] || "unknown",
-      cashierName: user.name || "Unknown User",
-      date: today,
-      status: "open",
-      systemTotal: 0,
-      physicalTotal: 0,
-      variance: 0,
-      ecTotal: 0,
-      usTotal: 0,
-      transactionCount: 0
-    };
+  // Filter batches by search
+  const filteredBatches = useMemo(() => {
+    if (!batches) return [];
+    if (!searchTerm) return batches;
+    const lower = searchTerm.toLowerCase();
+    return batches.filter(b =>
+      b.batch_number?.toLowerCase().includes(lower) ||
+      b.entered_by?.toLowerCase().includes(lower) ||
+      b.office_code?.toLowerCase().includes(lower)
+    );
+  }, [batches, searchTerm]);
 
-    setActiveBatch(newBatch);
-    setCreateBatchOpen(false);
-    
-    toast({
-      title: "Batch Created",
-      description: `Batch ${batchId} has been created and is now active.`,
-    });
-  };
+  const isPageLoading = permLoading || cashierRoleLoading || batchesLoading;
 
-  const updateDenomination = (currency: 'EC' | 'US', index: number, count: string) => {
-    const countNum = parseInt(count) || 0;
-    
-    if (currency === 'EC') {
-      const updated = [...ecDenominations];
-      updated[index].count = countNum;
-      updated[index].total = countNum * updated[index].value;
-      setEcDenominations(updated);
-    } else {
-      const updated = [...usDenominations];
-      updated[index].count = countNum;
-      updated[index].total = countNum * updated[index].value;
-      setUsDenominations(updated);
-    }
-  };
-
-  const calculateCashTotal = (denominations: Denomination[]) => {
-    return denominations.reduce((sum, denom) => sum + denom.total, 0);
-  };
-
-  const performBalancing = () => {
-    const ecCashTotal = calculateCashTotal(ecDenominations);
-    const usCashTotal = calculateCashTotal(usDenominations);
-    const totalPhysical = ecCashTotal + usCashTotal + parseFloat(cardTotal || '0') + parseFloat(checkTotal || '0');
-    const variance = totalPhysical - (activeBatch?.systemTotal || 0);
-
-    if (Math.abs(variance) < 0.01) {
-      toast({
-        title: "Batch Balanced Successfully",
-        description: "Physical count matches system total. Batch ready for closure.",
-      });
-    } else {
-      toast({
-        title: "Variance Detected",
-        description: `Variance: $${variance.toFixed(2)}. Please verify counts or contact supervisor.`,
-        variant: "destructive"
-      });
-    }
-    setBalancingOpen(false);
-  };
-
-  const formatCurrency = (amount: number, currency: string = '$') => {
-    return `${currency}${Math.abs(amount).toFixed(2)}`;
-  };
-
-  const getDenominationLabel = (value: number) => {
-    if (value >= 1) {
-      return `$${value}`;
-    } else {
-      return `${(value * 100).toFixed(0)}¢`;
-    }
-  };
-
-  // Sample payment mode data
-  const paymentModeData = [
-    { mode: 'Cash', count: 15, ecAmount: 8750.50, usAmount: 950.00 },
-    { mode: 'Check', count: 8, ecAmount: 2100.00, usAmount: 600.00 },
-    { mode: 'Card', count: 2, ecAmount: 350.00, usAmount: 0.00 }
-  ];
-
-  // Sample check register data
-  const checkRegister = [
-    { checkNo: '001234', bank: 'RBC', amount: 500.00, currency: 'XCD', status: 'cleared' },
-    { checkNo: '005678', bank: 'FCB', amount: 800.00, currency: 'XCD', status: 'pending' },
-    { checkNo: '009876', bank: 'BON', amount: 600.00, currency: 'US$', status: 'cleared' }
-  ];
-
-  if (!activeBatch) {
+  if (isPageLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            No active batch found. You must create a batch before processing any payments.
-          </AlertDescription>
-        </Alert>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Batch Management - No Active Batch
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Active Batch</h3>
-              <p className="text-muted-foreground mb-6">
-                You need to create a batch before you can start processing payments.
-              </p>
-              <Dialog open={createBatchOpen} onOpenChange={setCreateBatchOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Batch
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Batch</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="bg-muted p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">Batch Details</h4>
-                      <div className="space-y-1 text-sm">
-                        <div>Cashier: {user?.name || "Unknown"}</div>
-                        <div>Date: {new Date().toLocaleDateString()}</div>
-                        <div>Time: {new Date().toLocaleTimeString()}</div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={createNewBatch} className="flex-1">
-                        Create Batch
-                      </Button>
-                      <Button variant="outline" onClick={() => setCreateBatchOpen(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -269,295 +105,391 @@ const BatchManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Batch Management</h1>
-          <p className="text-muted-foreground">End-of-day balancing and reconciliation</p>
+          <p className="text-sm text-muted-foreground">
+            {canManageAllBatches ? 'Viewing all batches' : 'Viewing your batches'}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Receipt className="h-4 w-4 mr-2" />
-            Print Reports
-          </Button>
-          <Dialog open={balancingOpen} onOpenChange={setBalancingOpen}>
-            <DialogTrigger asChild>
-              <Button disabled={!activeBatch || activeBatch.status === 'closed'}>
-                <Calculator className="h-4 w-4 mr-2" />
-                Start Balancing
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Day-End Balancing - {activeBatch.id}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* EC$ Denominations */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>EC$ Cash Count</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {ecDenominations.map((denom, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">
-                              {getDenominationLabel(denom.value)}:
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                className="w-20 text-center"
-                                value={denom.count || ''}
-                                onChange={(e) => updateDenomination('EC', index, e.target.value)}
-                              />
-                              <span className="text-sm text-muted-foreground w-20 text-right">
-                                EC$ {denom.total.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        <Separator />
-                        <div className="flex justify-between font-semibold">
-                          <span>EC$ Cash Total:</span>
-                          <span>EC$ {calculateCashTotal(ecDenominations).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* US$ Denominations */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>US$ Cash Count</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {usDenominations.map((denom, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">
-                              {getDenominationLabel(denom.value)}:
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                className="w-20 text-center"
-                                value={denom.count || ''}
-                                onChange={(e) => updateDenomination('US', index, e.target.value)}
-                              />
-                              <span className="text-sm text-muted-foreground w-20 text-right">
-                                US$ {denom.total.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        <Separator />
-                        <div className="flex justify-between font-semibold">
-                          <span>US$ Cash Total:</span>
-                          <span>US$ {calculateCashTotal(usDenominations).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Card and Check Totals */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="cardTotal">Total Card Payments</Label>
-                    <Input
-                      id="cardTotal"
-                      type="number"
-                      step="0.01"
-                      value={cardTotal}
-                      onChange={(e) => setCardTotal(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="checkTotal">Total Check Payments</Label>
-                    <Input
-                      id="checkTotal"
-                      type="number"
-                      step="0.01"
-                      value={checkTotal}
-                      onChange={(e) => setCheckTotal(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                {/* Variance Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Balancing Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm text-muted-foreground">System Total</Label>
-                        <div className="text-xl font-bold">${activeBatch.systemTotal.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Physical Count</Label>
-                        <div className="text-xl font-bold">
-                          ${(calculateCashTotal(ecDenominations) + calculateCashTotal(usDenominations) + 
-                            parseFloat(cardTotal || '0') + parseFloat(checkTotal || '0')).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setBalancingOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={performBalancing}>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Balance Batch
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Open New Batch
+        </Button>
       </div>
 
-      {/* Active Batch Overview */}
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search batch number, cashier, office..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Batch Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Active Batch Overview</span>
-            <div className="flex items-center gap-2">
-              <Badge variant={activeBatch.status === 'open' ? 'default' : 'secondary'}>
-                {activeBatch.status === 'open' ? (
-                  <Clock className="h-4 w-4 mr-1" />
-                ) : (
-                  <Lock className="h-4 w-4 mr-1" />
-                )}
-                {activeBatch.status.toUpperCase()}
-              </Badge>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Batch ID</Label>
-              <p className="font-mono text-lg">{activeBatch.id}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Date</Label>
-              <p className="text-lg">{activeBatch.date.toLocaleDateString()}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Cashier</Label>
-              <p className="text-lg">{activeBatch.cashierName}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Transactions</Label>
-              <p className="text-lg font-semibold">{activeBatch.transactionCount}</p>
-            </div>
-          </div>
-
-          <Separator className="my-6" />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <Label className="text-lg font-semibold mb-3 block">System Total</Label>
-              <div className="text-2xl font-bold text-blue-600">
-                ${activeBatch.systemTotal.toFixed(2)}
-              </div>
-            </div>
-            <div className="text-center">
-              <Label className="text-lg font-semibold mb-3 block">EC$ Collections</Label>
-              <div className="text-xl font-semibold">
-                EC$ {activeBatch.ecTotal.toFixed(2)}
-              </div>
-            </div>
-            <div className="text-center">
-              <Label className="text-lg font-semibold mb-3 block">US$ Collections</Label>
-              <div className="text-xl font-semibold">
-                US$ {activeBatch.usTotal.toFixed(2)}
-              </div>
-            </div>
-          </div>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Batch Number</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Cashier</TableHead>
+                <TableHead>Office</TableHead>
+                <TableHead>Batch Date</TableHead>
+                <TableHead>Date Entered</TableHead>
+                <TableHead className="text-right">Balance Forward</TableHead>
+                <TableHead className="text-right">Opening Balance</TableHead>
+                <TableHead className="text-center">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBatches.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No batches found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredBatches.map(b => (
+                  <TableRow key={b.batch_number}>
+                    <TableCell className="font-mono text-xs">{b.batch_number}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(b.batch_status)}>
+                        {statusLabel(b.batch_status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{b.entered_by || '—'}</TableCell>
+                    <TableCell>{b.office_code || '—'}</TableCell>
+                    <TableCell>{b.batch_date ? formatDateForDisplay(b.batch_date) : '—'}</TableCell>
+                    <TableCell>{b.date_entered ? formatDateForDisplay(b.date_entered) : '—'}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {(b.balance_forward ?? 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {(b.offset_amount ?? 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button size="sm" variant="ghost" onClick={() => setViewBatch(b)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      {/* Payment Mode Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Mode Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Count</TableHead>
-                  <TableHead>EC$ Amount</TableHead>
-                  <TableHead>US$ Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paymentModeData.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.mode}</TableCell>
-                    <TableCell>{item.count}</TableCell>
-                    <TableCell>EC$ {item.ecAmount.toFixed(2)}</TableCell>
-                    <TableCell>US$ {item.usAmount.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      {/* Open New Batch Dialog */}
+      <OpenBatchDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        canManageAll={canManageAllBatches}
+        isCashier={isCashier}
+        cashierUsers={cashierUsers || []}
+        cashierUsersLoading={cashierUsersLoading}
+        profile={profile}
+        duplicateMode={duplicateMode}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['cn-batches'] });
+          setCreateOpen(false);
+        }}
+      />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Check Register</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Check No.</TableHead>
-                  <TableHead>Bank</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {checkRegister.map((check, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-mono">{check.checkNo}</TableCell>
-                    <TableCell>{check.bank}</TableCell>
-                    <TableCell>{check.currency} {check.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant={check.status === 'cleared' ? 'default' : 'secondary'}>
-                        {check.status === 'cleared' ? (
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                        ) : (
-                          <Clock className="h-3 w-3 mr-1" />
-                        )}
-                        {check.status.charAt(0).toUpperCase() + check.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+      {/* View Batch Dialog */}
+      <ViewBatchDialog batch={viewBatch} onClose={() => setViewBatch(null)} />
     </div>
   );
 };
+
+// ═══════════════════════════════════════════════════
+// Open Batch Dialog
+// ═══════════════════════════════════════════════════
+
+interface OpenBatchDialogProps {
+  open: boolean;
+  onClose: () => void;
+  canManageAll: boolean;
+  isCashier: boolean;
+  cashierUsers: CashierUser[];
+  cashierUsersLoading: boolean;
+  profile: any;
+  duplicateMode: 'warning' | 'restriction';
+  onCreated: () => void;
+}
+
+function OpenBatchDialog({
+  open, onClose, canManageAll, isCashier, cashierUsers, cashierUsersLoading,
+  profile, duplicateMode, onCreated,
+}: OpenBatchDialogProps) {
+  const { toast } = useToast();
+  const [selectedCashierId, setSelectedCashierId] = useState<string>('');
+  const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
+  const [openingBalance, setOpeningBalance] = useState<string>('0.00');
+  const [isCreating, setIsCreating] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
+  // Determine current user's cashier record
+  const currentUserCashier = useMemo(
+    () => cashierUsers.find(u => u.id === profile?.id),
+    [cashierUsers, profile?.id]
+  );
+
+  // Auto-select for non-admin users who are cashiers
+  const effectiveCashierId = canManageAll
+    ? selectedCashierId
+    : (currentUserCashier ? currentUserCashier.id : '');
+
+  const selectedCashier = useMemo(
+    () => cashierUsers.find(u => u.id === effectiveCashierId),
+    [cashierUsers, effectiveCashierId]
+  );
+
+  // Validation
+  const notCashierError = !canManageAll && !isCashier;
+  const canCreate = !!selectedCashier && !!batchDate && !notCashierError;
+
+  const resetForm = () => {
+    setSelectedCashierId('');
+    setBatchDate(new Date());
+    setOpeningBalance('0.00');
+    setDuplicateWarning(null);
+  };
+
+  const handleCreate = async (force = false) => {
+    if (!selectedCashier || !batchDate) return;
+    setIsCreating(true);
+    setDuplicateWarning(null);
+
+    try {
+      const batchDateStr = format(batchDate, 'yyyy-MM-dd');
+
+      // Duplicate check
+      if (!force) {
+        const { data: existing } = await supabase
+          .from('cn_batch')
+          .select('batch_number')
+          .eq('entered_by', selectedCashier.user_code)
+          .eq('batch_status', 'O')
+          .gte('batch_date', batchDateStr + 'T00:00:00')
+          .lt('batch_date', batchDateStr + 'T23:59:59.999');
+
+        if (existing && existing.length > 0) {
+          if (duplicateMode === 'restriction') {
+            toast({
+              title: 'Batch Already Exists',
+              description: `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDateForDisplay(batchDateStr)}. Creation is blocked by configuration.`,
+              variant: 'destructive',
+            });
+            setIsCreating(false);
+            return;
+          }
+          // warning mode: show warning, user can proceed
+          setDuplicateWarning(
+            `An open batch already exists for cashier ${selectedCashier.user_code} on ${formatDateForDisplay(batchDateStr)}. Do you want to continue?`
+          );
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      // Get balance forward from last batch
+      const { data: lastBatch } = await supabase
+        .from('cn_batch')
+        .select('balance_forward, offset_amount')
+        .order('date_entered', { ascending: false })
+        .limit(1);
+      const balanceForward = lastBatch && lastBatch.length > 0
+        ? (lastBatch[0].balance_forward || 0) + (lastBatch[0].offset_amount || 0)
+        : 0;
+
+      const now = new Date();
+      const officeCode = selectedCashier.office_code || 'HQ';
+      const batchNumber = `${officeCode}-${format(now, 'yyyyMMdd')}-${format(now, 'HHmmss')}`;
+
+      const { error } = await supabase.from('cn_batch').insert({
+        batch_number: batchNumber,
+        batch_status: 'O',
+        balance_status: 'N',
+        entered_by: selectedCashier.user_code,
+        date_entered: now.toISOString(),
+        offset_amount: parseFloat(openingBalance) || 0,
+        balance_forward: balanceForward,
+        office_code: officeCode,
+        batch_date: batchDate.toISOString(),
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Batch Created',
+        description: `Batch ${batchNumber} created successfully.`,
+      });
+      resetForm();
+      onCreated();
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) { resetForm(); onClose(); } }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Open New Batch</DialogTitle>
+          <DialogDescription>
+            Create a new payment batch for a cashier.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Not-a-cashier error */}
+          {notCashierError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Your role is not configured as a cashier. You are not eligible to create batches. Please contact an administrator.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Cashier selection */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cashier</Label>
+            {canManageAll ? (
+              <Select value={selectedCashierId} onValueChange={setSelectedCashierId} disabled={cashierUsersLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={cashierUsersLoading ? 'Loading...' : 'Select a cashier'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(cashierUsers || []).map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name || u.user_code} ({u.user_code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={currentUserCashier ? `${currentUserCashier.full_name} (${currentUserCashier.user_code})` : profile?.full_name || '—'}
+                disabled
+              />
+            )}
+          </div>
+
+          {/* Office Location */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Office Location</Label>
+            <Input
+              value={selectedCashier?.office_description || selectedCashier?.office_code || '—'}
+              disabled
+            />
+          </div>
+
+          {/* Batch Date */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Batch Date</Label>
+            <DatePicker date={batchDate} onDateChange={setBatchDate} />
+          </div>
+
+          {/* Opening Balance */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Opening Balance</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={openingBalance}
+              onChange={e => setOpeningBalance(e.target.value)}
+              disabled={notCashierError}
+            />
+          </div>
+
+          {/* Duplicate warning */}
+          {duplicateWarning && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="space-y-2">
+                <p className="text-sm">{duplicateWarning}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" onClick={() => handleCreate(true)} disabled={isCreating}>
+                    {isCreating && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                    Yes, Create Anyway
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setDuplicateWarning(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { resetForm(); onClose(); }} disabled={isCreating}>
+            Cancel
+          </Button>
+          <Button onClick={() => handleCreate(false)} disabled={!canCreate || isCreating || !!duplicateWarning}>
+            {isCreating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            Create Batch
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// View Batch Dialog
+// ═══════════════════════════════════════════════════
+
+function ViewBatchDialog({ batch, onClose }: { batch: any; onClose: () => void }) {
+  if (!batch) return null;
+
+  const fields = [
+    { label: 'Batch Number', value: batch.batch_number },
+    { label: 'Status', value: statusLabel(batch.batch_status) },
+    { label: 'Balance Status', value: batch.balance_status || '—' },
+    { label: 'Cashier (Entered By)', value: batch.entered_by || '—' },
+    { label: 'Office Code', value: batch.office_code || '—' },
+    { label: 'Batch Date', value: batch.batch_date ? formatDateForDisplay(batch.batch_date) : '—' },
+    { label: 'Date Entered', value: batch.date_entered ? formatDateForDisplay(batch.date_entered) : '—' },
+    { label: 'Balance Forward', value: (batch.balance_forward ?? 0).toFixed(2) },
+    { label: 'Opening Balance (Offset)', value: (batch.offset_amount ?? 0).toFixed(2) },
+    { label: 'Verified By', value: batch.verified_by || '—' },
+    { label: 'Date Verified', value: batch.date_verified ? formatDateForDisplay(batch.date_verified) : '—' },
+    { label: 'Posted By', value: batch.posted_by || '—' },
+    { label: 'Date Posted', value: batch.date_posted ? formatDateForDisplay(batch.date_posted) : '—' },
+  ];
+
+  return (
+    <Dialog open={!!batch} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Batch Details</DialogTitle>
+          <DialogDescription>Read-only view of batch {batch.batch_number}</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 py-2">
+          {fields.map(f => (
+            <div key={f.label}>
+              <Label className="text-xs text-muted-foreground">{f.label}</Label>
+              <p className="text-sm font-medium">{f.value}</p>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default BatchManagement;
