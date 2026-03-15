@@ -370,29 +370,21 @@ export function usePublishToC3Wizard() {
         // Call C3-Wizard sync API
         const syncUrl = import.meta.env.VITE_C3_WIZARD_SYNC_URL;
         
+        let result: any;
+        
         if (!syncUrl) {
           // Fallback: use edge function to proxy the call (secrets are only accessible there)
           const { data: funcData, error: funcError } = await supabase.functions.invoke('c3-config-sync-publish', {
             body: payload,
           });
           
-          if (funcError) throw new Error(funcError.message || 'Sync function failed');
-          
-          const result = funcData;
-          if (result?.status === 'error') {
-            throw new Error(result.error || 'Sync failed on Wizard side');
+          if (funcError) {
+            // Try to extract meaningful error from the response
+            const errorMsg = funcError.message || 'Sync function failed';
+            throw new Error(errorMsg);
           }
           
-          // Handle success or skipped (idempotent duplicate)
-          const syncStatus = result?.status === 'skipped' ? 'success' : 'success';
-          
-          await supabase
-            .from('c3_config_sync_log')
-            .update({ 
-              status: syncStatus, 
-              response_data: result as any,
-            })
-            .eq('id', logEntry.id);
+          result = funcData;
         } else {
           // Direct API call (for environments with URL configured)
           const response = await fetch(syncUrl, {
@@ -404,24 +396,29 @@ export function usePublishToC3Wizard() {
             body: JSON.stringify(payload),
           });
           
-          const result = await response.json();
+          result = await response.json();
           
           if (!response.ok) {
             throw new Error(result?.error || `Sync failed with status ${response.status}`);
           }
-          
-          if (result?.status === 'error') {
-            throw new Error(result.error || 'Sync failed on Wizard side');
-          }
-          
-          await supabase
-            .from('c3_config_sync_log')
-            .update({ 
-              status: 'success', 
-              response_data: result as any,
-            })
-            .eq('id', logEntry.id);
         }
+
+        // Check for error status in response (edge function now always returns 200 with wrapped errors)
+        if (result?.status === 'error') {
+          const errorDetail = result.error_type 
+            ? `[${result.error_type}] ${result.error}` 
+            : result.error;
+          throw new Error(errorDetail || 'Sync failed on Wizard side');
+        }
+
+        // Handle success or skipped (idempotent duplicate)
+        await supabase
+          .from('c3_config_sync_log')
+          .update({ 
+            status: 'success', 
+            response_data: result as any,
+          })
+          .eq('id', logEntry.id);
 
         // Mark all published tables as synced
         const now = new Date().toISOString();
@@ -438,9 +435,10 @@ export function usePublishToC3Wizard() {
 
         return { success: true, counts };
       } catch (apiError: any) {
+        const errorMsg = apiError.message || 'Unknown error';
         await supabase
           .from('c3_config_sync_log')
-          .update({ status: 'failed', error_message: apiError.message || 'Unknown error' })
+          .update({ status: 'failed', error_message: errorMsg })
           .eq('id', logEntry.id);
 
         throw apiError;
