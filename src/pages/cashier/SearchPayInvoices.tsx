@@ -459,7 +459,7 @@ const SearchPayInvoices: React.FC = () => {
                                   <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
                                   <SelectContent>
                                     {banks.map(bank => (
-                                      <SelectItem key={bank.bankCode} value={bank.bankName}>{bank.bankName}</SelectItem>
+                                      <SelectItem key={bank.id} value={bank.name}>{bank.name}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
