@@ -77,10 +77,11 @@ const NwDirectorList: React.FC = () => {
   };
 
   const handlePreview = async (headerId: number) => {
+    if (!selectedCompanyId) return;
     setPreviewLoading(true);
     setPreviewOpen(true);
     try {
-      const res = await getNwdContributionPreview(headerId);
+      const res = await getNwdContributionPreview(headerId, Number(selectedCompanyId));
       setPreviewData(res.data);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load preview');
@@ -88,7 +89,7 @@ const NwDirectorList: React.FC = () => {
     } finally { setPreviewLoading(false); }
   };
 
-  const selectedCompany = companies.find(c => String(c.id) === selectedCompanyId);
+  
 
   return (
     <div className="p-6 space-y-4">
@@ -251,8 +252,6 @@ const NwDirectorList: React.FC = () => {
         onClose={() => { setPreviewOpen(false); setPreviewData(null); }}
         data={previewData}
         loading={previewLoading}
-        companyName={selectedCompany?.company_name || ''}
-        registrationNumber={selectedCompany?.registration_number || ''}
       />
     </div>
   );

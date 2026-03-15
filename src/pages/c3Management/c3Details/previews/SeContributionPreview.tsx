@@ -8,15 +8,13 @@ interface Props {
   onClose: () => void;
   data: any;
   loading: boolean;
-  seName: string;
-  seSsn: string;
 }
 
 function fmt(val: number | null | undefined) {
   return `$${(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, seName, seSsn }) => {
+const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -39,13 +37,22 @@ const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
 
   if (!open) return null;
 
-  const contribution = data?.contribution || {};
-  const weeks = data?.weeks || {};
-  const periodLabel = `${contribution.period_month || ''} ${contribution.period_year || ''}`;
+  const name = data?.name || '';
+  const ssn = data?.socialSecurityNumber || '';
+  const address = data?.address || '';
+  const occupation = data?.occupation || '';
+  const periodLabel = data?.periodLabel || '';
+  const declaredIncome = data?.declaredIncome || 0;
+  const ssContribution = data?.socialSecurityContribution || 0;
+  const levyContribution = data?.levyContribution || 0;
+  const fineAmount = data?.fineAmount || 0;
+  const penaltyAmount = data?.penaltyAmount || 0;
+  const totalContribution = data?.totalContribution || 0;
+  const wageCategory = data?.wageCategory || {};
 
   // Parse name into "LastName FirstName" format
-  const nameParts = seName.split(' ');
-  const displayName = nameParts.length >= 2 ? `${nameParts[nameParts.length - 1]} ${nameParts.slice(0, -1).join(' ')}` : seName;
+  const nameParts = name.split(' ');
+  const displayName = nameParts.length >= 2 ? `${nameParts[nameParts.length - 1]} ${nameParts.slice(0, -1).join(' ')}` : name;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -71,60 +78,45 @@ const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
 
               <div className="space-y-1.5 text-sm mb-4">
                 <div><strong>Name of Self Employed:</strong> <span>{displayName}</span></div>
-                <div><strong>Social Security Number</strong> <span>{seSsn}</span></div>
-                <div><strong>Address: (Location & Box No.)</strong> <span>{contribution.address || ''}</span></div>
-                <div><strong>Income Category Selected:</strong> <span>{contribution.income_category || ''}</span></div>
+                <div><strong>Social Security Number:</strong> <span>{ssn}</span></div>
+                <div><strong>Address: (Location & Box No.)</strong> <span>{address}</span></div>
+                <div><strong>Occupation:</strong> <span>{occupation}</span></div>
+                {wageCategory.name && (
+                  <div><strong>Income Category Selected:</strong> <span>{wageCategory.name} ({fmt(wageCategory.minWage)} – {fmt(wageCategory.maxWage)}, Rate: {((wageCategory.rate || 0) * 100).toFixed(0)}%)</span></div>
+                )}
               </div>
 
               <p className="text-sm mb-1"><strong>To: Director Social Security.</strong></p>
-              <p className="text-sm mb-3"><strong>With this statement is a cheque and/or cash for</strong> <span className="border-b border-black px-2">{fmt(contribution.total_contribution)}</span></p>
+              <p className="text-sm mb-3"><strong>With this statement is a cheque and/or cash for</strong> <span className="border-b border-black px-2">{fmt(totalContribution)}</span></p>
 
-              <p className="text-center text-xs font-semibold mb-2">Complete table if you are not paying for all the weeks in this month</p>
-
-              <table className="w-full border-collapse border border-black text-xs mb-3">
-                <thead>
-                  <tr>
-                    <th className="border border-black p-2 text-left text-[10px]" colSpan={5}>
-                      Put 'X' for wks worked, 'S' for sick leave<br/>sickness, 'M' for Maternity & 'U'<br/>for unemployment.
-                    </th>
-                    <th className="border border-black p-2">Self Employed Contribution</th>
-                    <th className="border border-black p-2">Remarks</th>
-                  </tr>
-                  <tr>
-                    <th className="border border-black p-1 text-center">WK1</th>
-                    <th className="border border-black p-1 text-center">WK2</th>
-                    <th className="border border-black p-1 text-center">WK3</th>
-                    <th className="border border-black p-1 text-center">WK4</th>
-                    <th className="border border-black p-1 text-center">WK5</th>
-                    <th className="border border-black p-1"></th>
-                    <th className="border border-black p-1"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-black p-1 text-center">{weeks.wk1 || 'S'}</td>
-                    <td className="border border-black p-1 text-center">{weeks.wk2 || 'S'}</td>
-                    <td className="border border-black p-1 text-center">{weeks.wk3 || 'S'}</td>
-                    <td className="border border-black p-1 text-center">{weeks.wk4 || 'S'}</td>
-                    <td className="border border-black p-1 text-center">{weeks.wk5 || 'X'}</td>
-                    <td className="border border-black p-1"></td>
-                    <td className="border border-black p-1"></td>
-                  </tr>
-                </tbody>
-              </table>
+              <p className="text-center text-xs font-semibold mb-2">Contribution Breakdown</p>
 
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between border-b border-dotted border-black py-1">
-                  <span><strong>a) Total Contribution:</strong></span>
-                  <span className="font-semibold">{fmt(contribution.total_contribution)}</span>
+                  <span><strong>Declared Income:</strong></span>
+                  <span>{fmt(declaredIncome)}</span>
                 </div>
                 <div className="flex justify-between border-b border-dotted border-black py-1">
-                  <span><strong>b) Fines:</strong></span>
-                  <span>{fmt(contribution.fine_amount)}</span>
+                  <span><strong>a) Social Security Contribution:</strong></span>
+                  <span>{fmt(ssContribution)}</span>
                 </div>
                 <div className="flex justify-between border-b border-dotted border-black py-1">
-                  <span><strong>c) Grand Total:</strong></span>
-                  <span className="font-semibold">{fmt((contribution.total_contribution || 0) + (contribution.fine_amount || 0))}</span>
+                  <span><strong>b) Levy Contribution:</strong></span>
+                  <span>{fmt(levyContribution)}</span>
+                </div>
+                <div className="flex justify-between border-b border-dotted border-black py-1">
+                  <span><strong>c) Fines:</strong></span>
+                  <span>{fmt(fineAmount)}</span>
+                </div>
+                {penaltyAmount > 0 && (
+                  <div className="flex justify-between border-b border-dotted border-black py-1">
+                    <span><strong>d) Penalties:</strong></span>
+                    <span>{fmt(penaltyAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-b border-dotted border-black py-1">
+                  <span><strong>e) Total Contribution:</strong></span>
+                  <span className="font-semibold">{fmt(totalContribution)}</span>
                 </div>
               </div>
 
@@ -139,9 +131,7 @@ const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
                   <span className="text-xs">Signature</span>
                 </div>
                 <div className="text-center">
-                  <div className="border-b border-black w-40 mb-1">
-                    <span className="text-xs">{contribution.creation_date || ''}</span>
-                  </div>
+                  <div className="border-b border-black w-40 mb-1" />
                   <span className="text-xs">Date</span>
                 </div>
               </div>
@@ -150,7 +140,7 @@ const SeContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
             <div className="flex justify-center gap-3 mt-4">
               <Button variant="outline" className="border-red-500 text-red-600" onClick={onClose}><X className="h-4 w-4 mr-1" /> Close</Button>
               <Button variant="outline" className="border-green-500 text-green-600" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
-              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={() => handlePrint()}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={handlePrint}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
             </div>
           </>
         )}

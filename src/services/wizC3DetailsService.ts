@@ -142,12 +142,12 @@ export async function deleteContribution(headerId: number, type: 'employer' | 'n
 // ─── Preview APIs ─────────────────────────────────────
 // These call the existing c3-preview or equivalent actions
 
-export async function getContributionPreview(headerId: number) {
-  return callWizApi<any>('get_contribution_preview', { header_id: headerId });
+export async function getContributionPreview(headerId: number, companyId: number) {
+  return callWizApi<any>('get_contribution_preview', { header_id: headerId, company_id: companyId });
 }
 
-export async function getNwdContributionPreview(headerId: number) {
-  return callWizApi<any>('get_nwd_contribution_preview', { header_id: headerId });
+export async function getNwdContributionPreview(headerId: number, companyId: number) {
+  return callWizApi<any>('get_nwd_contribution_preview', { header_id: headerId, company_id: companyId });
 }
 
 export async function getSeContributionPreview(contributionId: number) {

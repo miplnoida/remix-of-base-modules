@@ -89,7 +89,7 @@ const SelfEmployedContributionList: React.FC = () => {
     } finally { setPreviewLoading(false); }
   };
 
-  const selectedSe = seList.find(s => String(s.id) === selectedSeId);
+  
 
   return (
     <div className="p-6 space-y-4">
@@ -248,8 +248,6 @@ const SelfEmployedContributionList: React.FC = () => {
         onClose={() => { setPreviewOpen(false); setPreviewData(null); }}
         data={previewData}
         loading={previewLoading}
-        seName={selectedSe?.name || ''}
-        seSsn={selectedSe?.social_security_number || ''}
       />
     </div>
   );
