@@ -210,7 +210,7 @@ export function C3SyncHistoryTab() {
                 ))}
                 {logs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                       No publish history found
                     </TableCell>
                   </TableRow>
