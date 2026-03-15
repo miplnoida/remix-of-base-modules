@@ -17369,6 +17369,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_batch_status: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          modified_by: string | null
+          modified_on: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Relationships: []
+      }
       tb_c3_status: {
         Row: {
           code: string
@@ -17922,6 +17949,33 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_receipt_status: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          modified_by: string | null
+          modified_on: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          modified_by?: string | null
+          modified_on?: string | null
         }
         Relationships: []
       }
