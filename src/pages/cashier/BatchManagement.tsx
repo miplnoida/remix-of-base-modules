@@ -47,6 +47,7 @@ const statusVariant = (s: string | null): 'default' | 'secondary' | 'outline' =>
 
 const BatchManagement: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { profile } = useSupabaseAuth();
   const queryClient = useQueryClient();
 
