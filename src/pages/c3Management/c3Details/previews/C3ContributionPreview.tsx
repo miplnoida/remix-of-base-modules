@@ -48,7 +48,7 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading }
   const totals = data?.totals || {};
   const ag = data?.accountantGeneral || {};
   const ssb = data?.socialSecurityBoard || {};
-  const scheduleNumber = data?.scheduleNumber || '';
+  
   const creationDate = data?.creationDate || '';
 
   return (
