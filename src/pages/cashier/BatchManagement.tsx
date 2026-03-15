@@ -278,7 +278,6 @@ function OpenBatchDialog({
 
   const resetForm = () => {
     setSelectedCashierId('');
-    setBatchDate(new Date());
     setOpeningBalance('0.00');
     setDuplicateWarning(null);
   };
