@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { logAuditTrail } from '@/services/auditService';
 
 const PaymentModuleConfig: React.FC = () => {
   const { data: configs, isLoading } = usePaymentModuleConfig();
@@ -74,10 +75,27 @@ const PaymentModuleConfig: React.FC = () => {
     await updateConfig.mutateAsync({ key, value });
   };
 
+  const { user } = useSupabaseAuth();
+
+  const auditLog = async (action: string, entityType: string, entityId: string, before: any, after: any, meta?: Record<string, any>) => {
+    const result = await logAuditTrail({
+      action,
+      entityType,
+      entityId,
+      module: 'Payment Module Configuration',
+      beforeValue: before,
+      afterValue: after,
+      userCode: profile?.user_code || undefined,
+      userId: user?.id,
+      metadata: { route: '/cashier/payment-module-config', ...meta },
+    });
+    if (!result) console.error('[PaymentConfig] Audit log failed:', action, entityType, entityId);
+  };
+
   const toggleCurrencyEnabled = async (currencyId: string, currentlyEnabled: boolean) => {
     setSavingCurrency(true);
+    const currencyName = allCurrencies?.find(c => c.id === currencyId)?.currency_code || currencyId;
     try {
-      // Check if config row exists
       const existing = currencyConfigs?.find(c => c.currency_id === currencyId);
       if (existing) {
         const { error } = await supabase
@@ -91,6 +109,13 @@ const PaymentModuleConfig: React.FC = () => {
           .insert({ currency_id: currencyId, is_enabled: true, sort_order: 99, updated_by: profile?.user_code || null });
         if (error) throw error;
       }
+      await auditLog(
+        currentlyEnabled ? 'disable' : 'enable',
+        'cashier_currency_config',
+        currencyId,
+        { currency: currencyName, is_enabled: currentlyEnabled },
+        { currency: currencyName, is_enabled: !currentlyEnabled },
+      );
       queryClient.invalidateQueries({ queryKey: ['cashier-currency-config-all'] });
       queryClient.invalidateQueries({ queryKey: ['cashier-currency-config-enabled'] });
       toast.success('Currency configuration updated');
@@ -108,19 +133,26 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Enter a valid denomination value');
       return;
     }
+    const currencyName = allCurrencies?.find(c => c.id === selectedDenomCurrencyId)?.currency_code || '';
+    const label = newDenomLabel || (val >= 1 ? `$${val}` : `${(val * 100).toFixed(0)}¢`);
     try {
       const maxSort = denominations?.length ? Math.max(...denominations.map(d => d.sort_order)) + 1 : 1;
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('cashier_currency_denominations')
         .insert({
           currency_id: selectedDenomCurrencyId,
           denomination_value: val,
           denomination_type: newDenomType,
-          label: newDenomLabel || (val >= 1 ? `$${val}` : `${(val * 100).toFixed(0)}¢`),
+          label,
           sort_order: maxSort,
           updated_by: profile?.user_code || null,
-        });
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+      await auditLog('create', 'cashier_currency_denominations', inserted?.id || '', null, {
+        currency: currencyName, denomination_value: val, denomination_type: newDenomType, label,
+      });
       setNewDenomValue('');
       setNewDenomLabel('');
       refetchDenoms();
@@ -132,6 +164,7 @@ const PaymentModuleConfig: React.FC = () => {
   };
 
   const toggleDenomActive = async (denomId: string, isActive: boolean) => {
+    const denom = denominations?.find(d => d.id === denomId);
     const { error } = await supabase
       .from('cashier_currency_denominations')
       .update({ is_active: !isActive, updated_by: profile?.user_code || null, updated_at: new Date().toISOString() })
@@ -140,12 +173,17 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Failed to update denomination');
       return;
     }
+    await auditLog(isActive ? 'disable' : 'enable', 'cashier_currency_denominations', denomId,
+      { denomination_value: denom?.denomination_value, is_active: isActive },
+      { denomination_value: denom?.denomination_value, is_active: !isActive },
+    );
     refetchDenoms();
     queryClient.invalidateQueries({ queryKey: ['cashier-denominations'] });
     toast.success('Denomination updated');
   };
 
   const deleteDenomination = async (denomId: string) => {
+    const denom = denominations?.find(d => d.id === denomId);
     const { error } = await supabase
       .from('cashier_currency_denominations')
       .delete()
@@ -154,6 +192,10 @@ const PaymentModuleConfig: React.FC = () => {
       toast.error('Failed to delete denomination');
       return;
     }
+    await auditLog('delete', 'cashier_currency_denominations', denomId,
+      { denomination_value: denom?.denomination_value, label: denom?.label, denomination_type: denom?.denomination_type },
+      null,
+    );
     refetchDenoms();
     queryClient.invalidateQueries({ queryKey: ['cashier-denominations'] });
     toast.success('Denomination removed');
