@@ -77,10 +77,11 @@ const NwDirectorList: React.FC = () => {
   };
 
   const handlePreview = async (headerId: number) => {
+    if (!selectedCompanyId) return;
     setPreviewLoading(true);
     setPreviewOpen(true);
     try {
-      const res = await getNwdContributionPreview(headerId);
+      const res = await getNwdContributionPreview(headerId, Number(selectedCompanyId));
       setPreviewData(res.data);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load preview');
