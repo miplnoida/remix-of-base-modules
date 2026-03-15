@@ -2262,18 +2262,24 @@ export type Database = {
           bonus_exceptions_count: number
           bonus_exemptions_count: number
           bonus_policies_count: number
+          calculation_configs_count: number | null
           config_periods_count: number
           created_at: string
           error_message: string | null
           holiday_exceptions_count: number
           holiday_policies_count: number
           id: string
+          income_categories_count: number | null
+          income_code_exceptions_count: number | null
+          income_code_policies_count: number | null
+          income_codes_count: number | null
           levy_slabs_count: number
           payload: Json
           payload_hash: string
           published_at: string
           published_by: string | null
           response_data: Json | null
+          self_emp_rates_count: number | null
           status: string
           sync_version: string
         }
@@ -2281,18 +2287,24 @@ export type Database = {
           bonus_exceptions_count?: number
           bonus_exemptions_count?: number
           bonus_policies_count?: number
+          calculation_configs_count?: number | null
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
           holiday_exceptions_count?: number
           holiday_policies_count?: number
           id?: string
+          income_categories_count?: number | null
+          income_code_exceptions_count?: number | null
+          income_code_policies_count?: number | null
+          income_codes_count?: number | null
           levy_slabs_count?: number
           payload: Json
           payload_hash: string
           published_at?: string
           published_by?: string | null
           response_data?: Json | null
+          self_emp_rates_count?: number | null
           status?: string
           sync_version?: string
         }
@@ -2300,18 +2312,24 @@ export type Database = {
           bonus_exceptions_count?: number
           bonus_exemptions_count?: number
           bonus_policies_count?: number
+          calculation_configs_count?: number | null
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
           holiday_exceptions_count?: number
           holiday_policies_count?: number
           id?: string
+          income_categories_count?: number | null
+          income_code_exceptions_count?: number | null
+          income_code_policies_count?: number | null
+          income_codes_count?: number | null
           levy_slabs_count?: number
           payload?: Json
           payload_hash?: string
           published_at?: string
           published_by?: string | null
           response_data?: Json | null
+          self_emp_rates_count?: number | null
           status?: string
           sync_version?: string
         }
