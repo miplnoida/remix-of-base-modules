@@ -89,7 +89,7 @@ const SelfEmployedContributionList: React.FC = () => {
     } finally { setPreviewLoading(false); }
   };
 
-  const selectedSe = seList.find(s => String(s.id) === selectedSeId);
+  
 
   return (
     <div className="p-6 space-y-4">

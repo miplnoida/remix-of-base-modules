@@ -104,7 +104,7 @@ const C3ContributionList: React.FC = () => {
     }
   };
 
-  const selectedCompany = companies.find(c => String(c.id) === selectedCompanyId);
+  
 
   return (
     <div className="p-6 space-y-4">
