@@ -422,7 +422,7 @@ function OpenBatchDialog({
           {/* Batch Date */}
           <div className="space-y-1.5">
             <Label className="text-xs">Batch Date</Label>
-            <DatePicker date={batchDate} onDateChange={setBatchDate} />
+            <Input value={batchDateDisplay} disabled />
           </div>
 
           {/* Opening Balance */}
