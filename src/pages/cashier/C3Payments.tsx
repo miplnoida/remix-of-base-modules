@@ -64,6 +64,7 @@ interface C3Payment {
 }
 
 const C3Payments: React.FC = () => {
+  const { user } = useAuth();
   const batchSel = useBatchSelection();
   const [activeBatch, setActiveBatch] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
