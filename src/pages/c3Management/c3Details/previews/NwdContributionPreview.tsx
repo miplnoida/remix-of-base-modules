@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Printer, Download } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import ssbLogo from '@/assets/stkitts-logo.png';
 
 interface Props {
@@ -10,15 +9,13 @@ interface Props {
   onClose: () => void;
   data: any;
   loading: boolean;
-  companyName: string;
-  registrationNumber: string;
 }
 
 function fmt(val: number | null | undefined) {
   return `$${(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, companyName, registrationNumber }) => {
+const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -42,16 +39,19 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
 
   if (!open) return null;
 
-  const header = data?.header || {};
+  const companyName = data?.companyName || '';
+  const tradeName = data?.tradeName || '';
+  const regNo = data?.registrationNumber || '';
+  const address = data?.address || '';
+  const periodLabel = data?.periodLabel || '';
   const directors = data?.directors || [];
   const totals = data?.totals || {};
-  const periodLabel = `${header.period_month || ''} ${header.period_year || ''}`;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[1000px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nw Director Reports</DialogTitle>
+          <DialogTitle>NW Director Report</DialogTitle>
         </DialogHeader>
 
         {loading ? (
@@ -73,25 +73,25 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
                 <img src={ssbLogo} alt="SSB Logo" className="h-12 w-12 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
 
-              <p className="text-xs mb-1"><strong>NB.</strong> To be used when reporting payments related to <strong>Employees.</strong></p>
+              <p className="text-xs mb-1"><strong>NB.</strong> To be used when reporting payments related to <strong>Non-Working Directors.</strong></p>
               <p className="text-red-600 text-xs mb-3">(This form is in quadruplicate. Please read these notes carefully.)</p>
 
               {/* Employer Info */}
               <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
                 <div><strong>Name of Employer</strong> <span className="border-b border-black ml-1">{companyName}</span></div>
-                <div><strong>Trade Name</strong> <span className="border-b border-black ml-1">{header.trade_name || ''}</span></div>
-                <div><strong>Employer's Registration No.</strong> <span className="border border-black px-2">{registrationNumber}</span></div>
+                <div><strong>Trade Name</strong> <span className="border-b border-black ml-1">{tradeName}</span></div>
+                <div><strong>Employer's Registration No.</strong> <span className="border border-black px-2">{regNo}</span></div>
               </div>
               <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
-                <div><strong>Address (Location & Box No. If address changed)</strong> <span className="border-b border-black ml-1">{header.address || ''}</span></div>
-                <div className="text-right"><strong>Director(s)</strong> <span className="border border-black px-2">{directors.length}</span></div>
+                <div><strong>Address (Location & Box No. If address changed)</strong> <span className="border-b border-black ml-1">{address}</span></div>
+                <div className="text-right"><strong>Director(s)</strong> <span className="border border-black px-2">{data?.directorCount || directors.length}</span></div>
               </div>
 
               <p className="text-xs mb-2">
                 <strong>To: Director of Social Security,</strong><br />
                 &nbsp;&nbsp;&nbsp;&nbsp;With this statement is a cheque and/or cash in respect of the Acts mentioned above for the month of: <span className="border-b border-black px-4 font-semibold">{periodLabel}</span>
               </p>
-              <div className="mb-2 text-xs">(1) Accountant General: <span className="border-b border-black px-4">{''}</span></div>
+              <div className="mb-2 text-xs">(1) Accountant General: <span className="border-b border-black px-4 font-semibold">{fmt(totals.grandTotal)}</span></div>
 
               {/* Director Table */}
               <table className="w-full border-collapse border border-black text-[9px] mt-2">
@@ -100,9 +100,14 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
                     <th className="border border-black p-1">(1)</th>
                     <th className="border border-black p-1">(2)<br/>Social Security Number<br/>(6 digits)</th>
                     <th className="border border-black p-1">(3)<br/>Name of Director/Board member<br/>(Surname First)</th>
-                    <th className="border border-black p-1" colSpan={5}>(4)<br/>Record Director Fees If More Than Once Per Month<br/>WK1 | WK2 | WK3 | WK4 | WK5</th>
-                    <th className="border border-black p-1">(5)<br/>Total Wages / Fee For The month</th>
-                    <th className="border border-black p-1">(6)<br/>levy Deduction</th>
+                    <th className="border border-black p-1">WK1</th>
+                    <th className="border border-black p-1">WK2</th>
+                    <th className="border border-black p-1">WK3</th>
+                    <th className="border border-black p-1">WK4</th>
+                    <th className="border border-black p-1">WK5</th>
+                    <th className="border border-black p-1">(5)<br/>Total Wages / Fee</th>
+                    <th className="border border-black p-1">(6)<br/>Levy EE</th>
+                    <th className="border border-black p-1">(6)<br/>Levy ER</th>
                     <th className="border border-black p-1">(7)<br/>Remarks</th>
                   </tr>
                 </thead>
@@ -117,15 +122,15 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
                       <td className="border border-black p-1 text-right">{fmt(d.week3)}</td>
                       <td className="border border-black p-1 text-right">{fmt(d.week4)}</td>
                       <td className="border border-black p-1 text-right">{fmt(d.week5)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(d.total_wages)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(d.levy_deduction)}</td>
-                      <td className="border border-black p-1">{d.remarks || ''}</td>
+                      <td className="border border-black p-1 text-right">{fmt(d.totalWages)}</td>
+                      <td className="border border-black p-1 text-right">{fmt(d.levyEmployee)}</td>
+                      <td className="border border-black p-1 text-right">{fmt(d.levyEmployer)}</td>
+                      <td className="border border-black p-1"></td>
                     </tr>
                   ))}
-                  {/* Empty rows to match legacy form */}
                   {Array.from({ length: Math.max(0, 8 - directors.length) }).map((_, i) => (
                     <tr key={`empty-${i}`}>
-                      {Array.from({ length: 11 }).map((_, j) => (
+                      {Array.from({ length: 12 }).map((_, j) => (
                         <td key={j} className="border border-black p-1">&nbsp;</td>
                       ))}
                     </tr>
@@ -135,9 +140,9 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
 
               {/* Totals */}
               <div className="mt-2 text-xs space-y-0.5">
-                <div className="flex justify-between"><span>a) Total Fees and Directors levy Contribution</span><span className="border-b border-black px-4">{fmt(totals.total_levy)}</span></div>
-                <div className="flex justify-between"><span>b) Levy Penality for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.levy_penalty)}</span></div>
-                <div className="flex justify-between font-semibold"><span>c) Total Accountant General</span><span className="border-b border-black px-4">{fmt(totals.grand_total)}</span></div>
+                <div className="flex justify-between"><span>a) Total Fees and Directors levy Contribution</span><span className="border-b border-black px-4">{fmt(totals.levyTotal)}</span></div>
+                <div className="flex justify-between"><span>b) Levy Penalty for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.levyPenalty)}</span></div>
+                <div className="flex justify-between font-semibold"><span>c) Total Accountant General</span><span className="border-b border-black px-4">{fmt(totals.grandTotal)}</span></div>
               </div>
 
               <div className="mt-3 text-right text-[9px] text-muted-foreground">
@@ -153,9 +158,7 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
                   <span>Signature of Employer or Agent</span><br /><span>(Please affix office stamp)</span>
                 </div>
                 <div className="text-center">
-                  <span>Date: <span className="border-b border-black px-6">
-                    {header.creation_date ? format(parseISO(header.creation_date), 'dd-MMM-yyyy') : ''}
-                  </span></span>
+                  <span>Date: <span className="border-b border-black px-6"></span></span>
                 </div>
               </div>
             </div>
@@ -163,7 +166,7 @@ const NwdContributionPreview: React.FC<Props> = ({ open, onClose, data, loading,
             <div className="flex justify-center gap-3 mt-4">
               <Button variant="outline" className="border-red-500 text-red-600" onClick={onClose}><X className="h-4 w-4 mr-1" /> Close</Button>
               <Button variant="outline" className="border-green-500 text-green-600" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
-              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={() => handlePrint()}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={handlePrint}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
             </div>
           </>
         )}

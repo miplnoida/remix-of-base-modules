@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Printer, Download, User } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import ssbLogo from '@/assets/stkitts-logo.png';
 
 interface Props {
@@ -10,15 +9,13 @@ interface Props {
   onClose: () => void;
   data: any;
   loading: boolean;
-  companyName: string;
-  registrationNumber: string;
 }
 
 function fmt(val: number | null | undefined) {
   return `$${(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, companyName, registrationNumber }) => {
+const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -40,18 +37,19 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
     win.print();
   };
 
-  const handleDownloadPdf = () => {
-    handlePrint(); // simplified: use print dialog to save as PDF
-  };
-
   if (!open) return null;
 
-  const header = data?.header || {};
+  const companyName = data?.companyName || '';
+  const tradeName = data?.tradeName || '';
+  const regNo = data?.registrationNumber || '';
+  const address = data?.address || '';
+  const periodLabel = data?.periodLabel || '';
   const employees = data?.employees || [];
   const totals = data?.totals || {};
-  const periodMonth = header.period_month || '';
-  const periodYear = header.period_year || '';
-  const periodLabel = `${periodMonth} ${periodYear}`;
+  const ag = data?.accountantGeneral || {};
+  const ssb = data?.socialSecurityBoard || {};
+  const scheduleNumber = data?.scheduleNumber || '';
+  const creationDate = data?.creationDate || '';
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -87,12 +85,12 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
               {/* Employer Info */}
               <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
                 <div><strong>Name of Employer</strong> <span className="border-b border-black ml-1">{companyName}</span></div>
-                <div><strong>Trade Name</strong> <span className="border-b border-black ml-1">{header.trade_name || companyName}</span></div>
-                <div><strong>Employer's Registration No.</strong> <span className="border border-black px-2">{registrationNumber}</span></div>
+                <div><strong>Trade Name</strong> <span className="border-b border-black ml-1">{tradeName}</span></div>
+                <div><strong>Employer's Registration No.</strong> <span className="border border-black px-2">{regNo}</span></div>
               </div>
               <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
-                <div><strong>Address (Location & Box No. If address changed)</strong> <span className="border-b border-black ml-1">{header.address || ''}</span></div>
-                <div className="text-right"><strong>Employee(s)</strong> <span className="border border-black px-2">{employees.length}</span></div>
+                <div><strong>Address (Location & Box No. If address changed)</strong> <span className="border-b border-black ml-1">{address}</span></div>
+                <div className="text-right"><strong>Employee(s)</strong> <span className="border border-black px-2">{data?.employeeCount || employees.length}</span></div>
               </div>
 
               <p className="text-xs mb-1">
@@ -101,9 +99,9 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
               </p>
 
               <div className="flex gap-8 mb-2 text-xs">
-                <div>(1) Director, Social Security Board <span className="border-b border-black px-4 font-semibold">{fmt(totals.total_social_security)}</span></div>
-                <div>(2) Accountant General <span className="border-b border-black px-4 font-semibold">{fmt(totals.total_levy)}</span></div>
-                <div className="ml-auto">Total <span className="border-b border-black px-4 font-semibold">{fmt(totals.grand_total)}</span></div>
+                <div>(1) Director, Social Security Board <span className="border-b border-black px-4 font-semibold">{fmt(ag.socialSecurity)}</span></div>
+                <div>(2) Accountant General <span className="border-b border-black px-4 font-semibold">{fmt((ssb.levy || 0) + (ssb.severance || 0))}</span></div>
+                <div className="ml-auto">Total <span className="border-b border-black px-4 font-semibold">{fmt(totals.grandTotal)}</span></div>
               </div>
 
               {/* Employee Table */}
@@ -113,18 +111,14 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
                     <th className="border border-black p-1">(1)</th>
                     <th className="border border-black p-1">(2)<br/>Social Security Number<br/>(6 digits)</th>
                     <th className="border border-black p-1">(3)<br/>Name of Employee<br/>(Surname First)</th>
-                    <th className="border border-black p-1">(4)<br/>Termination or Commencement Date</th>
-                    <th className="border border-black p-1">(5)<br/>Pay Period/<br/>Schedule<br/>W, E2W,<br/>M, 2M</th>
-                    <th className="border border-black p-1">(5a)<br/>Put X in the Week(s) Worked or Holiday/Other Pay</th>
-                    <th className="border border-black p-1" colSpan={7}>(6)<br/>Record Wages/Salaries in the weeks for which payment applies</th>
-                    <th className="border border-black p-1">(7)<br/>Total Wages/Salaries Paid for the month</th>
-                    <th className="border border-black p-1">(8)<br/>Deduct levy from Wages of employee. See note 9 for exemption</th>
-                    <th className="border border-black p-1">(9)<br/>Total So. Sec. 11% or 1% of Wages/Salaries of each employee</th>
+                    <th className="border border-black p-1" colSpan={5}>(5a) Put X in the Week(s) Worked</th>
+                    <th className="border border-black p-1" colSpan={7}>(6) Record Wages/Salaries</th>
+                    <th className="border border-black p-1">(7)<br/>Total Wages</th>
+                    <th className="border border-black p-1">(8)<br/>Levy<br/>(EE+ER)</th>
+                    <th className="border border-black p-1">(9)<br/>Social Security<br/>(Total)</th>
                     <th className="border border-black p-1">(10)<br/>Remarks</th>
                   </tr>
                   <tr>
-                    <th className="border border-black p-1"></th>
-                    <th className="border border-black p-1"></th>
                     <th className="border border-black p-1"></th>
                     <th className="border border-black p-1"></th>
                     <th className="border border-black p-1"></th>
@@ -152,24 +146,22 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
                       <td className="border border-black p-1 text-center">{idx + 1}</td>
                       <td className="border border-black p-1">{emp.ssn}</td>
                       <td className="border border-black p-1">{emp.name}</td>
-                      <td className="border border-black p-1">{emp.termination_date || ''}</td>
-                      <td className="border border-black p-1 text-center">{emp.pay_period || 'W'}</td>
-                      <td className="border border-black p-1 text-center">{emp.wk1_flag || 'x'}</td>
-                      <td className="border border-black p-1 text-center">{emp.wk2_flag || 'x'}</td>
-                      <td className="border border-black p-1 text-center">{emp.wk3_flag || 'x'}</td>
-                      <td className="border border-black p-1 text-center">{emp.wk4_flag || 'x'}</td>
-                      <td className="border border-black p-1 text-center">{emp.wk5_flag || 'x'}</td>
+                      <td className="border border-black p-1 text-center">{emp.week1 > 0 ? 'x' : ''}</td>
+                      <td className="border border-black p-1 text-center">{emp.week2 > 0 ? 'x' : ''}</td>
+                      <td className="border border-black p-1 text-center">{emp.week3 > 0 ? 'x' : ''}</td>
+                      <td className="border border-black p-1 text-center">{emp.week4 > 0 ? 'x' : ''}</td>
+                      <td className="border border-black p-1 text-center">{emp.week5 > 0 ? 'x' : ''}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.week1)}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.week2)}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.week3)}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.week4)}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.week5)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(emp.holiday_pay)}</td>
+                      <td className="border border-black p-1 text-right">{fmt(emp.holidayPay)}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.bonus)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(emp.total_wages)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(emp.levy_deduction)}</td>
-                      <td className="border border-black p-1 text-right">{fmt(emp.ss_contribution)}</td>
-                      <td className="border border-black p-1">{emp.remarks || ''}</td>
+                      <td className="border border-black p-1 text-right">{fmt(emp.totalWages)}</td>
+                      <td className="border border-black p-1 text-right">{fmt((emp.levyEmployee || 0) + (emp.levyEmployer || 0))}</td>
+                      <td className="border border-black p-1 text-right">{fmt(emp.ssTotal)}</td>
+                      <td className="border border-black p-1"></td>
                     </tr>
                   ))}
                 </tbody>
@@ -177,15 +169,29 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
 
               {/* Totals Footer */}
               <div className="mt-2 text-xs space-y-0.5">
-                <div className="flex justify-between"><span>a) Total wages and employee levy contribution</span><span className="border-b border-black px-4">{fmt(totals.total_wages)}</span></div>
-                <div className="flex justify-between"><span>b) Employer's 3% of Wages for levy Contribution</span><span className="border-b border-black px-4">{fmt(totals.employer_levy)}</span></div>
-                <div className="flex justify-between"><span>c) Employer's 1% of Wages for Severance Payments Contribution</span><span className="border-b border-black px-4">{fmt(totals.total_severance)}</span></div>
-                <div className="flex justify-between"><span>d) Levy Penality for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.levy_penalty)}</span></div>
-                <div className="flex justify-between"><span>e) Severance Penalty for month (if any)</span><span className="border-b border-black px-4">{fmt(totals.severance_penalty)}</span></div>
-                <div className="flex justify-between font-semibold"><span>f) Total Accountant General</span><span className="border-b border-black px-4">{fmt(totals.total_levy)}</span></div>
-                <div className="flex justify-between"><span>g) Social Security Contribution due for the month</span><span className="border-b border-black px-4">{fmt(totals.total_social_security)}</span></div>
-                <div className="flex justify-between"><span>h) Fines due for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.ss_fine)}</span></div>
-                <div className="flex justify-between font-semibold"><span>i) Total Social Security Remittance due for the month</span><span className="border-b border-black px-4">{fmt(totals.total_social_security)}</span></div>
+                <div className="flex justify-between"><span>a) Total wages and employee levy contribution</span><span className="border-b border-black px-4">{fmt(totals.totalWages)}</span></div>
+                <div className="flex justify-between"><span>b) Employer's 3% of Wages for levy Contribution</span><span className="border-b border-black px-4">{fmt(totals.levyEmployer)}</span></div>
+                <div className="flex justify-between"><span>c) Employer's 1% of Wages for Severance Payments Contribution</span><span className="border-b border-black px-4">{fmt(totals.peTotal)}</span></div>
+                <div className="flex justify-between"><span>d) Levy Penalty for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.levyPenalty)}</span></div>
+                <div className="flex justify-between"><span>e) Severance Penalty for month (if any)</span><span className="border-b border-black px-4">{fmt(totals.pePenalty)}</span></div>
+                <div className="flex justify-between font-semibold"><span>f) Total Accountant General</span><span className="border-b border-black px-4">{fmt((ssb.levy || 0) + (ssb.severance || 0))}</span></div>
+                <div className="flex justify-between"><span>g) Social Security Contribution due for the month</span><span className="border-b border-black px-4">{fmt(totals.ssTotal)}</span></div>
+                <div className="flex justify-between"><span>h) Fines due for the month (if any)</span><span className="border-b border-black px-4">{fmt(totals.ssPenalty)}</span></div>
+                <div className="flex justify-between font-semibold"><span>i) Total Social Security Remittance due for the month</span><span className="border-b border-black px-4">{fmt((totals.ssTotal || 0) + (totals.ssPenalty || 0))}</span></div>
+              </div>
+
+              {/* Accountant General & SSB Summary */}
+              <div className="mt-3 grid grid-cols-2 gap-4 text-xs border border-black p-2">
+                <div>
+                  <div className="font-semibold mb-1">Accountant General</div>
+                  <div className="flex justify-between"><span>Social Security:</span><span>{fmt(ag.socialSecurity)}</span></div>
+                  <div className="flex justify-between"><span>Employment Insurance:</span><span>{fmt(ag.employmentInsurance)}</span></div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1">Social Security Board</div>
+                  <div className="flex justify-between"><span>Levy:</span><span>{fmt(ssb.levy)}</span></div>
+                  <div className="flex justify-between"><span>Severance:</span><span>{fmt(ssb.severance)}</span></div>
+                </div>
               </div>
 
               {/* Official Use */}
@@ -203,9 +209,7 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
                   <span>(Please affix office stamp)</span>
                 </div>
                 <div className="text-center">
-                  <span>Date: <span className="border-b border-black px-6">
-                    {header.creation_date ? format(parseISO(header.creation_date), 'dd-MMM-yyyy') : ''}
-                  </span></span>
+                  <span>Date: <span className="border-b border-black px-6">{creationDate}</span></span>
                 </div>
               </div>
             </div>
@@ -217,7 +221,7 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading, 
               <Button variant="outline" className="border-green-500 text-green-600" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-1" /> Print
               </Button>
-              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={handleDownloadPdf}>
+              <Button variant="outline" className="border-blue-500 text-blue-600" onClick={handlePrint}>
                 <Download className="h-4 w-4 mr-1" /> Download PDF
               </Button>
             </div>
