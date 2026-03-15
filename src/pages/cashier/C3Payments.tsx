@@ -143,20 +143,19 @@ const C3Payments: React.FC = () => {
     );
   }, [searchTerm, payerType]);
 
+  // Sync activeBatch from batch selection guard
   useEffect(() => {
-    // Initialize active batch
-    setActiveBatch({
-      id: 'BATCH-2024-001',
-      batchNumber: `BATCH-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001`,
-      cashierId: user?.email?.split('@')[0] || 'cashier',
-      cashierName: user?.name || 'Current User',
-      date: new Date().toISOString().slice(0, 10),
-      status: 'open'
-    });
-
-    // Initialize with one payment split
-    addPaymentSplit();
-  }, [user]);
+    if (batchSel.selectedBatch) {
+      setActiveBatch({
+        id: batchSel.selectedBatch.batch_number,
+        batchNumber: batchSel.selectedBatch.batch_number,
+        cashierId: batchSel.selectedBatch.entered_by || 'cashier',
+        cashierName: batchSel.selectedBatch.entered_by || 'Current User',
+        date: batchSel.selectedBatch.batch_date,
+        status: 'open'
+      });
+    }
+  }, [batchSel.selectedBatch]);
 
   const addPaymentSplit = () => {
     const newSplit: PaymentSplit = {
