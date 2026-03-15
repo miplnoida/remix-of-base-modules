@@ -87,7 +87,7 @@ export function useC3SyncStatus() {
         };
       }
 
-      // Check for modifications since last publish
+      // Check for modifications since last publish across all tables
       const [
         { count: pMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
@@ -120,11 +120,11 @@ export function useC3SyncStatus() {
         supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
       ]);
 
-      // For tables without last_published_at tracking, always count all rows
-      const [{ count: icTotal }, { count: catTotal }, { count: seTotal }] = await Promise.all([
-        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
-        (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
-        (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
+      // For tables without last_published_at: compare modification timestamps against last publish
+      const [{ count: icMod }, { count: catMod }, { count: seMod }] = await Promise.all([
+        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
+        (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
       const periods = (pMod || 0) + (pNew || 0);
@@ -134,9 +134,9 @@ export function useC3SyncStatus() {
       const holidayPolicies = (hpMod || 0) + (hpNew || 0);
       const holidayExceptions = (heMod || 0) + (heNew || 0);
       const calculationConfigs = ccMod || 0;
-      const incomeCodes = icTotal || 0;
-      const incomeCategories = catTotal || 0;
-      const selfEmpRates = seTotal || 0;
+      const incomeCodes = icMod || 0;
+      const incomeCategories = catMod || 0;
+      const selfEmpRates = seMod || 0;
       const incomeCodePolicies = icpMod || 0;
       const incomeCodeExceptions = iceMod || 0;
 

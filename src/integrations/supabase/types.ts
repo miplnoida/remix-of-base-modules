@@ -17649,16 +17649,22 @@ export type Database = {
         Row: {
           appeal: string | null
           category_code: string
+          modified_by: string | null
+          modified_on: string | null
           wage_upper: number | null
         }
         Insert: {
           appeal?: string | null
           category_code: string
+          modified_by?: string | null
+          modified_on?: string | null
           wage_upper?: number | null
         }
         Update: {
           appeal?: string | null
           category_code?: string
+          modified_by?: string | null
+          modified_on?: string | null
           wage_upper?: number | null
         }
         Relationships: []
@@ -18061,6 +18067,8 @@ export type Database = {
         Row: {
           effend: string
           effstart: string
+          modified_by: string | null
+          modified_on: string | null
           sep_penalty_percent: number | null
           sep_ss_percent: number
           wage_cat: number
@@ -18068,6 +18076,8 @@ export type Database = {
         Insert: {
           effend: string
           effstart: string
+          modified_by?: string | null
+          modified_on?: string | null
           sep_penalty_percent?: number | null
           sep_ss_percent: number
           wage_cat?: number
@@ -18075,6 +18085,8 @@ export type Database = {
         Update: {
           effend?: string
           effstart?: string
+          modified_by?: string | null
+          modified_on?: string | null
           sep_penalty_percent?: number | null
           sep_ss_percent?: number
           wage_cat?: number

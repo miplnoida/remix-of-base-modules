@@ -49,6 +49,12 @@ const TABLE_LABELS: Record<string, string> = {
   wiz_bonus_policy_exceptions: 'Bonus Policy Exceptions',
   wiz_holiday_pay_policy_defaults: 'Holiday Pay Policy Defaults',
   wiz_holiday_pay_policy_exceptions: 'Holiday Pay Policy Exceptions',
+  wiz_calculation_config: 'Calculation Config (Global Rules)',
+  wiz_income_codes: 'Income Codes',
+  wiz_income_cat: 'Income Categories',
+  wiz_self_emp_contrib_rate: 'Self-Employed Contribution Rates',
+  wiz_income_code_policy_default: 'Income Code Policy Defaults',
+  wiz_income_code_policy_exceptions: 'Income Code Policy Exceptions',
 };
 
 function formatDateTime(dateStr: string | null) {
@@ -165,6 +171,10 @@ export function C3SyncHistoryTab() {
                   <TableHead className="text-center">Bonus Exc.</TableHead>
                   <TableHead className="text-center">Holiday Pol.</TableHead>
                   <TableHead className="text-center">Holiday Exc.</TableHead>
+                  <TableHead className="text-center">Calc Config</TableHead>
+                  <TableHead className="text-center">Income Codes</TableHead>
+                  <TableHead className="text-center">SE Rates</TableHead>
+                  <TableHead className="text-center">IC Pol.</TableHead>
                   <TableHead>Error</TableHead>
                   <TableHead className="text-center">Changes</TableHead>
                 </TableRow>
@@ -183,6 +193,10 @@ export function C3SyncHistoryTab() {
                     <TableCell className="text-center">{log.bonus_exceptions_count}</TableCell>
                     <TableCell className="text-center">{log.holiday_policies_count}</TableCell>
                     <TableCell className="text-center">{log.holiday_exceptions_count}</TableCell>
+                    <TableCell className="text-center">{(log as any).calculation_config_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).income_codes_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).se_contrib_rates_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).income_code_policies_count || 0}</TableCell>
                     <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                       {log.error_message || '—'}
                     </TableCell>
@@ -196,7 +210,7 @@ export function C3SyncHistoryTab() {
                 ))}
                 {logs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                       No publish history found
                     </TableCell>
                   </TableRow>
