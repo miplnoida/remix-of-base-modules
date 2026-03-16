@@ -151,7 +151,8 @@ const ReconciliationPage: React.FC = () => {
     if (!file.name.endsWith('.csv')) { toast.error('Only .csv files are allowed'); return; }
     try {
       setUploading(true);
-      const res = await uploadCyberSourceCsv(file, MOCK_USER_ID);
+      const csvText = await file.text();
+      const res = await uploadCyberSourceCsv(csvText, MOCK_USER_ID);
       toast.success(`Successfully Saved. ${res.inserted_count} records imported, ${res.skipped_duplicates} duplicates skipped.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       fetchList(0);
