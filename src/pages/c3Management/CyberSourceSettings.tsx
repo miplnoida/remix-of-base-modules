@@ -201,7 +201,7 @@ const CyberSourceSettings: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>UserId</Label>
+              <Label>Email</Label>
               <Input value={loginId} onChange={(e) => { setLoginId(e.target.value); setToggleErrors(p => ({...p, loginId: ''})); }} />
               {toggleErrors.loginId && <p className="text-xs text-destructive mt-1">{toggleErrors.loginId}</p>}
             </div>
