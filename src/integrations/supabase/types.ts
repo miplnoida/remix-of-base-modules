@@ -18050,6 +18050,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_method_of_payment: {
+        Row: {
+          long_description: string | null
+          mop_code: string
+          short_description: string | null
+        }
+        Insert: {
+          long_description?: string | null
+          mop_code: string
+          short_description?: string | null
+        }
+        Update: {
+          long_description?: string | null
+          mop_code?: string
+          short_description?: string | null
+        }
+        Relationships: []
+      }
       tb_occup: {
         Row: {
           code: string
@@ -18138,6 +18156,54 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      tb_payer_type: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          is_active: boolean | null
+          updated_by: string | null
+          updated_on: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          is_active?: boolean | null
+          updated_by?: string | null
+          updated_on?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          is_active?: boolean | null
+          updated_by?: string | null
+          updated_on?: string | null
+        }
+        Relationships: []
+      }
+      tb_payment_type: {
+        Row: {
+          fund_code: string | null
+          payment_code: string
+          payment_type_description: string | null
+        }
+        Insert: {
+          fund_code?: string | null
+          payment_code: string
+          payment_type_description?: string | null
+        }
+        Update: {
+          fund_code?: string | null
+          payment_code?: string
+          payment_type_description?: string | null
+        }
+        Relationships: []
       }
       tb_penalty: {
         Row: {

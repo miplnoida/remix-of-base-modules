@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
-import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText } from 'lucide-react';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { useAllCurrencies, useAllCashierCurrencyConfigs, useDenominationsForCurrency } from '@/hooks/useCashierCurrencyConfig';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +45,7 @@ const PaymentModuleConfig: React.FC = () => {
   const [cashierRoles, setCashierRoles] = useState<string[]>([]);
   const [manageAllRoles, setManageAllRoles] = useState<string[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<string>('warning');
+  const [c3PaymentTypes, setC3PaymentTypes] = useState<string[]>([]);
   const [selectedDenomCurrencyId, setSelectedDenomCurrencyId] = useState<string | null>(null);
   const { data: denominations, refetch: refetchDenoms } = useDenominationsForCurrency(selectedDenomCurrencyId);
 
@@ -52,6 +53,22 @@ const PaymentModuleConfig: React.FC = () => {
   const [newDenomType, setNewDenomType] = useState('note');
   const [newDenomLabel, setNewDenomLabel] = useState('');
   const [savingCurrency, setSavingCurrency] = useState(false);
+
+  // Fetch all payment types from tb_payment_type
+  const { data: allPaymentTypes } = useQuery({
+    queryKey: ['tb-payment-types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_payment_type')
+        .select('payment_code, payment_type_description')
+        .order('payment_code');
+      if (error) throw error;
+      return (data || []).map((pt: any) => ({
+        value: pt.payment_code,
+        label: `${pt.payment_code} — ${pt.payment_type_description}`,
+      }));
+    },
+  });
 
   useEffect(() => {
     if (!configs) return;
@@ -62,6 +79,8 @@ const PaymentModuleConfig: React.FC = () => {
     if (Array.isArray(mr)) setManageAllRoles(mr);
     const dm = getVal('duplicate_open_batch');
     if (dm?.mode) setDuplicateMode(dm.mode);
+    const c3pt = getVal('c3_payment_types');
+    if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
   }, [configs]);
 
   // Auto-select first currency for denomination management
@@ -234,6 +253,7 @@ const PaymentModuleConfig: React.FC = () => {
       <Tabs defaultValue="roles" className="space-y-4">
         <TabsList>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
         </TabsList>
@@ -325,7 +345,52 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* ─── CURRENCIES TAB ─── */}
+        {/* ─── C3 PAYMENT TYPES TAB ─── */}
+        <TabsContent value="c3-payment-types" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                C3 Payment Types
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Select which payment types from the master list should be treated as C3 payments. These are persisted and used across the system for C3-specific processing logic.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <MultiSelectCheckbox
+                options={allPaymentTypes || []}
+                selected={c3PaymentTypes}
+                onChange={(selected) => {
+                  // Deduplicate just in case
+                  setC3PaymentTypes([...new Set(selected)]);
+                }}
+                placeholder="Select C3 payment types..."
+              />
+              {c3PaymentTypes.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {c3PaymentTypes.map(code => {
+                    const pt = allPaymentTypes?.find(p => p.value === code);
+                    return (
+                      <Badge key={code} variant="secondary" className="text-xs">
+                        {pt ? pt.label : code}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+              <Button
+                size="sm"
+                onClick={() => handleSave('c3_payment_types', [...new Set(c3PaymentTypes)])}
+                disabled={updateConfig.isPending}
+              >
+                {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                Save C3 Payment Types
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="currencies" className="space-y-4">
           <Card>
             <CardHeader>
