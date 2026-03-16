@@ -104,9 +104,9 @@ export async function isInsuredPerson(ssn: string): Promise<boolean> {
   return !!data;
 }
 
-export async function isSelfEmployed(selfRefNo: string): Promise<boolean> {
-  if (!selfRefNo?.trim()) return false;
-  const { data, error } = await supabase.rpc('is_self_employed', { p_self_ref_no: selfRefNo.trim() });
+export async function isSelfEmployed(ssn: string): Promise<boolean> {
+  if (!ssn?.trim()) return false;
+  const { data, error } = await supabase.rpc('is_self_employed', { p_ssn: ssn.trim() });
   if (error) { console.error('isSelfEmployed error:', error); return false; }
   return !!data;
 }
@@ -132,6 +132,6 @@ export const ENTITY_TYPE_LABELS: Record<EntityType | 'IP_VC', string> = {
 export const ENTITY_TYPE_TABLE_MAP: Record<EntityType, { table: string; idColumn: string }> = {
   ER: { table: 'er_master', idColumn: 'regno' },
   IP: { table: 'ip_master', idColumn: 'ssn' },
-  SE: { table: 'ip_self_employ', idColumn: 'self_ref_no' },
+  SE: { table: 'ip_self_employ', idColumn: 'ssn' },
   VC: { table: 'ip_master', idColumn: 'ssn' },
 };

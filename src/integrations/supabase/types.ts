@@ -17499,6 +17499,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_bank_code: {
+        Row: {
+          address1: string | null
+          address2: string | null
+          bank_code: string
+          contact: string | null
+          fax: string | null
+          name: string | null
+          phone: string | null
+          regno: string | null
+          zip: string | null
+        }
+        Insert: {
+          address1?: string | null
+          address2?: string | null
+          bank_code: string
+          contact?: string | null
+          fax?: string | null
+          name?: string | null
+          phone?: string | null
+          regno?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address1?: string | null
+          address2?: string | null
+          bank_code?: string
+          contact?: string | null
+          fax?: string | null
+          name?: string | null
+          phone?: string | null
+          regno?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       tb_batch_status: {
         Row: {
           code: string
@@ -17981,6 +18017,36 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_merchant: {
+        Row: {
+          address: string | null
+          contact: string | null
+          credit_card_code: string
+          credit_card_name: string | null
+          fax: string | null
+          merchant_id: string | null
+          phone: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact?: string | null
+          credit_card_code: string
+          credit_card_name?: string | null
+          fax?: string | null
+          merchant_id?: string | null
+          phone?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact?: string | null
+          credit_card_code?: string
+          credit_card_name?: string | null
+          fax?: string | null
+          merchant_id?: string | null
+          phone?: string | null
         }
         Relationships: []
       }
@@ -20890,7 +20956,7 @@ export type Database = {
       }
       is_employer: { Args: { p_regno: string }; Returns: boolean }
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
-      is_self_employed: { Args: { p_self_ref_no: string }; Returns: boolean }
+      is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
       is_voluntary_contributor: { Args: { p_ssn: string }; Returns: boolean }
       log_audit_event: {
         Args: {
