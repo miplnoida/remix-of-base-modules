@@ -101,6 +101,10 @@ import InjurySimulator from '@/pages/c3/settings/injury/InjurySimulator';
 import C3FormatsList from '@/pages/c3/settings/c3file/C3FormatsList';
 import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 
+// CyberSource & Reconciliation
+import CyberSourceSettings from '@/pages/c3Management/CyberSourceSettings';
+import ReconciliationPage from '@/pages/c3Management/ReconciliationPage';
+
 // C3 Details Screens
 import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
 import NwDirectorList from '@/pages/c3Management/c3Details/NwDirectorList';
