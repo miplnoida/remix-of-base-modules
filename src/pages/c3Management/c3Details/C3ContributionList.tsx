@@ -255,7 +255,10 @@ const C3ContributionList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         {c.payment_status === 'Paid' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
+                            onClick={() => navigate(`/c3-management/offline-payment/employer/${c.header_id}?mode=paid`)}
+                          >
                             Paid <Printer className="h-3 w-3" />
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
@@ -263,7 +266,7 @@ const C3ContributionList: React.FC = () => {
                             variant="outline"
                             size="sm"
                             className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => navigate(`/c3-management/payment-details?header_id=${c.header_id}`)}
+                            onClick={() => navigate(`/c3-management/offline-payment/employer/${c.header_id}`)}
                           >
                             $ Pay
                           </Button>

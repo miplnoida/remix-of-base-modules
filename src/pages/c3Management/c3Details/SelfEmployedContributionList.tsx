@@ -213,10 +213,15 @@ const SelfEmployedContributionList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         {c.payment_status === 'Paid' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground">Paid <Printer className="h-3 w-3" /></span>
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
+                            onClick={() => navigate(`/c3-management/offline-payment/self_employed/${c.contribution_id}?mode=paid`)}
+                          >
+                            Paid <Printer className="h-3 w-3" />
+                          </span>
                         ) : c.payment_status === '$ Pay' ? (
                           <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => navigate(`/c3-management/payment-details?contribution_id=${c.contribution_id}`)}>
+                            onClick={() => navigate(`/c3-management/offline-payment/self_employed/${c.contribution_id}`)}>
                             $ Pay
                           </Button>
                         ) : c.payment_status === 'BEMA' ? (
