@@ -8,7 +8,9 @@ import {
   AlertTriangle,
   TrendingUp,
   Calculator,
-  UserCheck
+  UserCheck,
+  CreditCard,
+  RefreshCw
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -90,6 +92,12 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "Reconciliation",
+        url: "/c3-management/reconciliation",
+        icon: RefreshCw,
+        requiresPermission: "view_dashboard"
+      },
+      {
         title: "Settings",
         icon: Settings,
         requiresPermission: "view_dashboard",
@@ -122,6 +130,12 @@ export const c3MenuItems = [
             title: "C3 File Configuration",
             url: "/c3-management/settings/c3file/formats",
             icon: Settings,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "CyberSource Settings",
+            url: "/c3-management/settings/cybersource",
+            icon: CreditCard,
             requiresPermission: "view_dashboard"
           }
         ]
