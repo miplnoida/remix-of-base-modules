@@ -794,6 +794,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/c3-contribution" element={<ProtectedLayout><C3ContributionList /></ProtectedLayout>} />
       <Route path="/c3-management/nw-director" element={<ProtectedLayout><NwDirectorList /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-c3" element={<ProtectedLayout><SelfEmployedContributionList /></ProtectedLayout>} />
+      <Route path="/c3-management/offline-payment/:entityType/:headerId" element={<ProtectedLayout><OfflinePaymentPage /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Payment Details Route */}
       <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
