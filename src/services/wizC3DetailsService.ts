@@ -229,10 +229,10 @@ export async function getSeContributionPreview(contributionId: number) {
   return callWizApi<any>('get_se_contribution_preview', { contribution_id: contributionId });
 }
 
-// ─── Offline Payment APIs (Legacy-aligned) ────────────
+// ─── Offline Payment APIs ─────────────────────────────
 
 /**
- * Get offline payment report data (right column of payment page).
+ * Get offline payment page data (C3 details + existing payment if any).
  * Legacy: GET /Payment/GetOfflinePaymentData?HeaderId={headerID}
  */
 export async function getOfflinePaymentData(params: {
@@ -243,41 +243,80 @@ export async function getOfflinePaymentData(params: {
 }
 
 /**
- * Search BIMA receipt by receipt number (triggered on blur).
- * Legacy: GET /Payment/getOfflinePaymentsDetails?receiptId={}&userId={}
+ * Auto-fetch BIMA payments for period (called on page load, NOT manual).
+ * Returns all BIMA payments matching the employer/SE registration and period.
  */
-export async function searchBimaReceipt(params: {
-  receipt_id: string;
+export interface BimaPeriodPayment {
+  receipt_number: string;
+  batch_number: string;
+  payment_date: string;
+  payment_mode: string;
+  ss_amount: number;
+  lv_amount: number;
+  pe_amount: number;
+  total: number;
+  is_applied: boolean;
+  validation_warnings: string[];
+}
+
+export interface PeriodPaymentListData {
+  payments: BimaPeriodPayment[];
+  multiple: boolean;
+  period: string;
+}
+
+export async function getPeriodPaymentList(params: {
   header_id: number;
   entity_type: 'c3' | 'nw_director' | 'self_employed';
+  registration_number: string;
+  period_month: string;
+  period_year: string;
 }) {
-  return callWizApi<BimaSearchResult>('search_bima_receipt', params);
+  return callWizApi<PeriodPaymentListData>('get_period_payment_list', params);
 }
 
 /**
- * Submit offline payment.
- * Legacy: POST /Payment/OfflinepayNowDataCyberSource
+ * Apply offline payment — links the BIMA receipt to the C3 record.
  */
-export async function submitOfflinePayment(params: {
+export interface ApplyPaymentResult {
+  payment_id: number;
+  receipt_number: string;
+  message: string;
+  receipt: {
+    receipt_number: string;
+    reg_no: string;
+    customer_name: string;
+    period: string;
+    batch_number: string;
+    payment_date: string;
+    payment_mode: string;
+    status: string;
+    ss_contributions: number;
+    lv_contribution: number;
+    pe_contributions: number;
+    amount: number;
+  };
+}
+
+export async function applyOfflinePayment(params: {
   header_id: number;
   entity_type: 'c3' | 'nw_director' | 'self_employed';
-  mode: string;
-  transaction_date: string;
-  bima_ref_num: string;
-  need_to_pay: number;
-  bank_name?: string | null;
-  check_num?: string | null;
-  check_date?: string | null;
-  jv_number?: string | null;
-  jv_date?: string | null;
-  credit_card_code?: string | null;
+  receipt_number: string;
+  batch_number: string;
+  payment_date: string;
+  payment_mode: string;
+  ss_amount: number;
+  lv_amount: number;
+  pe_amount: number;
+  total_amount: number;
+  admin_user_id: number;
+  notes?: string;
 }) {
-  return callWizApi<SubmitPaymentResult>('submit_offline_payment', params);
+  return callWizApi<ApplyPaymentResult>('apply_offline_payment', params);
 }
 
 /**
  * Get transaction receipt for "Paid" button modal.
- * Legacy: GET /Payment/TransactionReport?transactionId={}&c3HeaderId={}
  */
 export async function getTransactionReceipt(params: {
   header_id: number;
@@ -286,3 +325,4 @@ export async function getTransactionReceipt(params: {
 }) {
   return callWizApi<TransactionReceiptData>('get_transaction_receipt', params);
 }
+
