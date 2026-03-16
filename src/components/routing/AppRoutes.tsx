@@ -105,6 +105,7 @@ import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
 import NwDirectorList from '@/pages/c3Management/c3Details/NwDirectorList';
 import SelfEmployedContributionList from '@/pages/c3Management/c3Details/SelfEmployedContributionList';
+import OfflinePaymentPage from '@/pages/c3Management/c3Details/OfflinePaymentPage';
 
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
@@ -793,6 +794,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/c3-contribution" element={<ProtectedLayout><C3ContributionList /></ProtectedLayout>} />
       <Route path="/c3-management/nw-director" element={<ProtectedLayout><NwDirectorList /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-c3" element={<ProtectedLayout><SelfEmployedContributionList /></ProtectedLayout>} />
+      <Route path="/c3-management/offline-payment/:entityType/:headerId" element={<ProtectedLayout><OfflinePaymentPage /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Payment Details Route */}
       <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
