@@ -123,11 +123,8 @@ export async function getReconciliationExport(filters?: {
   return res.data?.records || res.data || [];
 }
 
-export async function uploadCyberSourceCsv(file: File, user_id: number): Promise<{ inserted_count: number; skipped_duplicates: number }> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('user_id', String(user_id));
-  const res = await callWizApiMultipart('upload_cybersource_csv', formData);
+export async function uploadCyberSourceCsv(csv_content: string, user_id: number): Promise<{ inserted_count: number; skipped_duplicates: number; auto_reconciled: number }> {
+  const res = await callWizApi('upload_cybersource_csv', { csv_content, user_id });
   return res.data || {};
 }
 

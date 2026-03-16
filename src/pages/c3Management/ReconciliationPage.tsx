@@ -246,7 +246,12 @@ const ReconciliationPage: React.FC = () => {
   // ─── Export ───────────────────────────────────────
   const handleExport = async (format: 'csv' | 'xlsx') => {
     try {
-      const data = await getReconciliationExport();
+      const data = await getReconciliationExport({
+        from_date: fromDate || null,
+        to_date: toDate || null,
+        status: statusFilter || null,
+        card_holder_name: cardHolderFilter || null,
+      });
       if (!data.length) { toast.error('No data to export'); return; }
 
       const headers = [
