@@ -225,7 +225,7 @@ const NwDirectorList: React.FC = () => {
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
                           <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}`)}>
+                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?companyId=${selectedCompanyId}`)}>
                             $ Pay
                           </Button>
                         ) : c.payment_status === 'BEMA' ? (

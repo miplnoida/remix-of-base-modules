@@ -460,14 +460,19 @@ const OfflinePaymentPage: React.FC = () => {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([
-      getOfflinePaymentPage({ header_id: id, entity_type: type }),
-      type === 'employer'
-        ? getContributionPreview(id, 0).catch(() => ({ data: null }))
-        : type === 'nwd'
-          ? getNwdContributionPreview(id, 0).catch(() => ({ data: null }))
-          : getSeContributionPreview(id).catch(() => ({ data: null })),
-    ]).then(([pageRes, reportRes]) => {
+
+    // Build promises - preview needs companyId for employer/nwd
+    const pagePromise = getOfflinePaymentPage({ header_id: id, entity_type: type });
+    const previewPromise = type === 'self_employed'
+      ? getSeContributionPreview(id).catch(() => ({ data: null }))
+      : companyIdParam
+        ? (type === 'employer'
+            ? getContributionPreview(id, companyIdParam)
+            : getNwdContributionPreview(id, companyIdParam)
+          ).catch(() => ({ data: null }))
+        : Promise.resolve({ data: null });
+
+    Promise.all([pagePromise, previewPromise]).then(([pageRes, reportRes]) => {
       setPageData(pageRes.data || null);
       setReportData(reportRes.data || null);
 
@@ -488,10 +493,17 @@ const OfflinePaymentPage: React.FC = () => {
         });
         setReceiptNumber(ep.receipt_number);
       }
+
+      // If no preview loaded yet and pageData has company_id, load it
+      if (!reportRes.data && pageRes.data?.c3_details?.company_id && type !== 'self_employed') {
+        const cid = pageRes.data.c3_details.company_id;
+        const fn = type === 'employer' ? getContributionPreview : getNwdContributionPreview;
+        fn(id, cid).then(r => setReportData(r.data)).catch(() => {});
+      }
     }).catch((err) => {
       toast.error(err.message || 'Failed to load page data');
     }).finally(() => setLoading(false));
-  }, [id, type]);
+  }, [id, type, companyIdParam]);
 
   // Also try loading with company_id from page data for employer/nwd previews
   useEffect(() => {
