@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useIPStatuses, useCountries, getStatusDescription } from '@/hooks/useIPMasterLookups';
 import { ColumnSelector, Column } from '@/components/shared/ColumnSelector';
+import { TablePagination } from '@/components/shared/TablePagination';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIPRegistrationSubmit } from '@/hooks/useIPRegistrationSubmit';
 import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
@@ -91,7 +92,6 @@ export default function IPRegistrationList() {
   const [activeTab, setActiveTab] = useState('pending');
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [pageSize, setPageSize] = useState(10);
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [deleteRecord, setDeleteRecord] = useState<IPRecord | null>(null);
   const [submitRecord, setSubmitRecord] = useState<IPRecord | null>(null);
@@ -99,6 +99,10 @@ export default function IPRegistrationList() {
   const [printingCardId, setPrintingCardId] = useState<string | null>(null);
   const [readyToPrintRecord, setReadyToPrintRecord] = useState<IPRecord | null>(null);
   
+  // Server-side pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -111,8 +115,13 @@ export default function IPRegistrationList() {
     status: '',
   });
 
+  // Track whether filters are actively applied (set on Search click)
+  const [appliedFilters, setAppliedFilters] = useState(false);
+
   // Tab counts
   const [tabCounts, setTabCounts] = useState({ pending: 0, registered: 0, inactive: 0 });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Get status codes for current tab
   const getStatusesForTab = useCallback((tab: string): string[] => {
@@ -143,128 +152,148 @@ export default function IPRegistrationList() {
     return [firstName, middleName, lastName].filter(Boolean).join(' ') || '-';
   };
 
-  // Fetch records ONLY from ip_master (no tmp_ip_master)
-  const fetchLocalRecords = useCallback(async (applyFilters = false): Promise<IPRecord[]> => {
-    try {
-      const tabStatuses = getStatusesForTab(activeTab);
-      
-      // Build base query for ip_master only
-      let query = supabase
-        .from('ip_master')
-        .select('*')
-        .neq('status', EXCLUDED_STATUS);
+  // Build a query with filters applied (reused for data + count)
+  const buildFilteredQuery = useCallback((baseQuery: any, applyFilters: boolean) => {
+    let query = baseQuery;
 
-      // Apply filters if search was triggered
-      if (applyFilters) {
-        if (filters.ssn) {
-          // Search both SSN and Application ID
-          query = query.or(`ssn.ilike.%${filters.ssn}%,application_id.ilike.%${filters.ssn}%`);
-        }
-        if (filters.dob) {
-          query = query.eq('dob', filters.dob);
-        }
-        if (filters.surname) {
-          query = query.ilike('surname', `%${filters.surname}%`);
-        }
-        if (filters.firstName) {
-          query = query.ilike('firstname', `%${filters.firstName}%`);
-        }
-        if (filters.phone) {
-          query = query.or(`phone.ilike.%${filters.phone}%,telephone.ilike.%${filters.phone}%`);
-        }
-        if (filters.gender && filters.gender !== 'all') {
-          query = query.eq('sex', filters.gender);
-        }
-        if (filters.status && filters.status !== 'all') {
-          query = query.eq('status', filters.status);
-        }
+    if (applyFilters) {
+      if (filters.ssn) {
+        query = query.or(`ssn.ilike.%${filters.ssn}%,application_id.ilike.%${filters.ssn}%`);
       }
-
-      // Apply tab-based status filter
-      if (tabStatuses.length > 0) {
-        query = query.in('status', tabStatuses);
+      if (filters.dob) {
+        query = query.eq('dob', filters.dob);
       }
-
-      // Execute query
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
-
-      const localRecords = (data || []) as IPRecord[];
-      
-      return localRecords;
-    } catch (error) {
-      console.error('Error fetching records:', error);
-      return [];
+      if (filters.surname) {
+        query = query.ilike('surname', `%${filters.surname}%`);
+      }
+      if (filters.firstName) {
+        query = query.ilike('firstname', `%${filters.firstName}%`);
+      }
+      if (filters.phone) {
+        query = query.or(`phone.ilike.%${filters.phone}%,telephone.ilike.%${filters.phone}%`);
+      }
+      if (filters.gender && filters.gender !== 'all') {
+        query = query.eq('sex', filters.gender);
+      }
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
     }
-  }, [activeTab, filters, getStatusesForTab]);
 
-  // Fetch records from local database only
-  const fetchRecords = useCallback(async (applyFilters = false) => {
+    return query;
+  }, [filters]);
+
+  // Fetch records with server-side pagination
+  const fetchRecords = useCallback(async (applyFilters: boolean, currentPage: number, currentPageSize: number) => {
     setLoading(true);
     
     try {
-      const localRecords = await fetchLocalRecords(applyFilters);
-      setRecords(localRecords);
+      const tabStatuses = getStatusesForTab(activeTab);
+      const from = (currentPage - 1) * currentPageSize;
+      const to = from + currentPageSize - 1;
+
+      // Data query with range
+      let dataQuery = supabase
+        .from('ip_master')
+        .select('*', { count: 'exact' })
+        .neq('status', EXCLUDED_STATUS);
+
+      if (tabStatuses.length > 0) {
+        dataQuery = dataQuery.in('status', tabStatuses);
+      }
+
+      dataQuery = buildFilteredQuery(dataQuery, applyFilters);
+
+      // Apply quick search text filter server-side
+      if (searchText) {
+        dataQuery = dataQuery.or(
+          `application_id.ilike.%${searchText}%,ssn.ilike.%${searchText}%,surname.ilike.%${searchText}%,firstname.ilike.%${searchText}%,phone.ilike.%${searchText}%,telephone.ilike.%${searchText}%`
+        );
+      }
+
+      const { data, error, count } = await dataQuery
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      
+      if (error) throw error;
+
+      setRecords((data || []) as IPRecord[]);
+      setTotalCount(count ?? 0);
     } catch (error) {
       console.error('Error fetching records:', error);
       toast.error('Failed to load records');
     } finally {
       setLoading(false);
     }
-  }, [fetchLocalRecords]);
+  }, [activeTab, getStatusesForTab, buildFilteredQuery, searchText]);
 
-  // Fetch tab counts
+  // Fetch tab counts efficiently using count-only queries
   const fetchCounts = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('ip_master')
-        .select('status')
-        .neq('status', EXCLUDED_STATUS);
+      const [pendingRes, registeredRes, inactiveRes] = await Promise.all([
+        supabase.from('ip_master').select('id', { count: 'exact', head: true }).neq('status', EXCLUDED_STATUS).in('status', PENDING_STATUSES),
+        supabase.from('ip_master').select('id', { count: 'exact', head: true }).neq('status', EXCLUDED_STATUS).in('status', REGISTERED_STATUSES),
+        supabase.from('ip_master').select('id', { count: 'exact', head: true }).neq('status', EXCLUDED_STATUS).in('status', INACTIVE_STATUSES),
+      ]);
 
-      if (error) throw error;
-
-      const allRecords = data || [];
       setTabCounts({
-        pending: allRecords.filter(r => PENDING_STATUSES.includes(r.status)).length,
-        registered: allRecords.filter(r => REGISTERED_STATUSES.includes(r.status)).length,
-        inactive: allRecords.filter(r => INACTIVE_STATUSES.includes(r.status)).length,
+        pending: pendingRes.count ?? 0,
+        registered: registeredRes.count ?? 0,
+        inactive: inactiveRes.count ?? 0,
       });
     } catch (error) {
       console.error('Error fetching counts:', error);
     }
   }, []);
 
-  // Refetch when tab changes
+  // Reset page to 1 when tab changes
   useEffect(() => {
-    fetchRecords(false);
-    fetchCounts();
-  }, [activeTab, fetchRecords, fetchCounts]);
+    setPage(1);
+    setSearchText('');
+    setAppliedFilters(false);
+  }, [activeTab]);
 
-  // Handle search button click
+  // Fetch data when page, pageSize, tab, or searchText changes
+  useEffect(() => {
+    fetchRecords(appliedFilters, page, pageSize);
+  }, [page, pageSize, activeTab, appliedFilters, fetchRecords]);
+
+  // Fetch tab counts on mount and when data changes
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
+
+  // Debounced quick search: reset to page 1 on search text change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchRecords(appliedFilters, 1, pageSize);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText]);
+
+  // Handle advanced filter search button click
   const handleSearch = () => {
-    fetchRecords(true);
+    setAppliedFilters(true);
+    setPage(1);
+    fetchRecords(true, 1, pageSize);
   };
 
   const handleNewRegistration = () => {
     navigate('/ip-registration/new');
   };
 
-  // Quick search filter (client-side for instant feedback)
-  const filteredRecords = useMemo(() => {
-    if (!searchText) return records;
-    
-    const search = searchText.toLowerCase();
-    return records.filter(record => {
-      const fullName = getFullName(record).toLowerCase();
-      return (
-        record.application_id?.toLowerCase().includes(search) ||
-        record.ssn?.toLowerCase().includes(search) ||
-        fullName.includes(search) ||
-        (record.phone || record.telephone)?.toLowerCase().includes(search)
-      );
-    });
-  }, [records, searchText]);
+  // Page change handler
+  const handlePageChange = (newPage: number) => {
+    setPage(Math.max(1, Math.min(newPage, totalPages || 1)));
+  };
+
+  // Page size change handler
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+  };
 
   // Get visible columns
   const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
@@ -326,7 +355,7 @@ export default function IPRegistrationList() {
       if (result.success) {
         toast.success(result.message);
         // Refresh the records list
-        await fetchRecords(false);
+        await fetchRecords(appliedFilters, page, pageSize);
         await fetchCounts();
         setSubmitRecord(null);
       } else if (result.errors) {
@@ -337,7 +366,6 @@ export default function IPRegistrationList() {
           style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
           classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
         });
-        // Don't close dialog on validation errors - let user see the error
       } else {
         console.error('Submit failed:', result.message);
         toast.error(result.message || 'Failed to submit registration', {
@@ -373,7 +401,7 @@ export default function IPRegistrationList() {
       const result = data as any;
       if (result?.success) {
         toast.success(result.message || 'Card ready. Status updated to Active.');
-        await fetchRecords(false);
+        await fetchRecords(appliedFilters, page, pageSize);
         await fetchCounts();
       } else {
         toast.error(result?.error || 'Failed to process card print');
@@ -403,7 +431,7 @@ export default function IPRegistrationList() {
       if (error) throw error;
 
       toast.success('Record deleted successfully');
-      fetchRecords(false);
+      fetchRecords(appliedFilters, page, pageSize);
       fetchCounts();
     } catch (error) {
       console.error('Error deleting record:', error);
@@ -424,7 +452,9 @@ export default function IPRegistrationList() {
       status: '',
     });
     setSearchText('');
-    fetchRecords(false);
+    setAppliedFilters(false);
+    setPage(1);
+    fetchRecords(false, 1, pageSize);
   };
 
   // Get statuses available for current tab (for dropdown)
@@ -461,7 +491,7 @@ export default function IPRegistrationList() {
     return gender || '-';
   };
 
-  // Prepare export data based on visible columns
+  // Prepare export data based on visible columns (exports current page)
   const prepareExportData = useCallback((): { columns: ExportColumn[], data: ExportData[] } => {
     const exportColumns: ExportColumn[] = visibleColumns.map(col => ({
       header: col.label,
@@ -469,7 +499,7 @@ export default function IPRegistrationList() {
       width: col.key === 'full_name' ? 25 : 15,
     }));
 
-    const exportData: ExportData[] = filteredRecords.map(record => {
+    const exportData: ExportData[] = records.map(record => {
       const row: ExportData = {};
       visibleColumns.forEach(col => {
         switch (col.key) {
@@ -505,11 +535,11 @@ export default function IPRegistrationList() {
     });
 
     return { columns: exportColumns, data: exportData };
-  }, [filteredRecords, visibleColumns, ipStatuses, getCountryDescription]);
+  }, [records, visibleColumns, ipStatuses, getCountryDescription]);
 
   // Handle export to Excel
   const handleExportExcel = async () => {
-    if (filteredRecords.length === 0) {
+    if (records.length === 0) {
       toast.error('No records to export');
       return;
     }
@@ -527,7 +557,7 @@ export default function IPRegistrationList() {
 
   // Handle export to PDF
   const handleExportPDF = () => {
-    if (filteredRecords.length === 0) {
+    if (records.length === 0) {
       toast.error('No records to export');
       return;
     }
@@ -543,7 +573,7 @@ export default function IPRegistrationList() {
         data,
         fileName,
         [
-          { label: 'Total Records', value: data.length.toString() },
+          { label: 'Total Records', value: totalCount.toString() },
           { label: 'Export Date', value: format(new Date(), 'dd/MM/yyyy HH:mm') },
         ]
       );
@@ -556,7 +586,7 @@ export default function IPRegistrationList() {
 
   // Handle export to CSV
   const handleExportCSV = () => {
-    if (filteredRecords.length === 0) {
+    if (records.length === 0) {
       toast.error('No records to export');
       return;
     }
@@ -738,34 +768,19 @@ export default function IPRegistrationList() {
                   onChange={(e) => setSearchText(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">show</span>
-                <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(parseInt(v))}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">records</span>
-              </div>
             </div>
 
             {/* Table Header with Export/Columns */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">
-                {activeTab === 'pending' && `Pending Verification (${filteredRecords.length})`}
-                {activeTab === 'registered' && `Registered Insured Person (${filteredRecords.length})`}
-                {activeTab === 'inactive' && `Inactive Insured Person (${filteredRecords.length})`}
+                {activeTab === 'pending' && `Pending Verification (${totalCount})`}
+                {activeTab === 'registered' && `Registered Insured Person (${totalCount})`}
+                {activeTab === 'inactive' && `Inactive Insured Person (${totalCount})`}
               </h3>
               <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2" disabled={filteredRecords.length === 0}>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2" disabled={records.length === 0}>
                       <Download className="h-4 w-4" />
                       Export
                     </Button>
@@ -815,14 +830,14 @@ export default function IPRegistrationList() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : filteredRecords.length === 0 ? (
+                  ) : records.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
                         No records found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRecords.slice(0, pageSize).map((record) => (
+                    records.map((record) => (
                       <TableRow key={record.id}>
                         {visibleColumns.map(col => (
                           <TableCell key={col.key} className={col.key === 'application_id' ? 'font-medium' : ''}>
@@ -880,7 +895,7 @@ export default function IPRegistrationList() {
                                 sourceModule="insured_person_registration"
                                 sourceRecordId={record.unique_uuid}
                                 onActionComplete={() => {
-                                  fetchRecords(false);
+                                  fetchRecords(appliedFilters, page, pageSize);
                                   fetchCounts();
                                 }}
                               />
@@ -920,6 +935,21 @@ export default function IPRegistrationList() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Server-side Pagination Controls */}
+            {totalCount > 0 && (
+              <TablePagination
+                pagination={{
+                  page,
+                  pageSize,
+                  totalItems: totalCount,
+                  totalPages,
+                }}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
+            )}
           </CardContent>
         </Card>
       </Tabs>
