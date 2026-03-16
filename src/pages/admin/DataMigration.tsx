@@ -5,6 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { 
   Database, 
   Download, 
@@ -13,13 +16,20 @@ import {
   CheckCircle, 
   AlertCircle,
   FileJson,
-  RefreshCw
+  RefreshCw,
+  GitCompare,
+  ArrowRightLeft,
+  ChevronDown,
+  ChevronRight,
+  Minus,
+  Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
-// Table categorization rules (prefix-based matching)
+// ─── Table Categorization (existing logic) ───
 const TABLE_CATEGORY_RULES: Record<string, { description: string; prefixes: string[]; exactMatches?: string[] }> = {
   Configuration: {
     description: "Core system configuration",
@@ -87,97 +97,48 @@ const TABLE_CATEGORY_RULES: Record<string, { description: string; prefixes: stri
   },
 };
 
-// Categorize a table name
 const categorizeTable = (tableName: string): string => {
   for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
-    // Check exact matches first
-    if (rules.exactMatches?.includes(tableName)) {
-      return category;
-    }
-    // Check prefix matches
+    if (rules.exactMatches?.includes(tableName)) return category;
     for (const prefix of rules.prefixes) {
-      if (tableName.startsWith(prefix)) {
-        return category;
-      }
+      if (tableName.startsWith(prefix)) return category;
     }
   }
   return "Other";
 };
 
-// Build categories from table list
 const buildTableCategories = (tables: string[]): Record<string, { description: string; tables: string[] }> => {
   const categories: Record<string, { description: string; tables: string[] }> = {};
-  
-  // Initialize categories from rules
   for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
     categories[category] = { description: rules.description, tables: [] };
   }
   categories["Other"] = { description: "Other tables", tables: [] };
-  
-  // Categorize each table
   for (const table of tables) {
     const category = categorizeTable(table);
     categories[category].tables.push(table);
   }
-  
-  // Remove empty categories
   for (const category of Object.keys(categories)) {
-    if (categories[category].tables.length === 0) {
-      delete categories[category];
-    }
+    if (categories[category].tables.length === 0) delete categories[category];
   }
-  
-  // Sort tables within each category
   for (const category of Object.keys(categories)) {
     categories[category].tables.sort();
   }
-  
   return categories;
 };
 
-// Ordered list for proper import (respecting foreign key dependencies)
-// Tables should be imported in dependency order
 const getTableImportOrder = (tables: string[]): string[] => {
-  // Define priority prefixes (lower = higher priority, imported first)
   const priorityPrefixes = [
-    "tb_",           // Master data first
-    "roles",         // Core roles
-    "app_",          // App config
-    "module_",       // Module config
-    "role_",         // Role config
-    "password_",     // Password config
-    "mfa_",          // MFA config
-    "api_",          // API settings
-    "office_",       // Offices
-    "department",    // Departments
-    "designation",   // Designations
-    "workflow_def",  // Workflow definitions
-    "workflow_step", // Workflow steps
-    "workflow_",     // Other workflow
-    "notification_", // Notifications
-    "data_",         // Data rules
-    "field_",        // Field rules
-    "profile",       // Profiles
-    "user_",         // Users
-    "inspector_",    // Inspectors
-    "er_",           // Employers
-    "ip_",           // Insured persons
-    "legal_",        // Legal
-    "compliance_",   // Compliance
-    "bema_",         // BEMA
-    "c3_",           // C3
-    "contribution_", // Contributions
-    "audit_",        // Audit logs
-    "system_",       // System logs
+    "tb_", "roles", "app_", "module_", "role_", "password_", "mfa_", "api_",
+    "office_", "department", "designation", "workflow_def", "workflow_step",
+    "workflow_", "notification_", "data_", "field_", "profile", "user_",
+    "inspector_", "er_", "ip_", "legal_", "compliance_", "bema_", "c3_",
+    "contribution_", "audit_", "system_",
   ];
-  
   return [...tables].sort((a, b) => {
     const aPriority = priorityPrefixes.findIndex(p => a.startsWith(p) || a === p.replace("_", ""));
     const bPriority = priorityPrefixes.findIndex(p => b.startsWith(p) || b === p.replace("_", ""));
-    
     const aOrder = aPriority === -1 ? 999 : aPriority;
     const bOrder = bPriority === -1 ? 999 : bPriority;
-    
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.localeCompare(b);
   });
@@ -190,12 +151,543 @@ interface ImportResult {
   error?: string;
 }
 
+// ─── Environment Sync Types ───
+interface RecordDiff {
+  id: string;
+  type: "missing_in_live" | "missing_in_test" | "mismatch";
+  testRecord?: Record<string, unknown>;
+  liveRecord?: Record<string, unknown>;
+  changedFields?: { field: string; testValue: unknown; liveValue: unknown }[];
+}
+
+interface TableAnalysis {
+  tableName: string;
+  testCount: number;
+  liveCount: number;
+  missingInLive: number;
+  missingInTest: number;
+  mismatches: number;
+  diffs: RecordDiff[];
+  error?: string;
+}
+
+interface AnalysisResponse {
+  success: boolean;
+  analyzedAt: string;
+  summary: {
+    tablesAnalyzed: number;
+    tablesWithDiffs: number;
+    tablesWithErrors: number;
+    totalDiffs: number;
+  };
+  results: TableAnalysis[];
+}
+
+interface SyncResponse {
+  success: boolean;
+  syncedAt: string;
+  summary: {
+    totalItems: number;
+    successCount: number;
+    failCount: number;
+    tablesAffected: string[];
+  };
+  results: { tableName: string; recordId: string; success: boolean; action: string; error?: string }[];
+}
+
+// ─── Environment Sync Component ───
+const EnvironmentSyncTab = () => {
+  const { toast } = useToast();
+  const { user } = useSupabaseAuth();
+  
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+  const [selectedDiffs, setSelectedDiffs] = useState<Set<string>>(new Set()); // "tableName::recordId"
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResponse | null>(null);
+  const [syncProgress, setSyncProgress] = useState(0);
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setSelectedDiffs(new Set());
+    setSyncResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("data-migration-analyze", {
+        body: {},
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      setAnalysisResult(data as AnalysisResponse);
+      
+      // Auto-expand tables with diffs
+      const tablesWithDiffs = new Set(
+        (data as AnalysisResponse).results
+          .filter(r => r.diffs.length > 0)
+          .map(r => r.tableName)
+      );
+      setExpandedTables(tablesWithDiffs);
+
+      toast({
+        title: "Analysis Complete",
+        description: `${data.summary.totalDiffs} discrepancies found across ${data.summary.tablesWithDiffs} tables`,
+      });
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      toast({
+        title: "Analysis Failed",
+        description: err.message || "An error occurred during analysis",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const getDiffKey = (tableName: string, recordId: string) => `${tableName}::${recordId}`;
+
+  const toggleDiff = (tableName: string, recordId: string) => {
+    const key = getDiffKey(tableName, recordId);
+    setSelectedDiffs(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleTable = (tableName: string, diffs: RecordDiff[]) => {
+    const syncableDiffs = diffs.filter(d => d.type !== "missing_in_test");
+    const allSelected = syncableDiffs.every(d => selectedDiffs.has(getDiffKey(tableName, d.id)));
+    
+    setSelectedDiffs(prev => {
+      const next = new Set(prev);
+      for (const d of syncableDiffs) {
+        const key = getDiffKey(tableName, d.id);
+        if (allSelected) next.delete(key);
+        else next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const selectAllSyncable = () => {
+    if (!analysisResult) return;
+    const next = new Set<string>();
+    for (const table of analysisResult.results) {
+      for (const d of table.diffs) {
+        if (d.type !== "missing_in_test") {
+          next.add(getDiffKey(table.tableName, d.id));
+        }
+      }
+    }
+    setSelectedDiffs(next);
+  };
+
+  const clearSelection = () => setSelectedDiffs(new Set());
+
+  const toggleExpand = (tableName: string) => {
+    setExpandedTables(prev => {
+      const next = new Set(prev);
+      if (next.has(tableName)) next.delete(tableName);
+      else next.add(tableName);
+      return next;
+    });
+  };
+
+  const handleSync = async () => {
+    setShowConfirm(false);
+    setIsSyncing(true);
+    setSyncProgress(10);
+    setSyncResult(null);
+
+    try {
+      if (!analysisResult) throw new Error("No analysis data");
+
+      // Build sync items from selection
+      const items: { tableName: string; recordId: string; type: string; testRecord: Record<string, unknown> }[] = [];
+
+      for (const table of analysisResult.results) {
+        for (const diff of table.diffs) {
+          const key = getDiffKey(table.tableName, diff.id);
+          if (selectedDiffs.has(key) && diff.type !== "missing_in_test" && diff.testRecord) {
+            items.push({
+              tableName: table.tableName,
+              recordId: diff.id,
+              type: diff.type,
+              testRecord: diff.testRecord,
+            });
+          }
+        }
+      }
+
+      if (items.length === 0) {
+        toast({ title: "Nothing to sync", description: "No syncable items selected", variant: "destructive" });
+        setIsSyncing(false);
+        return;
+      }
+
+      setSyncProgress(30);
+
+      const { data, error } = await supabase.functions.invoke("data-migration-sync", {
+        body: {
+          items,
+          userId: user?.id,
+          userCode: user?.email?.split("@")[0]?.substring(0, 5) || "ADMIN",
+        },
+      });
+
+      setSyncProgress(90);
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      setSyncResult(data as SyncResponse);
+      setSyncProgress(100);
+
+      const summary = (data as SyncResponse).summary;
+      toast({
+        title: "Sync Complete",
+        description: `${summary.successCount} records synced successfully${summary.failCount > 0 ? `, ${summary.failCount} failed` : ""}`,
+        variant: summary.failCount > 0 ? "destructive" : "default",
+      });
+    } catch (err: any) {
+      console.error("Sync error:", err);
+      toast({
+        title: "Sync Failed",
+        description: err.message || "An error occurred during sync",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const selectedCount = selectedDiffs.size;
+  const totalSyncable = analysisResult
+    ? analysisResult.results.reduce(
+        (sum, r) => sum + r.diffs.filter(d => d.type !== "missing_in_test").length,
+        0
+      )
+    : 0;
+
+  const getDiffTypeBadge = (type: RecordDiff["type"]) => {
+    switch (type) {
+      case "missing_in_live":
+        return <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"><Plus className="h-3 w-3 mr-1" />Missing in Live</Badge>;
+      case "missing_in_test":
+        return <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"><Minus className="h-3 w-3 mr-1" />Extra in Live</Badge>;
+      case "mismatch":
+        return <Badge className="bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30"><AlertTriangle className="h-3 w-3 mr-1" />Mismatch</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Action Bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <GitCompare className="h-6 w-6 text-primary" />
+              <div>
+                <h3 className="font-semibold">Test → Live Environment Sync</h3>
+                <p className="text-sm text-muted-foreground">
+                  Compare configuration and master data between test and live databases
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleAnalyze} disabled={isAnalyzing}>
+                {isAnalyzing ? (
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
+                ) : (
+                  <><GitCompare className="h-4 w-4 mr-2" />Analyze Differences</>
+                )}
+              </Button>
+              {analysisResult && selectedCount > 0 && (
+                <Button 
+                  variant="default" 
+                  onClick={() => setShowConfirm(true)} 
+                  disabled={isSyncing}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {isSyncing ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Syncing...</>
+                  ) : (
+                    <><ArrowRightLeft className="h-4 w-4 mr-2" />Sync {selectedCount} Record{selectedCount > 1 ? "s" : ""}</>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sync Progress */}
+      {isSyncing && (
+        <Card>
+          <CardContent className="pt-6">
+            <Progress value={syncProgress} />
+            <p className="text-xs text-center text-muted-foreground mt-2">{syncProgress}% complete</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Result */}
+      {syncResult && (
+        <Card className={syncResult.summary.failCount > 0 ? "border-destructive/30" : "border-green-500/30"}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              {syncResult.summary.failCount > 0 ? (
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              ) : (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              )}
+              Sync Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <div className="text-2xl font-bold">{syncResult.summary.totalItems}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950">
+                <div className="text-2xl font-bold text-green-700 dark:text-green-400">{syncResult.summary.successCount}</div>
+                <div className="text-xs text-muted-foreground">Succeeded</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950">
+                <div className="text-2xl font-bold text-destructive">{syncResult.summary.failCount}</div>
+                <div className="text-xs text-muted-foreground">Failed</div>
+              </div>
+            </div>
+            {syncResult.results.filter(r => !r.success).length > 0 && (
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-destructive">Failed Items:</h4>
+                {syncResult.results.filter(r => !r.success).map((r, i) => (
+                  <div key={i} className="text-xs text-destructive bg-destructive/5 p-2 rounded">
+                    <strong>{r.tableName}</strong> [{r.recordId}]: {r.error}
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="outline" className="mt-4 w-full" onClick={handleAnalyze} disabled={isAnalyzing}>
+              <RefreshCw className="h-4 w-4 mr-2" />Re-analyze to Verify
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Analysis Summary */}
+      {analysisResult && (
+        <>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-2xl font-bold">{analysisResult.summary.tablesAnalyzed}</div>
+                  <div className="text-xs text-muted-foreground">Tables Analyzed</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-2xl font-bold">{analysisResult.summary.tablesWithDiffs}</div>
+                  <div className="text-xs text-muted-foreground">With Differences</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-2xl font-bold">{analysisResult.summary.totalDiffs}</div>
+                  <div className="text-xs text-muted-foreground">Total Discrepancies</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-2xl font-bold">{selectedCount}/{totalSyncable}</div>
+                  <div className="text-xs text-muted-foreground">Selected to Sync</div>
+                </div>
+              </div>
+              {totalSyncable > 0 && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAllSyncable}>Select All Syncable</Button>
+                  <Button variant="outline" size="sm" onClick={clearSelection}>Clear Selection</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Table-by-table results */}
+          <div className="space-y-2">
+            {analysisResult.results
+              .filter(r => r.diffs.length > 0 || r.error)
+              .map(table => {
+                const syncableDiffs = table.diffs.filter(d => d.type !== "missing_in_test");
+                const allTableSelected = syncableDiffs.length > 0 && syncableDiffs.every(d => selectedDiffs.has(getDiffKey(table.tableName, d.id)));
+                const someTableSelected = syncableDiffs.some(d => selectedDiffs.has(getDiffKey(table.tableName, d.id)));
+                const isExpanded = expandedTables.has(table.tableName);
+
+                return (
+                  <Card key={table.tableName} className={table.error ? "border-destructive/30" : ""}>
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleExpand(table.tableName)}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 rounded-t-lg">
+                          {syncableDiffs.length > 0 && (
+                            <Checkbox
+                              checked={allTableSelected}
+                              ref={el => {
+                                if (el && someTableSelected && !allTableSelected) {
+                                  (el as any).indeterminate = true;
+                                }
+                              }}
+                              onCheckedChange={(e) => {
+                                e; // prevent propagation
+                                toggleTable(table.tableName, table.diffs);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          <span className="font-mono text-sm font-medium">{table.tableName}</span>
+                          <div className="flex items-center gap-2 ml-auto">
+                            {table.error && (
+                              <Badge variant="destructive" className="text-xs">{table.error.substring(0, 40)}</Badge>
+                            )}
+                            {table.missingInLive > 0 && (
+                              <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs">
+                                +{table.missingInLive} missing
+                              </Badge>
+                            )}
+                            {table.mismatches > 0 && (
+                              <Badge className="bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30 text-xs">
+                                {table.mismatches} changed
+                              </Badge>
+                            )}
+                            {table.missingInTest > 0 && (
+                              <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30 text-xs">
+                                {table.missingInTest} extra in live
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              Test: {table.testCount} / Live: {table.liveCount}
+                            </span>
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t px-4 pb-4 pt-2 space-y-2">
+                          {table.diffs.map(diff => {
+                            const key = getDiffKey(table.tableName, diff.id);
+                            const isSyncable = diff.type !== "missing_in_test";
+                            const isSelected = selectedDiffs.has(key);
+
+                            return (
+                              <div
+                                key={diff.id}
+                                className={`flex items-start gap-3 p-3 rounded-lg border text-sm ${
+                                  isSelected ? "border-primary/40 bg-primary/5" : "border-border"
+                                }`}
+                              >
+                                {isSyncable && (
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleDiff(table.tableName, diff.id)}
+                                    className="mt-0.5"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-mono text-xs text-muted-foreground truncate max-w-[200px]">{diff.id}</span>
+                                    {getDiffTypeBadge(diff.type)}
+                                  </div>
+                                  {diff.type === "mismatch" && diff.changedFields && (
+                                    <div className="mt-2 space-y-1">
+                                      {diff.changedFields.map(cf => (
+                                        <div key={cf.field} className="text-xs grid grid-cols-3 gap-2">
+                                          <span className="font-medium text-muted-foreground">{cf.field}</span>
+                                          <span className="text-green-700 dark:text-green-400 truncate" title={String(cf.testValue)}>
+                                            Test: {cf.testValue === null ? <em>null</em> : String(cf.testValue).substring(0, 60)}
+                                          </span>
+                                          <span className="text-red-700 dark:text-red-400 truncate" title={String(cf.liveValue)}>
+                                            Live: {cf.liveValue === null ? <em>null</em> : String(cf.liveValue).substring(0, 60)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {diff.type === "missing_in_live" && diff.testRecord && (
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                      {Object.entries(diff.testRecord)
+                                        .filter(([k]) => !["created_at", "updated_at"].includes(k))
+                                        .slice(0, 5)
+                                        .map(([k, v]) => (
+                                          <span key={k} className="inline-block mr-3">
+                                            <span className="font-medium">{k}:</span> {String(v).substring(0, 30)}
+                                          </span>
+                                        ))}
+                                    </div>
+                                  )}
+                                  {diff.type === "missing_in_test" && (
+                                    <div className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                                      This record exists in Live but not in Test (will not be deleted)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              })}
+
+            {/* Tables with no diffs */}
+            {analysisResult.results.filter(r => r.diffs.length === 0 && !r.error).length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    Tables in Sync ({analysisResult.results.filter(r => r.diffs.length === 0 && !r.error).length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisResult.results
+                      .filter(r => r.diffs.length === 0 && !r.error)
+                      .map(r => (
+                        <Badge key={r.tableName} variant="outline" className="text-xs font-mono">
+                          {r.tableName} ({r.testCount})
+                        </Badge>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        title="Confirm Sync to Live"
+        description={`You are about to push ${selectedCount} selected record(s) from the Test database to the Live database. This will insert missing records and update mismatched records in Live. This action cannot be undone. Are you sure you want to proceed?`}
+        confirmLabel={`Yes, Sync ${selectedCount} Records`}
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleSync}
+        isLoading={isSyncing}
+      />
+    </div>
+  );
+};
+
+// ─── Main DataMigration Component ───
 const DataMigration = () => {
   const { toast } = useToast();
   const { user } = useSupabaseAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Fetch all tables from database
   const [allTables, setAllTables] = useState<string[]>([]);
   const [isLoadingTables, setIsLoadingTables] = useState(true);
   
@@ -207,7 +699,6 @@ const DataMigration = () => {
         setAllTables((data || []).map((t: { table_name: string }) => t.table_name));
       } catch (err) {
         console.error('Failed to fetch tables:', err);
-        // Fallback to empty - user can refresh
         setAllTables([]);
       } finally {
         setIsLoadingTables(false);
@@ -216,12 +707,9 @@ const DataMigration = () => {
     fetchTables();
   }, []);
   
-  // Build dynamic categories from fetched tables
   const tableCategories = useMemo(() => buildTableCategories(allTables), [allTables]);
-  
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   
-  // Initialize selected categories once tables are loaded
   useEffect(() => {
     if (Object.keys(tableCategories).length > 0 && selectedCategories.size === 0) {
       setSelectedCategories(new Set(Object.keys(tableCategories)));
@@ -240,9 +728,7 @@ const DataMigration = () => {
     const tables: string[] = [];
     selectedCategories.forEach((category) => {
       const cat = tableCategories[category];
-      if (cat) {
-        tables.push(...cat.tables);
-      }
+      if (cat) tables.push(...cat.tables);
     });
     return tables;
   }, [selectedCategories, tableCategories]);
@@ -250,26 +736,15 @@ const DataMigration = () => {
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(category)) {
-        newSet.delete(category);
-      } else {
-        newSet.add(category);
-      }
+      if (newSet.has(category)) newSet.delete(category);
+      else newSet.add(category);
       return newSet;
     });
   };
 
-  const handleSelectAll = () => {
-    setSelectedCategories(new Set(Object.keys(tableCategories)));
-  };
-
-  const handleSelectNone = () => {
-    setSelectedCategories(new Set());
-  };
-
-  const handleSelectConfig = () => {
-    setSelectedCategories(new Set(["Configuration", "Organization", "Workflows", "Security", "MasterData"]));
-  };
+  const handleSelectAll = () => setSelectedCategories(new Set(Object.keys(tableCategories)));
+  const handleSelectNone = () => setSelectedCategories(new Set());
+  const handleSelectConfig = () => setSelectedCategories(new Set(["Configuration", "Organization", "Workflows", "Security", "MasterData"]));
   
   const handleRefreshTables = async () => {
     setIsLoadingTables(true);
@@ -289,7 +764,6 @@ const DataMigration = () => {
   const handleExport = async () => {
     setIsExporting(true);
     setExportComplete(false);
-    
     try {
       const tables = getSelectedTables();
       const exportData: Record<string, any> = {
@@ -301,17 +775,11 @@ const DataMigration = () => {
         meta: {},
         data: {},
       };
-
       let totalRecords = 0;
-
       for (const table of tables) {
         try {
-          const { data, error } = await supabase
-            .from(table as any)
-            .select("*");
-
+          const { data, error } = await supabase.from(table as any).select("*");
           if (error) {
-            console.warn(`Error exporting ${table}:`, error.message);
             exportData.meta[table] = { count: 0, error: error.message };
             exportData.data[table] = [];
           } else {
@@ -320,16 +788,11 @@ const DataMigration = () => {
             totalRecords += data?.length || 0;
           }
         } catch (err) {
-          console.warn(`Failed to export ${table}:`, err);
           exportData.meta[table] = { count: 0, error: "Export failed" };
           exportData.data[table] = [];
         }
       }
-
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-        type: "application/json" 
-      });
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -338,21 +801,12 @@ const DataMigration = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       setLastExportCount(totalRecords);
       setExportComplete(true);
-      
-      toast({
-        title: "Export Complete",
-        description: `Exported ${tables.length} tables with ${totalRecords} records`,
-      });
+      toast({ title: "Export Complete", description: `Exported ${tables.length} tables with ${totalRecords} records` });
     } catch (error) {
       console.error("Export error:", error);
-      toast({
-        title: "Export Failed",
-        description: "An error occurred during export",
-        variant: "destructive",
-      });
+      toast({ title: "Export Failed", description: "An error occurred during export", variant: "destructive" });
     } finally {
       setIsExporting(false);
     }
@@ -368,34 +822,19 @@ const DataMigration = () => {
 
   const handleImport = async () => {
     if (!importFile) return;
-
     setIsImporting(true);
     setImportProgress(0);
     setImportResults([]);
-
     try {
       const text = await importFile.text();
       const data = JSON.parse(text);
-
-      if (!data.tableOrder || !data.data) {
-        throw new Error("Invalid export file format");
-      }
-
+      if (!data.tableOrder || !data.data) throw new Error("Invalid export file format");
       setImportProgress(20);
-
-      // Call the edge function for faster import with service role
-      // Pass the full seed data object which contains tableOrder and data properties
       const { data: response, error } = await supabase.functions.invoke("import-seed-data", {
         body: { seedData: data },
       });
-
       setImportProgress(80);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Convert edge function response to our result format
+      if (error) throw new Error(error.message);
       const results: ImportResult[] = [];
       if (response?.results) {
         for (const [table, result] of Object.entries(response.results as Record<string, { success: number; errors: string[] }>)) {
@@ -407,22 +846,13 @@ const DataMigration = () => {
           });
         }
       }
-
-      // Sort results by import order
       const importOrder = getTableImportOrder(results.map(r => r.table));
-      results.sort((a, b) => {
-        const aIndex = importOrder.indexOf(a.table);
-        const bIndex = importOrder.indexOf(b.table);
-        return aIndex - bIndex;
-      });
-
+      results.sort((a, b) => importOrder.indexOf(a.table) - importOrder.indexOf(b.table));
       setImportResults(results);
       setImportProgress(100);
-      
       const successCount = results.filter(r => r.success && r.inserted > 0).length;
       const failCount = results.filter(r => !r.success).length;
       const totalRecords = results.reduce((sum, r) => sum + r.inserted, 0);
-      
       toast({
         title: "Import Complete",
         description: `${successCount} tables imported with ${totalRecords} total records${failCount > 0 ? `, ${failCount} had errors` : ""}`,
@@ -430,11 +860,7 @@ const DataMigration = () => {
       });
     } catch (error: any) {
       console.error("Import error:", error);
-      toast({
-        title: "Import Failed",
-        description: error.message || "An error occurred during import",
-        variant: "destructive",
-      });
+      toast({ title: "Import Failed", description: error.message || "An error occurred during import", variant: "destructive" });
     } finally {
       setIsImporting(false);
     }
@@ -443,23 +869,14 @@ const DataMigration = () => {
   const handleLoadSeedFile = async () => {
     try {
       const response = await fetch("/seed-data-2026-01-12-2.json");
-      if (!response.ok) {
-        throw new Error("Failed to load seed file");
-      }
+      if (!response.ok) throw new Error("Failed to load seed file");
       const blob = await response.blob();
       const file = new File([blob], "seed-data-2026-01-12-2.json", { type: "application/json" });
       setImportFile(file);
       setImportResults([]);
-      toast({
-        title: "Seed File Loaded",
-        description: "The seed data file is ready to import",
-      });
+      toast({ title: "Seed File Loaded", description: "The seed data file is ready to import" });
     } catch (error: any) {
-      toast({
-        title: "Load Failed",
-        description: error.message || "Failed to load seed file",
-        variant: "destructive",
-      });
+      toast({ title: "Load Failed", description: error.message || "Failed to load seed file", variant: "destructive" });
     }
   };
 
@@ -472,237 +889,148 @@ const DataMigration = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Data Migration</h1>
           <p className="text-muted-foreground">
-            Export and import database data for migrating to remix projects
+            Export, import, and sync database data across environments
           </p>
         </div>
       </div>
 
-      {/* Instructions Card */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <h3 className="font-semibold">How to use</h3>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                <li>
-                  <strong>Export:</strong> Select categories and click "Export Data" to download a JSON file
-                </li>
-                <li>
-                  <strong>Import:</strong> In your remix project, upload the JSON file and click "Start Import"
-                </li>
-                <li>
-                  <span className="text-primary font-medium">Configuration data</span> (
-                  <span className="text-primary">roles</span>,{" "}
-                  <span className="text-primary">permissions</span>,{" "}
-                  <span className="text-primary">workflows</span>) is recommended for migration
-                </li>
-              </ol>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="export-import">
+        <TabsList>
+          <TabsTrigger value="export-import">Export / Import</TabsTrigger>
+          <TabsTrigger value="env-sync">
+            <GitCompare className="h-4 w-4 mr-1" />
+            Environment Sync
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Export Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              Export Data
-            </CardTitle>
-            <CardDescription>
-              Select which data categories to export
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Quick Select Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={isLoadingTables}>
-                Select All
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectNone} disabled={isLoadingTables}>
-                Select None
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectConfig} disabled={isLoadingTables}>
-                Config Only
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRefreshTables} 
-                disabled={isLoadingTables}
-              >
-                <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
+        <TabsContent value="export-import" className="space-y-6">
+          {/* Instructions Card */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold">How to use</h3>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                    <li><strong>Export:</strong> Select categories and click "Export Data" to download a JSON file</li>
+                    <li><strong>Import:</strong> Upload a JSON file and click "Start Import"</li>
+                    <li><span className="text-primary font-medium">Configuration data</span> (roles, permissions, workflows) is recommended for migration</li>
+                  </ol>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Category Checkboxes */}
-            <div className="space-y-3 border rounded-lg p-4 max-h-[400px] overflow-y-auto">
-              {isLoadingTables ? (
-                <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
-              ) : Object.keys(tableCategories).length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">No tables found</div>
-              ) : (
-                Object.entries(tableCategories).map(([category, config]) => (
-                  <div key={category} className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        id={category}
-                        checked={selectedCategories.has(category)}
-                        onCheckedChange={() => handleCategoryToggle(category)}
-                      />
-                      <label
-                        htmlFor={category}
-                        className="text-sm font-medium cursor-pointer flex items-center gap-2"
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Export Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" />Export Data</CardTitle>
+                <CardDescription>Select which data categories to export</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={isLoadingTables}>Select All</Button>
+                  <Button variant="outline" size="sm" onClick={handleSelectNone} disabled={isLoadingTables}>Select None</Button>
+                  <Button variant="outline" size="sm" onClick={handleSelectConfig} disabled={isLoadingTables}>Config Only</Button>
+                  <Button variant="outline" size="sm" onClick={handleRefreshTables} disabled={isLoadingTables}>
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />Refresh
+                  </Button>
+                </div>
+                <div className="space-y-3 border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  {isLoadingTables ? (
+                    <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
+                  ) : Object.keys(tableCategories).length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">No tables found</div>
+                  ) : (
+                    Object.entries(tableCategories).map(([category, config]) => (
+                      <div key={category} className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <Checkbox id={category} checked={selectedCategories.has(category)} onCheckedChange={() => handleCategoryToggle(category)} />
+                          <label htmlFor={category} className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                            {category}
+                            <Badge variant="secondary" className="text-xs">{config.tables.length} tables</Badge>
+                          </label>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">{config.tables.join(", ")}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">Selected: <strong>{totalSelectedTables} tables</strong></div>
+                <Button className="w-full" onClick={handleExport} disabled={isExporting || totalSelectedTables === 0}>
+                  {isExporting ? <>Exporting...</> : <><Download className="mr-2 h-4 w-4" />Export Data</>}
+                </Button>
+                {exportComplete && (
+                  <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800 dark:text-green-200">
+                      Export Complete - Exported {lastExportCount} records successfully
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Import Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" />Import Data</CardTitle>
+                <CardDescription>Upload an exported JSON file to import data</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button variant="outline" className="w-full mb-4" onClick={handleLoadSeedFile}>
+                  <FileJson className="mr-2 h-4 w-4" />Load Seed Data File
+                </Button>
+                <div
+                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
+                  <FileJson className="h-12 w-12 mx-auto text-primary/60 mb-3" />
+                  {importFile ? (
+                    <p className="text-sm font-medium">{importFile.name}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Click to select a <span className="text-primary font-medium">JSON</span> file</p>
+                  )}
+                </div>
+                <Button className="w-full" onClick={handleImport} disabled={isImporting || !importFile}>
+                  {isImporting ? <>Importing...</> : <><Upload className="mr-2 h-4 w-4" />Start Import</>}
+                </Button>
+                {isImporting && (
+                  <div className="space-y-2">
+                    <Progress value={importProgress} />
+                    <p className="text-xs text-center text-muted-foreground">{importProgress}% complete</p>
+                  </div>
+                )}
+                {importResults.length > 0 && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    <h4 className="font-medium text-sm">Import Results:</h4>
+                    {importResults.map((result) => (
+                      <div
+                        key={result.table}
+                        className={`flex items-center justify-between p-2 rounded text-sm ${
+                          result.success ? "bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200" : "bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200"
+                        }`}
                       >
-                        {category}
-                        <Badge variant="secondary" className="text-xs">
-                          {config.tables.length} tables
-                        </Badge>
-                      </label>
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-6">
-                      {config.tables.join(", ")}
-                    </p>
+                        <div className="flex items-center gap-2">
+                          {result.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                          <span>{result.table}</span>
+                        </div>
+                        <span>{result.success ? `${result.inserted} records` : result.error?.substring(0, 50)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-            <div className="text-sm text-muted-foreground">
-              Selected: <strong>{totalSelectedTables} tables</strong>
-            </div>
-
-            <Button 
-              className="w-full" 
-              onClick={handleExport}
-              disabled={isExporting || totalSelectedTables === 0}
-            >
-              {isExporting ? (
-                <>Exporting...</>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Data
-                </>
-              )}
-            </Button>
-
-            {exportComplete && (
-              <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800 dark:text-green-200">
-                  Export Complete - Exported {lastExportCount} records successfully
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Import Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Import Data
-            </CardTitle>
-            <CardDescription>
-              Upload an exported JSON file to import data
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Quick Load Seed File */}
-            <Button 
-              variant="outline" 
-              className="w-full mb-4" 
-              onClick={handleLoadSeedFile}
-            >
-              <FileJson className="mr-2 h-4 w-4" />
-              Load Seed Data File
-            </Button>
-
-            {/* File Upload Area */}
-            <div
-              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <FileJson className="h-12 w-12 mx-auto text-primary/60 mb-3" />
-              {importFile ? (
-                <p className="text-sm font-medium">{importFile.name}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Click to select a <span className="text-primary font-medium">JSON</span> file
-                </p>
-              )}
-            </div>
-
-            <Button 
-              className="w-full" 
-              onClick={handleImport}
-              disabled={isImporting || !importFile}
-            >
-              {isImporting ? (
-                <>Importing...</>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Start Import
-                </>
-              )}
-            </Button>
-
-            {/* Import Progress */}
-            {isImporting && (
-              <div className="space-y-2">
-                <Progress value={importProgress} />
-                <p className="text-xs text-center text-muted-foreground">
-                  {importProgress}% complete
-                </p>
-              </div>
-            )}
-
-            {/* Import Results */}
-            {importResults.length > 0 && (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                <h4 className="font-medium text-sm">Import Results:</h4>
-                {importResults.map((result) => (
-                  <div
-                    key={result.table}
-                    className={`flex items-center justify-between p-2 rounded text-sm ${
-                      result.success 
-                        ? "bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200" 
-                        : "bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {result.success ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" />
-                      )}
-                      <span>{result.table}</span>
-                    </div>
-                    <span>
-                      {result.success 
-                        ? `${result.inserted} records` 
-                        : result.error?.substring(0, 50)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="env-sync">
+          <EnvironmentSyncTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
