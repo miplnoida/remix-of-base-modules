@@ -50,6 +50,13 @@ const SelfEmployedContributionList: React.FC = () => {
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Payment modals
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payModalRecord, setPayModalRecord] = useState<SeContributionRecord | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptModalRecord, setReceiptModalRecord] = useState<SeContributionRecord | null>(null);
+  const [appliedReceipt, setAppliedReceipt] = useState<OfflinePaymentReceipt | null>(null);
+
   useEffect(() => {
     getSelfEmployedDropdown().then(res => setSeList(res.data?.self_employed || [])).catch(() => {});
   }, []);
