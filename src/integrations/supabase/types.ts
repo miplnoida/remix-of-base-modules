@@ -20888,6 +20888,10 @@ export type Database = {
         Args: { p_c3_id: string }
         Returns: boolean
       }
+      is_employer: { Args: { p_regno: string }; Returns: boolean }
+      is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
+      is_self_employed: { Args: { p_self_ref_no: string }; Returns: boolean }
+      is_voluntary_contributor: { Args: { p_ssn: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           _action_type: string
@@ -20991,6 +20995,15 @@ export type Database = {
       render_email_template: {
         Args: { p_template_id: string; p_variables?: Json }
         Returns: string
+      }
+      resolve_entity_type: {
+        Args: { p_identifier: string }
+        Returns: {
+          entity_id: string
+          entity_name: string
+          entity_status: string
+          entity_type: string
+        }[]
       }
       resolve_holiday_pay_policy: {
         Args: {
@@ -21127,6 +21140,15 @@ export type Database = {
       validate_biweekly_week: {
         Args: { p_month: number; p_week_index: number; p_year: number }
         Returns: Json
+      }
+      validate_entity: {
+        Args: { p_expected_type: string; p_identifier: string }
+        Returns: {
+          entity_name: string
+          entity_status: string
+          error_message: string
+          is_valid: boolean
+        }[]
       }
       validate_meeting_office_hours: {
         Args: {
