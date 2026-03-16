@@ -325,6 +325,43 @@ const C3ContributionList: React.FC = () => {
         data={previewData}
         loading={previewLoading}
       />
+
+      {/* Payment Select Modal ($ Pay) */}
+      {payModalRecord && (
+        <PaymentSelectModal
+          open={payModalOpen}
+          onClose={() => { setPayModalOpen(false); setPayModalRecord(null); }}
+          headerId={payModalRecord.header_id}
+          entityType="employer"
+          periodMonth={payModalRecord.month}
+          periodYear={payModalRecord.year}
+          onPaymentApplied={(receipt) => {
+            setAppliedReceipt(receipt);
+            setPayModalOpen(false);
+            setPayModalRecord(null);
+            setReceiptModalRecord(payModalRecord);
+            setReceiptModalOpen(true);
+            // Refresh the list
+            const compId = Number(selectedCompanyId);
+            if (compId) {
+              getContributionList({ company_id: compId }).then(res => {
+                setContributions(res.data?.contributions || []);
+              }).catch(() => {});
+            }
+          }}
+        />
+      )}
+
+      {/* Payment Receipt Modal (Paid) */}
+      {receiptModalRecord && (
+        <PaymentReceiptModal
+          open={receiptModalOpen}
+          onClose={() => { setReceiptModalOpen(false); setReceiptModalRecord(null); setAppliedReceipt(null); }}
+          headerId={receiptModalRecord.header_id}
+          entityType="employer"
+          receiptData={appliedReceipt}
+        />
+      )}
     </div>
   );
 };

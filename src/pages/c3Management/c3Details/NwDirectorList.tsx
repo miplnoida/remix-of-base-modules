@@ -229,13 +229,20 @@ const NwDirectorList: React.FC = () => {
                         {c.payment_status === 'Paid' ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?mode=paid&companyId=${selectedCompanyId}`)}
+                            onClick={() => {
+                              setReceiptModalRecord(c);
+                              setAppliedReceipt(null);
+                              setReceiptModalOpen(true);
+                            }}
                           >
                             Paid <Printer className="h-3 w-3" />
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
                           <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?companyId=${selectedCompanyId}`)}>
+                            onClick={() => {
+                              setPayModalRecord(c);
+                              setPayModalOpen(true);
+                            }}>
                             $ Pay
                           </Button>
                         ) : c.payment_status === 'BEMA' ? (
