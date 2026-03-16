@@ -166,3 +166,12 @@ export function useDuplicateBatchMode() {
   const mode = config?.config_value?.mode || 'warning';
   return { mode: mode as 'warning' | 'restriction', isLoading };
 }
+
+// ── Fetch C3 payment types config ──
+export function useC3PaymentTypes() {
+  const { data: config, isLoading } = usePaymentConfig('c3_payment_types');
+  const c3PaymentTypes = (!isLoading && config && Array.isArray(config.config_value))
+    ? (config.config_value as string[])
+    : [];
+  return { c3PaymentTypes, isLoading };
+}
