@@ -46,8 +46,8 @@ export async function updateCyberSourceSettings(id: number, merchant_id: string,
   await callWizApi('update_cybersource_settings', { id, merchant_id, key_id, secret_key });
 }
 
-export async function toggleCyberSourceStatus(id: number, login_id: string, password: string): Promise<void> {
-  await callWizApi('toggle_cybersource_status', { id, login_id, password });
+export async function toggleCyberSourceStatus(id: number): Promise<void> {
+  await callWizApi('toggle_cybersource_status', { id });
 }
 
 // ─── Reconciliation Types ────────────────────────────
