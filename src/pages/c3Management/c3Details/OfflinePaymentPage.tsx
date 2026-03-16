@@ -505,16 +505,6 @@ const OfflinePaymentPage: React.FC = () => {
     }).finally(() => setLoading(false));
   }, [id, type, companyIdParam]);
 
-  // Also try loading with company_id from page data for employer/nwd previews
-  useEffect(() => {
-    if (!pageData?.c3_details?.company_id || !id) return;
-    const companyId = pageData.c3_details.company_id;
-    if (type === 'employer') {
-      getContributionPreview(id, companyId).then(res => setReportData(res.data)).catch(() => {});
-    } else if (type === 'nwd') {
-      getNwdContributionPreview(id, companyId).then(res => setReportData(res.data)).catch(() => {});
-    }
-  }, [pageData?.c3_details?.company_id, id, type]);
 
   const handlePrint = () => {
     const content = printRef.current;
