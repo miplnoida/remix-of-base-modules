@@ -113,8 +113,13 @@ export async function getReconciliationList(filters: {
   return res.data || { total_records: 0, page_number: 0, page_size: 10, total_pages: 0, records: [] };
 }
 
-export async function getReconciliationExport(): Promise<ReconciliationRecord[]> {
-  const res = await callWizApi('get_reconciliation_export');
+export async function getReconciliationExport(filters?: {
+  from_date?: string | null;
+  to_date?: string | null;
+  status?: string | null;
+  card_holder_name?: string | null;
+}): Promise<ReconciliationRecord[]> {
+  const res = await callWizApi('get_reconciliation_export', filters || {});
   return res.data?.records || res.data || [];
 }
 
