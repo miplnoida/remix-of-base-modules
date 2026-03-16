@@ -16,6 +16,7 @@ import {
   toggleCyberSourceStatus,
   type CyberSourceSetting,
 } from '@/services/wizReconciliationService';
+import { supabase } from '@/integrations/supabase/client';
 
 const CyberSourceSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -60,25 +61,25 @@ const CyberSourceSettings: React.FC = () => {
     setToggleErrors({});
   };
 
-  const validatePassword = (pwd: string): string | null => {
-    if (!pwd) return 'Password is required';
-    if (pwd.length < 6) return 'Min 6 characters';
-    if (!/[A-Z]/.test(pwd)) return 'Must contain uppercase';
-    if (!/[a-z]/.test(pwd)) return 'Must contain lowercase';
-    if (!/[0-9]/.test(pwd)) return 'Must contain digit';
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return 'Must contain special character';
-    return null;
-  };
 
   const handleToggleSave = async () => {
     const errors: Record<string, string> = {};
-    if (!loginId.trim()) errors.loginId = 'UserId is required';
-    const pwdErr = validatePassword(password);
-    if (pwdErr) errors.password = pwdErr;
+    if (!loginId.trim()) errors.loginId = 'Email is required';
+    if (!password.trim()) errors.password = 'Password is required';
     if (Object.keys(errors).length) { setToggleErrors(errors); return; }
 
     try {
       setToggleSubmitting(true);
+      // Validate user against this project's auth
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: loginId.trim(),
+        password: password,
+      });
+      if (authError) {
+        toast.error('Authentication failed: ' + authError.message);
+        return;
+      }
+      // User verified — now call C3-Wizard to toggle status
       await toggleCyberSourceStatus(toggleRow!.id, loginId, password);
       toast.success('Status Change Success');
       setToggleRow(null);
@@ -191,7 +192,7 @@ const CyberSourceSettings: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>UserId</Label>
+              <Label>Email</Label>
               <Input value={loginId} onChange={(e) => { setLoginId(e.target.value); setToggleErrors(p => ({...p, loginId: ''})); }} />
               {toggleErrors.loginId && <p className="text-xs text-destructive mt-1">{toggleErrors.loginId}</p>}
             </div>

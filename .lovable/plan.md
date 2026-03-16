@@ -1,27 +1,71 @@
-# Plan: CyberSource Toggle — Confirm Current Implementation is Correct
 
-## Analysis
+# Internal Audit Lifecycle Enhancement Plan
 
-The current implementation **already does what you described**:
+## Implementation Status
 
-1. When toggling Active/Inactive, a "Confirm Action" modal opens asking for **UserId** and **Password**
-2. These credentials are sent to the **C3-Wizard API** via `toggleCyberSourceStatus(id, login_id, password)` — which calls the `toggle_cybersource_status` action on `wiz-admin-api`
-3. The C3-Wizard backend validates the user belongs to that system before allowing the status change
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-## What's Already Working
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-- `CyberSourceSettings.tsx` line 82: calls `toggleCyberSourceStatus(toggleRow!.id, loginId, password)`
-- `wizReconciliationService.ts` line 49-51: sends `{ id, login_id, password }` to the C3-Wizard `wiz-admin-api` endpoint
-- No local Supabase auth is involved — verification is entirely delegated to C3-Wizard
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-## Conclusion
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-**No code changes are needed.** The toggle verification flow already calls the C3-Wizard API with the entered credentials, and the C3-Wizard backend handles user validation. The screenshot you shared confirms the modal is working as expected.
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-If the C3-Wizard API is rejecting valid credentials or not responding correctly, that would be a backend issue on the C3-Wizard side rather than a frontend implementation issue.  
-  
-  
-Note: It should not be validated from the c3-wizard exposed apis, it should be validated from this project that the user who wants to change the status is legitimate or same who loggin.  
-so this will call the users database in this project because in the c3-wizard theres only a self and employers users.
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
-&nbsp;
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
+
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
+
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`
