@@ -20956,7 +20956,7 @@ export type Database = {
       }
       is_employer: { Args: { p_regno: string }; Returns: boolean }
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
-      is_self_employed: { Args: { p_self_ref_no: string }; Returns: boolean }
+      is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
       is_voluntary_contributor: { Args: { p_ssn: string }; Returns: boolean }
       log_audit_event: {
         Args: {
