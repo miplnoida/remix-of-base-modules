@@ -73,8 +73,11 @@ const CyberSourceSettings: React.FC = () => {
 
     try {
       setToggleSubmitting(true);
-      // Validate user against this project's auth
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      // Use a non-persistent client so signInWithPassword doesn't disrupt current session
+      const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const { error: authError } = await tempClient.auth.signInWithPassword({
         email: loginId.trim(),
         password: password,
       });
