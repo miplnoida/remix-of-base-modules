@@ -132,6 +132,6 @@ export const ENTITY_TYPE_LABELS: Record<EntityType | 'IP_VC', string> = {
 export const ENTITY_TYPE_TABLE_MAP: Record<EntityType, { table: string; idColumn: string }> = {
   ER: { table: 'er_master', idColumn: 'regno' },
   IP: { table: 'ip_master', idColumn: 'ssn' },
-  SE: { table: 'ip_self_employ', idColumn: 'self_ref_no' },
+  SE: { table: 'ip_self_employ', idColumn: 'ssn' },
   VC: { table: 'ip_master', idColumn: 'ssn' },
 };
