@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import ssbLogo from '@/assets/stkitts-logo.png';
 import {
-  getOfflinePaymentPage,
   getContributionPreview,
   getNwdContributionPreview,
   getSeContributionPreview,
