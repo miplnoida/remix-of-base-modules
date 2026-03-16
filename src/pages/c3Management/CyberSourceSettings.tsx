@@ -123,7 +123,7 @@ const CyberSourceSettings: React.FC = () => {
     <PageShell
       title="CyberSource Settings"
       breadcrumbs={[
-        { label: 'Dashboard', href: '/c3-management/dashboard' },
+        { label: 'Admin Dashboard', href: '/c3-management/dashboard' },
         { label: 'CyberSource Settings' },
       ]}
       isLoading={loading}

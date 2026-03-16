@@ -22,21 +22,6 @@ async function callWizApi<T = any>(action: string, params: Record<string, any> =
   return json;
 }
 
-async function callWizApiMultipart(action: string, formData: FormData): Promise<any> {
-  formData.append('action', action);
-  const res = await fetch(WIZ_API_URL, {
-    method: "POST",
-    headers: {
-      "x-admin-api-key": WIZ_ADMIN_API_KEY,
-    },
-    body: formData,
-  });
-  const json = await res.json();
-  if (!res.ok || json.success === false) {
-    throw new Error(json.message || json.error || `API error: ${res.status}`);
-  }
-  return json;
-}
 
 // ─── CyberSource Settings Types ──────────────────────
 
@@ -113,16 +98,18 @@ export async function getReconciliationList(filters: {
   return res.data || { total_records: 0, page_number: 0, page_size: 10, total_pages: 0, records: [] };
 }
 
-export async function getReconciliationExport(): Promise<ReconciliationRecord[]> {
-  const res = await callWizApi('get_reconciliation_export');
+export async function getReconciliationExport(filters?: {
+  from_date?: string | null;
+  to_date?: string | null;
+  status?: string | null;
+  card_holder_name?: string | null;
+}): Promise<ReconciliationRecord[]> {
+  const res = await callWizApi('get_reconciliation_export', filters || {});
   return res.data?.records || res.data || [];
 }
 
-export async function uploadCyberSourceCsv(file: File, user_id: number): Promise<{ inserted_count: number; skipped_duplicates: number }> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('user_id', String(user_id));
-  const res = await callWizApiMultipart('upload_cybersource_csv', formData);
+export async function uploadCyberSourceCsv(csv_content: string, user_id: number): Promise<{ inserted_count: number; skipped_duplicates: number; auto_reconciled: number }> {
+  const res = await callWizApi('upload_cybersource_csv', { csv_content, user_id });
   return res.data || {};
 }
 
