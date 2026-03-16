@@ -16,6 +16,7 @@ import {
   toggleCyberSourceStatus,
   type CyberSourceSetting,
 } from '@/services/wizReconciliationService';
+import { supabase } from '@/integrations/supabase/client';
 
 const CyberSourceSettings: React.FC = () => {
   const navigate = useNavigate();
