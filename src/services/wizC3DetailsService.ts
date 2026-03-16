@@ -50,6 +50,7 @@ export interface C3ContributionRecord {
   is_imported_from_bema: boolean;
   payment_status: string;
   payment_id: number | null;
+  transaction_id?: string | null;
 }
 
 export interface NwdContributionRecord {
@@ -70,6 +71,7 @@ export interface NwdContributionRecord {
   is_imported_from_bema: boolean;
   payment_status: string;
   payment_id: number | null;
+  transaction_id?: string | null;
 }
 
 export interface SeContributionRecord {
@@ -88,6 +90,7 @@ export interface SeContributionRecord {
   is_paid: boolean;
   payment_status: string;
   payment_id: number | null;
+  transaction_id?: string | null;
 }
 
 export interface SelfEmployedDropdownItem {
@@ -95,6 +98,79 @@ export interface SelfEmployedDropdownItem {
   social_security_number: string;
   name: string;
   display: string;
+}
+
+// ─── Offline Payment Types ────────────────────────────
+
+export interface OfflinePaymentPageData {
+  c3_details: {
+    period: string;
+    period_month: string;
+    period_year: string;
+    creation_date: string;
+    schedule: number;
+    is_nil_return: boolean;
+    wages: number;
+    ss_contributions: number;
+    lv_contributions: number;
+    pe_contributions: number;
+    ss_penalty: number;
+    lv_penalty: number;
+    pe_penalty: number;
+    total: number;
+    company_id: number;
+    company_name: string;
+    registration_number: string;
+    trade_name: string;
+    address: string;
+  };
+  existing_payment: any | null;
+  is_paid: boolean;
+}
+
+export interface BimaSearchResult {
+  batch: {
+    batchNumber: string;
+    batchDate: string;
+  };
+  mopCode: string;
+  totalAmount: number;
+  payments: any[];
+}
+
+export interface TransactionReceiptData {
+  refCustomerName: string;
+  paymentGatewayTransactionID: string;
+  paymentStatus: string;
+  paymentAmount: number;
+  createTime: string;
+  receiptNumber: string;
+  regNo: string;
+  period: string;
+  bankName: string | null;
+  checkNum: string | null;
+  checkDate: string | null;
+  jvNumber: string | null;
+  jvDate: string | null;
+  transactionDate: string;
+  bimaRefNum: string;
+  mode: string;
+  totalSscontributions: number | null;
+  totalSspenalty: number | null;
+  totalLevy: number | null;
+  totalLevyeepenalty: number | null;
+  totalServayance: number | null;
+  totalPepenalty: number | null;
+}
+
+export interface SubmitPaymentResult {
+  paymentStatus: string;
+  mode: string;
+  bimaRefNum: string;
+  paymentGatewayTransactionID: string;
+  needToPay: number;
+  refCustomerName: string;
+  transactionDate: string;
 }
 
 // ─── API Functions ────────────────────────────────────
@@ -140,7 +216,6 @@ export async function deleteContribution(headerId: number, type: 'employer' | 'n
 }
 
 // ─── Preview APIs ─────────────────────────────────────
-// These call the existing c3-preview or equivalent actions
 
 export async function getContributionPreview(headerId: number, companyId: number) {
   return callWizApi<any>('get_contribution_preview', { header_id: headerId, company_id: companyId });
@@ -154,132 +229,60 @@ export async function getSeContributionPreview(contributionId: number) {
   return callWizApi<any>('get_se_contribution_preview', { contribution_id: contributionId });
 }
 
-// ─── Offline Payment APIs ─────────────────────────────
+// ─── Offline Payment APIs (Legacy-aligned) ────────────
 
-export interface OfflinePaymentPageData {
-  c3_details: {
-    period: string;
-    period_month: string;
-    period_year: string;
-    creation_date: string;
-    schedule: number;
-    is_nil_return: boolean;
-    wages: number;
-    ss_contributions: number;
-    lv_contributions: number;
-    pe_contributions: number;
-    ss_penalty: number;
-    lv_penalty: number;
-    pe_penalty: number;
-    total: number;
-    company_id: number;
-    company_name: string;
-    registration_number: string;
-    trade_name: string;
-    address: string;
-  };
-  existing_payment: {
-    payment_id: number;
-    receipt_number: string;
-    batch_number: string;
-    payment_date: string;
-    payment_mode: string;
-    ss_amount: number;
-    lv_amount: number;
-    pe_amount: number;
-    total: number;
-    payment_status: string;
-    bima_receipt_number: string;
-  } | null;
-  is_paid: boolean;
-}
-
-export interface BimaPayment {
-  receipt_number: string;
-  batch_number: string;
-  payment_date: string;
-  payment_mode: string;
-  ss_amount: number;
-  lv_amount: number;
-  pe_amount: number;
-  total: number;
-  is_applied: boolean;
-  validation_warnings: string[];
-  applied_to_header_id?: number | null;
-}
-
-export interface BimaSearchResult {
-  payments: BimaPayment[];
-  multiple: boolean;
-  period: string;
-}
-
-export interface OfflinePaymentReceipt {
-  receipt_number: string;
-  reg_no: string;
-  customer_name: string;
-  period: string;
-  batch_number: string;
-  payment_date: string;
-  payment_mode: string;
-  status: string;
-  ss_contributions: number;
-  lv_contribution: number;
-  pe_contributions: number;
-  amount: number;
-}
-
-export async function getOfflinePaymentPage(params: {
+/**
+ * Get offline payment report data (right column of payment page).
+ * Legacy: GET /Payment/GetOfflinePaymentData?HeaderId={headerID}
+ */
+export async function getOfflinePaymentData(params: {
   header_id: number;
-  entity_type: 'employer' | 'nwd' | 'self_employed';
+  entity_type: 'c3' | 'nw_director' | 'self_employed';
 }) {
-  return callWizApi<OfflinePaymentPageData>('get_offline_payment_page', params);
+  return callWizApi<OfflinePaymentPageData>('get_offline_payment_data', params);
 }
 
+/**
+ * Search BIMA receipt by receipt number (triggered on blur).
+ * Legacy: GET /Payment/getOfflinePaymentsDetails?receiptId={}&userId={}
+ */
 export async function searchBimaReceipt(params: {
-  receipt_number: string;
+  receipt_id: string;
   header_id: number;
-  entity_type: 'employer' | 'nwd' | 'self_employed';
+  entity_type: 'c3' | 'nw_director' | 'self_employed';
 }) {
   return callWizApi<BimaSearchResult>('search_bima_receipt', params);
 }
 
-export async function applyOfflinePayment(params: {
+/**
+ * Submit offline payment.
+ * Legacy: POST /Payment/OfflinepayNowDataCyberSource
+ */
+export async function submitOfflinePayment(params: {
   header_id: number;
-  entity_type: 'employer' | 'nwd' | 'self_employed';
-  receipt_number: string;
-  batch_number: string;
-  payment_date: string;
-  payment_mode: string;
-  ss_amount: number;
-  lv_amount: number;
-  pe_amount: number;
-  total_amount: number;
-  admin_user_id: number;
-  notes?: string;
+  entity_type: 'c3' | 'nw_director' | 'self_employed';
+  mode: string;
+  transaction_date: string;
+  bima_ref_num: string;
+  need_to_pay: number;
+  bank_name?: string | null;
+  check_num?: string | null;
+  check_date?: string | null;
+  jv_number?: string | null;
+  jv_date?: string | null;
+  credit_card_code?: string | null;
 }) {
-  return callWizApi<{ payment_id: number; receipt_number: string; message: string; receipt: OfflinePaymentReceipt }>(
-    'apply_offline_payment', params
-  );
+  return callWizApi<SubmitPaymentResult>('submit_offline_payment', params);
 }
 
-export async function getPeriodPaymentList(params: {
+/**
+ * Get transaction receipt for "Paid" button modal.
+ * Legacy: GET /Payment/TransactionReport?transactionId={}&c3HeaderId={}
+ */
+export async function getTransactionReceipt(params: {
   header_id: number;
-  entity_type: 'employer' | 'nwd' | 'self_employed';
-  registration_number?: string;
-  period_month?: string;
-  period_year?: string;
+  transaction_id?: string | null;
+  entity_type: 'c3' | 'nw_director' | 'self_employed';
 }) {
-  return callWizApi<{ payments: BimaPayment[]; period: string }>(
-    'get_period_payment_list', params
-  );
-}
-
-export async function getExistingPaymentReceipt(params: {
-  header_id: number;
-  entity_type: 'employer' | 'nwd' | 'self_employed';
-}) {
-  return callWizApi<{ receipt: OfflinePaymentReceipt }>(
-    'get_existing_payment_receipt', params
-  );
+  return callWizApi<TransactionReceiptData>('get_transaction_receipt', params);
 }

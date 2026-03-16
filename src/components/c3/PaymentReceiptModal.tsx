@@ -6,21 +6,34 @@ import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ssbLogo from '@/assets/stkitts-logo.png';
 import {
-  getExistingPaymentReceipt,
-  type OfflinePaymentReceipt,
+  getTransactionReceipt,
+  type TransactionReceiptData,
 } from '@/services/wizC3DetailsService';
 
 function fmt(val: number | null | undefined) {
   return `$${(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatPeriod(period: string | null | undefined): string {
+  if (!period) return '';
+  // Convert "01/2026" or "01 - 2026" to "Jan-2026"
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const match = period.match(/(\d{1,2})\s*[-\/]\s*(\d{4})/);
+  if (match) {
+    const monthIdx = parseInt(match[1], 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) return `${months[monthIdx]}-${match[2]}`;
+  }
+  return period;
+}
+
 interface PaymentReceiptModalProps {
   open: boolean;
   onClose: () => void;
   headerId: number;
-  entityType: 'employer' | 'nwd' | 'self_employed';
-  /** If receipt is already available (e.g. after Apply), pass it directly */
-  receiptData?: OfflinePaymentReceipt | null;
+  entityType: 'c3' | 'nw_director' | 'self_employed';
+  transactionId?: string | null;
+  /** If receipt data is already available (e.g. after payment), pass it directly */
+  receiptData?: TransactionReceiptData | null;
 }
 
 export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
@@ -28,22 +41,23 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   onClose,
   headerId,
   entityType,
-  receiptData,
+  transactionId,
+  receiptData: initialData,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [receipt, setReceipt] = useState<OfflinePaymentReceipt | null>(receiptData || null);
+  const [data, setData] = useState<TransactionReceiptData | null>(initialData || null);
 
   useEffect(() => {
-    if (receiptData) {
-      setReceipt(receiptData);
+    if (initialData) {
+      setData(initialData);
       return;
     }
     if (!open || !headerId) return;
     setLoading(true);
-    getExistingPaymentReceipt({ header_id: headerId, entity_type: entityType })
+    getTransactionReceipt({ header_id: headerId, transaction_id: transactionId, entity_type: entityType })
       .then((res) => {
-        if (res.data?.receipt) {
-          setReceipt(res.data.receipt);
+        if (res.data) {
+          setData(res.data);
         } else {
           toast.error('No receipt found for this payment.');
         }
@@ -52,52 +66,39 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         toast.error(err.message || 'Failed to load receipt');
       })
       .finally(() => setLoading(false));
-  }, [open, headerId, entityType, receiptData]);
+  }, [open, headerId, entityType, transactionId, initialData]);
 
-  // Reset when modal closes
   useEffect(() => {
-    if (!open) setReceipt(receiptData || null);
-  }, [open, receiptData]);
+    if (!open) setData(initialData || null);
+  }, [open, initialData]);
 
   const handleDownload = () => {
-    if (!receipt) return;
+    if (!data) return;
+    const rows = buildReceiptRows(data);
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(`<html><head><title>Receipt #${receipt.receipt_number}</title><style>
+    win.document.write(`<html><head><title>Receipt #${data.receiptNumber}</title><style>
       body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; }
       table { width: 100%; border-collapse: collapse; }
       td { padding: 8px 12px; border-bottom: 1px solid #eee; }
       td:first-child { font-weight: bold; }
       h1 { font-size: 18px; text-align: center; }
       h2 { font-size: 24px; text-align: center; }
-      .header { text-align: center; margin-bottom: 20px; }
       .offices { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 20px; }
       .receipt-box { border: 2px solid #333; display: inline-block; padding: 8px 16px; font-weight: bold; margin-bottom: 20px; }
       .disclaimer { border: 1px solid #ccc; padding: 12px; margin-top: 20px; font-size: 12px; }
     </style></head><body>
-      <div class="header">
+      <div style="text-align:center;margin-bottom:20px;">
         <h1>St. Christopher and Nevis Social Security Board</h1>
         <h2>RECEIPT</h2>
       </div>
       <div class="offices">
-        <div><strong>Head Office</strong><br/>Robert Llewellyn Bradshaw Building<br/>P.O. Box 79, Bay Road, Basseterre<br/>Phone: +1 (869) 465-2535</div>
-        <div><strong>Branch Office</strong><br/>Pinney's Commercial Site<br/>P.O. Box 667, Nevis<br/>Phone: +1 (869) 469-5245</div>
+        <div><strong>Head Office</strong><br/>Robert Llewellyn Bradshaw Building<br/>P.O. Box 79, Bay Road, Basseterre, St. Kitts<br/>PHONE: +1 (869) 465-2535<br/>EMAIL: pubinfo@socialsecurity.kn</div>
+        <div><strong>Branch Office</strong><br/>Pinney's Commercial Site<br/>P.O. Box 667 Nevis<br/>PHONE: +1 (869) 469-5245<br/>EMAIL: nevis@socialsecurity.kn</div>
       </div>
-      <div class="receipt-box">RECEIPT# ${receipt.receipt_number}</div>
-      <table>
-        <tr><td>Registration No.</td><td>${receipt.reg_no}</td></tr>
-        <tr><td>Customer Name</td><td>${receipt.customer_name}</td></tr>
-        <tr><td>Period</td><td>${receipt.period}</td></tr>
-        <tr><td>Batch Number</td><td>${receipt.batch_number}</td></tr>
-        <tr><td>Payment Date</td><td>${receipt.payment_date}</td></tr>
-        <tr><td>Payment Mode</td><td>${receipt.payment_mode}</td></tr>
-        <tr><td>Status</td><td>${receipt.status}</td></tr>
-        <tr><td>SS Contributions</td><td>${fmt(receipt.ss_contributions)}</td></tr>
-        <tr><td>LV Contribution</td><td>${fmt(receipt.lv_contribution)}</td></tr>
-        <tr><td>PE Contributions</td><td>${fmt(receipt.pe_contributions)}</td></tr>
-        <tr><td>Amount</td><td>${fmt(receipt.amount)}</td></tr>
-      </table>
-      <div class="disclaimer"><strong>RECEIPT DISCLAIMER:</strong><br/>Your payment has been posted and applied to outstanding social security contributions, levy, severance, fines, penalties, or current period liabilities.</div>
+      <div class="receipt-box">RECEIPT# ${data.receiptNumber}</div>
+      <table>${rows.map(([l, v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('')}</table>
+      <div class="disclaimer"><strong>RECEIPT DISCLAIMER:</strong><br/>Your Payment has been posted to your account and will be applied to any past due social security contributions, levy, severance, fines, penalties, or current period liabilities.</div>
     </body></html>`);
     win.document.close();
     win.print();
@@ -114,7 +115,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : !receipt ? (
+        ) : !data ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
             No receipt data available.
           </div>
@@ -136,39 +137,31 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                 <div>
                   <p className="font-bold">Head Office</p>
                   <p>Robert Llewellyn Bradshaw Building</p>
-                  <p>P.O. Box 79, Bay Road, Basseterre</p>
-                  <p>Phone: +1 (869) 465-2535</p>
+                  <p>P.O. Box 79, Bay Road, Basseterre, St. Kitts</p>
+                  <p>PHONE: +1 (869) 465-2535</p>
+                  <p>EMAIL: pubinfo@socialsecurity.kn</p>
                 </div>
                 <div>
                   <p className="font-bold">Branch Office</p>
                   <p>Pinney's Commercial Site</p>
-                  <p>P.O. Box 667, Nevis</p>
-                  <p>Phone: +1 (869) 469-5245</p>
+                  <p>P.O. Box 667 Nevis</p>
+                  <p>PHONE: +1 (869) 469-5245</p>
+                  <p>EMAIL: nevis@socialsecurity.kn</p>
                 </div>
               </div>
 
               <div className="border-2 border-foreground inline-block px-4 py-2">
-                <span className="font-bold text-lg">RECEIPT# {receipt.receipt_number}</span>
+                <span className="font-bold text-lg">RECEIPT# {data.receiptNumber}</span>
               </div>
 
               <table className="w-full text-sm">
                 <tbody>
-                  {[
-                    ['Registration No.', receipt.reg_no],
-                    ['Customer Name', receipt.customer_name],
-                    ['Period', receipt.period],
-                    ['Batch Number', receipt.batch_number],
-                    ['Payment Date', receipt.payment_date],
-                    ['Payment Mode', receipt.payment_mode],
-                    ['Status', receipt.status],
-                    ['SS Contributions', fmt(receipt.ss_contributions)],
-                    ['LV Contribution', fmt(receipt.lv_contribution)],
-                    ['PE Contributions', fmt(receipt.pe_contributions)],
-                    ['Amount', fmt(receipt.amount)],
-                  ].map(([label, value]) => (
-                    <tr key={String(label)} className="border-b">
+                  {buildReceiptRows(data).map(([label, value], idx) => (
+                    <tr key={idx} className="border-b">
                       <td className="py-2 font-bold w-1/3">{label}</td>
-                      <td className="py-2">{value}</td>
+                      <td className={`py-2 ${label === 'Amount' ? 'font-bold' : ''} ${label === 'Status' && value === 'AUTHORIZED' ? 'text-green-600 font-semibold' : ''}`}>
+                        {value}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -177,7 +170,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               <div className="border rounded-md p-3 text-xs text-muted-foreground">
                 <p className="font-bold text-foreground mb-1">RECEIPT DISCLAIMER:</p>
                 <p>
-                  Your payment has been posted and applied to outstanding social security
+                  Your Payment has been posted to your account and will be applied to any past due social security
                   contributions, levy, severance, fines, penalties, or current period liabilities.
                 </p>
               </div>
@@ -197,3 +190,40 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
     </Dialog>
   );
 };
+
+/** Build receipt rows in legacy order, conditionally hiding zero-value penalty rows */
+function buildReceiptRows(data: TransactionReceiptData): [string, string][] {
+  const rows: [string, string][] = [
+    ['Reg No.', data.regNo || ''],
+    ['Customer Name', data.refCustomerName || ''],
+    ['Transaction ID', data.paymentGatewayTransactionID || ''],
+  ];
+
+  if ((data.totalSscontributions ?? 0) > 0) {
+    rows.push(['Total SS Contributions', fmt(data.totalSscontributions)]);
+  }
+  if ((data.totalSspenalty ?? 0) > 0) {
+    rows.push(['Total SS Penalty', fmt(data.totalSspenalty)]);
+  }
+  if ((data.totalLevy ?? 0) > 0) {
+    rows.push(['Total Levy', fmt(data.totalLevy)]);
+  }
+  if ((data.totalLevyeepenalty ?? 0) > 0) {
+    rows.push(['Total Levy Penalty', fmt(data.totalLevyeepenalty)]);
+  }
+  if ((data.totalServayance ?? 0) > 0) {
+    rows.push(['Total Severance', fmt(data.totalServayance)]);
+  }
+  if ((data.totalPepenalty ?? 0) > 0) {
+    rows.push(['Total PE Penalty', fmt(data.totalPepenalty)]);
+  }
+
+  rows.push(
+    ['Amount', fmt(data.paymentAmount)],
+    ['Status', data.paymentStatus || ''],
+    ['Period', formatPeriod(data.period)],
+    ['Transaction Date', data.transactionDate || data.createTime || ''],
+  );
+
+  return rows;
+}
