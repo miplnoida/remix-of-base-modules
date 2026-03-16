@@ -45,6 +45,7 @@ const PaymentModuleConfig: React.FC = () => {
   const [cashierRoles, setCashierRoles] = useState<string[]>([]);
   const [manageAllRoles, setManageAllRoles] = useState<string[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<string>('warning');
+  const [c3PaymentTypes, setC3PaymentTypes] = useState<string[]>([]);
   const [selectedDenomCurrencyId, setSelectedDenomCurrencyId] = useState<string | null>(null);
   const { data: denominations, refetch: refetchDenoms } = useDenominationsForCurrency(selectedDenomCurrencyId);
 
@@ -52,6 +53,22 @@ const PaymentModuleConfig: React.FC = () => {
   const [newDenomType, setNewDenomType] = useState('note');
   const [newDenomLabel, setNewDenomLabel] = useState('');
   const [savingCurrency, setSavingCurrency] = useState(false);
+
+  // Fetch all payment types from tb_payment_type
+  const { data: allPaymentTypes } = useQuery({
+    queryKey: ['tb-payment-types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_payment_type')
+        .select('payment_code, payment_type_description')
+        .order('payment_code');
+      if (error) throw error;
+      return (data || []).map((pt: any) => ({
+        value: pt.payment_code,
+        label: `${pt.payment_code} — ${pt.payment_type_description}`,
+      }));
+    },
+  });
 
   useEffect(() => {
     if (!configs) return;
@@ -62,6 +79,8 @@ const PaymentModuleConfig: React.FC = () => {
     if (Array.isArray(mr)) setManageAllRoles(mr);
     const dm = getVal('duplicate_open_batch');
     if (dm?.mode) setDuplicateMode(dm.mode);
+    const c3pt = getVal('c3_payment_types');
+    if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
   }, [configs]);
 
   // Auto-select first currency for denomination management
