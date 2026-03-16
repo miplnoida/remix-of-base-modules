@@ -73,13 +73,22 @@ const CyberSourceSettings: React.FC = () => {
 
   const handleToggleSave = async () => {
     const errors: Record<string, string> = {};
-    if (!loginId.trim()) errors.loginId = 'UserId is required';
-    const pwdErr = validatePassword(password);
-    if (pwdErr) errors.password = pwdErr;
+    if (!loginId.trim()) errors.loginId = 'Email is required';
+    if (!password.trim()) errors.password = 'Password is required';
     if (Object.keys(errors).length) { setToggleErrors(errors); return; }
 
     try {
       setToggleSubmitting(true);
+      // Validate user against this project's auth
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: loginId.trim(),
+        password: password,
+      });
+      if (authError) {
+        toast.error('Authentication failed: ' + authError.message);
+        return;
+      }
+      // User verified — now call C3-Wizard to toggle status
       await toggleCyberSourceStatus(toggleRow!.id, loginId, password);
       toast.success('Status Change Success');
       setToggleRow(null);
