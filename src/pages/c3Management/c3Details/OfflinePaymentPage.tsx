@@ -535,56 +535,28 @@ const OfflinePaymentPage: React.FC = () => {
     setLoading(true);
 
     const previewPromise = type === 'self_employed'
-      ? getSeContributionPreview(id).catch(() => ({ data: null }))
+      ? getSeContributionPreview(id)
       : companyIdParam
         ? (type === 'employer'
             ? getContributionPreview(id, companyIdParam)
-            : getNwdContributionPreview(id, companyIdParam)
-          ).catch(() => ({ data: null }))
+            : getNwdContributionPreview(id, companyIdParam))
         : Promise.resolve({ data: null });
 
-    Promise.allSettled([
-      getOfflinePaymentPage({ header_id: id, entity_type: type }),
-      previewPromise,
-    ]).then(([pageResult, previewResult]) => {
-      const pageRes = pageResult.status === 'fulfilled' ? pageResult.value : null;
-      const reportRes = previewResult.status === 'fulfilled' ? previewResult.value : { data: null };
-      const fallbackPageData = buildFallbackPageData(type, id, reportRes.data, companyIdParam);
-      const resolvedPageData = pageRes?.data || fallbackPageData;
+    previewPromise
+      .then((reportRes) => {
+        const resolvedPageData = buildFallbackPageData(type, id, reportRes.data, companyIdParam);
 
-      setPageData(resolvedPageData || null);
-      setReportData(reportRes.data || null);
+        setPageData(resolvedPageData || null);
+        setReportData(reportRes.data || null);
 
-      if (!resolvedPageData) {
-        throw new Error('Failed to load page data');
-      }
-
-      // If already paid, pre-fill BEMA data
-      if (resolvedPageData?.is_paid && resolvedPageData.existing_payment) {
-        const ep = resolvedPageData.existing_payment;
-        setBemaData({
-          receipt_number: ep.receipt_number,
-          batch_number: ep.batch_number,
-          payment_date: ep.payment_date,
-          payment_mode: ep.payment_mode,
-          ss_amount: ep.ss_amount,
-          lv_amount: ep.lv_amount,
-          pe_amount: ep.pe_amount,
-          total: ep.total,
-          is_applied: true,
-          validation_warnings: [],
-        });
-        setReceiptNumber(ep.receipt_number);
-      }
-
-      if (!reportRes.data && resolvedPageData?.c3_details?.company_id && type !== 'self_employed') {
-        const cid = resolvedPageData.c3_details.company_id;
-        const fn = type === 'employer' ? getContributionPreview : getNwdContributionPreview;
-        fn(id, cid).then(r => setReportData(r.data)).catch(() => {});
-      }
-    }).catch((err) => {
-      toast.error(err.message || 'Failed to load page data');
-    }).finally(() => setLoading(false));
+        if (!resolvedPageData) {
+          throw new Error('Failed to load page data');
+        }
+      })
+      .catch((err) => {
+        toast.error(err.message || 'Failed to load page data');
+      })
+      .finally(() => setLoading(false));
   }, [id, type, companyIdParam]);
 
 
