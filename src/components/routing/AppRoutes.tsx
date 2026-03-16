@@ -819,6 +819,8 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/injury/simulator" element={<ProtectedLayout><InjurySimulator /></ProtectedLayout>} />
       <Route path="/c3-management/settings/c3file/formats" element={<ProtectedLayout><C3FormatsList /></ProtectedLayout>} />
       <Route path="/c3-management/settings/c3file/formats/:formatId" element={<ProtectedLayout><C3FormatDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/cybersource" element={<ProtectedLayout><CyberSourceSettings /></ProtectedLayout>} />
+      <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
 
       {/* Self-Employed Management Routes */}
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
