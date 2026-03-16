@@ -61,15 +61,6 @@ const CyberSourceSettings: React.FC = () => {
     setToggleErrors({});
   };
 
-  const validatePassword = (pwd: string): string | null => {
-    if (!pwd) return 'Password is required';
-    if (pwd.length < 6) return 'Min 6 characters';
-    if (!/[A-Z]/.test(pwd)) return 'Must contain uppercase';
-    if (!/[a-z]/.test(pwd)) return 'Must contain lowercase';
-    if (!/[0-9]/.test(pwd)) return 'Must contain digit';
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return 'Must contain special character';
-    return null;
-  };
 
   const handleToggleSave = async () => {
     const errors: Record<string, string> = {};
