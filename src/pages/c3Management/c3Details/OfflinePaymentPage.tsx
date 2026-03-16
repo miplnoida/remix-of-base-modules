@@ -399,7 +399,7 @@ const OfflinePaymentPage: React.FC = () => {
   const [bimaPayments, setBimaPayments] = useState<BimaPeriodPayment[]>([]);
   const [bimaLoading, setBimaLoading] = useState(false);
   const [showSelectModal, setShowSelectModal] = useState(false);
-  const [applyingReceipt, setApplyingReceipt] = useState<string | null>(null);
+  const [applyingReceipt] = useState<string | null>(null);
 
   // Pay action
   const [paying, setPaying] = useState(false);
