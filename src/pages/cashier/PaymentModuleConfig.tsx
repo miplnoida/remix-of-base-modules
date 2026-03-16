@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
-import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText } from 'lucide-react';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { useAllCurrencies, useAllCashierCurrencyConfigs, useDenominationsForCurrency } from '@/hooks/useCashierCurrencyConfig';
 import { supabase } from '@/integrations/supabase/client';
