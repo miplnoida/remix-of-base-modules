@@ -92,6 +92,12 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "Reconciliation",
+        url: "/c3-management/reconciliation",
+        icon: RefreshCw,
+        requiresPermission: "view_dashboard"
+      },
+      {
         title: "Settings",
         icon: Settings,
         requiresPermission: "view_dashboard",
