@@ -85,8 +85,8 @@ const CyberSourceSettings: React.FC = () => {
         toast.error('Authentication failed: ' + authError.message);
         return;
       }
-      // User verified locally — pass credentials to C3-Wizard to toggle status
-      await toggleCyberSourceStatus(toggleRow!.id, loginId.trim(), password);
+      // User verified locally — send only the ID to C3-Wizard to toggle status
+      await toggleCyberSourceStatus(toggleRow!.id);
       toast.success('Status Change Success');
       setToggleRow(null);
       fetchSettings();
