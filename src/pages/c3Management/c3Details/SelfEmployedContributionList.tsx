@@ -271,6 +271,42 @@ const SelfEmployedContributionList: React.FC = () => {
         data={previewData}
         loading={previewLoading}
       />
+
+      {/* Payment Select Modal ($ Pay) */}
+      {payModalRecord && (
+        <PaymentSelectModal
+          open={payModalOpen}
+          onClose={() => { setPayModalOpen(false); setPayModalRecord(null); }}
+          headerId={payModalRecord.contribution_id}
+          entityType="self_employed"
+          periodMonth={payModalRecord.month}
+          periodYear={payModalRecord.year}
+          onPaymentApplied={(receipt) => {
+            setAppliedReceipt(receipt);
+            setPayModalOpen(false);
+            setPayModalRecord(null);
+            setReceiptModalRecord(payModalRecord);
+            setReceiptModalOpen(true);
+            const seId = Number(selectedSeId);
+            if (seId) {
+              getSeContributionList({ self_employed_id: seId }).then(res => {
+                setContributions(res.data?.contributions || []);
+              }).catch(() => {});
+            }
+          }}
+        />
+      )}
+
+      {/* Payment Receipt Modal (Paid) */}
+      {receiptModalRecord && (
+        <PaymentReceiptModal
+          open={receiptModalOpen}
+          onClose={() => { setReceiptModalOpen(false); setReceiptModalRecord(null); setAppliedReceipt(null); }}
+          headerId={receiptModalRecord.contribution_id}
+          entityType="self_employed"
+          receiptData={appliedReceipt}
+        />
+      )}
     </div>
   );
 };
