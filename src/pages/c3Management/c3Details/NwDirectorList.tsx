@@ -18,6 +18,9 @@ import {
 } from '@/services/wizC3DetailsService';
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import NwdContributionPreview from './previews/NwdContributionPreview';
+import { PaymentSelectModal } from '@/components/c3/PaymentSelectModal';
+import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
+import type { OfflinePaymentReceipt } from '@/services/wizC3DetailsService';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
@@ -45,6 +48,13 @@ const NwDirectorList: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Payment modals
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payModalRecord, setPayModalRecord] = useState<NwdContributionRecord | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptModalRecord, setReceiptModalRecord] = useState<NwdContributionRecord | null>(null);
+  const [appliedReceipt, setAppliedReceipt] = useState<OfflinePaymentReceipt | null>(null);
 
   useEffect(() => {
     getCompaniesDropdown().then(res => setCompanies(res.data?.companies || [])).catch(() => {});
@@ -219,13 +229,20 @@ const NwDirectorList: React.FC = () => {
                         {c.payment_status === 'Paid' ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?mode=paid&companyId=${selectedCompanyId}`)}
+                            onClick={() => {
+                              setReceiptModalRecord(c);
+                              setAppliedReceipt(null);
+                              setReceiptModalOpen(true);
+                            }}
                           >
                             Paid <Printer className="h-3 w-3" />
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
                           <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?companyId=${selectedCompanyId}`)}>
+                            onClick={() => {
+                              setPayModalRecord(c);
+                              setPayModalOpen(true);
+                            }}>
                             $ Pay
                           </Button>
                         ) : c.payment_status === 'BEMA' ? (
@@ -258,6 +275,42 @@ const NwDirectorList: React.FC = () => {
         data={previewData}
         loading={previewLoading}
       />
+
+      {/* Payment Select Modal ($ Pay) */}
+      {payModalRecord && (
+        <PaymentSelectModal
+          open={payModalOpen}
+          onClose={() => { setPayModalOpen(false); setPayModalRecord(null); }}
+          headerId={payModalRecord.header_id}
+          entityType="nwd"
+          periodMonth={payModalRecord.month}
+          periodYear={payModalRecord.year}
+          onPaymentApplied={(receipt) => {
+            setAppliedReceipt(receipt);
+            setPayModalOpen(false);
+            setPayModalRecord(null);
+            setReceiptModalRecord(payModalRecord);
+            setReceiptModalOpen(true);
+            const compId = Number(selectedCompanyId);
+            if (compId) {
+              getNwdContributionList({ company_id: compId }).then(res => {
+                setContributions(res.data?.contributions || []);
+              }).catch(() => {});
+            }
+          }}
+        />
+      )}
+
+      {/* Payment Receipt Modal (Paid) */}
+      {receiptModalRecord && (
+        <PaymentReceiptModal
+          open={receiptModalOpen}
+          onClose={() => { setReceiptModalOpen(false); setReceiptModalRecord(null); setAppliedReceipt(null); }}
+          headerId={receiptModalRecord.header_id}
+          entityType="nwd"
+          receiptData={appliedReceipt}
+        />
+      )}
     </div>
   );
 };
