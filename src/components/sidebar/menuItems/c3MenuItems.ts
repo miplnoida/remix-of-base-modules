@@ -131,6 +131,12 @@ export const c3MenuItems = [
             url: "/c3-management/settings/c3file/formats",
             icon: Settings,
             requiresPermission: "view_dashboard"
+          },
+          {
+            title: "CyberSource Settings",
+            url: "/c3-management/settings/cybersource",
+            icon: CreditCard,
+            requiresPermission: "view_dashboard"
           }
         ]
       },
