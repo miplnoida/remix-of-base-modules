@@ -105,6 +105,7 @@ import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
 import NwDirectorList from '@/pages/c3Management/c3Details/NwDirectorList';
 import SelfEmployedContributionList from '@/pages/c3Management/c3Details/SelfEmployedContributionList';
+import OfflinePaymentPage from '@/pages/c3Management/c3Details/OfflinePaymentPage';
 
 import EmployerRegistration from '@/pages/employersManagement/EmployerRegistration';
 import EmployerApproval from '@/pages/employersManagement/EmployerApproval';
