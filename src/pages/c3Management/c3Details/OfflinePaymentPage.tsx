@@ -535,8 +535,6 @@ const OfflinePaymentPage: React.FC = () => {
     if (!id) return;
     setLoading(true);
 
-    // Build promises - preview needs companyId for employer/nwd
-    const pagePromise = getOfflinePaymentPage({ header_id: id, entity_type: type });
     const previewPromise = type === 'self_employed'
       ? getSeContributionPreview(id).catch(() => ({ data: null }))
       : companyIdParam
@@ -546,13 +544,25 @@ const OfflinePaymentPage: React.FC = () => {
           ).catch(() => ({ data: null }))
         : Promise.resolve({ data: null });
 
-    Promise.all([pagePromise, previewPromise]).then(([pageRes, reportRes]) => {
-      setPageData(pageRes.data || null);
+    Promise.allSettled([
+      getOfflinePaymentPage({ header_id: id, entity_type: type }),
+      previewPromise,
+    ]).then(([pageResult, previewResult]) => {
+      const pageRes = pageResult.status === 'fulfilled' ? pageResult.value : null;
+      const reportRes = previewResult.status === 'fulfilled' ? previewResult.value : { data: null };
+      const fallbackPageData = buildFallbackPageData(type, id, reportRes.data, companyIdParam);
+      const resolvedPageData = pageRes?.data || fallbackPageData;
+
+      setPageData(resolvedPageData || null);
       setReportData(reportRes.data || null);
 
+      if (!resolvedPageData) {
+        throw new Error('Failed to load page data');
+      }
+
       // If already paid, pre-fill BEMA data
-      if (pageRes.data?.is_paid && pageRes.data.existing_payment) {
-        const ep = pageRes.data.existing_payment;
+      if (resolvedPageData?.is_paid && resolvedPageData.existing_payment) {
+        const ep = resolvedPageData.existing_payment;
         setBemaData({
           receipt_number: ep.receipt_number,
           batch_number: ep.batch_number,
@@ -568,9 +578,8 @@ const OfflinePaymentPage: React.FC = () => {
         setReceiptNumber(ep.receipt_number);
       }
 
-      // If no preview loaded yet and pageData has company_id, load it
-      if (!reportRes.data && pageRes.data?.c3_details?.company_id && type !== 'self_employed') {
-        const cid = pageRes.data.c3_details.company_id;
+      if (!reportRes.data && resolvedPageData?.c3_details?.company_id && type !== 'self_employed') {
+        const cid = resolvedPageData.c3_details.company_id;
         const fn = type === 'employer' ? getContributionPreview : getNwdContributionPreview;
         fn(id, cid).then(r => setReportData(r.data)).catch(() => {});
       }
