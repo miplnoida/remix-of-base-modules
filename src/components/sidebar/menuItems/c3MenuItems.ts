@@ -8,7 +8,9 @@ import {
   AlertTriangle,
   TrendingUp,
   Calculator,
-  UserCheck
+  UserCheck,
+  CreditCard,
+  RefreshCw
 } from "lucide-react";
 
 export const c3MenuItems = [
