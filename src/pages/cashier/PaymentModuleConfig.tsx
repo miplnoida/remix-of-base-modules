@@ -345,7 +345,52 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* ─── CURRENCIES TAB ─── */}
+        {/* ─── C3 PAYMENT TYPES TAB ─── */}
+        <TabsContent value="c3-payment-types" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                C3 Payment Types
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Select which payment types from the master list should be treated as C3 payments. These are persisted and used across the system for C3-specific processing logic.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <MultiSelectCheckbox
+                options={allPaymentTypes || []}
+                selected={c3PaymentTypes}
+                onChange={(selected) => {
+                  // Deduplicate just in case
+                  setC3PaymentTypes([...new Set(selected)]);
+                }}
+                placeholder="Select C3 payment types..."
+              />
+              {c3PaymentTypes.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {c3PaymentTypes.map(code => {
+                    const pt = allPaymentTypes?.find(p => p.value === code);
+                    return (
+                      <Badge key={code} variant="secondary" className="text-xs">
+                        {pt ? pt.label : code}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+              <Button
+                size="sm"
+                onClick={() => handleSave('c3_payment_types', [...new Set(c3PaymentTypes)])}
+                disabled={updateConfig.isPending}
+              >
+                {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                Save C3 Payment Types
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="currencies" className="space-y-4">
           <Card>
             <CardHeader>
