@@ -52,6 +52,13 @@ const C3ContributionList: React.FC = () => {
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Payment modals
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payModalRecord, setPayModalRecord] = useState<C3ContributionRecord | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptModalRecord, setReceiptModalRecord] = useState<C3ContributionRecord | null>(null);
+  const [appliedReceipt, setAppliedReceipt] = useState<OfflinePaymentReceipt | null>(null);
+
   useEffect(() => {
     getCompaniesDropdown().then(res => {
       setCompanies(res.data?.companies || []);
