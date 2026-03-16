@@ -153,3 +153,112 @@ export async function getNwdContributionPreview(headerId: number, companyId: num
 export async function getSeContributionPreview(contributionId: number) {
   return callWizApi<any>('get_se_contribution_preview', { contribution_id: contributionId });
 }
+
+// ─── Offline Payment APIs ─────────────────────────────
+
+export interface OfflinePaymentPageData {
+  c3_details: {
+    period: string;
+    period_month: string;
+    period_year: string;
+    creation_date: string;
+    schedule: number;
+    is_nil_return: boolean;
+    wages: number;
+    ss_contributions: number;
+    lv_contributions: number;
+    pe_contributions: number;
+    ss_penalty: number;
+    lv_penalty: number;
+    pe_penalty: number;
+    total: number;
+    company_id: number;
+    company_name: string;
+    registration_number: string;
+    trade_name: string;
+    address: string;
+  };
+  existing_payment: {
+    payment_id: number;
+    receipt_number: string;
+    batch_number: string;
+    payment_date: string;
+    payment_mode: string;
+    ss_amount: number;
+    lv_amount: number;
+    pe_amount: number;
+    total: number;
+    payment_status: string;
+    bima_receipt_number: string;
+  } | null;
+  is_paid: boolean;
+}
+
+export interface BimaPayment {
+  receipt_number: string;
+  batch_number: string;
+  payment_date: string;
+  payment_mode: string;
+  ss_amount: number;
+  lv_amount: number;
+  pe_amount: number;
+  total: number;
+  is_applied: boolean;
+  validation_warnings: string[];
+  applied_to_header_id?: number | null;
+}
+
+export interface BimaSearchResult {
+  payments: BimaPayment[];
+  multiple: boolean;
+  period: string;
+}
+
+export interface OfflinePaymentReceipt {
+  receipt_number: string;
+  reg_no: string;
+  customer_name: string;
+  period: string;
+  batch_number: string;
+  payment_date: string;
+  payment_mode: string;
+  status: string;
+  ss_contributions: number;
+  lv_contribution: number;
+  pe_contributions: number;
+  amount: number;
+}
+
+export async function getOfflinePaymentPage(params: {
+  header_id: number;
+  entity_type: 'employer' | 'nwd' | 'self_employed';
+}) {
+  return callWizApi<OfflinePaymentPageData>('get_offline_payment_page', params);
+}
+
+export async function searchBimaReceipt(params: {
+  receipt_number: string;
+  header_id: number;
+  entity_type: 'employer' | 'nwd' | 'self_employed';
+}) {
+  return callWizApi<BimaSearchResult>('search_bima_receipt', params);
+}
+
+export async function applyOfflinePayment(params: {
+  header_id: number;
+  entity_type: 'employer' | 'nwd' | 'self_employed';
+  receipt_number: string;
+  batch_number: string;
+  payment_date: string;
+  payment_mode: string;
+  ss_amount: number;
+  lv_amount: number;
+  pe_amount: number;
+  total_amount: number;
+  admin_user_id: number;
+  notes?: string;
+}) {
+  return callWizApi<{ payment_id: number; receipt_number: string; message: string; receipt: OfflinePaymentReceipt }>(
+    'apply_offline_payment', params
+  );
+}
