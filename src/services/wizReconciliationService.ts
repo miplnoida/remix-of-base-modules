@@ -22,21 +22,6 @@ async function callWizApi<T = any>(action: string, params: Record<string, any> =
   return json;
 }
 
-async function callWizApiMultipart(action: string, formData: FormData): Promise<any> {
-  formData.append('action', action);
-  const res = await fetch(WIZ_API_URL, {
-    method: "POST",
-    headers: {
-      "x-admin-api-key": WIZ_ADMIN_API_KEY,
-    },
-    body: formData,
-  });
-  const json = await res.json();
-  if (!res.ok || json.success === false) {
-    throw new Error(json.message || json.error || `API error: ${res.status}`);
-  }
-  return json;
-}
 
 // ─── CyberSource Settings Types ──────────────────────
 
