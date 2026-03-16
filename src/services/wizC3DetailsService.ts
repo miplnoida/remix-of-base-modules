@@ -262,3 +262,24 @@ export async function applyOfflinePayment(params: {
     'apply_offline_payment', params
   );
 }
+
+export async function getPeriodPaymentList(params: {
+  header_id: number;
+  entity_type: 'employer' | 'nwd' | 'self_employed';
+  registration_number?: string;
+  period_month?: string;
+  period_year?: string;
+}) {
+  return callWizApi<{ payments: BimaPayment[]; period: string }>(
+    'get_period_payment_list', params
+  );
+}
+
+export async function getExistingPaymentReceipt(params: {
+  header_id: number;
+  entity_type: 'employer' | 'nwd' | 'self_employed';
+}) {
+  return callWizApi<{ receipt: OfflinePaymentReceipt }>(
+    'get_existing_payment_receipt', params
+  );
+}
