@@ -18,6 +18,9 @@ import {
 } from '@/services/wizC3DetailsService';
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import NwdContributionPreview from './previews/NwdContributionPreview';
+import { PaymentSelectModal } from '@/components/c3/PaymentSelectModal';
+import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
+import type { OfflinePaymentReceipt } from '@/services/wizC3DetailsService';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
