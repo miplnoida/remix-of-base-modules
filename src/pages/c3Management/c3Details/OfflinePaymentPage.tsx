@@ -31,6 +31,80 @@ function fmtDate(dateStr: string | null | undefined) {
   try { return format(parseISO(dateStr), 'dd-MMM-yyyy'); } catch { return dateStr; }
 }
 
+function buildFallbackPageData(type: 'employer' | 'nwd' | 'self_employed', id: number, previewData: any, companyIdParam: number): OfflinePaymentPageData | null {
+  if (!previewData) return null;
+
+  if (type === 'self_employed') {
+    const declaredIncome = Number(previewData.declaredIncome || 0);
+    const ssContribution = Number(previewData.socialSecurityContribution || 0);
+    const levyContribution = Number(previewData.levyContribution || 0);
+    const penaltyAmount = Number(previewData.penaltyAmount || 0);
+    const totalContribution = Number(previewData.totalContribution || (ssContribution + levyContribution + penaltyAmount));
+    return {
+      c3_details: {
+        period: previewData.periodLabel || [previewData.periodMonth, previewData.periodYear].filter(Boolean).join(' '),
+        period_month: String(previewData.periodMonth || ''),
+        period_year: String(previewData.periodYear || ''),
+        creation_date: previewData.creationDate || new Date().toISOString(),
+        schedule: 0,
+        is_nil_return: Boolean(previewData.isNilReturn),
+        wages: declaredIncome,
+        ss_contributions: ssContribution,
+        lv_contributions: levyContribution,
+        pe_contributions: 0,
+        ss_penalty: penaltyAmount,
+        lv_penalty: 0,
+        pe_penalty: 0,
+        total: totalContribution,
+        company_id: 0,
+        company_name: previewData.name || '',
+        registration_number: previewData.socialSecurityNumber || '',
+        trade_name: previewData.occupation || '',
+        address: previewData.address || '',
+      },
+      existing_payment: null,
+      is_paid: false,
+    };
+  }
+
+  const totals = previewData.totals || {};
+  const period = previewData.periodLabel || [previewData.periodMonth, previewData.periodYear].filter(Boolean).join(' ');
+  const companyId = Number(companyIdParam || 0);
+  const ssContributions = type === 'nwd' ? 0 : Number(totals.ssTotal || 0);
+  const lvContributions = Number(totals.levyTotal || 0);
+  const peContributions = type === 'nwd' ? 0 : Number(totals.peTotal || 0);
+  const ssPenalty = type === 'nwd' ? 0 : Number(totals.ssPenalty || 0);
+  const lvPenalty = Number(totals.levyPenalty || 0);
+  const pePenalty = type === 'nwd' ? 0 : Number(totals.pePenalty || 0);
+  const grandTotal = Number(totals.grandTotal || (ssContributions + lvContributions + peContributions + ssPenalty + lvPenalty + pePenalty));
+
+  return {
+    c3_details: {
+      period,
+      period_month: String(previewData.periodMonth || ''),
+      period_year: String(previewData.periodYear || ''),
+      creation_date: previewData.creationDate || new Date().toISOString(),
+      schedule: Number(previewData.scheduleNumber || 0),
+      is_nil_return: Boolean(previewData.isNilReturn),
+      wages: Number(totals.totalWages || 0),
+      ss_contributions: ssContributions,
+      lv_contributions: lvContributions,
+      pe_contributions: peContributions,
+      ss_penalty: ssPenalty,
+      lv_penalty: lvPenalty,
+      pe_penalty: pePenalty,
+      total: grandTotal,
+      company_id: companyId,
+      company_name: previewData.companyName || '',
+      registration_number: previewData.registrationNumber || '',
+      trade_name: previewData.tradeName || '',
+      address: previewData.address || '',
+    },
+    existing_payment: null,
+    is_paid: false,
+  };
+}
+
 // ─── Inline Report Components (reuse preview content) ─
 const EmployerReport: React.FC<{ data: any; printRef: React.RefObject<HTMLDivElement | null> }> = ({ data, printRef }) => {
   if (!data) return null;
@@ -461,8 +535,6 @@ const OfflinePaymentPage: React.FC = () => {
     if (!id) return;
     setLoading(true);
 
-    // Build promises - preview needs companyId for employer/nwd
-    const pagePromise = getOfflinePaymentPage({ header_id: id, entity_type: type });
     const previewPromise = type === 'self_employed'
       ? getSeContributionPreview(id).catch(() => ({ data: null }))
       : companyIdParam
@@ -472,13 +544,25 @@ const OfflinePaymentPage: React.FC = () => {
           ).catch(() => ({ data: null }))
         : Promise.resolve({ data: null });
 
-    Promise.all([pagePromise, previewPromise]).then(([pageRes, reportRes]) => {
-      setPageData(pageRes.data || null);
+    Promise.allSettled([
+      getOfflinePaymentPage({ header_id: id, entity_type: type }),
+      previewPromise,
+    ]).then(([pageResult, previewResult]) => {
+      const pageRes = pageResult.status === 'fulfilled' ? pageResult.value : null;
+      const reportRes = previewResult.status === 'fulfilled' ? previewResult.value : { data: null };
+      const fallbackPageData = buildFallbackPageData(type, id, reportRes.data, companyIdParam);
+      const resolvedPageData = pageRes?.data || fallbackPageData;
+
+      setPageData(resolvedPageData || null);
       setReportData(reportRes.data || null);
 
+      if (!resolvedPageData) {
+        throw new Error('Failed to load page data');
+      }
+
       // If already paid, pre-fill BEMA data
-      if (pageRes.data?.is_paid && pageRes.data.existing_payment) {
-        const ep = pageRes.data.existing_payment;
+      if (resolvedPageData?.is_paid && resolvedPageData.existing_payment) {
+        const ep = resolvedPageData.existing_payment;
         setBemaData({
           receipt_number: ep.receipt_number,
           batch_number: ep.batch_number,
@@ -494,9 +578,8 @@ const OfflinePaymentPage: React.FC = () => {
         setReceiptNumber(ep.receipt_number);
       }
 
-      // If no preview loaded yet and pageData has company_id, load it
-      if (!reportRes.data && pageRes.data?.c3_details?.company_id && type !== 'self_employed') {
-        const cid = pageRes.data.c3_details.company_id;
+      if (!reportRes.data && resolvedPageData?.c3_details?.company_id && type !== 'self_employed') {
+        const cid = resolvedPageData.c3_details.company_id;
         const fn = type === 'employer' ? getContributionPreview : getNwdContributionPreview;
         fn(id, cid).then(r => setReportData(r.data)).catch(() => {});
       }
