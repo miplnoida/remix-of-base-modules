@@ -80,7 +80,7 @@ const CyberSourceSettings: React.FC = () => {
         return;
       }
       // User verified — now call C3-Wizard to toggle status
-      await toggleCyberSourceStatus(toggleRow!.id, loginId, password);
+      await toggleCyberSourceStatus(toggleRow!.id);
       toast.success('Status Change Success');
       setToggleRow(null);
       fetchSettings();
