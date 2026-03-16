@@ -219,7 +219,7 @@ const NwDirectorList: React.FC = () => {
                         {c.payment_status === 'Paid' ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?mode=paid`)}
+                            onClick={() => navigate(`/c3-management/offline-payment/nwd/${c.header_id}?mode=paid&companyId=${selectedCompanyId}`)}
                           >
                             Paid <Printer className="h-3 w-3" />
                           </span>
