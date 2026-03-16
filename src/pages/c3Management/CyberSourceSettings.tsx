@@ -16,7 +16,10 @@ import {
   toggleCyberSourceStatus,
   type CyberSourceSetting,
 } from '@/services/wizReconciliationService';
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const CyberSourceSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -70,8 +73,11 @@ const CyberSourceSettings: React.FC = () => {
 
     try {
       setToggleSubmitting(true);
-      // Validate user against this project's auth
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      // Use a non-persistent client so signInWithPassword doesn't disrupt current session
+      const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const { error: authError } = await tempClient.auth.signInWithPassword({
         email: loginId.trim(),
         password: password,
       });
