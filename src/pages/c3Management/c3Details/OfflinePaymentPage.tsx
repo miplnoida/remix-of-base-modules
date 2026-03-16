@@ -420,6 +420,7 @@ const OfflinePaymentPage: React.FC = () => {
   const { entityType, headerId } = useParams<{ entityType: string; headerId: string }>();
   const [searchParams] = useSearchParams();
   const isPaidMode = searchParams.get('mode') === 'paid';
+  const companyIdParam = Number(searchParams.get('companyId') || 0);
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
 
