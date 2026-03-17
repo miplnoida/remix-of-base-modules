@@ -35,7 +35,7 @@ export default function WizSelfEmployedHistory() {
   const [search, setSearch] = useState('');
   const [sortCol, setSortCol] = useState('social_security_number');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [dropdown, setDropdown] = useState<{ id: number; first_name: string; social_security_number: string }[]>([]);
+  const [searchInput, setSearchInput] = useState('');
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
