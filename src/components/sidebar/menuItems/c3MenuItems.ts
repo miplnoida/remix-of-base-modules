@@ -92,6 +92,19 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard"
       },
       {
+        title: "Manage Users",
+        icon: Users,
+        requiresPermission: "view_dashboard",
+        subItems: [
+          {
+            title: "Company Users",
+            url: "/admin/reports/users-history",
+            icon: Users,
+            requiresPermission: "view_dashboard"
+          }
+        ]
+      },
+      {
         title: "Reconciliation",
         url: "/c3-management/reconciliation",
         icon: RefreshCw,
