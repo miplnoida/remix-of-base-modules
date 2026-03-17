@@ -335,9 +335,14 @@ function toNumericOrNull(value: any): number | null {
   return isNaN(num) ? null : num;
 }
 
-// Helper for paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
+// Helper for paid_code from wages (legacy fallback): 1 = amount exists and > 0, 0 = amount missing or zero
 function toPaidCode(value: number | null | undefined): string {
   return (value != null && Number(value) > 0) ? '1' : '0';
+}
+
+// Helper for paid_code from checkbox/attendance flag: true = '1', false/undefined = '0'
+function toPaidCodeFromFlag(flag: boolean | undefined | null): string {
+  return flag ? '1' : '0';
 }
 
 // Helper to normalize status to 3-character codes for ip_wages table
