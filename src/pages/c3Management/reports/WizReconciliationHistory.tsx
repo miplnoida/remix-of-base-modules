@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -34,6 +35,8 @@ export default function WizReconciliationHistory() {
   const [status, setStatus] = useState<string>('Pending');
   const [cardHolder, setCardHolder] = useState<string>('');
   const [cardHolders, setCardHolders] = useState<string[]>([]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
@@ -43,6 +46,8 @@ export default function WizReconciliationHistory() {
       const res = await getReconciliationReport({
         status: status || null,
         card_holder_name: cardHolder || null,
+        from_date: fromDate || null,
+        to_date: toDate || null,
         page_offset: page * PAGE_SIZE,
         page_limit: PAGE_SIZE,
       });
@@ -53,7 +58,7 @@ export default function WizReconciliationHistory() {
     } finally {
       setLoading(false);
     }
-  }, [status, cardHolder, page]);
+  }, [status, cardHolder, fromDate, toDate, page]);
 
   useEffect(() => {
     getReconciliationCardHolders()
@@ -88,6 +93,9 @@ export default function WizReconciliationHistory() {
       toast.error('Export failed', { description: err.message });
     }
   };
+
+  const startRecord = totalRecords > 0 ? page * PAGE_SIZE + 1 : 0;
+  const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -130,6 +138,24 @@ export default function WizReconciliationHistory() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">From Date</label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={e => setFromDate(e.target.value)}
+                className="w-[180px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">To Date</label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={e => setToDate(e.target.value)}
+                className="w-[180px]"
+              />
             </div>
             <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleSearch}>
               <Search className="mr-2 h-4 w-4" /> Search
@@ -185,7 +211,9 @@ export default function WizReconciliationHistory() {
           </div>
 
           <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-primary font-medium">{totalRecords}</span>
+            <span className="text-sm text-primary font-medium">
+              {totalRecords > 0 ? `${startRecord}-${endRecord} of ${totalRecords}` : '0 records'}
+            </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> Back
