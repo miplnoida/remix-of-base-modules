@@ -66,7 +66,7 @@ export default function WizReconciliationHistory() {
     fetchData();
   };
 
-  // Load with defaults on mount
+  // Load with defaults on mount only
   useEffect(() => { fetchData(); }, [page]);
 
   const handleExport = async () => {
