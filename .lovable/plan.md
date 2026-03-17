@@ -1,55 +1,71 @@
 
+# Internal Audit Lifecycle Enhancement Plan
 
-## Issue Analysis
+## Implementation Status
 
-### 1. Build/Publish Failure (Blocking Issue)
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-The publish is **failing** -- it has NOT been successfully deployed. The error is:
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-```
-ERROR: 42P13: cannot remove parameter defaults from existing function
-HINT: Use DROP FUNCTION resolve_holiday_pay_policy(date,integer,integer,text) first.
-```
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-**Root cause**: The `resolve_holiday_pay_policy` function has been redefined across multiple migrations with conflicting signatures:
-- Migration `20260302204051`: created with `DEFAULT 'without_dates'`
-- Migration `20260311204328`: recreated with `DEFAULT 'default'`
-- Migrations `20260317064259` and `20260317064343`: recreated WITHOUT any DEFAULT
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-The Lovable Cloud schema diff engine detects the mismatch between Test (no DEFAULT) and Live (has DEFAULT) and generates a `CREATE OR REPLACE` that PostgreSQL rejects -- you cannot remove parameter defaults via `CREATE OR REPLACE`.
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-**Fix**: Create a new database migration that:
-1. Drops ALL possible overloads of `resolve_holiday_pay_policy` using cascading drop
-2. Recreates the function cleanly with the latest correct definition (from migration `20260317064343` -- uses `date_from` column, no DEFAULT)
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
-```sql
--- Force-drop all overloads to resolve signature conflict
-DROP FUNCTION IF EXISTS public.resolve_holiday_pay_policy(date, integer, integer, text) CASCADE;
-DROP FUNCTION IF EXISTS public.resolve_holiday_pay_policy(date, integer, integer) CASCADE;
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
-CREATE OR REPLACE FUNCTION public.resolve_holiday_pay_policy(
-  p_period_date DATE,
-  p_month INTEGER,
-  p_year INTEGER,
-  p_policy_type TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql STABLE
-AS $$ ... (latest function body from 20260317064343) ... $$;
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
 
-GRANT EXECUTE ON FUNCTION public.resolve_holiday_pay_policy(DATE, INTEGER, INTEGER, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.resolve_holiday_pay_policy(DATE, INTEGER, INTEGER, TEXT) TO anon;
-```
-
-### 2. Route `/c3-management/manage` Behaves Differently on Test vs Live
-
-This is a **direct consequence** of Issue #1. Since publishing has been blocked by the migration error, Live is running an older version of the code. All recent UI changes (role dropdown fixes, date filters, etc.) exist only in Test. Once the migration fix is applied and publish succeeds, both environments will be in sync.
-
-### Summary
-
-| Step | Action |
-|------|--------|
-| 1 | Run a new migration to drop and recreate `resolve_holiday_pay_policy` cleanly |
-| 2 | Publish again -- the schema diff conflict will be resolved |
-| 3 | Verify Live route `/c3-management/manage` matches Test behavior |
-
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`
