@@ -1,29 +1,36 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
-import { usePaymentEntry, PayerInfo, PaymentDetailData } from '@/hooks/usePaymentEntry';
+import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
+import { useUserCode } from '@/hooks/useUserCode';
 import { BatchHeader } from '@/components/payments/BatchHeader';
 import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
 import { PaymentDetailGrid } from '@/components/payments/PaymentDetailGrid';
-import { PaymentActionBar } from '@/components/payments/PaymentActionBar';
-import { BatchCreationModal } from '@/components/payments/BatchCreationModal';
-import { MOPDetailModal } from '@/components/payments/MOPDetailModal';
+import { AddDetailModal, DetailLineData } from '@/components/payments/AddDetailModal';
+import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDetailModal';
+import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
-import { PayerSearchModal } from '@/components/payments/PayerSearchModal';
-import { AddDetailModal } from '@/components/payments/AddDetailModal';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import {
+  FileText, RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
+} from 'lucide-react';
+
+type FlowState = 'entry' | 'saving' | 'saved';
 
 const PaymentDataEntry = () => {
   const batchSel = useBatchSelection();
   const batch = usePaymentBatch();
   const payment = usePaymentEntry();
   const receipt = useReceiptActions();
+  const { userCode } = useUserCode();
 
-  // Sync batch hook with selected batch
+  // Sync batch
   React.useEffect(() => {
     if (batchSel.selectedBatch) {
       batch.setCurrentBatch({
@@ -44,6 +51,7 @@ const PaymentDataEntry = () => {
     }
   }, [batchSel.selectedBatch]);
 
+  // --- Form State (client-side only until Generate Receipt) ---
   const [payerType, setPayerType] = useState('ER');
   const [payerId, setPayerId] = useState('');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
@@ -51,102 +59,241 @@ const PaymentDataEntry = () => {
   const [remarks, setRemarks] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
-  const [showBatchModal, setShowBatchModal] = useState(false);
-  const [showPayerSearch, setShowPayerSearch] = useState(false);
+  // Detail lines in client state
+  const [detailLines, setDetailLines] = useState<DetailLineData[]>([]);
+  const [flowState, setFlowState] = useState<FlowState>('entry');
+  const [savedPaymentId, setSavedPaymentId] = useState<number | null>(null);
+
+  // Modals
   const [showAddDetail, setShowAddDetail] = useState(false);
-  const [showMOPModal, setShowMOPModal] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [showChequeModal, setShowChequeModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedDetailRow, setSelectedDetailRow] = useState<PaymentDetailData | null>(null);
-  const [balanceForward, setBalanceForward] = useState(0);
+  const [pendingMopLineIndex, setPendingMopLineIndex] = useState<number | null>(null);
 
-  const handleNewBatch = useCallback(async () => {
-    const bf = await batch.getBalanceForward();
-    setBalanceForward(bf);
-    setShowBatchModal(true);
-  }, [batch]);
+  const totalAmount = detailLines.reduce((s, r) => s + (r.payment_amount || 0), 0);
 
-  const handleCreateBatch = useCallback(async (batchDate: string, officeCode: string) => {
-    await batch.createBatch(batchDate, officeCode, 'USR');
-    setShowBatchModal(false);
-    resetPaymentForm();
-  }, [batch]);
-
-  const handleValidatePayer = useCallback(async () => {
-    if (!payerId.trim()) return;
+  // --- Payer auto-search on blur ---
+  const handlePayerBlur = useCallback(async () => {
+    if (!payerId.trim() || isValidating) return;
     setIsValidating(true);
     const info = await payment.lookupPayer(payerType, payerId.trim());
     setPayerInfo(info);
-    if (!info) toast({ title: 'Not Found', description: 'Payer not found.', variant: 'destructive' });
+    if (!info) toast({ title: 'Not Found', description: 'Payer not found. Please check the ID.', variant: 'destructive' });
     setIsValidating(false);
-  }, [payerType, payerId, payment]);
+  }, [payerType, payerId, payment, isValidating]);
 
-  const handlePayerSelect = useCallback((payer: PayerInfo) => {
-    setPayerId(payer.id);
-    setPayerInfo(payer);
+  // --- Detail line management (client state) ---
+  const handleAddDetail = useCallback((detail: DetailLineData) => {
+    if (editIndex !== null) {
+      setDetailLines(prev => prev.map((d, i) => i === editIndex ? detail : d));
+      setEditIndex(null);
+    } else {
+      const newIdx = detailLines.length;
+      setDetailLines(prev => [...prev, detail]);
+      // Check if MOP popup needed
+      if (detail.mop_code === 'CHQ' || detail.mop_code === 'CHK') {
+        setPendingMopLineIndex(newIdx);
+        setTimeout(() => setShowChequeModal(true), 100);
+      } else if (detail.mop_code === 'CRD') {
+        setPendingMopLineIndex(newIdx);
+        setTimeout(() => setShowCardModal(true), 100);
+      }
+    }
+  }, [editIndex, detailLines.length]);
+
+  const handleEditRow = useCallback((index: number) => {
+    setEditIndex(index);
+    setShowAddDetail(true);
   }, []);
 
-  const handleNewPayment = useCallback(async () => {
-    if (!batch.currentBatch || !payerInfo) {
-      toast({ title: 'Missing Data', description: 'Validate payer before creating payment.', variant: 'destructive' });
+  const handleDeleteRow = useCallback((index: number) => {
+    setDetailLines(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
+    if (pendingMopLineIndex !== null) {
+      setDetailLines(prev => prev.map((d, i) => i === pendingMopLineIndex ? { ...d, ...details } : d));
+    }
+    setPendingMopLineIndex(null);
+    setShowChequeModal(false);
+  }, [pendingMopLineIndex]);
+
+  const handleCardDetailsSave = useCallback((details: CardDetails) => {
+    if (pendingMopLineIndex !== null) {
+      setDetailLines(prev => prev.map((d, i) => i === pendingMopLineIndex ? { ...d, ...details } : d));
+    }
+    setPendingMopLineIndex(null);
+    setShowCardModal(false);
+  }, [pendingMopLineIndex]);
+
+  // --- Generate Receipt: save everything at once ---
+  const handleGenerateReceipt = useCallback(async () => {
+    if (!batch.currentBatch) {
+      toast({ title: 'No Batch', description: 'No active batch selected.', variant: 'destructive' });
       return;
     }
-    const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
-    await payment.createPaymentHeader(batch.currentBatch.batch_number, payerType, payerId, dateRcvd, remarks);
-    receipt.setCurrentReceipt(null);
-  }, [batch.currentBatch, payerType, payerId, payerInfo, dateReceived, remarks, payment, receipt]);
+    if (!payerInfo) {
+      toast({ title: 'Missing Payer', description: 'Please enter and validate a Payer ID.', variant: 'destructive' });
+      return;
+    }
+    if (detailLines.length === 0) {
+      toast({ title: 'No Detail Lines', description: 'Add at least one payment detail line.', variant: 'destructive' });
+      return;
+    }
+    const uCode = userCode || 'SYS';
 
-  const handleAddDetail = useCallback(async (detail: any) => {
-    if (!payment.currentHeader) return;
-    await payment.addDetailRow(payment.currentHeader.payment_id, detail);
-  }, [payment]);
+    setFlowState('saving');
+    try {
+      // 1) Get next payment_id
+      const { data: maxId } = await supabase.from('cn_payment_header').select('payment_id').order('payment_id', { ascending: false }).limit(1);
+      const paymentId = maxId && maxId.length > 0 ? Number(maxId[0].payment_id) + 1 : 1;
 
-  const handleDeleteDetail = useCallback(async (seqNo: number) => {
-    if (!payment.currentHeader) return;
-    await payment.deleteDetailRow(payment.currentHeader.payment_id, seqNo);
-  }, [payment]);
+      // 2) Insert header
+      const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
+      const { error: hdrErr } = await supabase.from('cn_payment_header').insert({
+        payment_id: paymentId,
+        batch_number: batch.currentBatch.batch_number,
+        payer_type: payerType,
+        payer_id: payerId.trim(),
+        date_received: dateRcvd,
+        remarks: remarks || null,
+      } as any);
+      if (hdrErr) throw hdrErr;
 
-  const handleEditMOP = useCallback((seqNo: number) => {
-    const row = payment.detailRows.find(r => r.payment_sequence_no === seqNo);
-    setSelectedDetailRow(row || null);
-    setShowMOPModal(true);
-  }, [payment.detailRows]);
+      // 3) Insert detail lines
+      const detailInserts = detailLines.map((d, i) => ({
+        payment_id: paymentId,
+        payment_sequence_no: i + 1,
+        payment_code: d.payment_code,
+        fund_code: d.fund_code,
+        payment_amount: d.payment_amount,
+        mop_code: d.mop_code,
+        period: d.period,
+        payment_date: d.payment_date,
+        bank_code: d.bank_code,
+        mop_number: d.mop_number,
+        cheque_date: d.cheque_date,
+        mop_account_number: d.mop_account_number,
+        mop_notes1: d.mop_notes1,
+        credit_card_code: d.credit_card_code,
+        expiration_date: d.expiration_date,
+      }));
+      const { error: dtlErr } = await supabase.from('cn_payment').insert(detailInserts as any);
+      if (dtlErr) throw dtlErr;
 
-  const handleSaveMOP = useCallback(async (updates: Partial<PaymentDetailData>) => {
-    if (!selectedDetailRow) return;
-    await supabase.from('cn_payment').update(updates as any)
-      .eq('payment_id', selectedDetailRow.payment_id)
-      .eq('payment_sequence_no', selectedDetailRow.payment_sequence_no);
-    if (payment.currentHeader) await payment.loadPaymentDetails(payment.currentHeader.payment_id);
-  }, [selectedDetailRow, payment]);
+      // 4) Create receipt with status 'O' (Original)
+      const now = new Date();
+      const receiptId = `RCP-${format(now, 'yyyyMMdd-HHmmss')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const { error: rcpErr } = await supabase.from('cn_receipt').insert({
+        receipt_id: receiptId,
+        payment_id: paymentId,
+        status: 'O',
+        receipt_total: totalAmount,
+        total_number_of_payments: detailLines.length,
+        reprint_times: 0,
+        created_by: uCode,
+        updated_by: uCode,
+      } as any);
+      if (rcpErr) throw rcpErr;
 
-  const handlePrintReceipt = useCallback(async () => {
-    if (!payment.currentHeader) return;
-    await receipt.printReceipt(payment.currentHeader.payment_id, payment.totalPaymentAmount, payment.detailRows.length, 'USR');
-  }, [payment, receipt]);
+      // 5) Log original print
+      await supabase.from('cn_receipt_prints').insert({
+        receipt_id: receiptId,
+        printed_by: uCode,
+        print_type: 'ORIGINAL',
+      } as any);
 
-  const handleReprintReceipt = useCallback(async () => {
-    if (!payment.currentHeader) return;
-    await receipt.reprintReceipt(payment.currentHeader.payment_id, 'USR');
-  }, [payment, receipt]);
+      // 6) Load receipt into state
+      await receipt.loadReceipt(paymentId);
+      setSavedPaymentId(paymentId);
+      setFlowState('saved');
 
+      toast({ title: 'Receipt Generated', description: `Receipt ${receiptId} created successfully.` });
+
+      // 7) Trigger browser print
+      setTimeout(() => window.print(), 300);
+    } catch (err: any) {
+      toast({ title: 'Error Generating Receipt', description: err.message, variant: 'destructive' });
+      setFlowState('entry');
+    }
+  }, [batch.currentBatch, payerInfo, payerType, payerId, dateReceived, remarks, detailLines, totalAmount, userCode, receipt]);
+
+  // --- Reprint ---
+  const handleReprint = useCallback(async () => {
+    if (!savedPaymentId || !receipt.currentReceipt) return;
+    const uCode = userCode || 'SYS';
+    try {
+      // Increment reprint_times
+      const { error: updErr } = await supabase.from('cn_receipt').update({
+        reprint_times: (receipt.currentReceipt.reprint_times || 0) + 1,
+        updated_by: uCode,
+        updated_at: new Date().toISOString(),
+      } as any).eq('receipt_id', receipt.currentReceipt.receipt_id);
+      if (updErr) throw updErr;
+
+      // Log reprint
+      await supabase.from('cn_receipt_prints').insert({
+        receipt_id: receipt.currentReceipt.receipt_id,
+        printed_by: uCode,
+        print_type: 'REPRINT',
+      } as any);
+
+      await receipt.loadReceipt(savedPaymentId);
+      toast({ title: 'Receipt Reprinted', description: `Reprint #${(receipt.currentReceipt.reprint_times || 0) + 1}` });
+      setTimeout(() => window.print(), 300);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  }, [savedPaymentId, receipt, userCode]);
+
+  // --- Cancel Receipt ---
   const handleCancelReceipt = useCallback(async (reason: string) => {
-    if (!payment.currentHeader) return;
-    await receipt.cancelReceipt(payment.currentHeader.payment_id, reason, 'USR');
-    setShowCancelModal(false);
-  }, [payment, receipt]);
+    if (!savedPaymentId || !receipt.currentReceipt) return;
+    if (receipt.currentReceipt.status !== 'O') {
+      toast({ title: 'Cannot Cancel', description: 'Only receipts with status Original (O) can be cancelled.', variant: 'destructive' });
+      setShowCancelModal(false);
+      return;
+    }
+    const uCode = userCode || 'SYS';
+    try {
+      const { error } = await supabase.from('cn_receipt').update({
+        status: 'C',
+        cancel_reason: reason,
+        cancel_date: new Date().toISOString(),
+        cancel_user: uCode,
+        updated_by: uCode,
+        updated_at: new Date().toISOString(),
+      } as any).eq('receipt_id', receipt.currentReceipt.receipt_id);
+      if (error) throw error;
 
-  const resetPaymentForm = () => {
+      await receipt.loadReceipt(savedPaymentId);
+      toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
+      setShowCancelModal(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  }, [savedPaymentId, receipt, userCode]);
+
+  // --- New Payment (reset) ---
+  const resetForm = useCallback(() => {
     setPayerType('ER');
     setPayerId('');
     setPayerInfo(null);
     setDateReceived(new Date());
     setRemarks('');
-    payment.setCurrentHeader(null);
-    payment.setDetailRows([]);
+    setDetailLines([]);
+    setFlowState('entry');
+    setSavedPaymentId(null);
     receipt.setCurrentReceipt(null);
-  };
+  }, [receipt]);
 
-  const isDisabled = !batch.isBatchOpen || receipt.currentReceipt?.status === 'C';
+  const isEntry = flowState === 'entry';
+  const isSaving = flowState === 'saving';
+  const isSaved = flowState === 'saved';
+  const canCancel = isSaved && receipt.currentReceipt?.status === 'O';
+  const canReprint = isSaved && !!receipt.currentReceipt;
 
   return (
     <BatchSelectionGuard
@@ -163,26 +310,36 @@ const PaymentDataEntry = () => {
       <div className="space-y-4 p-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payment Data Entry</h1>
-          <p className="text-sm text-muted-foreground">Current payment processing — enter new payments within an open batch.</p>
+          <p className="text-sm text-muted-foreground">Enter new payments within an open batch.</p>
         </div>
 
         {batchSel.selectedBatch && (
           <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
         )}
 
-        <PaymentActionBar
-          onNewBatch={handleNewBatch}
-          onNewPayment={handleNewPayment}
-          onPrintReceipt={handlePrintReceipt}
-          onReprintReceipt={handleReprintReceipt}
-          onCancelReceipt={() => setShowCancelModal(true)}
-          onPayerSearch={() => setShowPayerSearch(true)}
-          hasBatch={!!batch.currentBatch}
-          hasPayment={!!payment.currentHeader}
-          receiptStatus={receipt.currentReceipt?.status || null}
-          isBatchOpen={batch.isBatchOpen}
-          isProcessing={batch.isLoading || payment.isLoading || receipt.isLoading}
-        />
+        {/* Action Bar */}
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-lg border">
+          <Button onClick={handleGenerateReceipt} disabled={!isEntry || isSaving || detailLines.length === 0 || !payerInfo} size="sm">
+            {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}
+            Generate Receipt
+          </Button>
+
+          <div className="w-px bg-border mx-1" />
+
+          <Button onClick={handleReprint} variant="outline" size="sm" disabled={!canReprint}>
+            <RotateCcw className="h-4 w-4 mr-1" /> Re-Print
+          </Button>
+
+          <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" disabled={!canCancel}>
+            <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
+          </Button>
+
+          <div className="w-px bg-border mx-1" />
+
+          <Button onClick={resetForm} variant="outline" size="sm" disabled={isEntry && detailLines.length === 0 && !payerInfo}>
+            <PlusCircle className="h-4 w-4 mr-1" /> New Payment
+          </Button>
+        </div>
 
         <PaymentHeaderForm
           payerType={payerType} setPayerType={setPayerType}
@@ -190,30 +347,46 @@ const PaymentDataEntry = () => {
           payerInfo={payerInfo}
           dateReceived={dateReceived} setDateReceived={setDateReceived}
           remarks={remarks} setRemarks={setRemarks}
-          onValidatePayer={handleValidatePayer}
-          onPayerSearch={() => setShowPayerSearch(true)}
+          onPayerBlur={handlePayerBlur}
           isValidating={isValidating}
-          disabled={isDisabled}
+          disabled={!isEntry}
         />
 
         <PaymentDetailGrid
-          rows={payment.detailRows}
-          onAddRow={() => setShowAddDetail(true)}
-          onDeleteRow={handleDeleteDetail}
-          onEditMOP={handleEditMOP}
-          disabled={isDisabled || !payment.currentHeader}
-          totalAmount={payment.totalPaymentAmount}
+          rows={detailLines}
+          onAddRow={() => { setEditIndex(null); setShowAddDetail(true); }}
+          onDeleteRow={handleDeleteRow}
+          onEditRow={handleEditRow}
+          disabled={!isEntry}
+          totalAmount={totalAmount}
         />
 
-        <BatchCreationModal open={showBatchModal} onClose={() => setShowBatchModal(false)}
-          onCreateBatch={handleCreateBatch} balanceForward={balanceForward} isLoading={batch.isLoading} />
-        <PayerSearchModal open={showPayerSearch} onClose={() => setShowPayerSearch(false)}
-          payerType={payerType} onSelect={handlePayerSelect} searchFn={payment.searchPayers} />
-        <AddDetailModal open={showAddDetail} onClose={() => setShowAddDetail(false)} onAdd={handleAddDetail} />
-        <MOPDetailModal open={showMOPModal} onClose={() => { setShowMOPModal(false); setSelectedDetailRow(null); }}
-          detailRow={selectedDetailRow} onSave={handleSaveMOP} />
-        <ReceiptCancelModal open={showCancelModal} onClose={() => setShowCancelModal(false)}
-          onConfirm={handleCancelReceipt} isLoading={receipt.isLoading} receiptId={receipt.currentReceipt?.receipt_id} />
+        {/* Modals */}
+        <AddDetailModal
+          open={showAddDetail}
+          onClose={() => { setShowAddDetail(false); setEditIndex(null); }}
+          onAdd={handleAddDetail}
+          editData={editIndex !== null ? detailLines[editIndex] : null}
+        />
+        <ChequeDetailModal
+          open={showChequeModal}
+          onClose={() => { setShowChequeModal(false); setPendingMopLineIndex(null); }}
+          onSave={handleChequeDetailsSave}
+          initialData={pendingMopLineIndex !== null ? detailLines[pendingMopLineIndex] : undefined}
+        />
+        <CardDetailModal
+          open={showCardModal}
+          onClose={() => { setShowCardModal(false); setPendingMopLineIndex(null); }}
+          onSave={handleCardDetailsSave}
+          initialData={pendingMopLineIndex !== null ? detailLines[pendingMopLineIndex] : undefined}
+        />
+        <ReceiptCancelModal
+          open={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onConfirm={handleCancelReceipt}
+          isLoading={receipt.isLoading}
+          receiptId={receipt.currentReceipt?.receipt_id}
+        />
       </div>
     </BatchSelectionGuard>
   );

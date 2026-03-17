@@ -2,42 +2,23 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, FileEdit, Inbox } from 'lucide-react';
-import type { PaymentDetailData } from '@/hooks/usePaymentEntry';
+import type { DetailLineData } from './AddDetailModal';
 
 interface PaymentDetailGridProps {
-  rows: PaymentDetailData[];
+  rows: DetailLineData[];
   onAddRow: () => void;
-  onDeleteRow: (seqNo: number) => void;
-  onEditMOP: (seqNo: number) => void;
+  onDeleteRow: (index: number) => void;
+  onEditRow: (index: number) => void;
   disabled?: boolean;
   totalAmount: number;
 }
-
-const PAYMENT_CODES = [
-  { value: 'SS', label: 'Social Security' },
-  { value: 'PE', label: 'Employment Injury' },
-  { value: 'LV', label: 'Levy' },
-  { value: 'FN', label: 'Fines/Penalties' },
-  { value: 'IN', label: 'Interest' },
-  { value: 'OT', label: 'Other' },
-];
-
-const MOP_CODES = [
-  { value: 'CSH', label: 'Cash' },
-  { value: 'CHQ', label: 'Cheque' },
-  { value: 'CRD', label: 'Credit Card' },
-  { value: 'EFT', label: 'EFT' },
-  { value: 'MO', label: 'Money Order' },
-];
 
 export function PaymentDetailGrid({
   rows,
   onAddRow,
   onDeleteRow,
-  onEditMOP,
+  onEditRow,
   disabled,
   totalAmount,
 }: PaymentDetailGridProps) {
@@ -65,7 +46,7 @@ export function PaymentDetailGrid({
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>MOP</TableHead>
                 <TableHead>Period</TableHead>
-                <TableHead>Bank</TableHead>
+                <TableHead>Bank/Card</TableHead>
                 <TableHead className="w-[90px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -80,42 +61,30 @@ export function PaymentDetailGrid({
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
-                  <TableRow key={row.payment_sequence_no}>
-                    <TableCell className="font-mono text-xs">{row.payment_sequence_no}</TableCell>
+                rows.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
                     <TableCell>
-                      <span className="text-xs font-medium">
-                        {PAYMENT_CODES.find(c => c.value === row.payment_code)?.label || row.payment_code}
-                      </span>
+                      <span className="text-xs font-medium">{row.payment_code}</span>
                     </TableCell>
                     <TableCell className="text-xs">{row.fund_code}</TableCell>
                     <TableCell className="text-right font-mono">${(row.payment_amount || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <span className="text-xs">
-                        {MOP_CODES.find(c => c.value === row.mop_code)?.label || row.mop_code}
-                      </span>
+                    <TableCell className="text-xs">{row.mop_code}</TableCell>
+                    <TableCell className="text-xs">
+                      {row.period ? new Date(row.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
                     </TableCell>
-                    <TableCell className="text-xs">{row.period || '—'}</TableCell>
-                    <TableCell className="text-xs">{row.bank_code || '—'}</TableCell>
+                    <TableCell className="text-xs">{row.bank_code || row.credit_card_code || '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => onEditMOP(row.payment_sequence_no)}
-                          disabled={disabled}
+                          type="button" variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => onEditRow(idx)} disabled={disabled}
                         >
                           <FileEdit className="h-3.5 w-3.5" />
                         </Button>
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => onDeleteRow(row.payment_sequence_no)}
-                          disabled={disabled}
+                          type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                          onClick={() => onDeleteRow(idx)} disabled={disabled}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -131,5 +100,3 @@ export function PaymentDetailGrid({
     </Card>
   );
 }
-
-export { PAYMENT_CODES, MOP_CODES };

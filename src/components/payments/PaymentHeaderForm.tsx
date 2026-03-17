@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { PayerInfo } from '@/hooks/usePaymentEntry';
 
 interface PaymentHeaderFormProps {
@@ -19,8 +18,7 @@ interface PaymentHeaderFormProps {
   setDateReceived: (d: Date | undefined) => void;
   remarks: string;
   setRemarks: (v: string) => void;
-  onValidatePayer: () => void;
-  onPayerSearch: () => void;
+  onPayerBlur: () => void;
   isValidating?: boolean;
   disabled?: boolean;
 }
@@ -42,8 +40,7 @@ export function PaymentHeaderForm({
   setDateReceived,
   remarks,
   setRemarks,
-  onValidatePayer,
-  onPayerSearch,
+  onPayerBlur,
   isValidating,
   disabled,
 }: PaymentHeaderFormProps) {
@@ -68,34 +65,20 @@ export function PaymentHeaderForm({
 
           <div className="space-y-1.5">
             <Label className="text-xs">Payer ID</Label>
-            <div className="flex gap-1">
+            <div className="relative">
               <Input
                 value={payerId}
                 onChange={e => setPayerId(e.target.value)}
+                onBlur={onPayerBlur}
                 placeholder={payerType === 'ER' || payerType === 'SE' ? 'Reg. No.' : 'SSN'}
                 disabled={disabled}
-                className="flex-1"
+                autoFocus
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={onValidatePayer}
-                disabled={disabled || !payerId || isValidating}
-                className="shrink-0"
-              >
-                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={onPayerSearch}
-                disabled={disabled}
-                className="shrink-0"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+              {isValidating && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
           </div>
 
