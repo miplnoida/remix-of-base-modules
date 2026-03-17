@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Download, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,7 +27,7 @@ function formatCurrency(n: number | null | undefined) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function StatusBadge({ status }: { status: string }) {
+function PaymentStatusBadge({ status }: { status: string }) {
   if (!status) return <span>—</span>;
   const upper = status.toUpperCase();
   if (upper === 'AUTHORIZED') {
@@ -72,6 +73,8 @@ export default function WizPaymentsHistory() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedSEId, setSelectedSEId] = useState<string>('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dropdowns
   const [companies, setCompanies] = useState<WizCompanyDropdown[]>([]);
@@ -89,6 +92,8 @@ export default function WizPaymentsHistory() {
         types: selectedType,
         company_id: !isSelfEmployed ? selectedCompanyId : null,
         user_id: !isSelfEmployed ? selectedUserId : null,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
         page_offset: page * PAGE_SIZE,
         page_limit: PAGE_SIZE,
       });
@@ -99,7 +104,7 @@ export default function WizPaymentsHistory() {
     } finally {
       setLoading(false);
     }
-  }, [paymentStatus, selectedType, selectedCompanyId, selectedUserId, page, isSelfEmployed]);
+  }, [paymentStatus, selectedType, selectedCompanyId, selectedUserId, fromDate, toDate, page, isSelfEmployed]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -149,6 +154,7 @@ export default function WizPaymentsHistory() {
         ...(!isSelfEmployed ? [{ header: 'Severance', key: 'total_severance_fmt', width: 12 }] : []),
         { header: 'Payment Amount', key: 'payment_amount', width: 15 },
         { header: 'Creation Date', key: 'creation_date', width: 15 },
+        { header: 'Schedule', key: 'schedule_no', width: 10 },
         { header: 'Transaction ID', key: 'transaction_id', width: 25 },
         { header: 'Transaction Date', key: 'transaction_date_fmt', width: 15 },
         { header: 'Status', key: 'status', width: 15 },
@@ -262,6 +268,33 @@ export default function WizPaymentsHistory() {
               </Button>
             </div>
           </div>
+
+          {/* Date range row */}
+          <div className="flex flex-wrap items-end gap-4 mt-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">From Date</label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={e => { setFromDate(e.target.value); setPage(0); }}
+                className="w-[180px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">To Date</label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={e => { setToDate(e.target.value); setPage(0); }}
+                className="w-[180px]"
+              />
+            </div>
+            {(fromDate || toDate) && (
+              <Button variant="ghost" size="sm" onClick={() => { setFromDate(''); setToDate(''); setPage(0); }}>
+                Clear Dates
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -293,54 +326,65 @@ export default function WizPaymentsHistory() {
                   <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : data.length === 0 ? (
                   <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No records found</TableCell></TableRow>
-                ) : data.map((row, idx) => (
-                  <TableRow key={`${row.header_id}-${idx}`} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {row.is_submitted ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        )}
-                        {row.period_month}
-                      </div>
-                    </TableCell>
-                    <TableCell>{row.period_year}</TableCell>
-                    <TableCell>{formatCurrency(row.total_wages)}</TableCell>
-                    <TableCell>{formatCurrency(row.total_ss_contributions)}</TableCell>
-                    {!isSelfEmployed && <TableCell>{formatCurrency(row.total_levy)}</TableCell>}
-                    <TableCell>{formatCurrency(row.total_fines_penalties)}</TableCell>
-                    {!isSelfEmployed && <TableCell>{formatCurrency(row.total_severance)}</TableCell>}
-                    <TableCell>{row.pay_details?.[0] ? formatCurrency(row.pay_details[0].payment_amount) : '—'}</TableCell>
-                    <TableCell>{formatDate(row.creation_date)}</TableCell>
-                    <TableCell>
-                      {row.schedule_no != null && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">{row.schedule_no}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {(row.pay_details || []).map((p, pi) => (
-                          <div key={pi} className="text-xs font-mono">{p.transaction_id}</div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {(row.pay_details || []).map((p, pi) => (
-                          <div key={pi} className="text-xs">{formatDate(p.transaction_date)}</div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {(row.pay_details || []).map((p, pi) => (
-                          <StatusBadge key={pi} status={p.transaction_status} />
-                        ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : data.map((row, idx) => {
+                  const firstPay = row.pay_details?.[0];
+                  const hasPayDetails = row.pay_details && row.pay_details.length > 0;
+                  
+                  return (
+                    <TableRow key={`${row.header_id}-${idx}`} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {row.is_submitted ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          )}
+                          {row.period_month}
+                        </div>
+                      </TableCell>
+                      <TableCell>{row.period_year}</TableCell>
+                      <TableCell>{formatCurrency(row.total_wages)}</TableCell>
+                      <TableCell>{formatCurrency(row.total_ss_contributions)}</TableCell>
+                      {!isSelfEmployed && <TableCell>{formatCurrency(row.total_levy)}</TableCell>}
+                      <TableCell>{formatCurrency(row.total_fines_penalties)}</TableCell>
+                      {!isSelfEmployed && <TableCell>{formatCurrency(row.total_severance)}</TableCell>}
+                      <TableCell>{hasPayDetails ? formatCurrency(firstPay!.payment_amount) : '—'}</TableCell>
+                      <TableCell>{formatDate(row.creation_date)}</TableCell>
+                      <TableCell>
+                        {row.schedule_no != null ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700">{row.schedule_no}</Badge>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {hasPayDetails ? (
+                          <div className="space-y-1">
+                            {row.pay_details!.map((p, pi) => (
+                              <div key={pi} className="text-xs font-mono">{p.transaction_id || '—'}</div>
+                            ))}
+                          </div>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {hasPayDetails ? (
+                          <div className="space-y-1">
+                            {row.pay_details!.map((p, pi) => (
+                              <div key={pi} className="text-xs">{formatDate(p.transaction_date)}</div>
+                            ))}
+                          </div>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {hasPayDetails ? (
+                          <div className="space-y-1">
+                            {row.pay_details!.map((p, pi) => (
+                              <PaymentStatusBadge key={pi} status={p.transaction_status} />
+                            ))}
+                          </div>
+                        ) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
