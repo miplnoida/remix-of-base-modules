@@ -158,20 +158,17 @@ const PaymentDataEntry = () => {
 
     setFlowState('saving');
     try {
-      // 1) Get next payment_id using server-side RPC (table lock prevents duplicates)
-      const paymentId = await payment.getNextPaymentId();
-
-      // 2) Insert header
+      // 1) Create header and next payment_id atomically in one backend call
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
-      const { error: hdrErr } = await supabase.from('cn_payment_header').insert({
-        payment_id: paymentId,
-        batch_number: batch.currentBatch.batch_number,
-        payer_type: payerType,
-        payer_id: payerId.trim(),
-        date_received: dateRcvd,
-        remarks: remarks || null,
-      } as any);
+      const { data: paymentId, error: hdrErr } = await supabase.rpc('create_payment_header_with_next_id', {
+        p_batch_number: batch.currentBatch.batch_number,
+        p_payer_type: payerType,
+        p_payer_id: payerId.trim(),
+        p_date_received: dateRcvd,
+        p_remarks: remarks || null,
+      });
       if (hdrErr) throw hdrErr;
+      if (!paymentId) throw new Error('Failed to generate payment header ID.');
 
       // 3) Insert detail lines
       const detailInserts = detailLines.map((d, i) => ({

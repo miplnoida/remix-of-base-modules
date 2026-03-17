@@ -20720,6 +20720,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_payment_header_with_next_id: {
+        Args: {
+          p_batch_number: string
+          p_date_received: string
+          p_payer_id: string
+          p_payer_type: string
+          p_remarks?: string
+        }
+        Returns: number
+      }
       create_pending_holiday_pay: {
         Args: {
           p_amount: number
