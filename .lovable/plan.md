@@ -1,34 +1,71 @@
 
+# Internal Audit Lifecycle Enhancement Plan
 
-## Investigation Summary: Why Two Table Names Existed
+## Implementation Status
 
-### Root Cause — It Was Never Two Tables
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-There was **never** a plural `c3_holiday_pay_policy_defaults` table. The actual table has always been **`c3_holiday_pay_policy_default`** (singular), created in migration `20260302193144`.
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-The plural reference was a **typo bug** inside two RPC functions:
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-1. **`calculate_c3_contributions`** (migration `20260310195736`): Referenced `c3_holiday_pay_policy_defaults` (plural) at line 357 and used wrong column `created_at` instead of `created_on`.
-2. **`resolve_holiday_pay_policy`** (migration `20260311204328`): Also referenced the plural name at line 56 and used `effective_from` instead of `date_from`.
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-### Fix History
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-| Migration | What it did |
-|-----------|-------------|
-| `20260310203816` | Attempted a string-replace fix inside `calculate_c3_contributions` to change plural → singular |
-| `20260317064259` | Recreated `resolve_holiday_pay_policy` with the correct singular table name and `date_from` column |
-| `20260317064343` | Recreated `calculate_c3_contributions` with corrected date arithmetic |
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
-### Impact of the Recent Fixes
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
-**No other functionality is impacted.** Here's why:
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
 
-- **Only one table exists** in the database: `c3_holiday_pay_policy_default` (singular). Nothing was dropped or deleted.
-- **All application code** (hooks, publish logic, UI components) already references the correct singular name — confirmed across 15 files.
-- **No live RPC functions** currently reference the plural name (verified via `information_schema.routines`).
-- The fixes only corrected **function bodies** (the SQL logic inside RPCs), not table structures.
-
-### Summary
-
-The "two tables" were never two tables — it was one table (`c3_holiday_pay_policy_default`) with a typo in two RPC functions that silently failed when trying to query the non-existent plural name. The recent migrations corrected these function references. No tables were created or deleted, and no other functionality is affected.
-
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`

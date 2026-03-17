@@ -10,7 +10,8 @@ import {
   Calculator,
   UserCheck,
   CreditCard,
-  RefreshCw
+  RefreshCw,
+  ClipboardList
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -90,6 +91,19 @@ export const c3MenuItems = [
         url: "/c3-management/payment-details",
         icon: DollarSign,
         requiresPermission: "view_dashboard"
+      },
+      {
+        title: "Manage Users",
+        icon: Users,
+        requiresPermission: "view_dashboard",
+        subItems: [
+          {
+            title: "Company Users",
+            url: "/admin/reports/users-history",
+            icon: Users,
+            requiresPermission: "view_dashboard"
+          }
+        ]
       },
       {
         title: "Reconciliation",
@@ -233,6 +247,43 @@ export const c3MenuItems = [
             title: "Top Contributors",
             url: "/c3/reports/top-contributors",
             icon: TrendingUp,
+            requiresPermission: "view_reports"
+          }
+        ]
+      },
+      {
+        title: "Wizard Reports",
+        icon: ClipboardList,
+        requiresPermission: "view_reports",
+        subItems: [
+          {
+            title: "Employer History",
+            url: "/admin/reports/employer-history",
+            icon: Building2,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Self Employed History",
+            url: "/admin/reports/self-employed-history",
+            icon: UserCheck,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Payments History",
+            url: "/admin/reports/payments-history",
+            icon: DollarSign,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Reconciliation History",
+            url: "/admin/reports/reconciliation-history",
+            icon: RefreshCw,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Users History",
+            url: "/admin/reports/users-history",
+            icon: Users,
             requiresPermission: "view_reports"
           }
         ]

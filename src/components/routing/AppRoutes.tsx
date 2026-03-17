@@ -502,6 +502,13 @@ import WizSelfEmployedUserEdit from '@/pages/c3Management/selfEmployed/WizSelfEm
 
 // C3 Wizard Admin - Payment Details
 import WizPaymentDetails from '@/pages/c3Management/payments/WizPaymentDetails';
+
+// C3 Wizard Admin - Reports
+import WizEmployerHistory from '@/pages/c3Management/reports/WizEmployerHistory';
+import WizSelfEmployedHistory from '@/pages/c3Management/reports/WizSelfEmployedHistory';
+import WizPaymentsHistory from '@/pages/c3Management/reports/WizPaymentsHistory';
+import WizReconciliationHistory from '@/pages/c3Management/reports/WizReconciliationHistory';
+import WizUsersHistory from '@/pages/c3Management/reports/WizUsersHistory';
 import { ViewEmployer } from '@/pages/employersManagement/ViewEmployer';
 import { EditEmployer } from '@/pages/employersManagement/EditEmployer';
 
@@ -822,7 +829,13 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/cybersource" element={<ProtectedLayout><CyberSourceSettings /></ProtectedLayout>} />
       <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
 
-      {/* Self-Employed Management Routes */}
+      {/* C3 Wizard Admin - Reports Routes */}
+      <Route path="/admin/reports/employer-history" element={<ProtectedLayout><WizEmployerHistory /></ProtectedLayout>} />
+      <Route path="/admin/reports/self-employed-history" element={<ProtectedLayout><WizSelfEmployedHistory /></ProtectedLayout>} />
+      <Route path="/admin/reports/payments-history" element={<ProtectedLayout><WizPaymentsHistory /></ProtectedLayout>} />
+      <Route path="/admin/reports/reconciliation-history" element={<ProtectedLayout><WizReconciliationHistory /></ProtectedLayout>} />
+      <Route path="/admin/reports/users-history" element={<ProtectedLayout><WizUsersHistory /></ProtectedLayout>} />
+
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
       <Route path="/self-employed/add" element={<ProtectedLayout><AddSelfEmployed /></ProtectedLayout>} />
       <Route path="/self-employed/reports" element={<ProtectedLayout><SelfEmployedReports /></ProtectedLayout>} />
