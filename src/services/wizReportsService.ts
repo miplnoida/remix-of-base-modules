@@ -243,6 +243,8 @@ export async function getCompanyUsersReport(params: {
   search?: string;
   company_id?: number | null;
   role_id?: number | null;
+  from_date?: string;
+  to_date?: string;
   sort_column?: string;
   sort_direction?: 'asc' | 'desc';
   page?: number;
