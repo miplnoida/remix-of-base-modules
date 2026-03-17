@@ -31,21 +31,21 @@ Deno.serve(async (req) => {
     return jsonResponse({ status: "error", error: "Unauthorized" }, 401);
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
-  // Verify the calling user
-  const anonClient = createClient(
+  // Local client for auth verification only
+  const localClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } }
   );
-  const { data: claims, error: claimsError } = await anonClient.auth.getClaims(
-    authHeader.replace("Bearer ", "")
-  );
-  if (claimsError || !claims?.claims) {
+
+  // Main client for C3-Wizard data queries (external Supabase project)
+  const wizUrl = Deno.env.get("LIVE_SUPABASE_URL") || Deno.env.get("SUPABASE_URL")!;
+  const wizKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(wizUrl, wizKey);
+
+  // Verify the calling user
+  const { data: { user }, error: userError } = await localClient.auth.getUser();
+  if (userError || !user) {
     return jsonResponse({ status: "error", error: "Unauthorized" }, 401);
   }
 
@@ -1174,7 +1174,7 @@ Deno.serve(async (req) => {
 
         let query = supabase
           .from("c3_users")
-          .select("id, first_name, last_name, middle_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, is_deleted, c3_roles!inner(role_name, role_category), c3_self_employed(social_security_number)", { count: "exact" })
+          .select("id, first_name, last_name, middle_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, is_deleted, c3_roles!inner(role_name, role_category), c3_self_employed!c3_users_self_employed_id_fkey(social_security_number)", { count: "exact" })
           .eq("is_deleted", false)
           .eq("c3_roles.role_category", "SelfEmployee");
 
@@ -1260,7 +1260,7 @@ Deno.serve(async (req) => {
         } else {
           let query = supabase
             .from("c3_users")
-            .select("id, first_name, last_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, c3_roles!inner(role_name, role_category), c3_self_employed(social_security_number)")
+            .select("id, first_name, last_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, c3_roles!inner(role_name, role_category), c3_self_employed!c3_users_self_employed_id_fkey(social_security_number)")
             .eq("is_deleted", false)
             .eq("c3_roles.role_category", "SelfEmployee");
 
