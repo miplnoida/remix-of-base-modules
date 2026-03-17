@@ -165,19 +165,22 @@ export function usePaymentEntry() {
   ): Promise<PaymentHeaderData | null> => {
     setIsLoading(true);
     try {
-      const paymentId = await getNextPaymentId();
-      const header: any = {
-        payment_id: paymentId,
-        batch_number: batchNumber,
-        payer_type: payerType,
-        payer_id: payerId,
-        date_received: dateReceived,
-        remarks: remarks || null,
-      };
+      // Use atomic RPC to generate payment_id and insert header in one call
+      const { data: paymentId, error: rpcErr } = await supabase.rpc('create_payment_header_with_next_id', {
+        p_batch_number: batchNumber,
+        p_payer_type: payerType,
+        p_payer_id: payerId,
+        p_date_received: dateReceived,
+        p_remarks: remarks || null,
+      });
+      if (rpcErr) throw rpcErr;
+      if (!paymentId) throw new Error('Failed to generate payment header ID.');
+
+      // Fetch the created header to populate state
       const { data, error } = await supabase
         .from('cn_payment_header')
-        .insert(header)
-        .select()
+        .select('*')
+        .eq('payment_id', paymentId)
         .single();
       if (error) throw error;
       setCurrentHeader(data);
@@ -189,7 +192,7 @@ export function usePaymentEntry() {
     } finally {
       setIsLoading(false);
     }
-  }, [getNextPaymentId]);
+  }, []);
 
   const addDetailRow = useCallback(async (
     paymentId: number,
