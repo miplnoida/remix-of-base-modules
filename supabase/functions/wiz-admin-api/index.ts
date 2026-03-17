@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(wizUrl, wizKey);
 
   // Verify the calling user
-  const { data: claims, error: claimsError } = await anonClient.auth.getClaims(
+  const { data: claims, error: claimsError } = await localClient.auth.getClaims(
     authHeader.replace("Bearer ", "")
   );
   if (claimsError || !claims?.claims) {
