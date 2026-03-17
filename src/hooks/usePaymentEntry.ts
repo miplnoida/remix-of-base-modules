@@ -44,18 +44,15 @@ export function usePaymentEntry() {
   const [isLoading, setIsLoading] = useState(false);
 
   const getNextPaymentId = useCallback(async (): Promise<number> => {
-    // Use server-side RPC with table lock to prevent duplicate keys
-    const { data, error } = await supabase.rpc('get_next_payment_id');
-    if (error) {
-      // Fallback to client-side max+1
-      const { data: maxData } = await supabase
-        .from('cn_payment_header')
-        .select('payment_id')
-        .order('payment_id', { ascending: false })
-        .limit(1);
-      return maxData && maxData.length > 0 ? Number(maxData[0].payment_id) + 1 : 1;
-    }
-    return data as number;
+    const { data: maxData, error } = await supabase
+      .from('cn_payment_header')
+      .select('payment_id')
+      .order('payment_id', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    return maxData && maxData.length > 0 ? Number(maxData[0].payment_id) + 1 : 1;
   }, []);
 
   const lookupPayer = useCallback(async (
