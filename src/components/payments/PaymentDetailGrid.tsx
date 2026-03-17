@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, FileEdit, Inbox } from 'lucide-react';
+import { Plus, Trash2, FileEdit, Inbox, CreditCard } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DetailLineData } from './AddDetailModal';
 
 interface PaymentDetailGridProps {
@@ -10,8 +11,24 @@ interface PaymentDetailGridProps {
   onAddRow: () => void;
   onDeleteRow: (index: number) => void;
   onEditRow: (index: number) => void;
+  onEditMopDetail?: (index: number) => void;
   disabled?: boolean;
   totalAmount: number;
+}
+
+const FUND_LABELS: Record<string, string> = {
+  SS: 'Social Security',
+  LV: 'Levy',
+};
+
+function needsMopDetail(mopCode: string): boolean {
+  return ['CHQ', 'CHK', 'CRD'].includes(mopCode);
+}
+
+function hasMopDetail(row: DetailLineData): boolean {
+  if (row.mop_code === 'CRD') return !!row.credit_card_code && !!row.mop_number;
+  if (row.mop_code === 'CHQ' || row.mop_code === 'CHK') return !!row.mop_number;
+  return true;
 }
 
 export function PaymentDetailGrid({
@@ -19,6 +36,7 @@ export function PaymentDetailGrid({
   onAddRow,
   onDeleteRow,
   onEditRow,
+  onEditMopDetail,
   disabled,
   totalAmount,
 }: PaymentDetailGridProps) {
@@ -41,13 +59,13 @@ export function PaymentDetailGrid({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">#</TableHead>
-                <TableHead>Payment Code</TableHead>
+                <TableHead>Payment Type</TableHead>
                 <TableHead>Fund</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead>MOP</TableHead>
+                <TableHead>Method of Payment</TableHead>
                 <TableHead>Period</TableHead>
-                <TableHead>Bank/Card</TableHead>
-                <TableHead className="w-[90px]">Actions</TableHead>
+                <TableHead>Bank / Card</TableHead>
+                <TableHead className="w-[110px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -61,37 +79,75 @@ export function PaymentDetailGrid({
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
-                    <TableCell>
-                      <span className="text-xs font-medium">{row.payment_code}</span>
-                    </TableCell>
-                    <TableCell className="text-xs">{row.fund_code}</TableCell>
-                    <TableCell className="text-right font-mono">${(row.payment_amount || 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-xs">{row.mop_code}</TableCell>
-                    <TableCell className="text-xs">
-                      {row.period ? new Date(row.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs">{row.bank_code || row.credit_card_code || '—'}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button" variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => onEditRow(idx)} disabled={disabled}
-                        >
-                          <FileEdit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                          onClick={() => onDeleteRow(idx)} disabled={disabled}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                rows.map((row, idx) => {
+                  const missingMop = needsMopDetail(row.mop_code) && !hasMopDetail(row);
+                  return (
+                    <TableRow key={idx} className={missingMop ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
+                      <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                      <TableCell>
+                        <span className="text-xs font-medium">{row.payment_code_desc || row.payment_code}</span>
+                      </TableCell>
+                      <TableCell className="text-xs">{row.fund_code_desc || FUND_LABELS[row.fund_code] || row.fund_code}</TableCell>
+                      <TableCell className="text-right font-mono">${(row.payment_amount || 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-xs">{row.mop_desc || row.mop_code}</TableCell>
+                      <TableCell className="text-xs">
+                        {row.period ? new Date(row.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {row.bank_desc || row.card_desc || row.bank_code || row.credit_card_code || '—'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button" variant="ghost" size="icon" className="h-7 w-7"
+                                  onClick={() => onEditRow(idx)} disabled={disabled}
+                                >
+                                  <FileEdit className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit Line</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {needsMopDetail(row.mop_code) && onEditMopDetail && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant={missingMop ? 'default' : 'ghost'}
+                                    size="icon"
+                                    className={`h-7 w-7 ${missingMop ? 'animate-pulse' : ''}`}
+                                    onClick={() => onEditMopDetail(idx)}
+                                    disabled={disabled}
+                                  >
+                                    <CreditCard className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{missingMop ? 'Add MOP Details (Required)' : 'Edit MOP Details'}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                                  onClick={() => onDeleteRow(idx)} disabled={disabled}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete Line</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

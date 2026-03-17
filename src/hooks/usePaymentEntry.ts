@@ -44,12 +44,18 @@ export function usePaymentEntry() {
   const [isLoading, setIsLoading] = useState(false);
 
   const getNextPaymentId = useCallback(async (): Promise<number> => {
-    const { data } = await supabase
-      .from('cn_payment_header')
-      .select('payment_id')
-      .order('payment_id', { ascending: false })
-      .limit(1);
-    return data && data.length > 0 ? data[0].payment_id + 1 : 1;
+    // Use server-side RPC with table lock to prevent duplicate keys
+    const { data, error } = await supabase.rpc('get_next_payment_id');
+    if (error) {
+      // Fallback to client-side max+1
+      const { data: maxData } = await supabase
+        .from('cn_payment_header')
+        .select('payment_id')
+        .order('payment_id', { ascending: false })
+        .limit(1);
+      return maxData && maxData.length > 0 ? Number(maxData[0].payment_id) + 1 : 1;
+    }
+    return data as number;
   }, []);
 
   const lookupPayer = useCallback(async (
@@ -57,7 +63,8 @@ export function usePaymentEntry() {
     payerId: string
   ): Promise<PayerInfo | null> => {
     try {
-      if (payerType === 'ER' || payerType === 'SE') {
+      if (payerType === 'ER') {
+        // Employer: lookup by regno in er_master
         const { data, error } = await supabase
           .from('er_master')
           .select('regno, name, status')
@@ -65,7 +72,28 @@ export function usePaymentEntry() {
           .single();
         if (error || !data) return null;
         return { id: data.regno, name: data.name, status: data.status };
+      } else if (payerType === 'SE') {
+        // Self-Employed: lookup by ssn in ip_self_employ, then get name from ip_master
+        const { data: seData, error: seError } = await supabase
+          .from('ip_self_employ')
+          .select('ssn, status')
+          .eq('ssn', payerId)
+          .limit(1)
+          .maybeSingle();
+        if (seError || !seData) return null;
+        // Get name from ip_master
+        const { data: ipData } = await supabase
+          .from('ip_master')
+          .select('ssn, firstname, surname')
+          .eq('ssn', seData.ssn)
+          .single();
+        return {
+          id: seData.ssn || payerId,
+          name: ipData ? `${ipData.firstname} ${ipData.surname}` : payerId,
+          status: seData.status,
+        };
       } else {
+        // IP, VC: lookup by ssn in ip_master
         const { data, error } = await supabase
           .from('ip_master')
           .select('ssn, firstname, surname, status')
@@ -88,13 +116,32 @@ export function usePaymentEntry() {
     searchTerm: string
   ): Promise<PayerInfo[]> => {
     try {
-      if (payerType === 'ER' || payerType === 'SE') {
+      if (payerType === 'ER') {
         const { data } = await supabase
           .from('er_master')
           .select('regno, name, status')
           .or(`regno.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
           .limit(20);
         return (data || []).map(d => ({ id: d.regno, name: d.name, status: d.status }));
+      } else if (payerType === 'SE') {
+        // Self-Employed: search in ip_self_employ joined with ip_master for name
+        const { data } = await supabase
+          .from('ip_self_employ')
+          .select('ssn, status')
+          .ilike('ssn', `%${searchTerm}%`)
+          .limit(20);
+        if (!data || data.length === 0) return [];
+        const ssns = data.map(d => d.ssn).filter(Boolean) as string[];
+        const { data: ipData } = await supabase
+          .from('ip_master')
+          .select('ssn, firstname, surname')
+          .in('ssn', ssns);
+        const ipMap = new Map((ipData || []).map(d => [d.ssn, d]));
+        return data.map(d => ({
+          id: d.ssn || '',
+          name: ipMap.has(d.ssn!) ? `${ipMap.get(d.ssn!)!.firstname} ${ipMap.get(d.ssn!)!.surname}` : d.ssn || '',
+          status: d.status,
+        }));
       } else {
         const { data } = await supabase
           .from('ip_master')
@@ -233,5 +280,6 @@ export function usePaymentEntry() {
     loadPaymentDetails,
     loadPaymentsByBatch,
     totalPaymentAmount,
+    getNextPaymentId,
   };
 }

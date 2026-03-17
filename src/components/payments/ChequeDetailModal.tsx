@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,7 @@ export interface ChequeDetails {
   cheque_date: string | null;
   mop_account_number: string;
   mop_notes1: string;
+  bank_desc?: string;
 }
 
 interface ChequeDetailModalProps {
@@ -30,7 +30,7 @@ interface ChequeDetailModalProps {
 export function ChequeDetailModal({ open, onClose, onSave, initialData }: ChequeDetailModalProps) {
   const [chequeNumber, setChequeNumber] = useState('');
   const [bankCode, setBankCode] = useState('');
-  const [chequeDate, setChequeDate] = useState<Date | undefined>();
+  const [chequeDateStr, setChequeDateStr] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -47,20 +47,53 @@ export function ChequeDetailModal({ open, onClose, onSave, initialData }: Cheque
     if (open) {
       setChequeNumber(initialData?.mop_number || '');
       setBankCode(initialData?.bank_code || '');
-      setChequeDate(initialData?.cheque_date ? new Date(initialData.cheque_date) : undefined);
+      if (initialData?.cheque_date) {
+        const d = new Date(initialData.cheque_date);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        setChequeDateStr(`${dd}/${mm}/${yyyy}`);
+      } else {
+        setChequeDateStr('');
+      }
       setAccountNumber(initialData?.mop_account_number || '');
       setNotes(initialData?.mop_notes1 || '');
     }
   }, [open, initialData]);
 
+  // Auto-format date as DD/MM/YYYY while typing
+  const handleDateChange = (val: string) => {
+    // Allow only digits and slashes
+    const cleaned = val.replace(/[^\d/]/g, '');
+    // Auto-insert slashes
+    const digits = cleaned.replace(/\//g, '');
+    let formatted = '';
+    for (let i = 0; i < digits.length && i < 8; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      formatted += digits[i];
+    }
+    setChequeDateStr(formatted);
+  };
+
+  const parseDateStr = (str: string): string | null => {
+    if (!str || str.length < 10) return null;
+    const parts = str.split('/');
+    if (parts.length !== 3) return null;
+    const [dd, mm, yyyy] = parts;
+    const d = new Date(`${yyyy}-${mm}-${dd}`);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  };
+
   const handleSave = () => {
     if (!chequeNumber.trim()) return;
+    const bankObj = banks.find((b: any) => b.bank_code === bankCode);
     onSave({
       mop_number: chequeNumber.trim(),
       bank_code: bankCode,
-      cheque_date: chequeDate?.toISOString() || null,
+      cheque_date: parseDateStr(chequeDateStr),
       mop_account_number: accountNumber.trim(),
       mop_notes1: notes.trim(),
+      bank_desc: bankObj ? (bankObj as any).name : bankCode,
     });
   };
 
@@ -74,37 +107,42 @@ export function ChequeDetailModal({ open, onClose, onSave, initialData }: Cheque
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Cheque Number *</Label>
-              <Input value={chequeNumber} onChange={e => setChequeNumber(e.target.value)} autoFocus placeholder="Enter cheque number" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Cheque Date</Label>
-              <DatePicker date={chequeDate} onDateChange={setChequeDate} />
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cheque Number *</Label>
+            <Input value={chequeNumber} onChange={e => setChequeNumber(e.target.value)} autoFocus placeholder="Enter cheque number" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Bank</Label>
-              {banksLoading ? (
-                <div className="flex items-center h-9 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
-              ) : (
-                <Select value={bankCode} onValueChange={setBankCode}>
-                  <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
-                  <SelectContent>
-                    {banks.map((b: any) => (
-                      <SelectItem key={b.bank_code} value={b.bank_code}>{b.bank_code} - {b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Account Number</Label>
-              <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="Account number" />
-            </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Bank</Label>
+            {banksLoading ? (
+              <div className="flex items-center h-9 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            ) : (
+              <Select value={bankCode} onValueChange={setBankCode}>
+                <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
+                <SelectContent>
+                  {banks.map((b: any) => (
+                    <SelectItem key={b.bank_code} value={b.bank_code}>{b.bank_code} - {b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cheque Date</Label>
+            <Input
+              value={chequeDateStr}
+              onChange={e => handleDateChange(e.target.value)}
+              placeholder="DD/MM/YYYY"
+              maxLength={10}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Account Number</Label>
+            <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="Account number" />
+          </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes..." className="h-16" maxLength={250} />
