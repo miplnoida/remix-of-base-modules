@@ -30,9 +30,13 @@ const FALLBACK_SE_ROLES: UserRole[] = [
   { id: -4, role_name: 'Self Employed Users', role_code: 'self_employed_users', role_category: 'SelfEmployee' },
 ];
 
+// Only keep roles whose names exactly match our expected list, then fill in any missing ones from fallbacks
 function mergeRoles(apiRoles: UserRole[], fallbacks: UserRole[]): UserRole[] {
-  const nameSet = new Set(apiRoles.map(r => r.role_name.toLowerCase()));
-  const merged = [...apiRoles];
+  const allowedNames = new Set(fallbacks.map(fb => fb.role_name.toLowerCase()));
+  // Filter API roles to only include recognized names
+  const filtered = apiRoles.filter(r => allowedNames.has(r.role_name.toLowerCase()));
+  const nameSet = new Set(filtered.map(r => r.role_name.toLowerCase()));
+  const merged = [...filtered];
   for (const fb of fallbacks) {
     if (!nameSet.has(fb.role_name.toLowerCase())) {
       merged.push(fb);
