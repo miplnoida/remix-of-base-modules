@@ -1,27 +1,71 @@
 
+# Internal Audit Lifecycle Enhancement Plan
 
-## Why the Missing Data Wasn't Detected
+## Implementation Status
 
-The "Analyze Differences" function uses a hardcoded list of ~35 tables (`DEFAULT_TABLES` in `supabase/functions/data-migration-analyze/index.ts`, lines 29-65). The table `security_policy_config` is **not in this list**, so the analysis never compares it between Test and Live.
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-The current list covers config, master data, and workflow tables but omits security-related tables like:
-- `security_policy_config`
-- `ip_access_rules`
-- `security_ip_blocks`
-- `app_lockdown_state`
-- `unauthorized_access_logs`
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-## Fix
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-Add the missing security tables to the `DEFAULT_TABLES` array in `supabase/functions/data-migration-analyze/index.ts`:
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-```
-"security_policy_config",
-"ip_access_rules",
-"app_lockdown_state",
-```
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-This ensures future "Analyze Differences" runs will detect discrepancies in security configuration between Test and Live environments.
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
-No other files need to change — the sync function (`data-migration-sync`) already handles arbitrary tables dynamically.
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
+
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`

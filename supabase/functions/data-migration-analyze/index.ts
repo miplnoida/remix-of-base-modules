@@ -62,6 +62,9 @@ const DEFAULT_TABLES = [
   "field_security_rules",
   "document_purposes",
   "fee_configurations",
+  "security_policy_config",
+  "ip_access_rules",
+  "app_lockdown_state",
 ];
 
 function deepEqual(a: unknown, b: unknown): boolean {
