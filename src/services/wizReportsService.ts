@@ -1,13 +1,22 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const WIZ_API_URL = 'https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api';
 const WIZ_ADMIN_API_KEY = import.meta.env.VITE_WIZ_ADMIN_API_KEY || "uiop906754drd35fvg";
 
 async function callWizApi<T = any>(action: string, params: Record<string, any> = {}): Promise<T> {
+  // Get current session for Authorization header
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-admin-api-key": WIZ_ADMIN_API_KEY,
+  };
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+
   const res = await fetch(WIZ_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-admin-api-key": WIZ_ADMIN_API_KEY,
-    },
+    headers,
     body: JSON.stringify({ action, params }),
   });
   const json = await res.json();
