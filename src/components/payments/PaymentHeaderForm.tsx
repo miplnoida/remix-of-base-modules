@@ -70,7 +70,7 @@ export function PaymentHeaderForm({
                 value={payerId}
                 onChange={e => setPayerId(e.target.value)}
                 onBlur={onPayerBlur}
-                placeholder={payerType === 'ER' || payerType === 'SE' ? 'Reg. No.' : 'SSN'}
+                placeholder={payerType === 'ER' ? 'Reg. No.' : 'SSN'}
                 disabled={disabled}
                 autoFocus
               />
