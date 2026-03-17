@@ -272,8 +272,7 @@ const VCPaymentUpdate = () => {
           payerInfo={payerInfo}
           dateReceived={dateReceived} setDateReceived={setDateReceived}
           remarks={remarks} setRemarks={setRemarks}
-          onValidatePayer={handleValidatePayer}
-          onPayerSearch={() => setShowPayerSearch(true)}
+          onPayerBlur={handleValidatePayer}
           isValidating={isValidating}
           disabled={isDisabled}
         />
