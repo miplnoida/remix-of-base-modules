@@ -8,7 +8,7 @@ import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import {
-  getSelfEmployedReport, getSelfEmployedReportDropdown, exportSelfEmployedReport,
+  getSelfEmployedReport, exportSelfEmployedReport,
   type SelfEmployedReportRow
 } from '@/services/wizReportsService';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
