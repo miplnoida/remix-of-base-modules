@@ -124,21 +124,12 @@ export default function WizEmployerHistory() {
               <h2 className="text-lg font-semibold">Employer History</h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-[340px]">
-                <Select value={search || '__all__'} onValueChange={handleSearchSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search by employer name or reg number" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="__all__">All Employers</SelectItem>
-                    {dropdown.map(c => (
-                      <SelectItem key={c.id} value={c.registration_number}>
-                        {c.company_name} ({c.registration_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                placeholder="Search by employer name or reg number"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-[340px]"
+              />
               <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" /> Export Excel
               </Button>

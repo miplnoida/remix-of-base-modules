@@ -115,21 +115,12 @@ export default function WizSelfEmployedHistory() {
               <h2 className="text-lg font-semibold">Self Employed History</h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-[340px]">
-                <Select value={search || '__all__'} onValueChange={handleSearchSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search by self employer name or SSN" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="__all__">All Self Employed</SelectItem>
-                    {dropdown.map(se => (
-                      <SelectItem key={se.id} value={se.social_security_number}>
-                        {se.first_name} ({se.social_security_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                placeholder="Search by self employer name or SSN"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-[340px]"
+              />
               <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" /> Export Excel
               </Button>
