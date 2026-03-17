@@ -335,9 +335,14 @@ function toNumericOrNull(value: any): number | null {
   return isNaN(num) ? null : num;
 }
 
-// Helper for paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
+// Helper for paid_code from wages (legacy fallback): 1 = amount exists and > 0, 0 = amount missing or zero
 function toPaidCode(value: number | null | undefined): string {
   return (value != null && Number(value) > 0) ? '1' : '0';
+}
+
+// Helper for paid_code from checkbox/attendance flag: true = '1', false/undefined = '0'
+function toPaidCodeFromFlag(flag: boolean | undefined | null): string {
+  return flag ? '1' : '0';
 }
 
 // Helper to normalize status to 3-character codes for ip_wages table
@@ -523,14 +528,15 @@ export async function saveC3Draft(
           wages_paid6: holidayPay, // Holiday Pay
           wages_paid7: bonusPay,  // Bonus Pay
           
-          // paid_code: 1 = amount exists and > 0, 0 = amount missing or zero
-          paid_code1: toPaidCode(wages1),
-          paid_code2: toPaidCode(wages2),
-          paid_code3: toPaidCode(wages3),
-          paid_code4: toPaidCode(wages4),
-          paid_code5: toPaidCode(wages5),
-          paid_code6: toPaidCode(holidayPay),
-          paid_code7: toPaidCode(bonusPay),
+          // paid_code: attendance/presence flags - independent of payment amounts
+          // days array: [w1, w2, w3, w4, w5, bonus, holiday] (booleans)
+          paid_code1: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[0]) : (emp.paid_code1 ?? toPaidCode(wages1)),
+          paid_code2: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[1]) : (emp.paid_code2 ?? toPaidCode(wages2)),
+          paid_code3: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[2]) : (emp.paid_code3 ?? toPaidCode(wages3)),
+          paid_code4: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[3]) : (emp.paid_code4 ?? toPaidCode(wages4)),
+          paid_code5: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[4]) : (emp.paid_code5 ?? toPaidCode(wages5)),
+          paid_code6: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[6]) : (emp.paid_code6 ?? toPaidCode(holidayPay)),
+          paid_code7: isRawEmployee ? toPaidCodeFromFlag(emp.days?.[5]) : (emp.paid_code7 ?? toPaidCode(bonusPay)),
           
           employee_name: emp.name || emp.employee_name || '',
           ip_ss_amt: ipSsAmt,
@@ -1230,11 +1236,11 @@ export async function saveSelfContributorC3(
         wages_paid5: wages5,
         wages_paid6: null,
         wages_paid7: null,
-        paid_code1: toPaidCode(wages1),
-        paid_code2: toPaidCode(wages2),
-        paid_code3: toPaidCode(wages3),
-        paid_code4: toPaidCode(wages4),
-        paid_code5: toPaidCode(wages5),
+        paid_code1: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[0]) : toPaidCode(wages1),
+        paid_code2: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[1]) : toPaidCode(wages2),
+        paid_code3: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[2]) : toPaidCode(wages3),
+        paid_code4: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[3]) : toPaidCode(wages4),
+        paid_code5: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[4]) : toPaidCode(wages5),
         paid_code6: null,
         paid_code7: null,
         employee_name: record.payer_name || '',
@@ -1509,11 +1515,11 @@ export async function saveVoluntaryContributorC3(
         wages_paid5: wages5,
         wages_paid6: null,
         wages_paid7: null,
-        paid_code1: toPaidCode(wages1),
-        paid_code2: toPaidCode(wages2),
-        paid_code3: toPaidCode(wages3),
-        paid_code4: toPaidCode(wages4),
-        paid_code5: toPaidCode(wages5),
+        paid_code1: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[0]) : toPaidCode(wages1),
+        paid_code2: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[1]) : toPaidCode(wages2),
+        paid_code3: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[2]) : toPaidCode(wages3),
+        paid_code4: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[3]) : toPaidCode(wages4),
+        paid_code5: hasSelectedWeeks ? toPaidCodeFromFlag(selectedWeeks[4]) : toPaidCode(wages5),
         paid_code6: null,
         paid_code7: null,
         employee_name: record.payer_name || '',

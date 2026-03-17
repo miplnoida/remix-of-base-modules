@@ -229,7 +229,7 @@ export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
 // Uses the specification provided:
 // - pay_period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
 // - wages_paid1-5: Weekly wages, wages_paid6: Holiday, wages_paid7: Bonus
-// - paid_code1-7: '1' if amount entered, '0' otherwise
+// - paid_code1-7: attendance/presence flags from days[] checkboxes (independent of payment amounts)
 const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRecord => {
   // Map pay_period string to numeric code
   const mapPayPeriodToCode = (payPeriod: string): string => {
@@ -272,14 +272,15 @@ const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRe
     wages_paid6: holidayPay || null, // Holiday pay
     wages_paid7: bonusPay || null, // Bonus pay
     
-    // Paid codes
-    paid_code1: wages1 > 0 ? '1' : '0',
-    paid_code2: wages2 > 0 ? '1' : '0',
-    paid_code3: wages3 > 0 ? '1' : '0',
-    paid_code4: wages4 > 0 ? '1' : '0',
-    paid_code5: wages5 > 0 ? '1' : '0',
-    paid_code6: holidayPay > 0 ? '1' : '0',
-    paid_code7: bonusPay > 0 ? '1' : '0',
+    // Paid codes - from attendance/presence checkboxes (days array), NOT from payment amounts
+    // days array: [w1, w2, w3, w4, w5, bonus, holiday] (booleans)
+    paid_code1: employee.days?.[0] ? '1' : '0',
+    paid_code2: employee.days?.[1] ? '1' : '0',
+    paid_code3: employee.days?.[2] ? '1' : '0',
+    paid_code4: employee.days?.[3] ? '1' : '0',
+    paid_code5: employee.days?.[4] ? '1' : '0',
+    paid_code6: employee.days?.[6] ? '1' : '0', // Holiday (index 6 in days)
+    paid_code7: employee.days?.[5] ? '1' : '0', // Bonus (index 5 in days)
     
     employee_name: employee.name,
     
