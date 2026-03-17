@@ -1,43 +1,71 @@
-# Fix: Remove Incorrect Local Edge Function, Use C3-Wizard APIs Directly
 
-## Problem Analysis
+# Internal Audit Lifecycle Enhancement Plan
 
-The current architecture has a critical flaw:
+## Implementation Status
 
-1. **All 6 frontend services** (`wizAdminApiService.ts`, `wizReportsService.ts`, `wizReconciliationService.ts`, `wizPaymentService.ts`, `wizC3DetailsService.ts`, `wizSelfEmployedService.ts`) correctly call the **external C3-Wizard API** at `https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api`.
-2. **A local edge function** (`supabase/functions/wiz-admin-api/index.ts`, 1292 lines) was mistakenly created in the SSB Admin project. This function:
-  - Queries C3-Wizard tables (`c3_companies`, `c3_users`, `c3_self_employed`, etc.) that **do not exist** in the SSB Admin database
-  - Reimplements backend logic that already exists in the C3-Wizard system
-  - Uses a dual-client pattern to proxy requests to the external project — completely unnecessary since the frontend already calls the external URL directly
-3. **The local edge function is never called** by any frontend code (all services point to `nfvtlyvxfxzbhoqzprkr`), making it dead code that causes confusion.
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-## Root Cause
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-Previous iterations tried to "fix" the `Unknown action` errors by implementing the report handlers locally, when the real fix was to ensure those actions exist on the **C3-Wizard's deployed edge function** (the external project).
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-## Plan
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-### Step 1: Delete the local edge function
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-- **Delete** `supabase/functions/wiz-admin-api/index.ts` (and its directory)
-- This function is never called by the frontend and only creates confusion
-- All C3 data operations are handled by the external C3-Wizard project
+### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment and dashboard integration pending next iteration
 
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
 
-### Step 2: Verify frontend services are correct
-
-All 6 `wiz*.ts` services already call the external C3-Wizard URL directly — no changes needed. The `Unknown action` errors will only resolve when the C3-Wizard team deploys those action handlers on their side.
-
-### Step 3: Prepare C3-Wizard team request
-
-Document remaining dependency: the 15 report actions + any missing actions must be deployed to the C3-Wizard's `wiz-admin-api` edge function. The SSB Admin side is correctly configured as a pure API consumer.
-
-## Summary of Changes
-
-
-| Action    | File                                | Reason                                           |
-| --------- | ----------------------------------- | ------------------------------------------------ |
-| Delete    | `supabase/functions/wiz-admin-api/` | Dead code; reimplements C3-Wizard logic locally  |
-| &nbsp;    | &nbsp;                              | &nbsp;                                           |
-| No change | All `src/services/wiz*.ts` files    | Already correctly calling external C3-Wizard API |
+## Remaining (Next Iteration)
+- Apply approved config changes automatically (currently view-only approval)
+- Set up cron job for `audit-due-date-reminders`
