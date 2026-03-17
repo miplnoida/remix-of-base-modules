@@ -830,11 +830,11 @@ export const AppRoutes = () => {
       <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Reports Routes */}
-      <Route path="/admin/reports/employer-history" element={<ProtectedLayout><WizEmployerHistory /></ProtectedLayout>} />
-      <Route path="/admin/reports/self-employed-history" element={<ProtectedLayout><WizSelfEmployedHistory /></ProtectedLayout>} />
-      <Route path="/admin/reports/payments-history" element={<ProtectedLayout><WizPaymentsHistory /></ProtectedLayout>} />
-      <Route path="/admin/reports/reconciliation-history" element={<ProtectedLayout><WizReconciliationHistory /></ProtectedLayout>} />
-      <Route path="/admin/reports/users-history" element={<ProtectedLayout><WizUsersHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/employer-history" element={<ProtectedLayout><WizEmployerHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/self-employed-history" element={<ProtectedLayout><WizSelfEmployedHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/payments-history" element={<ProtectedLayout><WizPaymentsHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/reconciliation-history" element={<ProtectedLayout><WizReconciliationHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/users-history" element={<ProtectedLayout><WizUsersHistory /></ProtectedLayout>} />
 
       <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
       <Route path="/self-employed/add" element={<ProtectedLayout><AddSelfEmployed /></ProtectedLayout>} />
