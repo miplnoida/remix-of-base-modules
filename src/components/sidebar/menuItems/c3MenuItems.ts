@@ -99,7 +99,7 @@ export const c3MenuItems = [
         subItems: [
           {
             title: "Company Users",
-            url: "/admin/reports/users-history",
+            url: "/c3-management/reports/users-history",
             icon: Users,
             requiresPermission: "view_dashboard"
           }
