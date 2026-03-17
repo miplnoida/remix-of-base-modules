@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Users, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Users, ArrowUpDown, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatDateForStorage } from '@/lib/dateFormat';
 import {
   getCompanyUsersReport, getSelfEmployedUsersReport, getUsersReportRoles,
   exportUsersReport,
@@ -16,6 +19,27 @@ import {
 import { exportReportToExcel } from '@/utils/reportExcelExport';
 
 const PAGE_SIZE = 50;
+
+// Hardcoded fallback roles to ensure all expected roles appear even if API omits some
+const FALLBACK_COMPANY_ROLES: UserRole[] = [
+  { id: -1, role_name: 'Company', role_code: 'company', role_category: 'Company' },
+  { id: -2, role_name: 'Company Users', role_code: 'company_users', role_category: 'Company' },
+];
+const FALLBACK_SE_ROLES: UserRole[] = [
+  { id: -3, role_name: 'Self Employed', role_code: 'self_employed', role_category: 'SelfEmployee' },
+  { id: -4, role_name: 'Self Employed Users', role_code: 'self_employed_users', role_category: 'SelfEmployee' },
+];
+
+function mergeRoles(apiRoles: UserRole[], fallbacks: UserRole[]): UserRole[] {
+  const nameSet = new Set(apiRoles.map(r => r.role_name.toLowerCase()));
+  const merged = [...apiRoles];
+  for (const fb of fallbacks) {
+    if (!nameSet.has(fb.role_name.toLowerCase())) {
+      merged.push(fb);
+    }
+  }
+  return merged;
+}
 
 export default function WizUsersHistory() {
   const [tab, setTab] = useState<'Company' | 'SelfEmployee'>('Company');
@@ -36,12 +60,21 @@ export default function WizUsersHistory() {
   const [searchText, setSearchText] = useState('');
   const [sortCol, setSortCol] = useState('first_name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
 
-  // Load roles for current tab
+  // Load roles for current tab — merge with fallbacks to ensure all expected roles appear
   useEffect(() => {
     getUsersReportRoles(tab)
-      .then(res => setRoles(res.data || []))
-      .catch(() => {});
+      .then(res => {
+        const apiRoles = res.data || [];
+        const fallbacks = tab === 'Company' ? FALLBACK_COMPANY_ROLES : FALLBACK_SE_ROLES;
+        setRoles(mergeRoles(apiRoles, fallbacks));
+      })
+      .catch(() => {
+        // On failure, use fallback roles
+        setRoles(tab === 'Company' ? FALLBACK_COMPANY_ROLES : FALLBACK_SE_ROLES);
+      });
   }, [tab]);
 
   const fetchCompanyUsers = useCallback(async () => {
@@ -50,6 +83,8 @@ export default function WizUsersHistory() {
       const res = await getCompanyUsersReport({
         search: searchText,
         role_id: selectedRole ? Number(selectedRole) : null,
+        from_date: fromDate ? formatDateForStorage(fromDate) : undefined,
+        to_date: toDate ? formatDateForStorage(toDate) : undefined,
         sort_column: sortCol,
         sort_direction: sortDir,
         page: companyPage,
@@ -62,7 +97,7 @@ export default function WizUsersHistory() {
     } finally {
       setLoading(false);
     }
-  }, [searchText, selectedRole, sortCol, sortDir, companyPage]);
+  }, [searchText, selectedRole, sortCol, sortDir, companyPage, fromDate, toDate]);
 
   const fetchSEUsers = useCallback(async () => {
     setLoading(true);
@@ -70,6 +105,8 @@ export default function WizUsersHistory() {
       const res = await getSelfEmployedUsersReport({
         search: searchText,
         role_id: selectedRole ? Number(selectedRole) : null,
+        from_date: fromDate ? formatDateForStorage(fromDate) : undefined,
+        to_date: toDate ? formatDateForStorage(toDate) : undefined,
         sort_column: sortCol,
         sort_direction: sortDir,
         page: sePage,
@@ -82,7 +119,7 @@ export default function WizUsersHistory() {
     } finally {
       setLoading(false);
     }
-  }, [searchText, selectedRole, sortCol, sortDir, sePage]);
+  }, [searchText, selectedRole, sortCol, sortDir, sePage, fromDate, toDate]);
 
   useEffect(() => {
     if (tab === 'Company') fetchCompanyUsers();
@@ -100,6 +137,17 @@ export default function WizUsersHistory() {
     setSearchText('');
     setSortCol('first_name');
     setSortDir('asc');
+    setFromDate(undefined);
+    setToDate(undefined);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedRole('');
+    setSearchText('');
+    setFromDate(undefined);
+    setToDate(undefined);
+    setCompanyPage(1);
+    setSePage(1);
   };
 
   const handleExport = async () => {
@@ -111,19 +159,12 @@ export default function WizUsersHistory() {
         role_id: selectedRole ? Number(selectedRole) : null,
       });
       const rows = res.data || [];
-      const cols = tab === 'Company'
-        ? [
-            { header: 'Full Name', key: 'name', width: 25 },
-            { header: 'Login Id', key: 'username', width: 15 },
-            { header: 'Email', key: 'email', width: 30 },
-            { header: 'Company Name', key: 'company', width: 35 },
-          ]
-        : [
-            { header: 'Full Name', key: 'name', width: 25 },
-            { header: 'Login Id', key: 'username', width: 15 },
-            { header: 'Email', key: 'email', width: 30 },
-            { header: 'Company Name', key: 'company', width: 35 },
-          ];
+      const cols = [
+        { header: 'Full Name', key: 'name', width: 25 },
+        { header: 'Login Id', key: 'username', width: 15 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Company Name', key: 'company', width: 35 },
+      ];
       await exportReportToExcel(rows, cols, `users-history-${tab.toLowerCase()}`, 'Users History');
       toast.success('Export complete');
     } catch (err: any) {
@@ -136,7 +177,7 @@ export default function WizUsersHistory() {
   const totalRecords = tab === 'Company' ? companyTotal : seTotal;
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
-  // Group data by role for the grouped display (matching legacy screenshot)
+  // Group data by role for grouped display (matching legacy)
   const groupedCompanyData = React.useMemo(() => {
     const groups: Record<string, CompanyUserReportRow[]> = {};
     companyData.forEach(u => {
@@ -170,12 +211,20 @@ export default function WizUsersHistory() {
       <Card>
         <CardContent className="pt-6">
           {/* Header row */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold">All User History</h2>
             </div>
-            <div className="flex items-center gap-3">
+            <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" /> Export Excel
+            </Button>
+          </div>
+
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Role</Label>
               <Select value={selectedRole || '__all__'} onValueChange={v => { setSelectedRole(v === '__all__' ? '' : v); setCompanyPage(1); setSePage(1); }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Roles" />
@@ -187,16 +236,27 @@ export default function WizUsersHistory() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">From Date</Label>
+              <DatePicker date={fromDate} onDateChange={(d) => { setFromDate(d); setCompanyPage(1); setSePage(1); }} placeholder="From Date" className="w-[160px]" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">To Date</Label>
+              <DatePicker date={toDate} onDateChange={(d) => { setToDate(d); setCompanyPage(1); setSePage(1); }} placeholder="To Date" className="w-[160px]" />
+            </div>
+            <div className="space-y-1 flex-1">
+              <Label className="text-xs text-muted-foreground">Search</Label>
               <Input
                 placeholder="Search Name, Email or Login ID..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                className="w-[260px]"
+                className="w-full max-w-[260px]"
               />
-              <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" /> Export Excel
-              </Button>
             </div>
+            <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-10">
+              <RotateCcw className="h-4 w-4 mr-1" /> Reset
+            </Button>
           </div>
 
           {/* Tabs */}

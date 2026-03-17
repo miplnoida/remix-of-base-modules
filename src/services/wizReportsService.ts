@@ -127,6 +127,8 @@ export interface UserRole {
 
 export async function getEmployerReport(params: {
   search?: string;
+  from_date?: string;
+  to_date?: string;
   sort_col?: string;
   sort_dir?: 'asc' | 'desc';
   page_offset?: number;
@@ -153,6 +155,8 @@ export async function exportEmployerReport(search?: string) {
 
 export async function getSelfEmployedReport(params: {
   search?: string;
+  from_date?: string;
+  to_date?: string;
   sort_col?: string;
   sort_dir?: 'asc' | 'desc';
   page_offset?: number;
@@ -239,6 +243,8 @@ export async function getCompanyUsersReport(params: {
   search?: string;
   company_id?: number | null;
   role_id?: number | null;
+  from_date?: string;
+  to_date?: string;
   sort_column?: string;
   sort_direction?: 'asc' | 'desc';
   page?: number;
@@ -252,6 +258,8 @@ export async function getCompanyUsersReport(params: {
 export async function getSelfEmployedUsersReport(params: {
   search?: string;
   role_id?: number | null;
+  from_date?: string;
+  to_date?: string;
   sort_column?: string;
   sort_direction?: 'asc' | 'desc';
   page?: number;
