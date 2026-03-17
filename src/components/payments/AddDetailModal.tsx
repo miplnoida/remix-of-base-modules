@@ -212,14 +212,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
           {/* Payment Code - searchable combobox */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Payment Code *</Label>
-            <Popover open={paymentCodeOpen} onOpenChange={setPaymentCodeOpen}>
+            <Popover open={paymentCodeOpen} onOpenChange={setPaymentCodeOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   ref={paymentCodeTriggerRef}
                   variant="outline"
                   role="combobox"
                   aria-expanded={paymentCodeOpen}
-                  className="w-full justify-between font-normal h-9 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  className="w-full justify-between font-normal h-10 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg"
                 >
                   {ptLoading ? <Loader2 className="h-4 w-4 animate-spin" /> :
                     selectedPtLabel ? (
@@ -230,10 +230,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                   <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-lg shadow-lg border border-border" align="start" sideOffset={4}>
                 <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search payment type..." value={paymentCodeSearch} onValueChange={setPaymentCodeSearch} className="h-9" />
-                  <CommandList className="max-h-[200px]">
+                  <CommandInput
+                    placeholder="Type to search..."
+                    value={paymentCodeSearch}
+                    onValueChange={setPaymentCodeSearch}
+                  />
+                  <CommandList>
                     <CommandEmpty>No payment type found.</CommandEmpty>
                     <CommandGroup>
                       {filteredPaymentTypes.map((pt: any) => (
@@ -241,11 +245,10 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                           key={pt.payment_code}
                           value={pt.payment_code}
                           onSelect={() => { setPaymentCode(pt.payment_code); setPaymentCodeOpen(false); }}
-                          className="flex items-center gap-2 cursor-pointer"
                         >
-                          <Check className={cn("h-3.5 w-3.5 shrink-0", paymentCode === pt.payment_code ? "opacity-100" : "opacity-0")} />
-                          <span className="font-mono text-xs text-primary">{pt.payment_code}</span>
-                          <span className="text-xs text-foreground truncate">{pt.payment_type_description}</span>
+                          <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", paymentCode === pt.payment_code ? "opacity-100" : "opacity-0")} />
+                          <span className="font-mono text-xs text-primary mr-2">{pt.payment_code}</span>
+                          <span className="text-xs truncate">{pt.payment_type_description}</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
