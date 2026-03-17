@@ -64,11 +64,14 @@ export default function WizEmployerHistory() {
     fetchData();
   }, [fetchData]);
 
+  // Debounce search: update search state after user stops typing
   useEffect(() => {
-    getEmployerReportDropdown()
-      .then(res => setDropdown(res.data?.companies || []))
-      .catch(() => {});
-  }, []);
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) {
