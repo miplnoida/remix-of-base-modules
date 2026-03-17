@@ -5381,6 +5381,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_receipt_prints: {
+        Row: {
+          id: string
+          print_type: string
+          printed_at: string
+          printed_by: string
+          receipt_id: string
+        }
+        Insert: {
+          id?: string
+          print_type?: string
+          printed_at?: string
+          printed_by: string
+          receipt_id: string
+        }
+        Update: {
+          id?: string
+          print_type?: string
+          printed_at?: string
+          printed_by?: string
+          receipt_id?: string
+        }
+        Relationships: []
+      }
       compliance_activity_log: {
         Row: {
           action: string

@@ -272,17 +272,16 @@ const VCPaymentUpdate = () => {
           payerInfo={payerInfo}
           dateReceived={dateReceived} setDateReceived={setDateReceived}
           remarks={remarks} setRemarks={setRemarks}
-          onValidatePayer={handleValidatePayer}
-          onPayerSearch={() => setShowPayerSearch(true)}
+          onPayerBlur={handleValidatePayer}
           isValidating={isValidating}
           disabled={isDisabled}
         />
 
         <PaymentDetailGrid
-          rows={payment.detailRows}
+          rows={payment.detailRows as any}
           onAddRow={() => setShowAddDetail(true)}
           onDeleteRow={handleDeleteDetail}
-          onEditMOP={handleEditMOP}
+          onEditRow={handleEditMOP}
           disabled={isDisabled || !payment.currentHeader}
           totalAmount={payment.totalPaymentAmount}
         />
