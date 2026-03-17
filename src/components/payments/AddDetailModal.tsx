@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'cmdk';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
@@ -212,14 +212,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
           {/* Payment Code - searchable combobox */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Payment Code *</Label>
-            <Popover open={paymentCodeOpen} onOpenChange={setPaymentCodeOpen}>
+            <Popover open={paymentCodeOpen} onOpenChange={setPaymentCodeOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   ref={paymentCodeTriggerRef}
                   variant="outline"
                   role="combobox"
                   aria-expanded={paymentCodeOpen}
-                  className="w-full justify-between font-normal h-9 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  className="w-full justify-between font-normal h-10 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg"
                 >
                   {ptLoading ? <Loader2 className="h-4 w-4 animate-spin" /> :
                     selectedPtLabel ? (
@@ -230,10 +230,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                   <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-lg shadow-lg border border-border" align="start" sideOffset={4}>
                 <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search payment type..." value={paymentCodeSearch} onValueChange={setPaymentCodeSearch} className="h-9" />
-                  <CommandList className="max-h-[200px]">
+                  <CommandInput
+                    placeholder="Type to search..."
+                    value={paymentCodeSearch}
+                    onValueChange={setPaymentCodeSearch}
+                  />
+                  <CommandList>
                     <CommandEmpty>No payment type found.</CommandEmpty>
                     <CommandGroup>
                       {filteredPaymentTypes.map((pt: any) => (
@@ -241,11 +245,10 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                           key={pt.payment_code}
                           value={pt.payment_code}
                           onSelect={() => { setPaymentCode(pt.payment_code); setPaymentCodeOpen(false); }}
-                          className="flex items-center gap-2 cursor-pointer"
                         >
-                          <Check className={cn("h-3.5 w-3.5 shrink-0", paymentCode === pt.payment_code ? "opacity-100" : "opacity-0")} />
-                          <span className="font-mono text-xs text-primary">{pt.payment_code}</span>
-                          <span className="text-xs text-foreground truncate">{pt.payment_type_description}</span>
+                          <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", paymentCode === pt.payment_code ? "opacity-100" : "opacity-0")} />
+                          <span className="font-mono text-xs text-primary mr-2">{pt.payment_code}</span>
+                          <span className="text-xs truncate">{pt.payment_type_description}</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -279,13 +282,13 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
           {/* Method of Payment - searchable combobox */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Method of Payment *</Label>
-            <Popover open={mopOpen} onOpenChange={setMopOpen}>
+            <Popover open={mopOpen} onOpenChange={setMopOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={mopOpen}
-                  className="w-full justify-between font-normal h-9 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  className="w-full justify-between font-normal h-10 text-sm border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg"
                 >
                   {mopLoading ? <Loader2 className="h-4 w-4 animate-spin" /> :
                     selectedMopLabel ? (
@@ -296,10 +299,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                   <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-lg shadow-lg border border-border" align="start" sideOffset={4}>
                 <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search MOP..." value={mopSearch} onValueChange={setMopSearch} className="h-9" />
-                  <CommandList className="max-h-[200px]">
+                  <CommandInput
+                    placeholder="Type to search..."
+                    value={mopSearch}
+                    onValueChange={setMopSearch}
+                  />
+                  <CommandList>
                     <CommandEmpty>No method found.</CommandEmpty>
                     <CommandGroup>
                       {filteredMopTypes.map((m: any) => (
@@ -307,11 +314,10 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
                           key={m.mop_code}
                           value={m.mop_code}
                           onSelect={() => { setMopCode(m.mop_code); setMopOpen(false); }}
-                          className="flex items-center gap-2 cursor-pointer"
                         >
-                          <Check className={cn("h-3.5 w-3.5 shrink-0", mopCode === m.mop_code ? "opacity-100" : "opacity-0")} />
-                          <span className="font-mono text-xs text-primary">{m.mop_code}</span>
-                          <span className="text-xs text-foreground truncate">{m.short_description}</span>
+                          <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", mopCode === m.mop_code ? "opacity-100" : "opacity-0")} />
+                          <span className="font-mono text-xs text-primary mr-2">{m.mop_code}</span>
+                          <span className="text-xs truncate">{m.short_description}</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
