@@ -155,6 +155,8 @@ export async function exportEmployerReport(search?: string) {
 
 export async function getSelfEmployedReport(params: {
   search?: string;
+  from_date?: string;
+  to_date?: string;
   sort_col?: string;
   sort_dir?: 'asc' | 'desc';
   page_offset?: number;
