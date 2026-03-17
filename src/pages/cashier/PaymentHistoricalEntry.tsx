@@ -170,10 +170,10 @@ const PaymentHistoricalEntry = () => {
       />
 
       <PaymentDetailGrid
-        rows={payment.detailRows}
+        rows={payment.detailRows as any}
         onAddRow={() => setShowAddDetail(true)}
         onDeleteRow={handleDeleteDetail}
-        onEditMOP={handleEditMOP}
+        onEditRow={handleEditMOP}
         disabled={isDisabled || !payment.currentHeader}
         totalAmount={payment.totalPaymentAmount}
       />
