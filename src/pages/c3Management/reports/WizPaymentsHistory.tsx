@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Download, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import {
@@ -24,6 +24,33 @@ function formatDate(d: string | null) {
 function formatCurrency(n: number | null | undefined) {
   if (n == null) return '$0.00';
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (!status) return <span>—</span>;
+  const upper = status.toUpperCase();
+  if (upper === 'AUTHORIZED') {
+    return (
+      <div className="flex items-center gap-1">
+        <CheckCircle className="h-3 w-3 text-green-600" />
+        <span className="text-xs text-green-700 font-medium">{status}</span>
+      </div>
+    );
+  }
+  if (upper === 'DECLINED') {
+    return (
+      <div className="flex items-center gap-1">
+        <XCircle className="h-3 w-3 text-destructive" />
+        <span className="text-xs text-destructive font-medium">{status}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <AlertCircle className="h-3 w-3 text-orange-500" />
+      <span className="text-xs text-orange-600 font-medium">{status}</span>
+    </div>
+  );
 }
 
 const PAGE_SIZE = 10;
@@ -109,18 +136,21 @@ export default function WizPaymentsHistory() {
         total_severance_fmt: formatCurrency(r.total_severance),
         payment_amount: r.pay_details?.[0]?.payment_amount ? formatCurrency(r.pay_details[0].payment_amount) : '',
         transaction_id: r.pay_details?.map(p => p.transaction_id).join(', ') || '',
+        transaction_date_fmt: r.pay_details?.map(p => formatDate(p.transaction_date)).join(', ') || '',
         status: r.pay_details?.[0]?.transaction_status || '',
       }));
       const cols = [
         { header: 'Month', key: 'period_month', width: 12 },
         { header: 'Year', key: 'period_year', width: 8 },
         { header: 'Wages', key: 'total_wages_fmt', width: 15 },
-        { header: 'Social Security', key: 'total_ss_fmt', width: 15 },
+        { header: isSelfEmployed ? 'Contribution' : 'Social Security', key: 'total_ss_fmt', width: 15 },
         ...(!isSelfEmployed ? [{ header: 'Levy', key: 'total_levy_fmt', width: 12 }] : []),
         { header: 'Fines and Penalties', key: 'total_fines_fmt', width: 18 },
         ...(!isSelfEmployed ? [{ header: 'Severance', key: 'total_severance_fmt', width: 12 }] : []),
         { header: 'Payment Amount', key: 'payment_amount', width: 15 },
+        { header: 'Creation Date', key: 'creation_date', width: 15 },
         { header: 'Transaction ID', key: 'transaction_id', width: 25 },
+        { header: 'Transaction Date', key: 'transaction_date_fmt', width: 15 },
         { header: 'Status', key: 'status', width: 15 },
       ];
       await exportReportToExcel(rows, cols, 'payment-history', 'Payment History');
@@ -130,8 +160,9 @@ export default function WizPaymentsHistory() {
     }
   };
 
-  const startRecord = page * PAGE_SIZE + 1;
+  const startRecord = totalRecords > 0 ? page * PAGE_SIZE + 1 : 0;
   const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
+  const colSpan = isSelfEmployed ? 11 : 13;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -163,7 +194,7 @@ export default function WizPaymentsHistory() {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Select Type</label>
-              <Select value={selectedType} onValueChange={v => { setSelectedType(v); setSelectedCompanyId(null); setSelectedUserId(null); setPage(0); }}>
+              <Select value={selectedType} onValueChange={v => { setSelectedType(v); setSelectedCompanyId(null); setSelectedUserId(null); setSelectedSEId(''); setPage(0); }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -259,9 +290,9 @@ export default function WizPaymentsHistory() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : data.length === 0 ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">No records found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No records found</TableCell></TableRow>
                 ) : data.map((row, idx) => (
                   <TableRow key={`${row.header_id}-${idx}`} className="hover:bg-muted/50">
                     <TableCell>
@@ -269,7 +300,7 @@ export default function WizPaymentsHistory() {
                         {row.is_submitted ? (
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
+                          <XCircle className="h-4 w-4 text-destructive" />
                         )}
                         {row.period_month}
                       </div>
@@ -302,12 +333,11 @@ export default function WizPaymentsHistory() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {row.pay_details?.[0]?.transaction_status && (
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                          <span className="text-xs text-green-700 font-medium">{row.pay_details[0].transaction_status}</span>
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        {(row.pay_details || []).map((p, pi) => (
+                          <StatusBadge key={pi} status={p.transaction_status} />
+                        ))}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -318,7 +348,7 @@ export default function WizPaymentsHistory() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-primary font-medium">
-              {totalRecords > 0 ? `${startRecord}-${endRecord} of ${totalRecords}` : '0'}
+              {totalRecords > 0 ? `${startRecord}-${endRecord} of ${totalRecords}` : '0 records'}
             </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>

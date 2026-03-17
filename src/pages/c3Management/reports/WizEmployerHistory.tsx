@@ -184,8 +184,8 @@ export default function WizEmployerHistory() {
                     <TableCell>{formatDate(row.registration_date)}</TableCell>
                     <TableCell>{row.contact_person}</TableCell>
                     <TableCell>{row.company_name}</TableCell>
-                    <TableCell>{row.email}</TableCell>
                     <TableCell>{row.mobile || ''}</TableCell>
+                    <TableCell>{row.email}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

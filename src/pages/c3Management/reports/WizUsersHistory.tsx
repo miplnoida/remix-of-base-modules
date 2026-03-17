@@ -15,7 +15,6 @@ import {
 } from '@/services/wizReportsService';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
 
-
 const PAGE_SIZE = 50;
 
 export default function WizUsersHistory() {
@@ -38,16 +37,12 @@ export default function WizUsersHistory() {
   const [sortCol, setSortCol] = useState('first_name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  // Load roles
+  // Load roles for current tab
   useEffect(() => {
-    getUsersReportRoles(null)
+    getUsersReportRoles(tab)
       .then(res => setRoles(res.data || []))
       .catch(() => {});
-  }, []);
-
-  const filteredRoles = roles.filter(r =>
-    tab === 'Company' ? r.role_category === 'Company' : r.role_category === 'SelfEmployee'
-  );
+  }, [tab]);
 
   const fetchCompanyUsers = useCallback(async () => {
     setLoading(true);
@@ -127,7 +122,7 @@ export default function WizUsersHistory() {
             { header: 'Full Name', key: 'name', width: 25 },
             { header: 'Login Id', key: 'username', width: 15 },
             { header: 'Email', key: 'email', width: 30 },
-            { header: 'SSN', key: 'ssn', width: 12 },
+            { header: 'Company Name', key: 'company', width: 35 },
           ];
       await exportReportToExcel(rows, cols, `users-history-${tab.toLowerCase()}`, 'Users History');
       toast.success('Export complete');
@@ -141,7 +136,7 @@ export default function WizUsersHistory() {
   const totalRecords = tab === 'Company' ? companyTotal : seTotal;
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
-  // Group data by role for the grouped display
+  // Group data by role for the grouped display (matching legacy screenshot)
   const groupedCompanyData = React.useMemo(() => {
     const groups: Record<string, CompanyUserReportRow[]> = {};
     companyData.forEach(u => {
@@ -187,7 +182,7 @@ export default function WizUsersHistory() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All Roles</SelectItem>
-                  {filteredRoles.map(r => (
+                  {roles.map(r => (
                     <SelectItem key={r.id} value={r.id.toString()}>{r.role_name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -299,7 +294,7 @@ export default function WizUsersHistory() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-primary font-medium">
-              {totalRecords > 0 ? `Page ${currentPage} of ${totalPages} (${totalRecords} records)` : '0 records'}
+              {totalRecords > 0 ? `${totalRecords} records` : '0 records'}
             </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
