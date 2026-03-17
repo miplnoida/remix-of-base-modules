@@ -36,6 +36,13 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // External C3-Wizard Supabase client for report queries against C3 tables
+  const wizSupabaseUrl = Deno.env.get("LIVE_SUPABASE_URL");
+  const wizSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+  const wizClient = (wizSupabaseUrl && wizSupabaseKey)
+    ? createClient(wizSupabaseUrl, wizSupabaseKey)
+    : supabase;
+
   // Verify the calling user
   const anonClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
