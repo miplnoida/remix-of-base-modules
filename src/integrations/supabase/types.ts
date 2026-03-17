@@ -20877,6 +20877,7 @@ export type Database = {
         Args: { p_payer_id: string; p_payer_type: string; p_period: string }
         Returns: number
       }
+      get_next_payment_id: { Args: never; Returns: number }
       get_pending_holiday_pay: {
         Args: { p_ssn: string; p_target_month: number; p_target_year: number }
         Returns: Json

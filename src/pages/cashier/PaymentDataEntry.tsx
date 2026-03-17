@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
@@ -18,7 +18,7 @@ import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
-  FileText, RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
+  RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
 } from 'lucide-react';
 
 type FlowState = 'entry' | 'saving' | 'saved';
@@ -112,6 +112,18 @@ const PaymentDataEntry = () => {
     setDetailLines(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  // MOP detail edit from grid action button
+  const handleEditMopDetail = useCallback((index: number) => {
+    const row = detailLines[index];
+    if (!row) return;
+    setPendingMopLineIndex(index);
+    if (row.mop_code === 'CHQ' || row.mop_code === 'CHK') {
+      setShowChequeModal(true);
+    } else if (row.mop_code === 'CRD') {
+      setShowCardModal(true);
+    }
+  }, [detailLines]);
+
   const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
     if (pendingMopLineIndex !== null) {
       setDetailLines(prev => prev.map((d, i) => i === pendingMopLineIndex ? { ...d, ...details } : d));
@@ -146,9 +158,8 @@ const PaymentDataEntry = () => {
 
     setFlowState('saving');
     try {
-      // 1) Get next payment_id
-      const { data: maxId } = await supabase.from('cn_payment_header').select('payment_id').order('payment_id', { ascending: false }).limit(1);
-      const paymentId = maxId && maxId.length > 0 ? Number(maxId[0].payment_id) + 1 : 1;
+      // 1) Get next payment_id using server-side RPC (table lock prevents duplicates)
+      const paymentId = await payment.getNextPaymentId();
 
       // 2) Insert header
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
@@ -218,14 +229,13 @@ const PaymentDataEntry = () => {
       toast({ title: 'Error Generating Receipt', description: err.message, variant: 'destructive' });
       setFlowState('entry');
     }
-  }, [batch.currentBatch, payerInfo, payerType, payerId, dateReceived, remarks, detailLines, totalAmount, userCode, receipt]);
+  }, [batch.currentBatch, payerInfo, payerType, payerId, dateReceived, remarks, detailLines, totalAmount, userCode, receipt, payment]);
 
   // --- Reprint ---
   const handleReprint = useCallback(async () => {
     if (!savedPaymentId || !receipt.currentReceipt) return;
     const uCode = userCode || 'SYS';
     try {
-      // Increment reprint_times
       const { error: updErr } = await supabase.from('cn_receipt').update({
         reprint_times: (receipt.currentReceipt.reprint_times || 0) + 1,
         updated_by: uCode,
@@ -233,7 +243,6 @@ const PaymentDataEntry = () => {
       } as any).eq('receipt_id', receipt.currentReceipt.receipt_id);
       if (updErr) throw updErr;
 
-      // Log reprint
       await supabase.from('cn_receipt_prints').insert({
         receipt_id: receipt.currentReceipt.receipt_id,
         printed_by: uCode,
@@ -357,6 +366,7 @@ const PaymentDataEntry = () => {
           onAddRow={() => { setEditIndex(null); setShowAddDetail(true); }}
           onDeleteRow={handleDeleteRow}
           onEditRow={handleEditRow}
+          onEditMopDetail={handleEditMopDetail}
           disabled={!isEntry}
           totalAmount={totalAmount}
         />

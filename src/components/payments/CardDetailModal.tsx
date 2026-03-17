@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -16,6 +16,7 @@ export interface CardDetails {
   mop_number: string;
   mop_notes1: string;
   expiration_date: string;
+  card_desc?: string;
 }
 
 interface CardDetailModalProps {
@@ -30,6 +31,8 @@ export function CardDetailModal({ open, onClose, onSave, initialData }: CardDeta
   const [cardNumber, setCardNumber] = useState('');
   const [expireDate, setExpireDate] = useState('');
   const [notes, setNotes] = useState('');
+
+  const cardTypeRef = useRef<HTMLButtonElement>(null);
 
   const { data: merchants = [], isLoading: merchantsLoading } = useQuery({
     queryKey: ['tb_merchant'],
@@ -46,16 +49,37 @@ export function CardDetailModal({ open, onClose, onSave, initialData }: CardDeta
       setCardNumber(initialData?.mop_number || '');
       setExpireDate(initialData?.expiration_date || '');
       setNotes(initialData?.mop_notes1 || '');
+      // Focus card type dropdown
+      setTimeout(() => cardTypeRef.current?.focus(), 150);
     }
   }, [open, initialData]);
 
+  // Card number: digits only, max 20
+  const handleCardNumberChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 20);
+    setCardNumber(digits);
+  };
+
+  // Expire date: auto-format MM/YY, digits only
+  const handleExpireDateChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 4);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2) formatted += '/';
+      formatted += digits[i];
+    }
+    setExpireDate(formatted);
+  };
+
   const handleSave = () => {
     if (!cardType || !cardNumber.trim()) return;
+    const merchant = merchants.find((m: any) => m.credit_card_code === cardType);
     onSave({
       credit_card_code: cardType,
       mop_number: cardNumber.trim(),
       mop_notes1: notes.trim(),
       expiration_date: expireDate,
+      card_desc: merchant ? (merchant as any).credit_card_name : cardType,
     });
   };
 
@@ -69,31 +93,47 @@ export function CardDetailModal({ open, onClose, onSave, initialData }: CardDeta
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Card Type *</Label>
-              {merchantsLoading ? (
-                <div className="flex items-center h-9 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
-              ) : (
-                <Select value={cardType} onValueChange={setCardType}>
-                  <SelectTrigger><SelectValue placeholder="Select card type..." /></SelectTrigger>
-                  <SelectContent>
-                    {merchants.map((m: any) => (
-                      <SelectItem key={m.credit_card_code} value={m.credit_card_code}>{m.credit_card_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Expire Date</Label>
-              <Input value={expireDate} onChange={e => setExpireDate(e.target.value)} placeholder="MM/YY" maxLength={5} />
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Card Type *</Label>
+            {merchantsLoading ? (
+              <div className="flex items-center h-9 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            ) : (
+              <Select value={cardType} onValueChange={setCardType}>
+                <SelectTrigger ref={cardTypeRef}>
+                  <SelectValue placeholder="Select card type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {merchants.map((m: any) => (
+                    <SelectItem key={m.credit_card_code} value={m.credit_card_code}>{m.credit_card_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">Card Number *</Label>
-            <Input value={cardNumber} onChange={e => setCardNumber(e.target.value)} autoFocus placeholder="Enter card number" />
+            <Input
+              value={cardNumber}
+              onChange={e => handleCardNumberChange(e.target.value)}
+              placeholder="Enter card number (digits only)"
+              maxLength={20}
+              inputMode="numeric"
+            />
+            <p className="text-xs text-muted-foreground">{cardNumber.length}/20 digits</p>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Expire Date</Label>
+            <Input
+              value={expireDate}
+              onChange={e => handleExpireDateChange(e.target.value)}
+              placeholder="MM/YY"
+              maxLength={5}
+              inputMode="numeric"
+            />
+          </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes..." className="h-16" maxLength={250} />
