@@ -229,7 +229,7 @@ export const transformToUIRecordWithEmployees = (record: C3RecordWithWages) => {
 // Uses the specification provided:
 // - pay_period: 1=Monthly, 2=Bi-Weekly, 3=Weekly, 4=2-Monthly
 // - wages_paid1-5: Weekly wages, wages_paid6: Holiday, wages_paid7: Bonus
-// - paid_code1-7: '1' if amount entered, '0' otherwise
+// - paid_code1-7: attendance/presence flags from days[] checkboxes (independent of payment amounts)
 const transformEmployeeToWageRecord = (employee: any, periodStr: string): WageRecord => {
   // Map pay_period string to numeric code
   const mapPayPeriodToCode = (payPeriod: string): string => {
