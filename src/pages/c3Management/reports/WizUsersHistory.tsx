@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Users, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
 import {
   getCompanyUsersReport, getSelfEmployedUsersReport, getUsersReportRoles,
   exportUsersReport,
