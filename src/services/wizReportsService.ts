@@ -127,6 +127,8 @@ export interface UserRole {
 
 export async function getEmployerReport(params: {
   search?: string;
+  from_date?: string;
+  to_date?: string;
   sort_col?: string;
   sort_dir?: 'asc' | 'desc';
   page_offset?: number;
