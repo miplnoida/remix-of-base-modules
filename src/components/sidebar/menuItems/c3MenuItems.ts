@@ -10,7 +10,8 @@ import {
   Calculator,
   UserCheck,
   CreditCard,
-  RefreshCw
+  RefreshCw,
+  ClipboardList
 } from "lucide-react";
 
 export const c3MenuItems = [
