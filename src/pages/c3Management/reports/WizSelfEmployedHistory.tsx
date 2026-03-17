@@ -4,9 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatDateForStorage } from '@/lib/format-config';
 import {
   getSelfEmployedReport, exportSelfEmployedReport,
   type SelfEmployedReportRow
@@ -36,6 +39,8 @@ export default function WizSelfEmployedHistory() {
   const [sortCol, setSortCol] = useState('social_security_number');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [searchInput, setSearchInput] = useState('');
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
@@ -44,24 +49,24 @@ export default function WizSelfEmployedHistory() {
     try {
       const res = await getSelfEmployedReport({
         search,
+        from_date: fromDate ? formatDateForStorage(fromDate) : undefined,
+        to_date: toDate ? formatDateForStorage(toDate) : undefined,
         sort_col: sortCol,
         sort_dir: sortDir,
         page_offset: page * PAGE_SIZE,
         page_limit: PAGE_SIZE,
       });
       setData(res.data?.self_employed || []);
-      // Handle both response shapes: { total_records } and { data: { total_records } }
       setTotalRecords(res.total_records ?? (res as any).data?.total_records ?? 0);
     } catch (err: any) {
       toast.error('Failed to load data', { description: err.message });
     } finally {
       setLoading(false);
     }
-  }, [search, sortCol, sortDir, page]);
+  }, [search, sortCol, sortDir, page, fromDate, toDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Debounce search: update search state after user stops typing
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput);
@@ -73,6 +78,14 @@ export default function WizSelfEmployedHistory() {
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortCol(col); setSortDir('asc'); }
+    setPage(0);
+  };
+
+  const handleResetFilters = () => {
+    setFromDate(undefined);
+    setToDate(undefined);
+    setSearchInput('');
+    setSearch('');
     setPage(0);
   };
 
@@ -109,22 +122,38 @@ export default function WizSelfEmployedHistory() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold">Self Employed History</h2>
             </div>
-            <div className="flex items-center gap-3">
+            <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" /> Export Excel
+            </Button>
+          </div>
+
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-end gap-3 mb-6">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">From Date</Label>
+              <DatePicker date={fromDate} onDateChange={(d) => { setFromDate(d); setPage(0); }} placeholder="From Date" className="w-[160px]" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">To Date</Label>
+              <DatePicker date={toDate} onDateChange={(d) => { setToDate(d); setPage(0); }} placeholder="To Date" className="w-[160px]" />
+            </div>
+            <div className="space-y-1 flex-1">
+              <Label className="text-xs text-muted-foreground">Search</Label>
               <Input
                 placeholder="Search by self employer name or SSN"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
-                className="w-[340px]"
+                className="w-full max-w-[340px]"
               />
-              <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" /> Export Excel
-              </Button>
             </div>
+            <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-10">
+              <RotateCcw className="h-4 w-4 mr-1" /> Reset
+            </Button>
           </div>
 
           <div className="border rounded-lg">
@@ -169,9 +198,7 @@ export default function WizSelfEmployedHistory() {
                 <ChevronLeft className="h-4 w-4 mr-1" /> Back
               </Button>
               {Array.from({ length: Math.min(4, totalPages) }, (_, i) => (
-                <Button key={i} variant={page === i ? 'default' : 'outline'} size="sm" className="min-w-[36px]" onClick={() => setPage(i)}>
-                  {i + 1}
-                </Button>
+                <Button key={i} variant={page === i ? 'default' : 'outline'} size="sm" className="min-w-[36px]" onClick={() => setPage(i)}>{i + 1}</Button>
               ))}
               {totalPages > 5 && <span className="px-2 text-muted-foreground">...</span>}
               {totalPages > 4 && (
