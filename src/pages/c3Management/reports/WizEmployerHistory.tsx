@@ -102,11 +102,6 @@ export default function WizEmployerHistory() {
     }
   };
 
-  const handleSearchSelect = (value: string) => {
-    setSearch(value === '__all__' ? '' : value);
-    setPage(0);
-  };
-
   const startRecord = page * PAGE_SIZE + 1;
   const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
 
