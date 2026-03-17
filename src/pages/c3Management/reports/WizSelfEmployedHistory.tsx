@@ -50,7 +50,8 @@ export default function WizSelfEmployedHistory() {
         page_limit: PAGE_SIZE,
       });
       setData(res.data?.self_employed || []);
-      setTotalRecords(res.total_records || 0);
+      // Handle both response shapes: { total_records } and { data: { total_records } }
+      setTotalRecords(res.total_records ?? (res as any).data?.total_records ?? 0);
     } catch (err: any) {
       toast.error('Failed to load data', { description: err.message });
     } finally {
@@ -95,7 +96,7 @@ export default function WizSelfEmployedHistory() {
     setPage(0);
   };
 
-  const startRecord = page * PAGE_SIZE + 1;
+  const startRecord = totalRecords > 0 ? page * PAGE_SIZE + 1 : 0;
   const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
 
   return (
@@ -172,7 +173,7 @@ export default function WizSelfEmployedHistory() {
 
           <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-primary font-medium">
-              {totalRecords > 0 ? `${startRecord}-${endRecord} of ${totalRecords}` : '0'}
+              {totalRecords > 0 ? `${startRecord}-${endRecord} of ${totalRecords}` : '0 records'}
             </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
@@ -185,7 +186,7 @@ export default function WizSelfEmployedHistory() {
               ))}
               {totalPages > 5 && <span className="px-2 text-muted-foreground">...</span>}
               {totalPages > 4 && (
-                <Button variant="outline" size="sm" className="min-w-[36px]" onClick={() => setPage(totalPages - 1)}>{totalPages}</Button>
+                <Button variant={page === totalPages - 1 ? 'default' : 'outline'} size="sm" className="min-w-[36px]" onClick={() => setPage(totalPages - 1)}>{totalPages}</Button>
               )}
               <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
                 Next <ChevronRight className="h-4 w-4 ml-1" />
