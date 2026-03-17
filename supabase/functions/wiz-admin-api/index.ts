@@ -1174,7 +1174,7 @@ Deno.serve(async (req) => {
 
         let query = supabase
           .from("c3_users")
-          .select("id, first_name, last_name, middle_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, is_deleted, c3_roles!inner(role_name, role_category), c3_self_employed(social_security_number)", { count: "exact" })
+          .select("id, first_name, last_name, middle_name, username, email, role_id, self_employed_id, is_locked, last_login_at, created_at, is_deleted, c3_roles!inner(role_name, role_category), c3_self_employed!c3_users_self_employed_id_fkey(social_security_number)", { count: "exact" })
           .eq("is_deleted", false)
           .eq("c3_roles.role_category", "SelfEmployee");
 
