@@ -3,12 +3,12 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import {
-  getEmployerReport, getEmployerReportDropdown, exportEmployerReport,
+  getEmployerReport, exportEmployerReport,
   type EmployerReportRow
 } from '@/services/wizReportsService';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
@@ -36,7 +36,7 @@ export default function WizEmployerHistory() {
   const [search, setSearch] = useState('');
   const [sortCol, setSortCol] = useState('registration_number');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [dropdown, setDropdown] = useState<{ id: number; company_name: string; registration_number: string }[]>([]);
+  const [searchInput, setSearchInput] = useState('');
   
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
@@ -64,11 +64,14 @@ export default function WizEmployerHistory() {
     fetchData();
   }, [fetchData]);
 
+  // Debounce search: update search state after user stops typing
   useEffect(() => {
-    getEmployerReportDropdown()
-      .then(res => setDropdown(res.data?.companies || []))
-      .catch(() => {});
-  }, []);
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) {
@@ -99,11 +102,6 @@ export default function WizEmployerHistory() {
     }
   };
 
-  const handleSearchSelect = (value: string) => {
-    setSearch(value === '__all__' ? '' : value);
-    setPage(0);
-  };
-
   const startRecord = page * PAGE_SIZE + 1;
   const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
 
@@ -126,21 +124,12 @@ export default function WizEmployerHistory() {
               <h2 className="text-lg font-semibold">Employer History</h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-[340px]">
-                <Select value={search || '__all__'} onValueChange={handleSearchSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search by employer name or reg number" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="__all__">All Employers</SelectItem>
-                    {dropdown.map(c => (
-                      <SelectItem key={c.id} value={c.registration_number}>
-                        {c.company_name} ({c.registration_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                placeholder="Search by employer name or reg number"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-[340px]"
+              />
               <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" /> Export Excel
               </Button>

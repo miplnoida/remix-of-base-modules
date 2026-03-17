@@ -3,12 +3,12 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import {
-  getSelfEmployedReport, getSelfEmployedReportDropdown, exportSelfEmployedReport,
+  getSelfEmployedReport, exportSelfEmployedReport,
   type SelfEmployedReportRow
 } from '@/services/wizReportsService';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
@@ -35,7 +35,7 @@ export default function WizSelfEmployedHistory() {
   const [search, setSearch] = useState('');
   const [sortCol, setSortCol] = useState('social_security_number');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [dropdown, setDropdown] = useState<{ id: number; first_name: string; social_security_number: string }[]>([]);
+  const [searchInput, setSearchInput] = useState('');
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
@@ -61,11 +61,14 @@ export default function WizSelfEmployedHistory() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Debounce search: update search state after user stops typing
   useEffect(() => {
-    getSelfEmployedReportDropdown()
-      .then(res => setDropdown(res.data?.self_employed || []))
-      .catch(() => {});
-  }, []);
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -91,11 +94,6 @@ export default function WizSelfEmployedHistory() {
     }
   };
 
-  const handleSearchSelect = (value: string) => {
-    setSearch(value === '__all__' ? '' : value);
-    setPage(0);
-  };
-
   const startRecord = totalRecords > 0 ? page * PAGE_SIZE + 1 : 0;
   const endRecord = Math.min((page + 1) * PAGE_SIZE, totalRecords);
 
@@ -117,21 +115,12 @@ export default function WizSelfEmployedHistory() {
               <h2 className="text-lg font-semibold">Self Employed History</h2>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-[340px]">
-                <Select value={search || '__all__'} onValueChange={handleSearchSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search by self employer name or SSN" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="__all__">All Self Employed</SelectItem>
-                    {dropdown.map(se => (
-                      <SelectItem key={se.id} value={se.social_security_number}>
-                        {se.first_name} ({se.social_security_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                placeholder="Search by self employer name or SSN"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-[340px]"
+              />
               <Button variant="outline" className="text-primary border-primary hover:bg-primary/5" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" /> Export Excel
               </Button>
