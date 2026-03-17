@@ -250,6 +250,43 @@ export const c3MenuItems = [
             requiresPermission: "view_reports"
           }
         ]
+      },
+      {
+        title: "Wizard Reports",
+        icon: ClipboardList,
+        requiresPermission: "view_reports",
+        subItems: [
+          {
+            title: "Employer History",
+            url: "/admin/reports/employer-history",
+            icon: Building2,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Self Employed History",
+            url: "/admin/reports/self-employed-history",
+            icon: UserCheck,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Payments History",
+            url: "/admin/reports/payments-history",
+            icon: DollarSign,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Reconciliation History",
+            url: "/admin/reports/reconciliation-history",
+            icon: RefreshCw,
+            requiresPermission: "view_reports"
+          },
+          {
+            title: "Users History",
+            url: "/admin/reports/users-history",
+            icon: Users,
+            requiresPermission: "view_reports"
+          }
+        ]
       }
     ]
   }
