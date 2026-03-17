@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Users, ArrowUpDown, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DatePicker } from '@/components/ui/date-picker';
-import { formatDateForStorage } from '@/lib/format-config';
+import { formatDateForStorage } from '@/lib/dateFormat';
 import {
   getCompanyUsersReport, getSelfEmployedUsersReport, getUsersReportRoles,
   exportUsersReport,

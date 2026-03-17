@@ -9,7 +9,7 @@ import { Download, Users, ChevronLeft, ChevronRight, ArrowUpDown, RotateCcw } fr
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { DatePicker } from '@/components/ui/date-picker';
-import { formatDateForStorage } from '@/lib/format-config';
+import { formatDateForStorage } from '@/lib/dateFormat';
 import {
   getEmployerReport, exportEmployerReport,
   type EmployerReportRow
