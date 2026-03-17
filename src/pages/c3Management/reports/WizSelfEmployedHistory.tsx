@@ -61,11 +61,14 @@ export default function WizSelfEmployedHistory() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Debounce search: update search state after user stops typing
   useEffect(() => {
-    getSelfEmployedReportDropdown()
-      .then(res => setDropdown(res.data?.self_employed || []))
-      .catch(() => {});
-  }, []);
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
