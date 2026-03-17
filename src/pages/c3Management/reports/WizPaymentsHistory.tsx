@@ -27,7 +27,7 @@ function formatCurrency(n: number | null | undefined) {
 }
 
 const PAGE_SIZE = 10;
-const STATUS_OPTIONS = ['All Status', 'AUTHORIZED', 'DECLINED', 'INVALID_REQUEST'];
+
 const TYPE_OPTIONS = [
   { value: 'Company', label: 'Employer' },
   { value: 'SelfEmployee', label: 'Self Employed' },

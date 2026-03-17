@@ -16,10 +16,6 @@ import {
 } from '@/services/wizReportsService';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  try { return format(parseISO(d), 'dd-MMM-yyyy HH:mm'); } catch { return d; }
-}
 
 const PAGE_SIZE = 50;
 

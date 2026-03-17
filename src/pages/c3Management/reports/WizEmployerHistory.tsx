@@ -37,7 +37,7 @@ export default function WizEmployerHistory() {
   const [sortCol, setSortCol] = useState('registration_number');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [dropdown, setDropdown] = useState<{ id: number; company_name: string; registration_number: string }[]>([]);
-  const [searchInput, setSearchInput] = useState('');
+  
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
