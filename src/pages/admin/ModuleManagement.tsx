@@ -552,6 +552,7 @@ const ModuleManagementContent = () => {
                   onDelete={(id) => deleteModule.mutate(id)}
                   onToggle={handleToggleModule}
                   onToggleMenuVisibility={handleToggleMenuVisibility}
+                  onAddAction={handleOpenActionDialog}
                   onDeleteAction={(id) => deleteAction.mutate(id)}
                   expandedModules={expandedModules}
                   toggleExpand={toggleExpand}
