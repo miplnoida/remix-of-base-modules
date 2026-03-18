@@ -13,6 +13,8 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 export default function ManagementResponses() {
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: responses = [], isLoading } = useIAManagementResponses();
