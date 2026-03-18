@@ -265,7 +265,7 @@ const PaymentDataEntry = () => {
       setSavedPaymentId(paymentId);
       setFlowState('saved');
 
-      toast({ title: 'Receipt Generated', description: `Receipt ${receiptId} created successfully.` });
+      toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
       // 6) Trigger browser print
       setTimeout(() => window.print(), 300);
