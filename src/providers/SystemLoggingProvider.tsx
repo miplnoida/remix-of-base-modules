@@ -181,6 +181,9 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       // Start new correlation for new page
       startNewCorrelation();
 
+      // Resolve correct user identity — prefer user_code, never fall back to full_name
+      const userName = profile?.user_code || user?.email || 'ANONYMOUS';
+
       // Log the navigation as a business event
       logBusinessEvent({
         module: 'Navigation',
@@ -190,13 +193,14 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         description: `Navigated to ${location.pathname}`,
       });
 
-      // Also write to system_audit_trail for unified audit view
+      // Write to system_audit_trail with correct user_code (not full_name)
       logAudit({
         module: 'Navigation',
         action: 'page_view',
         entity_type: 'page',
         entity_id: location.pathname,
         description: `Opened screen: ${location.pathname}`,
+        user_name: userName,
       });
 
       // Log performance metric for previous page if applicable
@@ -212,7 +216,7 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       previousPath.current = location.pathname;
       pageLoadTime.current = currentTime;
     }
-  }, [location.pathname, user, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
+  }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
 
   // Log unhandled promise rejections
   useEffect(() => {

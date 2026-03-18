@@ -34,15 +34,21 @@ supabase.auth.onAuthStateChange(() => {
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onSuccess: (_data, variables, _context, mutation) => {
+      // Skip logging for audit-internal or system_audit_trail writes to avoid loops
+      const keyStr = mutation.options.mutationKey?.map(String).join('/') || '';
+      if (keyStr.includes('audit') || keyStr.includes('system_log')) return;
+
       const parsed = parseMutationKey(mutation.options.mutationKey);
       const entityId = extractEntityId(variables);
+      const route = typeof window !== 'undefined' ? window.location.pathname : undefined;
+
       // Fire-and-forget audit log — never blocks the UI
       logAuditEntry({
         action: parsed.action,
         entityType: parsed.entityType,
         entityId,
         module: parsed.module,
-        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        route,
         afterValue: variables && typeof variables === 'object' ? variables as Record<string, any> : undefined,
         metadata: {
           source: 'MutationCache_global',
@@ -55,7 +61,9 @@ const queryClient = new QueryClient({
         module: 'MUTATION',
         action: mutation.options.mutationKey?.join('/') || 'unknown_mutation',
       });
-      // Also log failed mutations to audit trail
+      const keyStr = mutation.options.mutationKey?.map(String).join('/') || '';
+      if (keyStr.includes('audit') || keyStr.includes('system_log')) return;
+
       const parsed = parseMutationKey(mutation.options.mutationKey);
       const entityId = extractEntityId(variables);
       logAuditEntry({
