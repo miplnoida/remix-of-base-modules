@@ -104,9 +104,11 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [getBaseLogData, profile, user?.email]);
 
-  // Log audit trail
+  // Log audit trail — always uses user_code for user_name
   const logAudit = useCallback(async (data: LogData & { user_name?: string }) => {
     try {
+      // Prefer explicit user_name, then user_code, then email. Never use full_name.
+      const resolvedUserName = data.user_name || profile?.user_code || user?.email || 'ANONYMOUS';
       await supabase.from('system_audit_trail').insert({
         ...getBaseLogData(),
         module: data.module,
@@ -115,7 +117,8 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         action: data.action,
         before_value: data.before_value,
         after_value: data.after_value,
-        user_name: data.user_name || profile?.full_name || user?.email || 'Unknown',
+        user_name: resolvedUserName,
+      });
       });
     } catch (err) {
       console.error('Failed to log audit:', err);
