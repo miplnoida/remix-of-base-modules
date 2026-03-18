@@ -13,6 +13,7 @@ import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Trash2, 
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useProfiles } from '@/components/c3/ReceivedBySelect';
 
 export default function DepartmentView() {
   const { id } = useParams<{ id: string }>();
