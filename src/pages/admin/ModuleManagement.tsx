@@ -105,6 +105,7 @@ interface ModuleTreeItemProps {
   onEdit: (module: AppModule) => void;
   onDelete: (id: string) => void;
   onToggle: (module: AppModule) => void;
+  onToggleMenuVisibility: (module: AppModule) => void;
   onAddAction: (module: AppModule) => void;
   onDeleteAction: (id: string) => void;
   expandedModules: Set<string>;
@@ -121,6 +122,7 @@ const ModuleTreeItem = ({
   onEdit,
   onDelete,
   onToggle,
+  onToggleMenuVisibility,
   onAddAction,
   onDeleteAction,
   expandedModules,
@@ -178,9 +180,17 @@ const ModuleTreeItem = ({
           <Badge variant={module.is_enabled ? "default" : "secondary"} className="text-xs">
             {module.is_enabled ? "Enabled" : "Disabled"}
           </Badge>
-          <Badge variant={module.show_in_menu ? "default" : "outline"} className="text-xs">
-            {module.show_in_menu ? "In Menu" : "Hidden"}
-          </Badge>
+          <div className="flex items-center gap-1.5" title={module.show_in_menu ? "Visible in menu" : "Hidden from menu"}>
+            <Switch
+              checked={module.show_in_menu ?? false}
+              onCheckedChange={() => onToggleMenuVisibility(module)}
+              disabled={!can(ACTION_NAMES.EDIT)}
+              className="h-5 w-9 [&>span]:h-4 [&>span]:w-4"
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {module.show_in_menu ? "In Menu" : "Hidden"}
+            </span>
+          </div>
           <Badge variant="outline" className="text-xs">
             {module.actions?.length || 0} Actions
           </Badge>
@@ -261,6 +271,7 @@ const ModuleTreeItem = ({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggle={onToggle}
+              onToggleMenuVisibility={onToggleMenuVisibility}
               onAddAction={onAddAction}
               onDeleteAction={onDeleteAction}
               expandedModules={expandedModules}
@@ -422,6 +433,10 @@ const ModuleManagementContent = () => {
     await updateModule.mutateAsync({ id: module.id, is_enabled: !module.is_enabled });
   };
 
+  const handleToggleMenuVisibility = async (module: AppModule) => {
+    await updateModule.mutateAsync({ id: module.id, show_in_menu: !module.show_in_menu });
+  };
+
   const getDefaultActions = () => [
     { action_name: "view", display_name: "View" },
     { action_name: "create", display_name: "Create" },
@@ -536,6 +551,7 @@ const ModuleManagementContent = () => {
                   onEdit={handleOpenModuleDialog}
                   onDelete={(id) => deleteModule.mutate(id)}
                   onToggle={handleToggleModule}
+                  onToggleMenuVisibility={handleToggleMenuVisibility}
                   onAddAction={handleOpenActionDialog}
                   onDeleteAction={(id) => deleteAction.mutate(id)}
                   expandedModules={expandedModules}
