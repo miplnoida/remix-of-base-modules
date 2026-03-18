@@ -57,12 +57,18 @@ export default function ActivityWorkbench() {
   const needsAnnualPlan = filters.planId === 'all';
   const needsDepartmentAudit = filters.departmentAuditId === 'all';
 
-  const displayedActivities = (needsAnnualPlan || needsDepartmentAudit)
-    ? []
-    : (activities || []).filter((activity: any) =>
-        (activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const displayedActivities = engagementIdFilter
+    ? (activities || []).filter((activity: any) =>
+        activity.engagement_id === engagementIdFilter &&
+        ((activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : (needsAnnualPlan || needsDepartmentAudit)
+      ? []
+      : (activities || []).filter((activity: any) =>
+          (activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
   const filterFields: StandardFilterField[] = [
     {
