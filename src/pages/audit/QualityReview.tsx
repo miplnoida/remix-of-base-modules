@@ -25,6 +25,8 @@ export default function QualityReview() {
   const { data: engagements = [] } = useIAEngagements();
   const { data: auditors = [] } = useIAAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ rating: 'all', disposition: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
