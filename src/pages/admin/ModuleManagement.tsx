@@ -272,6 +272,7 @@ const ModuleTreeItem = ({
               onDelete={onDelete}
               onToggle={onToggle}
               onToggleMenuVisibility={onToggleMenuVisibility}
+              onAddAction={onAddAction}
               onDeleteAction={onDeleteAction}
               expandedModules={expandedModules}
               toggleExpand={toggleExpand}
