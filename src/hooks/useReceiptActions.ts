@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
 export interface ReceiptData {
   receipt_id: string;
