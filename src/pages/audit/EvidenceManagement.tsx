@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,7 @@ import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { EVIDENCE_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const exportColumns = toExportColumns(EVIDENCE_SCHEMA);
 
@@ -22,6 +24,8 @@ export default function EvidenceManagement() {
   const { toast } = useToast();
   const { getCreateFields } = useAuditFields();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ type: 'all' });
   const { data: evidenceList = [], isLoading } = useIAEvidence();
@@ -38,7 +42,9 @@ export default function EvidenceManagement() {
   const filteredEvidence = evidenceList.filter((ev: any) => {
     const matchesSearch = (ev.title || ev.file_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filters.type === 'all' || ev.evidence_type === filters.type;
-    return matchesSearch && matchesType;
+    // Filter by engagement: match if evidence's activity belongs to engagement
+    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === ev.activity_id && a.engagement_id === engagementIdFilter);
+    return matchesSearch && matchesType && (engagementIdFilter ? matchesEngagement : true);
   });
 
   const handleUpload = async () => {
@@ -132,6 +138,7 @@ export default function EvidenceManagement() {
         </div>
       }
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}>

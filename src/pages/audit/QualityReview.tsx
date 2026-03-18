@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { useIAQualityReviews, useIAEngagements } from '@/hooks/useAuditDataPhase
 import { useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const REVIEW_TYPES = ['Post-Engagement', 'In-Progress', 'Peer Review', 'External'];
 const RATINGS = ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
@@ -23,6 +25,8 @@ export default function QualityReview() {
   const { data: engagements = [] } = useIAEngagements();
   const { data: auditors = [] } = useIAAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ rating: 'all', disposition: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
@@ -34,7 +38,8 @@ export default function QualityReview() {
   const filtered = data.filter((r: any) => {
     const engName = getEngagementName(r.engagement_id);
     const revName = getAuditorName(r.reviewer_id);
-    return (!searchTerm || engName.toLowerCase().includes(searchTerm.toLowerCase()) || revName.toLowerCase().includes(searchTerm.toLowerCase())) && (filters.rating === 'all' || r.quality_rating === filters.rating) && (filters.disposition === 'all' || r.final_disposition === filters.disposition);
+    const matchesEngagement = !engagementIdFilter || r.engagement_id === engagementIdFilter;
+    return matchesEngagement && (!searchTerm || engName.toLowerCase().includes(searchTerm.toLowerCase()) || revName.toLowerCase().includes(searchTerm.toLowerCase())) && (filters.rating === 'all' || r.quality_rating === filters.rating) && (filters.disposition === 'all' || r.final_disposition === filters.disposition);
   });
   const stats = { total: data.length, excellent: data.filter((d: any) => d.quality_rating === 'Excellent' || d.quality_rating === 'Satisfactory').length, rework: data.filter((d: any) => d.required_rework).length, pending: data.filter((d: any) => d.final_disposition === 'Pending').length };
 
@@ -66,6 +71,7 @@ export default function QualityReview() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Quality Review' }]}
       actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Review</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
+      <EngagementFilterBanner />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Reviews" value={stats.total} icon={ClipboardCheck} variant="info" />
         <MetricCard title="Satisfactory+" value={stats.excellent} icon={Star} variant="success" />

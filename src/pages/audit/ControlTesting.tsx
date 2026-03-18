@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAControlTests } from '@/hooks/useAuditDataPhase2';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const RESULTS = ['Pass', 'Fail', 'Needs Improvement', 'Not Tested'];
 const emptyForm = { test_date: new Date().toISOString().slice(0, 10), tested_by: '', sample_size: 0, exceptions_found: 0, result: 'Not Tested', remarks: '' };
@@ -18,6 +20,8 @@ const emptyForm = { test_date: new Date().toISOString().slice(0, 10), tested_by:
 export default function ControlTesting() {
   const { data = [], isLoading, isError, create, update } = useIAControlTests();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ result: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
@@ -25,7 +29,8 @@ export default function ControlTesting() {
 
   const filtered = data.filter((r: any) => {
     const s = searchTerm.toLowerCase();
-    return (!s || r.tested_by?.toLowerCase().includes(s) || r.remarks?.toLowerCase().includes(s)) && (filters.result === 'all' || r.result === filters.result);
+    const matchesEngagement = !engagementIdFilter || r.engagement_id === engagementIdFilter;
+    return matchesEngagement && (!s || r.tested_by?.toLowerCase().includes(s) || r.remarks?.toLowerCase().includes(s)) && (filters.result === 'all' || r.result === filters.result);
   });
 
   const stats = { total: data.length, pass: data.filter((d: any) => d.result === 'Pass').length, fail: data.filter((d: any) => d.result === 'Fail').length, pending: data.filter((d: any) => d.result === 'Not Tested').length };
@@ -50,6 +55,7 @@ export default function ControlTesting() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Control Testing' }]}
       actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Test</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
+      <EngagementFilterBanner />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Tests" value={stats.total} icon={TestTube} variant="info" />
         <MetricCard title="Passed" value={stats.pass} icon={CheckCircle} variant="success" />

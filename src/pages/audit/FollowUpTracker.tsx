@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,9 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities, useIAAuditors } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 export default function FollowUpTracker() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' });
@@ -60,7 +64,8 @@ export default function FollowUpTracker() {
     const matchesDateFrom = !from || !dueDate || dueDate >= from;
     const matchesDateTo = !to || !dueDate || dueDate <= to;
 
-    return matchesSearch && matchesStatus && matchesDepartment && matchesAssignee && matchesDateFrom && matchesDateTo;
+    const matchesEngagement = !engagementIdFilter || item.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesDepartment && matchesAssignee && matchesDateFrom && matchesDateTo && matchesEngagement;
   });
 
   const handleCreate = () => {
@@ -107,6 +112,7 @@ export default function FollowUpTracker() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Follow-Up</Button>}
     >
+      <EngagementFilterBanner />
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search follow-ups..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })} />
 
       <Card><CardContent className="pt-6">

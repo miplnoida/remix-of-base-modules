@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,12 +13,15 @@ import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const STATUSES = ['Draft', 'Under Review', 'Approved'];
 
 const WorkingPapers = () => {
   const { toast } = useToast();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -39,7 +43,8 @@ const WorkingPapers = () => {
   const filteredWPs = workingPapers.filter((wp: any) => {
     const matchesSearch = (wp.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === "all" || wp.status === filters.status;
-    return matchesSearch && matchesStatus;
+    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === wp.activity_id && a.engagement_id === engagementIdFilter);
+    return matchesSearch && matchesStatus && (engagementIdFilter ? matchesEngagement : true);
   });
 
   const handleCreate = () => {
@@ -155,6 +160,7 @@ const WorkingPapers = () => {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="mr-2 h-4 w-4" />New Working Paper</Button>}
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}>

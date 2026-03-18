@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Eye, Play, CheckCircle, Edit, FileText, ClipboardPlus } from 'lucide-react';
 import { DiscussionThread } from '@/components/audit/DiscussionThread';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useIAActivities, useIAActivityMutations, useIAAnnualPlans, useIADepartmentAudits, useIAAuditors } from '@/hooks/useAuditData';
@@ -15,6 +17,8 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 export default function ActivityWorkbench() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({
@@ -53,12 +57,18 @@ export default function ActivityWorkbench() {
   const needsAnnualPlan = filters.planId === 'all';
   const needsDepartmentAudit = filters.departmentAuditId === 'all';
 
-  const displayedActivities = (needsAnnualPlan || needsDepartmentAudit)
-    ? []
-    : (activities || []).filter((activity: any) =>
-        (activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const displayedActivities = engagementIdFilter
+    ? (activities || []).filter((activity: any) =>
+        activity.engagement_id === engagementIdFilter &&
+        ((activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : (needsAnnualPlan || needsDepartmentAudit)
+      ? []
+      : (activities || []).filter((activity: any) =>
+          (activity.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.id || '').toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
   const filterFields: StandardFilterField[] = [
     {
@@ -112,6 +122,7 @@ export default function ActivityWorkbench() {
       isLoading={isLoading}
       
     >
+      <EngagementFilterBanner />
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

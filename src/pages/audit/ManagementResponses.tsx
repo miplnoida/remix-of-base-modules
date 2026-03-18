@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,8 +10,11 @@ import { MessageSquare, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-rea
 import { useIAManagementResponses, useIAManagementResponseMutations, useIAFindings } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 export default function ManagementResponses() {
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: responses = [], isLoading } = useIAManagementResponses();
@@ -46,7 +50,8 @@ export default function ManagementResponses() {
     const matchesStatus = filters.status === 'all' || r.status === filters.status;
     const finding = findings.find((f: any) => f.id === r.finding_id);
     const matchesSearch = !searchTerm || (finding?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.responsible_person || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesEngagement = !engagementIdFilter || (finding && finding.engagement_id === engagementIdFilter);
+    return matchesStatus && matchesSearch && matchesEngagement;
   });
 
   const filterFields: StandardFilterField[] = [
@@ -79,6 +84,7 @@ export default function ManagementResponses() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />Submit Response</Button>}
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}>

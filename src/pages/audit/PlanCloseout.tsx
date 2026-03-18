@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import {
 } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, ExportDropdown, StandardModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const FINAL_RATINGS = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
 
@@ -206,6 +208,7 @@ export default function PlanCloseout() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Closeout' }]}
       isLoading={annualLoading || deptLoading}>
 
+      <EngagementFilterBanner />
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search plan id, name, or department..."
         filters={filterFields} filterValues={filters} onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
         onReset={() => setFilters({ fiscalYear: 'all', planType: 'all', status: 'all' })} />

@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DiscussionThread } from '@/components/audit/DiscussionThread';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +27,8 @@ const exportColumns = toExportColumns(FINDINGS_SCHEMA);
 const FindingsManagement = () => {
   const { toast } = useToast();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -65,7 +69,8 @@ const FindingsManagement = () => {
     const matchesSearch = (f.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === "all" || f.status === filters.status;
     const matchesRisk = filters.risk === "all" || f.risk_rating === filters.risk;
-    return matchesSearch && matchesStatus && matchesRisk;
+    const matchesEngagement = !engagementIdFilter || f.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesRisk && matchesEngagement;
   });
 
   // When an activity is selected, auto-fill department and plan fields
@@ -244,6 +249,7 @@ const FindingsManagement = () => {
         </div>
       }
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}><CardContent className="pt-6 text-center"><p className="text-sm text-muted-foreground">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value}</p></CardContent></Card>
