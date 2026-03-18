@@ -16,6 +16,7 @@ import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { EVIDENCE_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const exportColumns = toExportColumns(EVIDENCE_SCHEMA);
 
