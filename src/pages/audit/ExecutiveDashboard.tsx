@@ -86,6 +86,26 @@ export default function ExecutiveDashboard() {
           </CardContent>
         </Card>
       </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RiskHeatMap
+          data={(functions as any[])
+            .filter((f: any) => f.risk_rating)
+            .map((f: any) => ({
+              name: f.function_name || f.name || 'Unknown',
+              likelihood: f.likelihood_score || 3,
+              impact: f.impact_score || 3,
+              riskLevel: f.risk_rating,
+            }))}
+        />
+        {departments.length > 0 && (
+          <AuditHistoryTimeline
+            audits={departmentAudits}
+            findings={findings}
+            actions={actions}
+            departmentName={departments.length === 1 ? (departments[0] as any).name : 'All Departments'}
+          />
+        )}
+      </div>
     </PageShell>
   );
 }
