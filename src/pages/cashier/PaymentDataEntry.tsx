@@ -143,23 +143,45 @@ const PaymentDataEntry = () => {
 
   // --- Generate Receipt: save everything at once ---
   const handleGenerateReceipt = useCallback(async () => {
+    const logContext = {
+      module: 'PaymentDataEntry',
+      action: 'handleGenerateReceipt',
+      entity_type: 'cn_receipt',
+    };
+
+    // Validate all required inputs before processing
     if (!batch.currentBatch) {
-      toast({ title: 'No Batch', description: 'No active batch selected.', variant: 'destructive' });
+      const msg = 'No active batch selected.';
+      toast({ title: 'No Batch', description: msg, variant: 'destructive' });
+      await logApplicationError(new Error(msg), { ...logContext, request_payload: { payerType, payerId } });
       return;
     }
     if (!payerInfo) {
-      toast({ title: 'Missing Payer', description: 'Please enter and validate a Payer ID.', variant: 'destructive' });
+      const msg = 'Please enter and validate a Payer ID.';
+      toast({ title: 'Missing Payer', description: msg, variant: 'destructive' });
+      await logApplicationError(new Error(msg), { ...logContext, request_payload: { payerType, payerId, batch_number: batch.currentBatch.batch_number } });
       return;
     }
     if (detailLines.length === 0) {
-      toast({ title: 'No Detail Lines', description: 'Add at least one payment detail line.', variant: 'destructive' });
+      const msg = 'Add at least one payment detail line.';
+      toast({ title: 'No Detail Lines', description: msg, variant: 'destructive' });
+      await logApplicationError(new Error(msg), { ...logContext, request_payload: { payerType, payerId, batch_number: batch.currentBatch.batch_number } });
+      return;
+    }
+    if (totalAmount <= 0) {
+      const msg = 'Total payment amount must be greater than zero.';
+      toast({ title: 'Invalid Amount', description: msg, variant: 'destructive' });
+      await logApplicationError(new Error(msg), { ...logContext, request_payload: { totalAmount, detailLines: detailLines.length } });
       return;
     }
     const uCode = userCode || 'SYS';
 
     setFlowState('saving');
+    let generatedPaymentId: number | null = null;
+    let generatedReceiptId: string | null = null;
+
     try {
-      // 1) Create header and next payment_id atomically in one backend call
+      // 1) Create header and next payment_id atomically
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
       const { data: paymentId, error: hdrErr } = await supabase.rpc('create_payment_header_with_next_id', {
         p_batch_number: batch.currentBatch.batch_number,
@@ -168,10 +190,18 @@ const PaymentDataEntry = () => {
         p_date_received: dateRcvd,
         p_remarks: remarks || null,
       });
-      if (hdrErr) throw hdrErr;
-      if (!paymentId) throw new Error('Failed to generate payment header ID.');
+      if (hdrErr) {
+        await logApplicationError(hdrErr, { ...logContext, action: 'create_payment_header_rpc', request_payload: { batch_number: batch.currentBatch.batch_number, payerType, payerId: payerId.trim(), dateRcvd } });
+        throw hdrErr;
+      }
+      if (!paymentId && paymentId !== 0) {
+        const nullErr = new Error('RPC create_payment_header_with_next_id returned null payment_id.');
+        await logApplicationError(nullErr, { ...logContext, action: 'create_payment_header_rpc', request_payload: { batch_number: batch.currentBatch.batch_number, payerType, payerId: payerId.trim() } });
+        throw nullErr;
+      }
+      generatedPaymentId = paymentId;
 
-      // 3) Insert detail lines
+      // 2) Insert detail lines (let payment_sequence_no auto-generate via IDENTITY)
       const detailInserts = detailLines.map((d) => ({
         payment_id: paymentId,
         payment_code: d.payment_code,
@@ -198,11 +228,16 @@ const PaymentDataEntry = () => {
         })() : null,
       }));
       const { error: dtlErr } = await supabase.from('cn_payment').insert(detailInserts as any);
-      if (dtlErr) throw dtlErr;
+      if (dtlErr) {
+        await logApplicationError(dtlErr, { ...logContext, action: 'insert_cn_payment_details', entity_id: String(paymentId), request_payload: { payment_id: paymentId, line_count: detailInserts.length } });
+        throw dtlErr;
+      }
 
-      // 4) Create receipt with status 'O' (Original)
+      // 3) Create receipt with status 'O' (Original)
       const now = new Date();
       const receiptId = `RCP-${format(now, 'yyyyMMdd-HHmmss')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      generatedReceiptId = receiptId;
+
       const { error: rcpErr } = await supabase.from('cn_receipt').insert({
         receipt_id: receiptId,
         payment_id: paymentId,
@@ -213,26 +248,48 @@ const PaymentDataEntry = () => {
         created_by: uCode,
         updated_by: uCode,
       } as any);
-      if (rcpErr) throw rcpErr;
+      if (rcpErr) {
+        await logApplicationError(rcpErr, { ...logContext, action: 'insert_cn_receipt', entity_id: receiptId, request_payload: { receipt_id: receiptId, payment_id: paymentId, receipt_total: totalAmount, status: 'O' } });
+        throw rcpErr;
+      }
 
-      // 5) Log original print
-      await supabase.from('cn_receipt_prints').insert({
+      // 4) Log original print
+      const { error: printErr } = await supabase.from('cn_receipt_prints').insert({
         receipt_id: receiptId,
         printed_by: uCode,
         print_type: 'ORIGINAL',
       } as any);
+      if (printErr) {
+        await logApplicationError(printErr, { ...logContext, action: 'insert_cn_receipt_prints', entity_id: receiptId, request_payload: { receipt_id: receiptId, print_type: 'ORIGINAL' } });
+        // Non-fatal: receipt was created, print log failed - continue but warn
+        console.error('Failed to log receipt print:', printErr);
+      }
 
-      // 6) Load receipt into state
+      // 5) Load receipt into state
       await receipt.loadReceipt(paymentId);
       setSavedPaymentId(paymentId);
       setFlowState('saved');
 
       toast({ title: 'Receipt Generated', description: `Receipt ${receiptId} created successfully.` });
 
-      // 7) Trigger browser print
+      // 6) Trigger browser print
       setTimeout(() => window.print(), 300);
     } catch (err: any) {
-      toast({ title: 'Error Generating Receipt', description: err.message, variant: 'destructive' });
+      // Always log to system_error_logs
+      await logApplicationError(err, {
+        ...logContext,
+        action: 'handleGenerateReceipt_catch',
+        request_payload: {
+          batch_number: batch.currentBatch?.batch_number,
+          payer_type: payerType,
+          payer_id: payerId,
+          total_amount: totalAmount,
+          detail_lines: detailLines.length,
+          generated_payment_id: generatedPaymentId,
+          generated_receipt_id: generatedReceiptId,
+        },
+      });
+      toast({ title: 'Error Generating Receipt', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
       setFlowState('entry');
     }
   }, [batch.currentBatch, payerInfo, payerType, payerId, dateReceived, remarks, detailLines, totalAmount, userCode, receipt, payment]);
