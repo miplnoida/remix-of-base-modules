@@ -24,6 +24,7 @@ interface AuditEntry {
   entity_type: string | null;
   entity_id: string | null;
   module: string | null;
+  route: string | null;
   ip_address: string | null;
   before_value: any;
   after_value: any;

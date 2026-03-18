@@ -18,18 +18,57 @@ import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
 import { IPAccessGate } from '@/components/security/IPAccessGate';
+import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache } from '@/services/globalAuditInterceptor';
+import { supabase } from '@/integrations/supabase/client';
 import './App.css';
 
 // Setup global window error handlers
 setupGlobalErrorHandlers();
 
-// Create QueryClient with global error logging for all mutations and queries
+// Clear audit cache on auth state change
+supabase.auth.onAuthStateChange(() => {
+  clearAuditUserCache();
+});
+
+// Create QueryClient with global error logging AND automatic audit trail for all mutations
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
-    onError: (error, _variables, _context, mutation) => {
+    onSuccess: (_data, variables, _context, mutation) => {
+      const parsed = parseMutationKey(mutation.options.mutationKey);
+      const entityId = extractEntityId(variables);
+      // Fire-and-forget audit log — never blocks the UI
+      logAuditEntry({
+        action: parsed.action,
+        entityType: parsed.entityType,
+        entityId,
+        module: parsed.module,
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        afterValue: variables && typeof variables === 'object' ? variables as Record<string, any> : undefined,
+        metadata: {
+          source: 'MutationCache_global',
+          mutationKey: mutation.options.mutationKey?.map(String),
+        },
+      });
+    },
+    onError: (error, variables, _context, mutation) => {
       logApplicationError(error, {
         module: 'MUTATION',
         action: mutation.options.mutationKey?.join('/') || 'unknown_mutation',
+      });
+      // Also log failed mutations to audit trail
+      const parsed = parseMutationKey(mutation.options.mutationKey);
+      const entityId = extractEntityId(variables);
+      logAuditEntry({
+        action: `${parsed.action}_failed`,
+        entityType: parsed.entityType,
+        entityId,
+        module: parsed.module,
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        metadata: {
+          source: 'MutationCache_global',
+          error: error instanceof Error ? error.message : String(error),
+          mutationKey: mutation.options.mutationKey?.map(String),
+        },
       });
     },
   }),
