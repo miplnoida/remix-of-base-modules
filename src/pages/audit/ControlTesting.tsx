@@ -29,7 +29,8 @@ export default function ControlTesting() {
 
   const filtered = data.filter((r: any) => {
     const s = searchTerm.toLowerCase();
-    return (!s || r.tested_by?.toLowerCase().includes(s) || r.remarks?.toLowerCase().includes(s)) && (filters.result === 'all' || r.result === filters.result);
+    const matchesEngagement = !engagementIdFilter || r.engagement_id === engagementIdFilter;
+    return matchesEngagement && (!s || r.tested_by?.toLowerCase().includes(s) || r.remarks?.toLowerCase().includes(s)) && (filters.result === 'all' || r.result === filters.result);
   });
 
   const stats = { total: data.length, pass: data.filter((d: any) => d.result === 'Pass').length, fail: data.filter((d: any) => d.result === 'Fail').length, pending: data.filter((d: any) => d.result === 'Not Tested').length };
