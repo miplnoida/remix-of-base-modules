@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities, useIAAuditors } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 export default function FollowUpTracker() {
   const { toast } = useToast();
