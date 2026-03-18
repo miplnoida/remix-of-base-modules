@@ -9468,10 +9468,14 @@ export type Database = {
           audit_type: string
           closed_by: string | null
           closed_date: string | null
+          closure_approval_date: string | null
+          closure_approved_by: string | null
+          closure_notes: string | null
           created_at: string | null
           created_by: string | null
           department_id: string
           department_name: string | null
+          final_rating: string | null
           functions: string[] | null
           id: string
           is_closed: boolean | null
@@ -9497,10 +9501,14 @@ export type Database = {
           audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
+          closure_approval_date?: string | null
+          closure_approved_by?: string | null
+          closure_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           department_id: string
           department_name?: string | null
+          final_rating?: string | null
           functions?: string[] | null
           id?: string
           is_closed?: boolean | null
@@ -9526,10 +9534,14 @@ export type Database = {
           audit_type?: string
           closed_by?: string | null
           closed_date?: string | null
+          closure_approval_date?: string | null
+          closure_approved_by?: string | null
+          closure_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           department_id?: string
           department_name?: string | null
+          final_rating?: string | null
           functions?: string[] | null
           id?: string
           is_closed?: boolean | null
@@ -10758,9 +10770,11 @@ export type Database = {
           description: string | null
           effectiveness: string | null
           effectiveness_reduction: number | null
+          evidence_required: string | null
           frequency: string | null
           id: string
           is_active: boolean | null
+          last_tested_date: string | null
           owner: string | null
           risk_id: string | null
         }
@@ -10772,9 +10786,11 @@ export type Database = {
           description?: string | null
           effectiveness?: string | null
           effectiveness_reduction?: number | null
+          evidence_required?: string | null
           frequency?: string | null
           id?: string
           is_active?: boolean | null
+          last_tested_date?: string | null
           owner?: string | null
           risk_id?: string | null
         }
@@ -10786,9 +10802,11 @@ export type Database = {
           description?: string | null
           effectiveness?: string | null
           effectiveness_reduction?: number | null
+          evidence_required?: string | null
           frequency?: string | null
           id?: string
           is_active?: boolean | null
+          last_tested_date?: string | null
           owner?: string | null
           risk_id?: string | null
         }
@@ -11066,6 +11084,7 @@ export type Database = {
         Row: {
           assessed_by: string | null
           assessment_date: string | null
+          assessment_year: string | null
           audit_universe_id: string | null
           control_effectiveness_score: number | null
           created_at: string | null
@@ -11079,7 +11098,10 @@ export type Database = {
           overall_risk_score: number | null
           regulatory_score: number | null
           reputational_score: number | null
+          risk_category: string | null
+          risk_description: string | null
           risk_level: string | null
+          risk_owner: string | null
           updated_at: string | null
           updated_by: string | null
           velocity_score: number | null
@@ -11087,6 +11109,7 @@ export type Database = {
         Insert: {
           assessed_by?: string | null
           assessment_date?: string | null
+          assessment_year?: string | null
           audit_universe_id?: string | null
           control_effectiveness_score?: number | null
           created_at?: string | null
@@ -11100,7 +11123,10 @@ export type Database = {
           overall_risk_score?: number | null
           regulatory_score?: number | null
           reputational_score?: number | null
+          risk_category?: string | null
+          risk_description?: string | null
           risk_level?: string | null
+          risk_owner?: string | null
           updated_at?: string | null
           updated_by?: string | null
           velocity_score?: number | null
@@ -11108,6 +11134,7 @@ export type Database = {
         Update: {
           assessed_by?: string | null
           assessment_date?: string | null
+          assessment_year?: string | null
           audit_universe_id?: string | null
           control_effectiveness_score?: number | null
           created_at?: string | null
@@ -11121,7 +11148,10 @@ export type Database = {
           overall_risk_score?: number | null
           regulatory_score?: number | null
           reputational_score?: number | null
+          risk_category?: string | null
+          risk_description?: string | null
           risk_level?: string | null
+          risk_owner?: string | null
           updated_at?: string | null
           updated_by?: string | null
           velocity_score?: number | null
