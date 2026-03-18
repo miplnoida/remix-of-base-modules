@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,55 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useCashierDenominations, DenominationConfig } from '@/hooks/useCashierCurrencyConfig';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
+  const [systemTotal, setSystemTotal] = useState<number>(0);
+  const [systemTotalLoading, setSystemTotalLoading] = useState(false);
+
+  // Fetch system total from DB whenever batch changes
+  const fetchSystemTotal = useCallback(async (batchNumber: string) => {
+    setSystemTotalLoading(true);
+    try {
+      // Step 1: get payment_ids for this batch
+      const { data: headers, error: hErr } = await supabase
+        .from('cn_payment_header')
+        .select('payment_id')
+        .eq('batch_number', batchNumber);
+      if (hErr) throw hErr;
+      if (!headers || headers.length === 0) {
+        setSystemTotal(0);
+        return;
+      }
+      const paymentIds = headers.map(h => h.payment_id);
+
+      // Step 2: sum receipt_total for non-cancelled receipts
+      const { data: receipts, error: rErr } = await supabase
+        .from('cn_receipt')
+        .select('receipt_total')
+        .in('payment_id', paymentIds)
+        .neq('status', 'C');
+      if (rErr) throw rErr;
+
+      const total = (receipts || []).reduce((sum, r) => sum + (r.receipt_total || 0), 0);
+      setSystemTotal(total);
+    } catch (err) {
+      console.error('Failed to fetch system total:', err);
+      setSystemTotal(0);
+    } finally {
+      setSystemTotalLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (batchSel.selectedBatch?.batch_number) {
+      fetchSystemTotal(batchSel.selectedBatch.batch_number);
+    } else {
+      setSystemTotal(0);
+    }
+  }, [batchSel.selectedBatch?.batch_number, fetchSystemTotal]);
 
   // ── Denomination counts: { [currencyId]: { [denomId]: count } } ──
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<string, number>>>({});
@@ -115,11 +160,7 @@ const CashDetails: React.FC = () => {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Batch Number</p>
               <p className="font-mono text-sm font-semibold">{batchSel.selectedBatch?.batch_number}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Batch Date</p>
+              <p className="text-xs text-muted-foreground mt-2">Batch Date</p>
               <p className="text-sm font-semibold">{batchSel.selectedBatch?.batch_date ? new Date(batchSel.selectedBatch.batch_date).toLocaleDateString() : '—'}</p>
             </CardContent>
           </Card>
@@ -127,6 +168,19 @@ const CashDetails: React.FC = () => {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Cashier / Office</p>
               <p className="text-sm font-semibold">{batchSel.selectedBatch?.entered_by || '—'} • {batchSel.selectedBatch?.office_code || '—'}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calculator className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">System Total</span>
+              </div>
+              {systemTotalLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+              ) : (
+                <p className="text-2xl font-bold">{formatCurrency(systemTotal)}</p>
+              )}
             </CardContent>
           </Card>
           <Card className="border-primary">
