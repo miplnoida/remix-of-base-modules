@@ -228,10 +228,14 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
     const route = entry.route || (typeof window !== 'undefined' ? window.location.pathname : undefined);
     let module = entry.module;
     let screenName = entry.screenName;
-    if (route && !module) {
+    let entityType = entry.entityType;
+
+    // Auto-resolve module, screen, and entity type from route when not provided
+    if (route) {
       const ctx = resolveRouteContext(route);
-      module = ctx.module;
-      screenName = screenName || ctx.screen;
+      if (!module) module = ctx.module;
+      if (!screenName) screenName = ctx.screen;
+      if (!entityType) entityType = ctx.entityType;
     }
 
     // Build description with context
