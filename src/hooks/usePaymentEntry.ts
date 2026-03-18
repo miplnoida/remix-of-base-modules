@@ -200,12 +200,8 @@ export function usePaymentEntry() {
   ): Promise<PaymentDetailData | null> => {
     setIsLoading(true);
     try {
-      const nextSeq = detailRows.length > 0
-        ? Math.max(...detailRows.map(r => r.payment_sequence_no)) + 1
-        : 1;
       const row: any = {
         payment_id: paymentId,
-        payment_sequence_no: nextSeq,
         ...detail,
       };
       const { data, error } = await supabase

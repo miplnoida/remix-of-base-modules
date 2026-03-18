@@ -147,7 +147,6 @@ const PaymentHistoryManagement = () => {
       for (let i = 1; i < count; i++) {
         newRows.push({
           payment_id: firstDetail.payment_id,
-          payment_sequence_no: maxSeq + i,
           payment_code: firstDetail.payment_code,
           fund_code: firstDetail.fund_code,
           payment_amount: i === count - 1
