@@ -17,6 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 import {
   RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
 } from 'lucide-react';
