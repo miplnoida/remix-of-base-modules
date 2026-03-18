@@ -158,8 +158,8 @@ export function useReceiptActions() {
       .select('*')
       .eq('payment_id', paymentId)
       .maybeSingle();
-    setCurrentReceipt(data || null);
-    return data;
+    setCurrentReceipt((data as unknown as ReceiptData) || null);
+    return data as unknown as ReceiptData;
   }, []);
 
   return {
