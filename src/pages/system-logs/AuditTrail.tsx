@@ -177,6 +177,7 @@ const AuditTrail: React.FC = () => {
                           <TableHead>User</TableHead>
                           <TableHead>Action</TableHead>
                           <TableHead>Module</TableHead>
+                          <TableHead>Route</TableHead>
                           <TableHead>Entity Type</TableHead>
                           <TableHead>Entity ID</TableHead>
                         </TableRow>
@@ -194,6 +195,7 @@ const AuditTrail: React.FC = () => {
                                 <Badge variant="outline">{entry.module}</Badge>
                               ) : '-'}
                             </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">{entry.route || '-'}</TableCell>
                             <TableCell>{entry.entity_type || '-'}</TableCell>
                             <TableCell className="font-mono text-xs">{entry.entity_id || '-'}</TableCell>
                           </TableRow>
