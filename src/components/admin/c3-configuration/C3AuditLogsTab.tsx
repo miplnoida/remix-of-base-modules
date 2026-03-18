@@ -37,6 +37,12 @@ import { useC3ConfigAuditLogs, C3AuditLog, getConfigTypeLabel } from '@/hooks/us
         return <Badge variant="outline">Levy Slab Detail</Badge>;
       case 'bonus_exemption':
         return <Badge className="bg-accent text-accent-foreground">Bonus Exemption</Badge>;
+      case 'calculation_config':
+        return <Badge className="bg-primary/20 text-primary">Calculation Config</Badge>;
+      case 'holiday_pay_policy':
+        return <Badge className="bg-secondary/80 text-secondary-foreground">Holiday Pay Policy</Badge>;
+      case 'holiday_pay_exception':
+        return <Badge variant="outline">Holiday Pay Exception</Badge>;
        default:
         return <Badge variant="outline">{configType}</Badge>;
      }
