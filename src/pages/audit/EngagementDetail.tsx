@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Calendar, Clock, DollarSign, Building2, Shield, User, Briefcase, FileText, ClipboardCheck, Timer, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Building2, Shield, User, Briefcase, FileText, ClipboardCheck, Timer, Star, ExternalLink, MessageSquare, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,16 +27,15 @@ function useEngagementActivities(engagementId?: string) {
   });
 }
 
-function useEngagementFindings(activityIds: string[]) {
+function useEngagementFindings(engagementId?: string) {
   return useQuery({
-    queryKey: ['ia_findings_engagement', activityIds],
+    queryKey: ['ia_findings_engagement', engagementId],
     queryFn: async () => {
-      if (!activityIds.length) return [];
-      const { data, error } = await supabase.from('ia_findings' as any).select('*').in('activity_id', activityIds).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('ia_findings' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
-    enabled: activityIds.length > 0,
+    enabled: !!engagementId,
   });
 }
 
@@ -76,6 +75,31 @@ function useEngagementQualityReviews(engagementId?: string) {
   });
 }
 
+function useEngagementManagementResponses(findingIds: string[]) {
+  return useQuery({
+    queryKey: ['ia_mgmt_responses_engagement', findingIds],
+    queryFn: async () => {
+      if (!findingIds.length) return [];
+      const { data, error } = await supabase.from('ia_management_responses' as any).select('*').in('finding_id', findingIds).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: findingIds.length > 0,
+  });
+}
+
+function useEngagementFollowUps(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_follow_ups_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_follow_ups' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
 export default function EngagementDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -89,11 +113,13 @@ export default function EngagementDetail() {
 
   const { data: deptFunctions = [] } = useIADepartmentFunctions(engagement?.department_id || undefined);
   const { data: activities = [], isLoading: activitiesLoading } = useEngagementActivities(id);
-  const activityIds = useMemo(() => activities.map((a: any) => a.id), [activities]);
-  const { data: findings = [], isLoading: findingsLoading } = useEngagementFindings(activityIds);
+  const { data: findings = [], isLoading: findingsLoading } = useEngagementFindings(id);
+  const findingIds = useMemo(() => findings.map((f: any) => f.id), [findings]);
   const { data: controlTests = [], isLoading: controlTestsLoading } = useEngagementControlTests(id);
   const { data: timeLogs = [], isLoading: timeLogsLoading } = useEngagementTimeLogs(id);
   const { data: qualityReviews = [], isLoading: qrLoading } = useEngagementQualityReviews(id);
+  const { data: managementResponses = [], isLoading: mrLoading } = useEngagementManagementResponses(findingIds);
+  const { data: followUps = [], isLoading: fuLoading } = useEngagementFollowUps(id);
 
   const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
@@ -101,6 +127,8 @@ export default function EngagementDetail() {
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
 
   const totalHoursLogged = useMemo(() => timeLogs.reduce((sum: number, t: any) => sum + (t.hours_spent || 0), 0), [timeLogs]);
+
+  const goToModule = (path: string) => navigate(`${path}?engagement_id=${id}`);
 
   if (isLoading) {
     return (
@@ -170,6 +198,41 @@ export default function EngagementDetail() {
     { key: 'observations', header: 'Observations', render: (r) => <span className="truncate max-w-[200px] block">{r.observations || '—'}</span> },
   ];
 
+  const mgmtResponseColumns: DataTableColumn<any>[] = [
+    { key: 'finding', header: 'Finding', render: (r) => { const f = findings.find((f: any) => f.id === r.finding_id); return <span className="font-medium">{f?.title || '—'}</span>; } },
+    { key: 'response_text', header: 'Response', render: (r) => <span className="truncate max-w-[200px] block">{r.response_text || '—'}</span> },
+    { key: 'responsible_person', header: 'Responsible' },
+    { key: 'target_date', header: 'Target Date', render: (r) => r.target_date ? formatDateForDisplay(r.target_date) : '—' },
+    { key: 'status', header: 'Status', render: (r) => r.status ? <StatusBadge status={r.status} /> : '—' },
+  ];
+
+  const followUpColumns: DataTableColumn<any>[] = [
+    { key: 'id', header: 'ID', render: (r) => <span className="font-mono text-xs">{(r.id || '').slice(0, 8)}</span> },
+    { key: 'action_required', header: 'Action Required', render: (r) => <span className="truncate max-w-[200px] block">{r.action_required || r.description || '—'}</span> },
+    { key: 'due_date', header: 'Due Date', render: (r) => r.due_date ? formatDateForDisplay(r.due_date) : '—' },
+    { key: 'status', header: 'Status', render: (r) => r.status ? <StatusBadge status={r.status} /> : '—' },
+    { key: 'responsible_party', header: 'Responsible', render: (r) => r.responsible_party ? getAuditorName(r.responsible_party) : '—' },
+  ];
+
+  // Quick action navigation links
+  const quickLinks = [
+    { label: 'Activities', path: '/audit/activity-workbench', icon: FileText, section: 'Execution' },
+    { label: 'Evidence', path: '/audit/evidence', icon: FileText, section: 'Execution' },
+    { label: 'Working Papers', path: '/audit/working-papers', icon: FileText, section: 'Execution' },
+    { label: 'Control Testing', path: '/audit/control-testing', icon: ClipboardCheck, section: 'Execution' },
+    { label: 'Findings', path: '/audit/findings', icon: Shield, section: 'Issues' },
+    { label: 'Mgmt Responses', path: '/audit/management-responses', icon: MessageSquare, section: 'Issues' },
+    { label: 'Follow-Ups', path: '/audit/follow-up', icon: RefreshCw, section: 'Issues' },
+    { label: 'Quality Review', path: '/audit/quality-review', icon: Star, section: 'Closure' },
+    { label: 'Plan Closeout', path: '/audit/plan-closeout', icon: ClipboardCheck, section: 'Closure' },
+  ];
+
+  const groupedLinks = quickLinks.reduce((acc, link) => {
+    if (!acc[link.section]) acc[link.section] = [];
+    acc[link.section].push(link);
+    return acc;
+  }, {} as Record<string, typeof quickLinks>);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -205,12 +268,43 @@ export default function EngagementDetail() {
         <SummaryCard icon={Clock} label="Hours (Est/Logged)" value={`${engagement.estimated_hours || 0} / ${totalHoursLogged}`} />
       </div>
 
+      {/* Quick Navigation Links */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Quick Navigation</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-3">
+            {Object.entries(groupedLinks).map(([section, links]) => (
+              <div key={section} className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">{section}</span>
+                {links.map((link) => (
+                  <Button
+                    key={link.path}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => goToModule(link.path)}
+                  >
+                    <link.icon className="h-3 w-3 mr-1" />
+                    {link.label}
+                    <ExternalLink className="h-3 w-3 ml-1 opacity-50" />
+                  </Button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="activities">Activities ({activities.length})</TabsTrigger>
           <TabsTrigger value="findings">Findings ({findings.length})</TabsTrigger>
+          <TabsTrigger value="mgmt-responses">Mgmt Responses ({managementResponses.length})</TabsTrigger>
+          <TabsTrigger value="follow-ups">Follow-Ups ({followUps.length})</TabsTrigger>
           <TabsTrigger value="control-tests">Control Tests ({controlTests.length})</TabsTrigger>
           <TabsTrigger value="time-logs">Time Logs ({timeLogs.length})</TabsTrigger>
           <TabsTrigger value="quality-reviews">Quality Reviews ({qualityReviews.length})</TabsTrigger>
@@ -270,7 +364,14 @@ export default function EngagementDetail() {
         {/* Activities Tab */}
         <TabsContent value="activities">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Activities</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Activities</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/activity-workbench')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open in Workbench
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <DataTable columns={activityColumns} data={activities} isLoading={activitiesLoading} emptyMessage="No activities for this engagement" />
             </CardContent>
@@ -280,9 +381,50 @@ export default function EngagementDetail() {
         {/* Findings Tab */}
         <TabsContent value="findings">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Findings</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Findings</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/findings')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Findings
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <DataTable columns={findingColumns} data={findings} isLoading={findingsLoading} emptyMessage="No findings for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Management Responses Tab */}
+        <TabsContent value="mgmt-responses">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" />Management Responses</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/management-responses')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Responses
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={mgmtResponseColumns} data={managementResponses} isLoading={mrLoading} emptyMessage="No management responses for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Follow-Ups Tab */}
+        <TabsContent value="follow-ups">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5" />Follow-Ups</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/follow-up')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Follow-Up Tracker
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={followUpColumns} data={followUps} isLoading={fuLoading} emptyMessage="No follow-ups for this engagement" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -290,7 +432,14 @@ export default function EngagementDetail() {
         {/* Control Tests Tab */}
         <TabsContent value="control-tests">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" />Control Tests</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" />Control Tests</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/control-testing')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Control Testing
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <DataTable columns={controlTestColumns} data={controlTests} isLoading={controlTestsLoading} emptyMessage="No control tests for this engagement" />
             </CardContent>
@@ -310,7 +459,14 @@ export default function EngagementDetail() {
         {/* Quality Reviews Tab */}
         <TabsContent value="quality-reviews">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" />Quality Reviews</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" />Quality Reviews</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/quality-review')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Quality Review
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <DataTable columns={qrColumns} data={qualityReviews} isLoading={qrLoading} emptyMessage="No quality reviews for this engagement" />
             </CardContent>
