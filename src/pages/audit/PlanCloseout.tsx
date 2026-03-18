@@ -21,6 +21,7 @@ import {
 } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, ExportDropdown, StandardModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const FINAL_RATINGS = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
 
