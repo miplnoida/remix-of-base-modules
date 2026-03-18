@@ -122,6 +122,7 @@ const ModuleTreeItem = ({
   onEdit,
   onDelete,
   onToggle,
+  onToggleMenuVisibility,
   onAddAction,
   onDeleteAction,
   expandedModules,
