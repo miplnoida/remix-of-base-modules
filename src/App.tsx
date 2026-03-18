@@ -72,12 +72,18 @@ const queryClient = new QueryClient({
 
       const parsed = parseMutationKey(mutation.options.mutationKey);
       const entityId = extractEntityId(variables);
+      const errRoute = typeof window !== 'undefined' ? window.location.pathname : undefined;
+      const errRouteCtx = errRoute ? resolveRouteContext(errRoute) : undefined;
+      const errEntityType = parsed.entityType
+        || inferEntityTypeFromVariables(variables)
+        || errRouteCtx?.entityType;
+
       logAuditEntry({
         action: `${parsed.action}_failed`,
-        entityType: parsed.entityType,
+        entityType: errEntityType,
         entityId,
-        module: parsed.module,
-        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        module: parsed.module || errRouteCtx?.module,
+        route: errRoute,
         metadata: {
           source: 'MutationCache_global',
           error: error instanceof Error ? error.message : String(error),
