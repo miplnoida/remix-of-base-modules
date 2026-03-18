@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
