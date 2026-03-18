@@ -18,6 +18,7 @@ const exportColumns = toExportColumns(FUNCTION_SCHEMA);
 
 export default function FunctionMaster() {
   const { toast } = useToast();
+  const { profiles } = useProfiles();
   const { data: departments = [], isLoading: deptsLoading } = useIADepartments();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ department: 'all' });
