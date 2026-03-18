@@ -72,6 +72,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Printed', description: `Receipt ${receiptId} generated.` });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'printReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, receiptTotal, totalPayments } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
