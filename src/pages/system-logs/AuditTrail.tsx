@@ -247,8 +247,10 @@ const AuditTrail: React.FC = () => {
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
                   <div><strong>Action:</strong> {getActionBadge(selectedEntry.action)}</div>
                   <div><strong>Module:</strong> {selectedEntry.module || '-'}</div>
+                  <div><strong>Route:</strong> {selectedEntry.route || '-'}</div>
                   <div><strong>Entity Type:</strong> {selectedEntry.entity_type || '-'}</div>
                   <div><strong>Entity ID:</strong> {selectedEntry.entity_id || '-'}</div>
+                  <div><strong>Correlation ID:</strong> <span className="font-mono text-xs">{selectedEntry.correlation_id || '-'}</span></div>
                 </div>
                 
                 {selectedEntry.payload_json && (
@@ -268,8 +270,8 @@ const AuditTrail: React.FC = () => {
                     </pre>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2 text-green-600">After Value</h4>
-                    <pre className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg overflow-auto text-xs">
+                    <h4 className="font-semibold mb-2 text-primary">After Value</h4>
+                    <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs">
                       {JSON.stringify(selectedEntry.after_value, null, 2) || 'No data'}
                     </pre>
                   </div>
