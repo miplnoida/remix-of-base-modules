@@ -368,6 +368,7 @@ export type Database = {
           primary_key_column: string | null
           primary_table: string | null
           route: string | null
+          show_in_menu: boolean
           sort_order: number | null
           updated_at: string | null
           updated_by: string | null
@@ -386,6 +387,7 @@ export type Database = {
           primary_key_column?: string | null
           primary_table?: string | null
           route?: string | null
+          show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -404,6 +406,7 @@ export type Database = {
           primary_key_column?: string | null
           primary_table?: string | null
           route?: string | null
+          show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
           updated_by?: string | null
