@@ -13,6 +13,7 @@ import { useIAQualityReviews, useIAEngagements } from '@/hooks/useAuditDataPhase
 import { useIAAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const REVIEW_TYPES = ['Post-Engagement', 'In-Progress', 'Peer Review', 'External'];
 const RATINGS = ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
