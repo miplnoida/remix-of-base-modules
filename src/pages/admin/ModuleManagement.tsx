@@ -178,6 +178,9 @@ const ModuleTreeItem = ({
           <Badge variant={module.is_enabled ? "default" : "secondary"} className="text-xs">
             {module.is_enabled ? "Enabled" : "Disabled"}
           </Badge>
+          <Badge variant={module.show_in_menu ? "default" : "outline"} className="text-xs">
+            {module.show_in_menu ? "In Menu" : "Hidden"}
+          </Badge>
           <Badge variant="outline" className="text-xs">
             {module.actions?.length || 0} Actions
           </Badge>
