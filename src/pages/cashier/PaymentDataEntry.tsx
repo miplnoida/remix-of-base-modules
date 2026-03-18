@@ -171,9 +171,8 @@ const PaymentDataEntry = () => {
       if (!paymentId) throw new Error('Failed to generate payment header ID.');
 
       // 3) Insert detail lines
-      const detailInserts = detailLines.map((d, i) => ({
+      const detailInserts = detailLines.map((d) => ({
         payment_id: paymentId,
-        payment_sequence_no: i + 1,
         payment_code: d.payment_code,
         fund_code: d.fund_code,
         payment_amount: d.payment_amount,
