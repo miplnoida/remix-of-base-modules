@@ -106,6 +106,7 @@ const FindingsManagement = () => {
       root_cause_category: formData.root_cause_category || null,
       preventive_action: formData.preventive_action || null,
       corrective_action_description: formData.corrective_action_description || null,
+      engagement_id: engagementIdFilter || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
