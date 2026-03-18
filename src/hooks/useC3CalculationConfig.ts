@@ -95,7 +95,7 @@ export function useUpdateC3Config() {
       
       if (updateError) throw updateError;
       
-      // Log the audit entry
+      // Log to c3_calculation_config_audit (legacy)
       const { error: auditError } = await supabase
         .from('c3_calculation_config_audit')
         .insert({
@@ -111,6 +111,10 @@ export function useUpdateC3Config() {
       if (auditError) {
         console.error('Failed to log audit entry:', auditError);
       }
+
+      // Note: The database trigger trg_audit_c3_calculation_config now automatically
+      // writes to c3_unified_audit_log and system_audit_trail on every UPDATE.
+      // No additional client-side logging needed.
       
       return { success: true };
     },
