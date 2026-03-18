@@ -43,8 +43,8 @@ const WorkingPapers = () => {
   const filteredWPs = workingPapers.filter((wp: any) => {
     const matchesSearch = (wp.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === "all" || wp.status === filters.status;
-    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === wp.activity_id && a.engagement_id === engagementIdFilter);
-    return matchesSearch && matchesStatus && (engagementIdFilter ? matchesEngagement : true);
+    const matchesEngagement = !engagementIdFilter || wp.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesEngagement;
   });
 
   const handleCreate = () => {
