@@ -17,7 +17,7 @@ interface ReceiptCancelModalProps {
   onClose: () => void;
   onConfirm: (reason: string) => void;
   isLoading?: boolean;
-  receiptId?: string;
+  receiptId?: number;
 }
 
 export function ReceiptCancelModal({ open, onClose, onConfirm, isLoading, receiptId }: ReceiptCancelModalProps) {
