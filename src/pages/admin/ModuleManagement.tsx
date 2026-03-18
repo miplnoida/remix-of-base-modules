@@ -432,6 +432,10 @@ const ModuleManagementContent = () => {
     await updateModule.mutateAsync({ id: module.id, is_enabled: !module.is_enabled });
   };
 
+  const handleToggleMenuVisibility = async (module: AppModule) => {
+    await updateModule.mutateAsync({ id: module.id, show_in_menu: !module.show_in_menu });
+  };
+
   const getDefaultActions = () => [
     { action_name: "view", display_name: "View" },
     { action_name: "create", display_name: "Create" },
