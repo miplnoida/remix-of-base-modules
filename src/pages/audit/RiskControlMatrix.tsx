@@ -221,6 +221,7 @@ export default function RiskControlMatrix() {
   const { data: processes = [], isLoading, isError, create: createProcess } = useIARCMProcesses();
   const { data: departments = [] } = useIADepartments();
   const { getCreateFields } = useAuditFields();
+  const { engagementId, engagement } = useEngagementFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -238,6 +239,21 @@ export default function RiskControlMatrix() {
   // Department → Function cascade for process form
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const { data: deptFunctions = [] } = useIADepartmentFunctions(selectedDeptId || undefined);
+
+  // Fetch engagement details for auto-scoping
+  const { data: engagementData } = useQuery({
+    queryKey: ['engagement_rcm_detail', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_audit_engagements' as any)
+        .select('id, department_id, function_id')
+        .eq('id', engagementId!)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!engagementId,
+  });
 
   const { data: risks = [] } = useQuery({
     queryKey: ['ia_rcm_risks', expandedProcess],
