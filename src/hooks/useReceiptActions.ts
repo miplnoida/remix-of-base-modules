@@ -135,14 +135,14 @@ export function useReceiptActions() {
           cancel_user: cancelUser,
           updated_by: cancelUser,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('receipt_id', existing.receipt_id)
         .select()
         .single();
       if (error) throw error;
-      setCurrentReceipt(data);
+      setCurrentReceipt(data as unknown as ReceiptData);
       toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
-      return data;
+      return data as unknown as ReceiptData;
     } catch (err: any) {
       await logApplicationError(err, { module: 'useReceiptActions', action: 'cancelReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, reason } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
