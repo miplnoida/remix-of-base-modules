@@ -13,6 +13,7 @@ import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Trash2, 
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useProfiles } from '@/components/c3/ReceivedBySelect';
 
 export default function DepartmentView() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ export default function DepartmentView() {
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
   const userCode = (profile as any)?.user_code || 'system';
+  const { profiles } = useProfiles();
 
   const [isAddFunctionOpen, setIsAddFunctionOpen] = useState(false);
   const [isEditFunctionOpen, setIsEditFunctionOpen] = useState(false);
@@ -173,7 +175,7 @@ export default function DepartmentView() {
                     <div className="space-y-2"><Label>Impact</Label><Select value={functionForm.impact} onValueChange={(v) => setFunctionForm({...functionForm, impact: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
                   </div>
                   <div className="space-y-2"><Label>Control Effectiveness</Label><Select value={functionForm.control_effectiveness} onValueChange={(v) => setFunctionForm({...functionForm, control_effectiveness: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
-                  <div className="space-y-2"><Label>Responsible Person</Label><Input value={functionForm.responsible_person} onChange={(e) => setFunctionForm({...functionForm, responsible_person: e.target.value})} /></div>
+                  <div className="space-y-2"><Label>Responsible Person</Label><Select value={functionForm.responsible_person} onValueChange={(v) => setFunctionForm({...functionForm, responsible_person: v})}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
                   <div className="flex justify-end gap-2 pt-4">
                     <Button variant="outline" onClick={() => setIsAddFunctionOpen(false)}>Cancel</Button>
                     <Button onClick={handleAddFunction} disabled={createFunc.isPending}>{createFunc.isPending ? 'Adding...' : 'Add Function'}</Button>
@@ -236,7 +238,7 @@ export default function DepartmentView() {
               <div className="space-y-2"><Label>Impact</Label><Select value={functionForm.impact} onValueChange={(v) => setFunctionForm({...functionForm, impact: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
             </div>
             <div className="space-y-2"><Label>Control Effectiveness</Label><Select value={functionForm.control_effectiveness} onValueChange={(v) => setFunctionForm({...functionForm, control_effectiveness: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label>Responsible Person</Label><Input value={functionForm.responsible_person} onChange={(e) => setFunctionForm({...functionForm, responsible_person: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Responsible Person</Label><Select value={functionForm.responsible_person} onValueChange={(v) => setFunctionForm({...functionForm, responsible_person: v})}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsEditFunctionOpen(false)}>Cancel</Button>
               <Button onClick={handleUpdateFunction} disabled={updateFunc.isPending}>{updateFunc.isPending ? 'Updating...' : 'Update Function'}</Button>
