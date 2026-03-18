@@ -53,7 +53,7 @@ export const useSystemLogging = () => {
 export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { user, profile } = useSupabaseAuth();
-  const previousPath = useRef<string>('');
+  const previousPath = useRef<string>(sessionStorage.getItem('audit_last_route') || '');
   const pageLoadTime = useRef<number>(performance.now());
 
   const getBaseLogData = useCallback(() => ({
@@ -216,9 +216,21 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       previousPath.current = location.pathname;
+      sessionStorage.setItem('audit_last_route', location.pathname);
       pageLoadTime.current = currentTime;
     }
   }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
+
+  // Clear persisted route on logout so next login gets a fresh page_view
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('audit_last_route');
+        previousPath.current = '';
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Log unhandled promise rejections
   useEffect(() => {
