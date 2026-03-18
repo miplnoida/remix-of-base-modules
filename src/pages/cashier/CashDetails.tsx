@@ -160,11 +160,7 @@ const CashDetails: React.FC = () => {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Batch Number</p>
               <p className="font-mono text-sm font-semibold">{batchSel.selectedBatch?.batch_number}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Batch Date</p>
+              <p className="text-xs text-muted-foreground mt-2">Batch Date</p>
               <p className="text-sm font-semibold">{batchSel.selectedBatch?.batch_date ? new Date(batchSel.selectedBatch.batch_date).toLocaleDateString() : '—'}</p>
             </CardContent>
           </Card>
@@ -172,6 +168,19 @@ const CashDetails: React.FC = () => {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Cashier / Office</p>
               <p className="text-sm font-semibold">{batchSel.selectedBatch?.entered_by || '—'} • {batchSel.selectedBatch?.office_code || '—'}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calculator className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">System Total</span>
+              </div>
+              {systemTotalLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+              ) : (
+                <p className="text-2xl font-bold">{formatCurrency(systemTotal)}</p>
+              )}
             </CardContent>
           </Card>
           <Card className="border-primary">
