@@ -38,7 +38,8 @@ export default function QualityReview() {
   const filtered = data.filter((r: any) => {
     const engName = getEngagementName(r.engagement_id);
     const revName = getAuditorName(r.reviewer_id);
-    return (!searchTerm || engName.toLowerCase().includes(searchTerm.toLowerCase()) || revName.toLowerCase().includes(searchTerm.toLowerCase())) && (filters.rating === 'all' || r.quality_rating === filters.rating) && (filters.disposition === 'all' || r.final_disposition === filters.disposition);
+    const matchesEngagement = !engagementIdFilter || r.engagement_id === engagementIdFilter;
+    return matchesEngagement && (!searchTerm || engName.toLowerCase().includes(searchTerm.toLowerCase()) || revName.toLowerCase().includes(searchTerm.toLowerCase())) && (filters.rating === 'all' || r.quality_rating === filters.rating) && (filters.disposition === 'all' || r.final_disposition === filters.disposition);
   });
   const stats = { total: data.length, excellent: data.filter((d: any) => d.quality_rating === 'Excellent' || d.quality_rating === 'Satisfactory').length, rework: data.filter((d: any) => d.required_rework).length, pending: data.filter((d: any) => d.final_disposition === 'Pending').length };
 
