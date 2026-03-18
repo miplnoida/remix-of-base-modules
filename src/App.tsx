@@ -42,12 +42,18 @@ const queryClient = new QueryClient({
       const entityId = extractEntityId(variables);
       const route = typeof window !== 'undefined' ? window.location.pathname : undefined;
 
+      // Resolve entity type: explicit key > variable inference > route default
+      const routeCtx = route ? resolveRouteContext(route) : undefined;
+      const entityType = parsed.entityType
+        || inferEntityTypeFromVariables(variables)
+        || routeCtx?.entityType;
+
       // Fire-and-forget audit log — never blocks the UI
       logAuditEntry({
         action: parsed.action,
-        entityType: parsed.entityType,
+        entityType,
         entityId,
-        module: parsed.module,
+        module: parsed.module || routeCtx?.module,
         route,
         afterValue: variables && typeof variables === 'object' ? variables as Record<string, any> : undefined,
         metadata: {
