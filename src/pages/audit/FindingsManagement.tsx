@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DiscussionThread } from '@/components/audit/DiscussionThread';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
