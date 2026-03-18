@@ -66,6 +66,36 @@ const CashDetails: React.FC = () => {
     }
   }, [batchSel.selectedBatch?.batch_number, fetchSystemTotal]);
 
+  // ── Load saved cash counts from DB when batch changes ──
+  useEffect(() => {
+    const loadCashCounts = async () => {
+      const batchNumber = batchSel.selectedBatch?.batch_number;
+      if (!batchNumber) {
+        setDenomCounts({});
+        return;
+      }
+      setLoadingCounts(true);
+      try {
+        const { data, error } = await supabase
+          .from('cn_cash_count')
+          .select('currency_id, denomination_id, count')
+          .eq('batch_number', batchNumber);
+        if (error) throw error;
+        const counts: Record<string, Record<string, number>> = {};
+        (data || []).forEach((row: any) => {
+          if (!counts[row.currency_id]) counts[row.currency_id] = {};
+          counts[row.currency_id][row.denomination_id] = row.count;
+        });
+        setDenomCounts(counts);
+      } catch (err) {
+        console.error('Failed to load cash counts:', err);
+      } finally {
+        setLoadingCounts(false);
+      }
+    };
+    loadCashCounts();
+  }, [batchSel.selectedBatch?.batch_number]);
+
   // ── Denomination counts: { [currencyId]: { [denomId]: count } } ──
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<string, number>>>({});
 
