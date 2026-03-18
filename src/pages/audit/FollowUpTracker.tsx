@@ -64,7 +64,8 @@ export default function FollowUpTracker() {
     const matchesDateFrom = !from || !dueDate || dueDate >= from;
     const matchesDateTo = !to || !dueDate || dueDate <= to;
 
-    return matchesSearch && matchesStatus && matchesDepartment && matchesAssignee && matchesDateFrom && matchesDateTo;
+    const matchesEngagement = !engagementIdFilter || item.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesDepartment && matchesAssignee && matchesDateFrom && matchesDateTo && matchesEngagement;
   });
 
   const handleCreate = () => {
