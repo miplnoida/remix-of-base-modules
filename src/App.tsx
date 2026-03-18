@@ -18,7 +18,7 @@ import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
 import { IPAccessGate } from '@/components/security/IPAccessGate';
-import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache } from '@/services/globalAuditInterceptor';
+import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
 import './App.css';
 
@@ -42,12 +42,18 @@ const queryClient = new QueryClient({
       const entityId = extractEntityId(variables);
       const route = typeof window !== 'undefined' ? window.location.pathname : undefined;
 
+      // Resolve entity type: explicit key > variable inference > route default
+      const routeCtx = route ? resolveRouteContext(route) : undefined;
+      const entityType = parsed.entityType
+        || inferEntityTypeFromVariables(variables)
+        || routeCtx?.entityType;
+
       // Fire-and-forget audit log — never blocks the UI
       logAuditEntry({
         action: parsed.action,
-        entityType: parsed.entityType,
+        entityType,
         entityId,
-        module: parsed.module,
+        module: parsed.module || routeCtx?.module,
         route,
         afterValue: variables && typeof variables === 'object' ? variables as Record<string, any> : undefined,
         metadata: {
@@ -66,12 +72,18 @@ const queryClient = new QueryClient({
 
       const parsed = parseMutationKey(mutation.options.mutationKey);
       const entityId = extractEntityId(variables);
+      const errRoute = typeof window !== 'undefined' ? window.location.pathname : undefined;
+      const errRouteCtx = errRoute ? resolveRouteContext(errRoute) : undefined;
+      const errEntityType = parsed.entityType
+        || inferEntityTypeFromVariables(variables)
+        || errRouteCtx?.entityType;
+
       logAuditEntry({
         action: `${parsed.action}_failed`,
-        entityType: parsed.entityType,
+        entityType: errEntityType,
         entityId,
-        module: parsed.module,
-        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        module: parsed.module || errRouteCtx?.module,
+        route: errRoute,
         metadata: {
           source: 'MutationCache_global',
           error: error instanceof Error ? error.message : String(error),

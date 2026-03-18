@@ -32,57 +32,58 @@ interface AuditInterceptorEntry {
   metadata?: Record<string, any> | null;
 }
 
-// ─── Route → Module/Screen mapping ───────────────────────────────────────────
-// Maps URL path prefixes to human-readable module & screen names.
+// ─── Route → Module/Screen/Entity mapping ────────────────────────────────────
+// Maps URL path prefixes to human-readable module, screen, and default entity.
 // The FIRST matching prefix wins, so order from most-specific to least.
 const ROUTE_MODULE_MAP: Array<{
   prefix: string;
   module: string;
   screen: string;
+  entityType?: string;
 }> = [
   // Cashier
-  { prefix: '/cashier/cash-details', module: 'Cashier', screen: 'Cash Details' },
-  { prefix: '/cashier/receipt', module: 'Cashier', screen: 'Receipts' },
-  { prefix: '/cashier/batches', module: 'Cashier', screen: 'Batch Management' },
-  { prefix: '/cashier/posting', module: 'Cashier', screen: 'Posting' },
-  { prefix: '/cashier/payment-voucher', module: 'Cashier', screen: 'Payment Voucher' },
+  { prefix: '/cashier/cash-details', module: 'Cashier', screen: 'Cash Details', entityType: 'cn_cash_count' },
+  { prefix: '/cashier/receipt', module: 'Cashier', screen: 'Receipts', entityType: 'cn_receipt' },
+  { prefix: '/cashier/batches', module: 'Cashier', screen: 'Batch Management', entityType: 'cn_batch' },
+  { prefix: '/cashier/posting', module: 'Cashier', screen: 'Posting', entityType: 'cn_batch' },
+  { prefix: '/cashier/payment-voucher', module: 'Cashier', screen: 'Payment Voucher', entityType: 'cn_payment_voucher' },
   { prefix: '/cashier', module: 'Cashier', screen: 'Cashier Dashboard' },
 
   // Registration
-  { prefix: '/registration/employer', module: 'Registration', screen: 'Employer Registration' },
-  { prefix: '/registration/insured-person', module: 'Registration', screen: 'Insured Person Registration' },
+  { prefix: '/registration/employer', module: 'Registration', screen: 'Employer Registration', entityType: 'er_master' },
+  { prefix: '/registration/insured-person', module: 'Registration', screen: 'Insured Person Registration', entityType: 'ip_master' },
   { prefix: '/registration/search', module: 'Registration', screen: 'Registration Search' },
   { prefix: '/registration', module: 'Registration', screen: 'Registration' },
 
   // Compliance / BEMA
-  { prefix: '/compliance/audit', module: 'Compliance', screen: 'Compliance Audit' },
-  { prefix: '/compliance/penalty', module: 'Compliance', screen: 'Penalty Management' },
-  { prefix: '/compliance/waiver', module: 'Compliance', screen: 'Waiver Management' },
-  { prefix: '/compliance/arrears', module: 'Compliance', screen: 'Arrears Ledger' },
-  { prefix: '/compliance/payment-plan', module: 'Compliance', screen: 'Payment Plans' },
-  { prefix: '/compliance/inspector', module: 'Compliance', screen: 'Inspector Management' },
-  { prefix: '/compliance/c3', module: 'Compliance', screen: 'C3 Submissions' },
-  { prefix: '/compliance/registration', module: 'Compliance', screen: 'BEMA Registration' },
+  { prefix: '/compliance/audit', module: 'Compliance', screen: 'Compliance Audit', entityType: 'bema_audit_cases' },
+  { prefix: '/compliance/penalty', module: 'Compliance', screen: 'Penalty Management', entityType: 'compliance_penalties' },
+  { prefix: '/compliance/waiver', module: 'Compliance', screen: 'Waiver Management', entityType: 'bema_waivers' },
+  { prefix: '/compliance/arrears', module: 'Compliance', screen: 'Arrears Ledger', entityType: 'bema_arrears_ledger' },
+  { prefix: '/compliance/payment-plan', module: 'Compliance', screen: 'Payment Plans', entityType: 'bema_payment_plans' },
+  { prefix: '/compliance/inspector', module: 'Compliance', screen: 'Inspector Management', entityType: 'bema_inspector_assignments' },
+  { prefix: '/compliance/c3', module: 'Compliance', screen: 'C3 Submissions', entityType: 'bema_c3_submissions' },
+  { prefix: '/compliance/registration', module: 'Compliance', screen: 'BEMA Registration', entityType: 'bema_registrations' },
   { prefix: '/compliance', module: 'Compliance', screen: 'Compliance Dashboard' },
 
   // Benefits
-  { prefix: '/benefits/short-term', module: 'Benefits', screen: 'Short Term Benefits' },
-  { prefix: '/benefits/long-term', module: 'Benefits', screen: 'Long Term Benefits' },
+  { prefix: '/benefits/short-term', module: 'Benefits', screen: 'Short Term Benefits', entityType: 'benefit_claims' },
+  { prefix: '/benefits/long-term', module: 'Benefits', screen: 'Long Term Benefits', entityType: 'benefit_claims' },
   { prefix: '/benefits', module: 'Benefits', screen: 'Benefits' },
 
   // Internal Audit
-  { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace' },
-  { prefix: '/audit/universe', module: 'Internal Audit', screen: 'Audit Universe' },
-  { prefix: '/audit/risk', module: 'Internal Audit', screen: 'Risk Assessment' },
-  { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan' },
+  { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace', entityType: 'ia_engagements' },
+  { prefix: '/audit/universe', module: 'Internal Audit', screen: 'Audit Universe', entityType: 'ia_audit_universe' },
+  { prefix: '/audit/risk', module: 'Internal Audit', screen: 'Risk Assessment', entityType: 'ia_risk_assessments' },
+  { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan', entityType: 'ia_audit_plans' },
   { prefix: '/audit', module: 'Internal Audit', screen: 'Internal Audit' },
 
   // Admin / Configuration
-  { prefix: '/admin/c3-configuration', module: 'C3 Configuration', screen: 'C3 Configuration' },
-  { prefix: '/admin/user-management', module: 'User Management', screen: 'User Management' },
-  { prefix: '/admin/system-settings', module: 'System Settings', screen: 'System Settings' },
+  { prefix: '/admin/c3-configuration', module: 'C3 Configuration', screen: 'C3 Configuration', entityType: 'c3_calculation_config' },
+  { prefix: '/admin/user-management', module: 'User Management', screen: 'User Management', entityType: 'profiles' },
+  { prefix: '/admin/system-settings', module: 'System Settings', screen: 'System Settings', entityType: 'system_settings' },
   { prefix: '/admin/data-migration', module: 'Admin', screen: 'Data Migration' },
-  { prefix: '/admin/security', module: 'Security', screen: 'Security Settings' },
+  { prefix: '/admin/security', module: 'Security', screen: 'Security Settings', entityType: 'security_policy_config' },
   { prefix: '/admin', module: 'Admin', screen: 'Admin' },
 
   // System Logs
@@ -93,7 +94,7 @@ const ROUTE_MODULE_MAP: Array<{
   { prefix: '/legal', module: 'Legal', screen: 'Legal' },
 
   // Self-Employed
-  { prefix: '/self-employed', module: 'Self-Employed', screen: 'Self-Employed' },
+  { prefix: '/self-employed', module: 'Self-Employed', screen: 'Self-Employed', entityType: 'au_ip_self_employ' },
 
   // Dashboard
   { prefix: '/dashboard', module: 'Dashboard', screen: 'Dashboard' },
@@ -101,15 +102,44 @@ const ROUTE_MODULE_MAP: Array<{
 ];
 
 /**
- * Resolve module + screen from a URL path.
+ * Resolve module + screen + default entity type from a URL path.
  */
-export function resolveRouteContext(pathname: string): { module: string; screen: string } {
+export function resolveRouteContext(pathname: string): { module: string; screen: string; entityType?: string } {
   for (const entry of ROUTE_MODULE_MAP) {
     if (pathname.startsWith(entry.prefix)) {
-      return { module: entry.module, screen: entry.screen };
+      return { module: entry.module, screen: entry.screen, entityType: entry.entityType };
     }
   }
   return { module: 'App', screen: pathname };
+}
+
+/**
+ * Infer entity type from mutation variables by checking for known table-identifier keys.
+ */
+export function inferEntityTypeFromVariables(variables: unknown): string | undefined {
+  if (!variables || typeof variables !== 'object') return undefined;
+  const v = variables as Record<string, any>;
+
+  // If the variable itself has a table_name or entity_type hint
+  if (v.table_name) return String(v.table_name);
+  if (v.entityType) return String(v.entityType);
+  if (v.entity_type) return String(v.entity_type);
+
+  // Infer from key patterns in the payload
+  if (v.batch_number || v.batchNumber) return 'cn_batch';
+  if (v.receipt_id || v.receiptId) return 'cn_receipt';
+  if (v.registration_id || v.registrationId || v.registration_number) return 'bema_registrations';
+  if (v.employer_id || v.employerId) return 'er_master';
+  if (v.ssn && !v.employer_id) return 'ip_master';
+  if (v.config_type || v.configType) return 'c3_calculation_config';
+  if (v.periodId || v.period_id) return 'c3_calculation_config';
+  if (v.engagement_id || v.engagementId) return 'ia_engagements';
+  if (v.plan_id || v.planId) return 'ia_audit_plans';
+  if (v.waiver_number || v.waiverId) return 'bema_waivers';
+  if (v.setting_key || v.settingKey) return 'system_settings';
+  if (v.policy_name || v.policyName) return 'security_policy_config';
+
+  return undefined;
 }
 
 // Cache user identity to avoid repeated DB calls
@@ -198,10 +228,14 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
     const route = entry.route || (typeof window !== 'undefined' ? window.location.pathname : undefined);
     let module = entry.module;
     let screenName = entry.screenName;
-    if (route && !module) {
+    let entityType = entry.entityType;
+
+    // Auto-resolve module, screen, and entity type from route when not provided
+    if (route) {
       const ctx = resolveRouteContext(route);
-      module = ctx.module;
-      screenName = screenName || ctx.screen;
+      if (!module) module = ctx.module;
+      if (!screenName) screenName = ctx.screen;
+      if (!entityType) entityType = ctx.entityType;
     }
 
     // Build description with context
@@ -218,7 +252,7 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
       device_info: getDeviceInfo(),
       timestamp: new Date().toISOString(),
       action: entry.action,
-      entity_type: entry.entityType || null,
+      entity_type: entityType || null,
       entity_id: entry.entityId || null,
       module: module || null,
       route: route || null,
