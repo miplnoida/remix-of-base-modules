@@ -18,7 +18,7 @@ import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
 import { IPAccessGate } from '@/components/security/IPAccessGate';
-import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache } from '@/services/globalAuditInterceptor';
+import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
 import './App.css';
 
