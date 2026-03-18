@@ -370,6 +370,7 @@ const ModuleManagementContent = () => {
         parent_id: module.parent_id,
         sort_order: module.sort_order,
         is_enabled: module.is_enabled,
+        show_in_menu: module.show_in_menu ?? false,
         primary_table: (module as any).primary_table || "",
         primary_key_column: (module as any).primary_key_column || "id",
         business_key_column: (module as any).business_key_column || "",
