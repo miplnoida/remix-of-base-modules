@@ -40,10 +40,12 @@ const AuditTrail: React.FC = () => {
   const [userFilter, setUserFilter] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [routeFilter, setRouteFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter],
+    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
     queryFn: async () => {
       let query = supabase
         .from('system_audit_trail')
@@ -56,6 +58,8 @@ const AuditTrail: React.FC = () => {
       if (userFilter) query = query.ilike('user_name', `%${userFilter}%`);
       if (entityTypeFilter) query = query.ilike('entity_type', `%${entityTypeFilter}%`);
       if (moduleFilter) query = query.ilike('module', `%${moduleFilter}%`);
+      if (routeFilter) query = query.ilike('route', `%${routeFilter}%`);
+      if (actionFilter) query = query.ilike('action', `%${actionFilter}%`);
 
       const { data, error, count } = await query;
       if (error) throw error;
