@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Calculator, DollarSign, Save, Loader2, TrendingUp } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,12 +13,16 @@ import { useEnabledCashierCurrencies, useCashierDenominations, DenominationConfi
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
+import { useUserCode } from '@/hooks/useUserCode';
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
+  const { userCode } = useUserCode();
   const [systemTotal, setSystemTotal] = useState<number>(0);
   const [systemTotalLoading, setSystemTotalLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Fetch system total from DB whenever batch changes
   const fetchSystemTotal = useCallback(async (batchNumber: string) => {
@@ -62,6 +65,36 @@ const CashDetails: React.FC = () => {
       setSystemTotal(0);
     }
   }, [batchSel.selectedBatch?.batch_number, fetchSystemTotal]);
+
+  // ── Load saved cash counts from DB when batch changes ──
+  useEffect(() => {
+    const loadCashCounts = async () => {
+      const batchNumber = batchSel.selectedBatch?.batch_number;
+      if (!batchNumber) {
+        setDenomCounts({});
+        return;
+      }
+      setLoadingCounts(true);
+      try {
+        const { data, error } = await supabase
+          .from('cn_cash_count')
+          .select('currency_id, denomination_id, count')
+          .eq('batch_number', batchNumber);
+        if (error) throw error;
+        const counts: Record<string, Record<string, number>> = {};
+        (data || []).forEach((row: any) => {
+          if (!counts[row.currency_id]) counts[row.currency_id] = {};
+          counts[row.currency_id][row.denomination_id] = row.count;
+        });
+        setDenomCounts(counts);
+      } catch (err) {
+        console.error('Failed to load cash counts:', err);
+      } finally {
+        setLoadingCounts(false);
+      }
+    };
+    loadCashCounts();
+  }, [batchSel.selectedBatch?.batch_number]);
 
   // ── Denomination counts: { [currencyId]: { [denomId]: count } } ──
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<string, number>>>({});
@@ -109,11 +142,70 @@ const CashDetails: React.FC = () => {
     return d.label || (d.denomination_value >= 1 ? `$${d.denomination_value}` : `${(d.denomination_value * 100).toFixed(0)}¢`);
   };
 
-  const saveCashCount = () => {
-    toast({
-      title: 'Cash Count Saved',
-      description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
-    });
+  const saveCashCount = async () => {
+    const batchNumber = batchSel.selectedBatch?.batch_number;
+    if (!batchNumber) return;
+
+    setSaving(true);
+    try {
+      // Collect all rows with counts
+      const rows: { batch_number: string; currency_id: string; denomination_id: string; count: number; updated_by: string | null; updated_at: string; created_by?: string | null }[] = [];
+      const zeroDenomIds: string[] = [];
+
+      if (enabledCurrencies && allDenominations) {
+        for (const currency of enabledCurrencies) {
+          const denoms = getDenominationsForCurrency(currency.id);
+          for (const d of denoms) {
+            const count = getCount(currency.id, d.id);
+            if (count > 0) {
+              rows.push({
+                batch_number: batchNumber,
+                currency_id: currency.id,
+                denomination_id: d.id,
+                count,
+                created_by: userCode || null,
+                updated_by: userCode || null,
+                updated_at: new Date().toISOString(),
+              });
+            } else {
+              zeroDenomIds.push(d.id);
+            }
+          }
+        }
+      }
+
+      // Upsert non-zero counts
+      if (rows.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from('cn_cash_count')
+          .upsert(rows, { onConflict: 'batch_number,denomination_id' });
+        if (upsertErr) throw upsertErr;
+      }
+
+      // Delete rows set back to zero
+      if (zeroDenomIds.length > 0) {
+        const { error: delErr } = await supabase
+          .from('cn_cash_count')
+          .delete()
+          .eq('batch_number', batchNumber)
+          .in('denomination_id', zeroDenomIds);
+        if (delErr) throw delErr;
+      }
+
+      toast({
+        title: 'Cash Count Saved',
+        description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
+      });
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      toast({
+        title: 'Save Failed',
+        description: err.message || 'Could not save cash count. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (currLoading) {
@@ -143,9 +235,9 @@ const CashDetails: React.FC = () => {
             <h1 className="text-2xl font-bold">Cash Details Entry</h1>
             <p className="text-muted-foreground text-sm">Enter physical cash count for each currency denomination</p>
           </div>
-          <Button size="sm" onClick={saveCashCount}>
-            <Save className="h-4 w-4 mr-1" />
-            Save Cash Count
+          <Button size="sm" onClick={saveCashCount} disabled={saving || loadingCounts}>
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            {saving ? 'Saving...' : 'Save Cash Count'}
           </Button>
         </div>
 
