@@ -53,7 +53,7 @@ export const useSystemLogging = () => {
 export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { user, profile } = useSupabaseAuth();
-  const previousPath = useRef<string>('');
+  const previousPath = useRef<string>(sessionStorage.getItem('audit_last_route') || '');
   const pageLoadTime = useRef<number>(performance.now());
 
   const getBaseLogData = useCallback(() => ({
