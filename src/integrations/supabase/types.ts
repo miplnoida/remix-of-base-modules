@@ -9699,6 +9699,7 @@ export type Database = {
           phone: string | null
           risk_rating: string | null
           source_department_id: string | null
+          tb_office_code: string | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -9716,6 +9717,7 @@ export type Database = {
           phone?: string | null
           risk_rating?: string | null
           source_department_id?: string | null
+          tb_office_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -9733,10 +9735,19 @@ export type Database = {
           phone?: string | null
           risk_rating?: string | null
           source_department_id?: string | null
+          tb_office_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ia_departments_tb_office_code_fkey"
+            columns: ["tb_office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       ia_discussion_comments: {
         Row: {
