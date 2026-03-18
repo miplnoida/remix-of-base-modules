@@ -252,7 +252,7 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
       device_info: getDeviceInfo(),
       timestamp: new Date().toISOString(),
       action: entry.action,
-      entity_type: entry.entityType || null,
+      entity_type: entityType || null,
       entity_id: entry.entityId || null,
       module: module || null,
       route: route || null,
