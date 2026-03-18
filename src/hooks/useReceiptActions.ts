@@ -110,6 +110,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Reprinted', description: `Reprint #${data.reprint_times}` });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'reprintReceipt', entity_type: 'cn_receipt', request_payload: { paymentId } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
