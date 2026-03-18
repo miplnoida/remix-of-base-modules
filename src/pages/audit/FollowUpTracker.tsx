@@ -16,6 +16,8 @@ import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanne
 
 export default function FollowUpTracker() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' });
