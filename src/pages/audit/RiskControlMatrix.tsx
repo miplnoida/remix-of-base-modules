@@ -409,6 +409,8 @@ export default function RiskControlMatrix() {
       actions={<Button onClick={() => { setForm({}); setSelectedDeptId(''); setModalState({ mode: 'create', modalType: 'process' }); }}><Plus className="h-4 w-4 mr-2" />Add Process</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
 
+      <EngagementFilterBanner />
+
       <Tabs defaultValue="matrix" className="space-y-4">
         <TabsList>
           <TabsTrigger value="matrix">Risk Matrix</TabsTrigger>
