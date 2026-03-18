@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,7 @@ import { useAuditFields } from '@/hooks/useAuditTrail';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { ACTION_TRACKING_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 const ACTION_STATUSES = ['Not Started', 'In Progress', 'Implemented', 'Verified', 'Closed'];
 
@@ -19,6 +21,7 @@ const exportColumns = toExportColumns(ACTION_TRACKING_SCHEMA);
 
 export default function ActionTracking() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const { engagementId } = useEngagementFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: actions = [], isLoading } = useIAActionTracking();
@@ -32,14 +35,21 @@ export default function ActionTracking() {
   const resetForm = () => setFormData({ finding_id: '', action_description: '', responsible_person: '', target_date: '', notes: '', status: 'Not Started' });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
+  // Filter findings to engagement scope when engagement context is active
+  const scopedFindings = engagementId
+    ? findings.filter((f: any) => f.engagement_id === engagementId)
+    : findings;
+
   const handleBulkImport = async (data: Record<string, any>[]) => {
     for (const row of data) {
-      const finding = findings.find((f: any) => f.title === row.finding_title);
+      const finding = scopedFindings.find((f: any) => f.title === row.finding_title);
       if (!finding) continue;
       create.mutate({
         finding_id: finding.id, action_description: row.action_description,
         responsible_person: row.responsible_person || '', target_date: row.target_date || null,
-        notes: row.notes || '', status: row.status || 'Not Started', ...getCreateFields(),
+        notes: row.notes || '', status: row.status || 'Not Started',
+        ...(engagementId ? { engagement_id: engagementId } : {}),
+        ...getCreateFields(),
       });
     }
   };
@@ -47,12 +57,18 @@ export default function ActionTracking() {
   const filteredActions = actions.filter((a: any) => {
     const matchesStatus = filters.status === 'all' || a.status === filters.status;
     const matchesSearch = !searchTerm || (a.action_description || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.responsible_person || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesEngagement = !engagementId || a.engagement_id === engagementId;
+    return matchesStatus && matchesSearch && matchesEngagement;
   });
 
   const handleCreate = () => {
     if (!formData.finding_id || !formData.action_description) return;
-    create.mutate({ ...formData, target_date: formData.target_date || null, ...getCreateFields() }, {
+    create.mutate({
+      ...formData,
+      target_date: formData.target_date || null,
+      ...(engagementId ? { engagement_id: engagementId } : {}),
+      ...getCreateFields(),
+    }, {
       onSuccess: () => { setIsCreateOpen(false); resetForm(); }
     });
   };
@@ -68,11 +84,11 @@ export default function ActionTracking() {
   ];
 
   const statCards = [
-    { label: 'Not Started', value: actions.filter((a: any) => a.status === 'Not Started').length, color: 'text-muted-foreground' },
-    { label: 'In Progress', value: actions.filter((a: any) => a.status === 'In Progress').length, color: 'text-blue-600' },
-    { label: 'Implemented', value: actions.filter((a: any) => a.status === 'Implemented').length, color: 'text-orange-600' },
-    { label: 'Verified', value: actions.filter((a: any) => a.status === 'Verified').length, color: 'text-green-600' },
-    { label: 'Closed', value: actions.filter((a: any) => a.status === 'Closed').length, color: 'text-purple-600' },
+    { label: 'Not Started', value: filteredActions.filter((a: any) => a.status === 'Not Started').length, color: 'text-muted-foreground' },
+    { label: 'In Progress', value: filteredActions.filter((a: any) => a.status === 'In Progress').length, color: 'text-blue-600' },
+    { label: 'Implemented', value: filteredActions.filter((a: any) => a.status === 'Implemented').length, color: 'text-orange-600' },
+    { label: 'Verified', value: filteredActions.filter((a: any) => a.status === 'Verified').length, color: 'text-green-600' },
+    { label: 'Closed', value: filteredActions.filter((a: any) => a.status === 'Closed').length, color: 'text-purple-600' },
   ];
 
   const columns: DataTableColumn<any>[] = [
@@ -106,6 +122,8 @@ export default function ActionTracking() {
         </div>
       }
     >
+      <EngagementFilterBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}><CardContent className="pt-6 text-center"><p className="text-sm text-muted-foreground">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value}</p></CardContent></Card>
@@ -130,7 +148,7 @@ export default function ActionTracking() {
           <div className="space-y-2"><Label>Finding *</Label>
             <Select value={formData.finding_id} onValueChange={v => setFormData({...formData, finding_id: v})}>
               <SelectTrigger><SelectValue placeholder="Select finding" /></SelectTrigger>
-              <SelectContent>{findings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}</SelectContent>
+              <SelectContent>{scopedFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2"><Label>Action Description *</Label><Textarea value={formData.action_description} onChange={e => setFormData({...formData, action_description: e.target.value})} placeholder="Describe the corrective action..." /></div>

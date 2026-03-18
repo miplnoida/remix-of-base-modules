@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +15,11 @@ import { usePreparationChecklists, usePreparationChecklistMutations, usePreparat
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 export default function AuditPreparation() {
   const { getCreateFields } = useAuditFields();
+  const { engagementId } = useEngagementFilter();
   const { data: audits = [], isLoading } = useIADepartmentAudits();
   const { update: updateAudit } = useIADepartmentAuditMutations();
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
@@ -28,9 +31,9 @@ export default function AuditPreparation() {
 
   const selectedAudit = preparationAudits.find((a: any) => a.id === selectedAuditId);
 
-  const { data: checklists = [] } = usePreparationChecklists(selectedAuditId || undefined);
+  const { data: checklists = [] } = usePreparationChecklists(selectedAuditId || undefined, engagementId);
   const { create: createChecklist, update: updateChecklist, remove: removeChecklist } = usePreparationChecklistMutations();
-  const { data: documents = [] } = usePreparationDocuments(selectedAuditId || undefined);
+  const { data: documents = [] } = usePreparationDocuments(selectedAuditId || undefined, engagementId);
   const { create: createDocument, remove: removeDocument } = usePreparationDocumentMutations();
 
   const [newChecklistItem, setNewChecklistItem] = useState('');
@@ -39,9 +42,10 @@ export default function AuditPreparation() {
   const [newDocType, setNewDocType] = useState('General');
 
   const handleAddChecklist = () => {
-    if (!newChecklistItem.trim() || !selectedAuditId) return;
+    if (!newChecklistItem.trim() || (!selectedAuditId && !engagementId)) return;
     createChecklist.mutate({
-      department_audit_id: selectedAuditId,
+      ...(selectedAuditId ? { department_audit_id: selectedAuditId } : {}),
+      ...(engagementId ? { engagement_id: engagementId } : {}),
       item_text: newChecklistItem.trim(),
       category: newChecklistCategory,
       ...getCreateFields(),
@@ -54,9 +58,10 @@ export default function AuditPreparation() {
   };
 
   const handleAddDocument = () => {
-    if (!newDocName.trim() || !selectedAuditId) return;
+    if (!newDocName.trim() || (!selectedAuditId && !engagementId)) return;
     createDocument.mutate({
-      department_audit_id: selectedAuditId,
+      ...(selectedAuditId ? { department_audit_id: selectedAuditId } : {}),
+      ...(engagementId ? { engagement_id: engagementId } : {}),
       file_name: newDocName.trim(),
       document_type: newDocType,
       ...getCreateFields(),
@@ -74,16 +79,11 @@ export default function AuditPreparation() {
     updateAudit.mutate({ id: selectedAuditId, status: 'In Preparation' });
   };
 
-  const auditColumns: DataTableColumn<any>[] = [
-    { key: 'id', header: 'ID', render: (row) => <span className="font-mono text-xs">{(row.id || '').slice(0, 8)}</span> },
-    { key: 'department_name', header: 'Department' },
-    { key: 'audit_type', header: 'Type', render: (row) => <StatusBadge status={row.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} /> },
-    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'planned_start', header: 'Start', render: (row) => row.planned_start ? new Date(row.planned_start).toLocaleDateString() : '-' },
-  ];
-
   const completedCount = checklists.filter((c: any) => c.is_completed).length;
   const totalCount = checklists.length;
+
+  // If engagement context is active, show engagement-centric view
+  const showEngagementMode = !!engagementId && !selectedAuditId;
 
   return (
     <PageShell
@@ -92,40 +92,44 @@ export default function AuditPreparation() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Preparation' }]}
       isLoading={isLoading}
     >
+      <EngagementFilterBanner />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Audit Selection */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Audits Ready for Preparation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {preparationAudits.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No audits awaiting preparation.</p>
-              ) : (
-                preparationAudits.map((audit: any) => (
-                  <Button
-                    key={audit.id}
-                    variant={selectedAuditId === audit.id ? 'default' : 'outline'}
-                    className="w-full justify-start text-left h-auto py-3"
-                    onClick={() => setSelectedAuditId(audit.id)}
-                  >
-                    <div>
-                      <div className="font-medium text-sm">{audit.department_name}</div>
-                      <div className="text-xs opacity-70">
-                        {audit.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} · {audit.status}
+        {!engagementId && (
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Audits Ready for Preparation</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {preparationAudits.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No audits awaiting preparation.</p>
+                ) : (
+                  preparationAudits.map((audit: any) => (
+                    <Button
+                      key={audit.id}
+                      variant={selectedAuditId === audit.id ? 'default' : 'outline'}
+                      className="w-full justify-start text-left h-auto py-3"
+                      onClick={() => setSelectedAuditId(audit.id)}
+                    >
+                      <div>
+                        <div className="font-medium text-sm">{audit.department_name}</div>
+                        <div className="text-xs opacity-70">
+                          {audit.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} · {audit.status}
+                        </div>
                       </div>
-                    </div>
-                  </Button>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    </Button>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Right: Preparation Details */}
-        <div className="lg:col-span-2">
-          {!selectedAudit ? (
+        <div className={engagementId ? 'lg:col-span-3' : 'lg:col-span-2'}>
+          {!selectedAudit && !showEngagementMode ? (
             <Card>
               <CardContent className="pt-6 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -134,28 +138,40 @@ export default function AuditPreparation() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {/* Status Bar */}
-              <Card>
-                <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">{selectedAudit.department_name}</h3>
+              {/* Status Bar - only for department audit mode */}
+              {selectedAudit && (
+                <Card>
+                  <CardContent className="pt-4 pb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{selectedAudit.department_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Status: <StatusBadge status={selectedAudit.status} />
+                        {totalCount > 0 && ` · Checklist: ${completedCount}/${totalCount}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {selectedAudit.status === 'Accepted' || selectedAudit.status === 'Approved' ? (
+                        <Button size="sm" onClick={handleStartPreparation}>Start Preparation</Button>
+                      ) : selectedAudit.status === 'In Preparation' ? (
+                        <Button size="sm" onClick={handleMarkReady}>
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Mark Ready for Execution
+                        </Button>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {showEngagementMode && totalCount > 0 && (
+                <Card>
+                  <CardContent className="pt-4 pb-4">
                     <p className="text-sm text-muted-foreground">
-                      Status: <StatusBadge status={selectedAudit.status} />
-                      {totalCount > 0 && ` · Checklist: ${completedCount}/${totalCount}`}
+                      Checklist: {completedCount}/{totalCount} completed
                     </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedAudit.status === 'Accepted' || selectedAudit.status === 'Approved' ? (
-                      <Button size="sm" onClick={handleStartPreparation}>Start Preparation</Button>
-                    ) : selectedAudit.status === 'In Preparation' ? (
-                      <Button size="sm" onClick={handleMarkReady}>
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Mark Ready for Execution
-                      </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               <Tabs defaultValue="checklist">
                 <TabsList>
@@ -167,10 +183,12 @@ export default function AuditPreparation() {
                     <FileText className="w-3 h-3 mr-1" />
                     Documents ({documents.length})
                   </TabsTrigger>
-                  <TabsTrigger value="team">
-                    <Users className="w-3 h-3 mr-1" />
-                    Team
-                  </TabsTrigger>
+                  {selectedAudit && (
+                    <TabsTrigger value="team">
+                      <Users className="w-3 h-3 mr-1" />
+                      Team
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 {/* Checklist Tab */}
@@ -274,28 +292,30 @@ export default function AuditPreparation() {
                 </TabsContent>
 
                 {/* Team Tab */}
-                <TabsContent value="team">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-3">
-                        {selectedAudit.lead_auditor_name && (
-                          <div className="flex items-center gap-2 p-2 rounded border">
-                            <Users className="h-4 w-4 text-primary" />
-                            <span className="font-medium text-sm">{selectedAudit.lead_auditor_name}</span>
-                            <StatusBadge status="Lead" />
-                          </div>
-                        )}
-                        {selectedAudit.team_member_ids?.length > 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            {selectedAudit.team_member_ids.length} team member(s) assigned
-                          </p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No additional team members assigned.</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                {selectedAudit && (
+                  <TabsContent value="team">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          {selectedAudit.lead_auditor_name && (
+                            <div className="flex items-center gap-2 p-2 rounded border">
+                              <Users className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-sm">{selectedAudit.lead_auditor_name}</span>
+                              <StatusBadge status="Lead" />
+                            </div>
+                          )}
+                          {selectedAudit.team_member_ids?.length > 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {selectedAudit.team_member_ids.length} team member(s) assigned
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No additional team members assigned.</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
           )}

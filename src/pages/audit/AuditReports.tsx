@@ -10,11 +10,13 @@ import { useIAAuditReports, useIAAuditReportMutations } from '@/hooks/useAuditRe
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 const REPORT_TYPES = ['Plan Summary', 'Activity Schedule', 'Auditor Workload', 'Findings Compliance', 'Follow-up Register'];
 
 export default function AuditReports() {
   const { toast } = useToast();
+  const { engagementId } = useEngagementFilter();
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAAuditors();
   const { data: reports = [], isLoading } = useIAAuditReports();
@@ -34,9 +36,10 @@ export default function AuditReports() {
       const matchesDepartment = filters.departmentId === 'all' || report.department_id === filters.departmentId;
       const matchesType = filters.reportType === 'all' || report.report_type === filters.reportType;
       const matchesStatus = filters.status === 'all' || report.status === filters.status;
-      return matchesSearch && matchesFiscalYear && matchesDepartment && matchesType && matchesStatus;
+      const matchesEngagement = !engagementId || report.engagement_id === engagementId;
+      return matchesSearch && matchesFiscalYear && matchesDepartment && matchesType && matchesStatus && matchesEngagement;
     });
-  }, [reports, searchTerm, filters, departments]);
+  }, [reports, searchTerm, filters, departments, engagementId]);
 
   const fiscalYears = useMemo(() => {
     const values = reports.map((r: any) => r.fiscal_year).filter(Boolean);
@@ -46,7 +49,12 @@ export default function AuditReports() {
   const handleCreate = () => {
     if (!formData.title) { toast({ title: 'Validation Error', description: 'Title is required', variant: 'destructive' }); return; }
     const reportNumber = `RPT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-    create.mutate({ ...formData, report_number: reportNumber, department_id: formData.department_id || null }, {
+    create.mutate({
+      ...formData,
+      report_number: reportNumber,
+      department_id: formData.department_id || null,
+      ...(engagementId ? { engagement_id: engagementId } : {}),
+    }, {
       onSuccess: () => { setIsCreateOpen(false); setFormData({ title: '', report_type: 'Plan Summary', fiscal_year: new Date().getFullYear().toString(), period: '', department_id: '', prepared_by: '' }); }
     });
   };
@@ -80,6 +88,8 @@ export default function AuditReports() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Report</Button>}
     >
+      <EngagementFilterBanner />
+
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
