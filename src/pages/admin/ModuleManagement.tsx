@@ -178,6 +178,9 @@ const ModuleTreeItem = ({
           <Badge variant={module.is_enabled ? "default" : "secondary"} className="text-xs">
             {module.is_enabled ? "Enabled" : "Disabled"}
           </Badge>
+          <Badge variant={module.show_in_menu ? "default" : "outline"} className="text-xs">
+            {module.show_in_menu ? "In Menu" : "Hidden"}
+          </Badge>
           <Badge variant="outline" className="text-xs">
             {module.actions?.length || 0} Actions
           </Badge>
@@ -287,6 +290,7 @@ const ModuleManagementContent = () => {
     parent_id: null as string | null,
     sort_order: 0,
     is_enabled: true,
+    show_in_menu: false,
     primary_table: "",
     primary_key_column: "id",
     business_key_column: "",
@@ -366,6 +370,7 @@ const ModuleManagementContent = () => {
         parent_id: module.parent_id,
         sort_order: module.sort_order,
         is_enabled: module.is_enabled,
+        show_in_menu: module.show_in_menu ?? false,
         primary_table: (module as any).primary_table || "",
         primary_key_column: (module as any).primary_key_column || "id",
         business_key_column: (module as any).business_key_column || "",
@@ -381,6 +386,7 @@ const ModuleManagementContent = () => {
         parent_id: null,
         sort_order: modules.length,
         is_enabled: true,
+        show_in_menu: false,
         primary_table: "",
         primary_key_column: "id",
         business_key_column: "",
@@ -690,6 +696,17 @@ const ModuleManagementContent = () => {
                   id="is_enabled"
                   checked={moduleForm.is_enabled}
                   onCheckedChange={(checked) => setModuleForm({ ...moduleForm, is_enabled: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="show_in_menu" className="text-sm font-medium">Show in Navigation Menu</Label>
+                  <p className="text-xs text-muted-foreground">When OFF, module is active but hidden from the left sidebar</p>
+                </div>
+                <Switch
+                  id="show_in_menu"
+                  checked={moduleForm.show_in_menu}
+                  onCheckedChange={(checked) => setModuleForm({ ...moduleForm, show_in_menu: checked })}
                 />
               </div>
             </div>
