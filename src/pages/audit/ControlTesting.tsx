@@ -20,6 +20,8 @@ const emptyForm = { test_date: new Date().toISOString().slice(0, 10), tested_by:
 export default function ControlTesting() {
   const { data = [], isLoading, isError, create, update } = useIAControlTests();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ result: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
