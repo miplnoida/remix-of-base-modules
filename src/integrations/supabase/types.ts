@@ -8650,7 +8650,9 @@ export type Database = {
           engagement_code: string | null
           engagement_name: string
           engagement_risk_rating: string | null
+          estimated_budget: number | null
           estimated_hours: number | null
+          function_id: string | null
           id: string
           is_active: boolean | null
           lead_auditor_id: string | null
@@ -8660,6 +8662,7 @@ export type Database = {
           planned_start_date: string | null
           scope: string | null
           status: string | null
+          supportive_auditor_ids: Json | null
           team_member_ids: Json | null
           updated_at: string | null
           updated_by: string | null
@@ -8679,7 +8682,9 @@ export type Database = {
           engagement_code?: string | null
           engagement_name: string
           engagement_risk_rating?: string | null
+          estimated_budget?: number | null
           estimated_hours?: number | null
+          function_id?: string | null
           id?: string
           is_active?: boolean | null
           lead_auditor_id?: string | null
@@ -8689,6 +8694,7 @@ export type Database = {
           planned_start_date?: string | null
           scope?: string | null
           status?: string | null
+          supportive_auditor_ids?: Json | null
           team_member_ids?: Json | null
           updated_at?: string | null
           updated_by?: string | null
@@ -8708,7 +8714,9 @@ export type Database = {
           engagement_code?: string | null
           engagement_name?: string
           engagement_risk_rating?: string | null
+          estimated_budget?: number | null
           estimated_hours?: number | null
+          function_id?: string | null
           id?: string
           is_active?: boolean | null
           lead_auditor_id?: string | null
@@ -8718,6 +8726,7 @@ export type Database = {
           planned_start_date?: string | null
           scope?: string | null
           status?: string | null
+          supportive_auditor_ids?: Json | null
           team_member_ids?: Json | null
           updated_at?: string | null
           updated_by?: string | null
@@ -8728,6 +8737,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_engagements_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_functions"
             referencedColumns: ["id"]
           },
         ]
