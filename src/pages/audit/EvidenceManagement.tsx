@@ -24,6 +24,8 @@ export default function EvidenceManagement() {
   const { toast } = useToast();
   const { getCreateFields } = useAuditFields();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ type: 'all' });
   const { data: evidenceList = [], isLoading } = useIAEvidence();
