@@ -68,5 +68,6 @@
 - Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
 
 ## Remaining (Next Iteration)
-- Apply approved config changes automatically (currently view-only approval)
-- Set up cron job for `audit-due-date-reminders`
+- All gaps resolved ✅
+- Config changes auto-applied on approval via `useConfigChangeRequests` review mutation
+- Cron job `audit-due-date-reminders-daily` scheduled at 8:00 AM UTC daily via pg_cron
