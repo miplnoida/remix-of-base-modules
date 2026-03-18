@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAControlTests } from '@/hooks/useAuditDataPhase2';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 
 const RESULTS = ['Pass', 'Fail', 'Needs Improvement', 'Not Tested'];
 const emptyForm = { test_date: new Date().toISOString().slice(0, 10), tested_by: '', sample_size: 0, exceptions_found: 0, result: 'Not Tested', remarks: '' };
