@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { C3CalculationConfig, ConfigCategory, CATEGORY_INFO, ConfigCategoryGroup } from '@/types/c3CalculationConfig';
 import { toast } from 'sonner';
+import { logC3ConfigChange } from '@/lib/c3AuditLogger';
 
 // Fetch all active configurations
 export function useC3CalculationConfigs() {
