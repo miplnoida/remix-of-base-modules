@@ -20,6 +20,8 @@ const STATUSES = ['Draft', 'Under Review', 'Approved'];
 const WorkingPapers = () => {
   const { toast } = useToast();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
