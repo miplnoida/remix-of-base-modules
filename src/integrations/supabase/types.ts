@@ -5237,6 +5237,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_cash_count: {
+        Row: {
+          batch_number: string
+          count: number
+          created_at: string | null
+          created_by: string | null
+          currency_id: string
+          denomination_id: string
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          batch_number: string
+          count?: number
+          created_at?: string | null
+          created_by?: string | null
+          currency_id: string
+          denomination_id: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          batch_number?: string
+          count?: number
+          created_at?: string | null
+          created_by?: string | null
+          currency_id?: string
+          denomination_id?: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cn_payment: {
         Row: {
           bank_code: string | null
