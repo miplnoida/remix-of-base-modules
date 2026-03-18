@@ -158,14 +158,6 @@ const CashDetails: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Batch Number</p>
-              <p className="font-mono text-sm font-semibold">{batchSel.selectedBatch?.batch_number}</p>
-              <p className="text-xs text-muted-foreground mt-2">Batch Date</p>
-              <p className="text-sm font-semibold">{batchSel.selectedBatch?.batch_date ? new Date(batchSel.selectedBatch.batch_date).toLocaleDateString() : '—'}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Cashier / Office</p>
               <p className="text-sm font-semibold">{batchSel.selectedBatch?.entered_by || '—'} • {batchSel.selectedBatch?.office_code || '—'}</p>
             </CardContent>
@@ -193,6 +185,17 @@ const CashDetails: React.FC = () => {
                 {mainCurrency?.symbol || ''} {physicalCountInMain.toFixed(2)}
               </p>
               <p className="text-xs text-muted-foreground">in {mainCurrency?.currency_code || 'main currency'}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className={`h-4 w-4 ${(systemTotal - physicalCountInMain) >= 0 ? 'text-green-600' : 'text-destructive'}`} />
+                <span className="text-xs text-muted-foreground font-medium">Variance</span>
+              </div>
+              <p className={`text-2xl font-bold ${(systemTotal - physicalCountInMain) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                {(systemTotal - physicalCountInMain) >= 0 ? '+' : ''}{formatCurrency(systemTotal - physicalCountInMain)}
+              </p>
             </CardContent>
           </Card>
         </div>
