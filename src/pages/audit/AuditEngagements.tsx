@@ -167,8 +167,13 @@ export default function AuditEngagements() {
       </CardContent></Card>
 
       <Card><CardContent>
-        <DataTable columns={columns} data={filtered} onView={openView}
-          renderActions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
+        <DataTable columns={columns} data={filtered}
+          renderActions={(row) => (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openView(row); }}>View</Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>
+            </div>
+          )} />
       </CardContent></Card>
 
       <StandardModal open={modalState.mode !== null} onOpenChange={() => setModalState({ mode: null })}
