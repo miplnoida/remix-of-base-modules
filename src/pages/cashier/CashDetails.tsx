@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useCashierDenominations, DenominationConfig } from '@/hooks/useCashierCurrencyConfig';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
