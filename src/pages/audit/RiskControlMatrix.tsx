@@ -348,6 +348,8 @@ export default function RiskControlMatrix() {
         effectiveness: form.effectiveness_label || 'Strong',
         effectiveness_reduction: reduction,
         description: form.description,
+        evidence_required: form.evidence_required || null,
+        last_tested_date: form.last_tested_date || null,
         ...getCreateFields(),
       }, {
         onSuccess: async () => {
