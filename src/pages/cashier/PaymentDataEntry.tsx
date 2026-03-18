@@ -177,97 +177,75 @@ const PaymentDataEntry = () => {
     const uCode = userCode || 'SYS';
 
     setFlowState('saving');
-    let generatedPaymentId: number | null = null;
-    let generatedReceiptId: string | null = null;
 
     try {
-      // 1) Create header and next payment_id atomically
+      // Build detail lines array for the atomic RPC (expiry normalization happens server-side)
+      const detailLinesJson = detailLines.map((d) => ({
+        payment_code: d.payment_code,
+        fund_code: d.fund_code,
+        payment_amount: d.payment_amount,
+        mop_code: d.mop_code,
+        period: d.period || null,
+        payment_date: d.payment_date || null,
+        bank_code: d.bank_code || null,
+        mop_number: d.mop_number || null,
+        cheque_date: d.cheque_date || null,
+        mop_account_number: d.mop_account_number || null,
+        mop_notes1: d.mop_notes1 || null,
+        credit_card_code: d.credit_card_code || null,
+        expiration_date: d.expiration_date || null,
+      }));
+
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
-      const { data: paymentId, error: hdrErr } = await supabase.rpc('create_payment_header_with_next_id', {
+
+      // Single atomic RPC — header + details + receipt + print log in one DB transaction.
+      // If ANY step fails, PostgreSQL rolls back everything automatically.
+      const { data: result, error: rpcErr } = await supabase.rpc('create_payment_with_receipt', {
         p_batch_number: batch.currentBatch.batch_number,
         p_payer_type: payerType,
         p_payer_id: payerId.trim(),
         p_date_received: dateRcvd,
         p_remarks: remarks || null,
+        p_detail_lines: detailLinesJson,
+        p_receipt_total: totalAmount,
+        p_total_payments: detailLines.length,
+        p_user_code: uCode,
       });
-      if (hdrErr) {
-        await logApplicationError(hdrErr, { ...logContext, action: 'create_payment_header_rpc', request_payload: { batch_number: batch.currentBatch.batch_number, payerType, payerId: payerId.trim(), dateRcvd } });
-        throw hdrErr;
+
+      if (rpcErr) {
+        await logApplicationError(rpcErr, {
+          ...logContext,
+          action: 'create_payment_with_receipt_rpc',
+          request_payload: {
+            batch_number: batch.currentBatch.batch_number,
+            payer_type: payerType,
+            payer_id: payerId.trim(),
+            total_amount: totalAmount,
+            detail_lines: detailLines.length,
+          },
+        });
+        throw rpcErr;
       }
-      if (!paymentId && paymentId !== 0) {
-        const nullErr = new Error('RPC create_payment_header_with_next_id returned null payment_id.');
-        await logApplicationError(nullErr, { ...logContext, action: 'create_payment_header_rpc', request_payload: { batch_number: batch.currentBatch.batch_number, payerType, payerId: payerId.trim() } });
+
+      // Parse the result — returns { payment_id, receipt_id, status }
+      const res = typeof result === 'string' ? JSON.parse(result) : result;
+      if (!res || !res.payment_id) {
+        const nullErr = new Error('Atomic RPC returned null or missing payment_id.');
+        await logApplicationError(nullErr, { ...logContext, action: 'create_payment_with_receipt_rpc', request_payload: { result: res } });
         throw nullErr;
       }
-      generatedPaymentId = paymentId;
 
-      // 2) Insert detail lines (let payment_sequence_no auto-generate via IDENTITY)
-      const detailInserts = detailLines.map((d) => ({
-        payment_id: paymentId,
-        payment_code: d.payment_code,
-        fund_code: d.fund_code,
-        payment_amount: d.payment_amount,
-        mop_code: d.mop_code,
-        period: d.period,
-        payment_date: d.payment_date,
-        bank_code: d.bank_code,
-        mop_number: d.mop_number,
-        cheque_date: d.cheque_date,
-        mop_account_number: d.mop_account_number,
-        mop_notes1: d.mop_notes1,
-        credit_card_code: d.credit_card_code,
-        expiration_date: d.expiration_date ? (() => {
-          const parts = d.expiration_date!.split('/');
-          if (parts.length === 2) {
-            const mm = parts[0].padStart(2, '0');
-            const yy = parts[1];
-            const yyyy = parseInt(yy, 10) < 100 ? `20${yy.padStart(2, '0')}` : yy;
-            return `${yyyy}-${mm}-01`;
-          }
-          return d.expiration_date;
-        })() : null,
-      }));
-      const { error: dtlErr } = await supabase.from('cn_payment').insert(detailInserts as any);
-      if (dtlErr) {
-        await logApplicationError(dtlErr, { ...logContext, action: 'insert_cn_payment_details', entity_id: String(paymentId), request_payload: { payment_id: paymentId, line_count: detailInserts.length } });
-        throw dtlErr;
-      }
+      const generatedPaymentId = res.payment_id as number;
+      const generatedReceiptId = String(res.receipt_id);
 
-      // 3) Create receipt with status 'O' (Original) — receipt_id auto-generated by DB
-      const { data: rcpData, error: rcpErr } = await supabase.from('cn_receipt').insert({
-        payment_id: paymentId,
-        status: 'O',
-        receipt_total: totalAmount,
-        total_number_of_payments: detailLines.length,
-        reprint_times: 0,
-        created_by: uCode,
-        updated_by: uCode,
-      } as any).select().single();
-      if (rcpErr) {
-        await logApplicationError(rcpErr, { ...logContext, action: 'insert_cn_receipt', request_payload: { payment_id: paymentId, receipt_total: totalAmount, status: 'O' } });
-        throw rcpErr;
-      }
-      generatedReceiptId = String(rcpData.receipt_id);
-
-      // 4) Log original print
-      const { error: printErr } = await supabase.from('cn_receipt_prints').insert({
-        receipt_id: rcpData.receipt_id,
-        printed_by: uCode,
-        print_type: 'ORIGINAL',
-      } as any);
-      if (printErr) {
-        await logApplicationError(printErr, { ...logContext, action: 'insert_cn_receipt_prints', entity_id: String(rcpData.receipt_id), request_payload: { receipt_id: rcpData.receipt_id, print_type: 'ORIGINAL' } });
-        console.error('Failed to log receipt print:', printErr);
-      }
-
-      // 5) Load receipt into state
-      await receipt.loadReceipt(paymentId);
-      setSavedPaymentId(paymentId);
+      // Load receipt into state
+      await receipt.loadReceipt(generatedPaymentId);
+      setSavedPaymentId(generatedPaymentId);
       setFlowState('saved');
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
-      // 6) Trigger browser print
+      // Trigger browser print
       setTimeout(() => window.print(), 300);
     } catch (err: any) {
       // Always log to system_error_logs
@@ -280,8 +258,6 @@ const PaymentDataEntry = () => {
           payer_id: payerId,
           total_amount: totalAmount,
           detail_lines: detailLines.length,
-          generated_payment_id: generatedPaymentId,
-          generated_receipt_id: generatedReceiptId,
         },
       });
       toast({ title: 'Error Generating Receipt', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
