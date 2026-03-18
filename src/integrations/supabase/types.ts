@@ -17224,6 +17224,7 @@ export type Database = {
           ip_address: string | null
           module: string | null
           payload_json: Json | null
+          route: string | null
           session_id: string | null
           severity: string | null
           timestamp: string
@@ -17244,6 +17245,7 @@ export type Database = {
           ip_address?: string | null
           module?: string | null
           payload_json?: Json | null
+          route?: string | null
           session_id?: string | null
           severity?: string | null
           timestamp?: string
@@ -17264,6 +17266,7 @@ export type Database = {
           ip_address?: string | null
           module?: string | null
           payload_json?: Json | null
+          route?: string | null
           session_id?: string | null
           severity?: string | null
           timestamp?: string
