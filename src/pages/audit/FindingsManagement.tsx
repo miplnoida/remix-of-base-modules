@@ -60,6 +60,7 @@ const FindingsManagement = () => {
         risk_rating: row.risk_rating || 'Medium', impact_area: row.impact_area || '',
         status: row.status || 'Draft', finding_id: findingId,
         department_id: dept?.id || null, activity_id: null, annual_plan_id: null, department_audit_id: null,
+        engagement_id: engagementIdFilter || null,
         ...getCreateFields(),
       });
     }
