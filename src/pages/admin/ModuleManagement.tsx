@@ -695,6 +695,17 @@ const ModuleManagementContent = () => {
                   onCheckedChange={(checked) => setModuleForm({ ...moduleForm, is_enabled: checked })}
                 />
               </div>
+              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="show_in_menu" className="text-sm font-medium">Show in Navigation Menu</Label>
+                  <p className="text-xs text-muted-foreground">When OFF, module is active but hidden from the left sidebar</p>
+                </div>
+                <Switch
+                  id="show_in_menu"
+                  checked={moduleForm.show_in_menu}
+                  onCheckedChange={(checked) => setModuleForm({ ...moduleForm, show_in_menu: checked })}
+                />
+              </div>
             </div>
 
             {/* Business Object Root Section */}

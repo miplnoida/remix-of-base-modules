@@ -42,6 +42,7 @@ export interface AppModule {
   parent_id: string | null;
   sort_order: number;
   is_enabled: boolean;
+  show_in_menu: boolean;
   actions?: ModuleAction[];
 }
 
