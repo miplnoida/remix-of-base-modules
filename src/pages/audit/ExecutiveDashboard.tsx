@@ -5,7 +5,10 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { BarChart3, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, FileText } from 'lucide-react';
 import { useIAEngagements, useIAControlTests, useIAQualityReviews } from '@/hooks/useAuditDataPhase2';
 import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
-import { useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartmentFunctions, useIADepartments } from '@/hooks/useAuditData';
+import { useIADepartmentAudits } from '@/hooks/useAuditData';
+import { RiskHeatMap } from '@/components/audit/RiskHeatMap';
+import { AuditHistoryTimeline } from '@/components/audit/AuditHistoryTimeline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--muted))'];
