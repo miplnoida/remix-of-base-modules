@@ -536,13 +536,18 @@ export default function RiskControlMatrix() {
                 <Select value={form.frequency || 'Daily'} onValueChange={v => setForm(f => ({ ...f, frequency: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annually'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    {['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div><Label>Owner</Label><Input value={form.owner || ''} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} /></div>
             </div>
             <div><Label>Description</Label><Textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+            <div><Label>Evidence Required</Label><Textarea value={form.evidence_required || ''} onChange={e => setForm(f => ({ ...f, evidence_required: e.target.value }))} placeholder="Describe what evidence is needed to verify this control..." /></div>
+            <div>
+              <Label>Last Tested Date</Label>
+              <Input type="date" value={form.last_tested_date || ''} onChange={e => setForm(f => ({ ...f, last_tested_date: e.target.value }))} />
+            </div>
             {effectivenessReduction > 0 && (
               <div className="p-3 bg-muted rounded-md text-sm">
                 <p>This control will reduce inherent risk by <strong>{effectivenessReduction}%</strong></p>
