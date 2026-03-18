@@ -322,7 +322,12 @@ export default function RiskControlMatrix() {
   const filtered = processes.filter((r: any) => {
     const matchesSearch = !searchTerm || r.process_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = filters.department === 'all' || r.department_id === filters.department;
-    return matchesSearch && matchesDept;
+    // When engagement context is active, filter by engagement's department/function
+    const matchesEngagement = !engagementData || (
+      (!engagementData.department_id || r.department_id === engagementData.department_id) &&
+      (!engagementData.function_id || r.function_id === engagementData.function_id)
+    );
+    return matchesSearch && matchesDept && matchesEngagement;
   });
 
   const handleSave = () => {
