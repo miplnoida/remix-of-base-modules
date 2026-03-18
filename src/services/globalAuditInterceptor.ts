@@ -23,10 +23,93 @@ interface AuditInterceptorEntry {
   entityId?: string;
   module?: string;
   route?: string;
+  screenName?: string;
+  tabName?: string;
+  sectionName?: string;
   beforeValue?: Record<string, any> | null;
   afterValue?: Record<string, any> | null;
   description?: string;
   metadata?: Record<string, any> | null;
+}
+
+// ─── Route → Module/Screen mapping ───────────────────────────────────────────
+// Maps URL path prefixes to human-readable module & screen names.
+// The FIRST matching prefix wins, so order from most-specific to least.
+const ROUTE_MODULE_MAP: Array<{
+  prefix: string;
+  module: string;
+  screen: string;
+}> = [
+  // Cashier
+  { prefix: '/cashier/cash-details', module: 'Cashier', screen: 'Cash Details' },
+  { prefix: '/cashier/receipt', module: 'Cashier', screen: 'Receipts' },
+  { prefix: '/cashier/batches', module: 'Cashier', screen: 'Batch Management' },
+  { prefix: '/cashier/posting', module: 'Cashier', screen: 'Posting' },
+  { prefix: '/cashier/payment-voucher', module: 'Cashier', screen: 'Payment Voucher' },
+  { prefix: '/cashier', module: 'Cashier', screen: 'Cashier Dashboard' },
+
+  // Registration
+  { prefix: '/registration/employer', module: 'Registration', screen: 'Employer Registration' },
+  { prefix: '/registration/insured-person', module: 'Registration', screen: 'Insured Person Registration' },
+  { prefix: '/registration/search', module: 'Registration', screen: 'Registration Search' },
+  { prefix: '/registration', module: 'Registration', screen: 'Registration' },
+
+  // Compliance / BEMA
+  { prefix: '/compliance/audit', module: 'Compliance', screen: 'Compliance Audit' },
+  { prefix: '/compliance/penalty', module: 'Compliance', screen: 'Penalty Management' },
+  { prefix: '/compliance/waiver', module: 'Compliance', screen: 'Waiver Management' },
+  { prefix: '/compliance/arrears', module: 'Compliance', screen: 'Arrears Ledger' },
+  { prefix: '/compliance/payment-plan', module: 'Compliance', screen: 'Payment Plans' },
+  { prefix: '/compliance/inspector', module: 'Compliance', screen: 'Inspector Management' },
+  { prefix: '/compliance/c3', module: 'Compliance', screen: 'C3 Submissions' },
+  { prefix: '/compliance/registration', module: 'Compliance', screen: 'BEMA Registration' },
+  { prefix: '/compliance', module: 'Compliance', screen: 'Compliance Dashboard' },
+
+  // Benefits
+  { prefix: '/benefits/short-term', module: 'Benefits', screen: 'Short Term Benefits' },
+  { prefix: '/benefits/long-term', module: 'Benefits', screen: 'Long Term Benefits' },
+  { prefix: '/benefits', module: 'Benefits', screen: 'Benefits' },
+
+  // Internal Audit
+  { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace' },
+  { prefix: '/audit/universe', module: 'Internal Audit', screen: 'Audit Universe' },
+  { prefix: '/audit/risk', module: 'Internal Audit', screen: 'Risk Assessment' },
+  { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan' },
+  { prefix: '/audit', module: 'Internal Audit', screen: 'Internal Audit' },
+
+  // Admin / Configuration
+  { prefix: '/admin/c3-configuration', module: 'C3 Configuration', screen: 'C3 Configuration' },
+  { prefix: '/admin/user-management', module: 'User Management', screen: 'User Management' },
+  { prefix: '/admin/system-settings', module: 'System Settings', screen: 'System Settings' },
+  { prefix: '/admin/data-migration', module: 'Admin', screen: 'Data Migration' },
+  { prefix: '/admin/security', module: 'Security', screen: 'Security Settings' },
+  { prefix: '/admin', module: 'Admin', screen: 'Admin' },
+
+  // System Logs
+  { prefix: '/system-logs/audit', module: 'System Logs', screen: 'Audit Trail' },
+  { prefix: '/system-logs', module: 'System Logs', screen: 'System Logs' },
+
+  // Legal
+  { prefix: '/legal', module: 'Legal', screen: 'Legal' },
+
+  // Self-Employed
+  { prefix: '/self-employed', module: 'Self-Employed', screen: 'Self-Employed' },
+
+  // Dashboard
+  { prefix: '/dashboard', module: 'Dashboard', screen: 'Dashboard' },
+  { prefix: '/', module: 'App', screen: 'Home' },
+];
+
+/**
+ * Resolve module + screen from a URL path.
+ */
+export function resolveRouteContext(pathname: string): { module: string; screen: string } {
+  for (const entry of ROUTE_MODULE_MAP) {
+    if (pathname.startsWith(entry.prefix)) {
+      return { module: entry.module, screen: entry.screen };
+    }
+  }
+  return { module: 'App', screen: pathname };
 }
 
 // Cache user identity to avoid repeated DB calls
@@ -52,7 +135,8 @@ async function resolveUserIdentity(): Promise<{ userId: string | null; userCode:
       .eq('id', user.id)
       .single();
 
-    cachedUserCode = profile?.user_code || profile?.full_name || user.email || null;
+    // Prefer user_code over full_name to avoid "System Admin" leaking in
+    cachedUserCode = profile?.user_code || null;
     cacheTimestamp = now;
 
     return { userId: cachedUserId, userCode: cachedUserCode };
@@ -69,6 +153,40 @@ export function clearAuditUserCache() {
 }
 
 /**
+ * Compute only the fields that actually changed between two objects.
+ * Returns { before: {changedFields…}, after: {changedFields…} } or null if nothing changed.
+ */
+export function computeChangedFields(
+  before: Record<string, any> | null | undefined,
+  after: Record<string, any> | null | undefined
+): { before: Record<string, any>; after: Record<string, any> } | null {
+  if (!before || !after) return null; // Not an update scenario
+
+  const changedBefore: Record<string, any> = {};
+  const changedAfter: Record<string, any> = {};
+  let hasChanges = false;
+
+  // Check all keys in after
+  const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const key of allKeys) {
+    // Skip internal/meta fields that change on every save
+    if (['updated_at', 'modified_date', 'updated_by', 'modified_by'].includes(key)) continue;
+
+    const oldVal = before[key];
+    const newVal = after[key];
+
+    // Deep-compare using JSON serialization
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      changedBefore[key] = oldVal ?? null;
+      changedAfter[key] = newVal ?? null;
+      hasChanges = true;
+    }
+  }
+
+  return hasChanges ? { before: changedBefore, after: changedAfter } : null;
+}
+
+/**
  * Write an audit entry to system_audit_trail.
  * Non-blocking — never throws.
  */
@@ -76,21 +194,43 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
   try {
     const { userId, userCode } = await resolveUserIdentity();
 
+    // Resolve module/screen from route if not provided
+    const route = entry.route || (typeof window !== 'undefined' ? window.location.pathname : undefined);
+    let module = entry.module;
+    let screenName = entry.screenName;
+    if (route && !module) {
+      const ctx = resolveRouteContext(route);
+      module = ctx.module;
+      screenName = screenName || ctx.screen;
+    }
+
+    // Build description with context
+    const descParts: string[] = [];
+    if (entry.description) descParts.push(entry.description);
+    if (entry.tabName) descParts.push(`Tab: ${entry.tabName}`);
+    if (entry.sectionName) descParts.push(`Section: ${entry.sectionName}`);
+
     await supabase.from('system_audit_trail').insert({
       correlation_id: getCorrelationId(),
       session_id: getSessionId(),
       user_id: userId,
-      user_name: userCode || 'SYSTEM',
+      user_name: userCode || 'ANONYMOUS',
       device_info: getDeviceInfo(),
       timestamp: new Date().toISOString(),
       action: entry.action,
       entity_type: entry.entityType || null,
       entity_id: entry.entityId || null,
-      module: entry.module || null,
-      route: entry.route || null,
+      module: module || null,
+      route: route || null,
       before_value: entry.beforeValue || null,
       after_value: entry.afterValue || null,
-      payload_json: entry.metadata || null,
+      payload_json: {
+        ...(entry.metadata || {}),
+        screen: screenName || undefined,
+        tab: entry.tabName || undefined,
+        section: entry.sectionName || undefined,
+        description: descParts.length > 0 ? descParts.join(' | ') : undefined,
+      },
       severity: 'info',
     });
   } catch (err) {

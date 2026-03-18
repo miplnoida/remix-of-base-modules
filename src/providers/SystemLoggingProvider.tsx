@@ -104,9 +104,11 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [getBaseLogData, profile, user?.email]);
 
-  // Log audit trail
+  // Log audit trail — always uses user_code for user_name
   const logAudit = useCallback(async (data: LogData & { user_name?: string }) => {
     try {
+      // Prefer explicit user_name, then user_code, then email. Never use full_name.
+      const resolvedUserName = data.user_name || profile?.user_code || user?.email || 'ANONYMOUS';
       await supabase.from('system_audit_trail').insert({
         ...getBaseLogData(),
         module: data.module,
@@ -115,12 +117,12 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         action: data.action,
         before_value: data.before_value,
         after_value: data.after_value,
-        user_name: data.user_name || profile?.full_name || user?.email || 'Unknown',
+        user_name: resolvedUserName,
       });
     } catch (err) {
       console.error('Failed to log audit:', err);
     }
-  }, [getBaseLogData, profile, user?.email]);
+  }, [getBaseLogData, profile?.user_code, user?.email]);
 
   // Log errors
   const logError = useCallback(async (error: Error, context?: LogData) => {
@@ -181,6 +183,9 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       // Start new correlation for new page
       startNewCorrelation();
 
+      // Resolve correct user identity — prefer user_code, never fall back to full_name
+      const userName = profile?.user_code || user?.email || 'ANONYMOUS';
+
       // Log the navigation as a business event
       logBusinessEvent({
         module: 'Navigation',
@@ -190,13 +195,14 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         description: `Navigated to ${location.pathname}`,
       });
 
-      // Also write to system_audit_trail for unified audit view
+      // Write to system_audit_trail with correct user_code (not full_name)
       logAudit({
         module: 'Navigation',
         action: 'page_view',
         entity_type: 'page',
         entity_id: location.pathname,
         description: `Opened screen: ${location.pathname}`,
+        user_name: userName,
       });
 
       // Log performance metric for previous page if applicable
@@ -212,7 +218,7 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       previousPath.current = location.pathname;
       pageLoadTime.current = currentTime;
     }
-  }, [location.pathname, user, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
+  }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
 
   // Log unhandled promise rejections
   useEffect(() => {

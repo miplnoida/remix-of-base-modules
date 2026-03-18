@@ -246,11 +246,23 @@ const AuditTrail: React.FC = () => {
                   <div><strong>Timestamp:</strong> {formatAuditDateTime(selectedEntry.timestamp, true)}</div>
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
                   <div><strong>Action:</strong> {getActionBadge(selectedEntry.action)}</div>
-                  <div><strong>Module:</strong> {selectedEntry.module || '-'}</div>
+                  <div><strong>Module:</strong> {selectedEntry.module || selectedEntry.payload_json?.screen || '-'}</div>
                   <div><strong>Route:</strong> {selectedEntry.route || '-'}</div>
                   <div><strong>Entity Type:</strong> {selectedEntry.entity_type || '-'}</div>
                   <div><strong>Entity ID:</strong> {selectedEntry.entity_id || '-'}</div>
                   <div><strong>Correlation ID:</strong> <span className="font-mono text-xs">{selectedEntry.correlation_id || '-'}</span></div>
+                  {selectedEntry.payload_json?.screen && (
+                    <div><strong>Screen:</strong> {selectedEntry.payload_json.screen}</div>
+                  )}
+                  {selectedEntry.payload_json?.tab && (
+                    <div><strong>Tab:</strong> {selectedEntry.payload_json.tab}</div>
+                  )}
+                  {selectedEntry.payload_json?.section && (
+                    <div><strong>Section:</strong> {selectedEntry.payload_json.section}</div>
+                  )}
+                  {selectedEntry.payload_json?.description && (
+                    <div className="col-span-2"><strong>Description:</strong> {selectedEntry.payload_json.description}</div>
+                  )}
                 </div>
                 
                 {selectedEntry.payload_json && (
@@ -265,14 +277,14 @@ const AuditTrail: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-semibold mb-2 text-destructive">Before Value</h4>
-                    <pre className="bg-destructive/10 p-4 rounded-lg overflow-auto text-xs">
-                      {JSON.stringify(selectedEntry.before_value, null, 2) || 'No data'}
+                    <pre className="bg-destructive/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
+                      {selectedEntry.before_value ? JSON.stringify(selectedEntry.before_value, null, 2) : 'N/A'}
                     </pre>
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2 text-primary">After Value</h4>
-                    <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs">
-                      {JSON.stringify(selectedEntry.after_value, null, 2) || 'No data'}
+                    <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
+                      {selectedEntry.after_value ? JSON.stringify(selectedEntry.after_value, null, 2) : 'N/A'}
                     </pre>
                   </div>
                 </div>
