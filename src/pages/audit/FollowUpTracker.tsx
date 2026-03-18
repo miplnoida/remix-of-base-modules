@@ -112,6 +112,7 @@ export default function FollowUpTracker() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Follow-Up</Button>}
     >
+      <EngagementFilterBanner />
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search follow-ups..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })} />
 
       <Card><CardContent className="pt-6">

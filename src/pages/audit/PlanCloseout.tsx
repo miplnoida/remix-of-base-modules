@@ -208,6 +208,7 @@ export default function PlanCloseout() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Closeout' }]}
       isLoading={annualLoading || deptLoading}>
 
+      <EngagementFilterBanner />
       <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search plan id, name, or department..."
         filters={filterFields} filterValues={filters} onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
         onReset={() => setFilters({ fiscalYear: 'all', planType: 'all', status: 'all' })} />
