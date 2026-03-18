@@ -68,8 +68,10 @@ const AuditTrail: React.FC = () => {
   });
 
   const getActionBadge = (action: string | null) => {
-    switch (action?.toLowerCase()) {
-      case 'create': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
+    const a = action?.toLowerCase() || '';
+    if (a.includes('failed')) return <Badge variant="destructive">{action}</Badge>;
+    switch (a) {
+      case 'create': case 'insert': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
       case 'update': return <Badge className="bg-secondary text-secondary-foreground">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
       case 'enable': return <Badge className="bg-primary text-primary-foreground">Enable</Badge>;
@@ -78,6 +80,11 @@ const AuditTrail: React.FC = () => {
       case 'reject': return <Badge variant="destructive">Reject</Badge>;
       case 'verify': return <Badge className="bg-secondary text-secondary-foreground">Verify</Badge>;
       case 'cancel': return <Badge className="bg-accent/30 text-accent-foreground">Cancel</Badge>;
+      case 'page_view': return <Badge variant="outline">Page View</Badge>;
+      case 'mutation': return <Badge variant="secondary">Mutation</Badge>;
+      case 'login': case 'logout': return <Badge className="bg-secondary text-secondary-foreground">{action}</Badge>;
+      case 'export': return <Badge variant="outline">Export</Badge>;
+      case 'schedule': case 'reschedule': return <Badge className="bg-secondary text-secondary-foreground">{action}</Badge>;
       default: return <Badge variant="secondary">{action || 'Unknown'}</Badge>;
     }
   };
