@@ -311,7 +311,7 @@ const PaymentDataEntry = () => {
       toast({ title: 'Receipt Reprinted', description: `Reprint #${(receipt.currentReceipt.reprint_times || 0) + 1}` });
       setTimeout(() => window.print(), 300);
     } catch (err: any) {
-      await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleReprint', entity_type: 'cn_receipt', entity_id: receipt.currentReceipt?.receipt_id, request_payload: { payment_id: savedPaymentId } });
+      await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleReprint', entity_type: 'cn_receipt', entity_id: String(receipt.currentReceipt?.receipt_id), request_payload: { payment_id: savedPaymentId } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   }, [savedPaymentId, receipt, userCode]);
