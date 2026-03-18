@@ -129,7 +129,7 @@ const AuditTrail: React.FC = () => {
                 <CardTitle>Filters</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Label>Date From</Label>
                     <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -143,12 +143,20 @@ const AuditTrail: React.FC = () => {
                     <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
                   </div>
                   <div>
+                    <Label>Action</Label>
+                    <Input placeholder="Action type..." value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} />
+                  </div>
+                  <div>
                     <Label>Module</Label>
                     <Input placeholder="Module / Source..." value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} />
                   </div>
                   <div>
                     <Label>Entity Type</Label>
                     <Input placeholder="Entity type..." value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Route / Screen</Label>
+                    <Input placeholder="/cashier/..." value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} />
                   </div>
                 </div>
               </CardContent>
