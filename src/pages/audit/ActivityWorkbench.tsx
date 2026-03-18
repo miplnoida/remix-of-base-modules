@@ -17,6 +17,8 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 export default function ActivityWorkbench() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({
