@@ -170,7 +170,7 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [getBaseLogData]);
 
-  // Log navigation changes as business events
+  // Log navigation changes as business events AND audit trail
   useEffect(() => {
     if (user && previousPath.current !== location.pathname) {
       const currentTime = performance.now();
@@ -190,6 +190,15 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         description: `Navigated to ${location.pathname}`,
       });
 
+      // Also write to system_audit_trail for unified audit view
+      logAudit({
+        module: 'Navigation',
+        action: 'page_view',
+        entity_type: 'page',
+        entity_id: location.pathname,
+        description: `Opened screen: ${location.pathname}`,
+      });
+
       // Log performance metric for previous page if applicable
       if (previousPath.current && timeOnPreviousPage > 0) {
         logPerformance({
@@ -203,7 +212,7 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       previousPath.current = location.pathname;
       pageLoadTime.current = currentTime;
     }
-  }, [location.pathname, user, logBusinessEvent, logPerformance, startNewCorrelation]);
+  }, [location.pathname, user, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
 
   // Log unhandled promise rejections
   useEffect(() => {

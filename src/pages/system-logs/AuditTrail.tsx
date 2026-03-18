@@ -24,6 +24,7 @@ interface AuditEntry {
   entity_type: string | null;
   entity_id: string | null;
   module: string | null;
+  route: string | null;
   ip_address: string | null;
   before_value: any;
   after_value: any;
@@ -39,10 +40,12 @@ const AuditTrail: React.FC = () => {
   const [userFilter, setUserFilter] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [routeFilter, setRouteFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter],
+    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
     queryFn: async () => {
       let query = supabase
         .from('system_audit_trail')
@@ -55,6 +58,8 @@ const AuditTrail: React.FC = () => {
       if (userFilter) query = query.ilike('user_name', `%${userFilter}%`);
       if (entityTypeFilter) query = query.ilike('entity_type', `%${entityTypeFilter}%`);
       if (moduleFilter) query = query.ilike('module', `%${moduleFilter}%`);
+      if (routeFilter) query = query.ilike('route', `%${routeFilter}%`);
+      if (actionFilter) query = query.ilike('action', `%${actionFilter}%`);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -63,8 +68,10 @@ const AuditTrail: React.FC = () => {
   });
 
   const getActionBadge = (action: string | null) => {
-    switch (action?.toLowerCase()) {
-      case 'create': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
+    const a = action?.toLowerCase() || '';
+    if (a.includes('failed')) return <Badge variant="destructive">{action}</Badge>;
+    switch (a) {
+      case 'create': case 'insert': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
       case 'update': return <Badge className="bg-secondary text-secondary-foreground">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
       case 'enable': return <Badge className="bg-primary text-primary-foreground">Enable</Badge>;
@@ -73,6 +80,11 @@ const AuditTrail: React.FC = () => {
       case 'reject': return <Badge variant="destructive">Reject</Badge>;
       case 'verify': return <Badge className="bg-secondary text-secondary-foreground">Verify</Badge>;
       case 'cancel': return <Badge className="bg-accent/30 text-accent-foreground">Cancel</Badge>;
+      case 'page_view': return <Badge variant="outline">Page View</Badge>;
+      case 'mutation': return <Badge variant="secondary">Mutation</Badge>;
+      case 'login': case 'logout': return <Badge className="bg-secondary text-secondary-foreground">{action}</Badge>;
+      case 'export': return <Badge variant="outline">Export</Badge>;
+      case 'schedule': case 'reschedule': return <Badge className="bg-secondary text-secondary-foreground">{action}</Badge>;
       default: return <Badge variant="secondary">{action || 'Unknown'}</Badge>;
     }
   };
@@ -117,7 +129,7 @@ const AuditTrail: React.FC = () => {
                 <CardTitle>Filters</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Label>Date From</Label>
                     <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -131,12 +143,20 @@ const AuditTrail: React.FC = () => {
                     <Input placeholder="Search user..." value={userFilter} onChange={(e) => setUserFilter(e.target.value)} />
                   </div>
                   <div>
+                    <Label>Action</Label>
+                    <Input placeholder="Action type..." value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} />
+                  </div>
+                  <div>
                     <Label>Module</Label>
                     <Input placeholder="Module / Source..." value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} />
                   </div>
                   <div>
                     <Label>Entity Type</Label>
                     <Input placeholder="Entity type..." value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Route / Screen</Label>
+                    <Input placeholder="/cashier/..." value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} />
                   </div>
                 </div>
               </CardContent>
@@ -157,6 +177,7 @@ const AuditTrail: React.FC = () => {
                           <TableHead>User</TableHead>
                           <TableHead>Action</TableHead>
                           <TableHead>Module</TableHead>
+                          <TableHead>Route</TableHead>
                           <TableHead>Entity Type</TableHead>
                           <TableHead>Entity ID</TableHead>
                         </TableRow>
@@ -174,6 +195,7 @@ const AuditTrail: React.FC = () => {
                                 <Badge variant="outline">{entry.module}</Badge>
                               ) : '-'}
                             </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">{entry.route || '-'}</TableCell>
                             <TableCell>{entry.entity_type || '-'}</TableCell>
                             <TableCell className="font-mono text-xs">{entry.entity_id || '-'}</TableCell>
                           </TableRow>
@@ -225,8 +247,10 @@ const AuditTrail: React.FC = () => {
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
                   <div><strong>Action:</strong> {getActionBadge(selectedEntry.action)}</div>
                   <div><strong>Module:</strong> {selectedEntry.module || '-'}</div>
+                  <div><strong>Route:</strong> {selectedEntry.route || '-'}</div>
                   <div><strong>Entity Type:</strong> {selectedEntry.entity_type || '-'}</div>
                   <div><strong>Entity ID:</strong> {selectedEntry.entity_id || '-'}</div>
+                  <div><strong>Correlation ID:</strong> <span className="font-mono text-xs">{selectedEntry.correlation_id || '-'}</span></div>
                 </div>
                 
                 {selectedEntry.payload_json && (
@@ -246,8 +270,8 @@ const AuditTrail: React.FC = () => {
                     </pre>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2 text-green-600">After Value</h4>
-                    <pre className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg overflow-auto text-xs">
+                    <h4 className="font-semibold mb-2 text-primary">After Value</h4>
+                    <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs">
                       {JSON.stringify(selectedEntry.after_value, null, 2) || 'No data'}
                     </pre>
                   </div>
