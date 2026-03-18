@@ -84,6 +84,7 @@ export default function FollowUpTracker() {
       activity_id: formData.activity_id || null,
       department_id: formData.department_id || null,
       department_name: formData.department_id ? departmentMap.get(formData.department_id) || '' : '',
+      engagement_id: engagementIdFilter || null,
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
 
