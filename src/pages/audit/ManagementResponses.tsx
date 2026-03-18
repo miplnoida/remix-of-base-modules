@@ -50,7 +50,8 @@ export default function ManagementResponses() {
     const matchesStatus = filters.status === 'all' || r.status === filters.status;
     const finding = findings.find((f: any) => f.id === r.finding_id);
     const matchesSearch = !searchTerm || (finding?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.responsible_person || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesEngagement = !engagementIdFilter || (finding && finding.engagement_id === engagementIdFilter);
+    return matchesStatus && matchesSearch && matchesEngagement;
   });
 
   const filterFields: StandardFilterField[] = [
