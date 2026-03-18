@@ -186,7 +186,16 @@ const PaymentDataEntry = () => {
         mop_account_number: d.mop_account_number,
         mop_notes1: d.mop_notes1,
         credit_card_code: d.credit_card_code,
-        expiration_date: d.expiration_date,
+        expiration_date: d.expiration_date ? (() => {
+          const parts = d.expiration_date!.split('/');
+          if (parts.length === 2) {
+            const mm = parts[0].padStart(2, '0');
+            const yy = parts[1];
+            const yyyy = parseInt(yy, 10) < 100 ? `20${yy.padStart(2, '0')}` : yy;
+            return `${yyyy}-${mm}-01`;
+          }
+          return d.expiration_date;
+        })() : null,
       }));
       const { error: dtlErr } = await supabase.from('cn_payment').insert(detailInserts as any);
       if (dtlErr) throw dtlErr;
