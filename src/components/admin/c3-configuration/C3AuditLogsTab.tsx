@@ -37,25 +37,35 @@ import { useC3ConfigAuditLogs, C3AuditLog, getConfigTypeLabel } from '@/hooks/us
         return <Badge variant="outline">Levy Slab Detail</Badge>;
       case 'bonus_exemption':
         return <Badge className="bg-accent text-accent-foreground">Bonus Exemption</Badge>;
+      case 'calculation_config':
+        return <Badge className="bg-primary/20 text-primary">Calculation Config</Badge>;
+      case 'holiday_pay_policy':
+        return <Badge className="bg-secondary/80 text-secondary-foreground">Holiday Pay Policy</Badge>;
+      case 'holiday_pay_exception':
+        return <Badge variant="outline">Holiday Pay Exception</Badge>;
        default:
         return <Badge variant="outline">{configType}</Badge>;
      }
    };
  
-   const getActionBadge = (action: string) => {
-     switch (action.toUpperCase()) {
-       case 'CREATE':
-         return <Badge className="bg-primary/10 text-primary">Create</Badge>;
-       case 'UPDATE':
-         return <Badge variant="outline">Update</Badge>;
-       case 'DELETE':
-         return <Badge variant="destructive">Delete</Badge>;
-       case 'CLONE':
-         return <Badge className="bg-accent text-accent-foreground">Clone</Badge>;
-       default:
-         return <Badge variant="outline">{action}</Badge>;
-     }
-   };
+    const getActionBadge = (action: string) => {
+      switch (action.toUpperCase()) {
+        case 'CREATE':
+          return <Badge className="bg-primary/10 text-primary">Create</Badge>;
+        case 'UPDATE':
+          return <Badge variant="outline">Update</Badge>;
+        case 'DELETE':
+          return <Badge variant="destructive">Delete</Badge>;
+        case 'CLONE':
+          return <Badge className="bg-accent text-accent-foreground">Clone</Badge>;
+        case 'ENABLE':
+          return <Badge className="bg-primary text-primary-foreground">Enable</Badge>;
+        case 'DISABLE':
+          return <Badge className="bg-muted text-muted-foreground">Disable</Badge>;
+        default:
+          return <Badge variant="outline">{action}</Badge>;
+      }
+    };
  
    const formatDateTime = (dateStr: string) => {
      return format(new Date(dateStr), 'dd MMM yyyy HH:mm:ss');

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { C3CalculationConfig, ConfigCategory, CATEGORY_INFO, ConfigCategoryGroup } from '@/types/c3CalculationConfig';
 import { toast } from 'sonner';
+import { logC3ConfigChange } from '@/lib/c3AuditLogger';
 
 // Fetch all active configurations
 export function useC3CalculationConfigs() {
@@ -94,7 +95,7 @@ export function useUpdateC3Config() {
       
       if (updateError) throw updateError;
       
-      // Log the audit entry
+      // Log to c3_calculation_config_audit (legacy)
       const { error: auditError } = await supabase
         .from('c3_calculation_config_audit')
         .insert({
@@ -110,6 +111,10 @@ export function useUpdateC3Config() {
       if (auditError) {
         console.error('Failed to log audit entry:', auditError);
       }
+
+      // Note: The database trigger trg_audit_c3_calculation_config now automatically
+      // writes to c3_unified_audit_log and system_audit_trail on every UPDATE.
+      // No additional client-side logging needed.
       
       return { success: true };
     },
