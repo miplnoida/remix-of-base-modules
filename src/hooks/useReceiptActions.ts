@@ -24,11 +24,6 @@ export function useReceiptActions() {
   const [currentReceipt, setCurrentReceipt] = useState<ReceiptData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const generateReceiptId = (): string => {
-    const now = new Date();
-    return `RCP-${format(now, 'yyyyMMdd-HHmmss')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-  };
-
   const printReceipt = useCallback(async (
     paymentId: number,
     receiptTotal: number,
@@ -46,15 +41,13 @@ export function useReceiptActions() {
 
       if (existing) {
         toast({ title: 'Receipt Exists', description: 'Use Reprint for existing receipts.', variant: 'destructive' });
-        setCurrentReceipt(existing);
-        return existing;
+        setCurrentReceipt(existing as unknown as ReceiptData);
+        return existing as unknown as ReceiptData;
       }
 
-      const receiptId = generateReceiptId();
       const row: any = {
-        receipt_id: receiptId,
         payment_id: paymentId,
-        status: 'P',
+        status: 'O',
         receipt_total: receiptTotal,
         total_number_of_payments: totalPayments,
         reprint_times: 0,
@@ -68,9 +61,9 @@ export function useReceiptActions() {
         .select()
         .single();
       if (error) throw error;
-      setCurrentReceipt(data);
-      toast({ title: 'Receipt Printed', description: `Receipt ${receiptId} generated.` });
-      return data;
+      setCurrentReceipt(data as unknown as ReceiptData);
+      toast({ title: 'Receipt Printed', description: `Receipt #${data.receipt_id} generated.` });
+      return data as unknown as ReceiptData;
     } catch (err: any) {
       await logApplicationError(err, { module: 'useReceiptActions', action: 'printReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, receiptTotal, totalPayments } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
