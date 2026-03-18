@@ -216,6 +216,7 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       previousPath.current = location.pathname;
+      sessionStorage.setItem('audit_last_route', location.pathname);
       pageLoadTime.current = currentTime;
     }
   }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
