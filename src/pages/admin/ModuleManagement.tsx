@@ -386,6 +386,7 @@ const ModuleManagementContent = () => {
         parent_id: null,
         sort_order: modules.length,
         is_enabled: true,
+        show_in_menu: false,
         primary_table: "",
         primary_key_column: "id",
         business_key_column: "",
