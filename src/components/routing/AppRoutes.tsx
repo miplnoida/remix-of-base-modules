@@ -230,6 +230,7 @@ import DepartmentView from '@/pages/audit/DepartmentView';
 import AuditPreparation from '@/pages/audit/AuditPreparation';
 import RiskAssessment from '@/pages/audit/RiskAssessment';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
+import EngagementDetail from '@/pages/audit/EngagementDetail';
 import AuditPrograms from '@/pages/audit/AuditPrograms';
 import RiskControlMatrix from '@/pages/audit/RiskControlMatrix';
 import ControlTesting from '@/pages/audit/ControlTesting';
