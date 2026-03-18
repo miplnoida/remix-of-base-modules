@@ -21,6 +21,7 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 function classifyRisk(score: number, thresholds: any[]): { label: string; color: string } {
   const sorted = [...thresholds].sort((a, b) => Number(b.min_score) - Number(a.min_score));
@@ -220,6 +221,7 @@ export default function RiskControlMatrix() {
   const { data: processes = [], isLoading, isError, create: createProcess } = useIARCMProcesses();
   const { data: departments = [] } = useIADepartments();
   const { getCreateFields } = useAuditFields();
+  const { engagementId, engagement } = useEngagementFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -237,6 +239,21 @@ export default function RiskControlMatrix() {
   // Department → Function cascade for process form
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const { data: deptFunctions = [] } = useIADepartmentFunctions(selectedDeptId || undefined);
+
+  // Fetch engagement details for auto-scoping
+  const { data: engagementData } = useQuery({
+    queryKey: ['engagement_rcm_detail', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_audit_engagements' as any)
+        .select('id, department_id, function_id')
+        .eq('id', engagementId!)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!engagementId,
+  });
 
   const { data: risks = [] } = useQuery({
     queryKey: ['ia_rcm_risks', expandedProcess],
@@ -305,7 +322,12 @@ export default function RiskControlMatrix() {
   const filtered = processes.filter((r: any) => {
     const matchesSearch = !searchTerm || r.process_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = filters.department === 'all' || r.department_id === filters.department;
-    return matchesSearch && matchesDept;
+    // When engagement context is active, filter by engagement's department/function
+    const matchesEngagement = !engagementData || (
+      (!engagementData.department_id || r.department_id === engagementData.department_id) &&
+      (!engagementData.function_id || r.function_id === engagementData.function_id)
+    );
+    return matchesSearch && matchesDept && matchesEngagement;
   });
 
   const handleSave = () => {
@@ -386,6 +408,8 @@ export default function RiskControlMatrix() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Risk Matrix' }]}
       actions={<Button onClick={() => { setForm({}); setSelectedDeptId(''); setModalState({ mode: 'create', modalType: 'process' }); }}><Plus className="h-4 w-4 mr-2" />Add Process</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
+
+      <EngagementFilterBanner />
 
       <Tabs defaultValue="matrix" className="space-y-4">
         <TabsList>

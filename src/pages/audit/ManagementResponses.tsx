@@ -10,11 +10,10 @@ import { MessageSquare, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-rea
 import { useIAManagementResponses, useIAManagementResponseMutations, useIAFindings } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
-import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 export default function ManagementResponses() {
-  const [searchParams] = useSearchParams();
-  const engagementIdFilter = searchParams.get('engagement_id');
+  const { engagementId } = useEngagementFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: responses = [], isLoading } = useIAManagementResponses();
@@ -26,8 +25,13 @@ export default function ManagementResponses() {
   const [formData, setFormData] = useState({ finding_id: '', response_text: '', action_plan: '', responsible_person: '', target_date: '' });
   const resetForm = () => setFormData({ finding_id: '', response_text: '', action_plan: '', responsible_person: '', target_date: '' });
 
+  // Scope findings to engagement when engagement context is active
+  const scopedFindings = engagementId
+    ? findings.filter((f: any) => f.engagement_id === engagementId)
+    : findings;
+
   // Only show findings that are "For Mgmt Response" status for creating responses
-  const eligibleFindings = findings.filter((f: any) => f.status === 'For Mgmt Response' || f.status === 'Under Review');
+  const eligibleFindings = scopedFindings.filter((f: any) => f.status === 'For Mgmt Response' || f.status === 'Under Review');
 
   const handleAccept = (id: string) => setConfirmAction({ id, action: 'accept' });
   const handleRevise = (id: string) => setConfirmAction({ id, action: 'revise' });
@@ -41,7 +45,13 @@ export default function ManagementResponses() {
 
   const handleCreate = () => {
     if (!formData.finding_id || !formData.response_text) return;
-    create.mutate({ ...formData, status: 'Submitted', submitted_date: new Date().toISOString(), target_date: formData.target_date || null }, {
+    create.mutate({
+      ...formData,
+      status: 'Submitted',
+      submitted_date: new Date().toISOString(),
+      target_date: formData.target_date || null,
+      ...(engagementId ? { engagement_id: engagementId } : {}),
+    }, {
       onSuccess: () => { setIsCreateOpen(false); resetForm(); }
     });
   };
@@ -50,7 +60,8 @@ export default function ManagementResponses() {
     const matchesStatus = filters.status === 'all' || r.status === filters.status;
     const finding = findings.find((f: any) => f.id === r.finding_id);
     const matchesSearch = !searchTerm || (finding?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.responsible_person || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesEngagement = !engagementIdFilter || (finding && finding.engagement_id === engagementIdFilter);
+    // Use direct engagement_id if available, fallback to indirect via finding
+    const matchesEngagement = !engagementId || r.engagement_id === engagementId || (finding && finding.engagement_id === engagementId);
     return matchesStatus && matchesSearch && matchesEngagement;
   });
 
@@ -59,10 +70,10 @@ export default function ManagementResponses() {
   ];
 
   const statCards = [
-    { label: 'Awaiting Response', value: findings.filter((f: any) => f.status === 'For Mgmt Response').length, icon: Clock, color: 'text-orange-600' },
-    { label: 'Submitted', value: responses.filter((r: any) => r.status === 'Submitted').length, icon: MessageSquare, color: 'text-blue-600' },
-    { label: 'Accepted', value: responses.filter((r: any) => r.status === 'Accepted').length, icon: CheckCircle, color: 'text-green-600' },
-    { label: 'Total', value: responses.length, icon: AlertCircle, color: 'text-muted-foreground' },
+    { label: 'Awaiting Response', value: scopedFindings.filter((f: any) => f.status === 'For Mgmt Response').length, icon: Clock, color: 'text-orange-600' },
+    { label: 'Submitted', value: filteredResponses.filter((r: any) => r.status === 'Submitted').length, icon: MessageSquare, color: 'text-blue-600' },
+    { label: 'Accepted', value: filteredResponses.filter((r: any) => r.status === 'Accepted').length, icon: CheckCircle, color: 'text-green-600' },
+    { label: 'Total', value: filteredResponses.length, icon: AlertCircle, color: 'text-muted-foreground' },
   ];
 
   const columns: DataTableColumn<any>[] = [
@@ -135,7 +146,7 @@ export default function ManagementResponses() {
             <Select value={formData.finding_id} onValueChange={v => setFormData({...formData, finding_id: v})}>
               <SelectTrigger><SelectValue placeholder="Select finding" /></SelectTrigger>
               <SelectContent>
-                {eligibleFindings.length > 0 ? eligibleFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>) : findings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}
+                {eligibleFindings.length > 0 ? eligibleFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>) : scopedFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

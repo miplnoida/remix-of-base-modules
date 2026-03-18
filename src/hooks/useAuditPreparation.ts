@@ -3,17 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 // ============= PREPARATION CHECKLISTS =============
-export function usePreparationChecklists(departmentAuditId?: string) {
+export function usePreparationChecklists(departmentAuditId?: string, engagementId?: string) {
   return useQuery({
-    queryKey: ['ia_preparation_checklists', departmentAuditId],
+    queryKey: ['ia_preparation_checklists', departmentAuditId, engagementId],
     queryFn: async () => {
       let q = supabase.from('ia_preparation_checklists' as any).select('*').order('sort_order');
-      if (departmentAuditId) q = q.eq('department_audit_id', departmentAuditId);
+      if (engagementId) q = q.eq('engagement_id', engagementId);
+      else if (departmentAuditId) q = q.eq('department_audit_id', departmentAuditId);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
-    enabled: !!departmentAuditId,
+    enabled: !!(departmentAuditId || engagementId),
   });
 }
 
@@ -61,17 +62,18 @@ export function usePreparationChecklistMutations() {
 }
 
 // ============= PREPARATION DOCUMENTS =============
-export function usePreparationDocuments(departmentAuditId?: string) {
+export function usePreparationDocuments(departmentAuditId?: string, engagementId?: string) {
   return useQuery({
-    queryKey: ['ia_preparation_documents', departmentAuditId],
+    queryKey: ['ia_preparation_documents', departmentAuditId, engagementId],
     queryFn: async () => {
       let q = supabase.from('ia_preparation_documents' as any).select('*').order('created_at', { ascending: false });
-      if (departmentAuditId) q = q.eq('department_audit_id', departmentAuditId);
+      if (engagementId) q = q.eq('engagement_id', engagementId);
+      else if (departmentAuditId) q = q.eq('department_audit_id', departmentAuditId);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
-    enabled: !!departmentAuditId,
+    enabled: !!(departmentAuditId || engagementId),
   });
 }
 

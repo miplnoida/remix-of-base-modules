@@ -8235,6 +8235,7 @@ export type Database = {
           action_status: string | null
           created_at: string | null
           created_by: string | null
+          engagement_id: string | null
           evidence_of_implementation: string[] | null
           finding_id: string
           id: string
@@ -8254,6 +8255,7 @@ export type Database = {
           action_status?: string | null
           created_at?: string | null
           created_by?: string | null
+          engagement_id?: string | null
           evidence_of_implementation?: string[] | null
           finding_id: string
           id?: string
@@ -8273,6 +8275,7 @@ export type Database = {
           action_status?: string | null
           created_at?: string | null
           created_by?: string | null
+          engagement_id?: string | null
           evidence_of_implementation?: string[] | null
           finding_id?: string
           id?: string
@@ -8288,6 +8291,13 @@ export type Database = {
           verified_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_action_tracking_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ia_action_tracking_finding_id_fkey"
             columns: ["finding_id"]
@@ -8873,6 +8883,7 @@ export type Database = {
           created_by: string | null
           department_id: string | null
           distribution_list: string | null
+          engagement_id: string | null
           fiscal_year: string | null
           follow_up_actions: string | null
           generated_on: string | null
@@ -8900,6 +8911,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           distribution_list?: string | null
+          engagement_id?: string | null
           fiscal_year?: string | null
           follow_up_actions?: string | null
           generated_on?: string | null
@@ -8927,6 +8939,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           distribution_list?: string | null
+          engagement_id?: string | null
           fiscal_year?: string | null
           follow_up_actions?: string | null
           generated_on?: string | null
@@ -8952,6 +8965,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_reports_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
           {
@@ -9197,6 +9217,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           department_audit_id: string | null
+          engagement_id: string | null
           id: string
           recipient_email: string | null
           recipient_name: string | null
@@ -9215,6 +9236,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           department_audit_id?: string | null
+          engagement_id?: string | null
           id?: string
           recipient_email?: string | null
           recipient_name?: string | null
@@ -9233,6 +9255,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           department_audit_id?: string | null
+          engagement_id?: string | null
           id?: string
           recipient_email?: string | null
           recipient_name?: string | null
@@ -9257,6 +9280,13 @@ export type Database = {
             columns: ["department_audit_id"]
             isOneToOne: false
             referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_communications_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
           {
@@ -10330,6 +10360,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           due_date: string | null
+          engagement_id: string | null
           finding_id: string
           id: string
           is_overdue: boolean | null
@@ -10351,6 +10382,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           due_date?: string | null
+          engagement_id?: string | null
           finding_id: string
           id?: string
           is_overdue?: boolean | null
@@ -10372,6 +10404,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           due_date?: string | null
+          engagement_id?: string | null
           finding_id?: string
           id?: string
           is_overdue?: boolean | null
@@ -10389,6 +10422,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_management_responses_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ia_management_responses_finding_id_fkey"
             columns: ["finding_id"]
@@ -10610,6 +10650,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           department_audit_id: string
+          engagement_id: string | null
           id: string
           is_completed: boolean | null
           item_text: string
@@ -10622,6 +10663,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_audit_id: string
+          engagement_id?: string | null
           id?: string
           is_completed?: boolean | null
           item_text: string
@@ -10634,6 +10676,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_audit_id?: string
+          engagement_id?: string | null
           id?: string
           is_completed?: boolean | null
           item_text?: string
@@ -10648,6 +10691,13 @@ export type Database = {
             referencedRelation: "ia_department_audits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ia_preparation_checklists_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ia_preparation_documents: {
@@ -10655,6 +10705,7 @@ export type Database = {
           created_at: string
           department_audit_id: string
           document_type: string | null
+          engagement_id: string | null
           file_name: string
           file_url: string | null
           id: string
@@ -10664,6 +10715,7 @@ export type Database = {
           created_at?: string
           department_audit_id: string
           document_type?: string | null
+          engagement_id?: string | null
           file_name: string
           file_url?: string | null
           id?: string
@@ -10673,6 +10725,7 @@ export type Database = {
           created_at?: string
           department_audit_id?: string
           document_type?: string | null
+          engagement_id?: string | null
           file_name?: string
           file_url?: string | null
           id?: string
@@ -10684,6 +10737,13 @@ export type Database = {
             columns: ["department_audit_id"]
             isOneToOne: false
             referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_preparation_documents_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
         ]

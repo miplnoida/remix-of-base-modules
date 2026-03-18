@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Building2, Shield, User, Briefcase, FileText, ClipboardCheck, Timer, Star, ExternalLink, MessageSquare, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Building2, Shield, User, Briefcase, FileText, ClipboardCheck, Timer, Star, ExternalLink, MessageSquare, RefreshCw, CheckCircle, Mail, BarChart3, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,7 @@ import type { DataTableColumn } from '@/components/common';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { usePreparationChecklists, usePreparationDocuments } from '@/hooks/useAuditPreparation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateForDisplay } from '@/lib/format-config';
@@ -75,16 +76,25 @@ function useEngagementQualityReviews(engagementId?: string) {
   });
 }
 
-function useEngagementManagementResponses(findingIds: string[]) {
+function useEngagementManagementResponses(engagementId?: string, findingIds?: string[]) {
   return useQuery({
-    queryKey: ['ia_mgmt_responses_engagement', findingIds],
+    queryKey: ['ia_mgmt_responses_engagement', engagementId, findingIds],
     queryFn: async () => {
-      if (!findingIds.length) return [];
-      const { data, error } = await supabase.from('ia_management_responses' as any).select('*').in('finding_id', findingIds).order('created_at', { ascending: false });
+      // Try direct engagement_id first
+      let { data, error } = await supabase.from('ia_management_responses' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
       if (error) throw error;
+      // Fallback: also include responses linked via finding_ids
+      if (findingIds && findingIds.length > 0) {
+        const { data: indirectData, error: err2 } = await supabase.from('ia_management_responses' as any).select('*').in('finding_id', findingIds);
+        if (!err2 && indirectData) {
+          const existingIds = new Set((data || []).map((d: any) => d.id));
+          const additional = indirectData.filter((d: any) => !existingIds.has(d.id));
+          data = [...(data || []), ...additional];
+        }
+      }
       return (data ?? []) as any[];
     },
-    enabled: findingIds.length > 0,
+    enabled: !!engagementId,
   });
 }
 
@@ -93,6 +103,66 @@ function useEngagementFollowUps(engagementId?: string) {
     queryKey: ['ia_follow_ups_engagement', engagementId],
     queryFn: async () => {
       const { data, error } = await supabase.from('ia_follow_ups' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
+function useEngagementEvidence(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_evidence_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_evidence' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
+function useEngagementWorkingPapers(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_working_papers_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_working_papers' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
+function useEngagementActions(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_action_tracking_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_action_tracking' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
+function useEngagementReports(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_audit_reports_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_audit_reports' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!engagementId,
+  });
+}
+
+function useEngagementCommunications(engagementId?: string) {
+  return useQuery({
+    queryKey: ['ia_communications_engagement', engagementId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_communications' as any).select('*').eq('engagement_id', engagementId).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -118,8 +188,15 @@ export default function EngagementDetail() {
   const { data: controlTests = [], isLoading: controlTestsLoading } = useEngagementControlTests(id);
   const { data: timeLogs = [], isLoading: timeLogsLoading } = useEngagementTimeLogs(id);
   const { data: qualityReviews = [], isLoading: qrLoading } = useEngagementQualityReviews(id);
-  const { data: managementResponses = [], isLoading: mrLoading } = useEngagementManagementResponses(findingIds);
+  const { data: managementResponses = [], isLoading: mrLoading } = useEngagementManagementResponses(id, findingIds);
   const { data: followUps = [], isLoading: fuLoading } = useEngagementFollowUps(id);
+  const { data: evidence = [], isLoading: evidenceLoading } = useEngagementEvidence(id);
+  const { data: workingPapers = [], isLoading: wpLoading } = useEngagementWorkingPapers(id);
+  const { data: actions = [], isLoading: actionsLoading } = useEngagementActions(id);
+  const { data: reports = [], isLoading: reportsLoading } = useEngagementReports(id);
+  const { data: communications = [], isLoading: commsLoading } = useEngagementCommunications(id);
+  const { data: checklists = [] } = usePreparationChecklists(undefined, id);
+  const { data: prepDocuments = [] } = usePreparationDocuments(undefined, id);
 
   const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
@@ -127,6 +204,7 @@ export default function EngagementDetail() {
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
 
   const totalHoursLogged = useMemo(() => timeLogs.reduce((sum: number, t: any) => sum + (t.hours_spent || 0), 0), [timeLogs]);
+  const checklistCompleted = checklists.filter((c: any) => c.is_completed).length;
 
   const goToModule = (path: string) => navigate(`${path}?engagement_id=${id}`);
 
@@ -214,17 +292,63 @@ export default function EngagementDetail() {
     { key: 'responsible_party', header: 'Responsible', render: (r) => r.responsible_party ? getAuditorName(r.responsible_party) : '—' },
   ];
 
+  const evidenceColumns: DataTableColumn<any>[] = [
+    { key: 'title', header: 'Title', render: (r) => r.title || r.file_name || '—' },
+    { key: 'evidence_type', header: 'Type' },
+    { key: 'status', header: 'Status', render: (r) => r.status ? <StatusBadge status={r.status} /> : '—' },
+    { key: 'created_at', header: 'Date', render: (r) => r.created_at ? formatDateForDisplay(r.created_at) : '—' },
+  ];
+
+  const wpColumns: DataTableColumn<any>[] = [
+    { key: 'title', header: 'Title', render: (r) => r.title || r.reference_number || '—' },
+    { key: 'paper_type', header: 'Type' },
+    { key: 'status', header: 'Status', render: (r) => r.status ? <StatusBadge status={r.status} /> : '—' },
+    { key: 'created_at', header: 'Date', render: (r) => r.created_at ? formatDateForDisplay(r.created_at) : '—' },
+  ];
+
+  const actionColumns: DataTableColumn<any>[] = [
+    { key: 'action_description', header: 'Action', render: (r) => <span className="truncate max-w-[200px] block">{r.action_description || '—'}</span> },
+    { key: 'responsible_person', header: 'Responsible', render: (r) => r.responsible_person ? getAuditorName(r.responsible_person) : '—' },
+    { key: 'target_date', header: 'Target Date', render: (r) => r.target_date ? formatDateForDisplay(r.target_date) : '—' },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Not Started'} /> },
+  ];
+
+  const reportColumns: DataTableColumn<any>[] = [
+    { key: 'report_number', header: 'Report ID', render: (r) => r.report_number || (r.id || '').slice(0, 8) },
+    { key: 'title', header: 'Title' },
+    { key: 'report_type', header: 'Type' },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+  ];
+
+  const commColumns: DataTableColumn<any>[] = [
+    { key: 'sent_date', header: 'Date', render: (r) => r.sent_date ? formatDateForDisplay(r.sent_date) : '—' },
+    { key: 'subject', header: 'Subject' },
+    { key: 'recipient_email', header: 'Recipient' },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Sent'} /> },
+  ];
+
+  const checklistColumns: DataTableColumn<any>[] = [
+    { key: 'item_text', header: 'Item' },
+    { key: 'category', header: 'Category' },
+    { key: 'is_completed', header: 'Status', render: (r) => <StatusBadge status={r.is_completed ? 'Completed' : 'Pending'} /> },
+  ];
+
   // Quick action navigation links
   const quickLinks = [
+    { label: 'Preparation', path: '/audit/preparation', icon: CheckCircle, section: 'Preparation' },
     { label: 'Activities', path: '/audit/activity-workbench', icon: FileText, section: 'Execution' },
     { label: 'Evidence', path: '/audit/evidence', icon: FileText, section: 'Execution' },
     { label: 'Working Papers', path: '/audit/working-papers', icon: FileText, section: 'Execution' },
     { label: 'Control Testing', path: '/audit/control-testing', icon: ClipboardCheck, section: 'Execution' },
+    { label: 'RCM', path: '/audit/risk-control-matrix', icon: GitBranch, section: 'Execution' },
     { label: 'Findings', path: '/audit/findings', icon: Shield, section: 'Issues' },
     { label: 'Mgmt Responses', path: '/audit/management-responses', icon: MessageSquare, section: 'Issues' },
+    { label: 'Action Tracking', path: '/audit/actions', icon: ClipboardCheck, section: 'Issues' },
     { label: 'Follow-Ups', path: '/audit/follow-up', icon: RefreshCw, section: 'Issues' },
     { label: 'Quality Review', path: '/audit/quality-review', icon: Star, section: 'Closure' },
     { label: 'Plan Closeout', path: '/audit/plan-closeout', icon: ClipboardCheck, section: 'Closure' },
+    { label: 'Reports', path: '/audit/reports', icon: BarChart3, section: 'Reporting' },
+    { label: 'Communication', path: '/audit/communication', icon: Mail, section: 'Reporting' },
   ];
 
   const groupedLinks = quickLinks.reduce((acc, link) => {
@@ -277,7 +401,7 @@ export default function EngagementDetail() {
           <div className="space-y-3">
             {Object.entries(groupedLinks).map(([section, links]) => (
               <div key={section} className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">{section}</span>
+                <span className="text-xs font-medium text-muted-foreground w-20 shrink-0">{section}</span>
                 {links.map((link) => (
                   <Button
                     key={link.path}
@@ -299,15 +423,21 @@ export default function EngagementDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="preparation">Preparation ({checklists.length})</TabsTrigger>
           <TabsTrigger value="activities">Activities ({activities.length})</TabsTrigger>
+          <TabsTrigger value="evidence">Evidence ({evidence.length})</TabsTrigger>
+          <TabsTrigger value="working-papers">Working Papers ({workingPapers.length})</TabsTrigger>
           <TabsTrigger value="findings">Findings ({findings.length})</TabsTrigger>
           <TabsTrigger value="mgmt-responses">Mgmt Responses ({managementResponses.length})</TabsTrigger>
+          <TabsTrigger value="actions">Actions ({actions.length})</TabsTrigger>
           <TabsTrigger value="follow-ups">Follow-Ups ({followUps.length})</TabsTrigger>
           <TabsTrigger value="control-tests">Control Tests ({controlTests.length})</TabsTrigger>
+          <TabsTrigger value="closure">Closure</TabsTrigger>
+          <TabsTrigger value="reports">Reports ({reports.length})</TabsTrigger>
+          <TabsTrigger value="communication">Communication ({communications.length})</TabsTrigger>
           <TabsTrigger value="time-logs">Time Logs ({timeLogs.length})</TabsTrigger>
-          <TabsTrigger value="quality-reviews">Quality Reviews ({qualityReviews.length})</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -361,6 +491,43 @@ export default function EngagementDetail() {
           </div>
         </TabsContent>
 
+        {/* Preparation Tab */}
+        <TabsContent value="preparation">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5" />Preparation Checklist ({checklistCompleted}/{checklists.length})</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => goToModule('/audit/preparation')}>
+                    <ExternalLink className="h-3 w-3 mr-1" />Open Preparation
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <DataTable columns={checklistColumns} data={checklists} emptyMessage="No checklist items for this engagement" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Documents ({prepDocuments.length})</CardTitle></CardHeader>
+              <CardContent>
+                {prepDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No preparation documents</p>
+                ) : (
+                  <div className="space-y-2">
+                    {prepDocuments.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center gap-3 p-2 rounded border">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{doc.file_name}</span>
+                        <span className="text-xs text-muted-foreground">({doc.document_type})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* Activities Tab */}
         <TabsContent value="activities">
           <Card>
@@ -374,6 +541,40 @@ export default function EngagementDetail() {
             </CardHeader>
             <CardContent>
               <DataTable columns={activityColumns} data={activities} isLoading={activitiesLoading} emptyMessage="No activities for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Evidence Tab */}
+        <TabsContent value="evidence">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Evidence</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/evidence')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Evidence
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={evidenceColumns} data={evidence} isLoading={evidenceLoading} emptyMessage="No evidence for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Working Papers Tab */}
+        <TabsContent value="working-papers">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Working Papers</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/working-papers')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Working Papers
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={wpColumns} data={workingPapers} isLoading={wpLoading} emptyMessage="No working papers for this engagement" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -412,6 +613,23 @@ export default function EngagementDetail() {
           </Card>
         </TabsContent>
 
+        {/* Action Tracking Tab */}
+        <TabsContent value="actions">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" />Corrective Actions</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/actions')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Action Tracking
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={actionColumns} data={actions} isLoading={actionsLoading} emptyMessage="No corrective actions for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Follow-Ups Tab */}
         <TabsContent value="follow-ups">
           <Card>
@@ -446,29 +664,71 @@ export default function EngagementDetail() {
           </Card>
         </TabsContent>
 
+        {/* Closure Tab */}
+        <TabsContent value="closure">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" />Quality Reviews</CardTitle></CardHeader>
+              <CardContent>
+                <DataTable columns={qrColumns} data={qualityReviews} isLoading={qrLoading} emptyMessage="No quality reviews for this engagement" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Closure Status</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <DetailRow label="Total Findings" value={findings.length} />
+                  <DetailRow label="Open Findings" value={findings.filter((f: any) => f.status !== 'Closed' && f.status !== 'Resolved').length} />
+                  <DetailRow label="Mgmt Responses Received" value={managementResponses.length} />
+                  <DetailRow label="Actions Verified/Closed" value={actions.filter((a: any) => a.status === 'Verified' || a.status === 'Closed').length} />
+                  <DetailRow label="Quality Reviews" value={qualityReviews.length} />
+                  <DetailRow label="Hours Logged" value={totalHoursLogged} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Reports</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/reports')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Reports
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={reportColumns} data={reports} isLoading={reportsLoading} emptyMessage="No reports for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Communication Tab */}
+        <TabsContent value="communication">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Communications</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/communication')}>
+                  <ExternalLink className="h-3 w-3 mr-1" />Open Communication Center
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={commColumns} data={communications} isLoading={commsLoading} emptyMessage="No communications for this engagement" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Time Logs Tab */}
         <TabsContent value="time-logs">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" />Time Logs — Total: {totalHoursLogged}h</CardTitle></CardHeader>
             <CardContent>
               <DataTable columns={timeLogColumns} data={timeLogs} isLoading={timeLogsLoading} emptyMessage="No time logs for this engagement" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Quality Reviews Tab */}
-        <TabsContent value="quality-reviews">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" />Quality Reviews</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => goToModule('/audit/quality-review')}>
-                  <ExternalLink className="h-3 w-3 mr-1" />Open Quality Review
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <DataTable columns={qrColumns} data={qualityReviews} isLoading={qrLoading} emptyMessage="No quality reviews for this engagement" />
             </CardContent>
           </Card>
         </TabsContent>

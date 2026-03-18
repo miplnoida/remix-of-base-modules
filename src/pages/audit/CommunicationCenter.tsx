@@ -12,9 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 export default function CommunicationCenter() {
   const { toast } = useToast();
+  const { engagementId } = useEngagementFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -29,8 +31,20 @@ export default function CommunicationCenter() {
 
   const handleSend = () => {
     if (!formData.recipient_email) { toast({ title: 'Error', description: 'Recipient email required', variant: 'destructive' }); return; }
-    create.mutate({ ...formData, status: 'Sent', sent_date: new Date().toISOString() }, { onSuccess: () => { setIsDialogOpen(false); resetForm(); } });
+    create.mutate({
+      ...formData,
+      status: 'Sent',
+      sent_date: new Date().toISOString(),
+      ...(engagementId ? { engagement_id: engagementId } : {}),
+    }, { onSuccess: () => { setIsDialogOpen(false); resetForm(); } });
   };
+
+  // Filter communications by engagement when context is active
+  const filteredCommunications = communications.filter((c: any) => {
+    const matchesSearch = (c.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.recipient_email || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesEngagement = !engagementId || c.engagement_id === engagementId;
+    return matchesSearch && matchesEngagement;
+  });
 
   const templateColumns: DataTableColumn<any>[] = [
     { key: 'name', header: 'Name', render: (t) => <span className="font-medium">{t.name}</span> },
@@ -54,6 +68,8 @@ export default function CommunicationCenter() {
       isLoading={isLoading}
       actions={<Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />New Communication</Button>}
     >
+      <EngagementFilterBanner />
+
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -75,7 +91,7 @@ export default function CommunicationCenter() {
         <TabsContent value="sent">
           <Card>
             <CardContent className="pt-6">
-              <DataTable columns={commColumns} data={communications.filter((c: any) => (c.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.recipient_email || '').toLowerCase().includes(searchTerm.toLowerCase()))} emptyMessage="No communications sent yet" />
+              <DataTable columns={commColumns} data={filteredCommunications} emptyMessage="No communications sent yet" />
             </CardContent>
           </Card>
         </TabsContent>
