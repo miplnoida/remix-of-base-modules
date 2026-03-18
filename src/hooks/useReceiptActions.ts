@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
 export interface ReceiptData {
   receipt_id: string;
@@ -71,6 +72,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Printed', description: `Receipt ${receiptId} generated.` });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'printReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, receiptTotal, totalPayments } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
@@ -108,6 +110,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Reprinted', description: `Reprint #${data.reprint_times}` });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'reprintReceipt', entity_type: 'cn_receipt', request_payload: { paymentId } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
@@ -148,6 +151,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'cancelReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, reason } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
