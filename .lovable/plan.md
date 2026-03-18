@@ -44,11 +44,12 @@
 - Created `DiscussionThread.tsx` reusable component with live updates
 - Created `useAuditDiscussions.ts` hook with realtime subscription
 
-### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
+### Phase 6: Risk-History Integration + Reporting ✅
 - Added `historical_risk_adjustment` column to `ia_department_functions`
 - Created `RiskHeatMap.tsx` component (Recharts scatter plot)
 - Created `AuditHistoryTimeline.tsx` component
-- DB function for risk adjustment and dashboard integration pending next iteration
+- DB function for risk adjustment completed in Phase 7
+- RiskHeatMap + AuditHistoryTimeline embedded in Executive Dashboard
 
 ### Phase 7: Gap Analysis Resolution ✅
 - Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
