@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Calculator, DollarSign, Save, Loader2, TrendingUp } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +13,7 @@ import { useEnabledCashierCurrencies, useCashierDenominations, DenominationConfi
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
+import { useUserCode } from '@/hooks/useUserCode';
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
