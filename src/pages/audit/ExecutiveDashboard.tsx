@@ -15,7 +15,9 @@ const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--acc
 
 export default function ExecutiveDashboard() {
   const { data: functions = [] } = useIADepartmentFunctions();
+  const { data: departments = [] } = useIADepartments();
   const { data: engagements = [] } = useIAEngagements();
+  const { data: departmentAudits = [] } = useIADepartmentAudits();
   const { data: controlTests = [] } = useIAControlTests();
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
