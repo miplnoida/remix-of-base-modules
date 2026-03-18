@@ -105,6 +105,7 @@ interface ModuleTreeItemProps {
   onEdit: (module: AppModule) => void;
   onDelete: (id: string) => void;
   onToggle: (module: AppModule) => void;
+  onToggleMenuVisibility: (module: AppModule) => void;
   onAddAction: (module: AppModule) => void;
   onDeleteAction: (id: string) => void;
   expandedModules: Set<string>;
