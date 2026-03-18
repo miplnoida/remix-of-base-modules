@@ -249,19 +249,15 @@ export function useToggleC3ConfigActive() {
     mutationFn: async ({
       periodId,
       isActive,
-       userCode
+      userCode
     }: {
       periodId: string;
       isActive: boolean;
       userCode?: string;
     }) => {
-       // Fetch current period info for audit logging
-       const { data: periodInfo } = await supabase
-         .from('c3_config_periods')
-         .select('start_date, end_date, is_active')
-         .eq('id', periodId)
-         .single();
- 
+      // The database trigger (trg_c3_config_periods_dual_audit) handles
+      // dual-write audit logging to both c3_unified_audit_log and system_audit_trail.
+      // It resolves modified_by (user_code) to the actual user name.
       const { error } = await supabase
         .from('c3_config_periods')
         .update({
@@ -273,24 +269,11 @@ export function useToggleC3ConfigActive() {
 
       if (error) throw error;
 
-      // Log to unified audit
-      if (periodInfo) {
-        await logC3ConfigChange({
-          configType: 'period_config',
-          recordId: periodId,
-          action: 'UPDATE',
-          entityName: `Period Config (${formatAuditDate(periodInfo.start_date)} - ${periodInfo.end_date ? formatAuditDate(periodInfo.end_date) : 'Current'})`,
-          fieldName: 'is_active',
-          oldValue: periodInfo.is_active,
-          newValue: isActive,
-          changedBy: userCode
-        });
-      }
-
       return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-unified-audit-logs'] });
       toast.success('Configuration status updated');
     },
     onError: (error) => {
