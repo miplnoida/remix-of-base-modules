@@ -42,7 +42,9 @@ export default function EvidenceManagement() {
   const filteredEvidence = evidenceList.filter((ev: any) => {
     const matchesSearch = (ev.title || ev.file_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filters.type === 'all' || ev.evidence_type === filters.type;
-    return matchesSearch && matchesType;
+    // Filter by engagement: match if evidence's activity belongs to engagement
+    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === ev.activity_id && a.engagement_id === engagementIdFilter);
+    return matchesSearch && matchesType && (engagementIdFilter ? matchesEngagement : true);
   });
 
   const handleUpload = async () => {
