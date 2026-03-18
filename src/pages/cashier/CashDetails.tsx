@@ -235,9 +235,9 @@ const CashDetails: React.FC = () => {
             <h1 className="text-2xl font-bold">Cash Details Entry</h1>
             <p className="text-muted-foreground text-sm">Enter physical cash count for each currency denomination</p>
           </div>
-          <Button size="sm" onClick={saveCashCount}>
-            <Save className="h-4 w-4 mr-1" />
-            Save Cash Count
+          <Button size="sm" onClick={saveCashCount} disabled={saving || loadingCounts}>
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            {saving ? 'Saving...' : 'Save Cash Count'}
           </Button>
         </div>
 
