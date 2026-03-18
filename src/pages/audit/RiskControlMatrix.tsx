@@ -21,6 +21,7 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
+import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
 
 function classifyRisk(score: number, thresholds: any[]): { label: string; color: string } {
   const sorted = [...thresholds].sort((a, b) => Number(b.min_score) - Number(a.min_score));
