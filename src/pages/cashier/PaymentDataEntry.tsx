@@ -345,6 +345,7 @@ const PaymentDataEntry = () => {
       toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
       setShowCancelModal(false);
     } catch (err: any) {
+      await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleCancelReceipt', entity_type: 'cn_receipt', entity_id: receipt.currentReceipt?.receipt_id, request_payload: { payment_id: savedPaymentId, reason } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   }, [savedPaymentId, receipt, userCode]);
