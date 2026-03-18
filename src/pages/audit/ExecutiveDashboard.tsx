@@ -5,14 +5,19 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { BarChart3, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, FileText } from 'lucide-react';
 import { useIAEngagements, useIAControlTests, useIAQualityReviews } from '@/hooks/useAuditDataPhase2';
 import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended2';
-import { useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartmentFunctions, useIADepartments } from '@/hooks/useAuditData';
+import { useIADepartmentAudits } from '@/hooks/useAuditData';
+import { RiskHeatMap } from '@/components/audit/RiskHeatMap';
+import { AuditHistoryTimeline } from '@/components/audit/AuditHistoryTimeline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--muted))'];
 
 export default function ExecutiveDashboard() {
   const { data: functions = [] } = useIADepartmentFunctions();
+  const { data: departments = [] } = useIADepartments();
   const { data: engagements = [] } = useIAEngagements();
+  const { data: departmentAudits = [] } = useIADepartmentAudits();
   const { data: controlTests = [] } = useIAControlTests();
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
@@ -80,6 +85,26 @@ export default function ExecutiveDashboard() {
             ) : <div className="flex items-center justify-center h-[300px] text-muted-foreground">No findings data</div>}
           </CardContent>
         </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RiskHeatMap
+          data={(functions as any[])
+            .filter((f: any) => f.risk_rating)
+            .map((f: any) => ({
+              name: f.function_name || f.name || 'Unknown',
+              likelihood: f.likelihood_score || 3,
+              impact: f.impact_score || 3,
+              riskLevel: f.risk_rating,
+            }))}
+        />
+        {departments.length > 0 && (
+          <AuditHistoryTimeline
+            audits={departmentAudits}
+            findings={findings}
+            actions={actions}
+            departmentName={departments.length === 1 ? (departments[0] as any).name : 'All Departments'}
+          />
+        )}
       </div>
     </PageShell>
   );
