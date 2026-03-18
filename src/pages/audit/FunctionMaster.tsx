@@ -108,7 +108,7 @@ export default function FunctionMaster() {
         <div><Label>Risk Rating</Label><div className="p-2 border rounded-md bg-muted"><StatusBadge status={calculateInherentRisk(formData.likelihood, formData.impact)} /></div></div>
         <div><Label>Control Effectiveness</Label><Select value={formData.controlEffectiveness} onValueChange={v => setFormData(f => ({ ...f, controlEffectiveness: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
       </div>
-      <div><Label>Responsible Person</Label><Input value={formData.responsiblePerson} onChange={e => setFormData(f => ({ ...f, responsiblePerson: e.target.value }))} placeholder="Name" /></div>
+      <div><Label>Responsible Person</Label><Select value={formData.responsiblePerson} onValueChange={v => setFormData(f => ({ ...f, responsiblePerson: v }))}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
       <div><Label>Notes</Label><Textarea value={formData.notes} onChange={e => setFormData(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes" rows={2} /></div>
     </div>
   );
