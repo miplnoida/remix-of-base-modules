@@ -119,11 +119,10 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
         after_value: data.after_value,
         user_name: resolvedUserName,
       });
-      });
     } catch (err) {
       console.error('Failed to log audit:', err);
     }
-  }, [getBaseLogData, profile, user?.email]);
+  }, [getBaseLogData, profile?.user_code, user?.email]);
 
   // Log errors
   const logError = useCallback(async (error: Error, context?: LogData) => {
