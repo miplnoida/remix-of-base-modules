@@ -138,6 +138,7 @@ export default function EvidenceManagement() {
         </div>
       }
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}>

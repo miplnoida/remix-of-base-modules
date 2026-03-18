@@ -122,6 +122,7 @@ export default function ActivityWorkbench() {
       isLoading={isLoading}
       
     >
+      <EngagementFilterBanner />
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

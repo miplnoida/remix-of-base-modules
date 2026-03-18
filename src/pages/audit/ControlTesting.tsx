@@ -55,6 +55,7 @@ export default function ControlTesting() {
       breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Control Testing' }]}
       actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Test</Button>}
       isLoading={isLoading} error={isError ? 'Failed to load' : null}>
+      <EngagementFilterBanner />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Tests" value={stats.total} icon={TestTube} variant="info" />
         <MetricCard title="Passed" value={stats.pass} icon={CheckCircle} variant="success" />

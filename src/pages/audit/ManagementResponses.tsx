@@ -84,6 +84,7 @@ export default function ManagementResponses() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />Submit Response</Button>}
     >
+      <EngagementFilterBanner />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}>
