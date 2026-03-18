@@ -94,14 +94,14 @@ export function useReceiptActions() {
           reprint_times: (existing.reprint_times || 0) + 1,
           updated_by: updatedBy,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('receipt_id', existing.receipt_id)
         .select()
         .single();
       if (error) throw error;
-      setCurrentReceipt(data);
+      setCurrentReceipt(data as unknown as ReceiptData);
       toast({ title: 'Receipt Reprinted', description: `Reprint #${data.reprint_times}` });
-      return data;
+      return data as unknown as ReceiptData;
     } catch (err: any) {
       await logApplicationError(err, { module: 'useReceiptActions', action: 'reprintReceipt', entity_type: 'cn_receipt', request_payload: { paymentId } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
