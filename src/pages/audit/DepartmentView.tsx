@@ -21,6 +21,7 @@ export default function DepartmentView() {
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
   const userCode = (profile as any)?.user_code || 'system';
+  const { profiles } = useProfiles();
 
   const [isAddFunctionOpen, setIsAddFunctionOpen] = useState(false);
   const [isEditFunctionOpen, setIsEditFunctionOpen] = useState(false);
