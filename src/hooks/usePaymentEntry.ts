@@ -218,7 +218,7 @@ export function usePaymentEntry() {
     } finally {
       setIsLoading(false);
     }
-  }, [detailRows]);
+  }, []);
 
   const deleteDetailRow = useCallback(async (
     paymentId: number,
