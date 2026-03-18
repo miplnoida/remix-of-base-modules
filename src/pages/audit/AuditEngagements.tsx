@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ const emptyForm = {
 };
 
 export default function AuditEngagements() {
+  const navigate = useNavigate();
   const { data = [], isLoading, isError, create, update } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: plans = [] } = useIAAnnualPlans();
@@ -88,7 +90,7 @@ export default function AuditEngagements() {
     });
     setModalState({ mode: 'edit', record: r });
   };
-  const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
+  const openView = (r: any) => { navigate(`/audit/engagements/${r.id}`); };
 
   const handleSave = () => {
     const payload = {

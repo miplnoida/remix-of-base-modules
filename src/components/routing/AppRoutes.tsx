@@ -230,6 +230,7 @@ import DepartmentView from '@/pages/audit/DepartmentView';
 import AuditPreparation from '@/pages/audit/AuditPreparation';
 import RiskAssessment from '@/pages/audit/RiskAssessment';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
+import EngagementDetail from '@/pages/audit/EngagementDetail';
 import AuditPrograms from '@/pages/audit/AuditPrograms';
 import RiskControlMatrix from '@/pages/audit/RiskControlMatrix';
 import ControlTesting from '@/pages/audit/ControlTesting';
@@ -942,6 +943,7 @@ export const AppRoutes = () => {
       {/* Audit Universe route removed — replaced by Function Master */}
       <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/engagements" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/engagements/:id" element={<ProtectedLayout><EngagementDetail /></ProtectedLayout>} />
       <Route path="/audit/audit-programs" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PROGRAMS"><AuditPrograms /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/rcm" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RCM"><RiskControlMatrix /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/control-testing" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_CONTROL_TESTING"><ControlTesting /></AuditFeatureGate></ProtectedLayout>} />
