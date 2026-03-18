@@ -83,6 +83,7 @@ export default function EvidenceManagement() {
         activity_id: formData.activity_id || null,
         annual_plan_id: formData.annual_plan_id || null,
         department_audit_id: formData.department_audit_id || null,
+        engagement_id: engagementIdFilter || null,
         ...getCreateFields(),
       }, {
         onSuccess: () => {
