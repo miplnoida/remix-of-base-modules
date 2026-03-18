@@ -43,8 +43,8 @@ export default function EvidenceManagement() {
     const matchesSearch = (ev.title || ev.file_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filters.type === 'all' || ev.evidence_type === filters.type;
     // Filter by engagement: match if evidence's activity belongs to engagement
-    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === ev.activity_id && a.engagement_id === engagementIdFilter);
-    return matchesSearch && matchesType && (engagementIdFilter ? matchesEngagement : true);
+    const matchesEngagement = !engagementIdFilter || ev.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesType && matchesEngagement;
   });
 
   const handleUpload = async () => {
@@ -83,6 +83,7 @@ export default function EvidenceManagement() {
         activity_id: formData.activity_id || null,
         annual_plan_id: formData.annual_plan_id || null,
         department_audit_id: formData.department_audit_id || null,
+        engagement_id: engagementIdFilter || null,
         ...getCreateFields(),
       }, {
         onSuccess: () => {
@@ -175,7 +176,7 @@ export default function EvidenceManagement() {
             <div><Label>Related Activity</Label>
               <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-                <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+                <SelectContent>{(engagementIdFilter ? activities.filter((a: any) => a.engagement_id === engagementIdFilter) : activities).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Evidence Type</Label>

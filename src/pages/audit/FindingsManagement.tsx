@@ -60,6 +60,7 @@ const FindingsManagement = () => {
         risk_rating: row.risk_rating || 'Medium', impact_area: row.impact_area || '',
         status: row.status || 'Draft', finding_id: findingId,
         department_id: dept?.id || null, activity_id: null, annual_plan_id: null, department_audit_id: null,
+        engagement_id: engagementIdFilter || null,
         ...getCreateFields(),
       });
     }
@@ -106,6 +107,7 @@ const FindingsManagement = () => {
       root_cause_category: formData.root_cause_category || null,
       preventive_action: formData.preventive_action || null,
       corrective_action_description: formData.corrective_action_description || null,
+      engagement_id: engagementIdFilter || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
@@ -184,7 +186,7 @@ const FindingsManagement = () => {
       <div className="space-y-2"><Label>Activity * (Required)</Label>
         <Select value={formData.activity_id} onValueChange={handleActivityChange}>
           <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-          <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+          <SelectContent>{(engagementIdFilter ? activities.filter((a: any) => a.engagement_id === engagementIdFilter) : activities).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">Selecting an activity will auto-fill the plan and department fields below.</p>
       </div>

@@ -43,8 +43,8 @@ const WorkingPapers = () => {
   const filteredWPs = workingPapers.filter((wp: any) => {
     const matchesSearch = (wp.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === "all" || wp.status === filters.status;
-    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === wp.activity_id && a.engagement_id === engagementIdFilter);
-    return matchesSearch && matchesStatus && (engagementIdFilter ? matchesEngagement : true);
+    const matchesEngagement = !engagementIdFilter || wp.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesEngagement;
   });
 
   const handleCreate = () => {
@@ -57,6 +57,7 @@ const WorkingPapers = () => {
       ...formData, working_paper_id: wpId,
       activity_id: formData.activity_id || null, annual_plan_id: formData.annual_plan_id || null,
       department_audit_id: formData.department_audit_id || null,
+      engagement_id: engagementIdFilter || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
@@ -124,7 +125,7 @@ const WorkingPapers = () => {
         <div className="space-y-2"><Label>Related Activity</Label>
           <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
             <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-            <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+            <SelectContent>{(engagementIdFilter ? activities.filter((a: any) => a.engagement_id === engagementIdFilter) : activities).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       </div>

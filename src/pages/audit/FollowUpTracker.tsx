@@ -84,6 +84,7 @@ export default function FollowUpTracker() {
       activity_id: formData.activity_id || null,
       department_id: formData.department_id || null,
       department_name: formData.department_id ? departmentMap.get(formData.department_id) || '' : '',
+      engagement_id: engagementIdFilter || null,
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
 
@@ -144,7 +145,7 @@ export default function FollowUpTracker() {
             <div className="space-y-2"><Label>Finding * (Required)</Label>
               <Select value={formData.finding_id} onValueChange={v => setFormData({...formData, finding_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Select finding" /></SelectTrigger>
-                <SelectContent>{findings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}</SelectContent>
+                <SelectContent>{(engagementIdFilter ? findings.filter((f: any) => f.engagement_id === engagementIdFilter) : findings).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Department</Label>

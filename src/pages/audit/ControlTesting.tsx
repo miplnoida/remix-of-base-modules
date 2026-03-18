@@ -38,7 +38,7 @@ export default function ControlTesting() {
   const openEdit = (r: any) => { setForm({ test_date: r.test_date || '', tested_by: r.tested_by || '', sample_size: r.sample_size || 0, exceptions_found: r.exceptions_found || 0, result: r.result || 'Not Tested', remarks: r.remarks || '' }); setModalState({ mode: 'edit', record: r }); };
   const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
   const handleSave = () => {
-    if (modalState.mode === 'create') create.mutate({ ...form, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+    if (modalState.mode === 'create') create.mutate({ ...form, engagement_id: engagementIdFilter || null, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
     else if (modalState.mode === 'edit' && modalState.record) update.mutate({ id: modalState.record.id, ...form, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
   };
 
