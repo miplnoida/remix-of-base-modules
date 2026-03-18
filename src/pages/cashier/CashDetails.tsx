@@ -171,7 +171,7 @@ const CashDetails: React.FC = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-4 text-center border-secondary">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Calculator className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-medium">System Total</span>
