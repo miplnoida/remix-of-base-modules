@@ -51,6 +51,12 @@ export function getConfigTypeLabel(configType: string): string {
       return 'Levy Slab Detail';
     case 'bonus_exemption':
       return 'Bonus Exemption';
+    case 'calculation_config':
+      return 'Calculation Config';
+    case 'holiday_pay_policy':
+      return 'Holiday Pay Policy';
+    case 'holiday_pay_exception':
+      return 'Holiday Pay Exception';
     default:
       return configType;
   }
