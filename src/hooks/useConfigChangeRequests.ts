@@ -35,17 +35,36 @@ export function useConfigChangeRequestMutations() {
 
   const review = useMutation({
     mutationFn: async (data: { id: string; status: 'Approved' | 'Rejected'; approved_by: string }) => {
+      // First, fetch the full request to get config details
+      const { data: request, error: fetchError } = await (supabase.from('ia_config_change_requests' as any)
+        .select('*').eq('id', data.id).single() as any);
+      if (fetchError) throw fetchError;
+
+      // Update the request status
       const { data: result, error } = await (supabase.from('ia_config_change_requests' as any).update({
         status: data.status,
         approved_by: data.approved_by,
         reviewed_at: new Date().toISOString(),
       } as any).eq('id', data.id).select().single() as any);
       if (error) throw error;
+
+      // Auto-apply if approved
+      if (data.status === 'Approved' && request) {
+        await applyConfigChange(request);
+      }
+
       return result;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['ia_config_change_requests'] });
-      toast({ title: `Request ${vars.status}`, description: `The configuration change has been ${vars.status.toLowerCase()}.` });
+      // Invalidate related config queries so UI refreshes
+      queryClient.invalidateQueries({ queryKey: ['ia_audit_settings'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_likelihood_levels'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_impact_levels'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_control_effectiveness_levels'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_classification_thresholds'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] });
+      toast({ title: `Request ${vars.status}`, description: `The configuration change has been ${vars.status.toLowerCase()}.${vars.status === 'Approved' ? ' The change has been applied.' : ''}` });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
