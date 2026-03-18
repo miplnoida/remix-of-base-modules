@@ -125,7 +125,7 @@ const WorkingPapers = () => {
         <div className="space-y-2"><Label>Related Activity</Label>
           <Select value={formData.activity_id} onValueChange={v => setFormData({...formData, activity_id: v})}>
             <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-            <SelectContent>{activities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+            <SelectContent>{(engagementIdFilter ? activities.filter((a: any) => a.engagement_id === engagementIdFilter) : activities).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       </div>

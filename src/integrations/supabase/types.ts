@@ -9864,6 +9864,7 @@ export type Database = {
           created_by: string | null
           department_audit_id: string | null
           description: string | null
+          engagement_id: string | null
           evidence_id: string
           file_name: string | null
           file_size: number | null
@@ -9886,6 +9887,7 @@ export type Database = {
           created_by?: string | null
           department_audit_id?: string | null
           description?: string | null
+          engagement_id?: string | null
           evidence_id: string
           file_name?: string | null
           file_size?: number | null
@@ -9908,6 +9910,7 @@ export type Database = {
           created_by?: string | null
           department_audit_id?: string | null
           description?: string | null
+          engagement_id?: string | null
           evidence_id?: string
           file_name?: string | null
           file_size?: number | null
@@ -9943,6 +9946,13 @@ export type Database = {
             columns: ["department_audit_id"]
             isOneToOne: false
             referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_evidence_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
         ]
@@ -11533,6 +11543,7 @@ export type Database = {
           created_by: string | null
           department_audit_id: string | null
           description: string | null
+          engagement_id: string | null
           evidence_ids: string[] | null
           id: string
           linked_finding_ids: string[] | null
@@ -11564,6 +11575,7 @@ export type Database = {
           created_by?: string | null
           department_audit_id?: string | null
           description?: string | null
+          engagement_id?: string | null
           evidence_ids?: string[] | null
           id?: string
           linked_finding_ids?: string[] | null
@@ -11595,6 +11607,7 @@ export type Database = {
           created_by?: string | null
           department_audit_id?: string | null
           description?: string | null
+          engagement_id?: string | null
           evidence_ids?: string[] | null
           id?: string
           linked_finding_ids?: string[] | null
@@ -11635,6 +11648,13 @@ export type Database = {
             columns: ["department_audit_id"]
             isOneToOne: false
             referencedRelation: "ia_department_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_working_papers_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
         ]
