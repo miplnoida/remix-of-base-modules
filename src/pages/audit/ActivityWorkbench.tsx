@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Eye, Play, CheckCircle, Edit, FileText, ClipboardPlus } from 'lucide-react';
 import { DiscussionThread } from '@/components/audit/DiscussionThread';
+import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useIAActivities, useIAActivityMutations, useIAAnnualPlans, useIADepartmentAudits, useIAAuditors } from '@/hooks/useAuditData';
