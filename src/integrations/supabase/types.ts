@@ -9963,6 +9963,7 @@ export type Database = {
           department_id: string | null
           department_name: string | null
           effect: string | null
+          engagement_id: string | null
           finding_id: string
           function_area: string | null
           id: string
@@ -9992,6 +9993,7 @@ export type Database = {
           department_id?: string | null
           department_name?: string | null
           effect?: string | null
+          engagement_id?: string | null
           finding_id: string
           function_area?: string | null
           id?: string
@@ -10021,6 +10023,7 @@ export type Database = {
           department_id?: string | null
           department_name?: string | null
           effect?: string | null
+          engagement_id?: string | null
           finding_id?: string
           function_area?: string | null
           id?: string
@@ -10064,6 +10067,13 @@ export type Database = {
             referencedRelation: "ia_departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ia_findings_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ia_follow_ups: {
@@ -10078,6 +10088,7 @@ export type Database = {
           department_name: string | null
           description: string | null
           due_date: string
+          engagement_id: string | null
           finding_id: string | null
           follow_up_type: string | null
           id: string
@@ -10102,6 +10113,7 @@ export type Database = {
           department_name?: string | null
           description?: string | null
           due_date: string
+          engagement_id?: string | null
           finding_id?: string | null
           follow_up_type?: string | null
           id?: string
@@ -10126,6 +10138,7 @@ export type Database = {
           department_name?: string | null
           description?: string | null
           due_date?: string
+          engagement_id?: string | null
           finding_id?: string | null
           follow_up_type?: string | null
           id?: string
@@ -10166,6 +10179,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
           {
