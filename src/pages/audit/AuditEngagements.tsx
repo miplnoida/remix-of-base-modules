@@ -90,7 +90,7 @@ export default function AuditEngagements() {
     });
     setModalState({ mode: 'edit', record: r });
   };
-  const openView = (r: any) => { openEdit(r); setModalState({ mode: 'view', record: r }); };
+  const openView = (r: any) => { navigate(`/audit/engagements/${r.id}`); };
 
   const handleSave = () => {
     const payload = {
