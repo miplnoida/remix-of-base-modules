@@ -27,6 +27,8 @@ const exportColumns = toExportColumns(FINDINGS_SCHEMA);
 const FindingsManagement = () => {
   const { toast } = useToast();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const [searchParams] = useSearchParams();
+  const engagementIdFilter = searchParams.get('engagement_id');
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
