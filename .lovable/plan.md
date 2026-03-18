@@ -1,71 +1,149 @@
 
-# Internal Audit Lifecycle Enhancement Plan
 
-## Implementation Status
+# Internal Audit Module — Gap Analysis (Plan vs. Implementation)
 
-### Phase 1: Ad-hoc Audits + Plan Amendments ✅
-- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
-- Made `annual_plan_id` nullable for ad-hoc audits
-- Created `ia_plan_amendments` table for amendment history
-- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
-- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
-- Created `PlanAmendmentHistory.tsx` component
+Compared against `.lovable/plan.md`, here is the status of every promised deliverable across all 8 phases, plus the "Remaining" section.
 
-### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
-- Created `ia_approval_actions` table for approval audit trail
-- Enhanced `PlanApproval.tsx` with:
-  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
-  - Department Head acceptance step
-  - Approval comments on all decisions
-  - Full approval action logging
-- Enhanced `send-notification` edge function with Resend integration
-- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
+---
 
-### Phase 3: Auto Corrective Actions + Reminders ✅
-- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
-- Auto-generates `ia_action_tracking` record with 30-day due date
-- Sends notification to department head on finding creation
-- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
+## Phase 1: Ad-hoc Audits + Plan Amendments — COMPLETE
 
-### Phase 4: Audit Preparation Screen ✅
-- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
-- Created `AuditPreparation.tsx` page with:
-  - Audit selection panel (Accepted/Approved/In Preparation)
-  - Checklist tab with categories (General/Procedure/Objective/Risk)
-  - Documents tab for preliminary uploads
-  - Team tab showing assigned auditors
-  - Status transitions: Accepted → In Preparation → Ready for Execution
-- Created `useAuditPreparation.ts` hooks
-- Added route, sidebar entry, and feature flag
+| Deliverable | Status |
+|---|---|
+| `audit_type` column on `ia_department_audits` | Implemented |
+| `annual_plan_id` nullable for ad-hoc audits | Implemented |
+| `ia_plan_amendments` table | Implemented |
+| Ad-hoc audit creation + type filter in `AuditPlansNew.tsx` | Implemented |
+| `DepartmentAuditForm.tsx` ad-hoc mode | Implemented |
+| `PlanAmendmentHistory.tsx` component | Implemented |
 
-### Phase 5: Discussion Threads ✅
-- Created `ia_discussion_threads` and `ia_discussion_comments` tables
-- Enabled Supabase Realtime on `ia_discussion_comments`
-- Created `DiscussionThread.tsx` reusable component with live updates
-- Created `useAuditDiscussions.ts` hook with realtime subscription
+No gaps.
 
-### Phase 6: Risk-History Integration + Reporting ✅ (Partial)
-- Added `historical_risk_adjustment` column to `ia_department_functions`
-- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
-- Created `AuditHistoryTimeline.tsx` component
-- DB function for risk adjustment and dashboard integration pending next iteration
+---
 
-### Phase 7: Gap Analysis Resolution ✅
-- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
-- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
-- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
-- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
-- Created `ia_config_change_requests` table for config change approval workflow
-- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
-- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
-- Created `useConfigChangeRequests.ts` hook
+## Phase 2: Enhanced Approval Workflow + Email Notifications — COMPLETE
 
-### Phase 8: Gap Analysis Resolution (Architecture) ✅
-- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
-- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
-- Aligned finding severity model: Added "Critical" level to match risk classification
-- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
+| Deliverable | Status |
+|---|---|
+| `ia_approval_actions` table | Implemented |
+| Tabbed PlanApproval (Pending/Dept Acceptance/Decided/History) | Implemented |
+| Dept Head acceptance step | Implemented |
+| Approval comments on all decisions | Implemented |
+| `send-notification` edge function with Resend | Implemented |
+| `auditNotificationService.ts` | Implemented (used in PlanApproval + FindingsManagement) |
 
-## Remaining (Next Iteration)
-- Apply approved config changes automatically (currently view-only approval)
-- Set up cron job for `audit-due-date-reminders`
+No gaps.
+
+---
+
+## Phase 3: Auto Corrective Actions + Reminders — COMPLETE
+
+| Deliverable | Status |
+|---|---|
+| Auto-generate corrective action on finding creation | Implemented in `useIAFindingMutations` |
+| 30-day due date auto-set | Implemented |
+| Notification to dept head on finding creation | Implemented |
+| `audit-due-date-reminders` edge function | Implemented |
+
+**GAP: Cron job for `audit-due-date-reminders` is NOT set up** (listed in "Remaining" section of plan). The edge function exists but has no scheduled trigger.
+
+---
+
+## Phase 4: Audit Preparation Screen — COMPLETE
+
+| Deliverable | Status |
+|---|---|
+| `ia_preparation_checklists` + `ia_preparation_documents` tables | Implemented |
+| `AuditPreparation.tsx` page | Implemented |
+| Checklist/Documents/Team tabs | Implemented |
+| Status transitions | Implemented |
+| Route, sidebar, feature flag | All present |
+
+No gaps.
+
+---
+
+## Phase 5: Discussion Threads — COMPLETE
+
+| Deliverable | Status |
+|---|---|
+| `ia_discussion_threads` + `ia_discussion_comments` tables | Implemented |
+| Realtime enabled on `ia_discussion_comments` | Implemented |
+| `DiscussionThread.tsx` reusable component | Implemented |
+| Embedded in Findings, ActivityWorkbench, AuditPlans view modals | All 3 confirmed |
+| `useAuditDiscussions.ts` hook | Implemented |
+
+No gaps.
+
+---
+
+## Phase 6: Risk-History Integration + Reporting — PARTIAL (as noted in plan)
+
+| Deliverable | Status |
+|---|---|
+| `historical_risk_adjustment` column on `ia_department_functions` | Implemented |
+| `RiskHeatMap.tsx` component | Implemented |
+| `AuditHistoryTimeline.tsx` component | Implemented |
+| DB function for risk adjustment | **GAP** — Deferred to Phase 7 (later completed there) |
+| Dashboard integration of RiskHeatMap/Timeline | **GAP** — These components exist but are **not embedded** in any page (Executive Dashboard does not use them) |
+
+---
+
+## Phase 7: Gap Analysis Resolution — COMPLETE
+
+| Deliverable | Status |
+|---|---|
+| Root cause fields on `ia_findings` | Implemented |
+| Root Cause Analysis section in FindingsManagement | Implemented |
+| `calculate_historical_risk_adjustment` DB function + trigger | Implemented |
+| RiskAssessment displays historical adjustment | Implemented |
+| `ia_config_change_requests` table | Implemented |
+| Config Approvals tab in AuditConfig | Implemented |
+| `useConfigChangeRequests.ts` hook | Implemented |
+
+No gaps.
+
+---
+
+## Phase 8: Architecture Cleanup — COMPLETE
+
+| Deliverable | Status |
+|---|---|
+| Audit Universe removed | Confirmed removed |
+| `risk_owner` column on `ia_rcm_risks` | Implemented |
+| "Critical" severity added to findings | Implemented |
+| Sidebar restructured into lifecycle groups | Confirmed (9 section labels in sidebar) |
+
+No gaps.
+
+---
+
+## "Remaining (Next Iteration)" from plan.md
+
+| Item | Status |
+|---|---|
+| Apply approved config changes automatically | **NOT IMPLEMENTED** — approval/rejection is recorded, but approved changes are not auto-applied to the target config tables |
+| Set up cron job for `audit-due-date-reminders` | **NOT IMPLEMENTED** — edge function exists but no scheduled trigger |
+
+---
+
+## Summary of All Gaps
+
+```text
+┌───┬──────────────────────────────────────────────────┬──────────┐
+│ # │ Gap                                              │ Priority │
+├───┼──────────────────────────────────────────────────┼──────────┤
+│ 1 │ RiskHeatMap not embedded in any dashboard/page   │ Medium   │
+│ 2 │ AuditHistoryTimeline not embedded in any page    │ Medium   │
+│ 3 │ Approved config changes not auto-applied         │ High     │
+│ 4 │ Cron job for due-date reminders not configured   │ High     │
+└───┴──────────────────────────────────────────────────┴──────────┘
+```
+
+**4 gaps total** out of ~50 deliverables. Phases 1, 2, 4, 5, 7, 8 are fully complete. Phase 3 is complete except for the cron trigger. Phase 6 has unused components.
+
+### Recommended Implementation Order
+1. **Embed RiskHeatMap + AuditHistoryTimeline** into the Executive Dashboard — low effort, high visibility.
+2. **Auto-apply approved config changes** — write logic in `useConfigChangeRequests` review mutation to update the target config table after approval.
+3. **Set up cron schedule** for `audit-due-date-reminders` via a database `pg_cron` job or external scheduler.
+
