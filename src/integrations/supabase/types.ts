@@ -5338,7 +5338,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           payment_id: number
-          receipt_id: string
+          receipt_id: number
           receipt_total: number | null
           reprint_times: number | null
           status: string | null
@@ -5354,7 +5354,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           payment_id: number
-          receipt_id: string
+          receipt_id?: never
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
@@ -5370,7 +5370,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           payment_id?: number
-          receipt_id?: string
+          receipt_id?: never
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
@@ -5387,21 +5387,21 @@ export type Database = {
           print_type: string
           printed_at: string
           printed_by: string
-          receipt_id: string
+          receipt_id: number
         }
         Insert: {
           id?: string
           print_type?: string
           printed_at?: string
           printed_by: string
-          receipt_id: string
+          receipt_id: number
         }
         Update: {
           id?: string
           print_type?: string
           printed_at?: string
           printed_by?: string
-          receipt_id?: string
+          receipt_id?: number
         }
         Relationships: []
       }
