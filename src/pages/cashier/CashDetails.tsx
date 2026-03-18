@@ -142,11 +142,70 @@ const CashDetails: React.FC = () => {
     return d.label || (d.denomination_value >= 1 ? `$${d.denomination_value}` : `${(d.denomination_value * 100).toFixed(0)}¢`);
   };
 
-  const saveCashCount = () => {
-    toast({
-      title: 'Cash Count Saved',
-      description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
-    });
+  const saveCashCount = async () => {
+    const batchNumber = batchSel.selectedBatch?.batch_number;
+    if (!batchNumber) return;
+
+    setSaving(true);
+    try {
+      // Collect all rows with counts
+      const rows: { batch_number: string; currency_id: string; denomination_id: string; count: number; updated_by: string | null; updated_at: string; created_by?: string | null }[] = [];
+      const zeroDenomIds: string[] = [];
+
+      if (enabledCurrencies && allDenominations) {
+        for (const currency of enabledCurrencies) {
+          const denoms = getDenominationsForCurrency(currency.id);
+          for (const d of denoms) {
+            const count = getCount(currency.id, d.id);
+            if (count > 0) {
+              rows.push({
+                batch_number: batchNumber,
+                currency_id: currency.id,
+                denomination_id: d.id,
+                count,
+                created_by: userCode || null,
+                updated_by: userCode || null,
+                updated_at: new Date().toISOString(),
+              });
+            } else {
+              zeroDenomIds.push(d.id);
+            }
+          }
+        }
+      }
+
+      // Upsert non-zero counts
+      if (rows.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from('cn_cash_count')
+          .upsert(rows, { onConflict: 'batch_number,denomination_id' });
+        if (upsertErr) throw upsertErr;
+      }
+
+      // Delete rows set back to zero
+      if (zeroDenomIds.length > 0) {
+        const { error: delErr } = await supabase
+          .from('cn_cash_count')
+          .delete()
+          .eq('batch_number', batchNumber)
+          .in('denomination_id', zeroDenomIds);
+        if (delErr) throw delErr;
+      }
+
+      toast({
+        title: 'Cash Count Saved',
+        description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
+      });
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      toast({
+        title: 'Save Failed',
+        description: err.message || 'Could not save cash count. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (currLoading) {
