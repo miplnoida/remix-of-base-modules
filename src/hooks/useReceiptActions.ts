@@ -151,6 +151,7 @@ export function useReceiptActions() {
       toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
       return data;
     } catch (err: any) {
+      await logApplicationError(err, { module: 'useReceiptActions', action: 'cancelReceipt', entity_type: 'cn_receipt', request_payload: { paymentId, reason } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       return null;
     } finally {
