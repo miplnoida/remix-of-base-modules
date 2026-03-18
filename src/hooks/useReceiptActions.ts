@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { logApplicationError } from '@/lib/globalErrorHandler';
 
 export interface ReceiptData {
-  receipt_id: string;
+  receipt_id: number;
   payment_id: number;
   status: string | null;
   receipt_total: number | null;
