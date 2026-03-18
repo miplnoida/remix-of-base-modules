@@ -18,8 +18,11 @@ import { useUserCode } from '@/hooks/useUserCode';
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
+  const { userCode } = useUserCode();
   const [systemTotal, setSystemTotal] = useState<number>(0);
   const [systemTotalLoading, setSystemTotalLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Fetch system total from DB whenever batch changes
   const fetchSystemTotal = useCallback(async (batchNumber: string) => {
