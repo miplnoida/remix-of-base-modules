@@ -22,7 +22,7 @@ interface ReportRow {
   payment_amount: number;
   mop_code: string;
   period: string | null;
-  receipt_id: string | null;
+  receipt_id: number | null;
   receipt_status: string | null;
   reprint_times: number;
   bank_code: string | null;

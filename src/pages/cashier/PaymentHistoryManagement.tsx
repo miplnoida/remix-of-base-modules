@@ -22,7 +22,7 @@ interface PaymentRow {
   payment_amount?: number;
   mop_code?: string;
   period?: string;
-  receipt_id?: string;
+  receipt_id?: number;
   receipt_status?: string;
   reprint_times?: number;
 }
