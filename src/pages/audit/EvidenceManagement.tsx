@@ -43,8 +43,8 @@ export default function EvidenceManagement() {
     const matchesSearch = (ev.title || ev.file_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (ev.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filters.type === 'all' || ev.evidence_type === filters.type;
     // Filter by engagement: match if evidence's activity belongs to engagement
-    const matchesEngagement = !engagementIdFilter || activities.some((a: any) => a.id === ev.activity_id && a.engagement_id === engagementIdFilter);
-    return matchesSearch && matchesType && (engagementIdFilter ? matchesEngagement : true);
+    const matchesEngagement = !engagementIdFilter || ev.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesType && matchesEngagement;
   });
 
   const handleUpload = async () => {
