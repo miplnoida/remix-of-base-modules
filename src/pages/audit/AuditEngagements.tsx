@@ -1,26 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments, useIAAnnualPlans, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 
 const STATUSES = ['Draft', 'Submitted', 'Approved', 'In Progress', 'Fieldwork Complete', 'Reporting', 'Closed'];
-const RISK_RATINGS = ['High', 'Medium', 'Low'];
+const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
+
+const generateEngagementCode = () => {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const rand = String(Math.floor(1000 + Math.random() * 9000));
+  return `ENG-${dateStr}-${rand}`;
+};
 
 const emptyForm = {
   engagement_name: '', engagement_code: '', annual_plan_id: '', department_id: '',
-  lead_auditor_id: '', scope: '', objectives: '', methodology: '', criteria: '',
-  engagement_risk_rating: 'Medium', estimated_hours: 0, budgeted_hours: 0,
-  planned_start_date: '', planned_end_date: '', status: 'Draft',
+  function_id: '', lead_auditor_id: '', supportive_auditor_ids: [] as string[],
+  scope: '', objectives: '', methodology: '', criteria: '',
+  engagement_risk_rating: 'Medium', estimated_hours: 0, estimated_budget: 0,
+  budgeted_hours: 0, planned_start_date: '', planned_end_date: '', status: 'Draft',
 };
 
 export default function AuditEngagements() {
@@ -34,8 +43,10 @@ export default function AuditEngagements() {
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
 
-  // Only approved plans can be linked
-  const approvedPlans = (plans || []).filter((p: any) => 
+  // Cascading: Department → Functions
+  const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
+
+  const approvedPlans = (plans || []).filter((p: any) =>
     p.status === 'Approved' || p.status === 'Internally Approved' || p.status === 'In Progress'
   );
 
@@ -58,15 +69,20 @@ export default function AuditEngagements() {
   const getDeptName = (id: string) => departments?.find((d: any) => d.id === id)?.name || id;
   const getAuditorName = (id: string) => auditors?.find((a: any) => a.id === id)?.name || id;
 
-  const openAdd = () => { setForm(emptyForm); setModalState({ mode: 'create' }); };
+  const openAdd = () => {
+    setForm({ ...emptyForm, engagement_code: generateEngagementCode() });
+    setModalState({ mode: 'create' });
+  };
   const openEdit = (r: any) => {
     setForm({
       engagement_name: r.engagement_name || '', engagement_code: r.engagement_code || '',
       annual_plan_id: r.annual_plan_id || '', department_id: r.department_id || '',
-      lead_auditor_id: r.lead_auditor_id || '', scope: r.scope || '',
-      objectives: r.objectives || '', methodology: r.methodology || '',
+      function_id: r.function_id || '', lead_auditor_id: r.lead_auditor_id || '',
+      supportive_auditor_ids: Array.isArray(r.supportive_auditor_ids) ? r.supportive_auditor_ids : [],
+      scope: r.scope || '', objectives: r.objectives || '', methodology: r.methodology || '',
       criteria: r.criteria || '', engagement_risk_rating: r.engagement_risk_rating || 'Medium',
-      estimated_hours: r.estimated_hours || 0, budgeted_hours: r.budgeted_hours || 0,
+      estimated_hours: r.estimated_hours || 0, estimated_budget: r.estimated_budget || 0,
+      budgeted_hours: r.budgeted_hours || 0,
       planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '',
       status: r.status || 'Draft',
     });
@@ -76,9 +92,24 @@ export default function AuditEngagements() {
 
   const handleSave = () => {
     const payload = {
-      ...form,
+      engagement_name: form.engagement_name,
+      engagement_code: form.engagement_code,
       annual_plan_id: form.annual_plan_id || null,
+      department_id: form.department_id || null,
+      function_id: form.function_id || null,
       lead_auditor_id: form.lead_auditor_id || null,
+      supportive_auditor_ids: form.supportive_auditor_ids,
+      scope: form.scope,
+      objectives: form.objectives,
+      methodology: form.methodology,
+      criteria: form.criteria,
+      engagement_risk_rating: form.engagement_risk_rating,
+      estimated_hours: form.estimated_hours,
+      estimated_budget: form.estimated_budget,
+      budgeted_hours: form.budgeted_hours,
+      planned_start_date: form.planned_start_date || null,
+      planned_end_date: form.planned_end_date || null,
+      status: form.status,
     };
     if (modalState.mode === 'create') {
       create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
@@ -88,6 +119,17 @@ export default function AuditEngagements() {
   };
 
   const isReadOnly = modalState.mode === 'view';
+
+  // Supportive auditor multi-select helpers
+  const toggleSupportiveAuditor = (auditorId: string) => {
+    setForm(f => {
+      const current = f.supportive_auditor_ids;
+      if (current.includes(auditorId)) {
+        return { ...f, supportive_auditor_ids: current.filter(id => id !== auditorId) };
+      }
+      return { ...f, supportive_auditor_ids: [...current, auditorId] };
+    });
+  };
 
   const columns: DataTableColumn<any>[] = [
     { key: 'engagement_code', header: 'Code' },
@@ -131,65 +173,104 @@ export default function AuditEngagements() {
         title={modalState.mode === 'create' ? 'New Engagement' : modalState.mode === 'edit' ? 'Edit Engagement' : 'View Engagement'}
         mode={modalState.mode || 'view'} onSave={handleSave} saveLabel="Save" isSaving={create.isPending || update.isPending} size="4xl">
         <div className="space-y-4">
-          {/* Lifecycle Link: Annual Plan */}
-          <div className="p-3 rounded-md bg-muted/50 border">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Lifecycle Linkage</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Annual Plan <span className="text-muted-foreground text-xs">(approved plans only)</span></Label>
-                <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
-                  <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
-                  <SelectContent>
-                    {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title} ({p.fiscal_year})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Lead Auditor</Label>
-                <Select value={form.lead_auditor_id} onValueChange={v => setForm(f => ({ ...f, lead_auditor_id: v }))} disabled={isReadOnly}>
-                  <SelectTrigger><SelectValue placeholder="Select lead auditor" /></SelectTrigger>
-                  <SelectContent>
-                    {(auditors || []).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          {/* 1. Engagement Title & 2. Auto-generated ID */}
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Engagement Title</Label><Input value={form.engagement_name} onChange={e => setForm(f => ({ ...f, engagement_name: e.target.value }))} disabled={isReadOnly} /></div>
+            <div><Label>Engagement ID <span className="text-xs text-muted-foreground">(auto-generated)</span></Label><Input value={form.engagement_code} disabled className="bg-muted" /></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Engagement Name</Label><Input value={form.engagement_name} onChange={e => setForm(f => ({ ...f, engagement_name: e.target.value }))} disabled={isReadOnly} /></div>
-            <div><Label>Engagement Code</Label><Input value={form.engagement_code} onChange={e => setForm(f => ({ ...f, engagement_code: e.target.value }))} disabled={isReadOnly} /></div>
+          {/* 3. Annual Plan */}
+          <div>
+            <Label>Annual Plan <span className="text-muted-foreground text-xs">(approved plans only)</span></Label>
+            <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
+              <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
+              <SelectContent>
+                {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title} ({p.fiscal_year})</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* 4. Department & 5. Function (cascading) */}
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Department</Label>
-              <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v }))} disabled={isReadOnly}>
+              <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v, function_id: '' }))} disabled={isReadOnly}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                 <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Risk Rating</Label>
-              <Select value={form.engagement_risk_rating} onValueChange={v => setForm(f => ({ ...f, engagement_risk_rating: v }))} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{RISK_RATINGS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+            <div><Label>Function</Label>
+              <Select value={form.function_id} onValueChange={v => setForm(f => ({ ...f, function_id: v }))} disabled={isReadOnly || !form.department_id}>
+                <SelectTrigger><SelectValue placeholder={form.department_id ? 'Select function' : 'Select department first'} /></SelectTrigger>
+                <SelectContent>
+                  {deptFunctions.map((fn: any) => <SelectItem key={fn.id} value={fn.id}>{fn.function_name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
           </div>
+
+          {/* 6. Lead Auditor & 7. Supportive Auditor */}
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            <div><Label>Lead Auditor</Label>
+              <Select value={form.lead_auditor_id} onValueChange={v => setForm(f => ({ ...f, lead_auditor_id: v }))} disabled={isReadOnly}>
+                <SelectTrigger><SelectValue placeholder="Select lead auditor" /></SelectTrigger>
+                <SelectContent>
+                  {(auditors || []).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Est. Hours</Label><Input type="number" value={form.estimated_hours} onChange={e => setForm(f => ({ ...f, estimated_hours: Number(e.target.value) }))} disabled={isReadOnly} /></div>
-              <div><Label>Budget Hours</Label><Input type="number" value={form.budgeted_hours} onChange={e => setForm(f => ({ ...f, budgeted_hours: Number(e.target.value) }))} disabled={isReadOnly} /></div>
+            <div>
+              <Label>Supportive Auditor(s)</Label>
+              <div className="border rounded-md p-2 max-h-[120px] overflow-y-auto space-y-1 bg-background">
+                {(auditors || [])
+                  .filter((a: any) => a.id !== form.lead_auditor_id)
+                  .map((a: any) => (
+                    <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted rounded px-1 py-0.5">
+                      <Checkbox
+                        checked={form.supportive_auditor_ids.includes(a.id)}
+                        onCheckedChange={() => !isReadOnly && toggleSupportiveAuditor(a.id)}
+                        disabled={isReadOnly}
+                      />
+                      {a.name}
+                    </label>
+                  ))}
+                {(auditors || []).filter((a: any) => a.id !== form.lead_auditor_id).length === 0 && (
+                  <p className="text-xs text-muted-foreground">No auditors available</p>
+                )}
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Planned Start</Label><Input type="date" value={form.planned_start_date} onChange={e => setForm(f => ({ ...f, planned_start_date: e.target.value }))} disabled={isReadOnly} /></div>
-            <div><Label>Planned End</Label><Input type="date" value={form.planned_end_date} onChange={e => setForm(f => ({ ...f, planned_end_date: e.target.value }))} disabled={isReadOnly} /></div>
+
+          {/* 8. Risk Rating */}
+          <div><Label>Risk Rating</Label>
+            <Select value={form.engagement_risk_rating} onValueChange={v => setForm(f => ({ ...f, engagement_risk_rating: v }))} disabled={isReadOnly}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{RISK_RATINGS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+            </Select>
           </div>
+
+          {/* 9. Start Date & 10. End Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Start Date</Label><Input type="date" value={form.planned_start_date} onChange={e => setForm(f => ({ ...f, planned_start_date: e.target.value }))} disabled={isReadOnly} /></div>
+            <div><Label>End Date</Label><Input type="date" value={form.planned_end_date} onChange={e => setForm(f => ({ ...f, planned_end_date: e.target.value }))} disabled={isReadOnly} /></div>
+          </div>
+
+          {/* 11. Est. Hours & 12. Est. Budget */}
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Est. Hours</Label><Input type="number" value={form.estimated_hours} onChange={e => setForm(f => ({ ...f, estimated_hours: Number(e.target.value) }))} disabled={isReadOnly} /></div>
+            <div><Label>Est. Budget</Label><Input type="number" value={form.estimated_budget} onChange={e => setForm(f => ({ ...f, estimated_budget: Number(e.target.value) }))} disabled={isReadOnly} /></div>
+          </div>
+
+          {/* 13. Status */}
+          <div><Label>Status</Label>
+            <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={isReadOnly}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+
+          {/* 14. Scope, 15. Objective, 16. Methodology */}
           <div><Label>Scope</Label><Textarea value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} disabled={isReadOnly} /></div>
-          <div><Label>Objectives</Label><Textarea value={form.objectives} onChange={e => setForm(f => ({ ...f, objectives: e.target.value }))} disabled={isReadOnly} /></div>
+          <div><Label>Objective</Label><Textarea value={form.objectives} onChange={e => setForm(f => ({ ...f, objectives: e.target.value }))} disabled={isReadOnly} /></div>
           <div><Label>Methodology</Label><Textarea value={form.methodology} onChange={e => setForm(f => ({ ...f, methodology: e.target.value }))} disabled={isReadOnly} /></div>
         </div>
       </StandardModal>

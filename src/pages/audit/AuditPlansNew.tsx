@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Eye, Edit, Send, History, Zap } from 'lucide-react';
 import { DiscussionThread } from '@/components/audit/DiscussionThread';
+import { Badge } from '@/components/ui/badge';
 
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { DepartmentAuditForm } from '@/components/audit/DepartmentAuditForm';
@@ -14,6 +15,7 @@ import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartmentAudits, useI
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 export default function AuditPlansNew() {
   
@@ -88,7 +90,7 @@ export default function AuditPlansNew() {
     { key: 'fiscal_year', header: 'Fiscal Year' },
     { key: 'title', header: 'Plan Name' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
-    { key: 'created_at', header: 'Created On', render: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : '-') },
+    { key: 'created_at', header: 'Created On', render: (row) => (row.created_at ? formatDateForDisplay(row.created_at) : '-') },
   ];
 
   const deptColumns: DataTableColumn<any>[] = [
@@ -110,6 +112,14 @@ export default function AuditPlansNew() {
   ];
 
   const resetFilters = () => setFilters({ status: 'all', fiscalYear: 'all', departmentId: 'all', auditType: 'all' });
+
+  // Helper to render a detail row
+  const DetailRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="grid grid-cols-3 gap-2 py-2 border-b border-border last:border-0">
+      <span className="text-sm font-medium text-muted-foreground col-span-1">{label}</span>
+      <span className="text-sm col-span-2">{children}</span>
+    </div>
+  );
 
   return (
     <PageShell
@@ -285,37 +295,175 @@ export default function AuditPlansNew() {
         </StandardModal>
       )}
 
-      {/* View Annual Plan */}
+      {/* View Annual Plan — Enhanced */}
       <EntityModal open={!!viewAnnual} onOpenChange={() => setViewAnnual(null)} title="Annual Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewAnnual && (
-          <div className="space-y-3">
-            <p><strong>Fiscal Year:</strong> {viewAnnual.fiscal_year || '-'}</p>
-            <p><strong>Plan Name:</strong> {viewAnnual.title || '-'}</p>
-            <p><strong>Status:</strong> <StatusBadge status={viewAnnual.status || 'Draft'} /></p>
-            <p><strong>Objective:</strong> {viewAnnual.objective || '-'}</p>
-            <div className="border-t pt-4">
-              <DiscussionThread entityType="annual_plan" entityId={viewAnnual.id} />
-            </div>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Plan Information</CardTitle>
+                  <StatusBadge status={viewAnnual.status || 'Draft'} />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DetailRow label="Plan ID">{viewAnnual.id?.slice(0, 8) || '-'}</DetailRow>
+                <DetailRow label="Plan Title">{viewAnnual.title || '-'}</DetailRow>
+                <DetailRow label="Fiscal Year">{viewAnnual.fiscal_year || '-'}</DetailRow>
+                <DetailRow label="Created Date">{viewAnnual.created_at ? formatDateForDisplay(viewAnnual.created_at) : '-'}</DetailRow>
+                {viewAnnual.submitted_date && (
+                  <DetailRow label="Submitted Date">{formatDateForDisplay(viewAnnual.submitted_date)}</DetailRow>
+                )}
+                {viewAnnual.approved_at && (
+                  <DetailRow label="Approved Date">{formatDateForDisplay(viewAnnual.approved_at)}</DetailRow>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Scope & Methodology</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DetailRow label="Objective">
+                  <p className="whitespace-pre-wrap">{viewAnnual.objective || '-'}</p>
+                </DetailRow>
+                <DetailRow label="Scope">
+                  <p className="whitespace-pre-wrap">{viewAnnual.scope || '-'}</p>
+                </DetailRow>
+                <DetailRow label="Methodology">
+                  <p className="whitespace-pre-wrap">{viewAnnual.methodology || '-'}</p>
+                </DetailRow>
+              </CardContent>
+            </Card>
+
+            {/* Linked Department Audits */}
+            {(() => {
+              const linkedAudits = (departmentAudits || []).filter((a: any) => a.annual_plan_id === viewAnnual.id);
+              return linkedAudits.length > 0 ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Linked Department Audits ({linkedAudits.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {linkedAudits.map((a: any) => (
+                        <div key={a.id} className="flex items-center justify-between p-2 rounded-md border bg-card">
+                          <div>
+                            <p className="text-sm font-medium">{a.department_name || 'Unknown Department'}</p>
+                            <p className="text-xs text-muted-foreground">Period: {a.period || '-'}</p>
+                          </div>
+                          <StatusBadge status={a.status || 'Draft'} />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null;
+            })()}
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Discussion</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DiscussionThread entityType="annual_plan" entityId={viewAnnual.id} />
+              </CardContent>
+            </Card>
           </div>
         )}
       </EntityModal>
 
-      {/* View Department Audit */}
+      {/* View Department Audit — Enhanced */}
       <EntityModal open={!!viewDept} onOpenChange={() => setViewDept(null)} title="Department Audit Plan Details" mode="view" maxWidth="max-w-4xl">
         {viewDept && (
-          <div className="space-y-3">
-            <p><strong>Type:</strong> <StatusBadge status={viewDept.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} /></p>
-            <p><strong>Department:</strong> {viewDept.department_name || '-'}</p>
-            <p><strong>Period:</strong> {viewDept.period || '-'}</p>
-            {viewDept.audit_type !== 'ad_hoc' && (
-              <p><strong>Fiscal Year:</strong> {planById.get(viewDept.annual_plan_id)?.fiscal_year || '-'}</p>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Plan Information</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={viewDept.audit_type === 'ad_hoc' ? 'Ad-Hoc' : 'Planned'} />
+                    <StatusBadge status={viewDept.status || 'Draft'} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DetailRow label="Plan ID">{viewDept.id?.slice(0, 8) || '-'}</DetailRow>
+                <DetailRow label="Department">{viewDept.department_name || '-'}</DetailRow>
+                <DetailRow label="Period">{viewDept.period || '-'}</DetailRow>
+                {viewDept.audit_type !== 'ad_hoc' && (
+                  <DetailRow label="Fiscal Year">{planById.get(viewDept.annual_plan_id)?.fiscal_year || '-'}</DetailRow>
+                )}
+                {viewDept.audit_type !== 'ad_hoc' && (
+                  <DetailRow label="Annual Plan">{planById.get(viewDept.annual_plan_id)?.title || '-'}</DetailRow>
+                )}
+                <DetailRow label="Risk Rating">
+                  {viewDept.risk_rating ? <StatusBadge status={viewDept.risk_rating} /> : '-'}
+                </DetailRow>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Team & Schedule</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DetailRow label="Lead Auditor">{viewDept.lead_auditor_name || viewDept.lead_auditor_id || '-'}</DetailRow>
+                <DetailRow label="Team Members">
+                  {viewDept.team_member_names?.length > 0
+                    ? viewDept.team_member_names.join(', ')
+                    : (Array.isArray(viewDept.team_member_ids) && viewDept.team_member_ids.length > 0
+                      ? `${viewDept.team_member_ids.length} member(s)`
+                      : '-')
+                  }
+                </DetailRow>
+                <DetailRow label="Planned Start">{viewDept.planned_start_date ? formatDateForDisplay(viewDept.planned_start_date) : '-'}</DetailRow>
+                <DetailRow label="Planned End">{viewDept.planned_end_date ? formatDateForDisplay(viewDept.planned_end_date) : '-'}</DetailRow>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Scope & Methodology</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DetailRow label="Objective">
+                  <p className="whitespace-pre-wrap">{viewDept.objective || '-'}</p>
+                </DetailRow>
+                <DetailRow label="Scope">
+                  <p className="whitespace-pre-wrap">{viewDept.scope || '-'}</p>
+                </DetailRow>
+                <DetailRow label="Methodology">
+                  <p className="whitespace-pre-wrap">{viewDept.methodology || '-'}</p>
+                </DetailRow>
+              </CardContent>
+            </Card>
+
+            {/* Selected Functions */}
+            {viewDept.selected_function_ids?.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Selected Functions ({viewDept.selected_function_ids.length})</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap gap-2">
+                    {(viewDept.selected_function_names || viewDept.selected_function_ids || []).map((name: string, idx: number) => (
+                      <Badge key={idx} variant="secondary">{name}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
-            <p><strong>Status:</strong> <StatusBadge status={viewDept.status || 'Draft'} /></p>
-            <p><strong>Objective:</strong> {viewDept.objective || '-'}</p>
-            <p><strong>Scope:</strong> {viewDept.scope || '-'}</p>
-            <div className="border-t pt-4">
-              <DiscussionThread entityType="department_audit" entityId={viewDept.id} />
-            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Discussion</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <DiscussionThread entityType="department_audit" entityId={viewDept.id} />
+              </CardContent>
+            </Card>
           </div>
         )}
       </EntityModal>

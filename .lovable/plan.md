@@ -1,67 +1,73 @@
 
+# Internal Audit Lifecycle Enhancement Plan
 
-# Plan: Risk Matrix, View Popups, and Engagement Form Improvements
+## Implementation Status
 
-## 1. Transform Risk Control Matrix → Risk Matrix
+### Phase 1: Ad-hoc Audits + Plan Amendments ✅
+- Added `audit_type` column to `ia_department_audits` (planned/ad_hoc)
+- Made `annual_plan_id` nullable for ad-hoc audits
+- Created `ia_plan_amendments` table for amendment history
+- Updated `AuditPlansNew.tsx` with ad-hoc audit creation + type filter
+- Updated `DepartmentAuditForm.tsx` to support ad-hoc mode
+- Created `PlanAmendmentHistory.tsx` component
 
-**Current state**: The RCM page (`src/pages/audit/RiskControlMatrix.tsx`) shows a Process → Risk → Control drill-down table with likelihood × impact scoring.
+### Phase 2: Enhanced Approval Workflow + Email Notifications ✅
+- Created `ia_approval_actions` table for approval audit trail
+- Enhanced `PlanApproval.tsx` with:
+  - Tabbed view: Pending Review, Dept Acceptance, Decided, History
+  - Department Head acceptance step
+  - Approval comments on all decisions
+  - Full approval action logging
+- Enhanced `send-notification` edge function with Resend integration
+- Created `auditNotificationService.ts` with trigger functions for all lifecycle events
 
-**Change**: Replace the current RCM page with a visual **Risk Matrix** (5×5 grid) that plots functions from Risk Assessments by their likelihood and impact scores. The existing Process/Risk/Control CRUD remains accessible via a secondary tab or the RCM continues to exist but the primary view becomes a graphical risk matrix.
+### Phase 3: Auto Corrective Actions + Reminders ✅
+- Enhanced `useIAFindingMutations` to auto-generate corrective actions on finding creation
+- Auto-generates `ia_action_tracking` record with 30-day due date
+- Sends notification to department head on finding creation
+- Created `audit-due-date-reminders` edge function for scheduled reminders (7/3/1 day + overdue)
 
-**Implementation**:
-- Rename the page title from "Risk Control Matrix" to "Risk Matrix"
-- Add a **5×5 heatmap grid** (Likelihood on X-axis, Impact on Y-axis) as the primary view
-- Pull data from `ia_risk_assessments` (which has `likelihood_score`, `impact_score`, `risk_level` per function)
-- Each cell shows the count of functions falling in that likelihood×impact intersection, color-coded by risk classification thresholds
-- Clicking a cell shows the list of functions in that risk zone
-- Keep the existing Process → Risk → Control drill-down as a "Detailed RCM" tab below
+### Phase 4: Audit Preparation Screen ✅
+- Created `ia_preparation_checklists` and `ia_preparation_documents` tables
+- Created `AuditPreparation.tsx` page with:
+  - Audit selection panel (Accepted/Approved/In Preparation)
+  - Checklist tab with categories (General/Procedure/Objective/Risk)
+  - Documents tab for preliminary uploads
+  - Team tab showing assigned auditors
+  - Status transitions: Accepted → In Preparation → Ready for Execution
+- Created `useAuditPreparation.ts` hooks
+- Added route, sidebar entry, and feature flag
 
-## 2. Improve Annual Plan & Department Audit View Popups
+### Phase 5: Discussion Threads ✅
+- Created `ia_discussion_threads` and `ia_discussion_comments` tables
+- Enabled Supabase Realtime on `ia_discussion_comments`
+- Created `DiscussionThread.tsx` reusable component with live updates
+- Created `useAuditDiscussions.ts` hook with realtime subscription
 
-**Current state**: Both view popups in `AuditPlansNew.tsx` show minimal `<p>` tags with basic fields.
+### Phase 6: Risk-History Integration + Reporting ✅
+- Added `historical_risk_adjustment` column to `ia_department_functions`
+- Created `RiskHeatMap.tsx` component (Recharts scatter plot)
+- Created `AuditHistoryTimeline.tsx` component
+- DB function for risk adjustment completed in Phase 7
+- RiskHeatMap + AuditHistoryTimeline embedded in Executive Dashboard
 
-**Changes**:
-- **Annual Plan View**: Display all fields in a structured card layout — Fiscal Year, Plan Title, Status (badge), Created Date, Objective, Scope, Methodology, and the Discussion Thread. Use a proper grid layout with labels.
-- **Department Audit View**: Display Type, Department, Period, Fiscal Year, Status, Objective, Scope, Risk Rating, Lead Auditor, Team Members, Planned Start/End dates, selected Functions list, and Discussion Thread. Use a proper grid layout.
+### Phase 7: Gap Analysis Resolution ✅
+- Added `root_cause_category`, `preventive_action`, `corrective_action_description` to `ia_findings`
+- Updated `FindingsManagement.tsx` with Root Cause Analysis section in create/edit/view modals
+- Created `calculate_historical_risk_adjustment` DB function + auto-trigger on finding close
+- Updated `RiskAssessment.tsx` to display historical adjustment from `ia_department_functions`
+- Created `ia_config_change_requests` table for config change approval workflow
+- Added "Config Approvals" tab to `AuditConfig.tsx` with pending/history views
+- Embedded `DiscussionThread` in FindingsManagement, ActivityWorkbench, and AuditPlansNew view modals
+- Created `useConfigChangeRequests.ts` hook
 
-## 3. Restructure Engagement Form Fields
+### Phase 8: Gap Analysis Resolution (Architecture) ✅
+- Removed Audit Universe: Deleted page file, disabled in app_modules, removed hook
+- Added `risk_owner` column to `ia_rcm_risks` table + RCM form/display
+- Aligned finding severity model: Added "Critical" level to match risk classification
+- Restructured sidebar navigation into lifecycle groups (Governance → Resources → Planning → Preparation → Execution → Issues → Closure → Reporting → Administration)
 
-**Current state**: The engagement form in `AuditEngagements.tsx` has fields in a different order than requested, missing Function selection and Supportive Auditor, and no auto-generated Engagement ID.
-
-**Required field sequence**:
-1. Engagement Title
-2. Auto-generated Engagement ID (read-only, e.g., `ENG-YYYYMMDD-XXXX`)
-3. Select Annual Plan
-4. Select Department
-5. Select Function (cascading from Department)
-6. Select Lead Auditor
-7. Select Supportive Auditor (multi-select from auditors)
-8. Risk Rating
-9. Start Date
-10. End Date
-11. Est. Hours
-12. Est. Budget
-13. Status
-14. Scope
-15. Objective
-16. Methodology
-
-**Database migration needed**:
-- Add `function_id` (uuid, nullable, FK to `ia_department_functions`) to `ia_audit_engagements`
-- Add `estimated_budget` (numeric, nullable) to `ia_audit_engagements`
-- Add `supportive_auditor_ids` (jsonb, nullable) to `ia_audit_engagements`
-
-**Code changes**:
-- Update `emptyForm` and form layout in `AuditEngagements.tsx` to match the field sequence
-- Auto-generate `engagement_code` on create (format: `ENG-YYYYMMDD-XXXX`)
-- Add cascading Department → Function dropdown
-- Add multi-select for Supportive Auditors
-- Reorder all form fields to match the requested sequence
-
-## Files to Modify
-- `src/pages/audit/RiskControlMatrix.tsx` — Replace with Risk Matrix visualization + keep RCM tab
-- `src/pages/audit/AuditPlansNew.tsx` — Enhance view popups for Annual Plan and Department Audit
-- `src/pages/audit/AuditEngagements.tsx` — Restructure form fields, add new fields
-- `src/config/auditRouteConfig.ts` — Update label from "Risk Control Matrix" to "Risk Matrix"
-- **New migration** — Add `function_id`, `estimated_budget`, `supportive_auditor_ids` columns to `ia_audit_engagements`
-
+## Remaining (Next Iteration)
+- All gaps resolved ✅
+- Config changes auto-applied on approval via `useConfigChangeRequests` review mutation
+- Cron job `audit-due-date-reminders-daily` scheduled at 8:00 AM UTC daily via pg_cron
