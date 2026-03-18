@@ -69,7 +69,8 @@ const FindingsManagement = () => {
     const matchesSearch = (f.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === "all" || f.status === filters.status;
     const matchesRisk = filters.risk === "all" || f.risk_rating === filters.risk;
-    return matchesSearch && matchesStatus && matchesRisk;
+    const matchesEngagement = !engagementIdFilter || f.engagement_id === engagementIdFilter;
+    return matchesSearch && matchesStatus && matchesRisk && matchesEngagement;
   });
 
   // When an activity is selected, auto-fill department and plan fields
