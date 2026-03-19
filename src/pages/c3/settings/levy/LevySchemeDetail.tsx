@@ -192,7 +192,7 @@ export default function LevySchemeDetail() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
           <TabsTrigger value="slabs">Slabs</TabsTrigger>

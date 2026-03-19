@@ -241,7 +241,7 @@ export function ScheduleMeetingDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="max-w-[95vw] w-[1200px] h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-full lg:w-[1200px] h-[90vh] flex flex-col p-0 gap-0">
         {/* Fixed header */}
         <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">

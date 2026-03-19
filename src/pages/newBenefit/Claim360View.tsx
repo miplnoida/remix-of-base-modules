@@ -178,7 +178,7 @@ export const Claim360View: React.FC = () => {
       </div>
 
       <Tabs defaultValue="summary" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-11">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="summary">Summary</TabsTrigger>
           <TabsTrigger value="eligibility">Eligibility</TabsTrigger>
           <TabsTrigger value="contributions">Contributions</TabsTrigger>

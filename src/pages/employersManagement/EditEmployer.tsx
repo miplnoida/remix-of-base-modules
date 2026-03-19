@@ -1060,7 +1060,7 @@ export const EditEmployer = () => {
   <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="responsive-tabs">
               <TabsTrigger value="form-detail">Form Detail</TabsTrigger>
               <TabsTrigger value="owners">Owners</TabsTrigger>
               <TabsTrigger value="locations">Locations</TabsTrigger>

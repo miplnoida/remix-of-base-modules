@@ -223,7 +223,7 @@ const LegalCaseView: React.FC<LegalCaseViewProps> = ({ caseData, onBack, onEdit 
 
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="responsive-tabs mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="violations">Violations</TabsTrigger>
             <TabsTrigger value="proceedings">Proceedings</TabsTrigger>

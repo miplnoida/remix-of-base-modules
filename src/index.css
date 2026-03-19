@@ -118,14 +118,16 @@
     line-height: 1.5;
   }
 
-  /* Typography hierarchy per SSB style guide */
-  h1 { @apply text-[26px] font-semibold tracking-tight; }
-  h2 { @apply text-lg font-medium tracking-tight; }
-  h3 { @apply text-base font-medium tracking-tight; }
+  /* Prevent horizontal overflow at the page level */
+  html, body { overflow-x: hidden; }
+
+  /* Typography hierarchy per SSB style guide — responsive */
+  h1 { @apply text-xl sm:text-2xl md:text-[26px] font-semibold tracking-tight; }
+  h2 { @apply text-base sm:text-lg font-medium tracking-tight; }
+  h3 { @apply text-sm sm:text-base font-medium tracking-tight; }
   h4 { @apply text-sm font-medium tracking-tight; }
   h5 { @apply text-[13px] font-medium tracking-tight; }
   h6 { @apply text-xs font-normal tracking-tight; }
-
   /* BeMA Finance Typography (preserved) */
   .bema-h1 { font-size: 40px; font-weight: 700; font-family: 'Inter', sans-serif; }
   .bema-h2 { font-size: 26px; font-weight: 600; font-family: 'Inter', sans-serif; }
@@ -148,6 +150,36 @@
 }
 
 @layer components {
+  /* ── Responsive Scrollable Tabs ── */
+  .responsive-tabs {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    grid-template-columns: none !important;
+  }
+  .responsive-tabs::-webkit-scrollbar { display: none; }
+  .responsive-tabs > * { flex-shrink: 0; }
+
+  @media (min-width: 1024px) {
+    .responsive-tabs {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+  }
+
+  /* ── Responsive Grid Helper ── */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  /* ── Responsive Table Wrapper ── */
+  .responsive-table-wrapper {
+    @apply w-full overflow-x-auto;
+  }
+
   /* ── Status Badges (pill shape per style guide) ── */
   .status-badge {
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
