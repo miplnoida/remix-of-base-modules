@@ -11,7 +11,7 @@ import IPBlocked from '@/pages/IPBlocked';
 import { Loader2 } from 'lucide-react';
 
 export const IPAccessGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isChecking, isAllowed } = useIPAccessCheck();
+  const { isChecking, isAllowed, clientIP } = useIPAccessCheck();
 
   if (isChecking) {
     return (
