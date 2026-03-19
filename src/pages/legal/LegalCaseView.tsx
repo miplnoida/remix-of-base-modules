@@ -168,7 +168,7 @@ export default function LegalCaseView() {
             <CollapsibleContent>
               <CardContent>
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                  <TabsList className="responsive-tabs">
                     <TabsTrigger value="overview" className="gap-2">
                       <FileText className="h-4 w-4" />
                       Overview
