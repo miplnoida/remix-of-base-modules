@@ -1,180 +1,230 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  BarChart3, FileSearch, CheckCircle, AlertTriangle, Clock, Users, 
-  CalendarDays, TrendingUp, Shield, FileText 
-} from 'lucide-react';
-import { useIAAnnualPlans, useIAActivities, useIAFindings, useIAAuditors, useIAFollowUps, useIAWorkingPapers, useIAActionTracking, useIADepartments } from '@/hooks/useAuditData';
-import { PageShell, StatusBadge, DataTable } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
-import { Progress } from '@/components/ui/progress';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageShell, DataTable, StatusBadge } from '@/components/common';
+import type { DataTableColumn } from '@/components/common';
+import { BarChart3, Building2, Briefcase, ClipboardList, FileSearch, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useIADepartments, useIADepartmentFunctions, useIAAnnualPlans, useIAFindings, useIAActionTracking } from '@/hooks/useAuditData';
+import { useIAEngagements, useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
+
+function deriveRiskLevel(score: number) {
+  if (score >= 16) return 'Critical';
+  if (score >= 11) return 'High';
+  if (score >= 6) return 'Medium';
+  return 'Low';
+}
 
 export default function AuditDashboard() {
   const navigate = useNavigate();
-  const { data: plans = [], isLoading: plansLoading } = useIAAnnualPlans();
-  const { data: activities = [] } = useIAActivities();
+  const { data: departments = [], isLoading: departmentsLoading } = useIADepartments();
+  const { data: functions = [] } = useIADepartmentFunctions('all');
+  const { data: plans = [] } = useIAAnnualPlans();
+  const { data: audits = [] } = useIAEngagements();
   const { data: findings = [] } = useIAFindings();
-  const { data: auditors = [] } = useIAAuditors();
-  const { data: followUps = [] } = useIAFollowUps();
-  const { data: workingPapers = [] } = useIAWorkingPapers();
   const { data: actions = [] } = useIAActionTracking();
-  const { data: departments = [] } = useIADepartments();
+  const { data: assessments = [] } = useIARiskAssessments();
 
-  const activePlans = plans.filter((p: any) => p.status === 'Approved' || p.status === 'In Progress');
-  const completedActivities = activities.filter((a: any) => a.status === 'Completed');
-  const openFindings = findings.filter((f: any) => f.status !== 'Closed');
-  const highRiskFindings = findings.filter((f: any) => f.risk_rating === 'High' && f.status !== 'Closed');
-  const overdueFollowUps = followUps.filter((fu: any) => fu.status !== 'Resolved' && fu.due_date && new Date(fu.due_date) < new Date());
-  const pendingActions = actions.filter((a: any) => a.status === 'Not Started' || a.status === 'In Progress');
+  const functionMap = useMemo(() => Object.fromEntries((functions || []).map((fn: any) => [fn.id, fn])), [functions]);
+  const departmentMap = useMemo(() => new Map((departments || []).map((dept: any) => [dept.id, dept])), [departments]);
 
-  const activityCompletion = activities.length > 0 ? Math.round((completedActivities.length / activities.length) * 100) : 0;
+  const overdueActions = actions.filter((action: any) => {
+    const dueDate = action.due_date || action.target_date;
+    const completed = ['Completed', 'Closed', 'Resolved'].includes(action.status || action.completion_status);
+    return dueDate && !completed && new Date(dueDate) < new Date();
+  });
 
-  const kpiCards = [
-    { label: 'Active Plans', value: activePlans.length, icon: CalendarDays, color: 'text-primary' },
-    { label: 'Activities', value: `${completedActivities.length}/${activities.length}`, icon: BarChart3, color: 'text-blue-600' },
-    { label: 'Open Findings', value: openFindings.length, icon: FileSearch, color: 'text-orange-600' },
-    { label: 'High Risk', value: highRiskFindings.length, icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Overdue Follow-ups', value: overdueFollowUps.length, icon: Clock, color: overdueFollowUps.length > 0 ? 'text-destructive' : 'text-green-600' },
-    { label: 'Pending Actions', value: pendingActions.length, icon: Shield, color: 'text-purple-600' },
-    { label: 'Working Papers', value: workingPapers.filter((wp: any) => wp.status === 'Draft').length, icon: FileText, subLabel: 'In Draft' },
-    { label: 'Auditors', value: auditors.length, icon: Users, color: 'text-muted-foreground' },
-  ];
+  const completedAudits = audits.filter((audit: any) => ['Closed', 'Completed'].includes(audit.status || ''));
+  const openFindings = findings.filter((finding: any) => !['Closed', 'Resolved', 'Accepted'].includes(finding.status || ''));
 
-  // Recent findings
-  const recentFindings = [...findings].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+  const topRiskFunctions = useMemo(() => {
+    return [...assessments]
+      .map((assessment: any) => {
+        const score = Number(assessment.overall_risk_score) || (Number(assessment.impact_score) || 0) * (Number(assessment.likelihood_score) || 0);
+        return {
+          ...assessment,
+          score,
+          risk_level: assessment.risk_level || deriveRiskLevel(score),
+        };
+      })
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 5);
+  }, [assessments]);
+
+  const riskByDepartment = useMemo(() => {
+    const summary = new Map<string, { name: string; total: number; score: number; critical: number; high: number }>();
+
+    assessments.forEach((assessment: any) => {
+      const fn = functionMap[assessment.function_id];
+      if (!fn?.department_id) return;
+      const dept = departmentMap.get(fn.department_id);
+      const score = Number(assessment.overall_risk_score) || (Number(assessment.impact_score) || 0) * (Number(assessment.likelihood_score) || 0);
+      const level = assessment.risk_level || deriveRiskLevel(score);
+      const current = summary.get(fn.department_id) || {
+        name: dept?.name || 'Unknown Department',
+        total: 0,
+        score: 0,
+        critical: 0,
+        high: 0,
+      };
+
+      current.total += 1;
+      current.score += score;
+      if (level === 'Critical') current.critical += 1;
+      if (level === 'High') current.high += 1;
+      summary.set(fn.department_id, current);
+    });
+
+    return [...summary.values()]
+      .map((item) => ({ ...item, averageScore: item.total ? Math.round((item.score / item.total) * 10) / 10 : 0 }))
+      .sort((a, b) => b.averageScore - a.averageScore)
+      .slice(0, 5);
+  }, [assessments, functionMap, departmentMap]);
+
+  const recentFindings = [...findings].slice(0, 5);
   const findingColumns: DataTableColumn<any>[] = [
-    { key: 'finding_id', header: 'ID', render: (f) => <span className="text-xs font-mono">{f.finding_id || f.id?.slice(0, 8)}</span> },
-    { key: 'title', header: 'Title', render: (f) => <span className="font-medium">{f.title}</span> },
-    { key: 'risk_rating', header: 'Risk', render: (f) => <StatusBadge status={f.risk_rating || 'Medium'} /> },
-    { key: 'status', header: 'Status', render: (f) => <StatusBadge status={f.status} /> },
+    {
+      key: 'title',
+      header: 'Finding',
+      render: (row) => <span className="font-medium">{row.title || row.condition || 'Untitled finding'}</span>,
+    },
+    {
+      key: 'audit',
+      header: 'Audit',
+      render: (row) => {
+        const audit = audits.find((item: any) => item.id === row.engagement_id);
+        return <span>{audit?.engagement_name || '—'}</span>;
+      },
+    },
+    {
+      key: 'risk_rating',
+      header: 'Risk',
+      render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} />,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => <StatusBadge status={row.status || 'Open'} />,
+    },
   ];
 
-  // Upcoming activities
-  const upcomingActivities = activities
-    .filter((a: any) => a.scheduled_date && new Date(a.scheduled_date) >= new Date() && a.status !== 'Completed')
-    .sort((a: any, b: any) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
-    .slice(0, 5);
-  const activityColumns: DataTableColumn<any>[] = [
-    { key: 'title', header: 'Activity', render: (a) => <span className="font-medium">{a.title}</span> },
-    { key: 'scheduled_date', header: 'Date', render: (a) => a.scheduled_date ? new Date(a.scheduled_date).toLocaleDateString() : '-' },
-    { key: 'status', header: 'Status', render: (a) => <StatusBadge status={a.status} /> },
+  const kpis = [
+    { label: 'Total Departments', value: departments.length, icon: Building2 },
+    { label: 'Total Functions', value: functions.length, icon: ClipboardList },
+    { label: 'Audits Planned', value: audits.length || plans.length, icon: Briefcase },
+    { label: 'Audits Completed', value: completedAudits.length, icon: CheckCircle2 },
+    { label: 'Open Findings', value: openFindings.length, icon: FileSearch },
+    { label: 'Overdue Actions', value: overdueActions.length, icon: AlertTriangle },
   ];
-
-  // Finding distribution by risk
-  const riskDistribution = [
-    { label: 'High', count: findings.filter((f: any) => f.risk_rating === 'High').length, color: 'bg-destructive' },
-    { label: 'Medium', count: findings.filter((f: any) => f.risk_rating === 'Medium').length, color: 'bg-orange-500' },
-    { label: 'Low', count: findings.filter((f: any) => f.risk_rating === 'Low').length, color: 'bg-green-500' },
-  ];
-  const totalRisk = riskDistribution.reduce((s, r) => s + r.count, 0) || 1;
 
   return (
     <PageShell
       title="Internal Audit Dashboard"
-      subtitle="Overview of audit activities, findings, and key performance indicators"
+      subtitle="Simple department and function audit overview"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Dashboard' }]}
-      isLoading={plansLoading}
+      isLoading={departmentsLoading}
     >
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpiCards.map((card) => (
-          <Card key={card.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <card.icon className={`h-5 w-5 ${card.color || 'text-muted-foreground'}`} />
-                <div className="ml-3">
-                  <p className="text-sm text-muted-foreground">{card.label}</p>
-                  <p className={`text-2xl font-bold ${card.color || ''}`}>{card.value}</p>
-                  {card.subLabel && <p className="text-xs text-muted-foreground">{card.subLabel}</p>}
-                </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {kpis.map((item) => (
+          <Card key={item.label}>
+            <CardContent className="flex items-center gap-4 pt-6">
+              <div className="rounded-lg bg-primary/10 p-3 text-primary">
+                <item.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{item.label}</p>
+                <p className="text-2xl font-semibold text-foreground">{item.value}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Activity Completion & Risk Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>
-          <CardHeader><CardTitle className="text-sm font-medium">Activity Completion Rate</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Overall Progress</span>
-                <span className="font-medium">{activityCompletion}%</span>
-              </div>
-              <Progress value={activityCompletion} className="h-3" />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{completedActivities.length} completed</span>
-                <span>{activities.filter((a: any) => a.status === 'In Progress').length} in progress</span>
-                <span>{activities.filter((a: any) => a.status === 'Planned').length} planned</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-sm font-medium">Finding Risk Distribution</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {riskDistribution.map((r) => (
-                <div key={r.label} className="flex items-center gap-3">
-                  <span className="text-sm w-16">{r.label}</span>
-                  <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-                    <div className={`h-full ${r.color} rounded-full transition-all`} style={{ width: `${(r.count / totalRisk) * 100}%` }} />
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-primary" />
+              Top Risk Functions
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => navigate('/audit/risk-matrix')}>View Risk Matrix</Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {topRiskFunctions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No function risk assessments available yet.</p>
+            ) : (
+              topRiskFunctions.map((item: any) => {
+                const fn = functionMap[item.function_id];
+                const dept = fn ? departmentMap.get(fn.department_id) : null;
+                return (
+                  <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
+                      <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={item.risk_level} />
+                      <span className="text-xs text-muted-foreground">Score {item.score}</span>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium w-8 text-right">{r.count}</span>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Risk by Department
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {riskByDepartment.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No department risk rollup available yet.</p>
+            ) : (
+              riskByDepartment.map((item) => (
+                <div key={item.name} className="rounded-lg border bg-card p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.total} assessed functions</p>
+                    </div>
+                    <BadgeLike text={`Avg ${item.averageScore}`} />
+                  </div>
+                  <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
+                    <span>Critical: {item.critical}</span>
+                    <span>High: {item.high}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1" onClick={() => navigate('/audit/audit-plans')}>
-          <CalendarDays className="h-5 w-5" />
-          <span className="text-xs">Audit Plans</span>
-        </Button>
-        <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1" onClick={() => navigate('/audit/findings')}>
-          <FileSearch className="h-5 w-5" />
-          <span className="text-xs">Findings</span>
-        </Button>
-        <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1" onClick={() => navigate('/audit/follow-up-tracker')}>
-          <TrendingUp className="h-5 w-5" />
-          <span className="text-xs">Follow-ups</span>
-        </Button>
-        <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1" onClick={() => navigate('/audit/audit-reports')}>
-          <FileText className="h-5 w-5" />
-          <span className="text-xs">Reports</span>
-        </Button>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/departments')}>Departments</Button>
+        <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/functions')}>Functions</Button>
+        <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/audit-plans')}>Audit Plans</Button>
+        <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/audits')}>Audits</Button>
+        <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/actions')}>Action Tracker</Button>
       </div>
 
-      {/* Recent Findings & Upcoming Activities */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Recent Findings</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/audit/findings')}>View All</Button>
-          </CardHeader>
-          <CardContent>
-            <DataTable columns={findingColumns} data={recentFindings} emptyMessage="No findings yet" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Upcoming Activities</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/audit/calendar')}>View Calendar</Button>
-          </CardHeader>
-          <CardContent>
-            <DataTable columns={activityColumns} data={upcomingActivities} emptyMessage="No upcoming activities" />
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Recent Findings</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/audit/findings')}>View all</Button>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={findingColumns} data={recentFindings} emptyMessage="No findings available." />
+        </CardContent>
+      </Card>
     </PageShell>
   );
+}
+
+function BadgeLike({ text }: { text: string }) {
+  return <span className="rounded-full border bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">{text}</span>;
 }
