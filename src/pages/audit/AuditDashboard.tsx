@@ -41,11 +41,7 @@ export default function AuditDashboard() {
     return [...assessments]
       .map((assessment: any) => {
         const score = Number(assessment.overall_risk_score) || (Number(assessment.impact_score) || 0) * (Number(assessment.likelihood_score) || 0);
-        return {
-          ...assessment,
-          score,
-          risk_level: assessment.risk_level || deriveRiskLevel(score),
-        };
+        return { ...assessment, score, risk_level: assessment.risk_level || deriveRiskLevel(score) };
       })
       .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 5);
@@ -53,59 +49,45 @@ export default function AuditDashboard() {
 
   const riskByDepartment = useMemo(() => {
     const summary = new Map<string, { name: string; total: number; score: number; critical: number; high: number }>();
-
     assessments.forEach((assessment: any) => {
       const fn = functionMap[assessment.function_id];
       if (!fn?.department_id) return;
       const dept = departmentMap.get(fn.department_id);
       const score = Number(assessment.overall_risk_score) || (Number(assessment.impact_score) || 0) * (Number(assessment.likelihood_score) || 0);
       const level = assessment.risk_level || deriveRiskLevel(score);
-      const current = summary.get(fn.department_id) || {
-        name: dept?.name || 'Unknown Department',
-        total: 0,
-        score: 0,
-        critical: 0,
-        high: 0,
-      };
-
+      const current = summary.get(fn.department_id) || { name: dept?.name || 'Unknown Department', total: 0, score: 0, critical: 0, high: 0 };
       current.total += 1;
       current.score += score;
       if (level === 'Critical') current.critical += 1;
       if (level === 'High') current.high += 1;
       summary.set(fn.department_id, current);
     });
-
     return [...summary.values()]
       .map((item) => ({ ...item, averageScore: item.total ? Math.round((item.score / item.total) * 10) / 10 : 0 }))
       .sort((a, b) => b.averageScore - a.averageScore)
       .slice(0, 5);
   }, [assessments, functionMap, departmentMap]);
 
+  // Recent audits with function names
+  const recentAudits = [...audits].slice(0, 5);
+  const auditColumns: DataTableColumn<any>[] = [
+    { key: 'engagement_name', header: 'Audit Title', render: (r) => <span className="font-medium">{r.engagement_name || '—'}</span> },
+    { key: 'department', header: 'Department', render: (r) => { const d = departmentMap.get(r.department_id); return <span>{d?.name || '—'}</span>; } },
+    { key: 'function', header: 'Function', render: (r) => { const fn = functionMap[r.function_id]; return <span>{fn?.function_name || '—'}</span>; } },
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Planned'} /> },
+  ];
+
   const recentFindings = [...findings].slice(0, 5);
   const findingColumns: DataTableColumn<any>[] = [
-    {
-      key: 'title',
-      header: 'Finding',
-      render: (row) => <span className="font-medium">{row.title || row.condition || 'Untitled finding'}</span>,
-    },
-    {
-      key: 'audit',
-      header: 'Audit',
-      render: (row) => {
-        const audit = audits.find((item: any) => item.id === row.engagement_id);
-        return <span>{audit?.engagement_name || '—'}</span>;
-      },
-    },
-    {
-      key: 'risk_rating',
-      header: 'Risk',
-      render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} />,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <StatusBadge status={row.status || 'Open'} />,
-    },
+    { key: 'title', header: 'Finding', render: (row) => <span className="font-medium">{row.title || row.condition || 'Untitled'}</span> },
+    { key: 'audit', header: 'Audit', render: (row) => { const audit = audits.find((a: any) => a.id === row.engagement_id); return <span>{audit?.engagement_name || '—'}</span>; } },
+    { key: 'function', header: 'Function', render: (row) => {
+      const audit = audits.find((a: any) => a.id === row.engagement_id);
+      const fn = audit?.function_id ? functionMap[audit.function_id] : null;
+      return <span>{fn?.function_name || '—'}</span>;
+    }},
+    { key: 'risk_rating', header: 'Risk', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Open'} /> },
   ];
 
   const kpis = [
@@ -120,7 +102,7 @@ export default function AuditDashboard() {
   return (
     <PageShell
       title="Internal Audit Dashboard"
-      subtitle="Simple department and function audit overview"
+      subtitle="Department and function audit overview"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Dashboard' }]}
       isLoading={departmentsLoading}
     >
@@ -128,9 +110,7 @@ export default function AuditDashboard() {
         {kpis.map((item) => (
           <Card key={item.label}>
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className="rounded-lg bg-primary/10 p-3 text-primary">
-                <item.icon className="h-5 w-5" />
-              </div>
+              <div className="rounded-lg bg-primary/10 p-3 text-primary"><item.icon className="h-5 w-5" /></div>
               <div>
                 <p className="text-sm text-muted-foreground">{item.label}</p>
                 <p className="text-2xl font-semibold text-foreground">{item.value}</p>
@@ -143,10 +123,7 @@ export default function AuditDashboard() {
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ShieldAlert className="h-4 w-4 text-primary" />
-              Top Risk Functions
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><ShieldAlert className="h-4 w-4 text-primary" />Top Risk Functions</CardTitle>
             <Button variant="outline" size="sm" onClick={() => navigate('/audit/risk-matrix')}>View Risk Matrix</Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -174,12 +151,7 @@ export default function AuditDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              Risk by Department
-            </CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BarChart3 className="h-4 w-4 text-primary" />Risk by Department</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {riskByDepartment.length === 0 ? (
               <p className="text-sm text-muted-foreground">No department risk rollup available yet.</p>
@@ -212,6 +184,18 @@ export default function AuditDashboard() {
         <Button variant="outline" className="h-auto justify-start py-3" onClick={() => navigate('/audit/actions')}>Action Tracker</Button>
       </div>
 
+      {/* Recent Audits */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Recent Audits</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/audit/audits')}>View all</Button>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={auditColumns} data={recentAudits} emptyMessage="No audits available." />
+        </CardContent>
+      </Card>
+
+      {/* Recent Findings */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Recent Findings</CardTitle>
