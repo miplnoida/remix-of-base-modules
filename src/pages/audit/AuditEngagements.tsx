@@ -116,6 +116,7 @@ export default function AuditEngagements() {
       planned_start_date: form.planned_start_date || null,
       planned_end_date: form.planned_end_date || null,
       status: form.status,
+      engagement_type: form.engagement_type,
     };
     if (modalState.mode === 'create') {
       create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
