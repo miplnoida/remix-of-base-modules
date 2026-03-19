@@ -35,7 +35,7 @@ const C3ConfigurationPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-11 lg:w-auto lg:inline-flex">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="period-config" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Period Configuration</span>

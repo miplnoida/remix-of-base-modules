@@ -81,7 +81,7 @@ export default function UserDataOverrides() {
         </CardHeader>
         <CardContent>
           <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger className="w-[400px]">
+            <SelectTrigger className="w-full max-w-[400px]">
               <SelectValue placeholder="Select a user..." />
             </SelectTrigger>
             <SelectContent>

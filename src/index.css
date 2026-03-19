@@ -118,14 +118,16 @@
     line-height: 1.5;
   }
 
-  /* Typography hierarchy per SSB style guide */
-  h1 { @apply text-[26px] font-semibold tracking-tight; }
-  h2 { @apply text-lg font-medium tracking-tight; }
-  h3 { @apply text-base font-medium tracking-tight; }
+  /* Prevent horizontal overflow at the page level */
+  html, body { overflow-x: hidden; }
+
+  /* Typography hierarchy per SSB style guide — responsive */
+  h1 { @apply text-xl sm:text-2xl md:text-[26px] font-semibold tracking-tight; }
+  h2 { @apply text-base sm:text-lg font-medium tracking-tight; }
+  h3 { @apply text-sm sm:text-base font-medium tracking-tight; }
   h4 { @apply text-sm font-medium tracking-tight; }
   h5 { @apply text-[13px] font-medium tracking-tight; }
   h6 { @apply text-xs font-normal tracking-tight; }
-
   /* BeMA Finance Typography (preserved) */
   .bema-h1 { font-size: 40px; font-weight: 700; font-family: 'Inter', sans-serif; }
   .bema-h2 { font-size: 26px; font-weight: 600; font-family: 'Inter', sans-serif; }

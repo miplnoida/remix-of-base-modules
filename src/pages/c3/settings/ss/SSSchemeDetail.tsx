@@ -167,7 +167,7 @@ export default function SSSchemeDetail() {
       {/* Configuration Tabs */}
       {!isNew && (
         <Tabs defaultValue="age-bands" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="responsive-tabs">
             <TabsTrigger value="age-bands">Age Bands & Rates</TabsTrigger>
             <TabsTrigger value="components">Insurable Components</TabsTrigger>
             <TabsTrigger value="ceilings">Ceilings & Limits</TabsTrigger>

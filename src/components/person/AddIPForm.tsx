@@ -217,7 +217,7 @@ export const AddIPForm = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="basic">Basic Details</TabsTrigger>
           <TabsTrigger value="address">Address</TabsTrigger>
           <TabsTrigger value="relations">Relations</TabsTrigger>

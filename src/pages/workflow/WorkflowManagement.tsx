@@ -33,7 +33,7 @@ export default function WorkflowManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 lg:grid-cols-14">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="designer">Designer</TabsTrigger>
           <TabsTrigger value="workflows">Workflows</TabsTrigger>
           <TabsTrigger value="steps">Steps</TabsTrigger>

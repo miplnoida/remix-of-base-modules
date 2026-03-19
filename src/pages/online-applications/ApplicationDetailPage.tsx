@@ -343,7 +343,7 @@ export default function ApplicationDetailPage() {
 
       {/* Tabbed Details */}
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="responsive-tabs">
           <TabsTrigger value="personal" className="gap-2">
             <User className="h-4 w-4" />
             Personal

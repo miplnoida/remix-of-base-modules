@@ -92,7 +92,7 @@ export default function WorkflowDesigner() {
 
   return (
     <>
-    <div className="grid grid-cols-[280px_1fr_360px] gap-4 h-[calc(100vh-240px)]">
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] lg:grid-cols-[280px_1fr_360px] gap-4 h-auto lg:h-[calc(100vh-240px)]">
       {/* Toolbox */}
       <div className="space-y-4">
         <Card className="p-4">
