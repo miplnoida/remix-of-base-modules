@@ -148,6 +148,36 @@
 }
 
 @layer components {
+  /* ── Responsive Scrollable Tabs ── */
+  .responsive-tabs {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    grid-template-columns: none !important;
+  }
+  .responsive-tabs::-webkit-scrollbar { display: none; }
+  .responsive-tabs > * { flex-shrink: 0; }
+
+  @media (min-width: 1024px) {
+    .responsive-tabs {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+  }
+
+  /* ── Responsive Grid Helper ── */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  /* ── Responsive Table Wrapper ── */
+  .responsive-table-wrapper {
+    @apply w-full overflow-x-auto;
+  }
+
   /* ── Status Badges (pill shape per style guide) ── */
   .status-badge {
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
