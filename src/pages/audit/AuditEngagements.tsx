@@ -15,7 +15,7 @@ import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunct
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 
-const STATUSES = ['Draft', 'Submitted', 'Approved', 'In Progress', 'Fieldwork Complete', 'Reporting', 'Closed'];
+const STATUSES = ['Draft', 'Planned', 'Submitted', 'Approved', 'In Progress', 'Fieldwork', 'Fieldwork Complete', 'Observation', 'Reporting', 'Closure', 'Closed'];
 const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
 
 const generateEngagementCode = () => {
