@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { DiscussionThread } from '@/components/audit/DiscussionThread';
-import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
 import { Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useIAFindings, useIAFindingMutations, useIADepartments, useIAActivities, useIAAnnualPlans } from '@/hooks/useAuditData';
-import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
+import { useIAFindings, useIAFindingMutations, useIADepartments, useIAAnnualPlans, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { useToast } from "@/hooks/use-toast";
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, BulkUploadModal, ExportDropdown } from '@/components/common';
@@ -40,12 +38,17 @@ const FindingsManagement = () => {
 
   const { data: findings = [], isLoading } = useIAFindings();
   const { data: departments = [] } = useIADepartments();
-  const { data: activities = [] } = useIAActivities();
+  const { data: audits = [] } = useIAEngagements();
+  const { data: allFunctions = [] } = useIADepartmentFunctions('all');
   const { data: plans = [] } = useIAAnnualPlans();
-  const { data: deptAudits = [] } = useIADepartmentAudits();
   const { create, update, remove } = useIAFindingMutations();
 
-  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', activity_id: '', annual_plan_id: '', department_audit_id: '', finding_id: '', root_cause_category: '', preventive_action: '', corrective_action_description: '' };
+  // Lookup maps
+  const auditMap = useMemo(() => Object.fromEntries((audits || []).map((a: any) => [a.id, a])), [audits]);
+  const functionMap = useMemo(() => Object.fromEntries((allFunctions || []).map((fn: any) => [fn.id, fn])), [allFunctions]);
+  const departmentMap = useMemo(() => Object.fromEntries((departments || []).map((d: any) => [d.id, d])), [departments]);
+
+  const emptyForm = { title: '', condition: '', criteria: '', cause: '', effect: '', risk_rating: '', impact_area: '', status: 'Draft', department_id: '', engagement_id: '', finding_id: '', root_cause_category: '', preventive_action: '', corrective_action_description: '', recommendation: '' };
   const [formData, setFormData] = useState(emptyForm);
   const resetForm = () => setFormData(emptyForm);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
@@ -74,20 +77,14 @@ const FindingsManagement = () => {
     return matchesSearch && matchesStatus && matchesRisk && matchesEngagement;
   });
 
-  // When an activity is selected, auto-fill department and plan fields
-  const handleActivityChange = (activityId: string) => {
-    const activity = activities.find((a: any) => a.id === activityId);
-    if (activity) {
-      setFormData(prev => ({
-        ...prev,
-        activity_id: activityId,
-        department_id: activity.department_id || prev.department_id,
-        annual_plan_id: activity.annual_plan_id || prev.annual_plan_id,
-        department_audit_id: activity.department_audit_id || prev.department_audit_id,
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, activity_id: activityId }));
-    }
+  // When an audit is selected, auto-fill department
+  const handleAuditChange = (auditId: string) => {
+    const audit = auditMap[auditId];
+    setFormData(prev => ({
+      ...prev,
+      engagement_id: auditId,
+      department_id: audit?.department_id || prev.department_id,
+    }));
   };
 
   const handleCreate = () => {
@@ -95,19 +92,20 @@ const FindingsManagement = () => {
       toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
       return;
     }
-    if (!formData.activity_id) {
-      toast({ title: "Validation Error", description: "An Activity must be selected. Findings cannot exist without a linked activity.", variant: "destructive" });
+    if (!formData.engagement_id) {
+      toast({ title: "Validation Error", description: "An Audit must be selected. Findings must be linked to an audit.", variant: "destructive" });
       return;
     }
     const findingId = `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     create.mutate({
       ...formData, finding_id: findingId,
-      department_id: formData.department_id || null, activity_id: formData.activity_id || null,
-      annual_plan_id: formData.annual_plan_id || null, department_audit_id: formData.department_audit_id || null,
+      department_id: formData.department_id || null, activity_id: null,
+      annual_plan_id: null, department_audit_id: null,
+      engagement_id: formData.engagement_id || null,
       root_cause_category: formData.root_cause_category || null,
       preventive_action: formData.preventive_action || null,
       corrective_action_description: formData.corrective_action_description || null,
-      engagement_id: engagementIdFilter || null,
+      recommendation: formData.recommendation || null,
       ...getCreateFields(),
     }, { onSuccess: () => { setIsCreateOpen(false); resetForm(); } });
   };
@@ -117,18 +115,16 @@ const FindingsManagement = () => {
       toast({ title: "Validation Error", description: "Finding Title and Condition are required", variant: "destructive" });
       return;
     }
-    if (!formData.activity_id) {
-      toast({ title: "Validation Error", description: "An Activity must be selected.", variant: "destructive" });
-      return;
-    }
     update.mutate({
       id: editItem.id, title: formData.title, condition: formData.condition, criteria: formData.criteria,
       cause: formData.cause, effect: formData.effect, risk_rating: formData.risk_rating, impact_area: formData.impact_area,
-      department_id: formData.department_id || null, activity_id: formData.activity_id || null,
-      annual_plan_id: formData.annual_plan_id || null, department_audit_id: formData.department_audit_id || null,
+      department_id: formData.department_id || null, activity_id: null,
+      annual_plan_id: null, department_audit_id: null,
+      engagement_id: formData.engagement_id || null,
       root_cause_category: formData.root_cause_category || null,
       preventive_action: formData.preventive_action || null,
       corrective_action_description: formData.corrective_action_description || null,
+      recommendation: formData.recommendation || null,
       ...getUpdateFields(),
     }, { onSuccess: () => { setEditItem(null); resetForm(); } });
   };
@@ -144,11 +140,11 @@ const FindingsManagement = () => {
     setFormData({
       title: f.title, condition: f.condition || '', criteria: f.criteria || '', cause: f.cause || '',
       effect: f.effect || '', risk_rating: f.risk_rating || '', impact_area: f.impact_area || '',
-      status: f.status || 'Draft', department_id: f.department_id || '', activity_id: f.activity_id || '',
-      annual_plan_id: f.annual_plan_id || '', department_audit_id: f.department_audit_id || '',
+      status: f.status || 'Draft', department_id: f.department_id || '', engagement_id: f.engagement_id || '',
       finding_id: f.finding_id || '',
       root_cause_category: f.root_cause_category || '', preventive_action: f.preventive_action || '',
       corrective_action_description: f.corrective_action_description || '',
+      recommendation: f.recommendation || '',
     });
     setEditItem(f);
   };
@@ -169,8 +165,15 @@ const FindingsManagement = () => {
     { key: 'finding_id', header: 'Finding ID', render: (f) => <span className="text-xs font-mono">{f.finding_id || f.id.slice(0,8)}</span> },
     { key: 'title', header: 'Finding Title', render: (f) => <span className="font-medium">{f.title}</span> },
     { key: 'risk_rating', header: 'Risk Level', render: (f) => <StatusBadge status={f.risk_rating || 'Medium'} /> },
-    { key: 'activity', header: 'Activity', render: (f) => { const a = activities.find((a: any) => a.id === f.activity_id); return <span className="text-xs">{a?.title || '-'}</span>; }},
-    { key: 'plan', header: 'Audit Plan', render: (f) => { const p = plans.find((p: any) => p.id === f.annual_plan_id); return <span className="text-xs">{p?.title || '-'}</span>; }},
+    { key: 'audit', header: 'Audit', render: (f) => {
+      const audit = auditMap[f.engagement_id];
+      return <span className="text-xs">{audit?.engagement_name || '—'}</span>;
+    }},
+    { key: 'function', header: 'Function', render: (f) => {
+      const audit = auditMap[f.engagement_id];
+      const fn = audit?.function_id ? functionMap[audit.function_id] : null;
+      return <span className="text-xs">{fn?.function_name || '—'}</span>;
+    }},
     { key: 'status', header: 'Status', render: (f) => <StatusBadge status={f.status} /> },
     { key: 'created_at', header: 'Date', render: (f) => f.created_at ? new Date(f.created_at).toLocaleDateString() : '-' },
   ];
@@ -183,28 +186,19 @@ const FindingsManagement = () => {
 
   const linkingFields = (
     <>
-      <div className="space-y-2"><Label>Activity * (Required)</Label>
-        <Select value={formData.activity_id} onValueChange={handleActivityChange}>
-          <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
-          <SelectContent>{(engagementIdFilter ? activities.filter((a: any) => a.engagement_id === engagementIdFilter) : activities).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
+      <div className="space-y-2"><Label>Audit * (Required)</Label>
+        <Select value={formData.engagement_id} onValueChange={handleAuditChange}>
+          <SelectTrigger><SelectValue placeholder="Select audit" /></SelectTrigger>
+          <SelectContent>{audits.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.engagement_name || a.engagement_code}</SelectItem>)}</SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Selecting an activity will auto-fill the plan and department fields below.</p>
+        <p className="text-xs text-muted-foreground">Selecting an audit will auto-fill the department.</p>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Audit Plan</Label>
-          <Select value={formData.annual_plan_id} onValueChange={v => setFormData({...formData, annual_plan_id: v})}>
-            <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
-            <SelectContent>{plans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2"><Label>Dept. Audit</Label>
-          <Select value={formData.department_audit_id} onValueChange={v => setFormData({...formData, department_audit_id: v})}>
-            <SelectTrigger><SelectValue placeholder="Select dept audit" /></SelectTrigger>
-            <SelectContent>{deptAudits.map((da: any) => <SelectItem key={da.id} value={da.id}>{da.department_name || da.id.slice(0,8)}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2"><Label>Department</Label>
+        <Select value={formData.department_id} onValueChange={v => setFormData({...formData, department_id: v})}>
+          <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+          <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+        </Select>
       </div>
-      <div className="space-y-2"><Label>Department</Label><Select value={formData.department_id} onValueChange={v => setFormData({...formData, department_id: v})}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
     </>
   );
 
@@ -220,6 +214,7 @@ const FindingsManagement = () => {
       <div className="space-y-2"><Label>Criteria (What should be?)</Label><Textarea value={formData.criteria} onChange={e => setFormData({...formData, criteria: e.target.value})} /></div>
       <div className="space-y-2"><Label>Cause (Why did it happen?)</Label><Textarea value={formData.cause} onChange={e => setFormData({...formData, cause: e.target.value})} /></div>
       <div className="space-y-2"><Label>Effect (What is the impact?)</Label><Textarea value={formData.effect} onChange={e => setFormData({...formData, effect: e.target.value})} /></div>
+      <div className="space-y-2"><Label>Recommendation</Label><Textarea value={formData.recommendation} onChange={e => setFormData({...formData, recommendation: e.target.value})} placeholder="Recommended corrective action" /></div>
       <div className="border-t pt-4 mt-4">
         <p className="text-sm font-semibold mb-3">Root Cause Analysis</p>
         <div className="space-y-4">
@@ -241,7 +236,7 @@ const FindingsManagement = () => {
     <PageShell
       title="Findings Management"
       subtitle="Document and track audit findings using CCCE methodology"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Findings & Recommendations' }]}
+      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/dashboard' }, { label: 'Findings' }]}
       isLoading={isLoading}
       actions={
         <div className="flex items-center gap-2">
@@ -251,7 +246,6 @@ const FindingsManagement = () => {
         </div>
       }
     >
-      <EngagementFilterBanner />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Card key={card.label}><CardContent className="pt-6 text-center"><p className="text-sm text-muted-foreground">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value}</p></CardContent></Card>
@@ -293,34 +287,26 @@ const FindingsManagement = () => {
               <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><StatusBadge status={viewItem.status} /></div></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Audit Plan</Label><p>{plans.find((p: any) => p.id === viewItem.annual_plan_id)?.title || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Department Audit</Label><p>{deptAudits.find((da: any) => da.id === viewItem.department_audit_id)?.department_name || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Audit</Label><p>{auditMap[viewItem.engagement_id]?.engagement_name || '-'}</p></div>
+              <div><Label className="text-muted-foreground">Function</Label><p>{(() => { const a = auditMap[viewItem.engagement_id]; return a?.function_id ? functionMap[a.function_id]?.function_name : '-'; })()}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-muted-foreground">Department</Label><p>{departments.find((d: any) => d.id === viewItem.department_id)?.name || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Related Activity</Label><p>{activities.find((a: any) => a.id === viewItem.activity_id)?.title || '-'}</p></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Department</Label><p>{departmentMap[viewItem.department_id]?.name || '-'}</p></div>
               <div><Label className="text-muted-foreground">Impact Area</Label><p>{viewItem.impact_area || '-'}</p></div>
-              <div><Label className="text-muted-foreground">Risk Level</Label><div className="mt-1"><StatusBadge status={viewItem.risk_rating || 'Medium'} /></div></div>
             </div>
             <div><Label className="text-muted-foreground">Condition</Label><p>{viewItem.condition || '-'}</p></div>
             <div><Label className="text-muted-foreground">Criteria</Label><p>{viewItem.criteria || '-'}</p></div>
             <div><Label className="text-muted-foreground">Cause</Label><p>{viewItem.cause || '-'}</p></div>
             <div><Label className="text-muted-foreground">Effect</Label><p>{viewItem.effect || '-'}</p></div>
+            {viewItem.recommendation && <div><Label className="text-muted-foreground">Recommendation</Label><p>{viewItem.recommendation}</p></div>}
             {(viewItem.root_cause_category || viewItem.corrective_action_description || viewItem.preventive_action) && (
               <div className="border-t pt-4 space-y-3">
                 <p className="text-sm font-semibold">Root Cause Analysis</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label className="text-muted-foreground">Root Cause Category</Label><p>{viewItem.root_cause_category || '-'}</p></div>
-                </div>
+                <div><Label className="text-muted-foreground">Root Cause Category</Label><p>{viewItem.root_cause_category || '-'}</p></div>
                 <div><Label className="text-muted-foreground">Corrective Action</Label><p>{viewItem.corrective_action_description || '-'}</p></div>
                 <div><Label className="text-muted-foreground">Preventive Action</Label><p>{viewItem.preventive_action || '-'}</p></div>
               </div>
             )}
-            <div className="border-t pt-4">
-              <DiscussionThread entityType="finding" entityId={viewItem.id} />
-            </div>
           </div>
         )}
       </EntityModal>
