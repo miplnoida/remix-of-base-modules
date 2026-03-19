@@ -152,7 +152,7 @@ export default function AuditPlansNew() {
       <StandardModal open={!!editPlan} onOpenChange={(open) => !open && setEditPlan(null)} title="Edit Audit Plan" mode="edit" size="4xl">
         {editPlan && (
           <AnnualPlanForm
-            initialData={editPlan}
+            plan={editPlan}
             onClose={() => setEditPlan(null)}
             onCreate={(data) => create.mutateAsync(data)}
             onUpdate={(data) => update.mutateAsync(data)}
