@@ -15,7 +15,7 @@ import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunct
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 
-const STATUSES = ['Draft', 'Submitted', 'Approved', 'In Progress', 'Fieldwork Complete', 'Reporting', 'Closed'];
+const STATUSES = ['Draft', 'Planned', 'Submitted', 'Approved', 'In Progress', 'Fieldwork', 'Fieldwork Complete', 'Observation', 'Reporting', 'Closure', 'Closed'];
 const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
 
 const generateEngagementCode = () => {
@@ -25,12 +25,15 @@ const generateEngagementCode = () => {
   return `ENG-${dateStr}-${rand}`;
 };
 
+const ENGAGEMENT_TYPES = ['Planned Audit', 'Ad-hoc Audit', 'Management Requested Audit', 'Special Investigation', 'Follow-up Audit'];
+
 const emptyForm = {
   engagement_name: '', engagement_code: '', annual_plan_id: '', department_id: '',
   function_id: '', lead_auditor_id: '', supportive_auditor_ids: [] as string[],
   scope: '', objectives: '', methodology: '', criteria: '',
   engagement_risk_rating: 'Medium', estimated_hours: 0, estimated_budget: 0,
   budgeted_hours: 0, planned_start_date: '', planned_end_date: '', status: 'Draft',
+  engagement_type: 'Planned Audit',
 };
 
 export default function AuditEngagements() {
@@ -49,7 +52,7 @@ export default function AuditEngagements() {
   const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
 
   const approvedPlans = (plans || []).filter((p: any) =>
-    p.status === 'Approved' || p.status === 'Internally Approved' || p.status === 'In Progress'
+    ['Approved', 'Active', 'Internally Approved', 'In Progress'].includes(p.status)
   );
 
   const filtered = data.filter((r: any) => {
@@ -87,6 +90,7 @@ export default function AuditEngagements() {
       budgeted_hours: r.budgeted_hours || 0,
       planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '',
       status: r.status || 'Draft',
+      engagement_type: r.engagement_type || 'Planned Audit',
     });
     setModalState({ mode: 'edit', record: r });
   };
@@ -112,6 +116,7 @@ export default function AuditEngagements() {
       planned_start_date: form.planned_start_date || null,
       planned_end_date: form.planned_end_date || null,
       status: form.status,
+      engagement_type: form.engagement_type,
     };
     if (modalState.mode === 'create') {
       create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
@@ -136,6 +141,7 @@ export default function AuditEngagements() {
   const columns: DataTableColumn<any>[] = [
     { key: 'engagement_code', header: 'Code' },
     { key: 'engagement_name', header: 'Engagement' },
+    { key: 'engagement_type', header: 'Type', render: (r) => <StatusBadge status={r.engagement_type || 'Planned Audit'} /> },
     { key: 'annual_plan_id', header: 'Annual Plan', render: (r) => r.annual_plan_id ? getPlanName(r.annual_plan_id) : <span className="text-muted-foreground text-xs">—</span> },
     { key: 'department_id', header: 'Department', render: (r) => r.department_id ? getDeptName(r.department_id) : <span className="text-muted-foreground text-xs">—</span> },
     { key: 'lead_auditor_id', header: 'Lead Auditor', render: (r) => r.lead_auditor_id ? getAuditorName(r.lead_auditor_id) : <span className="text-muted-foreground text-xs">—</span> },
@@ -188,12 +194,21 @@ export default function AuditEngagements() {
 
           {/* 3. Annual Plan */}
           <div>
-            <Label>Annual Plan <span className="text-muted-foreground text-xs">(approved plans only)</span></Label>
+            <Label>Annual Plan <span className="text-muted-foreground text-xs">(approved/active plans)</span></Label>
             <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
               <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
               <SelectContent>
                 {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title} ({p.fiscal_year})</SelectItem>)}
               </SelectContent>
+            </Select>
+          </div>
+
+          {/* Engagement Type */}
+          <div>
+            <Label>Engagement Type</Label>
+            <Select value={form.engagement_type} onValueChange={v => setForm(f => ({ ...f, engagement_type: v }))} disabled={isReadOnly}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{ENGAGEMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 

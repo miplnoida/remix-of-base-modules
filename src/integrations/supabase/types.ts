@@ -8699,6 +8699,7 @@ export type Database = {
           engagement_code: string | null
           engagement_name: string
           engagement_risk_rating: string | null
+          engagement_type: string | null
           estimated_budget: number | null
           estimated_hours: number | null
           function_id: string | null
@@ -8731,6 +8732,7 @@ export type Database = {
           engagement_code?: string | null
           engagement_name: string
           engagement_risk_rating?: string | null
+          engagement_type?: string | null
           estimated_budget?: number | null
           estimated_hours?: number | null
           function_id?: string | null
@@ -8763,6 +8765,7 @@ export type Database = {
           engagement_code?: string | null
           engagement_name?: string
           engagement_risk_rating?: string | null
+          engagement_type?: string | null
           estimated_budget?: number | null
           estimated_hours?: number | null
           function_id?: string | null
@@ -10662,6 +10665,44 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      ia_plan_change_log: {
+        Row: {
+          change_date: string | null
+          change_type: string
+          changed_by: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          plan_id: string
+        }
+        Insert: {
+          change_date?: string | null
+          change_type: string
+          changed_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          plan_id: string
+        }
+        Update: {
+          change_date?: string | null
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_plan_change_log_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_planning_assumptions: {
         Row: {

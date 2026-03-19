@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 
 export default function AuditPlansNew() {
+  const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all', departmentId: 'all', auditType: 'all' });
@@ -154,10 +156,10 @@ export default function AuditPlansNew() {
                 emptyMessage="No annual plans found"
                 renderActions={(row) => (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewAnnual(row)}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
                     {row.status === 'Draft' && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditAnnual(row)}><Edit className="h-4 w-4" /></Button>}
-                    {row.status === 'Approved' && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="View Amendments" onClick={() => { setAmendmentPlanId(row.id); setAmendmentPlanType('annual'); }}>
+                    {(row.status === 'Approved' || row.status === 'Active') && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="View Change Log" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}>
                         <History className="h-4 w-4" />
                       </Button>
                     )}

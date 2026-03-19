@@ -204,6 +204,7 @@ import SSBLegalDashboard from '@/pages/legal/SSBLegalDashboard';
 import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlans from '@/pages/audit/AuditPlans';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
+const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
 import PlanApproval from '@/pages/audit/PlanApproval';
 import ActivityCalendar from '@/pages/audit/ActivityCalendar';
 import ActivityWorkbench from '@/pages/audit/ActivityWorkbench';
@@ -913,6 +914,7 @@ export const AppRoutes = () => {
       <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><LeaveAndVacationManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/holidays" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_HOLIDAY_MANAGEMENT"><HolidayManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-plans" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><AuditPlanDetail /></ProtectedLayout>} />
       <Route path="/audit/plans" element={<ProtectedLayout><Navigate to="/audit/audit-plans" replace /></ProtectedLayout>} />
       <Route path="/audit/plans-old" element={<ProtectedLayout><AuditPlans /></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLAN_APPROVAL"><PlanApproval /></AuditFeatureGate></ProtectedLayout>} />
