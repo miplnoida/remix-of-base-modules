@@ -20,7 +20,7 @@ export default function AuditPlanDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  const userCode = useUserCode();
+  const userCodeData = useUserCode();
 
   const { data: plans = [], isLoading: plansLoading } = useIAAnnualPlans();
   const { data: engagements = [], isLoading: engLoading } = useIAPlanEngagements(id);
