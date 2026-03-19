@@ -52,7 +52,7 @@ export default function AuditEngagements() {
   const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
 
   const approvedPlans = (plans || []).filter((p: any) =>
-    p.status === 'Approved' || p.status === 'Internally Approved' || p.status === 'In Progress'
+    ['Approved', 'Active', 'Internally Approved', 'In Progress'].includes(p.status)
   );
 
   const filtered = data.filter((r: any) => {
