@@ -82,7 +82,7 @@ export const MODULE_NAMES = {
   // Sample Application module
   SAMPLE_APPLICATION: 'sample_application',
   INCOME_CATEGORY: 'income_category_management',
-  SEP_CONTRIB_RATE: 'sep_contrib_rate_management',
+  SEP_CONTRIB_RATE: 'self_employed_contrib_rates',
   INCOME_CODE: 'income_code_management',
 } as const;
 

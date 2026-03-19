@@ -35,7 +35,7 @@ interface IncomeCategory {
   wage_upper: number | null;
 }
 
-const MODULE_NAME = "sep_contrib_rate_management";
+const MODULE_NAME = "self_employed_contrib_rates";
 
 const SepContribRateManagement = () => {
   const queryClient = useQueryClient();
