@@ -211,6 +211,7 @@ import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
 import RiskAssessment from '@/pages/audit/RiskAssessment';
+import RiskMatrix from '@/pages/audit/RiskMatrix';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
