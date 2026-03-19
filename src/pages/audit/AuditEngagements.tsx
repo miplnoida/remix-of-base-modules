@@ -141,6 +141,7 @@ export default function AuditEngagements() {
   const columns: DataTableColumn<any>[] = [
     { key: 'engagement_code', header: 'Code' },
     { key: 'engagement_name', header: 'Engagement' },
+    { key: 'engagement_type', header: 'Type', render: (r) => <StatusBadge status={r.engagement_type || 'Planned Audit'} /> },
     { key: 'annual_plan_id', header: 'Annual Plan', render: (r) => r.annual_plan_id ? getPlanName(r.annual_plan_id) : <span className="text-muted-foreground text-xs">—</span> },
     { key: 'department_id', header: 'Department', render: (r) => r.department_id ? getDeptName(r.department_id) : <span className="text-muted-foreground text-xs">—</span> },
     { key: 'lead_auditor_id', header: 'Lead Auditor', render: (r) => r.lead_auditor_id ? getAuditorName(r.lead_auditor_id) : <span className="text-muted-foreground text-xs">—</span> },
