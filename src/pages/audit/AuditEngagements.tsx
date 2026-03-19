@@ -193,12 +193,21 @@ export default function AuditEngagements() {
 
           {/* 3. Annual Plan */}
           <div>
-            <Label>Annual Plan <span className="text-muted-foreground text-xs">(approved plans only)</span></Label>
+            <Label>Annual Plan <span className="text-muted-foreground text-xs">(approved/active plans)</span></Label>
             <Select value={form.annual_plan_id} onValueChange={v => setForm(f => ({ ...f, annual_plan_id: v }))} disabled={isReadOnly}>
               <SelectTrigger><SelectValue placeholder="Select annual plan" /></SelectTrigger>
               <SelectContent>
                 {approvedPlans.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title} ({p.fiscal_year})</SelectItem>)}
               </SelectContent>
+            </Select>
+          </div>
+
+          {/* Engagement Type */}
+          <div>
+            <Label>Engagement Type</Label>
+            <Select value={form.engagement_type} onValueChange={v => setForm(f => ({ ...f, engagement_type: v }))} disabled={isReadOnly}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{ENGAGEMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
