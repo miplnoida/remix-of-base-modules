@@ -22,7 +22,7 @@ export const IPAccessGate: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   if (isAllowed === false) {
-    return <IPBlocked />;
+    return <IPBlocked ipAddress={clientIP} />;
   }
 
   return <>{children}</>;
