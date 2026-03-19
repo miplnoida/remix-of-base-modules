@@ -204,6 +204,7 @@ import SSBLegalDashboard from '@/pages/legal/SSBLegalDashboard';
 import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlans from '@/pages/audit/AuditPlans';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
+const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
 import PlanApproval from '@/pages/audit/PlanApproval';
 import ActivityCalendar from '@/pages/audit/ActivityCalendar';
 import ActivityWorkbench from '@/pages/audit/ActivityWorkbench';

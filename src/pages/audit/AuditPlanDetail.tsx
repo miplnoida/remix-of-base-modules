@@ -72,7 +72,7 @@ export default function AuditPlanDetail() {
         plan_id: id!,
         change_type: 'Engagement Added',
         description: `${payload.engagement_name} added (${payload.engagement_type})`,
-        changed_by: userCode || 'system',
+        changed_by: (typeof userCode === 'string' ? userCode : userCode?.userCode) || 'system',
       });
       setShowAddEngagement(false);
     } catch (err) {
