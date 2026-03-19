@@ -118,9 +118,10 @@ export default function PlanApproval() {
   };
 
   const handleDecision = async (item: any, decision: string, comments?: string) => {
+    const finalStatus = decision === 'Approved' && item._source === 'annual' ? 'Active' : decision;
     const payload: any = {
       id: item.id,
-      status: decision,
+      status: finalStatus,
       approval_comments: comments || null,
       approved_date: decision === 'Draft' ? null : new Date().toISOString(),
     };
@@ -133,7 +134,7 @@ export default function PlanApproval() {
       updateDept.mutate(payload);
     }
 
-    await logApprovalAction(entityType, item.id, decision, comments);
+    await logApprovalAction(entityType, item.id, finalStatus, comments);
 
     // Send notifications based on decision
     if (decision === 'Approved') {

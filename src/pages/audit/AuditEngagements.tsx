@@ -25,12 +25,15 @@ const generateEngagementCode = () => {
   return `ENG-${dateStr}-${rand}`;
 };
 
+const ENGAGEMENT_TYPES = ['Planned Audit', 'Ad-hoc Audit', 'Management Requested Audit', 'Special Investigation', 'Follow-up Audit'];
+
 const emptyForm = {
   engagement_name: '', engagement_code: '', annual_plan_id: '', department_id: '',
   function_id: '', lead_auditor_id: '', supportive_auditor_ids: [] as string[],
   scope: '', objectives: '', methodology: '', criteria: '',
   engagement_risk_rating: 'Medium', estimated_hours: 0, estimated_budget: 0,
   budgeted_hours: 0, planned_start_date: '', planned_end_date: '', status: 'Draft',
+  engagement_type: 'Planned Audit',
 };
 
 export default function AuditEngagements() {
