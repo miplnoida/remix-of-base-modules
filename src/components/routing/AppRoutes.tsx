@@ -200,46 +200,19 @@ import SSBCaseViewPage from '@/pages/legal/SSBCaseView';
 import SSBLegalReports from '@/pages/legal/SSBLegalReports';
 import SSBLegalDashboard from '@/pages/legal/SSBLegalDashboard';
 
-// Audit Module
+// Audit Module — Simplified Department Function Audit
 import AuditDashboard from '@/pages/audit/AuditDashboard';
-import AuditPlans from '@/pages/audit/AuditPlans';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
-import PlanApproval from '@/pages/audit/PlanApproval';
-import ActivityCalendar from '@/pages/audit/ActivityCalendar';
-import ActivityWorkbench from '@/pages/audit/ActivityWorkbench';
-import FollowUpTracker from '@/pages/audit/FollowUpTracker';
-import PlanCloseout from '@/pages/audit/PlanCloseout';
 import AuditReports from '@/pages/audit/AuditReports';
-import AuditConfig from '@/pages/audit/AuditConfig';
-import AuditorProfiles from '@/pages/audit/AuditorProfiles';
-import WorkloadCapacity from '@/pages/audit/WorkloadCapacity';
-import LeaveAndVacationManagement from '@/pages/audit/LeaveManagement';
-import HolidayManagement from '@/pages/audit/HolidayManagement';
-import EvidenceManagement from '@/pages/audit/EvidenceManagement';
-import WorkingPapers from '@/pages/audit/WorkingPapers';
 import FindingsManagement from '@/pages/audit/FindingsManagement';
-import ManagementResponses from '@/pages/audit/ManagementResponses';
 import ActionTracking from '@/pages/audit/ActionTracking';
-import LetterGeneration from '@/pages/audit/LetterGeneration';
-import CommunicationCenter from '@/pages/audit/CommunicationCenter';
-import ReportBuilder from '@/pages/audit/ReportBuilder';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
-// AuditUniverse removed — replaced by Function Master
-import AuditPreparation from '@/pages/audit/AuditPreparation';
 import RiskAssessment from '@/pages/audit/RiskAssessment';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import EngagementDetail from '@/pages/audit/EngagementDetail';
-import AuditPrograms from '@/pages/audit/AuditPrograms';
-import RiskControlMatrix from '@/pages/audit/RiskControlMatrix';
-import ControlTesting from '@/pages/audit/ControlTesting';
-import TimeTracking from '@/pages/audit/TimeTracking';
-import QualityReview from '@/pages/audit/QualityReview';
-import ExecutiveDashboard from '@/pages/audit/ExecutiveDashboard';
-import CommitteeReports from '@/pages/audit/CommitteeReports';
-import SLARules from '@/pages/audit/SLARules';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 
 // Reports
