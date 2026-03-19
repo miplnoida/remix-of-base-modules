@@ -90,6 +90,7 @@ export default function AuditEngagements() {
       budgeted_hours: r.budgeted_hours || 0,
       planned_start_date: r.planned_start_date || '', planned_end_date: r.planned_end_date || '',
       status: r.status || 'Draft',
+      engagement_type: r.engagement_type || 'Planned Audit',
     });
     setModalState({ mode: 'edit', record: r });
   };
