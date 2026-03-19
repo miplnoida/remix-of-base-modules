@@ -19,6 +19,7 @@ import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 
 export default function AuditPlansNew() {
+  const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all', departmentId: 'all', auditType: 'all' });
