@@ -211,6 +211,7 @@ import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
 import RiskAssessment from '@/pages/audit/RiskAssessment';
+import RiskMatrix from '@/pages/audit/RiskMatrix';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
@@ -886,7 +887,7 @@ export const AppRoutes = () => {
       <Route path="/audit/functions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FUNCTION_MASTER"><FunctionMaster /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
       <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/risk-matrix" element={<ProtectedLayout><RiskAssessment /></ProtectedLayout>} />
+      <Route path="/audit/risk-matrix" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_MATRIX"><RiskMatrix /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-plans" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><AuditPlanDetail /></ProtectedLayout>} />
       <Route path="/audit/audits" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
