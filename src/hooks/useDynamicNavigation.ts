@@ -203,71 +203,93 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   return rootModules.map(buildMenuItem);
 }
 
-const INTERNAL_AUDIT_SECTION_CONFIG: Array<{
+const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
   id: string;
   title: string;
   icon: LucideIcon;
-  routes: string[];
+  path: string;
+  aliases: string[];
+  description: string;
 }> = [
   {
-    id: 'ia-section-governance',
-    title: 'Governance & Setup',
-    icon: Settings,
-    routes: ['/audit/config', '/audit/sla-rules', '/audit/departments', '/audit/functions', '/audit/templates'],
+    id: 'ia-dashboard',
+    title: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/audit/dashboard',
+    aliases: ['/audit/dashboard'],
+    description: 'Audit overview and KPIs',
   },
   {
-    id: 'ia-section-resources',
-    title: 'Resource Management',
-    icon: Users,
-    routes: ['/audit/auditors', '/audit/workload', '/audit/time-tracking', '/audit/leave', '/audit/holidays'],
+    id: 'ia-departments',
+    title: 'Departments',
+    icon: Building2,
+    path: '/audit/departments',
+    aliases: ['/audit/departments'],
+    description: 'Manage department information',
   },
   {
-    id: 'ia-section-risk',
+    id: 'ia-functions',
+    title: 'Functions',
+    icon: FolderTree,
+    path: '/audit/functions',
+    aliases: ['/audit/functions'],
+    description: 'Manage department functions',
+  },
+  {
+    id: 'ia-risk-assessment',
     title: 'Risk Assessment',
     icon: Shield,
-    routes: ['/audit/risk-assessment', '/audit/rcm'],
+    path: '/audit/risk-assessment',
+    aliases: ['/audit/risk-assessment'],
+    description: 'Assess function-level risks',
   },
   {
-    id: 'ia-section-planning',
-    title: 'Audit Planning',
-    icon: ClipboardList,
-    routes: ['/audit/audit-plans', '/audit/plan-approval', '/audit/engagements'],
-  },
-  {
-    id: 'ia-section-preparation',
-    title: 'Audit Preparation',
-    icon: FolderTree,
-    routes: ['/audit/audit-programs', '/audit/preparation', '/audit/calendar'],
-  },
-  {
-    id: 'ia-section-execution',
-    title: 'Audit Execution',
-    icon: Activity,
-    routes: ['/audit/activity-workbench', '/audit/control-testing', '/audit/evidence', '/audit/working-papers', '/audit/findings'],
-  },
-  {
-    id: 'ia-section-issue',
-    title: 'Issue Management',
-    icon: AlertTriangle,
-    routes: ['/audit/responses', '/audit/actions', '/audit/follow-up-tracker'],
-  },
-  {
-    id: 'ia-section-closure',
-    title: 'Audit Closure',
-    icon: CheckCircle,
-    routes: ['/audit/quality-review', '/audit/plan-closeout'],
-  },
-  {
-    id: 'ia-section-reporting',
-    title: 'Reporting',
+    id: 'ia-risk-matrix',
+    title: 'Risk Matrix',
     icon: BarChart3,
-    routes: ['/audit/dashboard', '/audit/executive-dashboard', '/audit/audit-reports', '/audit/report-builder', '/audit/committee-reports', '/audit/letters'],
+    path: '/audit/risk-matrix',
+    aliases: ['/audit/risk-matrix', '/audit/rcm'],
+    description: 'View the 5×5 risk heatmap',
   },
   {
-    id: 'ia-section-communication',
-    title: 'Communication',
-    icon: Mail,
-    routes: ['/audit/communication-center'],
+    id: 'ia-audit-plans',
+    title: 'Audit Plan',
+    icon: ClipboardList,
+    path: '/audit/audit-plans',
+    aliases: ['/audit/audit-plans', '/audit/plans'],
+    description: 'Create risk-driven audit plans',
+  },
+  {
+    id: 'ia-audits',
+    title: 'Audits',
+    icon: Briefcase,
+    path: '/audit/audits',
+    aliases: ['/audit/audits', '/audit/engagements'],
+    description: 'Execute audits for department functions',
+  },
+  {
+    id: 'ia-findings',
+    title: 'Findings',
+    icon: AlertTriangle,
+    path: '/audit/findings',
+    aliases: ['/audit/findings'],
+    description: 'Record audit findings and issues',
+  },
+  {
+    id: 'ia-actions',
+    title: 'Action Tracker',
+    icon: CheckCircle,
+    path: '/audit/actions',
+    aliases: ['/audit/actions'],
+    description: 'Track remediation actions',
+  },
+  {
+    id: 'ia-reports',
+    title: 'Reports',
+    icon: FileBarChart,
+    path: '/audit/audit-reports',
+    aliases: ['/audit/audit-reports', '/audit/reports'],
+    description: 'Generate audit reports',
   },
 ];
 
@@ -283,43 +305,26 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 
     if (!isInternalAuditRoot || children.length === 0) return item;
 
-    // If already grouped, keep it untouched
-    if (children.some((child) => (child.subItems?.length || 0) > 0)) {
-      return item;
-    }
+    const childrenByPath = new Map(children.map((child) => [normalizePath(child.url), child]));
 
-    const assignedRoutes = new Set<string>();
-
-    const groupedSections = INTERNAL_AUDIT_SECTION_CONFIG.map((section) => {
-      const routeSet = new Set(section.routes.map(normalizePath));
-
-      const sectionItems = children.filter((child) => {
-        const childPath = normalizePath(child.url);
-        if (!childPath || !routeSet.has(childPath)) return false;
-        assignedRoutes.add(childPath);
-        return true;
-      });
-
-      if (sectionItems.length === 0) return null;
+    const simplifiedChildren = SIMPLIFIED_INTERNAL_AUDIT_MENU.map((config) => {
+      const matchedChild = config.aliases
+        .map((alias) => childrenByPath.get(normalizePath(alias)))
+        .find(Boolean);
 
       return {
-        id: section.id,
-        title: section.title,
-        icon: section.icon,
-        description: `${section.title} modules`,
-        subItems: sectionItems,
+        id: matchedChild?.id || config.id,
+        title: config.title,
+        url: config.path,
+        icon: config.icon,
+        description: matchedChild?.description || config.description,
+        subItems: matchedChild?.subItems,
       } as MenuItem;
-    }).filter(Boolean) as MenuItem[];
-
-    // Keep unmatched modules visible at the end (safety fallback)
-    const unmatched = children.filter((child) => {
-      const childPath = normalizePath(child.url);
-      return !childPath || !assignedRoutes.has(childPath);
     });
 
     return {
       ...item,
-      subItems: [...groupedSections, ...unmatched],
+      subItems: simplifiedChildren,
     };
   });
 }
