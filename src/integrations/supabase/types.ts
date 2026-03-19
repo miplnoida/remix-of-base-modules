@@ -8523,6 +8523,7 @@ export type Database = {
           approval_comments: string | null
           approved_by: string | null
           approved_date: string | null
+          assigned_auditor: string | null
           auto_notify_on_approval: boolean | null
           committee_email_proof_url: string | null
           committee_minutes_url: string | null
@@ -8531,6 +8532,7 @@ export type Database = {
           created_by: string | null
           created_date: string | null
           fiscal_year: string
+          function_id: string | null
           id: string
           internally_approved: boolean | null
           internally_approved_by: string | null
@@ -8539,6 +8541,7 @@ export type Database = {
           objective: string | null
           reviewed_by: string | null
           reviewed_date: string | null
+          risk_level: string | null
           scope: string | null
           status: string | null
           submitted_date: string | null
@@ -8551,6 +8554,7 @@ export type Database = {
           approval_comments?: string | null
           approved_by?: string | null
           approved_date?: string | null
+          assigned_auditor?: string | null
           auto_notify_on_approval?: boolean | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
@@ -8559,6 +8563,7 @@ export type Database = {
           created_by?: string | null
           created_date?: string | null
           fiscal_year: string
+          function_id?: string | null
           id?: string
           internally_approved?: boolean | null
           internally_approved_by?: string | null
@@ -8567,6 +8572,7 @@ export type Database = {
           objective?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
+          risk_level?: string | null
           scope?: string | null
           status?: string | null
           submitted_date?: string | null
@@ -8579,6 +8585,7 @@ export type Database = {
           approval_comments?: string | null
           approved_by?: string | null
           approved_date?: string | null
+          assigned_auditor?: string | null
           auto_notify_on_approval?: boolean | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
@@ -8587,6 +8594,7 @@ export type Database = {
           created_by?: string | null
           created_date?: string | null
           fiscal_year?: string
+          function_id?: string | null
           id?: string
           internally_approved?: boolean | null
           internally_approved_by?: string | null
@@ -8595,6 +8603,7 @@ export type Database = {
           objective?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
+          risk_level?: string | null
           scope?: string | null
           status?: string | null
           submitted_date?: string | null
@@ -8603,7 +8612,15 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ia_annual_plans_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_functions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_approval_actions: {
         Row: {
@@ -8637,6 +8654,65 @@ export type Database = {
           performer_name?: string | null
         }
         Relationships: []
+      }
+      ia_audit_checklists: {
+        Row: {
+          audit_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          evidence_file: string | null
+          id: string
+          is_active: boolean | null
+          question: string
+          remarks: string | null
+          response: string | null
+          sort_order: number | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          evidence_file?: string | null
+          id?: string
+          is_active?: boolean | null
+          question: string
+          remarks?: string | null
+          response?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          evidence_file?: string | null
+          id?: string
+          is_active?: boolean | null
+          question?: string
+          remarks?: string | null
+          response?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_checklists_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_audit_config: {
         Row: {
@@ -8691,6 +8767,9 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           budgeted_hours: number | null
+          closed_by: string | null
+          closure_date: string | null
+          closure_notes: string | null
           created_at: string | null
           created_by: string | null
           criteria: string | null
@@ -8724,6 +8803,9 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           budgeted_hours?: number | null
+          closed_by?: string | null
+          closure_date?: string | null
+          closure_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -8757,6 +8839,9 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           budgeted_hours?: number | null
+          closed_by?: string | null
+          closure_date?: string | null
+          closure_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -10045,6 +10130,7 @@ export type Database = {
           activity_id: string | null
           annual_plan_id: string | null
           cause: string | null
+          checklist_id: string | null
           condition: string | null
           corrective_action_description: string | null
           created_at: string | null
@@ -10063,6 +10149,7 @@ export type Database = {
           impact_area: string | null
           owner_role: string | null
           preventive_action: string | null
+          recommendation: string | null
           risk_rating: string | null
           root_cause_category: string | null
           status: string | null
@@ -10075,6 +10162,7 @@ export type Database = {
           activity_id?: string | null
           annual_plan_id?: string | null
           cause?: string | null
+          checklist_id?: string | null
           condition?: string | null
           corrective_action_description?: string | null
           created_at?: string | null
@@ -10093,6 +10181,7 @@ export type Database = {
           impact_area?: string | null
           owner_role?: string | null
           preventive_action?: string | null
+          recommendation?: string | null
           risk_rating?: string | null
           root_cause_category?: string | null
           status?: string | null
@@ -10105,6 +10194,7 @@ export type Database = {
           activity_id?: string | null
           annual_plan_id?: string | null
           cause?: string | null
+          checklist_id?: string | null
           condition?: string | null
           corrective_action_description?: string | null
           created_at?: string | null
@@ -10123,6 +10213,7 @@ export type Database = {
           impact_area?: string | null
           owner_role?: string | null
           preventive_action?: string | null
+          recommendation?: string | null
           risk_rating?: string | null
           root_cause_category?: string | null
           status?: string | null
@@ -10144,6 +10235,13 @@ export type Database = {
             columns: ["annual_plan_id"]
             isOneToOne: false
             referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_findings_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_checklists"
             referencedColumns: ["id"]
           },
           {
