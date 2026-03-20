@@ -559,10 +559,10 @@ const PaymentHistoryManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Detail Popup */}
+      {/* Detail Popup — fixed header/footer, scrollable body */}
       <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); } }}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Payment Detail — #{selectedRow?.payment_id}
@@ -570,95 +570,141 @@ const PaymentHistoryManagement = () => {
             <DialogDescription>Read-only payment and receipt information</DialogDescription>
           </DialogHeader>
 
-          {isLoadingDetail ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : selectedRow && (
-            <div className="space-y-4">
-              {/* Payment Info */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
-                  <div><Label className="text-xs text-muted-foreground">Payment ID</Label><p className="font-mono">{selectedRow.payment_id}</p></div>
-                  <div><Label className="text-xs text-muted-foreground">Batch</Label><p className="text-xs">{selectedRow.batch_number}</p></div>
-                  <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
-                  <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
-                  <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
-                  <div><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {isLoadingDetail ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : selectedRow && (
+              <div className="space-y-4">
+                {/* Payment Info */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
+                    <div><Label className="text-xs text-muted-foreground">Payment ID</Label><p className="font-mono">{selectedRow.payment_id}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Batch</Label><p className="text-xs">{selectedRow.batch_number}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Detail Lines */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Detail Lines</h3>
+                  {detailLines.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No detail lines found.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {detailLines.map((d, i) => {
+                        const isCheque = d.mop_code === 'CHQ' || d.mop_code === 'CHK';
+                        const isCard = d.mop_code === 'CRD';
+                        const hasMopInfo = isCheque || isCard;
+                        const periodDisplay = d.period
+                          ? new Date(d.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          : '—';
+
+                        return (
+                          <div key={i} className="rounded-md border p-3 text-sm space-y-2">
+                            <div className="grid grid-cols-6 gap-2">
+                              <div>
+                                <Label className="text-xs text-muted-foreground">#</Label>
+                                <p className="font-mono text-xs">{d.payment_sequence_no}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Code</Label>
+                                <p className="text-xs">{d.payment_code_desc || d.payment_code}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Fund</Label>
+                                <p className="text-xs">{d.fund_code_desc || d.fund_code}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Amount</Label>
+                                <p className="text-xs font-mono">{d.payment_amount != null ? `$${d.payment_amount.toFixed(2)}` : '—'}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">MOP</Label>
+                                <p className="text-xs">{d.mop_desc || d.mop_code}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Period</Label>
+                                <p className="text-xs">{periodDisplay}</p>
+                              </div>
+                            </div>
+
+                            {/* MOP Additional Details */}
+                            {hasMopInfo && (
+                              <div className="bg-muted/40 rounded p-2 mt-1">
+                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  {isCheque ? 'Cheque Details' : 'Credit Card Details'}
+                                </p>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  {isCheque && (
+                                    <>
+                                      <div><Label className="text-xs text-muted-foreground">Cheque No.</Label><p>{d.mop_number || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Cheque Date</Label><p>{d.cheque_date ? formatDisplayDate(d.cheque_date) : '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Bank Code</Label><p>{d.bank_code || '—'}</p></div>
+                                    </>
+                                  )}
+                                  {isCard && (
+                                    <>
+                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.credit_card_code || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{d.expiration_date || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Transaction No.</Label><p>{d.mop_number || '—'}</p></div>
+                                    </>
+                                  )}
+                                  {d.mop_account_number && (
+                                    <div><Label className="text-xs text-muted-foreground">Account No.</Label><p>{d.mop_account_number}</p></div>
+                                  )}
+                                  {d.mop_notes1 && (
+                                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Notes</Label><p>{d.mop_notes1}</p></div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Receipt Info */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 text-foreground/80">Receipt Information</h3>
+                  {!detailReceipt ? (
+                    <p className="text-sm text-muted-foreground">No receipt generated for this payment.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
+                      <div><Label className="text-xs text-muted-foreground">Receipt ID</Label><p className="font-mono">{detailReceipt.receipt_id}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Receipt Number</Label><p className="font-mono text-xs">{(detailReceipt as any).receipt_number || '—'}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMapRef.current[detailReceipt.status || ''] || `${detailReceipt.status} - Not Defined`}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Total</Label><p className="font-mono">{detailReceipt.receipt_total != null ? `$${detailReceipt.receipt_total.toFixed(2)}` : '—'}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Created By</Label><p>{detailReceipt.created_by || '—'}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Created At</Label><p>{formatDisplayDate(detailReceipt.created_at)}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Reprint Times</Label><p>{detailReceipt.reprint_times ?? 0}</p></div>
+                      {detailReceipt.status === 'C' && (
+                        <>
+                          <div className="col-span-2"><Separator /></div>
+                          <div><Label className="text-xs text-muted-foreground">Cancel Date</Label><p>{formatDisplayDate(detailReceipt.cancel_date)}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Cancel User</Label><p>{detailReceipt.cancel_user || '—'}</p></div>
+                          <div className="col-span-2"><Label className="text-xs text-muted-foreground">Cancel Reason</Label><p>{detailReceipt.cancel_reason || '—'}</p></div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+            )}
+          </div>
 
-              <Separator />
-
-              {/* Detail Lines */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Detail Lines</h3>
-                {detailLines.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No detail lines found.</p>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">#</TableHead>
-                          <TableHead className="text-xs">Code</TableHead>
-                          <TableHead className="text-xs">Fund</TableHead>
-                          <TableHead className="text-xs text-right">Amount</TableHead>
-                          <TableHead className="text-xs">MOP</TableHead>
-                          <TableHead className="text-xs">Period</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {detailLines.map((d, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="text-xs font-mono">{d.payment_sequence_no}</TableCell>
-                            <TableCell className="text-xs">{d.payment_code}</TableCell>
-                            <TableCell className="text-xs">{d.fund_code}</TableCell>
-                            <TableCell className="text-xs text-right font-mono">
-                              {d.payment_amount != null ? `$${d.payment_amount.toFixed(2)}` : '—'}
-                            </TableCell>
-                            <TableCell className="text-xs">{d.mop_code}</TableCell>
-                            <TableCell className="text-xs">{d.period || '—'}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Receipt Info */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-foreground/80">Receipt Information</h3>
-                {!detailReceipt ? (
-                  <p className="text-sm text-muted-foreground">No receipt generated for this payment.</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
-                    <div><Label className="text-xs text-muted-foreground">Receipt ID</Label><p className="font-mono">{detailReceipt.receipt_id}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Receipt Number</Label><p className="font-mono text-xs">{(detailReceipt as any).receipt_number || '—'}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMapRef.current[detailReceipt.status || ''] || detailReceipt.status || '—'}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Total</Label><p className="font-mono">{detailReceipt.receipt_total != null ? `$${detailReceipt.receipt_total.toFixed(2)}` : '—'}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Created By</Label><p>{detailReceipt.created_by || '—'}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Created At</Label><p>{formatDisplayDate(detailReceipt.created_at)}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Reprint Times</Label><p>{detailReceipt.reprint_times ?? 0}</p></div>
-                    {detailReceipt.status === 'C' && (
-                      <>
-                        <div className="col-span-2"><Separator /></div>
-                        <div><Label className="text-xs text-muted-foreground">Cancel Date</Label><p>{formatDisplayDate(detailReceipt.cancel_date)}</p></div>
-                        <div><Label className="text-xs text-muted-foreground">Cancel User</Label><p>{detailReceipt.cancel_user || '—'}</p></div>
-                        <div className="col-span-2"><Label className="text-xs text-muted-foreground">Cancel Reason</Label><p>{detailReceipt.cancel_reason || '—'}</p></div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="px-6 py-3 border-t shrink-0 gap-2 sm:gap-0">
             {/* Cancel Payment: visible only when receipt status is 'O' */}
             {detailReceipt && detailReceipt.status === 'O' && (
               <Button
