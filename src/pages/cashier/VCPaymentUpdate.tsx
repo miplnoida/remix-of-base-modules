@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
 import { usePaymentEntry, PayerInfo, PaymentDetailData } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
