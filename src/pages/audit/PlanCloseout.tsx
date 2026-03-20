@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,19 +9,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
 import {
   useIAAnnualPlans,
   useIAAnnualPlanMutations,
   useIADepartmentAudits,
   useIADepartmentAuditMutations,
-  useIAActivities,
   useIAFindings,
   useIAFollowUps,
   useIAAuditors,
 } from '@/hooks/useAuditData';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, ExportDropdown, StandardModal } from '@/components/common';
+import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog, StandardModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
+import { Progress } from '@/components/ui/progress';
+import { notifyPlanClosed } from '@/services/auditNotificationService';
+import { useToast } from '@/hooks/use-toast';
 
 const FINAL_RATINGS = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory'];
 
@@ -32,9 +36,9 @@ interface CloseoutRow {
   fiscalYear: string;
   planName: string;
   department: string;
+  departmentId?: string;
   period: string;
   status: string;
-  // Closure fields
   final_rating?: string;
   closure_notes?: string;
   closure_approved_by?: string;
@@ -43,6 +47,9 @@ interface CloseoutRow {
 
 export default function PlanCloseout() {
   const { hasPermission } = useAuth();
+  const { userCode } = useUserCode();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ fiscalYear: 'all', planType: 'all', status: 'all' });
@@ -51,7 +58,6 @@ export default function PlanCloseout() {
   const [closeItem, setCloseItem] = useState<CloseoutRow | null>(null);
   const [reopenItem, setReopenItem] = useState<CloseoutRow | null>(null);
 
-  // Closeout form state
   const [finalRating, setFinalRating] = useState('');
   const [closureNotes, setClosureNotes] = useState('');
   const [closureApprovedBy, setClosureApprovedBy] = useState('');
@@ -63,7 +69,7 @@ export default function PlanCloseout() {
 
   const { data: annualPlans = [], isLoading: annualLoading } = useIAAnnualPlans();
   const { data: departmentAudits = [], isLoading: deptLoading } = useIADepartmentAudits();
-  const { data: activities = [] } = useIAActivities();
+  const { data: allEngagements = [] } = useIAEngagements();
   const { data: findings = [] } = useIAFindings();
   const { data: followUps = [] } = useIAFollowUps();
   const { data: auditors = [] } = useIAAuditors();
@@ -84,6 +90,7 @@ export default function PlanCloseout() {
       fiscalYear: plan.fiscal_year || '-',
       planName: plan.title || 'Annual Plan',
       department: '-',
+      departmentId: plan.department_id,
       period: plan.fiscal_year || '-',
       status: plan.status || 'Draft',
     }));
@@ -95,6 +102,7 @@ export default function PlanCloseout() {
       fiscalYear: planById.get(audit.annual_plan_id)?.fiscal_year || '-',
       planName: audit.department_name || 'Department Audit',
       department: audit.department_name || '-',
+      departmentId: audit.department_id,
       period: audit.period || '-',
       status: audit.status || 'Draft',
       final_rating: audit.final_rating,
@@ -111,31 +119,32 @@ export default function PlanCloseout() {
     return [...new Set(values)];
   }, [allRows]);
 
+  // Engagement-based progress for annual plans
   const getProgress = (row: CloseoutRow) => {
-    const relatedActivities = (activities || []).filter((activity: any) => {
-      if (row.sourceType === 'annual') return activity.plan_id === row.id || activity.annual_plan_id === row.id;
-      return activity.department_audit_id === row.id;
-    });
-    const completed = relatedActivities.filter((activity: any) => activity.status === 'Completed').length;
-    const total = relatedActivities.length;
-    return total === 0 ? 0 : Math.round((completed / total) * 100);
+    if (row.sourceType === 'annual') {
+      const planEngagements = (allEngagements || []).filter((e: any) => e.annual_plan_id === row.id);
+      const closed = planEngagements.filter((e: any) => ['Closed', 'Completed'].includes(e.status));
+      return planEngagements.length === 0 ? 0 : Math.round((closed.length / planEngagements.length) * 100);
+    }
+    // Department audits — fallback
+    return row.status === 'Completed' || row.status === 'Closed' ? 100 : 0;
   };
 
-  const getOpenItemWarnings = (row: CloseoutRow): string[] => {
-    const pendingFindings = (findings || []).filter((finding: any) => {
-      if (row.sourceType === 'annual') return finding.plan_id === row.id && finding.status !== 'Closed';
-      return finding.department_audit_id === row.id && finding.status !== 'Closed';
-    }).length;
+  const getEngagementStats = (row: CloseoutRow) => {
+    if (row.sourceType !== 'annual') return null;
+    const planEngagements = (allEngagements || []).filter((e: any) => e.annual_plan_id === row.id);
+    const closed = planEngagements.filter((e: any) => ['Closed', 'Completed'].includes(e.status));
+    return { total: planEngagements.length, closed: closed.length };
+  };
 
-    const pendingFollowUps = (followUps || []).filter((followup: any) => {
-      if (row.sourceType === 'annual') return followup.plan_id === row.id && followup.status !== 'Resolved';
-      return followup.department_audit_id === row.id && followup.status !== 'Resolved';
-    }).length;
-
-    const warnings: string[] = [];
-    if (pendingFindings > 0) warnings.push(`${pendingFindings} pending findings`);
-    if (pendingFollowUps > 0) warnings.push(`${pendingFollowUps} pending actions`);
-    return warnings;
+  const canClose = (row: CloseoutRow): { allowed: boolean; reason?: string } => {
+    if (row.sourceType === 'annual') {
+      const stats = getEngagementStats(row);
+      if (!stats || stats.total === 0) return { allowed: false, reason: 'No engagements found under this plan.' };
+      if (stats.closed < stats.total) return { allowed: false, reason: `Audit Plan cannot be closed because some audits are still in progress. (${stats.closed}/${stats.total} completed)` };
+      return { allowed: true };
+    }
+    return { allowed: true };
   };
 
   const filteredRows = allRows.filter((row) => {
@@ -157,17 +166,30 @@ export default function PlanCloseout() {
     { key: 'department', header: 'Department' },
     { key: 'period', header: 'Period' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'completion', header: 'Completion %', render: (row) => `${getProgress(row)}%` },
+    { key: 'completion', header: 'Completion', render: (row) => {
+      const pct = getProgress(row);
+      return (
+        <div className="flex items-center gap-2 min-w-[100px]">
+          <Progress value={pct} className="h-2 flex-1" />
+          <span className="text-xs text-muted-foreground w-8 text-right">{pct}%</span>
+        </div>
+      );
+    }},
     { key: 'final_rating', header: 'Final Rating', render: (row) => row.final_rating ? <StatusBadge status={row.final_rating} /> : '—' },
   ];
 
   const filterFields: StandardFilterField[] = [
     { key: 'fiscalYear', label: 'Fiscal Year', type: 'select', options: [{ value: 'all', label: 'All Years' }, ...fiscalYears.map((year) => ({ value: year, label: year }))] },
     { key: 'planType', label: 'Plan Type', type: 'select', options: [{ value: 'all', label: 'All Types' }, { value: 'Annual', label: 'Annual' }, { value: 'Department', label: 'Department' }] },
-    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Completed', label: 'Completed' }] },
+    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Active', label: 'Active' }, { value: 'Completed', label: 'Completed' }, { value: 'Closed', label: 'Closed' }] },
   ];
 
   const openCloseModal = (row: CloseoutRow) => {
+    const check = canClose(row);
+    if (!check.allowed) {
+      toast({ title: 'Cannot Close Plan', description: check.reason, variant: 'destructive' });
+      return;
+    }
     setFinalRating('');
     setClosureNotes('');
     setClosureApprovedBy('');
@@ -183,9 +205,10 @@ export default function PlanCloseout() {
     if (!closeItem) return;
     const payload: any = {
       id: closeItem.id,
-      status: 'Completed',
+      status: 'Closed',
       is_closed: true,
       closed_date: new Date().toISOString(),
+      closed_by: userCode || 'system',
       final_rating: finalRating || null,
       closure_notes: closureNotes || null,
       closure_approved_by: closureApprovedBy || null,
@@ -194,13 +217,15 @@ export default function PlanCloseout() {
 
     if (closeItem.sourceType === 'annual') {
       updateAnnual.mutate(payload);
+      if (closeItem.departmentId) {
+        notifyPlanClosed(closeItem.planName, closeItem.departmentId).catch(console.error);
+      }
     } else {
       updateDepartment.mutate(payload);
     }
     setCloseItem(null);
   };
 
-  const closeWarnings = closeItem ? getOpenItemWarnings(closeItem) : [];
   const allChecked = checkFindings && checkResponses && checkEvidence && checkSupervisor;
 
   return (
@@ -219,8 +244,8 @@ export default function PlanCloseout() {
             renderActions={(row) => (
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewItem(row)}><Eye className="h-4 w-4" /></Button>
-                {row.status !== 'Completed' && <Button size="sm" onClick={() => openCloseModal(row)}>Close Plan</Button>}
-                {row.status === 'Completed' && hasPermission('configure_audit_system') && (
+                {row.status !== 'Closed' && row.status !== 'Completed' && <Button size="sm" onClick={() => openCloseModal(row)}>Close Plan</Button>}
+                {(row.status === 'Completed' || row.status === 'Closed') && hasPermission('configure_audit_system') && (
                   <Button size="sm" variant="outline" onClick={() => setReopenItem(row)}>Reopen</Button>
                 )}
               </div>
@@ -238,6 +263,11 @@ export default function PlanCloseout() {
             <p><strong>Department:</strong> {viewItem.department}</p>
             <p><strong>Status:</strong> <StatusBadge status={viewItem.status} /></p>
             <p><strong>Completion:</strong> {getProgress(viewItem)}%</p>
+            {viewItem.sourceType === 'annual' && (() => {
+              const stats = getEngagementStats(viewItem);
+              if (!stats) return null;
+              return <p><strong>Engagements:</strong> {stats.closed}/{stats.total} closed</p>;
+            })()}
             {viewItem.final_rating && <p><strong>Final Rating:</strong> <StatusBadge status={viewItem.final_rating} /></p>}
             {viewItem.closure_notes && <p><strong>Closure Notes:</strong> {viewItem.closure_notes}</p>}
             {viewItem.closure_approved_by && <p><strong>Approved By:</strong> {viewItem.closure_approved_by}</p>}
@@ -257,13 +287,6 @@ export default function PlanCloseout() {
               <p className="text-sm"><strong>Department:</strong> {closeItem.department}</p>
               <p className="text-sm"><strong>Completion:</strong> {getProgress(closeItem)}%</p>
             </div>
-
-            {closeWarnings.length > 0 && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-                <p className="text-sm font-medium text-destructive">⚠ Open Items</p>
-                {closeWarnings.map((w, i) => <p key={i} className="text-sm text-destructive">{w}</p>)}
-              </div>
-            )}
 
             {/* Closure Checklist */}
             <div className="space-y-3">
@@ -333,7 +356,7 @@ export default function PlanCloseout() {
         confirmLabel="Reopen"
         onConfirm={() => {
           if (!reopenItem) return;
-          const payload = { id: reopenItem.id, status: 'In Progress', is_closed: false };
+          const payload = { id: reopenItem.id, status: 'Active', is_closed: false };
           if (reopenItem.sourceType === 'annual') updateAnnual.mutate(payload);
           else updateDepartment.mutate(payload);
           setReopenItem(null);

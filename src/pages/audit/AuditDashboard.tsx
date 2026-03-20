@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
-import { BarChart3, Building2, Briefcase, ClipboardList, FileSearch, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { BarChart3, Building2, Briefcase, ClipboardList, FileSearch, ShieldAlert, AlertTriangle, CheckCircle2, Lock, PlayCircle } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIAAnnualPlans, useIAFindings, useIAActionTracking } from '@/hooks/useAuditData';
 import { useIAEngagements, useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
+import { Progress } from '@/components/ui/progress';
 
 function deriveRiskLevel(score: number) {
   if (score >= 16) return 'Critical';
@@ -36,6 +37,34 @@ export default function AuditDashboard() {
 
   const completedAudits = audits.filter((audit: any) => ['Closed', 'Completed'].includes(audit.status || ''));
   const openFindings = findings.filter((finding: any) => !['Closed', 'Resolved', 'Accepted'].includes(finding.status || ''));
+
+  // Plan-level metrics
+  const planMetrics = useMemo(() => {
+    const all = plans || [];
+    return {
+      total: all.length,
+      active: all.filter((p: any) => ['Active', 'Approved', 'Scheduled'].includes(p.status)).length,
+      completed: all.filter((p: any) => p.status === 'Completed').length,
+      closed: all.filter((p: any) => p.status === 'Closed').length,
+    };
+  }, [plans]);
+
+  // Plan progress data
+  const planProgressData = useMemo(() => {
+    const activePlans = (plans || []).filter((p: any) => ['Active', 'Approved', 'Scheduled', 'In Progress'].includes(p.status));
+    return activePlans.map((plan: any) => {
+      const planEngagements = (audits || []).filter((a: any) => a.annual_plan_id === plan.id);
+      const closedEng = planEngagements.filter((a: any) => ['Closed', 'Completed'].includes(a.status));
+      return {
+        id: plan.id,
+        title: plan.title || 'Untitled Plan',
+        fiscalYear: plan.fiscal_year || '—',
+        total: planEngagements.length,
+        closed: closedEng.length,
+        percent: planEngagements.length > 0 ? Math.round((closedEng.length / planEngagements.length) * 100) : 0,
+      };
+    });
+  }, [plans, audits]);
 
   const topRiskFunctions = useMemo(() => {
     return [...assessments]
@@ -68,7 +97,6 @@ export default function AuditDashboard() {
       .slice(0, 5);
   }, [assessments, functionMap, departmentMap]);
 
-  // Recent audits with function names
   const recentAudits = [...audits].slice(0, 5);
   const auditColumns: DataTableColumn<any>[] = [
     { key: 'engagement_name', header: 'Audit Title', render: (r) => <span className="font-medium">{r.engagement_name || '—'}</span> },
@@ -91,12 +119,14 @@ export default function AuditDashboard() {
   ];
 
   const kpis = [
-    { label: 'Total Departments', value: departments.length, icon: Building2 },
-    { label: 'Total Functions', value: functions.length, icon: ClipboardList },
-    { label: 'Audits Planned', value: audits.length || plans.length, icon: Briefcase },
+    { label: 'Total Plans', value: planMetrics.total, icon: ClipboardList },
+    { label: 'Active Plans', value: planMetrics.active, icon: PlayCircle },
+    { label: 'Closed Plans', value: planMetrics.closed, icon: Lock },
+    { label: 'Total Audits', value: audits.length, icon: Briefcase },
     { label: 'Audits Completed', value: completedAudits.length, icon: CheckCircle2 },
     { label: 'Open Findings', value: openFindings.length, icon: FileSearch },
     { label: 'Overdue Actions', value: overdueActions.length, icon: AlertTriangle },
+    { label: 'Departments', value: departments.length, icon: Building2 },
   ];
 
   return (
@@ -106,7 +136,7 @@ export default function AuditDashboard() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Dashboard' }]}
       isLoading={departmentsLoading}
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((item) => (
           <Card key={item.label}>
             <CardContent className="flex items-center gap-4 pt-6">
@@ -119,6 +149,30 @@ export default function AuditDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Plan Progress Section */}
+      {planProgressData.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="h-4 w-4 text-primary" />Active Plan Progress</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => navigate('/audit/audit-plans')}>View All Plans</Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {planProgressData.map((pp) => (
+              <div key={pp.id} className="rounded-lg border p-4 space-y-2 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => navigate(`/audit/audit-plans/${pp.id}`)}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{pp.title}</p>
+                    <p className="text-xs text-muted-foreground">FY {pp.fiscalYear} • {pp.closed}/{pp.total} audits completed</p>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{pp.percent}%</span>
+                </div>
+                <Progress value={pp.percent} className="h-2" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>

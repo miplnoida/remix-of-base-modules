@@ -245,3 +245,31 @@ export async function notifyQueryResponse(question: string, auditorId?: string) 
            <p>Please log in to the system to review the response.</p>`,
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// Plan Closure Notifications
+// ══════════════════════════════════════════════════════════════
+
+export async function notifyPlanClosed(planTitle: string, departmentId: string) {
+  const head = await getDepartmentHeadEmail(departmentId);
+  if (!head.email) return;
+  await sendNotification({
+    recipientEmail: head.email,
+    subject: `Audit Plan Closed: ${planTitle}`,
+    body: `<p>Dear ${head.name || 'Department Head'},</p>
+           <p>The following audit plan has been formally closed.</p>
+           <p><strong>Plan:</strong> ${planTitle}</p>
+           <p>All engagements under this plan have been completed. Please log in to the system to review the closure summary.</p>`,
+  });
+}
+  if (!auditorId) return;
+  const email = await getAuditorEmail(auditorId);
+  if (!email) return;
+  await sendNotification({
+    recipientEmail: email,
+    subject: `Department Response Received`,
+    body: `<p>A department has responded to your audit query.</p>
+           <p><strong>Query:</strong> ${question.slice(0, 100)}${question.length > 100 ? '...' : ''}</p>
+           <p>Please log in to the system to review the response.</p>`,
+  });
+}
