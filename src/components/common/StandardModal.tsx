@@ -63,9 +63,14 @@ export const StandardModal: React.FC<StandardModalProps> = ({
         >
           {/* Sticky Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-            <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
-              {title}
-            </DialogPrimitive.Title>
+            <div>
+              <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
+                {title}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="sr-only">
+                {title} dialog content
+              </DialogPrimitive.Description>
+            </div>
             <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
