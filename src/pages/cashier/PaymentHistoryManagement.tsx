@@ -365,6 +365,8 @@ const PaymentHistoryManagement = () => {
       mopTypes?.forEach((m: any) => { mopMap[m.mop_code] = m.short_description || m.mop_code; });
       const merchantMap: Record<string, string> = {};
       merchants?.forEach((m: any) => { merchantMap[(m.credit_card_code || '').trim()] = m.credit_card_name || m.credit_card_code; });
+      const bankMap: Record<string, string> = {};
+      bankCodes?.forEach((b: any) => { bankMap[(b.bank_code || '').trim()] = b.name || b.bank_code; });
 
       const resolvedLines: PaymentDetailLine[] = (lines || []).map((d: any) => ({
         ...d,
