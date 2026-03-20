@@ -432,7 +432,7 @@ const C3Payments: React.FC = () => {
       } as any);
       await receiptActions.loadReceipt(savedPaymentId);
       toast({ title: 'Reprinted', description: `Reprint #${(receiptActions.currentReceipt.reprint_times || 0) + 1}` });
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => printConfiguredReceipt(savedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
