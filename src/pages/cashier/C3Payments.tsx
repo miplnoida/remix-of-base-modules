@@ -407,7 +407,7 @@ const C3Payments: React.FC = () => {
       setFlowState('saved');
 
       toast({ title: 'C3 Payment Processed', description: `Receipt #${res.receipt_id} created. ${res.detail_count} payment line(s) generated.` });
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => printConfiguredReceipt(res.payment_id as number).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       await logApplicationError(err, { ...logCtx, action: 'handleProcessPayment_catch' });
       toast({ title: 'Error Processing C3 Payment', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
