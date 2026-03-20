@@ -1,92 +1,68 @@
 
 
-# Internal Audit Module — Lifecycle Fixes Plan
+# Audit Plan Closure Workflow — Implementation Plan
 
 ## Current State
 
-All tables exist: `ia_findings`, `ia_management_responses`, `ia_action_tracking`, `ia_audit_queries`, `ia_audit_reports`, `ia_audit_engagements`. The database schema is complete. The issues are **UI-only** — the EngagementDetail page only has 4 tabs (Overview, Checklist, Findings, Closure) and is missing Management Responses, Actions, Queries, and Reports.
+- `ia_annual_plans` has `status` but NO `closed_by`, `closed_date`, or engagement count columns
+- `ia_audit_engagements` already has `closed_by`, `closure_date`, `closure_notes` columns
+- `PlanCloseout.tsx` exists but uses activity-based progress (not engagement-based) and doesn't enforce "all engagements closed" rule
+- `AuditPlanDetail.tsx` shows engagement stats but has no "Close Plan" button
+- `AuditDashboard.tsx` shows audits but not plan-level closure metrics
 
 ## What Will Be Done
 
-### 1. Database: Add `response_attachment` column to `ia_audit_queries` + Create storage bucket
+### 1. Database Migration
 
-- Add `response_attachment TEXT` column to `ia_audit_queries`
-- Create `audit-attachments` storage bucket for file uploads
-- RLS policy: authenticated users can read/write
+Add closure columns to `ia_annual_plans`:
+```sql
+ALTER TABLE ia_annual_plans 
+  ADD COLUMN IF NOT EXISTS closed_by TEXT,
+  ADD COLUMN IF NOT EXISTS closed_date DATE;
+```
 
-### 2. Rebuild EngagementDetail.tsx — Complete 8-Tab Audit Detail View
+No new tables needed — `ia_audit_closure` and engagement closure already exist.
 
-Replace the current 4-tab layout with a comprehensive view:
+### 2. Rebuild AuditPlanDetail.tsx — Add Plan Closure
 
-**Tab 1 — Overview**: Existing (no change)
+Add a **"Closure" tab** (5th tab) to the existing 4-tab layout:
 
-**Tab 2 — Checklist**: Existing (no change)
+- **Progress Summary**: Total / Closed / In Progress / Pending engagements (computed from `useIAPlanEngagements`)
+- **Progress Bar**: `closedCount / totalCount` visual indicator
+- **Validation Checklist**: All engagements must have status "Closed" or "Completed"
+- **"Close Audit Plan" Button**: Enabled only when `closedCount === totalCount && totalCount > 0`. Updates `ia_annual_plans.status = 'Closed'`, `closed_by`, `closed_date`. Triggers `notifyPlanClosed()` email.
+- **Disabled state message**: "Complete all audits before closing the plan."
+- **Read-only lock**: If plan already Closed, show lock icon and disable all actions.
 
-**Tab 3 — Findings**: Existing, but enhance each finding row to show recommendation and linked management response status inline
+### 3. Update AuditDashboard.tsx — Plan Closure Metrics
 
-**Tab 4 — Management Responses** (NEW): 
-- Table: Finding Title, Risk Level, Response Text, Response Status, Responded By, Attachment
-- Inline form to submit response for each finding (Pending → Submitted → Reviewed → Accepted → Rejected)
-- File upload for supporting documents
+Replace the existing KPI row with plan-aware metrics:
+- Add: **Total Plans**, **Active Plans**, **Completed Plans**, **Closed Plans**
+- Add a **Plan Progress** section showing each active plan with a progress bar (`closed engagements / total engagements`)
 
-**Tab 5 — Actions** (NEW):
-- Table: Finding, Action Title, Assigned To, Due Date, Status, Evidence
-- Overdue rows highlighted in red
-- Create action form linked to findings
-- Status workflow: Open → In Progress → Overdue → Completed → Closed
+### 4. Update PlanCloseout.tsx — Engagement-Based Validation
 
-**Tab 6 — Queries** (NEW):
-- Inline query list filtered by engagement
-- Create query + Respond with file upload
-- Status: Pending → Responded → Closed
+Replace the activity-based progress calculation with engagement-based logic:
+- Fetch engagements per plan using `ia_audit_engagements.annual_plan_id`
+- `getProgress()` = `closedEngagements / totalEngagements * 100`
+- Block closure if any engagement is not Closed
+- Show clear error: "Audit Plan cannot be closed because some audits are still in progress."
 
-**Tab 7 — Reports** (NEW):
-- Generate Audit Report button
-- Auto-populates: Executive Summary, Objective, Scope, Methodology, Findings Summary, Risk Rating, Recommendations, Management Responses, Actions
-- Preview report content
-- Download as PDF option
+### 5. Add Email Notification
 
-**Tab 8 — Closure**: Existing, enhanced with report generation gate
-
-### 3. Fix Audit Queries Page — Add File Upload
-
-Update `AuditQueries.tsx` respond modal:
-- Add file upload input (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG — max 20MB)
-- Upload to `audit-attachments` bucket
-- Save path to `response_attachment` column
-- Display attachment link in view modal
-
-### 4. Fix Audit Reports — Structured Report Generation
-
-Update `AuditReports.tsx`:
-- When generating from engagement, auto-pull findings, responses, and actions
-- Add structured report view with 9 sections
-- Add "Generate from Audit" flow that populates all fields
-
-### 5. Wire Email Notifications
-
-Add notification calls to:
-- Management Response submitted → notify auditor (`notifyQueryResponse` pattern)
-- Action assigned → `notifyActionAssigned()`
-- Report generated → notify department head
-
-Add new notification function: `notifyManagementResponseSubmitted()`
-
-### 6. Overdue Action Highlighting
-
-In the Actions tab, compare `target_date` to current date — if past due and status not Completed/Closed, show row in red with "Overdue" badge.
+Add `notifyPlanClosed()` to `auditNotificationService.ts`:
+- Triggered when plan status changes to "Closed"
+- Notifies Department Head and Audit Committee
 
 ---
 
-## Files to Create/Modify
+## Files to Modify
 
-**Database Migration (1 file):**
-- Add `response_attachment` to `ia_audit_queries`
-- Create `audit-attachments` storage bucket + RLS
-
-**Modified Files (~4):**
-- `src/pages/audit/EngagementDetail.tsx` — Full rebuild with 8 tabs
-- `src/pages/audit/AuditQueries.tsx` — Add file upload to respond flow
-- `src/pages/audit/AuditReports.tsx` — Structured report generation
-- `src/services/auditNotificationService.ts` — Add `notifyManagementResponseSubmitted`
+| File | Change |
+|------|--------|
+| **Migration** (1 new) | Add `closed_by`, `closed_date` to `ia_annual_plans` |
+| `src/pages/audit/AuditPlanDetail.tsx` | Add Closure tab with validation + close button |
+| `src/pages/audit/AuditDashboard.tsx` | Add plan closure metrics + progress bars |
+| `src/pages/audit/PlanCloseout.tsx` | Switch to engagement-based progress + block logic |
+| `src/services/auditNotificationService.ts` | Add `notifyPlanClosed()` |
 
