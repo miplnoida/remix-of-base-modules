@@ -33,17 +33,14 @@ interface PaymentRow {
   payer_id: string;
   date_received: string | null;
   remarks: string | null;
-  // resolved
   payer_display: string;
   type_display: string;
-  // receipt data
   receipt_id: number | null;
   receipt_status: string | null;
   receipt_total: number | null;
   receipt_number: string | null;
   reprint_times: number | null;
   receipt_status_desc: string;
-  // flag
   has_details: boolean;
 }
 
@@ -60,8 +57,21 @@ interface PaymentDetailLine {
   credit_card_code: string | null;
   expiration_date: string | null;
   mop_account_number: string | null;
+  mop_transit_number: string | null;
   mop_notes1: string | null;
+  bank_lodgement_code: string | null;
+  // resolved descriptions
+  payment_code_desc?: string;
+  fund_code_desc?: string;
+  mop_desc?: string;
 }
+
+// Fund labels fallback
+const FUND_LABELS: Record<string, string> = {
+  SS: 'Social Security',
+  LV: 'Levy',
+  PE: 'Severance',
+};
 
 // --- Constants ---
 const PAYER_TYPE_MAP: Record<string, string> = {
