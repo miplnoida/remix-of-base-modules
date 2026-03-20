@@ -558,51 +558,60 @@ const C3Payments: React.FC = () => {
       onSelectBatch={batchSel.selectBatch}
       onChangeBatch={batchSel.changeBatch}
     >
-      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Top Bar: Title + Batch + Actions */}
-        <div className="shrink-0 px-4 pt-3 pb-2 border-b bg-background space-y-2">
+      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        {/* ═══ TOP BAR ═══ */}
+        <div className="shrink-0 border-b bg-card px-5 py-2.5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">C3 Contributions Payment</h1>
-              <p className="text-xs text-muted-foreground">Ctrl+Enter to process · Ctrl+M add method · Ctrl+Shift+N new payment</p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-1 rounded-full bg-primary" />
+                <div>
+                  <h1 className="text-base font-bold tracking-tight text-foreground leading-tight">C3 Contributions</h1>
+                  <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
+                    <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">Ctrl+↵</kbd> Process
+                    <span className="mx-1.5">·</span>
+                    <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">Ctrl+M</kbd> Method
+                    <span className="mx-1.5">·</span>
+                    <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">Ctrl+⇧+N</kbd> New
+                  </p>
+                </div>
+              </div>
+              {batchSel.selectedBatch && (
+                <div className="ml-2">
+                  <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+                </div>
+              )}
             </div>
             <div className="flex gap-1.5">
-              <Button onClick={resetForm} variant="outline" size="sm" className="h-8 text-xs"
+              <Button onClick={resetForm} variant="outline" size="sm" className="h-8 text-xs gap-1.5"
                 disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
-                <PlusCircle className="h-3.5 w-3.5 mr-1" /> New
+                <PlusCircle className="h-3.5 w-3.5" /> New
               </Button>
-              <Button onClick={handleReprint} variant="outline" size="sm" className="h-8 text-xs" disabled={!canReprint}>
-                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reprint
+              <Button onClick={handleReprint} variant="outline" size="sm" className="h-8 text-xs gap-1.5" disabled={!canReprint}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reprint
               </Button>
-              <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" className="h-8 text-xs" disabled={!canCancel}>
-                <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
+              <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" className="h-8 text-xs gap-1.5" disabled={!canCancel}>
+                <XCircle className="h-3.5 w-3.5" /> Cancel
               </Button>
             </div>
           </div>
-          {batchSel.selectedBatch && (
-            <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
-          )}
         </div>
 
-        {/* Main scrollable area */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-
-          {/* ═══ HEADER ROW ═══ */}
-          <div className="grid grid-cols-6 gap-3 items-end">
-            {/* Payer Type */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">Payer Type</Label>
+        {/* ═══ HEADER FIELDS — single compact strip ═══ */}
+        <div className="shrink-0 px-5 py-3 border-b bg-card/60">
+          <div className="flex items-end gap-3">
+            <div className="w-[130px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Type</Label>
               <Select value={payerType} onValueChange={setPayerType} disabled={!isEntry}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PAYER_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Payer ID */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">Payer ID</Label>
+            <div className="w-[140px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Payer ID</Label>
               <div className="relative">
                 <Input
                   ref={payerIdRef}
@@ -611,38 +620,36 @@ const C3Payments: React.FC = () => {
                   onBlur={handlePayerBlur}
                   onKeyDown={e => { if (e.key === 'Enter') handlePayerBlur(); }}
                   placeholder={payerType === 'ER' ? 'Reg. No.' : 'SSN'}
-                  className="h-9 pr-8"
+                  className="h-9 pr-8 font-mono"
                   disabled={!isEntry}
                 />
                 {isValidating && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
             </div>
 
-            {/* Payer Name */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">Payer</Label>
-              <div className="flex items-center gap-1.5 h-9 px-2.5 border rounded-md bg-muted/50 text-sm">
+            <div className="flex-1 min-w-[160px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Payer</Label>
+              <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/40 text-sm">
                 {payerInfo ? (
                   <>
-                    <span className="truncate font-medium">{payerInfo.name}</span>
+                    <span className="truncate font-medium text-foreground">{payerInfo.name}</span>
                     {payerInfo.status === 'A' || payerInfo.status === 'Active'
-                      ? <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                      : <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                      ? <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      : <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />}
                   </>
-                ) : <span className="text-muted-foreground text-xs">—</span>}
+                ) : <span className="text-muted-foreground text-xs italic">Enter Payer ID and press Enter</span>}
               </div>
             </div>
 
-            {/* Period */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">C3 Period</Label>
+            <div className="w-[170px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">C3 Period</Label>
               <Popover open={periodOpen} onOpenChange={setPeriodOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" disabled={!isEntry}
                     className={cn('w-full justify-start text-left font-normal h-9',
                       !selectedMonth && 'text-muted-foreground')}>
-                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 opacity-70" />
-                    {periodLabel}
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 opacity-60" />
+                    <span className="font-medium">{periodLabel}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-3" align="start">
@@ -671,103 +678,124 @@ const C3Payments: React.FC = () => {
               </Popover>
             </div>
 
-            {/* Date Received */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">Date Received</Label>
+            <div className="w-[140px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Date</Label>
               <DatePicker date={dateReceived} onDateChange={setDateReceived} disabled={!isEntry} />
             </div>
 
-            {/* Remarks (compact) */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground font-medium">Remarks</Label>
+            <div className="w-[180px] space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Remarks</Label>
               <Input
                 value={remarks}
                 onChange={e => setRemarks(e.target.value)}
-                placeholder="Optional notes..."
+                placeholder="Optional..."
                 className="h-9"
                 disabled={!isEntry}
                 maxLength={250}
               />
             </div>
           </div>
+        </div>
 
-          {/* ═══ TWO-COLUMN LAYOUT: Components + Methods ═══ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* ═══ MAIN CONTENT — Two panels ═══ */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-0">
 
-            {/* LEFT: Payment Components */}
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-                <span className="text-sm font-semibold">Payment Components</span>
-                <span className="text-sm font-bold tabular-nums text-primary">
-                  {baseCurrCode} {c3Amount.toFixed(2)}
-                </span>
-              </div>
-              <div className="p-2 space-y-1">
-                {/* Inline search */}
-                {isEntry && availableComponents.length > 0 && (
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      ref={componentSearchRef}
-                      value={componentSearch}
-                      onChange={e => setComponentSearch(e.target.value)}
-                      onFocus={() => setComponentSearchFocused(true)}
-                      onBlur={() => setTimeout(() => setComponentSearchFocused(false), 150)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && filteredAvailable.length > 0) {
-                          e.preventDefault();
-                          handleSelectComponent(filteredAvailable[0].payment_code);
-                        }
-                        if (e.key === 'Escape') {
-                          setComponentSearch('');
-                          setComponentSearchFocused(false);
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                      placeholder="Type to search components... (Enter to add)"
-                      className="h-8 pl-8 text-xs"
-                    />
-                    {/* Dropdown results */}
-                    {componentSearchFocused && componentSearch.trim() && (
-                      <div className="absolute z-20 top-full left-0 right-0 mt-0.5 border rounded-md bg-popover shadow-md max-h-40 overflow-y-auto">
-                        {filteredAvailable.length === 0 ? (
-                          <p className="text-xs text-muted-foreground p-2 text-center">No matching components</p>
-                        ) : (
-                          filteredAvailable.map((pt: any) => (
-                            <button
-                              key={pt.payment_code}
-                              type="button"
-                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent flex justify-between items-center"
-                              onMouseDown={e => {
-                                e.preventDefault();
-                                handleSelectComponent(pt.payment_code);
-                              }}
-                            >
-                              <span className="font-medium">{pt.payment_type_description || pt.payment_code}</span>
-                              <span className="text-muted-foreground ml-2">{pt.payment_code}</span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
+          {/* ─── LEFT: Payment Components ─── */}
+          <div className="flex flex-col border-r overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center">
+                  <Receipt className="h-3 w-3 text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Payment Components</span>
+                {selectedComponents.length > 0 && (
+                  <span className="text-[10px] bg-primary/10 text-primary font-semibold px-1.5 py-0.5 rounded-full">
+                    {selectedComponents.length}
+                  </span>
                 )}
+              </div>
+              <span className="text-sm font-bold tabular-nums text-foreground">
+                {baseCurrCode} {c3Amount.toFixed(2)}
+              </span>
+            </div>
 
-                {/* Selected components - compact rows */}
-                {selectedComponents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-6 text-center">
-                    {c3PaymentTypeDetails.length === 0
-                      ? 'No C3 payment types configured.'
-                      : 'Type above to search and add components'}
+            {/* Search */}
+            {isEntry && availableComponents.length > 0 && (
+              <div className="shrink-0 px-3 py-2 border-b bg-background">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    ref={componentSearchRef}
+                    value={componentSearch}
+                    onChange={e => setComponentSearch(e.target.value)}
+                    onFocus={() => setComponentSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setComponentSearchFocused(false), 150)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && filteredAvailable.length > 0) {
+                        e.preventDefault();
+                        handleSelectComponent(filteredAvailable[0].payment_code);
+                      }
+                      if (e.key === 'Escape') {
+                        setComponentSearch('');
+                        setComponentSearchFocused(false);
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    placeholder="Search components… press Enter to add"
+                    className="h-8 pl-8 text-xs bg-muted/30 border-muted focus:bg-background"
+                  />
+                  {componentSearchFocused && componentSearch.trim() && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 border rounded-lg bg-popover shadow-lg max-h-44 overflow-y-auto">
+                      {filteredAvailable.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-3 text-center">No matching components</p>
+                      ) : (
+                        filteredAvailable.map((pt: any, i: number) => (
+                          <button
+                            key={pt.payment_code}
+                            type="button"
+                            className={cn(
+                              'w-full text-left px-3 py-2 text-xs hover:bg-accent/10 flex justify-between items-center transition-colors',
+                              i === 0 && 'bg-primary/5'
+                            )}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              handleSelectComponent(pt.payment_code);
+                            }}
+                          >
+                            <span className="font-medium text-foreground">{pt.payment_type_description || pt.payment_code}</span>
+                            <span className="text-muted-foreground font-mono text-[10px]">{pt.payment_code}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Component list */}
+            <div className="flex-1 overflow-y-auto">
+              {selectedComponents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-6">
+                  <Search className="h-8 w-8 mb-3 opacity-30" />
+                  <p className="text-sm font-medium">
+                    {c3PaymentTypeDetails.length === 0 ? 'No C3 payment types configured' : 'No components added'}
                   </p>
-                ) : (
-                  <div className="divide-y">
-                    {selectedComponents.map((comp, idx) => (
-                      <div key={comp.payment_code} className="flex items-center gap-2 py-1.5 px-1">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{comp.description}</p>
-                          <p className="text-[10px] text-muted-foreground">{comp.payment_code}</p>
-                        </div>
+                  <p className="text-xs mt-1 text-center">
+                    {c3PaymentTypeDetails.length > 0 && 'Use the search box above to find and add components'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {selectedComponents.map((comp, idx) => (
+                    <div key={comp.payment_code}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors group">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{comp.description}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{comp.payment_code} · {comp.fund_code}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground font-medium">{baseCurrCode}</span>
                         <Input
                           ref={el => { amountRefs.current[comp.payment_code] = el; }}
                           type="number" step="0.01" min="0"
@@ -775,72 +803,95 @@ const C3Payments: React.FC = () => {
                           onChange={e => updateComponentAmount(comp.payment_code, parseFloat(e.target.value) || 0)}
                           onKeyDown={e => handleComponentAmountKeyDown(e, idx)}
                           placeholder="0.00"
-                          className="w-28 text-right text-xs h-7"
+                          className="w-28 text-right tabular-nums font-mono text-sm h-8"
                           disabled={!isEntry}
                         />
                         {isEntry && (
                           <button type="button" onClick={() => removeComponent(comp.payment_code)}
-                            className="shrink-0 p-0.5 rounded hover:bg-destructive/10 transition-colors">
+                            className="shrink-0 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all">
                             <X className="h-3.5 w-3.5 text-destructive" />
                           </button>
                         )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── RIGHT: Payment Methods ─── */}
+          <div className="flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center">
+                  <Plus className="h-3 w-3 text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Payment Methods</span>
+                {methods.length > 0 && (
+                  <span className="text-[10px] bg-primary/10 text-primary font-semibold px-1.5 py-0.5 rounded-full">
+                    {methods.length}
+                  </span>
                 )}
               </div>
-            </Card>
-
-            {/* RIGHT: Payment Methods */}
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-                <span className="text-sm font-semibold">Payment Methods</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold tabular-nums text-primary">
-                    {baseCurrCode} {totalPaymentReceived.toFixed(2)}
-                  </span>
-                  {isEntry && (
-                    <Button onClick={() => addMethodRow()} variant="outline" size="sm" className="h-6 text-[11px] px-2">
-                      <Plus className="h-3 w-3 mr-0.5" /> Add
-                    </Button>
-                  )}
-                </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {baseCurrCode} {totalPaymentReceived.toFixed(2)}
+                </span>
+                {isEntry && (
+                  <Button onClick={() => addMethodRow()} variant="outline" size="sm" className="h-7 text-xs gap-1 px-2.5">
+                    <Plus className="h-3 w-3" /> Add
+                  </Button>
+                )}
               </div>
-              <div className="p-2">
-                {methods.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-6 text-center">
-                    Click "Add" or press Ctrl+M to add a payment method
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {methods.map((m, idx) => {
-                      const isMainCurr = m.currency_code === baseCurrCode;
-                      const detail = mopDetailSummary(m);
-                      const needsDetail = (m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && !detail;
-                      return (
-                        <div key={m.id} className={cn('py-2 px-1 space-y-1.5', needsDetail && 'bg-amber-50/50 dark:bg-amber-950/10')}>
-                          {/* Row 1: Method + Currency + Amount + Actions */}
-                          <div className="flex items-center gap-2">
-                            <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={!isEntry}>
-                              <SelectTrigger className="h-7 text-xs w-32"><SelectValue placeholder="Method..." /></SelectTrigger>
+            </div>
+
+            {/* Method list */}
+            <div className="flex-1 overflow-y-auto">
+              {methods.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-6">
+                  <PlusCircle className="h-8 w-8 mb-3 opacity-30" />
+                  <p className="text-sm font-medium">No payment methods</p>
+                  <p className="text-xs mt-1">Click "Add" or press <kbd className="px-1 py-0.5 rounded bg-muted text-[10px] font-mono">Ctrl+M</kbd></p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {methods.map((m, idx) => {
+                    const isMainCurr = m.currency_code === baseCurrCode;
+                    const detail = mopDetailSummary(m);
+                    const needsDetail = (m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && !detail;
+                    return (
+                      <div key={m.id}
+                        className={cn(
+                          'px-4 py-2.5 hover:bg-muted/30 transition-colors group',
+                          needsDetail && 'bg-warning/5'
+                        )}>
+                        <div className="flex items-center gap-2">
+                          {/* MOP Select */}
+                          <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={!isEntry}>
+                            <SelectTrigger className="h-8 text-xs w-[140px] shrink-0"><SelectValue placeholder="Select method…" /></SelectTrigger>
+                            <SelectContent>
+                              {mopTypes.map((mt: any) => (
+                                <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          {/* Currency (only when multiple) */}
+                          {enabledCurrencies.length > 1 && (
+                            <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={!isEntry}>
+                              <SelectTrigger className="h-8 text-xs w-[80px] shrink-0"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {mopTypes.map((mt: any) => (
-                                  <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
+                                {enabledCurrencies.map((c: any) => (
+                                  <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                          )}
 
-                            {enabledCurrencies.length > 1 && (
-                              <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={!isEntry}>
-                                <SelectTrigger className="h-7 text-xs w-20"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {enabledCurrencies.map((c: any) => (
-                                    <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-
+                          {/* Amount */}
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <span className="text-xs text-muted-foreground font-medium shrink-0">{m.currency_code}</span>
                             <Input
                               ref={el => { methodAmountRefs.current[m.id] = el; }}
                               type="number" step="0.01" min="0"
@@ -848,77 +899,104 @@ const C3Payments: React.FC = () => {
                               onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
                               onKeyDown={e => handleMethodAmountKeyDown(e, idx)}
                               placeholder="0.00"
-                              className="w-28 text-right text-xs h-7"
+                              className="w-28 text-right tabular-nums font-mono text-sm h-8"
                               disabled={!isEntry}
                             />
-
+                            {/* Base currency conversion inline */}
                             {!isMainCurr && m.original_amount > 0 && (
-                              <span className="text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
-                                {baseCurrCode} {m.base_amount.toFixed(2)}
+                              <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums font-mono shrink-0">
+                                = {baseCurrCode} {m.base_amount.toFixed(2)}
                               </span>
                             )}
-
-                            <div className="flex gap-0.5 ml-auto shrink-0">
-                              {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
-                                <button type="button" onClick={() => handleEditMopDetail(m.id)} disabled={!isEntry}
-                                  className={cn('p-1 rounded transition-colors',
-                                    needsDetail ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 animate-pulse' : 'hover:bg-muted text-muted-foreground')}>
-                                  <Edit2 className="h-3 w-3" />
-                                </button>
-                              )}
-                              <button type="button" onClick={() => removeMethodRow(m.id)} disabled={!isEntry}
-                                className="p-1 rounded hover:bg-destructive/10 transition-colors">
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </button>
-                            </div>
                           </div>
 
-                          {/* Row 2: Detail info */}
-                          {(detail || (!isMainCurr && m.exchange_rate !== 1)) && (
-                            <div className="flex gap-3 text-[10px] text-muted-foreground pl-1">
-                              {!isMainCurr && m.exchange_rate !== 1 && <span>Rate: {m.exchange_rate}</span>}
-                              {detail && <span>{detail}</span>}
-                            </div>
-                          )}
+                          {/* Actions */}
+                          <div className="flex gap-0.5 shrink-0">
+                            {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button" onClick={() => handleEditMopDetail(m.id)} disabled={!isEntry}
+                                      className={cn('p-1.5 rounded-md transition-colors',
+                                        needsDetail
+                                          ? 'bg-warning/20 text-warning animate-pulse'
+                                          : 'opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground')}>
+                                      <Edit2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{needsDetail ? 'Add details (required)' : 'Edit details'}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <button type="button" onClick={() => removeMethodRow(m.id)} disabled={!isEntry}
+                              className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </Card>
+
+                        {/* Detail line — cheque/card info + rate */}
+                        {(detail || (!isMainCurr && m.exchange_rate !== 1)) && (
+                          <div className="flex gap-3 text-[10px] text-muted-foreground mt-1.5 pl-0.5">
+                            {!isMainCurr && m.exchange_rate !== 1 && (
+                              <span className="font-mono">Rate: {m.exchange_rate}</span>
+                            )}
+                            {detail && (
+                              <span className="font-medium">{detail}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ═══ STICKY FOOTER ═══ */}
-        <div className="shrink-0 border-t bg-background px-4 py-2.5">
-          <div className="flex items-center justify-between">
-            {/* Totals */}
-            <div className="flex gap-6">
-              <div className="text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">C3 Amount</p>
-                <p className="text-base font-bold tabular-nums">{baseCurrCode} {c3Amount.toFixed(2)}</p>
+        {/* ═══ FOOTER ═══ */}
+        <div className="shrink-0 border-t bg-card shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between px-5 py-3">
+            <div className="flex items-center gap-1">
+              {/* C3 Amount */}
+              <div className="px-4 py-1.5 rounded-lg bg-muted/60 text-center min-w-[120px]">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">C3 Amount</p>
+                <p className="text-lg font-bold tabular-nums text-foreground leading-tight">{baseCurrCode} {c3Amount.toFixed(2)}</p>
               </div>
-              <div className="text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Received</p>
-                <p className="text-base font-bold tabular-nums">{baseCurrCode} {totalPaymentReceived.toFixed(2)}</p>
+
+              <div className="text-muted-foreground/40 text-lg font-light px-1">−</div>
+
+              {/* Received */}
+              <div className="px-4 py-1.5 rounded-lg bg-muted/60 text-center min-w-[120px]">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Received</p>
+                <p className="text-lg font-bold tabular-nums text-foreground leading-tight">{baseCurrCode} {totalPaymentReceived.toFixed(2)}</p>
               </div>
-              <div className="text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Difference</p>
-                <p className={cn('text-base font-bold tabular-nums',
-                  Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive')}>
+
+              <div className="text-muted-foreground/40 text-lg font-light px-1">=</div>
+
+              {/* Difference */}
+              <div className={cn(
+                'px-4 py-1.5 rounded-lg text-center min-w-[120px]',
+                Math.abs(difference) < 0.01
+                  ? 'bg-primary/8'
+                  : 'bg-destructive/8'
+              )}>
+                <p className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground">Difference</p>
+                <p className={cn('text-lg font-bold tabular-nums leading-tight',
+                  Math.abs(difference) < 0.01 ? 'text-primary' : 'text-destructive')}>
                   {baseCurrCode} {difference.toFixed(2)}
                 </p>
               </div>
             </div>
 
-            {/* Process button */}
             <Button
               onClick={() => setShowConfirm(true)}
               disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo}
-              className="h-10 px-6 text-sm font-semibold"
+              size="lg"
+              className="h-11 px-8 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow gap-2"
             >
-              {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Receipt className="h-4 w-4 mr-2" />}
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
               Process C3 Payment
             </Button>
           </div>
@@ -930,15 +1008,22 @@ const C3Payments: React.FC = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Process C3 Payment?</AlertDialogTitle>
               <AlertDialogDescription asChild>
-                <div className="space-y-1.5 text-sm">
-                  <p>Payer: <strong>{payerInfo?.name || payerId}</strong></p>
-                  <p>Period: <strong>{periodLabel}</strong></p>
-                  <p>Components: <strong>{selectedComponents.length}</strong> · C3 Amount: <strong>{baseCurrCode} {c3Amount.toFixed(2)}</strong></p>
-                  <p>Methods: <strong>{methods.length}</strong> · Total: <strong>{baseCurrCode} {totalPaymentReceived.toFixed(2)}</strong></p>
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 py-2">
+                    <span className="text-muted-foreground">Payer</span>
+                    <span className="font-medium text-foreground">{payerInfo?.name || payerId}</span>
+                    <span className="text-muted-foreground">Period</span>
+                    <span className="font-medium text-foreground">{periodLabel}</span>
+                    <span className="text-muted-foreground">Components</span>
+                    <span className="font-medium text-foreground">{selectedComponents.length} · {baseCurrCode} {c3Amount.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Methods</span>
+                    <span className="font-medium text-foreground">{methods.length} · {baseCurrCode} {totalPaymentReceived.toFixed(2)}</span>
+                  </div>
                   {Math.abs(difference) >= 0.01 && (
-                    <p className="text-destructive font-medium mt-2">
-                      ⚠ Difference of {baseCurrCode} {difference.toFixed(2)} between C3 amount and payment received.
-                    </p>
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-xs font-medium">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      Difference of {baseCurrCode} {difference.toFixed(2)} between C3 amount and received.
+                    </div>
                   )}
                 </div>
               </AlertDialogDescription>
