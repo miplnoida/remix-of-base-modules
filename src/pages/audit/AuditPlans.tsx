@@ -83,7 +83,7 @@ export default function AuditPlans() {
         data={filteredPlans}
         renderActions={(row) => (
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
             {hasPermission('edit_audit_plans') && row.status === 'Draft' && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPlan(row)}><Edit className="h-4 w-4" /></Button>
