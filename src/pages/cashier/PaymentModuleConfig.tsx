@@ -560,6 +560,11 @@ const PaymentModuleConfig: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ─── RECEIPT TAB ─── */}
+        <TabsContent value="receipt" className="space-y-6">
+          <ReceiptTemplateTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
