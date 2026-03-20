@@ -411,7 +411,7 @@ const PaymentHistoryManagement = () => {
       const { data: rcpt } = await supabase.from('cn_receipt').select('*').eq('receipt_id', detailReceipt.receipt_id).single();
       setDetailReceipt(rcpt ? (rcpt as unknown as ReceiptData) : null);
       fetchPayments();
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => printConfiguredReceipt(selectedRow!.payment_id).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       await logApplicationError(err, { module: 'PaymentHistoryManagement', action: 'handleReprint', entity_type: 'cn_receipt', entity_id: String(detailReceipt.receipt_id) });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
