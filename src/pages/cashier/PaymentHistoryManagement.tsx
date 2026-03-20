@@ -679,9 +679,18 @@ const PaymentHistoryManagement = () => {
                                   )}
                                   {isCard && (
                                     <>
-                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.credit_card_code || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{d.expiration_date || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Transaction No.</Label><p>{d.mop_number || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
+                                        if (!d.expiration_date) return '—';
+                                        const str = String(d.expiration_date).trim();
+                                        // Already MM/YY
+                                        if (/^\d{2}\/\d{2}$/.test(str)) return str;
+                                        // Parse date string
+                                        const dt = new Date(str);
+                                        if (isNaN(dt.getTime())) return str;
+                                        return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
+                                      })()}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
                                     </>
                                   )}
                                   {d.mop_account_number && (
