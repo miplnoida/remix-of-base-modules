@@ -3,21 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, Building2, Shield, Calendar, User } from 'lucide-react';
+import { Plus, ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, User } from 'lucide-react';
 import { useIAAnnualPlans, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
-import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { useIAPlanFunctions } from '@/hooks/useAuditPlanFunctions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
-import { StandardModal } from '@/components/common/StandardModal';
 import type { DataTableColumn } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
-import { AddEngagementToPlanForm } from '@/components/audit/AddEngagementToPlanForm';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { Loader2 } from 'lucide-react';
 
-function DetailRow({ label, value }: { label: string; value: any }) {
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
@@ -34,24 +32,17 @@ export default function AuditPlanDetail() {
 
   const { data: plans = [], isLoading: plansLoading } = useIAAnnualPlans();
   const { data: engagements = [], isLoading: engLoading } = useIAPlanEngagements(id);
-  const { data: changeLog = [], isLoading: logLoading } = useIAPlanChangeLog(id);
+  const { data: changeLog = [] } = useIAPlanChangeLog(id);
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAAuditors();
   const { data: planFunctions = [] } = useIAPlanFunctions(id);
   const { data: allFunctions = [] } = useIADepartmentFunctions('all');
-  const { create: createEngagement } = useIAEngagements();
-  const { create: createChangeLog } = useIAPlanChangeLogMutations();
 
-  const [showAddEngagement, setShowAddEngagement] = useState(false);
+  const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
 
-  const plan = useMemo(() => plans.find((p: any) => p.id === id), [plans, id]);
-
-  const canAddEngagement = plan && ['Draft', 'Approved', 'Active', 'In Progress'].includes(plan.status || '') &&
-    (hasPermission('create_audit_plans') || hasPermission('edit_audit_plans'));
-
-  const getDeptName = (deptId: string) => departments?.find((d: any) => d.id === deptId)?.name || '—';
-  const getFunctionName = (fid: string) => (allFunctions || []).find((f: any) => f.id === fid)?.function_name || fid?.slice(0, 8) || '—';
-  const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
+  const getDeptName = (deptId: string) => (departments || []).find((d: any) => d.id === deptId)?.name || '—';
+  const getFunctionName = (fid: string) => (allFunctions || []).find((f: any) => f.id === fid)?.function_name || '—';
+  const getAuditorName = (aid: string) => (auditors || []).find((a: any) => a.id === aid)?.name || '—';
 
   const stats = useMemo(() => {
     const all = engagements || [];
@@ -63,7 +54,6 @@ export default function AuditPlanDetail() {
     };
   }, [engagements]);
 
-  // Audit team from engagements
   const auditTeam = useMemo(() => {
     const team = new Map<string, string>();
     (engagements || []).forEach((eng: any) => {
@@ -72,7 +62,7 @@ export default function AuditPlanDetail() {
         eng.supportive_auditor_ids.forEach((aid: string) => team.set(aid, 'Team Member'));
       }
     });
-    return [...team.entries()].map(([id, role]) => ({ id, name: getAuditorName(id), role }));
+    return [...team.entries()].map(([memberId, role]) => ({ id: memberId, name: getAuditorName(memberId), role }));
   }, [engagements, auditors]);
 
   const engColumns: DataTableColumn<any>[] = [
@@ -87,7 +77,7 @@ export default function AuditPlanDetail() {
 
   const functionColumns: DataTableColumn<any>[] = [
     { key: 'function_id', header: 'Function', render: (r) => getFunctionName(r.function_id) },
-    { key: 'risk_score', header: 'Risk Score', render: (r) => r.risk_score || '—' },
+    { key: 'risk_score', header: 'Risk Score', render: (r) => r.risk_score ?? '—' },
     { key: 'risk_level', header: 'Risk Level', render: (r) => <StatusBadge status={r.risk_level || 'Low'} /> },
     { key: 'priority', header: 'Priority', render: (r) => <StatusBadge status={r.priority || 'Normal'} /> },
   ];
@@ -99,77 +89,72 @@ export default function AuditPlanDetail() {
     { key: 'change_date', header: 'Date', render: (r) => r.change_date ? formatDateForDisplay(r.change_date) : '—' },
   ];
 
-  const handleAddEngagement = async (payload: any) => {
-    try {
-      await createEngagement.mutateAsync(payload);
-      await createChangeLog.mutateAsync({
-        plan_id: id!,
-        change_type: 'Engagement Added',
-        description: `${payload.engagement_name} added (${payload.engagement_type})`,
-        changed_by: userCodeData.userCode || 'system',
-      });
-      setShowAddEngagement(false);
-    } catch (err) {
-      // error handled by mutation
-    }
-  };
+  if (plansLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-muted-foreground">Audit plan not found.</p>
+        <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />Back to Plans
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <PageShell
-      title={plan?.title || 'Plan Detail'}
-      subtitle={plan ? `Fiscal Year: ${plan.fiscal_year} • Status: ${plan.status || 'Draft'}` : ''}
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Plans', href: '/audit/audit-plans' }, { label: plan?.title || 'Detail' }]}
-      isLoading={plansLoading || engLoading}
+      title={plan.title || 'Plan Detail'}
+      subtitle={`Fiscal Year: ${plan.fiscal_year || '—'} • Status: ${plan.status || 'Draft'}`}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Audit Plans', href: '/audit/audit-plans' }, { label: plan.title || 'Detail' }]}
+      isLoading={engLoading}
       actions={
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />Back
-          </Button>
-          {canAddEngagement && (
-            <Button onClick={() => setShowAddEngagement(true)}>
-              <Plus className="h-4 w-4 mr-2" />Add Engagement
-            </Button>
-          )}
-        </div>
+        <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />Back
+        </Button>
       }
     >
-      {/* Section 1: Plan Information */}
-      {plan && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Plan Information</CardTitle></CardHeader>
-            <CardContent>
-              <DetailRow label="Plan Title" value={plan.title} />
-              <DetailRow label="Fiscal Year" value={plan.fiscal_year} />
-              <DetailRow label="Department" value={plan.department_id ? getDeptName(plan.department_id) : 'All Departments'} />
-              <DetailRow label="Risk Level" value={plan.risk_level ? <StatusBadge status={plan.risk_level} /> : '—'} />
-              <DetailRow label="Status" value={<StatusBadge status={plan.status || 'Draft'} />} />
-              <DetailRow label="Approved By" value={plan.approved_by || '—'} />
-              <DetailRow label="Created" value={plan.created_at ? formatDateForDisplay(plan.created_at) : '—'} />
-            </CardContent>
-          </Card>
+      {/* Plan Information */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Plan Information</CardTitle></CardHeader>
+          <CardContent>
+            <DetailRow label="Plan Title" value={plan.title} />
+            <DetailRow label="Fiscal Year" value={plan.fiscal_year} />
+            <DetailRow label="Department" value={plan.department_id ? getDeptName(plan.department_id) : 'All Departments'} />
+            <DetailRow label="Risk Level" value={plan.risk_level ? <StatusBadge status={plan.risk_level} /> : '—'} />
+            <DetailRow label="Status" value={<StatusBadge status={plan.status || 'Draft'} />} />
+            <DetailRow label="Approved By" value={plan.approved_by || '—'} />
+            <DetailRow label="Created" value={plan.created_at ? formatDateForDisplay(plan.created_at) : '—'} />
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Scope & Timeline</CardTitle></CardHeader>
-            <CardContent>
-              <DetailRow label="Planned Start" value={plan.planned_start_date ? formatDateForDisplay(plan.planned_start_date) : '—'} />
-              <DetailRow label="Planned End" value={plan.planned_end_date ? formatDateForDisplay(plan.planned_end_date) : '—'} />
-              {plan.objective && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground">Objective</p>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">{plan.objective}</p>
-                </div>
-              )}
-              {plan.scope && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground">Scope</p>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">{plan.scope}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Scope & Timeline</CardTitle></CardHeader>
+          <CardContent>
+            <DetailRow label="Planned Start" value={plan.planned_start_date ? formatDateForDisplay(plan.planned_start_date) : '—'} />
+            <DetailRow label="Planned End" value={plan.planned_end_date ? formatDateForDisplay(plan.planned_end_date) : '—'} />
+            {plan.objective && (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground">Objective</p>
+                <p className="text-sm mt-1 whitespace-pre-wrap">{plan.objective}</p>
+              </div>
+            )}
+            {plan.audit_scope && (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground">Scope</p>
+                <p className="text-sm mt-1 whitespace-pre-wrap">{plan.audit_scope}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -188,7 +173,6 @@ export default function AuditPlanDetail() {
           <TabsTrigger value="changelog">Change Log ({(changeLog || []).length})</TabsTrigger>
         </TabsList>
 
-        {/* Section 2: Functions Included */}
         <TabsContent value="functions">
           <Card>
             <CardContent className="pt-6">
@@ -201,7 +185,6 @@ export default function AuditPlanDetail() {
           </Card>
         </TabsContent>
 
-        {/* Section 3: Audit Team */}
         <TabsContent value="team">
           <Card>
             <CardContent className="pt-6">
@@ -227,7 +210,6 @@ export default function AuditPlanDetail() {
           </Card>
         </TabsContent>
 
-        {/* Section 4: Engagements */}
         <TabsContent value="engagements">
           <Card>
             <CardContent className="pt-6">
@@ -243,7 +225,6 @@ export default function AuditPlanDetail() {
           </Card>
         </TabsContent>
 
-        {/* Change Log */}
         <TabsContent value="changelog">
           <Card>
             <CardContent className="pt-6">
@@ -256,21 +237,6 @@ export default function AuditPlanDetail() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Add Engagement Modal */}
-      <StandardModal
-        open={showAddEngagement}
-        onOpenChange={setShowAddEngagement}
-        title="Add Engagement to Plan"
-        mode="create"
-        size="4xl"
-      >
-        <AddEngagementToPlanForm
-          planId={id!}
-          onSave={handleAddEngagement}
-          isSaving={createEngagement.isPending}
-        />
-      </StandardModal>
     </PageShell>
   );
 }
