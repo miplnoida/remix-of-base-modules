@@ -126,20 +126,20 @@ const PaymentHistoryManagement = () => {
 
     if (erIds.length > 0) {
       promises.push(
-        supabase.from('er_master').select('regno, name').in('regno', erIds)
-          .then(({ data }) => {
-            data?.forEach(r => { nameMap[r.regno] = r.name || r.regno; });
-          })
+        (async () => {
+          const { data } = await supabase.from('er_master').select('regno, name').in('regno', erIds);
+          data?.forEach(r => { nameMap[r.regno] = r.name || r.regno; });
+        })()
       );
     }
     if (nonErIds.length > 0) {
       promises.push(
-        supabase.from('ip_master').select('ssn, firstname, surname').in('ssn', nonErIds)
-          .then(({ data }) => {
-            data?.forEach(r => {
-              nameMap[r.ssn] = `${r.firstname || ''} ${r.surname || ''}`.trim() || r.ssn;
-            });
-          })
+        (async () => {
+          const { data } = await supabase.from('ip_master').select('ssn, firstname, surname').in('ssn', nonErIds);
+          data?.forEach(r => {
+            nameMap[r.ssn] = `${r.firstname || ''} ${r.surname || ''}`.trim() || r.ssn;
+          });
+        })()
       );
     }
 
