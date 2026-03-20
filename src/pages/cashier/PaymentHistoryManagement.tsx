@@ -464,7 +464,7 @@ const PaymentHistoryManagement = () => {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={(e) => { e.stopPropagation(); handleGenerateReceipt(row); }}
+                    onClick={(e) => { e.stopPropagation(); setGenerateTarget(row); }}
                     disabled={generatingId === row.payment_id}
                     title="Generate Receipt"
                   >
