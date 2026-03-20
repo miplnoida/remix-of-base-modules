@@ -612,7 +612,8 @@ const PaymentHistoryManagement = () => {
                     <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
+                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
                   </div>
                 </div>
 
