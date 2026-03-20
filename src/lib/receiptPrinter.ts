@@ -72,22 +72,22 @@ async function fetchReceiptData(paymentId: number) {
   if (header.payer_type === 'ER') {
     const { data: er } = await supabase
       .from('er_master')
-      .select('company_name, mailing_address_1, mailing_address_2')
-      .eq('registration_number', header.payer_id)
+      .select('name, maddr1, maddr2')
+      .eq('regno', (header as any).payer_id)
       .maybeSingle();
     if (er) {
-      payerName = er.company_name || header.payer_id;
-      payerAddress = [er.mailing_address_1, er.mailing_address_2].filter(Boolean).join('\n');
+      payerName = (er as any).name || header.payer_id;
+      payerAddress = [(er as any).maddr1, (er as any).maddr2].filter(Boolean).join('\n');
     }
   } else if (header.payer_type === 'SE' || header.payer_type === 'IP') {
     const { data: ip } = await supabase
       .from('ip_master')
-      .select('surname, first_name, address_1, address_2')
-      .eq('ssn', header.payer_id)
+      .select('firstname, surname, mail_addr1, mail_addr2')
+      .eq('ssn', (header as any).payer_id)
       .maybeSingle();
     if (ip) {
-      payerName = [ip.first_name, ip.surname].filter(Boolean).join(' ') || header.payer_id;
-      payerAddress = [ip.address_1, ip.address_2].filter(Boolean).join('\n');
+      payerName = [(ip as any).firstname, (ip as any).surname].filter(Boolean).join(' ') || header.payer_id;
+      payerAddress = [(ip as any).mail_addr1, (ip as any).mail_addr2].filter(Boolean).join('\n');
       payerSSN = header.payer_id;
     }
   }
