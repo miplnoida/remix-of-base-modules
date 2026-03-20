@@ -100,7 +100,11 @@ export function DataTable<T extends Record<string, any>>({
               </TableRow>
             ) : (
               paginatedData.map((row, idx) => (
-                <TableRow key={row[keyField] || idx} className={rowClassName?.(row)}>
+                <TableRow
+                  key={row[keyField] || idx}
+                  className={`${rowClassName?.(row) || ''} ${onView ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                  onClick={() => onView?.(row)}
+                >
                   {columns.map((col) => (
                     <TableCell key={col.key} className={col.className}>
                       {col.render ? col.render(row) : row[col.key] ?? '-'}

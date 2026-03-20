@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +90,9 @@ const PaymentHistoryManagement = () => {
   const [removeTarget, setRemoveTarget] = useState<PaymentRow | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  // Generate receipt confirm
+  const [generateTarget, setGenerateTarget] = useState<PaymentRow | null>(null);
+
   // Receipt generation loading
   const [generatingId, setGeneratingId] = useState<number | null>(null);
 
@@ -99,16 +102,21 @@ const PaymentHistoryManagement = () => {
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
 
-  // --- Status map cache ---
-  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  // --- Status map cache (useRef to avoid dependency cycles) ---
+  const statusMapRef = useRef<Record<string, string>>({});
+  const statusMapLoaded = useRef(false);
 
-  // Fetch receipt status descriptions
-  const fetchStatusMap = useCallback(async () => {
+  // Fetch receipt status descriptions once
+  const fetchStatusMap = useCallback(async (): Promise<Record<string, string>> => {
+    if (statusMapLoaded.current && Object.keys(statusMapRef.current).length > 0) {
+      return statusMapRef.current;
+    }
     const { data } = await supabase.from('tb_receipt_status').select('code, description');
     if (data) {
       const map: Record<string, string> = {};
       data.forEach(r => { map[r.code] = r.description || r.code; });
-      setStatusMap(map);
+      statusMapRef.current = map;
+      statusMapLoaded.current = true;
       return map;
     }
     return {};
@@ -151,8 +159,8 @@ const PaymentHistoryManagement = () => {
   const fetchPayments = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch status map
-      const sMap = Object.keys(statusMap).length > 0 ? statusMap : await fetchStatusMap();
+      // 1. Fetch status map (from ref, no state dependency)
+      const sMap = await fetchStatusMap();
 
       // 2. Fetch active payment headers
       const { data: headers, error: hErr } = await supabase
@@ -232,7 +240,7 @@ const PaymentHistoryManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchStatusMap, resolvePayerNames, statusMap]);
+  }, [fetchStatusMap, resolvePayerNames]);
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
@@ -456,7 +464,7 @@ const PaymentHistoryManagement = () => {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={(e) => { e.stopPropagation(); handleGenerateReceipt(row); }}
+                    onClick={(e) => { e.stopPropagation(); setGenerateTarget(row); }}
                     disabled={generatingId === row.payment_id}
                     title="Generate Receipt"
                   >
@@ -498,6 +506,28 @@ const PaymentHistoryManagement = () => {
             >
               {isRemoving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Generate Receipt Confirmation */}
+      <AlertDialog open={!!generateTarget} onOpenChange={v => { if (!v) setGenerateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate Receipt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to generate a receipt for Payment #{generateTarget?.payment_id}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={generatingId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (generateTarget) handleGenerateReceipt(generateTarget); setGenerateTarget(null); }}
+              disabled={generatingId !== null}
+            >
+              {generatingId !== null && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Generate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -583,7 +613,7 @@ const PaymentHistoryManagement = () => {
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
                     <div><Label className="text-xs text-muted-foreground">Receipt ID</Label><p className="font-mono">{detailReceipt.receipt_id}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Receipt Number</Label><p className="font-mono text-xs">{(detailReceipt as any).receipt_number || '—'}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMap[detailReceipt.status || ''] || detailReceipt.status || '—'}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMapRef.current[detailReceipt.status || ''] || detailReceipt.status || '—'}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Total</Label><p className="font-mono">{detailReceipt.receipt_total != null ? `$${detailReceipt.receipt_total.toFixed(2)}` : '—'}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Created By</Label><p>{detailReceipt.created_by || '—'}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Created At</Label><p>{formatDisplayDate(detailReceipt.created_at)}</p></div>
