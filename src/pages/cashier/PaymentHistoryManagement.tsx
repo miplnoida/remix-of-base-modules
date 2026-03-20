@@ -25,6 +25,7 @@ import { useReceiptActions, ReceiptData } from '@/hooks/useReceiptActions';
 import { useUserCode } from '@/hooks/useUserCode';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 
 // --- Types ---
 interface PaymentRow {
