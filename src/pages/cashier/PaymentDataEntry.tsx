@@ -18,6 +18,7 @@ import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 import {
   RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
 } from 'lucide-react';
