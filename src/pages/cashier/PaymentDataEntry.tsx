@@ -246,8 +246,8 @@ const PaymentDataEntry = () => {
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
-      // Trigger browser print
-      setTimeout(() => window.print(), 300);
+      // Trigger configured receipt print
+      setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       // Always log to system_error_logs
       await logApplicationError(err, {
