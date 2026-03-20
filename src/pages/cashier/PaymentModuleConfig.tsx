@@ -257,6 +257,7 @@ const PaymentModuleConfig: React.FC = () => {
           <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
+          <TabsTrigger value="receipt">Receipt</TabsTrigger>
         </TabsList>
 
         {/* ─── ROLES TAB ─── */}
