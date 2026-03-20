@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { maskPIIValue } from '@/services/piiMaskingService';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,8 @@ interface PaymentDetailLine {
   payment_code_desc?: string;
   fund_code_desc?: string;
   mop_desc?: string;
+  // resolved merchant name for credit card
+  card_name_desc?: string;
 }
 
 // Fund labels fallback
@@ -92,6 +95,7 @@ const PaymentHistoryManagement = () => {
   const [detailReceipt, setDetailReceipt] = useState<ReceiptData | null>(null);
   const [showDetailPopup, setShowDetailPopup] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [cashierName, setCashierName] = useState<string | null>(null);
 
   // Cancel modal
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -332,25 +336,41 @@ const PaymentHistoryManagement = () => {
     setSelectedRow(row);
     setShowDetailPopup(true);
     setIsLoadingDetail(true);
+    setCashierName(null);
     try {
-      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }] = await Promise.all([
+      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }] = await Promise.all([
         supabase.from('cn_payment').select('*').eq('payment_id', row.payment_id).order('payment_sequence_no'),
         supabase.from('cn_receipt').select('*').eq('payment_id', row.payment_id).maybeSingle(),
         supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code'),
         supabase.from('tb_method_of_payment').select('mop_code, short_description'),
+        supabase.from('tb_merchant').select('credit_card_code, credit_card_name'),
+        supabase.from('cn_batch').select('entered_by').eq('batch_number', row.batch_number).maybeSingle(),
       ]);
+
+      // Resolve cashier name from batch's entered_by
+      if (batchRow?.entered_by) {
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_code', batchRow.entered_by.trim())
+          .maybeSingle();
+        setCashierName(profileRow?.full_name || batchRow.entered_by);
+      }
 
       // Build lookup maps
       const ptMap: Record<string, string> = {};
       ptTypes?.forEach((pt: any) => { ptMap[pt.payment_code] = pt.payment_type_description || pt.payment_code; });
       const mopMap: Record<string, string> = {};
       mopTypes?.forEach((m: any) => { mopMap[m.mop_code] = m.short_description || m.mop_code; });
+      const merchantMap: Record<string, string> = {};
+      merchants?.forEach((m: any) => { merchantMap[(m.credit_card_code || '').trim()] = m.credit_card_name || m.credit_card_code; });
 
       const resolvedLines: PaymentDetailLine[] = (lines || []).map((d: any) => ({
         ...d,
         payment_code_desc: ptMap[d.payment_code] || d.payment_code,
         fund_code_desc: FUND_LABELS[d.fund_code] || d.fund_code,
         mop_desc: mopMap[d.mop_code] || d.mop_code,
+        card_name_desc: d.credit_card_code ? (merchantMap[(d.credit_card_code || '').trim()] || d.credit_card_code) : null,
       }));
 
       setDetailLines(resolvedLines);
@@ -566,7 +586,7 @@ const PaymentHistoryManagement = () => {
       </AlertDialog>
 
       {/* Detail Popup — fixed header/footer, scrollable body */}
-      <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); } }}>
+      <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); setCashierName(null); } }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
@@ -592,7 +612,8 @@ const PaymentHistoryManagement = () => {
                     <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
                     <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+                    <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
+                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
                   </div>
                 </div>
 
@@ -658,9 +679,18 @@ const PaymentHistoryManagement = () => {
                                   )}
                                   {isCard && (
                                     <>
-                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.credit_card_code || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{d.expiration_date || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Transaction No.</Label><p>{d.mop_number || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
+                                        if (!d.expiration_date) return '—';
+                                        const str = String(d.expiration_date).trim();
+                                        // Already MM/YY
+                                        if (/^\d{2}\/\d{2}$/.test(str)) return str;
+                                        // Parse date string
+                                        const dt = new Date(str);
+                                        if (isNaN(dt.getTime())) return str;
+                                        return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
+                                      })()}</p></div>
+                                      <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
                                     </>
                                   )}
                                   {d.mop_account_number && (
