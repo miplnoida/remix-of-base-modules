@@ -215,6 +215,8 @@ import RiskMatrix from '@/pages/audit/RiskMatrix';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
+import PlanApproval from '@/pages/audit/PlanApproval';
+const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
