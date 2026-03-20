@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
-import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText } from 'lucide-react';
+import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt } from 'lucide-react';
+import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { useAllCurrencies, useAllCashierCurrencyConfigs, useDenominationsForCurrency } from '@/hooks/useCashierCurrencyConfig';
 import { supabase } from '@/integrations/supabase/client';
@@ -256,6 +257,7 @@ const PaymentModuleConfig: React.FC = () => {
           <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
+          <TabsTrigger value="receipt">Receipt</TabsTrigger>
         </TabsList>
 
         {/* ─── ROLES TAB ─── */}
@@ -557,6 +559,11 @@ const PaymentModuleConfig: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ─── RECEIPT TAB ─── */}
+        <TabsContent value="receipt" className="space-y-6">
+          <ReceiptTemplateTab />
         </TabsContent>
       </Tabs>
     </div>

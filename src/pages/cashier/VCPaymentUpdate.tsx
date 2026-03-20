@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
 import { usePaymentEntry, PayerInfo, PaymentDetailData } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
@@ -137,11 +138,13 @@ const VCPaymentUpdate = () => {
   const handlePrintReceipt = useCallback(async () => {
     if (!payment.currentHeader) return;
     await receipt.printReceipt(payment.currentHeader.payment_id, payment.totalPaymentAmount, payment.detailRows.length, 'USR');
+    setTimeout(() => printConfiguredReceipt(payment.currentHeader!.payment_id).catch(e => console.error('Receipt print error:', e)), 300);
   }, [payment, receipt]);
 
   const handleReprintReceipt = useCallback(async () => {
     if (!payment.currentHeader) return;
     await receipt.reprintReceipt(payment.currentHeader.payment_id, 'USR');
+    setTimeout(() => printConfiguredReceipt(payment.currentHeader!.payment_id).catch(e => console.error('Receipt print error:', e)), 300);
   }, [payment, receipt]);
 
   const handleCancelReceipt = useCallback(async (reason: string) => {

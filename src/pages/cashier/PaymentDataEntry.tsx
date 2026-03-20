@@ -18,6 +18,7 @@ import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 import {
   RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
 } from 'lucide-react';
@@ -245,8 +246,8 @@ const PaymentDataEntry = () => {
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
-      // Trigger browser print
-      setTimeout(() => window.print(), 300);
+      // Trigger configured receipt print
+      setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       // Always log to system_error_logs
       await logApplicationError(err, {
@@ -285,7 +286,7 @@ const PaymentDataEntry = () => {
 
       await receipt.loadReceipt(savedPaymentId);
       toast({ title: 'Receipt Reprinted', description: `Reprint #${(receipt.currentReceipt.reprint_times || 0) + 1}` });
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => printConfiguredReceipt(savedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
       await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleReprint', entity_type: 'cn_receipt', entity_id: String(receipt.currentReceipt?.receipt_id), request_payload: { payment_id: savedPaymentId } });
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
