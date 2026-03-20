@@ -25,7 +25,10 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
+  const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAnnualPlanMutations();
+
+  const departmentMap = useMemo(() => Object.fromEntries((departments || []).map((d: any) => [d.id, d])), [departments]);
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
