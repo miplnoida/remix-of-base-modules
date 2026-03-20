@@ -8526,6 +8526,8 @@ export type Database = {
           assigned_auditor: string | null
           audit_scope: string | null
           auto_notify_on_approval: boolean | null
+          closed_by: string | null
+          closed_date: string | null
           committee_email_proof_url: string | null
           committee_minutes_url: string | null
           committee_noted: boolean | null
@@ -8561,6 +8563,8 @@ export type Database = {
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
+          closed_by?: string | null
+          closed_date?: string | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
@@ -8596,6 +8600,8 @@ export type Database = {
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
+          closed_by?: string | null
+          closed_date?: string | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
