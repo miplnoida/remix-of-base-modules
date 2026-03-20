@@ -336,25 +336,41 @@ const PaymentHistoryManagement = () => {
     setSelectedRow(row);
     setShowDetailPopup(true);
     setIsLoadingDetail(true);
+    setCashierName(null);
     try {
-      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }] = await Promise.all([
+      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }] = await Promise.all([
         supabase.from('cn_payment').select('*').eq('payment_id', row.payment_id).order('payment_sequence_no'),
         supabase.from('cn_receipt').select('*').eq('payment_id', row.payment_id).maybeSingle(),
         supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code'),
         supabase.from('tb_method_of_payment').select('mop_code, short_description'),
+        supabase.from('tb_merchant').select('credit_card_code, credit_card_name'),
+        supabase.from('cn_batch').select('entered_by').eq('batch_number', row.batch_number).maybeSingle(),
       ]);
+
+      // Resolve cashier name from batch's entered_by
+      if (batchRow?.entered_by) {
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_code', batchRow.entered_by.trim())
+          .maybeSingle();
+        setCashierName(profileRow?.full_name || batchRow.entered_by);
+      }
 
       // Build lookup maps
       const ptMap: Record<string, string> = {};
       ptTypes?.forEach((pt: any) => { ptMap[pt.payment_code] = pt.payment_type_description || pt.payment_code; });
       const mopMap: Record<string, string> = {};
       mopTypes?.forEach((m: any) => { mopMap[m.mop_code] = m.short_description || m.mop_code; });
+      const merchantMap: Record<string, string> = {};
+      merchants?.forEach((m: any) => { merchantMap[(m.credit_card_code || '').trim()] = m.credit_card_name || m.credit_card_code; });
 
       const resolvedLines: PaymentDetailLine[] = (lines || []).map((d: any) => ({
         ...d,
         payment_code_desc: ptMap[d.payment_code] || d.payment_code,
         fund_code_desc: FUND_LABELS[d.fund_code] || d.fund_code,
         mop_desc: mopMap[d.mop_code] || d.mop_code,
+        card_name_desc: d.credit_card_code ? (merchantMap[(d.credit_card_code || '').trim()] || d.credit_card_code) : null,
       }));
 
       setDetailLines(resolvedLines);
