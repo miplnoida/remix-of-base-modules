@@ -176,3 +176,34 @@ export async function notifyActionReminder(actionDescription: string, responsibl
            <p>Please ensure you update progress in the system.</p>`,
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// Audit Query Notifications
+// ══════════════════════════════════════════════════════════════
+
+export async function notifyQuerySent(question: string, departmentId: string, auditTitle?: string) {
+  const head = await getDepartmentHeadEmail(departmentId);
+  if (!head.email) return;
+  await sendNotification({
+    recipientEmail: head.email,
+    subject: `Audit Query: ${auditTitle || 'Information Request'}`,
+    body: `<p>Dear ${head.name || 'Department Head'},</p>
+           <p>The internal audit team has raised a query for your department.</p>
+           <p><strong>Question:</strong> ${question}</p>
+           ${auditTitle ? `<p><strong>Audit:</strong> ${auditTitle}</p>` : ''}
+           <p>Please log in to the system to review and respond.</p>`,
+  });
+}
+
+export async function notifyQueryResponse(question: string, auditorId?: string) {
+  if (!auditorId) return;
+  const email = await getAuditorEmail(auditorId);
+  if (!email) return;
+  await sendNotification({
+    recipientEmail: email,
+    subject: `Department Response Received`,
+    body: `<p>A department has responded to your audit query.</p>
+           <p><strong>Query:</strong> ${question.slice(0, 100)}${question.length > 100 ? '...' : ''}</p>
+           <p>Please log in to the system to review the response.</p>`,
+  });
+}
