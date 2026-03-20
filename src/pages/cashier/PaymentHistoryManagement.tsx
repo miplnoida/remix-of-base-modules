@@ -240,7 +240,7 @@ const PaymentHistoryManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchStatusMap, resolvePayerNames, statusMap]);
+  }, [fetchStatusMap, resolvePayerNames]);
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
