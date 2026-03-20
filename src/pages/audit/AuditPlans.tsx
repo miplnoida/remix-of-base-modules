@@ -14,6 +14,7 @@ import { AUDIT_PLANS_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas
 const exportColumns = toExportColumns(AUDIT_PLANS_SCHEMA);
 
 export default function AuditPlans() {
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
