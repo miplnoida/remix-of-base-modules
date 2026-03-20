@@ -1,368 +1,488 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { 
-  CreditCard, 
-  Search, 
-  Plus, 
-  Trash2, 
-  Receipt, 
-  AlertTriangle,
-  Banknote,
-  Calendar,
-  CheckCircle
-} from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { getActiveBanks } from '@/data/bankData';
-import { getActivePaymentHeads, type PaymentHead } from '@/data/c3PaymentHeads';
-import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from '@/hooks/use-toast';
+import { Search, Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2 } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
+import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
+import { useReceiptActions } from '@/hooks/useReceiptActions';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
+import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
+import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDetailModal';
+import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
+import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
+import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { formatDateForStorage } from '@/lib/dateFormat';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 
-interface PaymentSplit {
-  id: string;
-  currency: 'XCD' | 'USD';
-  paymentMode: 'cash' | 'check' | 'card' | 'eft';
+/* ─── types ──────────────────────────────────────────── */
+
+interface PaymentComponent {
+  payment_code: string;
+  fund_code: string;
+  description: string;
+  checked: boolean;
   amount: number;
-  checkNumber?: string;
-  checkDate?: string;
-  bankName?: string;
-  cardReference?: string;
 }
 
-interface C3PaymentDetail {
-  paymentHeadId: string;
-  paymentHeadName: string;
-  amount: number;
-  period: string;
-  glAccount?: string;
-}
-
-interface C3Payment {
+interface MethodRow {
   id: string;
-  employerName: string;
-  employerId: string;
-  period: string;
-  month: number;
-  year: number;
-  totalAmount: number;
-  paymentDetails: C3PaymentDetail[];
-  paymentSplits: PaymentSplit[];
-  receiptNumber: string;
-  batchId: string;
-  processedAt: string;
-  processedBy: string;
+  mop_code: string;
+  mop_desc: string;
+  currency_code: string;
+  original_amount: number;
+  exchange_rate: number;
+  base_amount: number;
+  // cheque / card specifics
+  bank_code: string;
+  mop_number: string;
+  cheque_date: string | null;
+  mop_account_number: string;
+  mop_notes1: string;
+  credit_card_code: string;
+  expiration_date: string;
+  card_desc: string;
+  bank_desc: string;
 }
+
+type FlowState = 'entry' | 'saving' | 'saved';
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: new Date(2024, i).toLocaleString('default', { month: 'long' }),
+}));
+
+const YEARS = Array.from({ length: 10 }, (_, i) => {
+  const y = new Date().getFullYear() - 5 + i;
+  return { value: y.toString(), label: y.toString() };
+});
+
+/* ─── component ──────────────────────────────────────── */
 
 const C3Payments: React.FC = () => {
-  const { user } = useAuth();
   const batchSel = useBatchSelection();
-  const [activeBatch, setActiveBatch] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Payer type and selection
-  const [payerType, setPayerType] = useState<'employer' | 'insured_person' | 'self_employed' | 'vol_contributor'>('employer');
-  const [selectedPayer, setSelectedPayer] = useState<any>(null);
-  const [isPayerDialogOpen, setIsPayerDialogOpen] = useState(false);
-  
-  // Payment configuration
-  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
-  const [payments, setPayments] = useState<C3Payment[]>([]);
-  const [referenceNumber, setReferenceNumber] = useState('');
-  
-  // Receipt Preview State
-  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
-  const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
-  
-  // C3 Period and Payment Heads
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedPaymentHeads, setSelectedPaymentHeads] = useState<{[key: string]: number}>({});
-  
-  // Batch Management State
-  const [showOpenDialog, setShowOpenDialog] = useState(false);
-  const [newBatch, setNewBatch] = useState({
-    office: "Charlestown",
-    openingBalance: ""
+  const payment = usePaymentEntry();
+  const receiptActions = useReceiptActions();
+  const { userCode } = useUserCode();
+
+  // Header state
+  const [payerType, setPayerType] = useState('ER');
+  const [payerId, setPayerId] = useState('');
+  const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [dateReceived, setDateReceived] = useState<Date | undefined>(new Date());
+  const [remarks, setRemarks] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+
+  // Components
+  const [components, setComponents] = useState<PaymentComponent[]>([]);
+  const [componentSearch, setComponentSearch] = useState('');
+
+  // Methods
+  const [methods, setMethods] = useState<MethodRow[]>([]);
+
+  // Flow
+  const [flowState, setFlowState] = useState<FlowState>('entry');
+  const [savedPaymentId, setSavedPaymentId] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // Modals
+  const [showChequeModal, setShowChequeModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [pendingMethodId, setPendingMethodId] = useState<string | null>(null);
+
+  /* ── data fetching ───────────────────── */
+
+  const { c3PaymentTypes, isLoading: c3TypesLoading } = useC3PaymentTypes();
+  const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
+
+  // Fetch configured payment types from master table
+  const { data: paymentTypesAll = [], isLoading: ptLoading } = useQuery({
+    queryKey: ['tb_payment_type_all'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
-  
-  const banks = getActiveBanks();
-  const paymentHeads = getActivePaymentHeads();
 
-  // Mock data for different payer types
-  const mockEmployers = [
-    { id: 'EMP001', name: 'ABC Manufacturing Ltd', c3Outstanding: 5000.00 },
-    { id: 'EMP002', name: 'XYZ Hotel Group', c3Outstanding: 12000.00 },
-    { id: 'EMP003', name: 'Caribbean Foods Inc', c3Outstanding: 3500.00 },
-    { id: 'EMP004', name: 'Island Transport Co', c3Outstanding: 7500.00 },
-    { id: 'EMP005', name: 'Tech Solutions Ltd', c3Outstanding: 2800.00 }
-  ];
+  // Fetch MOP codes
+  const { data: mopTypes = [] } = useQuery({
+    queryKey: ['tb_method_of_payment'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tb_method_of_payment').select('mop_code, short_description, long_description');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const mockInsuredPersons = [
-    { id: 'IP001', name: 'John Smith', nationalId: '123456789', outstandingAmount: 1200.00 },
-    { id: 'IP002', name: 'Mary Johnson', nationalId: '987654321', outstandingAmount: 800.00 },
-    { id: 'IP003', name: 'Robert Brown', nationalId: '456789123', outstandingAmount: 1500.00 }
-  ];
+  // Filtered payment types = only those configured as C3
+  const c3PaymentTypeDetails = useMemo(() => {
+    if (!c3PaymentTypes.length || !paymentTypesAll.length) return [];
+    return paymentTypesAll.filter((pt: any) => c3PaymentTypes.includes(pt.payment_code));
+  }, [c3PaymentTypes, paymentTypesAll]);
 
-  const mockSelfEmployed = [
-    { id: 'SE001', name: 'Jane Doe (Contractor)', businessName: 'Doe Consulting', outstandingAmount: 2400.00 },
-    { id: 'SE002', name: 'Mike Wilson (Freelancer)', businessName: 'Wilson Graphics', outstandingAmount: 1800.00 }
-  ];
-
-  const mockVolContributors = [
-    { id: 'VC001', name: 'Sarah Davis', nationalId: '789123456', outstandingAmount: 600.00 },
-    { id: 'VC002', name: 'Tom Anderson', nationalId: '321654987', outstandingAmount: 900.00 }
-  ];
-
-  const getCurrentPayerData = () => {
-    switch (payerType) {
-      case 'employer': return mockEmployers;
-      case 'insured_person': return mockInsuredPersons;
-      case 'self_employed': return mockSelfEmployed;
-      case 'vol_contributor': return mockVolContributors;
-      default: return [];
+  // Initialize components when C3 types load
+  React.useEffect(() => {
+    if (c3PaymentTypeDetails.length > 0 && components.length === 0) {
+      setComponents(c3PaymentTypeDetails.map((pt: any) => ({
+        payment_code: pt.payment_code,
+        fund_code: pt.fund_code || '',
+        description: pt.payment_type_description || pt.payment_code,
+        checked: false,
+        amount: 0,
+      })));
     }
-  };
+  }, [c3PaymentTypeDetails]);
 
-  const filteredPayers = useMemo(() => {
-    const currentData = getCurrentPayerData();
-    return currentData.filter((payer: any) => 
-      payer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payer.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (payer.nationalId && payer.nationalId.includes(searchTerm)) ||
-      (payer.businessName && payer.businessName.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Main currency
+  const mainCurrency = useMemo(() =>
+    enabledCurrencies.find((c: any) => c.is_main_currency) || enabledCurrencies[0],
+    [enabledCurrencies]
+  );
+
+  /* ── computed ─────────────────────────── */
+
+  const selectedComponents = useMemo(() => components.filter(c => c.checked), [components]);
+  const c3Amount = useMemo(() => selectedComponents.reduce((s, c) => s + c.amount, 0), [selectedComponents]);
+  const totalPaymentReceived = useMemo(() => methods.reduce((s, m) => s + m.base_amount, 0), [methods]);
+  const difference = c3Amount - totalPaymentReceived;
+
+  const period = `${selectedMonth.padStart(2, '0')}/${selectedYear}`;
+
+  // Components sorted: selected pinned to top, then filtered by search
+  const displayComponents = useMemo(() => {
+    const term = componentSearch.toLowerCase();
+    const filtered = components.filter(c =>
+      c.checked || c.description.toLowerCase().includes(term) || c.payment_code.toLowerCase().includes(term)
     );
-  }, [searchTerm, payerType]);
+    return filtered.sort((a, b) => {
+      if (a.checked && !b.checked) return -1;
+      if (!a.checked && b.checked) return 1;
+      return 0;
+    });
+  }, [components, componentSearch]);
 
-  // Sync activeBatch from batch selection guard
-  useEffect(() => {
-    if (batchSel.selectedBatch) {
-      setActiveBatch({
-        id: batchSel.selectedBatch.batch_number,
-        batchNumber: batchSel.selectedBatch.batch_number,
-        cashierId: batchSel.selectedBatch.entered_by || 'cashier',
-        cashierName: batchSel.selectedBatch.entered_by || 'Current User',
-        date: batchSel.selectedBatch.batch_date,
-        status: 'open'
-      });
-    }
-  }, [batchSel.selectedBatch]);
+  const isEntry = flowState === 'entry';
+  const isSaving = flowState === 'saving';
+  const isSaved = flowState === 'saved';
+  const canCancel = isSaved && receiptActions.currentReceipt?.status === 'O';
+  const canReprint = isSaved && !!receiptActions.currentReceipt;
 
-  const addPaymentSplit = () => {
-    const newSplit: PaymentSplit = {
-      id: Date.now().toString(),
-      currency: 'XCD',
-      paymentMode: 'cash',
-      amount: 0
-    };
-    setPaymentSplits(prev => [...prev, newSplit]);
-  };
+  /* ── handlers ─────────────────────────── */
 
-  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: any) => {
-    setPaymentSplits(prev => prev.map(split => 
-      split.id === id ? { ...split, [field]: value } : split
+  const handlePayerBlur = useCallback(async () => {
+    if (!payerId.trim() || isValidating) return;
+    setIsValidating(true);
+    const info = await payment.lookupPayer(payerType, payerId.trim());
+    setPayerInfo(info);
+    if (!info) toast({ title: 'Not Found', description: 'Payer not found. Please check the ID.', variant: 'destructive' });
+    setIsValidating(false);
+  }, [payerType, payerId, payment, isValidating]);
+
+  const toggleComponent = useCallback((code: string, checked: boolean) => {
+    setComponents(prev => prev.map(c =>
+      c.payment_code === code ? { ...c, checked, amount: checked ? c.amount : 0 } : c
     ));
-  };
+  }, []);
 
-  const removePaymentSplit = (id: string) => {
-    if (paymentSplits.length > 1) {
-      setPaymentSplits(prev => prev.filter(split => split.id !== id));
+  const updateComponentAmount = useCallback((code: string, amount: number) => {
+    setComponents(prev => prev.map(c =>
+      c.payment_code === code ? { ...c, amount } : c
+    ));
+  }, []);
+
+  const addMethodRow = useCallback(() => {
+    const defaultCurrency = mainCurrency?.currency_code || 'XCD';
+    setMethods(prev => [...prev, {
+      id: crypto.randomUUID(),
+      mop_code: '',
+      mop_desc: '',
+      currency_code: defaultCurrency,
+      original_amount: 0,
+      exchange_rate: 1,
+      base_amount: 0,
+      bank_code: '', mop_number: '', cheque_date: null,
+      mop_account_number: '', mop_notes1: '',
+      credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
+    }]);
+  }, [mainCurrency]);
+
+  const removeMethodRow = useCallback((id: string) => {
+    setMethods(prev => prev.filter(m => m.id !== id));
+  }, []);
+
+  const updateMethodField = useCallback((id: string, field: keyof MethodRow, value: any) => {
+    setMethods(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      const updated = { ...m, [field]: value };
+
+      // Recalc base_amount when amount or currency changes
+      if (field === 'original_amount' || field === 'exchange_rate') {
+        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
+      }
+      if (field === 'currency_code') {
+        const curr = enabledCurrencies.find((c: any) => c.currency_code === value);
+        updated.exchange_rate = curr?.exchange_rate || 1;
+        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
+      }
+      return updated;
+    }));
+  }, [enabledCurrencies]);
+
+  const handleMopCodeChange = useCallback((id: string, mopCode: string) => {
+    const mop = mopTypes.find((m: any) => m.mop_code === mopCode);
+    setMethods(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      return {
+        ...m,
+        mop_code: mopCode,
+        mop_desc: mop?.short_description || mopCode,
+        // Reset MOP-specific fields
+        bank_code: '', mop_number: '', cheque_date: null,
+        mop_account_number: '', mop_notes1: '',
+        credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
+      };
+    }));
+    // Open modal for cheque/card
+    if (mopCode === 'CHQ' || mopCode === 'CHK') {
+      setPendingMethodId(id);
+      setTimeout(() => setShowChequeModal(true), 100);
+    } else if (mopCode === 'CRD') {
+      setPendingMethodId(id);
+      setTimeout(() => setShowCardModal(true), 100);
     }
-  };
+  }, [mopTypes]);
 
-  const getTotalAmount = () => {
-    return paymentSplits.reduce((sum, split) => sum + (split.amount || 0), 0);
-  };
+  const handleEditMopDetail = useCallback((id: string) => {
+    const m = methods.find(r => r.id === id);
+    if (!m) return;
+    setPendingMethodId(id);
+    if (m.mop_code === 'CHQ' || m.mop_code === 'CHK') setShowChequeModal(true);
+    else if (m.mop_code === 'CRD') setShowCardModal(true);
+  }, [methods]);
 
-  const generateReceiptNumber = () => {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `C3-${dateStr}-${sequence}`;
-  };
+  const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
+    if (pendingMethodId) {
+      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
+        ...m,
+        mop_number: details.mop_number,
+        bank_code: details.bank_code,
+        cheque_date: details.cheque_date,
+        mop_account_number: details.mop_account_number,
+        mop_notes1: details.mop_notes1,
+        bank_desc: details.bank_desc || '',
+      } : m));
+    }
+    setPendingMethodId(null);
+    setShowChequeModal(false);
+  }, [pendingMethodId]);
 
-  const processPayment = () => {
-    if (!selectedPayer) {
-      toast.error('Please select a payer');
+  const handleCardDetailsSave = useCallback((details: CardDetails) => {
+    if (pendingMethodId) {
+      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
+        ...m,
+        credit_card_code: details.credit_card_code,
+        mop_number: details.mop_number,
+        expiration_date: details.expiration_date,
+        mop_notes1: details.mop_notes1,
+        card_desc: details.card_desc || '',
+      } : m));
+    }
+    setPendingMethodId(null);
+    setShowCardModal(false);
+  }, [pendingMethodId]);
+
+  /* ── process payment ──────────────────── */
+
+  const handleProcessPayment = useCallback(async () => {
+    setShowConfirm(false);
+    const logCtx = { module: 'C3Payments', action: 'handleProcessPayment', entity_type: 'cn_receipt' };
+
+    if (!batchSel.selectedBatch) {
+      toast({ title: 'No Batch', description: 'No active batch selected.', variant: 'destructive' });
       return;
     }
-
-    const totalC3Amount = Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0);
-    
-    if (totalC3Amount <= 0) {
-      toast.error('Please select payment heads and enter valid amounts');
+    if (!payerInfo) {
+      toast({ title: 'Missing Payer', description: 'Please enter and validate a Payer ID.', variant: 'destructive' });
       return;
     }
-
-    const totalSplitAmount = getTotalAmount();
-
-    if (Math.abs(totalSplitAmount - totalC3Amount) > 0.01) {
-      toast.error(`Payment splits (${totalSplitAmount.toFixed(2)}) must equal C3 amount (${totalC3Amount.toFixed(2)})`);
+    if (selectedComponents.length === 0 || c3Amount <= 0) {
+      toast({ title: 'No Components', description: 'Select at least one payment component with an amount.', variant: 'destructive' });
       return;
     }
-
-    // Validate splits
-    for (const split of paymentSplits) {
-      if (!split.amount || split.amount <= 0) {
-        toast.error('All payment splits must have valid amounts');
+    if (methods.length === 0 || totalPaymentReceived <= 0) {
+      toast({ title: 'No Methods', description: 'Add at least one payment method with an amount.', variant: 'destructive' });
+      return;
+    }
+    // Validate each method has a mop_code
+    for (const m of methods) {
+      if (!m.mop_code) {
+        toast({ title: 'Incomplete Method', description: 'All payment method rows must have a method selected.', variant: 'destructive' });
         return;
       }
-      if (split.paymentMode === 'check' && (!split.checkNumber || !split.bankName)) {
-        toast.error('Check payments require check number and bank name');
+      if (m.base_amount <= 0) {
+        toast({ title: 'Invalid Amount', description: 'All payment method rows must have a positive amount.', variant: 'destructive' });
         return;
       }
     }
 
-    // Create payment details from selected payment heads
-    const paymentDetails: C3PaymentDetail[] = Object.entries(selectedPaymentHeads)
-      .filter(([_, amount]) => amount > 0)
-      .map(([headId, amount]) => {
-        const head = paymentHeads.find(h => h.id === headId);
-        return {
-          paymentHeadId: headId,
-          paymentHeadName: head?.name || '',
-          amount,
-          period: `${selectedMonth.toString().padStart(2, '0')}/${selectedYear}`,
-          glAccount: head?.glAccount
-        };
+    const uCode = userCode || 'SYS';
+    setFlowState('saving');
+
+    try {
+      const componentsJson = selectedComponents.map((c, i) => ({
+        payment_code: c.payment_code,
+        fund_code: c.fund_code,
+        amount: c.amount,
+        period,
+        sort_order: i,
+      }));
+
+      const methodsJson = methods.map((m, i) => ({
+        mop_code: m.mop_code,
+        currency_code: m.currency_code,
+        original_amount: m.original_amount,
+        exchange_rate: m.exchange_rate,
+        base_amount: m.base_amount,
+        bank_code: m.bank_code || null,
+        mop_number: m.mop_number || null,
+        cheque_date: m.cheque_date || null,
+        mop_account_number: m.mop_account_number || null,
+        mop_notes1: m.mop_notes1 || null,
+        credit_card_code: m.credit_card_code || null,
+        expiration_date: m.expiration_date || null,
+        sort_order: i,
+      }));
+
+      const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
+
+      const { data: result, error: rpcErr } = await supabase.rpc('create_c3_payment_with_receipt' as any, {
+        p_batch_number: batchSel.selectedBatch.batch_number,
+        p_payer_type: payerType,
+        p_payer_id: payerId.trim(),
+        p_date_received: dateRcvd,
+        p_remarks: remarks || null,
+        p_components: componentsJson,
+        p_methods: methodsJson,
+        p_receipt_total: totalPaymentReceived,
+        p_user_code: uCode,
       });
 
-    const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
-    
-    const newPayment: C3Payment = {
-      id: Date.now().toString(),
-      employerName: selectedPayer.name,
-      employerId: selectedPayer.id,
-      period: `${monthName} ${selectedYear}`,
-      month: selectedMonth,
-      year: selectedYear,
-      totalAmount: totalC3Amount,
-      paymentDetails,
-      paymentSplits: [...paymentSplits],
-      receiptNumber: generateReceiptNumber(),
-      batchId: activeBatch.id,
-      processedAt: new Date().toISOString(),
-      processedBy: user?.email || 'current-user'
-    };
+      if (rpcErr) {
+        await logApplicationError(rpcErr, { ...logCtx, action: 'create_c3_payment_with_receipt_rpc' });
+        throw rpcErr;
+      }
 
-    setPayments(prev => [...prev, newPayment]);
-    
-    // Create receipt data for preview
-    const receiptData: ReceiptData = {
-      receiptNumber: newPayment.receiptNumber,
-      batchId: newPayment.batchId,
-      paymentDate: new Date(),
-      status: 'Active',
-      payerDetails: {
-        name: selectedPayer.name,
-        payerType: payerType === 'employer' ? 'Employer' : 
-                  payerType === 'insured_person' ? 'Insured Person' :
-                  payerType === 'self_employed' ? 'Individual' : 'Individual',
-        registrationNumber: selectedPayer.id,
-        ssn: selectedPayer.nationalId
-      },
-      paymentDetails: {
-        paymentType: 'C3 Contribution',
-        paymentMethod: paymentSplits.length > 1 ? `${paymentSplits.length} Payment Methods` : 
-                      paymentSplits[0]?.paymentMode || 'Cash',
-        currency: paymentSplits[0]?.currency || 'XCD',
-        amount: totalC3Amount,
-        checkNumber: paymentSplits.find(s => s.paymentMode === 'check')?.checkNumber,
-        bankName: paymentSplits.find(s => s.paymentMode === 'check')?.bankName,
-        referenceNumber: referenceNumber,
-        invoiceReference: `C3-${monthName}-${selectedYear}`
-      },
-      paymentSplits: paymentSplits.map(split => ({
-        paymentMode: split.paymentMode,
-        currency: split.currency,
-        amount: split.amount,
-        checkNumber: split.checkNumber,
-        bankName: split.bankName,
-        checkDate: split.checkDate
-      })),
-      contributionDetails: {
-        period: `${monthName} ${selectedYear}`,
-        employeeContribution: paymentDetails.find(p => p.paymentHeadName.includes('Employee'))?.amount || 0,
-        employerContribution: paymentDetails.find(p => p.paymentHeadName.includes('Employer'))?.amount || totalC3Amount,
-        totalContribution: totalC3Amount,
-        contributorType: payerType === 'employer' ? 'employer' : 'insured'
-      },
-      cashierDetails: {
-        cashierId: 'CASH001',
-        cashierName: user?.email || 'Current User',
-        terminalId: 'TERM-01',
-        workstation: 'WS-MAIN-01'
-      },
-      organizationDetails: {
-        name: 'ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT',
-        address: 'P.O. Box 96, Social Security Building, Cayon Street, Basseterre, St. Kitts',
-        phone: '(869) 465-5000',
-        email: 'info@socialsecurity.kn',
-        website: 'www.socialsecurity.kn'
-      },
-      fees: paymentDetails.map(detail => ({
-        description: `${detail.paymentHeadName} - ${detail.period}`,
-        amount: detail.amount
-      })),
-      notes: referenceNumber ? `Reference: ${referenceNumber}` : undefined
-    };
+      const res = typeof result === 'string' ? JSON.parse(result) : result;
+      if (!res || !res.payment_id) {
+        const err = new Error('RPC returned null or missing payment_id.');
+        await logApplicationError(err, { ...logCtx, request_payload: { result: res } });
+        throw err;
+      }
 
-    // Show receipt preview
-    setCurrentReceiptData(receiptData);
-    setIsReceiptPreviewOpen(true);
-    
-    // Reset form
-    setSelectedPayer(null);
-    setSelectedPaymentHeads({});
-    setPaymentSplits([]);
-    setReferenceNumber('');
-    addPaymentSplit();
-    setIsPayerDialogOpen(false);
+      await receiptActions.loadReceipt(res.payment_id as number);
+      setSavedPaymentId(res.payment_id as number);
+      setFlowState('saved');
 
-    toast.success(`C3 payment processed. Receipt: ${newPayment.receiptNumber}`);
-  };
-
-  const selectPayer = (payer: any) => {
-    setSelectedPayer(payer);
-    // Auto-select Social Security if outstanding amount exists
-    const outstandingAmount = payer.c3Outstanding || payer.outstandingAmount || 0;
-    if (outstandingAmount > 0) {
-      setSelectedPaymentHeads({ 'SS_REGULAR': outstandingAmount });
+      toast({ title: 'C3 Payment Processed', description: `Receipt #${res.receipt_id} created. ${res.detail_count} payment line(s) generated.` });
+      setTimeout(() => window.print(), 300);
+    } catch (err: any) {
+      await logApplicationError(err, { ...logCtx, action: 'handleProcessPayment_catch' });
+      toast({ title: 'Error Processing C3 Payment', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
+      setFlowState('entry');
     }
-    setIsPayerDialogOpen(false);
-  };
+  }, [batchSel.selectedBatch, payerInfo, payerType, payerId, dateReceived, remarks,
+    selectedComponents, c3Amount, methods, totalPaymentReceived, period, userCode, receiptActions]);
 
-  const handleOpenBatch = () => {
-    if (!newBatch.office || !newBatch.openingBalance) {
-      toast.error("Please fill all required fields");
+  /* ── reprint / cancel / reset ─────────── */
+
+  const handleReprint = useCallback(async () => {
+    if (!savedPaymentId || !receiptActions.currentReceipt) return;
+    const uCode = userCode || 'SYS';
+    try {
+      await supabase.from('cn_receipt').update({
+        reprint_times: (receiptActions.currentReceipt.reprint_times || 0) + 1,
+        updated_by: uCode, updated_at: new Date().toISOString(),
+      } as any).eq('receipt_id', receiptActions.currentReceipt.receipt_id);
+      await supabase.from('cn_receipt_prints').insert({
+        receipt_id: receiptActions.currentReceipt.receipt_id,
+        printed_by: uCode, print_type: 'REPRINT',
+      } as any);
+      await receiptActions.loadReceipt(savedPaymentId);
+      toast({ title: 'Reprinted', description: `Reprint #${(receiptActions.currentReceipt.reprint_times || 0) + 1}` });
+      setTimeout(() => window.print(), 300);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  }, [savedPaymentId, receiptActions, userCode]);
+
+  const handleCancelReceipt = useCallback(async (reason: string) => {
+    if (!savedPaymentId || !receiptActions.currentReceipt) return;
+    if (receiptActions.currentReceipt.status !== 'O') {
+      toast({ title: 'Cannot Cancel', description: 'Only Original receipts can be cancelled.', variant: 'destructive' });
+      setShowCancelModal(false);
       return;
     }
+    const uCode = userCode || 'SYS';
+    try {
+      await supabase.from('cn_receipt').update({
+        status: 'C', cancel_reason: reason,
+        cancel_date: new Date().toISOString(), cancel_user: uCode,
+        updated_by: uCode, updated_at: new Date().toISOString(),
+      } as any).eq('receipt_id', receiptActions.currentReceipt.receipt_id);
+      await receiptActions.loadReceipt(savedPaymentId);
+      toast({ title: 'Receipt Cancelled' });
+      setShowCancelModal(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  }, [savedPaymentId, receiptActions, userCode]);
 
-    const batch = {
-      id: Date.now().toString(),
-      batchNumber: `BATCH-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
-      cashierId: user?.email?.split('@')[0] || 'cashier',
-      cashierName: user?.name || 'Current User',
-      date: new Date().toISOString().slice(0, 10),
-      status: 'open',
-      office: newBatch.office,
-      openingBalance: parseFloat(newBatch.openingBalance)
-    };
+  const resetForm = useCallback(() => {
+    setPayerType('ER');
+    setPayerId('');
+    setPayerInfo(null);
+    setDateReceived(new Date());
+    setRemarks('');
+    setSelectedMonth((new Date().getMonth() + 1).toString());
+    setSelectedYear(new Date().getFullYear().toString());
+    setComponents(prev => prev.map(c => ({ ...c, checked: false, amount: 0 })));
+    setMethods([]);
+    setFlowState('entry');
+    setSavedPaymentId(null);
+    receiptActions.setCurrentReceipt(null);
+  }, [receiptActions]);
 
-    setActiveBatch(batch);
-    setShowOpenDialog(false);
-    setNewBatch({ office: "Charlestown", openingBalance: "" });
-    toast.success("Batch opened successfully!");
-  };
+  /* ── pending modal data ───────────────── */
+
+  const pendingMethod = pendingMethodId ? methods.find(m => m.id === pendingMethodId) : null;
+
+  /* ── render ────────────────────────────── */
+
+  if (c3TypesLoading || ptLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <BatchSelectionGuard
@@ -376,423 +496,319 @@ const C3Payments: React.FC = () => {
       onSelectBatch={batchSel.selectBatch}
       onChangeBatch={batchSel.changeBatch}
     >
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="space-y-4 p-6">
+        {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">C3 Contributions Payment</h1>
-          <p className="text-muted-foreground">Process C3 contribution payments for all payer types</p>
+          <h1 className="text-2xl font-bold tracking-tight">C3 Contributions Payment</h1>
+          <p className="text-sm text-muted-foreground">Process C3 contribution payments against a specific period.</p>
         </div>
-      </div>
 
-      {batchSel.selectedBatch && (
-        <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
-      )}
+        {batchSel.selectedBatch && (
+          <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+        )}
 
-      <div className="space-y-6">
-        {/* Payment Processing Form */}
+        {/* Action Bar */}
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-lg border">
+          <Button
+            onClick={() => setShowConfirm(true)}
+            disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo}
+            size="sm"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}
+            Process C3 Payment
+          </Button>
+          <div className="w-px bg-border mx-1" />
+          <Button onClick={handleReprint} variant="outline" size="sm" disabled={!canReprint}>
+            <RotateCcw className="h-4 w-4 mr-1" /> Re-Print
+          </Button>
+          <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" disabled={!canCancel}>
+            <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
+          </Button>
+          <div className="w-px bg-border mx-1" />
+          <Button onClick={resetForm} variant="outline" size="sm" disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
+            <PlusCircle className="h-4 w-4 mr-1" /> New Payment
+          </Button>
+        </div>
+
+        {/* Payment Header */}
+        <PaymentHeaderForm
+          payerType={payerType} setPayerType={setPayerType}
+          payerId={payerId} setPayerId={setPayerId}
+          payerInfo={payerInfo}
+          dateReceived={dateReceived} setDateReceived={setDateReceived}
+          remarks={remarks} setRemarks={setRemarks}
+          onPayerBlur={handlePayerBlur}
+          isValidating={isValidating}
+          disabled={!isEntry}
+        />
+
+        {/* C3 Period Selection */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Processing
-            </CardTitle>
+          <CardHeader className="py-3 pb-2">
+            <CardTitle className="text-base">C3 Period</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Payer Information */}
-              <div className="space-y-6">
-                {/* Payer Type Selection */}
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Payer Type</Label>
-                  <Select value={payerType} onValueChange={(value: any) => {
-                    setPayerType(value);
-                    setSelectedPayer(null);
-                    setSelectedPaymentHeads({});
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employer">Employer</SelectItem>
-                      <SelectItem value="insured_person">Insured Person</SelectItem>
-                      <SelectItem value="self_employed">Self Employed</SelectItem>
-                      <SelectItem value="vol_contributor">Voluntary Contributor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Payer Selection */}
-                <div className="space-y-2">
-                  <Label>
-                    {payerType === 'employer' && 'Employer'}
-                    {payerType === 'insured_person' && 'Insured Person'}
-                    {payerType === 'self_employed' && 'Self Employed Person'}
-                    {payerType === 'vol_contributor' && 'Voluntary Contributor'}
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      readOnly
-                      value={selectedPayer ? `${selectedPayer.name} (${selectedPayer.id})` : ''}
-                      placeholder={`Select a ${payerType.replace('_', ' ')}`}
-                      className="flex-1"
-                    />
-                    <Dialog open={isPayerDialogOpen} onOpenChange={setIsPayerDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <Search className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle>Select {payerType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</DialogTitle>
-                          <DialogDescription>Search and select a {payerType.replace('_', ' ')} for C3 payment</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <Input
-                            placeholder="Search by name, ID, or national ID"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                          />
-                          <div className="max-h-60 overflow-y-auto space-y-2">
-                            {filteredPayers.map((payer: any) => (
-                              <div
-                                key={payer.id}
-                                className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-                                onClick={() => selectPayer(payer)}
-                              >
-                                <div className="font-medium">{payer.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: {payer.id}
-                                  {payer.nationalId && ` | National ID: ${payer.nationalId}`}
-                                  {payer.businessName && ` | Business: ${payer.businessName}`}
-                                </div>
-                                <div className="text-sm text-green-600">
-                                  Outstanding: XCD {(payer.c3Outstanding || payer.outstandingAmount || 0).toFixed(2)}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-
-                {/* C3 Period Selection */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Month</Label>
-                    <Select
-                      value={selectedMonth.toString()}
-                      onValueChange={(value) => setSelectedMonth(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 12 }, (_, i) => (
-                          <SelectItem key={i + 1} value={(i + 1).toString()}>
-                            {new Date(2024, i).toLocaleString('default', { month: 'long' })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Year</Label>
-                    <Select
-                      value={selectedYear.toString()}
-                      onValueChange={(value) => setSelectedYear(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => (
-                          <SelectItem key={i} value={(new Date().getFullYear() - 5 + i).toString()}>
-                            {new Date().getFullYear() - 5 + i}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Reference Number */}
-                <div className="space-y-2">
-                  <Label>Reference No. / Note</Label>
-                  <Input
-                    value={referenceNumber}
-                    onChange={(e) => setReferenceNumber(e.target.value)}
-                    placeholder="Enter reference number (optional)"
-                  />
-                </div>
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-2 gap-4 max-w-sm">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Month</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={!isEntry}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Right Column - Payment Details */}
-              <div className="space-y-6">
-                {/* Payment Heads Selection */}
-                <div className="space-y-4">
-                  <Label className="text-base font-medium">Payment Components</Label>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {paymentHeads.map(head => (
-                      <div key={head.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <Checkbox
-                            checked={!!selectedPaymentHeads[head.id]}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedPaymentHeads(prev => ({ ...prev, [head.id]: 0 }));
-                              } else {
-                                setSelectedPaymentHeads(prev => {
-                                  const newHeads = { ...prev };
-                                  delete newHeads[head.id];
-                                  return newHeads;
-                                });
-                              }
-                            }}
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">{head.name}</div>
-                            <Badge variant="outline" className="text-xs mt-1">
-                              {head.category}
-                            </Badge>
-                          </div>
-                        </div>
-                        {selectedPaymentHeads[head.id] !== undefined && (
-                          <div className="w-24">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={selectedPaymentHeads[head.id] || ''}
-                              onChange={(e) => setSelectedPaymentHeads(prev => ({
-                                ...prev,
-                                [head.id]: parseFloat(e.target.value) || 0
-                              }))}
-                              placeholder="0.00"
-                              className="text-right text-sm"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Total C3 Amount Display */}
-                <div className="bg-muted p-4 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-base font-medium">Total Amount</Label>
-                    <div className="text-xl font-bold">
-                      XCD {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}
-                    </div>
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Year</Label>
+                <Select value={selectedYear} onValueChange={setSelectedYear} disabled={!isEntry}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-
-            <Separator />
-
-            {/* Payment Splits */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-medium">Payment Methods</Label>
-                <Button onClick={addPaymentSplit} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Payment
-                </Button>
-              </div>
-
-              {paymentSplits.map((split, index) => (
-                <Card key={split.id} className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium">Payment {index + 1}</h4>
-                    {paymentSplits.length > 1 && (
-                      <Button
-                        onClick={() => removePaymentSplit(split.id)}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label>Payment Method</Label>
-                      <Select
-                        value={split.paymentMode}
-                        onValueChange={(value) => updatePaymentSplit(split.id, 'paymentMode', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="check">Check</SelectItem>
-                          <SelectItem value="card">Card</SelectItem>
-                          <SelectItem value="eft">EFT</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Currency</Label>
-                      <Select
-                        value={split.currency}
-                        onValueChange={(value) => updatePaymentSplit(split.id, 'currency', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="XCD">XCD</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Amount</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={split.amount || ''}
-                        onChange={(e) => updatePaymentSplit(split.id, 'amount', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Reference No. / Note</Label>
-                      <Input
-                        value={split.cardReference || ''}
-                        onChange={(e) => updatePaymentSplit(split.id, 'cardReference', e.target.value)}
-                        placeholder="Enter reference"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Additional fields for check payments */}
-                  {split.paymentMode === 'check' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                      <div className="space-y-2">
-                        <Label>Check Number</Label>
-                        <Input
-                          value={split.checkNumber || ''}
-                          onChange={(e) => updatePaymentSplit(split.id, 'checkNumber', e.target.value)}
-                          placeholder="Enter check number"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Bank Name</Label>
-                        <Select
-                          value={split.bankName || ''}
-                          onValueChange={(value) => updatePaymentSplit(split.id, 'bankName', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select bank" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {banks.map(bank => (
-                              <SelectItem key={bank.id} value={bank.name}>
-                                {bank.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Check Date</Label>
-                        <Input
-                          type="date"
-                          value={split.checkDate || ''}
-                          onChange={(e) => updatePaymentSplit(split.id, 'checkDate', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              ))}
-
-              {/* Payment Summary */}
-              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <div className="text-sm text-muted-foreground">Total Payment Splits</div>
-                  <div className="font-semibold">XCD {getTotalAmount().toFixed(2)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">C3 Amount</div>
-                  <div className="font-semibold">XCD {Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0).toFixed(2)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Difference</div>
-                  <div className={`font-semibold ${Math.abs(getTotalAmount() - Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0)) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
-                    XCD {(getTotalAmount() - Object.values(selectedPaymentHeads).reduce((sum, amount) => sum + amount, 0)).toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Button onClick={processPayment} className="w-full" size="lg">
-              <Receipt className="h-4 w-4 mr-2" />
-              Process C3 Payment
-            </Button>
           </CardContent>
         </Card>
 
-        {/* Recent Transactions */}
-        {payments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Banknote className="h-5 w-5" />
-                Recent C3 Payments
-              </CardTitle>
-              <CardDescription>Today's processed payments in current batch</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-60 overflow-y-auto">
-                {payments.slice(-5).reverse().map(payment => (
-                  <div key={payment.id} className="border rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-sm">{payment.employerName}</div>
-                      <Badge variant="outline" className="text-xs">{payment.receiptNumber}</Badge>
+        {/* Payment Components */}
+        <Card>
+          <CardHeader className="py-3 pb-2">
+            <CardTitle className="text-base">Payment Components</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 space-y-3">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search components..."
+                value={componentSearch}
+                onChange={e => setComponentSearch(e.target.value)}
+                className="pl-8"
+                disabled={!isEntry}
+              />
+            </div>
+
+            {c3PaymentTypeDetails.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No C3 payment types configured. Please configure them in Payment Module Configuration → C3 Payment Types tab.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {displayComponents.map(comp => (
+                  <div key={comp.payment_code} className="flex items-center gap-3 p-2.5 border rounded-md">
+                    <Checkbox
+                      checked={comp.checked}
+                      onCheckedChange={(v) => toggleComponent(comp.payment_code, !!v)}
+                      disabled={!isEntry}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{comp.description}</p>
+                      <p className="text-xs text-muted-foreground">{comp.payment_code} / {comp.fund_code}</p>
                     </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Total: XCD {payment.totalAmount.toFixed(2)} | Period: {payment.period}
-                    </div>
-                    <div className="space-y-1">
-                      {payment.paymentSplits.map(split => (
-                        <div key={split.id} className="text-xs flex justify-between">
-                          <span className="capitalize">{split.paymentMode} ({split.currency})</span>
-                          <span>{split.currency} {split.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
+                    <div className="w-28">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={comp.checked ? (comp.amount || '') : ''}
+                        onChange={e => updateComponentAmount(comp.payment_code, parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="text-right text-sm h-8"
+                        disabled={!isEntry || !comp.checked}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            )}
 
-      {/* Receipt Preview Dialog */}
-      {currentReceiptData && (
-        <ReceiptPreview
-          receiptData={currentReceiptData}
-          isOpen={isReceiptPreviewOpen}
-          onClose={() => {
-            setIsReceiptPreviewOpen(false);
-            setCurrentReceiptData(null);
-          }}
-          title="C3 Payment Receipt"
-          allowReprint={true}
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="text-sm font-medium">C3 Amount</span>
+              <span className="text-base font-bold">{(mainCurrency?.currency_code || 'XCD')} {c3Amount.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Methods */}
+        <Card>
+          <CardHeader className="py-3 pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Payment Methods</CardTitle>
+            <Button onClick={addMethodRow} variant="outline" size="sm" disabled={!isEntry}>
+              <Plus className="h-4 w-4 mr-1" /> Add Method
+            </Button>
+          </CardHeader>
+          <CardContent className="pb-4 space-y-3">
+            {methods.length === 0 && (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Click "Add Method" to add a payment method.
+              </p>
+            )}
+
+            {methods.map((m, idx) => (
+              <div key={m.id} className="border rounded-md p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Method {idx + 1}</span>
+                  <div className="flex gap-1">
+                    {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
+                      <Button onClick={() => handleEditMopDetail(m.id)} variant="ghost" size="sm" disabled={!isEntry}>
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button onClick={() => removeMethodRow(m.id)} variant="ghost" size="sm" disabled={!isEntry}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Method</Label>
+                    <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={!isEntry}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        {mopTypes.map((mt: any) => (
+                          <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Currency</Label>
+                    <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={!isEntry}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {enabledCurrencies.map((c: any) => (
+                          <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Amount</Label>
+                    <Input
+                      type="number" step="0.01" min="0"
+                      value={m.original_amount || ''}
+                      onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                      className="text-right text-sm h-8"
+                      disabled={!isEntry}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Rate</Label>
+                    <Input
+                      type="number" step="0.0001" min="0"
+                      value={m.exchange_rate}
+                      onChange={e => updateMethodField(m.id, 'exchange_rate', parseFloat(e.target.value) || 1)}
+                      className="text-right text-sm h-8"
+                      disabled={!isEntry || m.currency_code === (mainCurrency?.currency_code || 'XCD')}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Base ({mainCurrency?.currency_code || 'XCD'})</Label>
+                    <Input
+                      value={m.base_amount.toFixed(2)}
+                      readOnly
+                      className="text-right text-sm h-8 bg-muted"
+                    />
+                  </div>
+                </div>
+
+                {/* Show MOP detail summary */}
+                {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
+                  <p className="text-xs text-muted-foreground">
+                    Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}
+                  </p>
+                )}
+                {m.mop_code === 'CRD' && m.credit_card_code && (
+                  <p className="text-xs text-muted-foreground">
+                    {m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}
+                  </p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Footer Totals (sticky) */}
+        <div className="sticky bottom-0 z-10 bg-background border-t pt-3 pb-2">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Payment Received</p>
+              <p className="text-lg font-bold">{(mainCurrency?.currency_code || 'XCD')} {totalPaymentReceived.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">C3 Amount</p>
+              <p className="text-lg font-bold">{(mainCurrency?.currency_code || 'XCD')} {c3Amount.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Difference</p>
+              <p className={`text-lg font-bold ${Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
+                {(mainCurrency?.currency_code || 'XCD')} {difference.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Process C3 Payment?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will create the payment transaction and generate a receipt for {payerInfo?.name || payerId}.<br />
+                Period: {MONTHS.find(m => m.value === selectedMonth)?.label} {selectedYear}<br />
+                C3 Amount: {c3Amount.toFixed(2)} | Methods Total: {totalPaymentReceived.toFixed(2)}<br />
+                {Math.abs(difference) >= 0.01 && (
+                  <span className="text-destructive font-medium">
+                    Warning: Difference of {difference.toFixed(2)} exists between C3 amount and payment received.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleProcessPayment}>Confirm & Process</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Modals */}
+        <ChequeDetailModal
+          open={showChequeModal}
+          onClose={() => { setShowChequeModal(false); setPendingMethodId(null); }}
+          onSave={handleChequeDetailsSave}
+          initialData={pendingMethod ? {
+            mop_number: pendingMethod.mop_number,
+            bank_code: pendingMethod.bank_code,
+            cheque_date: pendingMethod.cheque_date,
+            mop_account_number: pendingMethod.mop_account_number,
+            mop_notes1: pendingMethod.mop_notes1,
+          } : undefined}
         />
-      )}
-    </div>
+        <CardDetailModal
+          open={showCardModal}
+          onClose={() => { setShowCardModal(false); setPendingMethodId(null); }}
+          onSave={handleCardDetailsSave}
+          initialData={pendingMethod ? {
+            credit_card_code: pendingMethod.credit_card_code,
+            mop_number: pendingMethod.mop_number,
+            expiration_date: pendingMethod.expiration_date,
+            mop_notes1: pendingMethod.mop_notes1,
+          } : undefined}
+        />
+        <ReceiptCancelModal
+          open={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onConfirm={handleCancelReceipt}
+          isLoading={receiptActions.isLoading}
+          receiptId={receiptActions.currentReceipt?.receipt_id}
+        />
+      </div>
     </BatchSelectionGuard>
   );
 };
