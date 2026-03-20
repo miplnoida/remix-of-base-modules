@@ -138,6 +138,7 @@ const VCPaymentUpdate = () => {
   const handlePrintReceipt = useCallback(async () => {
     if (!payment.currentHeader) return;
     await receipt.printReceipt(payment.currentHeader.payment_id, payment.totalPaymentAmount, payment.detailRows.length, 'USR');
+    setTimeout(() => printConfiguredReceipt(payment.currentHeader!.payment_id).catch(e => console.error('Receipt print error:', e)), 300);
   }, [payment, receipt]);
 
   const handleReprintReceipt = useCallback(async () => {
