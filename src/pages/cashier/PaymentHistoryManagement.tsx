@@ -95,6 +95,7 @@ const PaymentHistoryManagement = () => {
   const [detailReceipt, setDetailReceipt] = useState<ReceiptData | null>(null);
   const [showDetailPopup, setShowDetailPopup] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [cashierName, setCashierName] = useState<string | null>(null);
 
   // Cancel modal
   const [showCancelModal, setShowCancelModal] = useState(false);
