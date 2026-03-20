@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Eye, Edit, Send, X } from 'lucide-react';
@@ -13,6 +14,7 @@ import { AUDIT_PLANS_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas
 const exportColumns = toExportColumns(AUDIT_PLANS_SCHEMA);
 
 export default function AuditPlans() {
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +25,10 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
+  const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAnnualPlanMutations();
+
+  const departmentMap = useMemo(() => Object.fromEntries((departments || []).map((d: any) => [d.id, d])), [departments]);
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -43,9 +48,11 @@ export default function AuditPlans() {
   const columns: DataTableColumn<any>[] = [
     { key: 'fiscal_year', header: 'Fiscal Year' },
     { key: 'title', header: 'Plan Title' },
+    { key: 'department_id', header: 'Department', render: (row) => row.department_id ? departmentMap[row.department_id]?.name || '—' : 'All' },
+    { key: 'risk_level', header: 'Risk Level', render: (row) => row.risk_level ? <StatusBadge status={row.risk_level} /> : '—' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'objective', header: 'Objective', className: 'max-w-xs truncate' },
-    { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '-' },
+    { key: 'planned_start_date', header: 'Start Date', render: (row) => row.planned_start_date ? new Date(row.planned_start_date).toLocaleDateString() : '—' },
+    { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '—' },
   ];
 
   return (
@@ -76,7 +83,7 @@ export default function AuditPlans() {
         data={filteredPlans}
         renderActions={(row) => (
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
             {hasPermission('edit_audit_plans') && row.status === 'Draft' && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPlan(row)}><Edit className="h-4 w-4" /></Button>

@@ -215,6 +215,8 @@ import RiskMatrix from '@/pages/audit/RiskMatrix';
 import AuditEngagements from '@/pages/audit/AuditEngagements';
 import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
+import PlanApproval from '@/pages/audit/PlanApproval';
+const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
@@ -895,6 +897,8 @@ export const AppRoutes = () => {
       <Route path="/audit/findings" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FINDINGS"><FindingsManagement /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/actions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ACTION_TRACKING"><ActionTracking /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
+      <Route path="/audit/queries" element={<ProtectedLayout><Suspense fallback={<div />}><AuditQueries /></Suspense></ProtectedLayout>} />
 
       {/* Legacy redirects */}
       <Route path="/audit/engagements" element={<ProtectedLayout><Navigate to="/audit/audits" replace /></ProtectedLayout>} />
