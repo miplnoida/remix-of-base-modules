@@ -48,9 +48,11 @@ export default function AuditPlans() {
   const columns: DataTableColumn<any>[] = [
     { key: 'fiscal_year', header: 'Fiscal Year' },
     { key: 'title', header: 'Plan Title' },
+    { key: 'department_id', header: 'Department', render: (row) => row.department_id ? departmentMap[row.department_id]?.name || '—' : 'All' },
+    { key: 'risk_level', header: 'Risk Level', render: (row) => row.risk_level ? <StatusBadge status={row.risk_level} /> : '—' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'objective', header: 'Objective', className: 'max-w-xs truncate' },
-    { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '-' },
+    { key: 'planned_start_date', header: 'Start Date', render: (row) => row.planned_start_date ? new Date(row.planned_start_date).toLocaleDateString() : '—' },
+    { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '—' },
   ];
 
   return (
