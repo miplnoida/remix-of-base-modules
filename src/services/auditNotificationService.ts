@@ -80,7 +80,6 @@ export async function notifyPlanSubmitted(planId: string, planTitle: string, lea
 }
 
 export async function notifyPlanApproved(planId: string, planTitle: string, departmentId?: string, teamMemberIds?: string[]) {
-  // Notify department head
   if (departmentId) {
     const head = await getDepartmentHeadEmail(departmentId);
     if (head.email) {
@@ -94,8 +93,6 @@ export async function notifyPlanApproved(planId: string, planTitle: string, depa
       });
     }
   }
-
-  // Notify team members
   if (teamMemberIds?.length) {
     for (const auditorId of teamMemberIds) {
       const email = await getAuditorEmail(auditorId);
@@ -174,6 +171,47 @@ export async function notifyActionReminder(actionDescription: string, responsibl
            <p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>
            <p><strong>Days Remaining:</strong> ${daysRemaining}</p>
            <p>Please ensure you update progress in the system.</p>`,
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Management Response Notifications
+// ══════════════════════════════════════════════════════════════
+
+export async function notifyManagementResponseSubmitted(findingId: string, leadAuditorId?: string) {
+  if (!leadAuditorId) return;
+  const email = await getAuditorEmail(leadAuditorId);
+  if (!email) return;
+  // Fetch finding title
+  const { data: finding } = await supabase
+    .from('ia_findings')
+    .select('title')
+    .eq('id', findingId)
+    .single();
+  await sendNotification({
+    recipientEmail: email,
+    subject: `Management Response Submitted: ${finding?.title || 'Finding'}`,
+    body: `<p>A management response has been submitted for the following finding.</p>
+           <p><strong>Finding:</strong> ${finding?.title || findingId}</p>
+           <p>Please log in to the system to review and accept or reject the response.</p>`,
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Report Notifications
+// ══════════════════════════════════════════════════════════════
+
+export async function notifyReportGenerated(auditTitle: string, departmentId?: string) {
+  if (!departmentId) return;
+  const head = await getDepartmentHeadEmail(departmentId);
+  if (!head.email) return;
+  await sendNotification({
+    recipientEmail: head.email,
+    subject: `Audit Report Generated: ${auditTitle}`,
+    body: `<p>Dear ${head.name || 'Department Head'},</p>
+           <p>An audit report has been generated for the following audit engagement.</p>
+           <p><strong>Audit:</strong> ${auditTitle}</p>
+           <p>Please log in to the system to review the report.</p>`,
   });
 }
 

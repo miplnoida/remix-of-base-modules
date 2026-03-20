@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, MessageSquare, Send } from 'lucide-react';
+import { Plus, MessageSquare, Send, FileText, Loader2 } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAAuditQueries, useIAAuditQueryMutations } from '@/hooks/useAuditQueries';
@@ -14,6 +14,25 @@ import { useIADepartments } from '@/hooks/useAuditData';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/EngagementFilterBanner';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+const ALLOWED_FILE_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/png', 'image/jpeg'];
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+async function uploadFile(file: File, folder: string): Promise<string | null> {
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) return null;
+  if (file.size > MAX_FILE_SIZE) return null;
+  const path = `${folder}/${Date.now()}_${file.name}`;
+  const { error } = await supabase.storage.from('audit-attachments').upload(path, file);
+  if (error) { console.error('Upload error:', error); return null; }
+  return path;
+}
+
+function getPublicUrl(path: string): string {
+  const { data } = supabase.storage.from('audit-attachments').getPublicUrl(path);
+  return data?.publicUrl || '#';
+}
 
 export default function AuditQueries() {
   const { userCode } = useUserCode();
@@ -22,6 +41,7 @@ export default function AuditQueries() {
   const { create, update } = useIAAuditQueryMutations();
   const { data: engagements = [] } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
+  const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
@@ -29,6 +49,8 @@ export default function AuditQueries() {
   const [viewItem, setViewItem] = useState<any>(null);
   const [respondItem, setRespondItem] = useState<any>(null);
   const [responseText, setResponseText] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ engagement_id: '', department_id: '', question: '', requested_document: '' });
 
   const engagementMap = useMemo(() => Object.fromEntries((engagements || []).map((e: any) => [e.id, e])), [engagements]);
@@ -58,16 +80,32 @@ export default function AuditQueries() {
     });
   };
 
-  const handleRespond = () => {
+  const handleRespond = async () => {
     if (!respondItem || !responseText) return;
+    let attachmentPath: string | null = null;
+    const fileInput = fileInputRef.current;
+    if (fileInput?.files?.[0]) {
+      setUploading(true);
+      attachmentPath = await uploadFile(fileInput.files[0], `queries/${respondItem.engagement_id}`);
+      setUploading(false);
+      if (!attachmentPath) {
+        toast({ title: 'Upload Failed', description: 'Invalid file type or size exceeds 20MB', variant: 'destructive' });
+        return;
+      }
+    }
     update.mutate({
       id: respondItem.id,
       response: responseText,
       response_by: userCode || null,
       response_date: new Date().toISOString(),
+      response_attachment: attachmentPath || null,
       status: 'Responded',
-    }, {
-      onSuccess: () => { setRespondItem(null); setResponseText(''); },
+    } as any, {
+      onSuccess: () => {
+        setRespondItem(null);
+        setResponseText('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      },
     });
   };
 
@@ -83,6 +121,10 @@ export default function AuditQueries() {
     { key: 'requested_by', header: 'Requested By' },
     { key: 'requested_date', header: 'Date', render: (r) => r.requested_date ? formatDateForDisplay(r.requested_date) : '—' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Pending'} /> },
+    { key: 'attachment', header: 'Attachment', render: (r) => {
+      if (!r.response_attachment) return <span className="text-muted-foreground text-xs">—</span>;
+      return <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => window.open(getPublicUrl(r.response_attachment), '_blank')}><FileText className="h-3 w-3 mr-1" />View</Button>;
+    }},
   ];
 
   const filterFields: StandardFilterField[] = [
@@ -173,17 +215,30 @@ export default function AuditQueries() {
                 <p className="text-xs text-muted-foreground mt-1">By {viewItem.response_by || '—'} on {viewItem.response_date ? formatDateForDisplay(viewItem.response_date) : '—'}</p>
               </div>
             )}
+            {viewItem.response_attachment && (
+              <div className="border-t pt-3 mt-3">
+                <Label className="text-muted-foreground">Attached Document</Label>
+                <Button variant="link" className="p-0 h-auto text-sm" onClick={() => window.open(getPublicUrl(viewItem.response_attachment), '_blank')}>
+                  <FileText className="h-4 w-4 mr-1" />View Attachment
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </EntityModal>
 
       {/* Respond Modal */}
-      <EntityModal open={!!respondItem} onOpenChange={() => setRespondItem(null)} title="Respond to Query" mode="edit" saveLabel="Submit Response" onSave={handleRespond} isSaving={update.isPending}>
+      <EntityModal open={!!respondItem} onOpenChange={() => setRespondItem(null)} title="Respond to Query" mode="edit" saveLabel={uploading ? 'Uploading...' : 'Submit Response'} onSave={handleRespond} isSaving={update.isPending || uploading}>
         {respondItem && (
           <div className="space-y-4">
             <div><Label className="text-muted-foreground">Question</Label><p className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md">{respondItem.question}</p></div>
             {respondItem.requested_document && <div><Label className="text-muted-foreground">Requested Document</Label><p className="text-sm">{respondItem.requested_document}</p></div>}
             <div><Label>Response *</Label><Textarea value={responseText} onChange={e => setResponseText(e.target.value)} placeholder="Enter your response..." rows={4} /></div>
+            <div>
+              <Label>Supporting Document</Label>
+              <Input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="text-xs" />
+              <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX, XLS, XLSX, PNG, JPG — max 20MB</p>
+            </div>
           </div>
         )}
       </EntityModal>
