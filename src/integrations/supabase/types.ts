@@ -5348,6 +5348,7 @@ export type Database = {
           payer_type: string
           payment_id: number
           remarks: string | null
+          status: string | null
         }
         Insert: {
           batch_number: string
@@ -5357,6 +5358,7 @@ export type Database = {
           payer_type: string
           payment_id?: number
           remarks?: string | null
+          status?: string | null
         }
         Update: {
           batch_number?: string
@@ -5366,6 +5368,7 @@ export type Database = {
           payer_type?: string
           payment_id?: number
           remarks?: string | null
+          status?: string | null
         }
         Relationships: []
       }
