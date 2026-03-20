@@ -608,17 +608,15 @@ const PaymentHistoryManagement = () => {
             ) : selectedRow && (
               <div className="space-y-4">
                 {/* Payment Info */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
-                    <div><Label className="text-xs text-muted-foreground">Payment ID</Label><p className="font-mono">{selectedRow.payment_id}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Batch</Label><p className="text-xs">{selectedRow.batch_number}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
-                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
-                  </div>
+                 <div>
+                   <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
+                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
+                     <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
+                     <div className="lg:col-span-3"><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
+                     <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
+                     <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
+                     <div className="lg:col-span-4"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+                   </div>
                 </div>
 
                 <Separator />
