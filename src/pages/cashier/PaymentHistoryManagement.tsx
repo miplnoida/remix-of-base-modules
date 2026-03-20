@@ -159,8 +159,8 @@ const PaymentHistoryManagement = () => {
   const fetchPayments = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch status map
-      const sMap = Object.keys(statusMap).length > 0 ? statusMap : await fetchStatusMap();
+      // 1. Fetch status map (from ref, no state dependency)
+      const sMap = await fetchStatusMap();
 
       // 2. Fetch active payment headers
       const { data: headers, error: hErr } = await supabase
