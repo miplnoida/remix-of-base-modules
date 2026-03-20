@@ -665,45 +665,43 @@ const PaymentHistoryManagement = () => {
                               </div>
                             </div>
 
-                            {/* MOP Additional Details */}
-                            {hasMopInfo && (
-                              <div className="bg-muted/40 rounded p-2 mt-1">
-                                <p className="text-xs font-medium text-muted-foreground mb-1">
-                                  {isCheque ? 'Cheque Details' : 'Credit Card Details'}
-                                </p>
-                                <div className="grid grid-cols-3 gap-2 text-xs">
-                                  {isCheque && (
-                                    <>
-                                      <div><Label className="text-xs text-muted-foreground">Cheque No.</Label><p>{d.mop_number || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Cheque Date</Label><p>{d.cheque_date ? formatDisplayDate(d.cheque_date) : '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Bank Code</Label><p>{d.bank_code || '—'}</p></div>
-                                    </>
-                                  )}
-                                  {isCard && (
-                                    <>
-                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
-                                        if (!d.expiration_date) return '—';
-                                        const str = String(d.expiration_date).trim();
-                                        // Already MM/YY
-                                        if (/^\d{2}\/\d{2}$/.test(str)) return str;
-                                        // Parse date string
-                                        const dt = new Date(str);
-                                        if (isNaN(dt.getTime())) return str;
-                                        return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
-                                      })()}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
-                                    </>
-                                  )}
-                                  {d.mop_account_number && (
-                                    <div><Label className="text-xs text-muted-foreground">Account No.</Label><p>{d.mop_account_number}</p></div>
-                                  )}
-                                  {d.mop_notes1 && (
-                                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Notes</Label><p>{d.mop_notes1}</p></div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                             {/* MOP Additional Details — aligned with Code column (offset past # column) */}
+                             {hasMopInfo && (
+                               <div className="grid grid-cols-6 gap-2 text-xs">
+                                 <div>{/* spacer for # column */}</div>
+                                 <div className="col-span-5">
+                                   <div className="grid grid-cols-4 gap-2">
+                                     {isCheque && (
+                                       <>
+                                         <div><Label className="text-xs text-muted-foreground">Cheque No.</Label><p>{d.mop_number || '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Cheque Date</Label><p>{d.cheque_date ? formatDisplayDate(d.cheque_date) : '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Bank Code</Label><p>{(d as any).bank_name_desc || d.bank_code || '—'}</p></div>
+                                       </>
+                                     )}
+                                     {isCard && (
+                                       <>
+                                         <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
+                                           if (!d.expiration_date) return '—';
+                                           const str = String(d.expiration_date).trim();
+                                           if (/^\d{2}\/\d{2}$/.test(str)) return str;
+                                           const dt = new Date(str);
+                                           if (isNaN(dt.getTime())) return str;
+                                           return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
+                                         })()}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
+                                       </>
+                                     )}
+                                     {d.mop_account_number && (
+                                       <div><Label className="text-xs text-muted-foreground">Account No.</Label><p>{d.mop_account_number}</p></div>
+                                     )}
+                                     {d.mop_notes1 && (
+                                       <div className="col-span-2"><Label className="text-xs text-muted-foreground">Notes</Label><p>{d.mop_notes1}</p></div>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
                           </div>
                         );
                       })}
