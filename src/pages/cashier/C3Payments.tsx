@@ -706,25 +706,23 @@ const C3Payments: React.FC = () => {
 
                     <div className="space-y-1">
                       <Label className="text-xs">Amount ({m.currency_code})</Label>
-                      <Input
-                        ref={el => { methodAmountRefs.current[m.id] = el; }}
-                        type="number" step="0.01" min="0"
-                        value={m.original_amount || ''}
-                        onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="text-right text-sm h-8"
-                        disabled={!isEntry}
-                      />
-                    </div>
-
-                    {!isMainCurr && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Base ({baseCurrCode})</Label>
-                        <div className="flex items-center h-8 px-3 border rounded-md bg-muted text-sm text-right justify-end tabular-nums">
-                          {m.base_amount.toFixed(2)}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          ref={el => { methodAmountRefs.current[m.id] = el; }}
+                          type="number" step="0.01" min="0"
+                          value={m.original_amount || ''}
+                          onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="text-right text-sm h-8"
+                          disabled={!isEntry}
+                        />
+                        {!isMainCurr && m.original_amount > 0 && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                            {baseCurrCode} {m.base_amount.toFixed(2)}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Info row: Rate + MOP details */}

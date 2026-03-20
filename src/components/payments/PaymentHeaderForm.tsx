@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CheckCircle, AlertCircle, Loader2, CalendarDays } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { PayerInfo } from '@/hooks/usePaymentEntry';
 
 interface PaymentHeaderFormProps {
@@ -21,7 +24,6 @@ interface PaymentHeaderFormProps {
   onPayerBlur: () => void;
   isValidating?: boolean;
   disabled?: boolean;
-  // Optional C3 period props
   showPeriod?: boolean;
   periodMonth?: string;
   setPeriodMonth?: (v: string) => void;
@@ -46,24 +48,64 @@ const YEARS = Array.from({ length: 10 }, (_, i) => {
   return { value: y.toString(), label: y.toString() };
 });
 
+function PeriodMonthYearPicker({
+  month, year, onMonthChange, onYearChange, disabled,
+}: {
+  month: string; year: string;
+  onMonthChange: (v: string) => void;
+  onYearChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const monthLabel = MONTHS.find(m => m.value === month)?.label || '';
+  const displayText = monthLabel && year ? `${monthLabel} ${year}` : 'Select period...';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          className={cn(
+            'w-full justify-start text-left font-normal h-9',
+            !monthLabel && 'text-muted-foreground'
+          )}
+        >
+          <CalendarDays className="mr-2 h-4 w-4 shrink-0 opacity-70" />
+          {displayText}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3" align="start">
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Month</Label>
+            <Select value={month} onValueChange={onMonthChange}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Year</Label>
+            <Select value={year} onValueChange={onYearChange}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {YEARS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button size="sm" className="w-full" onClick={() => setOpen(false)}>Done</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function PaymentHeaderForm({
-  payerType,
-  setPayerType,
-  payerId,
-  setPayerId,
-  payerInfo,
-  dateReceived,
-  setDateReceived,
-  remarks,
-  setRemarks,
-  onPayerBlur,
-  isValidating,
-  disabled,
-  showPeriod,
-  periodMonth,
-  setPeriodMonth,
-  periodYear,
-  setPeriodYear,
+  payerType, setPayerType, payerId, setPayerId, payerInfo,
+  dateReceived, setDateReceived, remarks, setRemarks, onPayerBlur,
+  isValidating, disabled, showPeriod, periodMonth, setPeriodMonth, periodYear, setPeriodYear,
 }: PaymentHeaderFormProps) {
   return (
     <Card>
@@ -71,7 +113,7 @@ export function PaymentHeaderForm({
         <CardTitle className="text-base">Payment Header</CardTitle>
       </CardHeader>
       <CardContent className="pb-4">
-        <div className={`grid grid-cols-1 ${showPeriod ? 'md:grid-cols-6' : 'md:grid-cols-4'} gap-4`}>
+        <div className={`grid grid-cols-1 ${showPeriod ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4`}>
           <div className="space-y-1.5">
             <Label className="text-xs">Payer Type</Label>
             <Select value={payerType} onValueChange={setPayerType} disabled={disabled}>
@@ -127,26 +169,16 @@ export function PaymentHeaderForm({
           </div>
 
           {showPeriod && setPeriodMonth && setPeriodYear && periodMonth && periodYear && (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Period Month</Label>
-                <Select value={periodMonth} onValueChange={setPeriodMonth} disabled={disabled}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Period Year</Label>
-                <Select value={periodYear} onValueChange={setPeriodYear} disabled={disabled}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {YEARS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Period <span className="text-destructive">*</span></Label>
+              <PeriodMonthYearPicker
+                month={periodMonth}
+                year={periodYear}
+                onMonthChange={setPeriodMonth}
+                onYearChange={setPeriodYear}
+                disabled={disabled}
+              />
+            </div>
           )}
         </div>
 
