@@ -32,6 +32,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 
 /* ─── types ──────────────────────────────────────────── */
 
