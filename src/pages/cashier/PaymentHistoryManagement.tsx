@@ -90,6 +90,9 @@ const PaymentHistoryManagement = () => {
   const [removeTarget, setRemoveTarget] = useState<PaymentRow | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  // Generate receipt confirm
+  const [generateTarget, setGenerateTarget] = useState<PaymentRow | null>(null);
+
   // Receipt generation loading
   const [generatingId, setGeneratingId] = useState<number | null>(null);
 
