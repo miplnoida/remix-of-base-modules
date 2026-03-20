@@ -124,7 +124,12 @@ const PaymentHistoryManagement = () => {
     const { data } = await supabase.from('tb_receipt_status').select('code, description');
     if (data) {
       const map: Record<string, string> = {};
-      data.forEach(r => { map[r.code] = r.description || r.code; });
+      data.forEach(r => {
+        const trimmedCode = (r.code || '').trim();
+        if (trimmedCode) {
+          map[trimmedCode] = (r.description || r.code || '').trim();
+        }
+      });
       statusMapRef.current = map;
       statusMapLoaded.current = true;
       return map;
@@ -221,7 +226,8 @@ const PaymentHistoryManagement = () => {
 
         let receiptStatusDesc = 'No Receipt';
         if (rcpt?.status) {
-          receiptStatusDesc = sMap[rcpt.status] || `${rcpt.status} - Not Defined`;
+          const trimmedStatus = rcpt.status.trim();
+          receiptStatusDesc = sMap[trimmedStatus] || `${trimmedStatus} - Not Defined`;
         }
 
         return {
@@ -684,7 +690,7 @@ const PaymentHistoryManagement = () => {
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
                       <div><Label className="text-xs text-muted-foreground">Receipt ID</Label><p className="font-mono">{detailReceipt.receipt_id}</p></div>
                       <div><Label className="text-xs text-muted-foreground">Receipt Number</Label><p className="font-mono text-xs">{(detailReceipt as any).receipt_number || '—'}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMapRef.current[detailReceipt.status || ''] || `${detailReceipt.status} - Not Defined`}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Status</Label><p>{statusMapRef.current[(detailReceipt.status || '').trim()] || `${(detailReceipt.status || '').trim()} - Not Defined`}</p></div>
                       <div><Label className="text-xs text-muted-foreground">Total</Label><p className="font-mono">{detailReceipt.receipt_total != null ? `$${detailReceipt.receipt_total.toFixed(2)}` : '—'}</p></div>
                       <div><Label className="text-xs text-muted-foreground">Created By</Label><p>{detailReceipt.created_by || '—'}</p></div>
                       <div><Label className="text-xs text-muted-foreground">Created At</Label><p>{formatDisplayDate(detailReceipt.created_at)}</p></div>
