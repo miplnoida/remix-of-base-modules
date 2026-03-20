@@ -46,14 +46,7 @@ async function fetchReceiptTemplate(): Promise<ReceiptTemplate> {
  * Fetch all data needed to render a receipt
  */
 async function fetchReceiptData(paymentId: number) {
-  const [
-    { data: header },
-    { data: receipt },
-    { data: paymentLines },
-    { data: ptTypes },
-    { data: mopTypes },
-    { data: bankCodes },
-  ] = await Promise.all([
+  const [headerRes, receiptRes, linesRes, ptRes, mopRes, bankRes] = await Promise.all([
     supabase.from('cn_payment_header').select('*').eq('payment_id', paymentId).single(),
     supabase.from('cn_receipt').select('*').eq('payment_id', paymentId).maybeSingle(),
     supabase.from('cn_payment').select('*').eq('payment_id', paymentId).order('payment_sequence_no'),
@@ -61,6 +54,13 @@ async function fetchReceiptData(paymentId: number) {
     supabase.from('tb_method_of_payment').select('mop_code, short_description'),
     supabase.from('tb_bank_code').select('bank_code, name'),
   ]);
+
+  const header = headerRes.data as any;
+  const receipt = receiptRes.data as any;
+  const paymentLines = (linesRes.data || []) as any[];
+  const ptTypes = (ptRes.data || []) as any[];
+  const mopTypes = (mopRes.data || []) as any[];
+  const bankCodes = (bankRes.data || []) as any[];
 
   if (!header) throw new Error(`Payment header #${paymentId} not found.`);
 
