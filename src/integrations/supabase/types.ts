@@ -2845,6 +2845,96 @@ export type Database = {
           },
         ]
       }
+      c3_payment_components: {
+        Row: {
+          component_amount: number
+          created_at: string | null
+          fund_code: string
+          id: string
+          payment_code: string
+          payment_id: number
+          period: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          component_amount?: number
+          created_at?: string | null
+          fund_code: string
+          id?: string
+          payment_code: string
+          payment_id: number
+          period?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          component_amount?: number
+          created_at?: string | null
+          fund_code?: string
+          id?: string
+          payment_code?: string
+          payment_id?: number
+          period?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      c3_payment_methods: {
+        Row: {
+          bank_code: string | null
+          base_amount: number
+          cheque_date: string | null
+          created_at: string | null
+          credit_card_code: string | null
+          currency_code: string
+          exchange_rate: number
+          expiration_date: string | null
+          id: string
+          mop_account_number: string | null
+          mop_code: string
+          mop_notes1: string | null
+          mop_number: string | null
+          original_amount: number
+          payment_id: number
+          sort_order: number | null
+        }
+        Insert: {
+          bank_code?: string | null
+          base_amount?: number
+          cheque_date?: string | null
+          created_at?: string | null
+          credit_card_code?: string | null
+          currency_code?: string
+          exchange_rate?: number
+          expiration_date?: string | null
+          id?: string
+          mop_account_number?: string | null
+          mop_code: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          original_amount?: number
+          payment_id: number
+          sort_order?: number | null
+        }
+        Update: {
+          bank_code?: string | null
+          base_amount?: number
+          cheque_date?: string | null
+          created_at?: string | null
+          credit_card_code?: string | null
+          currency_code?: string
+          exchange_rate?: number
+          expiration_date?: string | null
+          id?: string
+          mop_account_number?: string | null
+          mop_code?: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          original_amount?: number
+          payment_id?: number
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       c3_pending_holiday_pay: {
         Row: {
           amount: number
