@@ -102,16 +102,21 @@ const PaymentHistoryManagement = () => {
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
 
-  // --- Status map cache ---
-  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  // --- Status map cache (useRef to avoid dependency cycles) ---
+  const statusMapRef = useRef<Record<string, string>>({});
+  const statusMapLoaded = useRef(false);
 
-  // Fetch receipt status descriptions
-  const fetchStatusMap = useCallback(async () => {
+  // Fetch receipt status descriptions once
+  const fetchStatusMap = useCallback(async (): Promise<Record<string, string>> => {
+    if (statusMapLoaded.current && Object.keys(statusMapRef.current).length > 0) {
+      return statusMapRef.current;
+    }
     const { data } = await supabase.from('tb_receipt_status').select('code, description');
     if (data) {
       const map: Record<string, string> = {};
       data.forEach(r => { map[r.code] = r.description || r.code; });
-      setStatusMap(map);
+      statusMapRef.current = map;
+      statusMapLoaded.current = true;
       return map;
     }
     return {};
