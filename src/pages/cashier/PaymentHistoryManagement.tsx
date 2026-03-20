@@ -65,6 +65,8 @@ interface PaymentDetailLine {
   payment_code_desc?: string;
   fund_code_desc?: string;
   mop_desc?: string;
+  // resolved merchant name for credit card
+  card_name_desc?: string;
 }
 
 // Fund labels fallback
