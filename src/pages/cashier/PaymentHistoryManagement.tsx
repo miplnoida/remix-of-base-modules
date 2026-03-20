@@ -327,11 +327,27 @@ const PaymentHistoryManagement = () => {
     setShowDetailPopup(true);
     setIsLoadingDetail(true);
     try {
-      const [{ data: lines }, { data: rcpt }] = await Promise.all([
+      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }] = await Promise.all([
         supabase.from('cn_payment').select('*').eq('payment_id', row.payment_id).order('payment_sequence_no'),
         supabase.from('cn_receipt').select('*').eq('payment_id', row.payment_id).maybeSingle(),
+        supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code'),
+        supabase.from('tb_method_of_payment').select('mop_code, short_description'),
       ]);
-      setDetailLines((lines || []) as unknown as PaymentDetailLine[]);
+
+      // Build lookup maps
+      const ptMap: Record<string, string> = {};
+      ptTypes?.forEach((pt: any) => { ptMap[pt.payment_code] = pt.payment_type_description || pt.payment_code; });
+      const mopMap: Record<string, string> = {};
+      mopTypes?.forEach((m: any) => { mopMap[m.mop_code] = m.short_description || m.mop_code; });
+
+      const resolvedLines: PaymentDetailLine[] = (lines || []).map((d: any) => ({
+        ...d,
+        payment_code_desc: ptMap[d.payment_code] || d.payment_code,
+        fund_code_desc: FUND_LABELS[d.fund_code] || d.fund_code,
+        mop_desc: mopMap[d.mop_code] || d.mop_code,
+      }));
+
+      setDetailLines(resolvedLines);
       setDetailReceipt(rcpt ? (rcpt as unknown as ReceiptData) : null);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
