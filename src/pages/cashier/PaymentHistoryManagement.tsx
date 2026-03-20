@@ -374,6 +374,7 @@ const PaymentHistoryManagement = () => {
         fund_code_desc: FUND_LABELS[d.fund_code] || d.fund_code,
         mop_desc: mopMap[d.mop_code] || d.mop_code,
         card_name_desc: d.credit_card_code ? (merchantMap[(d.credit_card_code || '').trim()] || d.credit_card_code) : null,
+        bank_name_desc: d.bank_code ? (bankMap[(d.bank_code || '').trim()] || d.bank_code) : null,
       }));
 
       setDetailLines(resolvedLines);
