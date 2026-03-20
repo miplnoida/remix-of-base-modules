@@ -9121,6 +9121,7 @@ export type Database = {
           requested_date: string | null
           requested_document: string | null
           response: string | null
+          response_attachment: string | null
           response_by: string | null
           response_date: string | null
           status: string | null
@@ -9137,6 +9138,7 @@ export type Database = {
           requested_date?: string | null
           requested_document?: string | null
           response?: string | null
+          response_attachment?: string | null
           response_by?: string | null
           response_date?: string | null
           status?: string | null
@@ -9153,6 +9155,7 @@ export type Database = {
           requested_date?: string | null
           requested_document?: string | null
           response?: string | null
+          response_attachment?: string | null
           response_by?: string | null
           response_date?: string | null
           status?: string | null
