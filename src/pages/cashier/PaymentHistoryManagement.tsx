@@ -586,7 +586,7 @@ const PaymentHistoryManagement = () => {
       </AlertDialog>
 
       {/* Detail Popup — fixed header/footer, scrollable body */}
-      <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); } }}>
+      <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); setCashierName(null); } }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
