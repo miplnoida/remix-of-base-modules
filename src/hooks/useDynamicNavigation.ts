@@ -260,6 +260,14 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     description: 'Create risk-driven audit plans',
   },
   {
+    id: 'ia-plan-approval',
+    title: 'Plan Approval',
+    icon: ClipboardCheck,
+    path: '/audit/plan-approval',
+    aliases: ['/audit/plan-approval'],
+    description: 'Review and approve submitted plans',
+  },
+  {
     id: 'ia-audits',
     title: 'Audits',
     icon: Briefcase,
@@ -274,6 +282,14 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     path: '/audit/findings',
     aliases: ['/audit/findings'],
     description: 'Record audit findings and issues',
+  },
+  {
+    id: 'ia-queries',
+    title: 'Queries',
+    icon: Send,
+    path: '/audit/queries',
+    aliases: ['/audit/queries'],
+    description: 'Department communication during audits',
   },
   {
     id: 'ia-actions',
