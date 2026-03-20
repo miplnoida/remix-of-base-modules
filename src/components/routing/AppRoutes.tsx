@@ -891,7 +891,7 @@ export const AppRoutes = () => {
       <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/risk-matrix" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_MATRIX"><RiskMatrix /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-plans" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><AuditPlanDetail /></ProtectedLayout>} />
+      <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense></ProtectedLayout>} />
       <Route path="/audit/audits" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audits/:id" element={<ProtectedLayout><EngagementDetail /></ProtectedLayout>} />
       <Route path="/audit/findings" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FINDINGS"><FindingsManagement /></AuditFeatureGate></ProtectedLayout>} />
