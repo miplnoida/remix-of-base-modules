@@ -226,7 +226,8 @@ const PaymentHistoryManagement = () => {
 
         let receiptStatusDesc = 'No Receipt';
         if (rcpt?.status) {
-          receiptStatusDesc = sMap[rcpt.status] || `${rcpt.status} - Not Defined`;
+          const trimmedStatus = rcpt.status.trim();
+          receiptStatusDesc = sMap[trimmedStatus] || `${trimmedStatus} - Not Defined`;
         }
 
         return {
