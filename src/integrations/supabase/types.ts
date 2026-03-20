@@ -5348,6 +5348,7 @@ export type Database = {
           payer_type: string
           payment_id: number
           remarks: string | null
+          status: string | null
         }
         Insert: {
           batch_number: string
@@ -5357,6 +5358,7 @@ export type Database = {
           payer_type: string
           payment_id?: number
           remarks?: string | null
+          status?: string | null
         }
         Update: {
           batch_number?: string
@@ -5366,6 +5368,7 @@ export type Database = {
           payer_type?: string
           payment_id?: number
           remarks?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -5378,6 +5381,7 @@ export type Database = {
           created_by: string | null
           payment_id: number
           receipt_id: number
+          receipt_number: string | null
           receipt_total: number | null
           reprint_times: number | null
           status: string | null
@@ -5394,6 +5398,7 @@ export type Database = {
           created_by?: string | null
           payment_id: number
           receipt_id?: never
+          receipt_number?: string | null
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
@@ -5410,6 +5415,7 @@ export type Database = {
           created_by?: string | null
           payment_id?: number
           receipt_id?: never
+          receipt_number?: string | null
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
