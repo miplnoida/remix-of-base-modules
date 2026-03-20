@@ -511,6 +511,28 @@ const PaymentHistoryManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Generate Receipt Confirmation */}
+      <AlertDialog open={!!generateTarget} onOpenChange={v => { if (!v) setGenerateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate Receipt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to generate a receipt for Payment #{generateTarget?.payment_id}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={generatingId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (generateTarget) handleGenerateReceipt(generateTarget); setGenerateTarget(null); }}
+              disabled={generatingId !== null}
+            >
+              {generatingId !== null && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Generate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Detail Popup */}
       <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); } }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
