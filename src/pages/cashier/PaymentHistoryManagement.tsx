@@ -338,13 +338,14 @@ const PaymentHistoryManagement = () => {
     setIsLoadingDetail(true);
     setCashierName(null);
     try {
-      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }] = await Promise.all([
+      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }, { data: bankCodes }] = await Promise.all([
         supabase.from('cn_payment').select('*').eq('payment_id', row.payment_id).order('payment_sequence_no'),
         supabase.from('cn_receipt').select('*').eq('payment_id', row.payment_id).maybeSingle(),
         supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code'),
         supabase.from('tb_method_of_payment').select('mop_code, short_description'),
         supabase.from('tb_merchant').select('credit_card_code, credit_card_name'),
         supabase.from('cn_batch').select('entered_by').eq('batch_number', row.batch_number).maybeSingle(),
+        supabase.from('tb_bank_code').select('bank_code, name'),
       ]);
 
       // Resolve cashier name from batch's entered_by
@@ -364,6 +365,8 @@ const PaymentHistoryManagement = () => {
       mopTypes?.forEach((m: any) => { mopMap[m.mop_code] = m.short_description || m.mop_code; });
       const merchantMap: Record<string, string> = {};
       merchants?.forEach((m: any) => { merchantMap[(m.credit_card_code || '').trim()] = m.credit_card_name || m.credit_card_code; });
+      const bankMap: Record<string, string> = {};
+      bankCodes?.forEach((b: any) => { bankMap[(b.bank_code || '').trim()] = b.name || b.bank_code; });
 
       const resolvedLines: PaymentDetailLine[] = (lines || []).map((d: any) => ({
         ...d,
@@ -371,6 +374,7 @@ const PaymentHistoryManagement = () => {
         fund_code_desc: FUND_LABELS[d.fund_code] || d.fund_code,
         mop_desc: mopMap[d.mop_code] || d.mop_code,
         card_name_desc: d.credit_card_code ? (merchantMap[(d.credit_card_code || '').trim()] || d.credit_card_code) : null,
+        bank_name_desc: d.bank_code ? (bankMap[(d.bank_code || '').trim()] || d.bank_code) : null,
       }));
 
       setDetailLines(resolvedLines);
@@ -587,7 +591,7 @@ const PaymentHistoryManagement = () => {
 
       {/* Detail Popup — fixed header/footer, scrollable body */}
       <Dialog open={showDetailPopup} onOpenChange={v => { if (!v) { setShowDetailPopup(false); setSelectedRow(null); setDetailLines([]); setDetailReceipt(null); setCashierName(null); } }}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
@@ -604,17 +608,15 @@ const PaymentHistoryManagement = () => {
             ) : selectedRow && (
               <div className="space-y-4">
                 {/* Payment Info */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
-                    <div><Label className="text-xs text-muted-foreground">Payment ID</Label><p className="font-mono">{selectedRow.payment_id}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Batch</Label><p className="text-xs">{selectedRow.batch_number}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
-                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
-                  </div>
+                 <div>
+                   <h3 className="text-sm font-semibold mb-2 text-foreground/80">Payment Information</h3>
+                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
+                     <div><Label className="text-xs text-muted-foreground">Type</Label><p>{selectedRow.type_display}</p></div>
+                     <div className="lg:col-span-3"><Label className="text-xs text-muted-foreground">Payer</Label><p>{selectedRow.payer_display}</p></div>
+                     <div><Label className="text-xs text-muted-foreground">Date Received</Label><p>{formatDisplayDate(selectedRow.date_received)}</p></div>
+                     <div><Label className="text-xs text-muted-foreground">Received by Cashier</Label><p>{cashierName || '—'}</p></div>
+                     <div className="lg:col-span-4"><Label className="text-xs text-muted-foreground">Remarks</Label><p>{selectedRow.remarks || '—'}</p></div>
+                   </div>
                 </div>
 
                 <Separator />
@@ -663,45 +665,43 @@ const PaymentHistoryManagement = () => {
                               </div>
                             </div>
 
-                            {/* MOP Additional Details */}
-                            {hasMopInfo && (
-                              <div className="bg-muted/40 rounded p-2 mt-1">
-                                <p className="text-xs font-medium text-muted-foreground mb-1">
-                                  {isCheque ? 'Cheque Details' : 'Credit Card Details'}
-                                </p>
-                                <div className="grid grid-cols-3 gap-2 text-xs">
-                                  {isCheque && (
-                                    <>
-                                      <div><Label className="text-xs text-muted-foreground">Cheque No.</Label><p>{d.mop_number || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Cheque Date</Label><p>{d.cheque_date ? formatDisplayDate(d.cheque_date) : '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Bank Code</Label><p>{d.bank_code || '—'}</p></div>
-                                    </>
-                                  )}
-                                  {isCard && (
-                                    <>
-                                      <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
-                                        if (!d.expiration_date) return '—';
-                                        const str = String(d.expiration_date).trim();
-                                        // Already MM/YY
-                                        if (/^\d{2}\/\d{2}$/.test(str)) return str;
-                                        // Parse date string
-                                        const dt = new Date(str);
-                                        if (isNaN(dt.getTime())) return str;
-                                        return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
-                                      })()}</p></div>
-                                      <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
-                                    </>
-                                  )}
-                                  {d.mop_account_number && (
-                                    <div><Label className="text-xs text-muted-foreground">Account No.</Label><p>{d.mop_account_number}</p></div>
-                                  )}
-                                  {d.mop_notes1 && (
-                                    <div className="col-span-2"><Label className="text-xs text-muted-foreground">Notes</Label><p>{d.mop_notes1}</p></div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                             {/* MOP Additional Details — aligned with Code column (offset past # column) */}
+                             {hasMopInfo && (
+                               <div className="grid grid-cols-6 gap-2 text-xs">
+                                 <div>{/* spacer for # column */}</div>
+                                 <div className="col-span-5">
+                                   <div className="grid grid-cols-4 gap-2">
+                                     {isCheque && (
+                                       <>
+                                         <div><Label className="text-xs text-muted-foreground">Cheque No.</Label><p>{d.mop_number || '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Cheque Date</Label><p>{d.cheque_date ? formatDisplayDate(d.cheque_date) : '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Bank Code</Label><p>{(d as any).bank_name_desc || d.bank_code || '—'}</p></div>
+                                       </>
+                                     )}
+                                     {isCard && (
+                                       <>
+                                         <div><Label className="text-xs text-muted-foreground">Card Code</Label><p>{d.card_name_desc || d.credit_card_code || '—'}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Expiration</Label><p>{(() => {
+                                           if (!d.expiration_date) return '—';
+                                           const str = String(d.expiration_date).trim();
+                                           if (/^\d{2}\/\d{2}$/.test(str)) return str;
+                                           const dt = new Date(str);
+                                           if (isNaN(dt.getTime())) return str;
+                                           return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getFullYear()).slice(-2)}`;
+                                         })()}</p></div>
+                                         <div><Label className="text-xs text-muted-foreground">Card Number</Label><p>{d.mop_number ? maskPIIValue(d.mop_number, 'bank_account') : '—'}</p></div>
+                                       </>
+                                     )}
+                                     {d.mop_account_number && (
+                                       <div><Label className="text-xs text-muted-foreground">Account No.</Label><p>{d.mop_account_number}</p></div>
+                                     )}
+                                     {d.mop_notes1 && (
+                                       <div className="col-span-2"><Label className="text-xs text-muted-foreground">Notes</Label><p>{d.mop_notes1}</p></div>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
                           </div>
                         );
                       })}
