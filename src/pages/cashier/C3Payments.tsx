@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -12,11 +11,8 @@ import {
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X } from 'lucide-react';
+import { Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, X, Search, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
@@ -27,11 +23,16 @@ import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDetailModal';
 import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
-import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarDays } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /* ─── types ──────────────────────────────────────────── */
 
@@ -63,6 +64,24 @@ interface MethodRow {
 
 type FlowState = 'entry' | 'saving' | 'saved';
 
+const PAYER_TYPES = [
+  { value: 'ER', label: 'Employer' },
+  { value: 'IP', label: 'Insured Person' },
+  { value: 'SE', label: 'Self-Employed' },
+  { value: 'VC', label: 'Voluntary Contributor' },
+];
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: new Date(2024, i).toLocaleString('default', { month: 'short' }),
+  full: new Date(2024, i).toLocaleString('default', { month: 'long' }),
+}));
+
+const YEARS = Array.from({ length: 10 }, (_, i) => {
+  const y = new Date().getFullYear() - 5 + i;
+  return { value: y.toString(), label: y.toString() };
+});
+
 /* ─── component ──────────────────────────────────────── */
 
 const C3Payments: React.FC = () => {
@@ -80,10 +99,12 @@ const C3Payments: React.FC = () => {
   const [remarks, setRemarks] = useState('');
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [periodOpen, setPeriodOpen] = useState(false);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
-  const [componentPopoverOpen, setComponentPopoverOpen] = useState(false);
+  const [componentSearch, setComponentSearch] = useState('');
+  const [componentSearchFocused, setComponentSearchFocused] = useState(false);
 
   // Methods
   const [methods, setMethods] = useState<MethodRow[]>([]);
@@ -102,6 +123,8 @@ const C3Payments: React.FC = () => {
   // Refs for auto-focus
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const methodAmountRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const componentSearchRef = useRef<HTMLInputElement | null>(null);
+  const payerIdRef = useRef<HTMLInputElement | null>(null);
 
   /* ── data fetching ───────────────────── */
 
@@ -126,19 +149,25 @@ const C3Payments: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Filtered payment types = only those configured as C3
   const c3PaymentTypeDetails = useMemo(() => {
     if (!c3PaymentTypes.length || !paymentTypesAll.length) return [];
     return paymentTypesAll.filter((pt: any) => c3PaymentTypes.includes(pt.payment_code));
   }, [c3PaymentTypes, paymentTypesAll]);
 
-  // Available for selection = configured minus already selected
   const availableComponents = useMemo(() => {
     const selectedCodes = new Set(selectedComponents.map(c => c.payment_code));
     return c3PaymentTypeDetails.filter((pt: any) => !selectedCodes.has(pt.payment_code));
   }, [c3PaymentTypeDetails, selectedComponents]);
 
-  // Main currency
+  const filteredAvailable = useMemo(() => {
+    if (!componentSearch.trim()) return availableComponents;
+    const q = componentSearch.toLowerCase();
+    return availableComponents.filter((pt: any) =>
+      (pt.payment_type_description || '').toLowerCase().includes(q) ||
+      pt.payment_code.toLowerCase().includes(q)
+    );
+  }, [availableComponents, componentSearch]);
+
   const mainCurrency = useMemo(() =>
     enabledCurrencies.find((c: any) => c.is_main_currency) || enabledCurrencies[0],
     [enabledCurrencies]
@@ -151,6 +180,7 @@ const C3Payments: React.FC = () => {
   const difference = c3Amount - totalPaymentReceived;
 
   const period = `${selectedMonth.padStart(2, '0')}/${selectedYear}`;
+  const periodLabel = `${MONTHS.find(m => m.value === selectedMonth)?.full || ''} ${selectedYear}`;
 
   const isEntry = flowState === 'entry';
   const isSaving = flowState === 'saving';
@@ -158,13 +188,38 @@ const C3Payments: React.FC = () => {
   const canCancel = isSaved && receiptActions.currentReceipt?.status === 'O';
   const canReprint = isSaved && !!receiptActions.currentReceipt;
 
-  const MONTHS_LABELS: Record<string, string> = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (let i = 0; i < 12; i++) {
-      m[(i + 1).toString()] = new Date(2024, i).toLocaleString('default', { month: 'long' });
+  const baseCurrCode = mainCurrency?.currency_code || 'XCD';
+
+  /* ── keyboard shortcut ────────────────── */
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Ctrl+Enter = Process
+      if (e.ctrlKey && e.key === 'Enter' && isEntry && selectedComponents.length > 0 && methods.length > 0 && payerInfo) {
+        e.preventDefault();
+        setShowConfirm(true);
+      }
+      // Ctrl+M = Add Method
+      if (e.ctrlKey && e.key === 'm' && isEntry) {
+        e.preventDefault();
+        addMethodRow();
+      }
+      // Ctrl+Shift+N = New Payment
+      if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+        e.preventDefault();
+        resetForm();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isEntry, selectedComponents, methods, payerInfo]);
+
+  // Auto-focus payer ID on mount
+  useEffect(() => {
+    if (batchSel.isReady && batchSel.selectedBatch) {
+      setTimeout(() => payerIdRef.current?.focus(), 200);
     }
-    return m;
-  }, []);
+  }, [batchSel.isReady, batchSel.selectedBatch]);
 
   /* ── handlers ─────────────────────────── */
 
@@ -180,18 +235,14 @@ const C3Payments: React.FC = () => {
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
     if (!pt) return;
-    const newComp: PaymentComponent = {
+    setSelectedComponents(prev => [...prev, {
       payment_code: pt.payment_code,
       fund_code: pt.fund_code || '',
       description: pt.payment_type_description || pt.payment_code,
       amount: 0,
-    };
-    setSelectedComponents(prev => [...prev, newComp]);
-    setComponentPopoverOpen(false);
-    // Auto-focus the amount input after render
-    setTimeout(() => {
-      amountRefs.current[code]?.focus();
-    }, 50);
+    }]);
+    setComponentSearch('');
+    setTimeout(() => amountRefs.current[code]?.focus(), 50);
   }, [c3PaymentTypeDetails]);
 
   const removeComponent = useCallback((code: string) => {
@@ -204,10 +255,25 @@ const C3Payments: React.FC = () => {
     ));
   }, []);
 
+  // Tab from last component amount → component search or add-method
+  const handleComponentAmountKeyDown = useCallback((e: React.KeyboardEvent, idx: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Focus next component or jump to component search
+      const nextComp = selectedComponents[idx + 1];
+      if (nextComp) {
+        amountRefs.current[nextComp.payment_code]?.focus();
+      } else {
+        componentSearchRef.current?.focus();
+      }
+    }
+  }, [selectedComponents]);
+
   const addMethodRow = useCallback(() => {
     const defaultCurrency = mainCurrency?.currency_code || 'XCD';
+    const newId = crypto.randomUUID();
     setMethods(prev => [...prev, {
-      id: crypto.randomUUID(),
+      id: newId,
       mop_code: '',
       mop_desc: '',
       currency_code: defaultCurrency,
@@ -218,6 +284,7 @@ const C3Payments: React.FC = () => {
       mop_account_number: '', mop_notes1: '',
       credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
     }]);
+    return newId;
   }, [mainCurrency]);
 
   const removeMethodRow = useCallback((id: string) => {
@@ -241,9 +308,7 @@ const C3Payments: React.FC = () => {
   }, [enabledCurrencies]);
 
   const focusMethodAmount = useCallback((id: string) => {
-    setTimeout(() => {
-      methodAmountRefs.current[id]?.focus();
-    }, 100);
+    setTimeout(() => methodAmountRefs.current[id]?.focus(), 100);
   }, []);
 
   const handleMopCodeChange = useCallback((id: string, mopCode: string) => {
@@ -251,15 +316,12 @@ const C3Payments: React.FC = () => {
     setMethods(prev => prev.map(m => {
       if (m.id !== id) return m;
       return {
-        ...m,
-        mop_code: mopCode,
-        mop_desc: mop?.short_description || mopCode,
+        ...m, mop_code: mopCode, mop_desc: mop?.short_description || mopCode,
         bank_code: '', mop_number: '', cheque_date: null,
         mop_account_number: '', mop_notes1: '',
         credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
       };
     }));
-    // Open modal for cheque/card, otherwise focus amount
     if (mopCode === 'CHQ' || mopCode === 'CHK') {
       setPendingMethodId(id);
       setTimeout(() => setShowChequeModal(true), 100);
@@ -282,15 +344,10 @@ const C3Payments: React.FC = () => {
   const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
     if (pendingMethodId) {
       setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
-        ...m,
-        mop_number: details.mop_number,
-        bank_code: details.bank_code,
-        cheque_date: details.cheque_date,
-        mop_account_number: details.mop_account_number,
-        mop_notes1: details.mop_notes1,
-        bank_desc: details.bank_desc || '',
+        ...m, mop_number: details.mop_number, bank_code: details.bank_code,
+        cheque_date: details.cheque_date, mop_account_number: details.mop_account_number,
+        mop_notes1: details.mop_notes1, bank_desc: details.bank_desc || '',
       } : m));
-      // Auto-focus amount after modal close
       focusMethodAmount(pendingMethodId);
     }
     setPendingMethodId(null);
@@ -300,19 +357,25 @@ const C3Payments: React.FC = () => {
   const handleCardDetailsSave = useCallback((details: CardDetails) => {
     if (pendingMethodId) {
       setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
-        ...m,
-        credit_card_code: details.credit_card_code,
-        mop_number: details.mop_number,
-        expiration_date: details.expiration_date,
-        mop_notes1: details.mop_notes1,
+        ...m, credit_card_code: details.credit_card_code, mop_number: details.mop_number,
+        expiration_date: details.expiration_date, mop_notes1: details.mop_notes1,
         card_desc: details.card_desc || '',
       } : m));
-      // Auto-focus amount after modal close
       focusMethodAmount(pendingMethodId);
     }
     setPendingMethodId(null);
     setShowCardModal(false);
   }, [pendingMethodId, focusMethodAmount]);
+
+  const handleMethodAmountKeyDown = useCallback((e: React.KeyboardEvent, idx: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextMethod = methods[idx + 1];
+      if (nextMethod) {
+        methodAmountRefs.current[nextMethod.id]?.focus();
+      }
+    }
+  }, [methods]);
 
   /* ── process payment ──────────────────── */
 
@@ -352,41 +415,27 @@ const C3Payments: React.FC = () => {
 
     try {
       const componentsJson = selectedComponents.map((c, i) => ({
-        payment_code: c.payment_code,
-        fund_code: c.fund_code,
-        amount: c.amount,
-        period,
-        sort_order: i,
+        payment_code: c.payment_code, fund_code: c.fund_code,
+        amount: c.amount, period, sort_order: i,
       }));
-
       const methodsJson = methods.map((m, i) => ({
-        mop_code: m.mop_code,
-        currency_code: m.currency_code,
-        original_amount: m.original_amount,
-        exchange_rate: m.exchange_rate,
+        mop_code: m.mop_code, currency_code: m.currency_code,
+        original_amount: m.original_amount, exchange_rate: m.exchange_rate,
         base_amount: m.base_amount,
-        bank_code: m.bank_code || null,
-        mop_number: m.mop_number || null,
-        cheque_date: m.cheque_date || null,
-        mop_account_number: m.mop_account_number || null,
-        mop_notes1: m.mop_notes1 || null,
-        credit_card_code: m.credit_card_code || null,
-        expiration_date: m.expiration_date || null,
-        sort_order: i,
+        bank_code: m.bank_code || null, mop_number: m.mop_number || null,
+        cheque_date: m.cheque_date || null, mop_account_number: m.mop_account_number || null,
+        mop_notes1: m.mop_notes1 || null, credit_card_code: m.credit_card_code || null,
+        expiration_date: m.expiration_date || null, sort_order: i,
       }));
 
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
 
       const { data: result, error: rpcErr } = await supabase.rpc('create_c3_payment_with_receipt' as any, {
         p_batch_number: batchSel.selectedBatch.batch_number,
-        p_payer_type: payerType,
-        p_payer_id: payerId.trim(),
-        p_date_received: dateRcvd,
-        p_remarks: remarks || null,
-        p_components: componentsJson,
-        p_methods: methodsJson,
-        p_receipt_total: totalPaymentReceived,
-        p_user_code: uCode,
+        p_payer_type: payerType, p_payer_id: payerId.trim(),
+        p_date_received: dateRcvd, p_remarks: remarks || null,
+        p_components: componentsJson, p_methods: methodsJson,
+        p_receipt_total: totalPaymentReceived, p_user_code: uCode,
       });
 
       if (rpcErr) {
@@ -472,6 +521,7 @@ const C3Payments: React.FC = () => {
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
+    setTimeout(() => payerIdRef.current?.focus(), 200);
   }, [receiptActions]);
 
   /* ── pending modal data ───────────────── */
@@ -488,7 +538,13 @@ const C3Payments: React.FC = () => {
     );
   }
 
-  const baseCurrCode = mainCurrency?.currency_code || 'XCD';
+  const mopDetailSummary = (m: MethodRow) => {
+    if ((m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number)
+      return `#${m.mop_number}${m.bank_desc ? ' · ' + m.bank_desc : ''}`;
+    if (m.mop_code === 'CRD' && m.credit_card_code)
+      return `${m.card_desc || m.credit_card_code}${m.mop_number ? ' · ****' + m.mop_number.slice(-4) : ''}`;
+    return '';
+  };
 
   return (
     <BatchSelectionGuard
@@ -502,284 +558,389 @@ const C3Payments: React.FC = () => {
       onSelectBatch={batchSel.selectBatch}
       onChangeBatch={batchSel.changeBatch}
     >
-      <div className="space-y-4 p-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">C3 Contributions Payment</h1>
-          <p className="text-sm text-muted-foreground">Process C3 contribution payments against a specific period.</p>
+      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+        {/* Top Bar: Title + Batch + Actions */}
+        <div className="shrink-0 px-4 pt-3 pb-2 border-b bg-background space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">C3 Contributions Payment</h1>
+              <p className="text-xs text-muted-foreground">Ctrl+Enter to process · Ctrl+M add method · Ctrl+Shift+N new payment</p>
+            </div>
+            <div className="flex gap-1.5">
+              <Button onClick={resetForm} variant="outline" size="sm" className="h-8 text-xs"
+                disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
+                <PlusCircle className="h-3.5 w-3.5 mr-1" /> New
+              </Button>
+              <Button onClick={handleReprint} variant="outline" size="sm" className="h-8 text-xs" disabled={!canReprint}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reprint
+              </Button>
+              <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" className="h-8 text-xs" disabled={!canCancel}>
+                <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
+              </Button>
+            </div>
+          </div>
+          {batchSel.selectedBatch && (
+            <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
+          )}
         </div>
 
-        {batchSel.selectedBatch && (
-          <BatchInfoBar batch={batchSel.selectedBatch} onChangeBatch={batchSel.changeBatch} />
-        )}
+        {/* Main scrollable area */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
 
-        {/* Action Bar */}
-        <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-lg border">
-          <Button
-            onClick={() => setShowConfirm(true)}
-            disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo}
-            size="sm"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}
-            Process C3 Payment
-          </Button>
-          <div className="w-px bg-border mx-1" />
-          <Button onClick={handleReprint} variant="outline" size="sm" disabled={!canReprint}>
-            <RotateCcw className="h-4 w-4 mr-1" /> Re-Print
-          </Button>
-          <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" disabled={!canCancel}>
-            <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
-          </Button>
-          <div className="w-px bg-border mx-1" />
-          <Button onClick={resetForm} variant="outline" size="sm" disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
-            <PlusCircle className="h-4 w-4 mr-1" /> New Payment
-          </Button>
-        </div>
+          {/* ═══ HEADER ROW ═══ */}
+          <div className="grid grid-cols-6 gap-3 items-end">
+            {/* Payer Type */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">Payer Type</Label>
+              <Select value={payerType} onValueChange={setPayerType} disabled={!isEntry}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYER_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Payment Header (now includes C3 Period) */}
-        <PaymentHeaderForm
-          payerType={payerType} setPayerType={setPayerType}
-          payerId={payerId} setPayerId={setPayerId}
-          payerInfo={payerInfo}
-          dateReceived={dateReceived} setDateReceived={setDateReceived}
-          remarks={remarks} setRemarks={setRemarks}
-          onPayerBlur={handlePayerBlur}
-          isValidating={isValidating}
-          disabled={!isEntry}
-          showPeriod
-          periodMonth={selectedMonth} setPeriodMonth={setSelectedMonth}
-          periodYear={selectedYear} setPeriodYear={setSelectedYear}
-        />
+            {/* Payer ID */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">Payer ID</Label>
+              <div className="relative">
+                <Input
+                  ref={payerIdRef}
+                  value={payerId}
+                  onChange={e => setPayerId(e.target.value)}
+                  onBlur={handlePayerBlur}
+                  onKeyDown={e => { if (e.key === 'Enter') handlePayerBlur(); }}
+                  placeholder={payerType === 'ER' ? 'Reg. No.' : 'SSN'}
+                  className="h-9 pr-8"
+                  disabled={!isEntry}
+                />
+                {isValidating && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+            </div>
 
-        {/* Payment Components */}
-        <Card>
-          <CardHeader className="py-3 pb-2">
-            <CardTitle className="text-base">Payment Components</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4 space-y-3">
-            {/* Component search/select via Command popover */}
-            {isEntry && (
-              <Popover open={componentPopoverOpen} onOpenChange={setComponentPopoverOpen}>
+            {/* Payer Name */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">Payer</Label>
+              <div className="flex items-center gap-1.5 h-9 px-2.5 border rounded-md bg-muted/50 text-sm">
+                {payerInfo ? (
+                  <>
+                    <span className="truncate font-medium">{payerInfo.name}</span>
+                    {payerInfo.status === 'A' || payerInfo.status === 'Active'
+                      ? <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      : <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                  </>
+                ) : <span className="text-muted-foreground text-xs">—</span>}
+              </div>
+            </div>
+
+            {/* Period */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">C3 Period</Label>
+              <Popover open={periodOpen} onOpenChange={setPeriodOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={componentPopoverOpen}
-                    className="w-full max-w-md justify-between text-sm font-normal"
-                    disabled={availableComponents.length === 0}
-                  >
-                    <span className="text-muted-foreground">Search & add component...</span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <Button variant="outline" disabled={!isEntry}
+                    className={cn('w-full justify-start text-left font-normal h-9',
+                      !selectedMonth && 'text-muted-foreground')}>
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 opacity-70" />
+                    {periodLabel}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Type component name..." />
-                    <CommandList>
-                      <CommandEmpty>No components found.</CommandEmpty>
-                      <CommandGroup>
-                        {availableComponents.map((pt: any) => (
-                          <CommandItem
-                            key={pt.payment_code}
-                            value={`${pt.payment_type_description || ''} ${pt.payment_code}`}
-                            onSelect={() => handleSelectComponent(pt.payment_code)}
-                          >
-                            <span className="font-medium">{pt.payment_type_description || pt.payment_code}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">{pt.payment_code}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                <PopoverContent className="w-56 p-3" align="start">
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Month</Label>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.full}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Year</Label>
+                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {YEARS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button size="sm" className="w-full" onClick={() => setPeriodOpen(false)}>Done</Button>
+                  </div>
                 </PopoverContent>
               </Popover>
-            )}
-
-            {c3PaymentTypeDetails.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No C3 payment types configured. Please configure them in Payment Module Configuration → C3 Payment Types tab.
-              </p>
-            ) : selectedComponents.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Use the search above to add payment components.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {selectedComponents.map(comp => (
-                  <div key={comp.payment_code} className="flex items-center gap-3 p-2.5 border rounded-md bg-accent/5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{comp.description}</p>
-                      <p className="text-xs text-muted-foreground">{comp.payment_code} / {comp.fund_code}</p>
-                    </div>
-                    <div className="w-32">
-                      <Input
-                        ref={el => { amountRefs.current[comp.payment_code] = el; }}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={comp.amount || ''}
-                        onChange={e => updateComponentAmount(comp.payment_code, parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="text-right text-sm h-8"
-                        disabled={!isEntry}
-                      />
-                    </div>
-                    {isEntry && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 shrink-0"
-                        onClick={() => removeComponent(comp.payment_code)}
-                      >
-                        <X className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="text-sm font-medium">C3 Amount</span>
-              <span className="text-base font-bold">{baseCurrCode} {c3Amount.toFixed(2)}</span>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Payment Methods */}
-        <Card>
-          <CardHeader className="py-3 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Payment Methods</CardTitle>
-            <Button onClick={addMethodRow} variant="outline" size="sm" disabled={!isEntry}>
-              <Plus className="h-4 w-4 mr-1" /> Add Method
-            </Button>
-          </CardHeader>
-          <CardContent className="pb-4 space-y-3">
-            {methods.length === 0 && (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Click "Add Method" to add a payment method.
-              </p>
-            )}
+            {/* Date Received */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">Date Received</Label>
+              <DatePicker date={dateReceived} onDateChange={setDateReceived} disabled={!isEntry} />
+            </div>
 
-            {methods.map((m, idx) => {
-              const isMainCurr = m.currency_code === baseCurrCode;
-              return (
-                <div key={m.id} className="border rounded-md p-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Method {idx + 1}</span>
-                    <div className="flex gap-1">
-                      {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
-                        <Button onClick={() => handleEditMopDetail(m.id)} variant="ghost" size="sm" disabled={!isEntry}>
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button onClick={() => removeMethodRow(m.id)} variant="ghost" size="sm" disabled={!isEntry}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
+            {/* Remarks (compact) */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground font-medium">Remarks</Label>
+              <Input
+                value={remarks}
+                onChange={e => setRemarks(e.target.value)}
+                placeholder="Optional notes..."
+                className="h-9"
+                disabled={!isEntry}
+                maxLength={250}
+              />
+            </div>
+          </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Method</Label>
-                      <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={!isEntry}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          {mopTypes.map((mt: any) => (
-                            <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+          {/* ═══ TWO-COLUMN LAYOUT: Components + Methods ═══ */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
-                    <div className="space-y-1">
-                      <Label className="text-xs">Currency</Label>
-                      <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={!isEntry}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {enabledCurrencies.map((c: any) => (
-                            <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs">Amount ({m.currency_code})</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          ref={el => { methodAmountRefs.current[m.id] = el; }}
-                          type="number" step="0.01" min="0"
-                          value={m.original_amount || ''}
-                          onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                          className="text-right text-sm h-8"
-                          disabled={!isEntry}
-                        />
-                        {!isMainCurr && m.original_amount > 0 && (
-                          <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-                            {baseCurrCode} {m.base_amount.toFixed(2)}
-                          </span>
+            {/* LEFT: Payment Components */}
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+                <span className="text-sm font-semibold">Payment Components</span>
+                <span className="text-sm font-bold tabular-nums text-primary">
+                  {baseCurrCode} {c3Amount.toFixed(2)}
+                </span>
+              </div>
+              <div className="p-2 space-y-1">
+                {/* Inline search */}
+                {isEntry && availableComponents.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      ref={componentSearchRef}
+                      value={componentSearch}
+                      onChange={e => setComponentSearch(e.target.value)}
+                      onFocus={() => setComponentSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setComponentSearchFocused(false), 150)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && filteredAvailable.length > 0) {
+                          e.preventDefault();
+                          handleSelectComponent(filteredAvailable[0].payment_code);
+                        }
+                        if (e.key === 'Escape') {
+                          setComponentSearch('');
+                          setComponentSearchFocused(false);
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      placeholder="Type to search components... (Enter to add)"
+                      className="h-8 pl-8 text-xs"
+                    />
+                    {/* Dropdown results */}
+                    {componentSearchFocused && componentSearch.trim() && (
+                      <div className="absolute z-20 top-full left-0 right-0 mt-0.5 border rounded-md bg-popover shadow-md max-h-40 overflow-y-auto">
+                        {filteredAvailable.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-2 text-center">No matching components</p>
+                        ) : (
+                          filteredAvailable.map((pt: any) => (
+                            <button
+                              key={pt.payment_code}
+                              type="button"
+                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent flex justify-between items-center"
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                handleSelectComponent(pt.payment_code);
+                              }}
+                            >
+                              <span className="font-medium">{pt.payment_type_description || pt.payment_code}</span>
+                              <span className="text-muted-foreground ml-2">{pt.payment_code}</span>
+                            </button>
+                          ))
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
+                )}
 
-                  {/* Info row: Rate + MOP details */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {!isMainCurr && (
-                      <span>Rate: {m.exchange_rate}</span>
-                    )}
-                    {m.mop_desc && (
-                      <span>Method: {m.mop_desc}</span>
-                    )}
-                    {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
-                      <span>Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}</span>
-                    )}
-                    {m.mop_code === 'CRD' && m.credit_card_code && (
-                      <span>{m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}</span>
-                    )}
+                {/* Selected components - compact rows */}
+                {selectedComponents.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-6 text-center">
+                    {c3PaymentTypeDetails.length === 0
+                      ? 'No C3 payment types configured.'
+                      : 'Type above to search and add components'}
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {selectedComponents.map((comp, idx) => (
+                      <div key={comp.payment_code} className="flex items-center gap-2 py-1.5 px-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{comp.description}</p>
+                          <p className="text-[10px] text-muted-foreground">{comp.payment_code}</p>
+                        </div>
+                        <Input
+                          ref={el => { amountRefs.current[comp.payment_code] = el; }}
+                          type="number" step="0.01" min="0"
+                          value={comp.amount || ''}
+                          onChange={e => updateComponentAmount(comp.payment_code, parseFloat(e.target.value) || 0)}
+                          onKeyDown={e => handleComponentAmountKeyDown(e, idx)}
+                          placeholder="0.00"
+                          className="w-28 text-right text-xs h-7"
+                          disabled={!isEntry}
+                        />
+                        {isEntry && (
+                          <button type="button" onClick={() => removeComponent(comp.payment_code)}
+                            className="shrink-0 p-0.5 rounded hover:bg-destructive/10 transition-colors">
+                            <X className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
+                )}
+              </div>
+            </Card>
+
+            {/* RIGHT: Payment Methods */}
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+                <span className="text-sm font-semibold">Payment Methods</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold tabular-nums text-primary">
+                    {baseCurrCode} {totalPaymentReceived.toFixed(2)}
+                  </span>
+                  {isEntry && (
+                    <Button onClick={() => addMethodRow()} variant="outline" size="sm" className="h-6 text-[11px] px-2">
+                      <Plus className="h-3 w-3 mr-0.5" /> Add
+                    </Button>
+                  )}
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+              </div>
+              <div className="p-2">
+                {methods.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-6 text-center">
+                    Click "Add" or press Ctrl+M to add a payment method
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {methods.map((m, idx) => {
+                      const isMainCurr = m.currency_code === baseCurrCode;
+                      const detail = mopDetailSummary(m);
+                      const needsDetail = (m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && !detail;
+                      return (
+                        <div key={m.id} className={cn('py-2 px-1 space-y-1.5', needsDetail && 'bg-amber-50/50 dark:bg-amber-950/10')}>
+                          {/* Row 1: Method + Currency + Amount + Actions */}
+                          <div className="flex items-center gap-2">
+                            <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={!isEntry}>
+                              <SelectTrigger className="h-7 text-xs w-32"><SelectValue placeholder="Method..." /></SelectTrigger>
+                              <SelectContent>
+                                {mopTypes.map((mt: any) => (
+                                  <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
 
-        {/* Footer Totals (sticky) */}
-        <div className="sticky bottom-0 z-10 bg-background border-t pt-3 pb-2">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Payment Received</p>
-              <p className="text-lg font-bold">{baseCurrCode} {totalPaymentReceived.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">C3 Amount</p>
-              <p className="text-lg font-bold">{baseCurrCode} {c3Amount.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Difference</p>
-              <p className={`text-lg font-bold ${Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                {baseCurrCode} {difference.toFixed(2)}
-              </p>
-            </div>
+                            {enabledCurrencies.length > 1 && (
+                              <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={!isEntry}>
+                                <SelectTrigger className="h-7 text-xs w-20"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {enabledCurrencies.map((c: any) => (
+                                    <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+
+                            <Input
+                              ref={el => { methodAmountRefs.current[m.id] = el; }}
+                              type="number" step="0.01" min="0"
+                              value={m.original_amount || ''}
+                              onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
+                              onKeyDown={e => handleMethodAmountKeyDown(e, idx)}
+                              placeholder="0.00"
+                              className="w-28 text-right text-xs h-7"
+                              disabled={!isEntry}
+                            />
+
+                            {!isMainCurr && m.original_amount > 0 && (
+                              <span className="text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
+                                {baseCurrCode} {m.base_amount.toFixed(2)}
+                              </span>
+                            )}
+
+                            <div className="flex gap-0.5 ml-auto shrink-0">
+                              {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
+                                <button type="button" onClick={() => handleEditMopDetail(m.id)} disabled={!isEntry}
+                                  className={cn('p-1 rounded transition-colors',
+                                    needsDetail ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 animate-pulse' : 'hover:bg-muted text-muted-foreground')}>
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                              )}
+                              <button type="button" onClick={() => removeMethodRow(m.id)} disabled={!isEntry}
+                                className="p-1 rounded hover:bg-destructive/10 transition-colors">
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Row 2: Detail info */}
+                          {(detail || (!isMainCurr && m.exchange_rate !== 1)) && (
+                            <div className="flex gap-3 text-[10px] text-muted-foreground pl-1">
+                              {!isMainCurr && m.exchange_rate !== 1 && <span>Rate: {m.exchange_rate}</span>}
+                              {detail && <span>{detail}</span>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
         </div>
 
-        {/* Confirmation Dialog */}
+        {/* ═══ STICKY FOOTER ═══ */}
+        <div className="shrink-0 border-t bg-background px-4 py-2.5">
+          <div className="flex items-center justify-between">
+            {/* Totals */}
+            <div className="flex gap-6">
+              <div className="text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">C3 Amount</p>
+                <p className="text-base font-bold tabular-nums">{baseCurrCode} {c3Amount.toFixed(2)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Received</p>
+                <p className="text-base font-bold tabular-nums">{baseCurrCode} {totalPaymentReceived.toFixed(2)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Difference</p>
+                <p className={cn('text-base font-bold tabular-nums',
+                  Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive')}>
+                  {baseCurrCode} {difference.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            {/* Process button */}
+            <Button
+              onClick={() => setShowConfirm(true)}
+              disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo}
+              className="h-10 px-6 text-sm font-semibold"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Receipt className="h-4 w-4 mr-2" />}
+              Process C3 Payment
+            </Button>
+          </div>
+        </div>
+
+        {/* ═══ DIALOGS ═══ */}
         <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Process C3 Payment?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will create the payment transaction and generate a receipt for {payerInfo?.name || payerId}.<br />
-                Period: {MONTHS_LABELS[selectedMonth]} {selectedYear}<br />
-                C3 Amount: {c3Amount.toFixed(2)} | Methods Total: {totalPaymentReceived.toFixed(2)}<br />
-                {Math.abs(difference) >= 0.01 && (
-                  <span className="text-destructive font-medium">
-                    Warning: Difference of {difference.toFixed(2)} exists between C3 amount and payment received.
-                  </span>
-                )}
+              <AlertDialogDescription asChild>
+                <div className="space-y-1.5 text-sm">
+                  <p>Payer: <strong>{payerInfo?.name || payerId}</strong></p>
+                  <p>Period: <strong>{periodLabel}</strong></p>
+                  <p>Components: <strong>{selectedComponents.length}</strong> · C3 Amount: <strong>{baseCurrCode} {c3Amount.toFixed(2)}</strong></p>
+                  <p>Methods: <strong>{methods.length}</strong> · Total: <strong>{baseCurrCode} {totalPaymentReceived.toFixed(2)}</strong></p>
+                  {Math.abs(difference) >= 0.01 && (
+                    <p className="text-destructive font-medium mt-2">
+                      ⚠ Difference of {baseCurrCode} {difference.toFixed(2)} between C3 amount and payment received.
+                    </p>
+                  )}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -789,16 +950,13 @@ const C3Payments: React.FC = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Modals */}
         <ChequeDetailModal
           open={showChequeModal}
           onClose={() => { setShowChequeModal(false); setPendingMethodId(null); }}
           onSave={handleChequeDetailsSave}
           initialData={pendingMethod ? {
-            mop_number: pendingMethod.mop_number,
-            bank_code: pendingMethod.bank_code,
-            cheque_date: pendingMethod.cheque_date,
-            mop_account_number: pendingMethod.mop_account_number,
+            mop_number: pendingMethod.mop_number, bank_code: pendingMethod.bank_code,
+            cheque_date: pendingMethod.cheque_date, mop_account_number: pendingMethod.mop_account_number,
             mop_notes1: pendingMethod.mop_notes1,
           } : undefined}
         />
@@ -807,10 +965,8 @@ const C3Payments: React.FC = () => {
           onClose={() => { setShowCardModal(false); setPendingMethodId(null); }}
           onSave={handleCardDetailsSave}
           initialData={pendingMethod ? {
-            credit_card_code: pendingMethod.credit_card_code,
-            mop_number: pendingMethod.mop_number,
-            expiration_date: pendingMethod.expiration_date,
-            mop_notes1: pendingMethod.mop_notes1,
+            credit_card_code: pendingMethod.credit_card_code, mop_number: pendingMethod.mop_number,
+            expiration_date: pendingMethod.expiration_date, mop_notes1: pendingMethod.mop_notes1,
           } : undefined}
         />
         <ReceiptCancelModal
