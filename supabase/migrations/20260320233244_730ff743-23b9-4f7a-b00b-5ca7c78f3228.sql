@@ -1,0 +1,7 @@
+INSERT INTO public.payment_module_config (config_key, config_value, description)
+VALUES (
+  'receipt_template',
+  '{"header":{"org_name":"ST. CHRISTOPHER AND NEVIS\nSOCIAL SECURITY BOARD","show_org_name":true},"body_sections":[{"key":"status_line","label":"Status","enabled":true},{"key":"cashier_line","label":"Recd By Cashier","enabled":true},{"key":"received_from","label":"Received from","enabled":true},{"key":"payer_address","label":"","enabled":true},{"key":"ssn_line","label":"SSN","enabled":true},{"key":"date_line","label":"Date","enabled":true},{"key":"receipt_number","label":"Receipt #","enabled":true},{"key":"total_amount","label":"The sum of","enabled":true},{"key":"fund_table","label":"Fund / Amount Paid","enabled":true},{"key":"mop_table","label":"Method of payment","enabled":true}],"footer":{"disclaimer":"Receipt Disclaimer:\nYour payment has been posted to your account and will be applied to any past due social security contributions, levy, severance, fines and penalties or against the current period liabilities.","show_disclaimer":true},"print_settings":{"paper_width_mm":80,"font_size_pt":10,"font_family":"monospace"}}'::jsonb,
+  'Configurable receipt template for all cashier receipt printing'
+)
+ON CONFLICT (config_key) DO NOTHING;
