@@ -338,13 +338,14 @@ const PaymentHistoryManagement = () => {
     setIsLoadingDetail(true);
     setCashierName(null);
     try {
-      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }] = await Promise.all([
+      const [{ data: lines }, { data: rcpt }, { data: ptTypes }, { data: mopTypes }, { data: merchants }, { data: batchRow }, { data: bankCodes }] = await Promise.all([
         supabase.from('cn_payment').select('*').eq('payment_id', row.payment_id).order('payment_sequence_no'),
         supabase.from('cn_receipt').select('*').eq('payment_id', row.payment_id).maybeSingle(),
         supabase.from('tb_payment_type').select('payment_code, payment_type_description, fund_code'),
         supabase.from('tb_method_of_payment').select('mop_code, short_description'),
         supabase.from('tb_merchant').select('credit_card_code, credit_card_name'),
         supabase.from('cn_batch').select('entered_by').eq('batch_number', row.batch_number).maybeSingle(),
+        supabase.from('tb_bank_code').select('bank_code, name'),
       ]);
 
       // Resolve cashier name from batch's entered_by
