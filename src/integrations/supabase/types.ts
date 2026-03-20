@@ -5381,6 +5381,7 @@ export type Database = {
           created_by: string | null
           payment_id: number
           receipt_id: number
+          receipt_number: string | null
           receipt_total: number | null
           reprint_times: number | null
           status: string | null
@@ -5397,6 +5398,7 @@ export type Database = {
           created_by?: string | null
           payment_id: number
           receipt_id?: never
+          receipt_number?: string | null
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
@@ -5413,6 +5415,7 @@ export type Database = {
           created_by?: string | null
           payment_id?: number
           receipt_id?: never
+          receipt_number?: string | null
           receipt_total?: number | null
           reprint_times?: number | null
           status?: string | null
