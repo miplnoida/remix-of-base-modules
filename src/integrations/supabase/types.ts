@@ -8524,6 +8524,7 @@ export type Database = {
           approved_by: string | null
           approved_date: string | null
           assigned_auditor: string | null
+          audit_scope: string | null
           auto_notify_on_approval: boolean | null
           committee_email_proof_url: string | null
           committee_minutes_url: string | null
@@ -8531,6 +8532,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_date: string | null
+          department_id: string | null
           fiscal_year: string
           function_id: string | null
           id: string
@@ -8539,6 +8541,8 @@ export type Database = {
           internally_approved_date: string | null
           methodology: string | null
           objective: string | null
+          planned_end_date: string | null
+          planned_start_date: string | null
           reviewed_by: string | null
           reviewed_date: string | null
           risk_level: string | null
@@ -8555,6 +8559,7 @@ export type Database = {
           approved_by?: string | null
           approved_date?: string | null
           assigned_auditor?: string | null
+          audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
@@ -8562,6 +8567,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
+          department_id?: string | null
           fiscal_year: string
           function_id?: string | null
           id?: string
@@ -8570,6 +8576,8 @@ export type Database = {
           internally_approved_date?: string | null
           methodology?: string | null
           objective?: string | null
+          planned_end_date?: string | null
+          planned_start_date?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
           risk_level?: string | null
@@ -8586,6 +8594,7 @@ export type Database = {
           approved_by?: string | null
           approved_date?: string | null
           assigned_auditor?: string | null
+          audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
@@ -8593,6 +8602,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
+          department_id?: string | null
           fiscal_year?: string
           function_id?: string | null
           id?: string
@@ -8601,6 +8611,8 @@ export type Database = {
           internally_approved_date?: string | null
           methodology?: string | null
           objective?: string | null
+          planned_end_date?: string | null
+          planned_start_date?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
           risk_level?: string | null
@@ -8613,6 +8625,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_annual_plans_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ia_annual_plans_function_id_fkey"
             columns: ["function_id"]
@@ -8709,6 +8728,50 @@ export type Database = {
             foreignKeyName: "ia_audit_checklists_audit_id_fkey"
             columns: ["audit_id"]
             isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_audit_closure: {
+        Row: {
+          approved_by: string | null
+          closure_date: string | null
+          closure_summary: string | null
+          created_at: string | null
+          engagement_id: string
+          id: string
+          lessons_learned: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          closure_date?: string | null
+          closure_summary?: string | null
+          created_at?: string | null
+          engagement_id: string
+          id?: string
+          lessons_learned?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          closure_date?: string | null
+          closure_summary?: string | null
+          created_at?: string | null
+          engagement_id?: string
+          id?: string
+          lessons_learned?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_closure_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: true
             referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
@@ -8885,6 +8948,51 @@ export type Database = {
           },
         ]
       }
+      ia_audit_plan_functions: {
+        Row: {
+          created_at: string | null
+          function_id: string
+          id: string
+          plan_id: string
+          priority: string | null
+          risk_level: string | null
+          risk_score: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          function_id: string
+          id?: string
+          plan_id: string
+          priority?: string | null
+          risk_level?: string | null
+          risk_score?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          function_id?: string
+          id?: string
+          plan_id?: string
+          priority?: string | null
+          risk_level?: string | null
+          risk_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_plan_functions_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ia_department_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_plan_functions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_audit_procedures: {
         Row: {
           audit_program_id: string | null
@@ -9001,9 +9109,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_audit_queries: {
+        Row: {
+          attachments: string[] | null
+          created_at: string | null
+          department_id: string | null
+          engagement_id: string
+          id: string
+          question: string
+          requested_by: string | null
+          requested_date: string | null
+          requested_document: string | null
+          response: string | null
+          response_by: string | null
+          response_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: string[] | null
+          created_at?: string | null
+          department_id?: string | null
+          engagement_id: string
+          id?: string
+          question: string
+          requested_by?: string | null
+          requested_date?: string | null
+          requested_document?: string | null
+          response?: string | null
+          response_by?: string | null
+          response_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: string[] | null
+          created_at?: string | null
+          department_id?: string | null
+          engagement_id?: string
+          id?: string
+          question?: string
+          requested_by?: string | null
+          requested_date?: string | null
+          requested_document?: string | null
+          response?: string | null
+          response_by?: string | null
+          response_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_queries_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_queries_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_audit_reports: {
         Row: {
+          approved_by: string | null
           approved_on: string | null
+          audit_objective: string | null
+          audit_scope: string | null
           background: string | null
           conclusion: string | null
           created_at: string | null
@@ -9011,19 +9188,23 @@ export type Database = {
           department_id: string | null
           distribution_list: string | null
           engagement_id: string | null
+          executive_summary: string | null
           fiscal_year: string | null
           follow_up_actions: string | null
           generated_on: string | null
           id: string
           key_highlights: string | null
           limitations: string | null
+          methodology: string | null
           overall_assessment: string | null
           period: string | null
           plan_id: string | null
           prepared_by: string | null
+          recommendations: string | null
           report_number: string | null
           report_type: string
           reviewed_by: string | null
+          risk_rating: string | null
           status: string
           submitted_on: string | null
           title: string
@@ -9031,7 +9212,10 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          approved_by?: string | null
           approved_on?: string | null
+          audit_objective?: string | null
+          audit_scope?: string | null
           background?: string | null
           conclusion?: string | null
           created_at?: string | null
@@ -9039,19 +9223,23 @@ export type Database = {
           department_id?: string | null
           distribution_list?: string | null
           engagement_id?: string | null
+          executive_summary?: string | null
           fiscal_year?: string | null
           follow_up_actions?: string | null
           generated_on?: string | null
           id?: string
           key_highlights?: string | null
           limitations?: string | null
+          methodology?: string | null
           overall_assessment?: string | null
           period?: string | null
           plan_id?: string | null
           prepared_by?: string | null
+          recommendations?: string | null
           report_number?: string | null
           report_type?: string
           reviewed_by?: string | null
+          risk_rating?: string | null
           status?: string
           submitted_on?: string | null
           title: string
@@ -9059,7 +9247,10 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          approved_by?: string | null
           approved_on?: string | null
+          audit_objective?: string | null
+          audit_scope?: string | null
           background?: string | null
           conclusion?: string | null
           created_at?: string | null
@@ -9067,19 +9258,23 @@ export type Database = {
           department_id?: string | null
           distribution_list?: string | null
           engagement_id?: string | null
+          executive_summary?: string | null
           fiscal_year?: string | null
           follow_up_actions?: string | null
           generated_on?: string | null
           id?: string
           key_highlights?: string | null
           limitations?: string | null
+          methodology?: string | null
           overall_assessment?: string | null
           period?: string | null
           plan_id?: string | null
           prepared_by?: string | null
+          recommendations?: string | null
           report_number?: string | null
           report_type?: string
           reviewed_by?: string | null
+          risk_rating?: string | null
           status?: string
           submitted_on?: string | null
           title?: string
