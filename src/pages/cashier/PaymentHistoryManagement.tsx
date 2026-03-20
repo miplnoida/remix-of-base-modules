@@ -124,7 +124,12 @@ const PaymentHistoryManagement = () => {
     const { data } = await supabase.from('tb_receipt_status').select('code, description');
     if (data) {
       const map: Record<string, string> = {};
-      data.forEach(r => { map[r.code] = r.description || r.code; });
+      data.forEach(r => {
+        const trimmedCode = (r.code || '').trim();
+        if (trimmedCode) {
+          map[trimmedCode] = (r.description || r.code || '').trim();
+        }
+      });
       statusMapRef.current = map;
       statusMapLoaded.current = true;
       return map;
