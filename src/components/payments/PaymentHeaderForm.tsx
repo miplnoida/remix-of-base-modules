@@ -21,6 +21,12 @@ interface PaymentHeaderFormProps {
   onPayerBlur: () => void;
   isValidating?: boolean;
   disabled?: boolean;
+  // Optional C3 period props
+  showPeriod?: boolean;
+  periodMonth?: string;
+  setPeriodMonth?: (v: string) => void;
+  periodYear?: string;
+  setPeriodYear?: (v: string) => void;
 }
 
 const PAYER_TYPES = [
@@ -29,6 +35,16 @@ const PAYER_TYPES = [
   { value: 'SE', label: 'Self-Employed' },
   { value: 'VC', label: 'Voluntary Contributor' },
 ];
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: new Date(2024, i).toLocaleString('default', { month: 'long' }),
+}));
+
+const YEARS = Array.from({ length: 10 }, (_, i) => {
+  const y = new Date().getFullYear() - 5 + i;
+  return { value: y.toString(), label: y.toString() };
+});
 
 export function PaymentHeaderForm({
   payerType,
@@ -43,6 +59,11 @@ export function PaymentHeaderForm({
   onPayerBlur,
   isValidating,
   disabled,
+  showPeriod,
+  periodMonth,
+  setPeriodMonth,
+  periodYear,
+  setPeriodYear,
 }: PaymentHeaderFormProps) {
   return (
     <Card>
@@ -50,7 +71,7 @@ export function PaymentHeaderForm({
         <CardTitle className="text-base">Payment Header</CardTitle>
       </CardHeader>
       <CardContent className="pb-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 ${showPeriod ? 'md:grid-cols-6' : 'md:grid-cols-4'} gap-4`}>
           <div className="space-y-1.5">
             <Label className="text-xs">Payer Type</Label>
             <Select value={payerType} onValueChange={setPayerType} disabled={disabled}>
@@ -104,6 +125,29 @@ export function PaymentHeaderForm({
             <Label className="text-xs">Date Received</Label>
             <DatePicker date={dateReceived} onDateChange={setDateReceived} disabled={disabled} />
           </div>
+
+          {showPeriod && setPeriodMonth && setPeriodYear && periodMonth && periodYear && (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Period Month</Label>
+                <Select value={periodMonth} onValueChange={setPeriodMonth} disabled={disabled}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Period Year</Label>
+                <Select value={periodYear} onValueChange={setPeriodYear} disabled={disabled}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-3">
