@@ -300,7 +300,7 @@ const PaymentHistoryManagement = () => {
         } as any);
 
         toast({ title: 'Receipt Generated', description: `Receipt #${result.receipt_id} created.` });
-        setTimeout(() => window.print(), 300);
+        setTimeout(() => printConfiguredReceipt(row.payment_id).catch(e => console.error('Receipt print error:', e)), 300);
         fetchPayments();
       }
     } catch (err: any) {
