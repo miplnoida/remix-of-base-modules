@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Shield, User, Calendar, Briefcase, Loader2,
   Plus, Trash2, CheckCircle, XCircle, MinusCircle, ClipboardCheck, Lock,
-  Upload, FileText, Download, Send, AlertTriangle, MessageSquare
+  Upload, FileText, Download, Send, AlertTriangle, MessageSquare, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
