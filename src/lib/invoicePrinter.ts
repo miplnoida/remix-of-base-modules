@@ -30,7 +30,7 @@ async function fetchInvoiceData(invoiceId: number) {
     supabase.from('cn_invoices').select('*').eq('id', invoiceId).single(),
     supabase.from('cn_invoice_lines').select('*').eq('invoice_id', invoiceId).order('sort_order'),
     supabase.from('tb_payment_type').select('payment_code, payment_type_description'),
-    supabase.from('tb_invoice_status').select('status_code, status_description'),
+    supabase.from('tb_invoice_status').select('code, description'),
   ]);
 
   const invoice = invoiceRes.data as any;
@@ -48,7 +48,7 @@ async function fetchInvoiceData(invoiceId: number) {
 
   const statusMap: Record<string, string> = {};
   statuses?.forEach((s: any) => {
-    statusMap[s.status_code] = s.status_description || s.status_code;
+    statusMap[s.code] = s.description || s.code;
   });
 
   // Resolve payer name
