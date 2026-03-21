@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,699 +7,564 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from 'sonner';
-import { PlusCircle, Save, RefreshCw, X, Plus, Building2, User, Phone, Mail } from 'lucide-react';
+import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useEnabledCashierCurrencies, useAllCurrencies } from '@/hooks/useCashierCurrencyConfig';
+import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
+import { useUserCode } from '@/hooks/useUserCode';
+import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 
-interface PaymentHead {
-  id: string;
-  type: string;
+// ---------- types ----------
+interface InvoiceLine {
+  key: string;
+  payment_code: string;
+  currency_code: string;
   amount: string;
-  description: string;
+  exchange_rate: number;
+  amount_base: number;
 }
 
-interface InvoiceFormData {
-  // Invoice Classification
-  type: 'contribution' | 'rent' | 'loan' | 'service' | '';
-  paymentSource: 'counter' | 'online' | 'bank_transfer' | 'check' | 'eft' | '';
-  purpose: string;
-  
-  // Payer Details
-  payerType: 'employer' | 'individual' | 'contributor' | '';
-  payerName: string;
-  payerId: string;
-  payerPhone: string;
-  payerEmail: string;
-  payerAddress: string;
-  
-  // Organization Details (for employers/organizations)
-  organizationName: string;
-  organizationDepartment: string;
-  organizationDivision: string;
-  contactPersonName: string;
-  contactPersonPosition: string;
-  
-  // Payment Details
-  paymentHeads: PaymentHead[];
-  totalAmount: string;
-  currency: 'XCD' | 'USD';
-  dueDate: string;
-  
-  // Additional Information
-  description: string;
-  reference: string;
-  internalNotes: string;
-  
-  // Tracking Metadata
-  receivedBy: string;
-  processedBy: string;
-  department: string;
-  
-  // Recurring Options
-  isRecurring: boolean;
-  recurringFrequency: 'monthly' | 'quarterly' | 'annually' | '';
-}
+const emptyLine = (): InvoiceLine => ({
+  key: crypto.randomUUID(),
+  payment_code: '',
+  currency_code: 'XCD',
+  amount: '',
+  exchange_rate: 1,
+  amount_base: 0,
+});
 
-const CreateInvoice: React.FC = () => {
-  const [formData, setFormData] = useState<InvoiceFormData>({
-    type: '',
-    paymentSource: '',
-    purpose: '',
-    payerType: '',
-    payerName: '',
-    payerId: '',
-    payerPhone: '',
-    payerEmail: '',
-    payerAddress: '',
-    organizationName: '',
-    organizationDepartment: '',
-    organizationDivision: '',
-    contactPersonName: '',
-    contactPersonPosition: '',
-    paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
-    totalAmount: '0.00',
-    currency: 'XCD',
-    dueDate: '',
-    description: '',
-    reference: '',
-    internalNotes: '',
-    receivedBy: '',
-    processedBy: '',
-    department: '',
-    isRecurring: false,
-    recurringFrequency: ''
+// ---------- data hooks ----------
+function useInvoiceTypes() {
+  return useQuery({
+    queryKey: ['tb_invoice_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_invoice_types')
+        .select('code, description')
+        .eq('is_active', true)
+        .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
   });
+}
 
-  const handleInputChange = (field: keyof InvoiceFormData, value: string | boolean | PaymentHead[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+function usePaymentSources() {
+  return useQuery({
+    queryKey: ['tb_payment_sources'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_payment_sources')
+        .select('code, description')
+        .eq('is_active', true)
+        .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+}
 
-  const getPaymentHeadOptions = () => {
-    switch (formData.type) {
-      case 'loan':
-        return [
-          'Loan Repayment - Principal',
-          'Loan Repayment - Interest',
-          'Loan Repayment - Penalty',
-          'Late Payment Fee'
-        ];
-      case 'service':
-        return [
-          'Card Reissuance',
-          'ID Card Replacement',
-          'Pension Letter',
-          'Certificate Fee',
-          'Processing Fee',
-          'Document Verification',
-          'Statement Request'
-        ];
-      case 'contribution':
-        return [
-          'Social Security Contribution',
-          'Levy Payment',
-          'Pension Fund Contribution',
-          'Late Payment Penalty',
-          'Interest Charge'
-        ];
-      case 'rent':
-        return [
-          'Office Rent',
-          'Equipment Rental',
-          'Facility Rental',
-          'Utility Charges',
-          'Maintenance Fee'
-        ];
-      default:
-        return [];
+function usePayerTypes() {
+  return useQuery({
+    queryKey: ['tb_payer_type'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_payer_type')
+        .select('code, description')
+        .eq('is_active', true)
+        .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+}
+
+function usePaymentTypes() {
+  return useQuery({
+    queryKey: ['tb_payment_type_list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_payment_type')
+        .select('payment_code, payment_type_description');
+      if (error) throw error;
+      return data as { payment_code: string; payment_type_description: string }[];
+    },
+  });
+}
+
+// ---------- Component ----------
+const CreateInvoice: React.FC = () => {
+  // header state
+  const [invoiceType, setInvoiceType] = useState('');
+  const [paymentSource, setPaymentSource] = useState('');
+  const [payerType, setPayerType] = useState('');
+  const [payerId, setPayerId] = useState('');
+  const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
+  const [payerLookupDone, setPayerLookupDone] = useState(false);
+  const [payerLoading, setPayerLoading] = useState(false);
+  const [currencyCode, setCurrencyCode] = useState('XCD');
+  const [dueDate, setDueDate] = useState<Date | undefined>();
+
+  // lines
+  const [lines, setLines] = useState<InvoiceLine[]>([emptyLine()]);
+
+  // notes
+  const [publicNotes, setPublicNotes] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
+
+  // recurring
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+
+  const [submitting, setSubmitting] = useState(false);
+
+  // errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // data queries
+  const { data: invoiceTypes, isLoading: loadingIT } = useInvoiceTypes();
+  const { data: paymentSources, isLoading: loadingPS } = usePaymentSources();
+  const { data: payerTypes, isLoading: loadingPT } = usePayerTypes();
+  const { data: paymentTypes, isLoading: loadingPMT } = usePaymentTypes();
+  const { data: enabledCurrencies, isLoading: loadingCurr } = useEnabledCashierCurrencies();
+  const { data: allCurrencies } = useAllCurrencies();
+  const { lookupPayer } = usePaymentEntry();
+  const { userCode } = useUserCode();
+
+  // currency map for exchange rates
+  const currencyMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (allCurrencies || []).forEach(c => map.set(c.currency_code, c.exchange_rate));
+    return map;
+  }, [allCurrencies]);
+
+  const mainCurrency = useMemo(() => {
+    return (enabledCurrencies || []).find(c => c.is_main_currency)?.currency_code || 'XCD';
+  }, [enabledCurrencies]);
+
+  // ---------- helpers ----------
+  const clearError = (field: string) => setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+
+  const handlePayerBlur = useCallback(async () => {
+    if (!payerType || !payerId) return;
+    setPayerLoading(true);
+    try {
+      const info = await lookupPayer(payerType, payerId);
+      setPayerInfo(info);
+      setPayerLookupDone(true);
+      if (!info) {
+        setErrors(prev => ({ ...prev, payerId: 'Payer not found' }));
+      } else {
+        clearError('payerId');
+      }
+    } finally {
+      setPayerLoading(false);
     }
+  }, [payerType, payerId, lookupPayer]);
+
+  const updateLine = (key: string, field: keyof InvoiceLine, value: string) => {
+    setLines(prev => prev.map(l => {
+      if (l.key !== key) return l;
+      const updated = { ...l, [field]: value };
+      if (field === 'currency_code') {
+        updated.exchange_rate = currencyMap.get(value) || 1;
+        const amt = parseFloat(updated.amount) || 0;
+        updated.amount_base = Math.round(amt * updated.exchange_rate * 100) / 100;
+      }
+      if (field === 'amount') {
+        const amt = parseFloat(value) || 0;
+        updated.amount_base = Math.round(amt * updated.exchange_rate * 100) / 100;
+      }
+      return updated;
+    }));
   };
 
-  const addPaymentHead = () => {
-    const newId = (formData.paymentHeads.length + 1).toString();
-    const newPaymentHead: PaymentHead = {
-      id: newId,
-      type: '',
-      amount: '',
-      description: ''
-    };
-    handleInputChange('paymentHeads', [...formData.paymentHeads, newPaymentHead]);
+  const addLine = () => setLines(prev => [...prev, emptyLine()]);
+  const removeLine = (key: string) => {
+    if (lines.length <= 1) return;
+    setLines(prev => prev.filter(l => l.key !== key));
   };
 
-  const removePaymentHead = (id: string) => {
-    if (formData.paymentHeads.length > 1) {
-      const updatedHeads = formData.paymentHeads.filter(head => head.id !== id);
-      handleInputChange('paymentHeads', updatedHeads);
-      calculateTotal(updatedHeads);
-    }
-  };
+  const totalBase = useMemo(() => lines.reduce((s, l) => s + l.amount_base, 0), [lines]);
 
-  const updatePaymentHead = (id: string, field: keyof PaymentHead, value: string) => {
-    const updatedHeads = formData.paymentHeads.map(head =>
-      head.id === id ? { ...head, [field]: value } : head
-    );
-    handleInputChange('paymentHeads', updatedHeads);
-    
-    if (field === 'amount') {
-      calculateTotal(updatedHeads);
-    }
-  };
-
-  const calculateTotal = (paymentHeads: PaymentHead[]) => {
-    const total = paymentHeads.reduce((sum, head) => {
-      const amount = parseFloat(head.amount) || 0;
-      return sum + amount;
-    }, 0);
-    handleInputChange('totalAmount', total.toFixed(2));
-  };
-
-  const generateInvoiceNumber = () => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `INV-${year}${month}-${sequence}`;
-  };
-
-  const handleCreateInvoice = () => {
-    // Validation
-    if (!formData.type || !formData.payerName || !formData.dueDate || 
-        !formData.paymentSource || !formData.purpose ||
-        formData.paymentHeads.some(head => !head.type || !head.amount)) {
-      toast.error('Please fill in all required fields including payment source, purpose, and payment heads');
-      return;
+  // ---------- validation ----------
+  const validate = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!invoiceType) e.invoiceType = 'Required';
+    if (!paymentSource) e.paymentSource = 'Required';
+    if (!payerType) e.payerType = 'Required';
+    if (!payerId) e.payerId = 'Required';
+    if (!payerInfo) e.payerId = 'Valid payer required';
+    if (!dueDate) e.dueDate = 'Required';
+    else {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (dueDate < today) e.dueDate = 'Cannot be a past date';
     }
 
-    const invoiceNumber = generateInvoiceNumber();
-    
-    // Here you would normally save to your data store
-    toast.success(`Invoice ${invoiceNumber} created successfully with ${formData.paymentHeads.length} payment head(s)`);
-    
-    // Reset form
-    setFormData({
-      type: '',
-      paymentSource: '',
-      purpose: '',
-      payerType: '',
-      payerName: '',
-      payerId: '',
-      payerPhone: '',
-      payerEmail: '',
-      payerAddress: '',
-      organizationName: '',
-      organizationDepartment: '',
-      organizationDivision: '',
-      contactPersonName: '',
-      contactPersonPosition: '',
-      paymentHeads: [{ id: '1', type: '', amount: '', description: '' }],
-      totalAmount: '0.00',
-      currency: 'XCD',
-      dueDate: '',
-      description: '',
-      reference: '',
-      internalNotes: '',
-      receivedBy: '',
-      processedBy: '',
-      department: '',
-      isRecurring: false,
-      recurringFrequency: ''
+    lines.forEach((l, i) => {
+      if (!l.payment_code) e[`line_pt_${i}`] = 'Required';
+      const amt = parseFloat(l.amount);
+      if (!l.amount || isNaN(amt) || amt <= 0) e[`line_amt_${i}`] = 'Amount must be > 0';
+      if (!l.exchange_rate || l.exchange_rate <= 0) e[`line_rate_${i}`] = 'Invalid rate';
     });
+
+    if (isRecurring) {
+      if (!frequency) e.frequency = 'Required';
+      if (!startDate) e.startDate = 'Required';
+    }
+
+    setErrors(e);
+    if (Object.keys(e).length > 0) {
+      toast.error('Please check the form for valid information!', {
+        description: Object.values(e)[0],
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return false;
+    }
+    return true;
   };
 
+  // ---------- submit ----------
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSubmitting(true);
+    try {
+      const headerRate = currencyMap.get(currencyCode) || 1;
+      const { data, error } = await supabase.rpc('create_invoice_with_lines', {
+        p_invoice_type: invoiceType,
+        p_payment_source: paymentSource,
+        p_payer_type: payerType,
+        p_payer_id: payerId,
+        p_payer_name: payerInfo?.name || '',
+        p_currency_code: currencyCode,
+        p_exchange_rate: headerRate,
+        p_total_amount: totalBase / (headerRate || 1),
+        p_total_amount_base: totalBase,
+        p_due_date: dueDate!.toISOString().split('T')[0],
+        p_public_notes: publicNotes || null,
+        p_internal_notes: internalNotes || null,
+        p_is_recurring: isRecurring,
+        p_created_by: userCode || 'SYSTEM',
+        p_lines: lines.map((l, i) => ({
+          payment_code: l.payment_code,
+          currency_code: l.currency_code,
+          amount: parseFloat(l.amount) || 0,
+          exchange_rate: l.exchange_rate,
+          amount_base: l.amount_base,
+          sort_order: i,
+        })),
+        p_recurring: isRecurring ? {
+          frequency,
+          start_date: startDate!.toISOString().split('T')[0],
+          end_date: endDate ? endDate.toISOString().split('T')[0] : null,
+        } : null,
+      });
+
+      if (error) throw error;
+      const result = data as any;
+      toast.success(`Invoice ${result.invoice_number} created successfully`);
+      resetForm();
+    } catch (err: any) {
+      toast.error('Failed to create invoice', { description: err.message });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setInvoiceType(''); setPaymentSource(''); setPayerType(''); setPayerId('');
+    setPayerInfo(null); setPayerLookupDone(false); setCurrencyCode(mainCurrency);
+    setDueDate(undefined); setLines([emptyLine()]);
+    setPublicNotes(''); setInternalNotes('');
+    setIsRecurring(false); setFrequency(''); setStartDate(undefined); setEndDate(undefined);
+    setErrors({});
+  };
+
+  const FieldError = ({ name }: { name: string }) =>
+    errors[name] ? <p className="text-xs text-destructive mt-1">{errors[name]}</p> : null;
+
+  // ---------- render ----------
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
-          <p className="text-muted-foreground">Create comprehensive invoices with full tracking details</p>
+          <p className="text-muted-foreground">Generate a new invoice with payment details</p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          New Invoice
-        </Badge>
+        <Badge variant="outline" className="text-sm"><FileText className="h-3 w-3 mr-1" />New Invoice</Badge>
       </div>
 
+      {/* Header Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PlusCircle className="h-5 w-5" />
-            Invoice Classification & Source
-          </CardTitle>
-          <CardDescription>
-            Define the type, source, and purpose of this invoice for comprehensive tracking.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2"><PlusCircle className="h-5 w-5" />Invoice Header</CardTitle>
+          <CardDescription>Classification, payer, and basic details</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Invoice Type */}
-            <div className="space-y-2">
-              <Label htmlFor="type">Invoice Type *</Label>
-              <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select invoice type" />
+            <div className="space-y-1.5">
+              <Label>Invoice Type *</Label>
+              <Select value={invoiceType} onValueChange={v => { setInvoiceType(v); clearError('invoiceType'); }}>
+                <SelectTrigger className={errors.invoiceType ? 'border-destructive' : ''}>
+                  <SelectValue placeholder={loadingIT ? 'Loading...' : 'Select type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contribution">Contribution</SelectItem>
-                  <SelectItem value="rent">Rent</SelectItem>
-                  <SelectItem value="loan">Loan</SelectItem>
-                  <SelectItem value="service">Service</SelectItem>
+                  {(invoiceTypes || []).map(t => <SelectItem key={t.code} value={t.code}>{t.description}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <FieldError name="invoiceType" />
             </div>
 
             {/* Payment Source */}
-            <div className="space-y-2">
-              <Label htmlFor="paymentSource">Payment Source *</Label>
-              <Select value={formData.paymentSource} onValueChange={(value) => handleInputChange('paymentSource', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment source" />
+            <div className="space-y-1.5">
+              <Label>Payment Source *</Label>
+              <Select value={paymentSource} onValueChange={v => { setPaymentSource(v); clearError('paymentSource'); }}>
+                <SelectTrigger className={errors.paymentSource ? 'border-destructive' : ''}>
+                  <SelectValue placeholder={loadingPS ? 'Loading...' : 'Select source'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="counter">Counter Payment</SelectItem>
-                  <SelectItem value="online">Online Payment</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="eft">EFT</SelectItem>
+                  {(paymentSources || []).map(s => <SelectItem key={s.code} value={s.code}>{s.description}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <FieldError name="paymentSource" />
             </div>
 
-            {/* Purpose */}
-            <div className="space-y-2">
-              <Label htmlFor="purpose">Purpose/Reason *</Label>
-              <Input
-                id="purpose"
-                value={formData.purpose}
-                onChange={(e) => handleInputChange('purpose', e.target.value)}
-                placeholder="e.g., Monthly contribution, Service fee"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Payer Information
-          </CardTitle>
-          <CardDescription>
-            Complete details about the person or organization making the payment.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Payer Type */}
-            <div className="space-y-2">
-              <Label htmlFor="payerType">Payer Type *</Label>
-              <Select value={formData.payerType} onValueChange={(value) => handleInputChange('payerType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payer type" />
+            <div className="space-y-1.5">
+              <Label>Payer Type *</Label>
+              <Select value={payerType} onValueChange={v => {
+                setPayerType(v); setPayerInfo(null); setPayerLookupDone(false); clearError('payerType');
+              }}>
+                <SelectTrigger className={errors.payerType ? 'border-destructive' : ''}>
+                  <SelectValue placeholder={loadingPT ? 'Loading...' : 'Select payer type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employer">Employer</SelectItem>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="contributor">Contributor</SelectItem>
+                  {(payerTypes || []).map(p => <SelectItem key={p.code} value={p.code}>{p.description}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Payer Name */}
-            <div className="space-y-2">
-              <Label htmlFor="payerName">Payer Name *</Label>
-              <Input
-                id="payerName"
-                value={formData.payerName}
-                onChange={(e) => handleInputChange('payerName', e.target.value)}
-                placeholder="Enter full name"
-              />
+              <FieldError name="payerType" />
             </div>
 
             {/* Payer ID */}
-            <div className="space-y-2">
-              <Label htmlFor="payerId">Payer ID/SSN</Label>
-              <Input
-                id="payerId"
-                value={formData.payerId}
-                onChange={(e) => handleInputChange('payerId', e.target.value)}
-                placeholder="Enter ID or SSN"
-              />
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="payerPhone">Phone Number</Label>
-              <div className="flex gap-2">
-                <Phone className="h-4 w-4 self-center text-muted-foreground" />
+            <div className="space-y-1.5">
+              <Label>Payer ID / SSN *</Label>
+              <div className="flex gap-2 items-center">
                 <Input
-                  id="payerPhone"
-                  value={formData.payerPhone}
-                  onChange={(e) => handleInputChange('payerPhone', e.target.value)}
-                  placeholder="(869) 123-4567"
+                  value={payerId}
+                  onChange={e => { setPayerId(e.target.value); setPayerInfo(null); setPayerLookupDone(false); clearError('payerId'); }}
+                  onBlur={handlePayerBlur}
+                  placeholder="Enter ID or SSN"
+                  className={errors.payerId ? 'border-destructive' : ''}
                 />
+                {payerLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {!payerLoading && payerLookupDone && payerInfo && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                {!payerLoading && payerLookupDone && !payerInfo && <AlertCircle className="h-5 w-5 text-destructive" />}
               </div>
+              <FieldError name="payerId" />
             </div>
 
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="payerEmail">Email Address</Label>
-              <div className="flex gap-2">
-                <Mail className="h-4 w-4 self-center text-muted-foreground" />
-                <Input
-                  id="payerEmail"
-                  type="email"
-                  value={formData.payerEmail}
-                  onChange={(e) => handleInputChange('payerEmail', e.target.value)}
-                  placeholder="email@example.com"
-                />
-              </div>
+            {/* Payer Name (read-only) */}
+            <div className="space-y-1.5">
+              <Label>Payer Name</Label>
+              <Input value={payerInfo?.name || ''} readOnly placeholder="Auto-filled on lookup" className="bg-muted" />
             </div>
 
-            {/* Address */}
-            <div className="space-y-2">
-              <Label htmlFor="payerAddress">Address</Label>
-              <Input
-                id="payerAddress"
-                value={formData.payerAddress}
-                onChange={(e) => handleInputChange('payerAddress', e.target.value)}
-                placeholder="Street address, city, parish"
-              />
-            </div>
-          </div>
-
-          {/* Organization Details (shown for employer type) */}
-          {formData.payerType === 'employer' && (
-            <>
-              <div className="pt-4 border-t">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Organization Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="organizationName">Organization Name</Label>
-                    <Input
-                      id="organizationName"
-                      value={formData.organizationName}
-                      onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                      placeholder="Company/Organization name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="organizationDepartment">Department</Label>
-                    <Input
-                      id="organizationDepartment"
-                      value={formData.organizationDepartment}
-                      onChange={(e) => handleInputChange('organizationDepartment', e.target.value)}
-                      placeholder="e.g., Finance, HR, Operations"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="organizationDivision">Division/Branch</Label>
-                    <Input
-                      id="organizationDivision"
-                      value={formData.organizationDivision}
-                      onChange={(e) => handleInputChange('organizationDivision', e.target.value)}
-                      placeholder="Division or branch location"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="contactPersonName">Contact Person</Label>
-                    <Input
-                      id="contactPersonName"
-                      value={formData.contactPersonName}
-                      onChange={(e) => handleInputChange('contactPersonName', e.target.value)}
-                      placeholder="Contact person name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="contactPersonPosition">Contact Position</Label>
-                    <Input
-                      id="contactPersonPosition"
-                      value={formData.contactPersonPosition}
-                      onChange={(e) => handleInputChange('contactPersonPosition', e.target.value)}
-                      placeholder="Job title/position"
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Heads</CardTitle>
-          <CardDescription>
-            Add multiple payment heads for different charge types within this invoice.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-lg font-semibold">Payment Heads *</Label>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={addPaymentHead}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Payment Head
-              </Button>
-            </div>
-
-            {formData.paymentHeads.map((head, index) => (
-              <Card key={head.id} className="border-l-4 border-l-primary">
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label>Payment Type *</Label>
-                      <Select 
-                        value={head.type} 
-                        onValueChange={(value) => updatePaymentHead(head.id, 'type', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getPaymentHeadOptions().map(option => (
-                            <SelectItem key={option} value={option}>{option}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Amount *</Label>
-                      <div className="flex gap-2">
-                        <span className="flex items-center px-3 border border-r-0 rounded-l-md bg-muted text-sm">
-                          {formData.currency}
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={head.amount}
-                          onChange={(e) => updatePaymentHead(head.id, 'amount', e.target.value)}
-                          placeholder="0.00"
-                          className="rounded-l-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input
-                        value={head.description}
-                        onChange={(e) => updatePaymentHead(head.id, 'description', e.target.value)}
-                        placeholder="Enter description"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      {formData.paymentHeads.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removePaymentHead(head.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Total Amount Display */}
-            <div className="flex justify-end">
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="text-sm text-muted-foreground">Total Amount</div>
-                <div className="text-2xl font-bold text-primary">
-                  {formData.currency} {formData.totalAmount}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Currency Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={formData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
+            {/* Invoice Currency */}
+            <div className="space-y-1.5">
+              <Label>Invoice Currency</Label>
+              <Select value={currencyCode} onValueChange={setCurrencyCode}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingCurr ? 'Loading...' : 'Select currency'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="XCD">XCD</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
+                  {(enabledCurrencies || []).map(c => (
+                    <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code} — {c.currency_name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             {/* Due Date */}
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date *</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleInputChange('dueDate', e.target.value)}
+            <div className="space-y-1.5">
+              <Label>Due Date *</Label>
+              <DatePicker
+                date={dueDate}
+                onDateChange={d => { setDueDate(d); clearError('dueDate'); }}
+                placeholder="Select due date"
+                className={errors.dueDate ? 'border-destructive' : ''}
               />
-            </div>
-
-            {/* Reference */}
-            <div className="space-y-2">
-              <Label htmlFor="reference">Reference Number</Label>
-              <Input
-                id="reference"
-                value={formData.reference}
-                onChange={(e) => handleInputChange('reference', e.target.value)}
-                placeholder="External reference"
-              />
+              <FieldError name="dueDate" />
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Payment Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Processing & Tracking Information</CardTitle>
-          <CardDescription>
-            Internal tracking details for audit and management purposes.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Payment Details</CardTitle>
+              <CardDescription>Add payment line items with currencies and amounts</CardDescription>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addLine}>
+              <PlusCircle className="h-4 w-4 mr-1" /> Add Row
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="receivedBy">Received By</Label>
-              <Input
-                id="receivedBy"
-                value={formData.receivedBy}
-                onChange={(e) => handleInputChange('receivedBy', e.target.value)}
-                placeholder="Staff member name"
-              />
-            </div>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[30%]">Payment Type *</TableHead>
+                <TableHead className="w-[18%]">Currency</TableHead>
+                <TableHead className="w-[18%]">Amount *</TableHead>
+                <TableHead className="w-[22%]">Base Amount ({mainCurrency})</TableHead>
+                <TableHead className="w-[12%]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lines.map((line, idx) => (
+                <TableRow key={line.key}>
+                  <TableCell>
+                    <Select value={line.payment_code} onValueChange={v => { updateLine(line.key, 'payment_code', v); clearError(`line_pt_${idx}`); }}>
+                      <SelectTrigger className={errors[`line_pt_${idx}`] ? 'border-destructive' : ''}>
+                        <SelectValue placeholder={loadingPMT ? 'Loading...' : 'Select type'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(paymentTypes || []).map(pt => (
+                          <SelectItem key={pt.payment_code} value={pt.payment_code}>{pt.payment_type_description}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldError name={`line_pt_${idx}`} />
+                  </TableCell>
+                  <TableCell>
+                    <Select value={line.currency_code} onValueChange={v => updateLine(line.key, 'currency_code', v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(enabledCurrencies || []).map(c => (
+                          <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.amount}
+                      onChange={e => { updateLine(line.key, 'amount', e.target.value); clearError(`line_amt_${idx}`); }}
+                      placeholder="0.00"
+                      className={errors[`line_amt_${idx}`] ? 'border-destructive' : ''}
+                    />
+                    <FieldError name={`line_amt_${idx}`} />
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {formatCurrencyWithCode(line.amount_base, mainCurrency)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLine(line.key)} disabled={lines.length <= 1}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3} className="text-right font-semibold">Total</TableCell>
+                <TableCell className="font-bold text-lg">{formatCurrencyWithCode(totalBase, mainCurrency)}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </CardContent>
+      </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="processedBy">Processed By</Label>
-              <Input
-                id="processedBy"
-                value={formData.processedBy}
-                onChange={(e) => handleInputChange('processedBy', e.target.value)}
-                placeholder="Processing officer"
-              />
+      {/* Notes */}
+      <Card>
+        <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Public Notes <span className="text-xs text-muted-foreground">(printed on invoice)</span></Label>
+              <Textarea value={publicNotes} onChange={e => setPublicNotes(e.target.value)} placeholder="Notes visible on invoice..." rows={3} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cashier">Cashier</SelectItem>
-                  <SelectItem value="contributions">Contributions</SelectItem>
-                  <SelectItem value="benefits">Benefits</SelectItem>
-                  <SelectItem value="compliance">Compliance</SelectItem>
-                  <SelectItem value="finance">Finance</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-1.5">
+              <Label>Internal Notes <span className="text-xs text-muted-foreground">(not printed)</span></Label>
+              <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} placeholder="Internal use only..." rows={3} />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Public Notes/Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Additional notes visible to payer"
-              rows={2}
-            />
+      {/* Recurring */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <CardTitle>Recurring Invoice</CardTitle>
+            <Switch checked={isRecurring} onCheckedChange={v => { setIsRecurring(v); if (!v) { setFrequency(''); setStartDate(undefined); setEndDate(undefined); } }} />
           </div>
-
-          {/* Internal Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="internalNotes">Internal Notes (Private)</Label>
-            <Textarea
-              id="internalNotes"
-              value={formData.internalNotes}
-              onChange={(e) => handleInputChange('internalNotes', e.target.value)}
-              placeholder="Internal notes for staff use only"
-              rows={2}
-            />
-          </div>
-
-          {/* Recurring Options */}
-          <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isRecurring"
-                checked={formData.isRecurring}
-                onCheckedChange={(checked) => handleInputChange('isRecurring', checked)}
-              />
-              <Label htmlFor="isRecurring">Recurring Invoice</Label>
-            </div>
-
-            {formData.isRecurring && (
-              <div className="space-y-2">
-                <Label htmlFor="recurringFrequency">Frequency</Label>
-                <Select value={formData.recurringFrequency} onValueChange={(value) => handleInputChange('recurringFrequency', value)}>
-                  <SelectTrigger className="w-48">
+        </CardHeader>
+        {isRecurring && (
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label>Frequency *</Label>
+                <Select value={frequency} onValueChange={v => { setFrequency(v); clearError('frequency'); }}>
+                  <SelectTrigger className={errors.frequency ? 'border-destructive' : ''}>
                     <SelectValue placeholder="Select frequency" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
                     <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="annually">Annually</SelectItem>
+                    <SelectItem value="semi-annual">Semi-Annual</SelectItem>
+                    <SelectItem value="annual">Annual</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError name="frequency" />
               </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4 pt-4">
-            <Button onClick={handleCreateInvoice} className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Create Invoice
-            </Button>
-            <Button variant="outline" onClick={() => window.location.reload()} className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reset Form
-            </Button>
-          </div>
-        </CardContent>
+              <div className="space-y-1.5">
+                <Label>Start Date *</Label>
+                <DatePicker
+                  date={startDate}
+                  onDateChange={d => { setStartDate(d); clearError('startDate'); }}
+                  placeholder="Select start date"
+                  className={errors.startDate ? 'border-destructive' : ''}
+                />
+                <FieldError name="startDate" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date</Label>
+                <DatePicker date={endDate} onDateChange={setEndDate} placeholder="Optional" />
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
+
+      {/* Submit */}
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" onClick={resetForm} disabled={submitting}>Reset</Button>
+        <Button onClick={handleSubmit} disabled={submitting} className="min-w-[180px]">
+          {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : 'Create Invoice'}
+        </Button>
+      </div>
     </div>
   );
 };
