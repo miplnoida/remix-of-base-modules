@@ -217,9 +217,13 @@ const ReceiptTemplateTab: React.FC = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Receipt HTML Template</CardTitle>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset}>
+               <Button variant="outline" size="sm" onClick={handleReset}>
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
                   Reset Default
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)} disabled={!htmlTemplate.trim()}>
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  Preview
                 </Button>
                 <Button size="sm" onClick={handleSave} disabled={updateConfig.isPending}>
                   {updateConfig.isPending ? (
