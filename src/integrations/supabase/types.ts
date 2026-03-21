@@ -5454,6 +5454,9 @@ export type Database = {
       cn_invoices: {
         Row: {
           base_currency: string
+          cancel_date: string | null
+          cancel_reason: string | null
+          cancel_user: string | null
           created_at: string | null
           created_by: string | null
           currency_code: string
@@ -5469,12 +5472,18 @@ export type Database = {
           payer_type: string
           payment_source: string
           public_notes: string | null
+          reprint_times: number
           status: string
           total_amount: number
           total_amount_base: number
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           base_currency?: string
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
           created_at?: string | null
           created_by?: string | null
           currency_code?: string
@@ -5490,12 +5499,18 @@ export type Database = {
           payer_type: string
           payment_source: string
           public_notes?: string | null
+          reprint_times?: number
           status?: string
           total_amount?: number
           total_amount_base?: number
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           base_currency?: string
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
           created_at?: string | null
           created_by?: string | null
           currency_code?: string
@@ -5511,9 +5526,12 @@ export type Database = {
           payer_type?: string
           payment_source?: string
           public_notes?: string | null
+          reprint_times?: number
           status?: string
           total_amount?: number
           total_amount_base?: number
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -18720,6 +18738,36 @@ export type Database = {
         Update: {
           code?: string
           insp_name?: string | null
+        }
+        Relationships: []
+      }
+      tb_invoice_status: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

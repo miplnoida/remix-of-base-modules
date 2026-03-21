@@ -10,13 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from 'sonner';
-import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText, Printer, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useAllCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
+import { useInvoiceActions, InvoiceData } from '@/hooks/useInvoiceActions';
+import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
 
 // ---------- types ----------
 interface InvoiceLine {
@@ -123,6 +125,8 @@ const CreateInvoice: React.FC = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
 
   const [submitting, setSubmitting] = useState(false);
+  const [createdInvoice, setCreatedInvoice] = useState<{ id: number; invoice_number: string } | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,6 +140,7 @@ const CreateInvoice: React.FC = () => {
   const { data: allCurrencies } = useAllCurrencies();
   const { lookupPayer } = usePaymentEntry();
   const { userCode } = useUserCode();
+  const invoiceActions = useInvoiceActions();
 
   // currency map for exchange rates
   const currencyMap = useMemo(() => {
@@ -268,13 +273,25 @@ const CreateInvoice: React.FC = () => {
 
       if (error) throw error;
       const result = data as any;
-      toast.success(`Invoice ${result.invoice_number} created successfully`);
-      resetForm();
+      setCreatedInvoice({ id: result.invoice_id, invoice_number: result.invoice_number });
+      await invoiceActions.loadInvoice(result.invoice_id);
+      toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleReprintInvoice = async () => {
+    if (!createdInvoice) return;
+    await invoiceActions.reprintInvoice(createdInvoice.id, userCode || 'SYSTEM');
+  };
+
+  const handleCancelInvoice = async (reason: string) => {
+    if (!createdInvoice) return;
+    const result = await invoiceActions.cancelInvoice(createdInvoice.id, reason, userCode || 'SYSTEM');
+    if (result) setShowCancelModal(false);
   };
 
   const resetForm = () => {
@@ -284,6 +301,8 @@ const CreateInvoice: React.FC = () => {
     setPublicNotes(''); setInternalNotes('');
     setIsRecurring(false); setFrequency(''); setStartDate(undefined); setEndDate(undefined);
     setErrors({});
+    setCreatedInvoice(null);
+    invoiceActions.setCurrentInvoice(null);
   };
 
   const FieldError = ({ name }: { name: string }) =>
@@ -558,13 +577,66 @@ const CreateInvoice: React.FC = () => {
         )}
       </Card>
 
+      {/* Created Invoice Actions */}
+      {createdInvoice && invoiceActions.currentInvoice && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-semibold text-foreground">Invoice {createdInvoice.invoice_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: <Badge variant={invoiceActions.currentInvoice.status === 'C' ? 'destructive' : 'default'} className="ml-1">
+                      {invoiceActions.currentInvoice.status === 'O' ? 'Original' : invoiceActions.currentInvoice.status === 'R' ? 'Reprinted' : invoiceActions.currentInvoice.status === 'C' ? 'Cancelled' : invoiceActions.currentInvoice.status}
+                    </Badge>
+                    {invoiceActions.currentInvoice.reprint_times > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">(Reprinted {invoiceActions.currentInvoice.reprint_times}x)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReprintInvoice}
+                  disabled={invoiceActions.isLoading || invoiceActions.currentInvoice.status === 'C'}
+                >
+                  {invoiceActions.isLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Printer className="h-4 w-4 mr-1" />}
+                  Re-Print
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={invoiceActions.isLoading || invoiceActions.currentInvoice.status === 'C'}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Cancel Invoice
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Submit */}
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={resetForm} disabled={submitting}>Reset</Button>
-        <Button onClick={handleSubmit} disabled={submitting} className="min-w-[180px]">
+        <Button onClick={handleSubmit} disabled={submitting || !!createdInvoice} className="min-w-[180px]">
           {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : 'Create Invoice'}
         </Button>
       </div>
+
+      {/* Cancel Invoice Modal */}
+      <InvoiceCancelModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelInvoice}
+        isLoading={invoiceActions.isLoading}
+        invoiceNumber={createdInvoice?.invoice_number}
+      />
     </div>
   );
 };
