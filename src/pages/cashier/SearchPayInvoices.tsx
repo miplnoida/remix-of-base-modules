@@ -1,234 +1,110 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Search, CreditCard, Receipt, DollarSign, Plus, Trash2 } from 'lucide-react';
-import { mockInvoices } from '@/data/mockInvoices';
-import { Invoice } from '@/types/invoice';
-import { getActiveBanks } from '@/data/bankData';
-import ReceiptPreview, { ReceiptData } from '@/components/cashier/ReceiptPreview';
-import { getPendingInvoices, getAllInvoices, updateInvoiceStatus as updateServiceInvoiceStatus, getInsuredPersonById } from '@/services/serviceRequestService';
-import { Invoice as ServiceInvoice } from '@/types/serviceRequest';
+import { Search, Printer, XCircle, Loader2, FileText } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
+import { useInvoiceActions } from '@/hooks/useInvoiceActions';
+import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
+import { useUserCode } from '@/hooks/useUserCode';
+import { formatCurrencyWithCode } from '@/utils/currencyConverter';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
-interface PaymentSplit {
-  id: string;
-  currency: 'EC$' | 'US$';
-  paymentMode: 'cash' | 'check' | 'card' | 'eft';
-  amount: number;
-  checkNumber?: string;
-  bankName?: string;
-  cardReference?: string;
+function useInvoiceStatuses() {
+  return useQuery({
+    queryKey: ['tb_invoice_status_list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_invoice_status')
+        .select('code, description')
+        .eq('is_active', true)
+        .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
 }
 
 const SearchPayInvoices: React.FC = () => {
   const batchSel = useBatchSelection();
+  const invoiceActions = useInvoiceActions();
+  const { userCode } = useUserCode();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'invoice' | 'payer'>('invoice');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  
-  const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
-  const [currentReceiptData, setCurrentReceiptData] = useState<ReceiptData | null>(null);
-  const [serviceInvoices, setServiceInvoices] = useState<ServiceInvoice[]>([]);
-  
-  const banks = getActiveBanks();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const [selectedInvoiceNumber, setSelectedInvoiceNumber] = useState<string>('');
 
-  useEffect(() => {
-    setServiceInvoices(getAllInvoices());
-  }, []);
+  const { data: invoiceStatuses } = useInvoiceStatuses();
 
-  const filteredInvoices = useMemo(() => {
-    const combinedInvoices = [
-      ...mockInvoices.filter(invoice => invoice.status !== 'paid'),
-      ...serviceInvoices
-        .filter(inv => inv.status === 'Pending')
-        .map(inv => {
-          const person = getInsuredPersonById(inv.insuredPersonId);
-          return {
-            id: inv.id,
-            invoiceNumber: inv.invoiceNumber,
-            payerName: person?.fullName || 'Unknown',
-            invoiceDate: inv.createdAt,
-            dueDate: inv.createdAt,
-            totalAmount: inv.totalAmount,
-            paidAmount: 0,
-            balanceAmount: inv.totalAmount,
-            status: 'pending' as const,
-            paymentCategory: 'Service Request Fee',
-            description: 'Insured Person Service Fee',
-            accountingHead: inv.accountingHeadCode,
-            type: 'Service Request',
-            currency: 'EC$',
-            amount: inv.totalAmount
-          };
-        })
-    ];
+  const { data: invoices, isLoading: loadingInvoices, refetch } = useQuery({
+    queryKey: ['cn_invoices_search', searchTerm, searchType, statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('cn_invoices')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-    return combinedInvoices.filter(invoice => {
-      const matchesSearch = searchType === 'invoice' 
-        ? invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
-        : invoice.payerName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchTerm, searchType, statusFilter, serviceInvoices]);
-
-  const selectedInvoiceDetails = useMemo(() => {
-    return mockInvoices.filter(inv => selectedInvoices.includes(inv.id));
-  }, [selectedInvoices]);
-
-  const totalAmount = useMemo(() => {
-    return selectedInvoiceDetails.reduce((sum, inv) => sum + inv.balanceAmount, 0);
-  }, [selectedInvoiceDetails]);
-
-  useEffect(() => {
-    addPaymentSplit();
-  }, []);
-
-  const addPaymentSplit = () => {
-    const newSplit: PaymentSplit = {
-      id: Date.now().toString(),
-      currency: 'EC$',
-      paymentMode: 'cash',
-      amount: 0
-    };
-    setPaymentSplits(prev => [...prev, newSplit]);
-  };
-
-  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: any) => {
-    setPaymentSplits(prev => prev.map(split => 
-      split.id === id ? { ...split, [field]: value } : split
-    ));
-  };
-
-  const removePaymentSplit = (id: string) => {
-    if (paymentSplits.length > 1) {
-      setPaymentSplits(prev => prev.filter(split => split.id !== id));
-    }
-  };
-
-  const getTotalPaymentAmount = () => {
-    return paymentSplits.reduce((sum, split) => sum + (split.amount || 0), 0);
-  };
-
-  const handleInvoiceSelection = (invoiceId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedInvoices(prev => [...prev, invoiceId]);
-    } else {
-      setSelectedInvoices(prev => prev.filter(id => id !== invoiceId));
-    }
-  };
-
-  const generateReceiptNumber = () => {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `RCP-${dateStr}-${sequence}`;
-  };
-
-  const processPayment = () => {
-    if (selectedInvoices.length === 0) {
-      toast.error('Please select at least one invoice to pay');
-      return;
-    }
-    const totalPaymentAmount = getTotalPaymentAmount();
-    if (totalPaymentAmount !== totalAmount || totalPaymentAmount <= 0) {
-      toast.error(`Payment splits (${totalPaymentAmount.toFixed(2)}) must equal invoice total (${totalAmount.toFixed(2)})`);
-      return;
-    }
-    for (const split of paymentSplits) {
-      if (!split.amount || split.amount <= 0) {
-        toast.error('All payment splits must have valid amounts');
-        return;
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
       }
-      if (split.paymentMode === 'check' && (!split.checkNumber || !split.bankName)) {
-        toast.error('Check payments require check number and bank name');
-        return;
+
+      if (searchTerm.trim()) {
+        if (searchType === 'invoice') {
+          query = query.ilike('invoice_number', `%${searchTerm.trim()}%`);
+        } else {
+          query = query.ilike('payer_name', `%${searchTerm.trim()}%`);
+        }
       }
-    }
 
-    const receiptNumber = generateReceiptNumber();
-    const now = new Date();
-    const firstInvoice = selectedInvoiceDetails[0];
-    
-    const receiptData: ReceiptData = {
-      receiptNumber,
-      batchId: batchSel.selectedBatch?.batch_number || '',
-      paymentDate: now,
-      status: 'Completed',
-      payerDetails: {
-        name: firstInvoice.payerName,
-        payerType: firstInvoice.payerType === 'employer' ? 'Employer' : 
-                   firstInvoice.payerType === 'individual' ? 'Individual' : 
-                   firstInvoice.payerType === 'contributor' ? 'Insured Person' : 'Organization',
-        address: '123 Main Street, Basseterre, St. Kitts',
-        contact: '(869) 123-4567'
-      },
-      paymentDetails: {
-        paymentType: 'Invoice Payment',
-        paymentMethod: paymentSplits.map(s => s.paymentMode).join(', '),
-        currency: 'EC$',
-        amount: totalPaymentAmount,
-        invoiceReference: selectedInvoices.join(', '),
-        referenceNumber: `INV-${receiptNumber}`
-      },
-      paymentSplits: paymentSplits.map(split => ({
-        paymentMode: split.paymentMode,
-        currency: split.currency,
-        amount: split.amount,
-        checkNumber: split.checkNumber,
-        bankName: split.bankName,
-        cardReference: split.cardReference
-      })),
-      cashierDetails: {
-        cashierId: batchSel.selectedBatch?.entered_by || 'CASH001',
-        cashierName: batchSel.selectedBatch?.entered_by || 'Current User',
-        terminalId: 'TERM-01',
-        workstation: 'WS-MAIN-01'
-      },
-      organizationDetails: {
-        name: 'ST KITTS AND NEVIS SOCIAL SECURITY DEPARTMENT',
-        address: 'P.O. Box 96, Social Security Building, Cayon Street, Basseterre, St. Kitts',
-        phone: '(869) 465-5000',
-        email: 'info@socialsecurity.kn',
-        website: 'www.socialsecurity.kn'
-      },
-      fees: selectedInvoiceDetails.map(inv => ({
-        description: `Invoice ${inv.invoiceNumber} - ${inv.description}`,
-        amount: inv.amount
-      })),
-      notes: `Payment for invoices: ${selectedInvoices.join(', ')}. Total amount: EC$ ${totalPaymentAmount.toFixed(2)}`
-    };
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-    setCurrentReceiptData(receiptData);
-    setIsReceiptPreviewOpen(true);
-    
-    toast.success(`Payment processed successfully. Receipt: ${receiptNumber}`);
-    setSelectedInvoices([]);
-    setPaymentSplits([]);
-    addPaymentSplit();
-    setIsPaymentDialogOpen(false);
-  };
+  const statusMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (invoiceStatuses || []).forEach(s => m.set(s.code, s.description));
+    return m;
+  }, [invoiceStatuses]);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline" | "warning" | "success"> = {
-      pending: 'default',
-      partial: 'secondary',
-      overdue: 'destructive'
-    };
-    return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+    const label = statusMap.get(status) || status;
+    const variant = status === 'C' ? 'destructive' : status === 'O' ? 'default' : status === 'R' ? 'secondary' : 'outline';
+    return <Badge variant={variant as any}>{label}</Badge>;
+  };
+
+  const handleReprint = async (invoiceId: number) => {
+    await invoiceActions.reprintInvoice(invoiceId, userCode || 'SYSTEM');
+    refetch();
+  };
+
+  const handleCancelClick = (invoiceId: number, invoiceNumber: string) => {
+    setSelectedInvoiceId(invoiceId);
+    setSelectedInvoiceNumber(invoiceNumber);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelConfirm = async (reason: string) => {
+    if (!selectedInvoiceId) return;
+    const result = await invoiceActions.cancelInvoice(selectedInvoiceId, reason, userCode || 'SYSTEM');
+    if (result) {
+      setShowCancelModal(false);
+      setSelectedInvoiceId(null);
+      refetch();
+    }
   };
 
   return (
@@ -247,10 +123,11 @@ const SearchPayInvoices: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Search & Pay Invoices</h1>
-            <p className="text-muted-foreground">Search for pending invoices and process payments</p>
+            <p className="text-muted-foreground">Search, reprint, or cancel invoices</p>
           </div>
           <Badge variant="outline" className="text-sm">
-            {selectedInvoices.length} Selected
+            <FileText className="h-3 w-3 mr-1" />
+            {invoices?.length || 0} Invoices
           </Badge>
         </div>
 
@@ -265,15 +142,13 @@ const SearchPayInvoices: React.FC = () => {
               <Search className="h-5 w-5" />
               Search Invoices
             </CardTitle>
-            <CardDescription>
-              Search by invoice number or payer name to find pending invoices
-            </CardDescription>
+            <CardDescription>Search by invoice number or payer name</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Search Type</Label>
-                <Select value={searchType} onValueChange={(value: 'invoice' | 'payer') => setSearchType(value)}>
+                <Select value={searchType} onValueChange={(v: 'invoice' | 'payer') => setSearchType(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="invoice">Invoice Number</SelectItem>
@@ -295,9 +170,9 @@ const SearchPayInvoices: React.FC = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="partial">Partial</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
+                    {(invoiceStatuses || []).map(s => (
+                      <SelectItem key={s.code} value={s.code}>{s.description}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -311,191 +186,87 @@ const SearchPayInvoices: React.FC = () => {
         {/* Invoice Results */}
         <Card>
           <CardHeader>
-            <CardTitle>Search Results</CardTitle>
-            <CardDescription>Select invoices to process payment. Multiple invoices for the same payer can be paid together.</CardDescription>
+            <CardTitle>Invoice Results</CardTitle>
+            <CardDescription>Manage invoices — reprint or cancel as needed</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Select</TableHead>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Payer Name</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedInvoices.includes(invoice.id)}
-                        onCheckedChange={(checked) => handleInvoiceSelection(invoice.id, checked as boolean)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
-                    <TableCell className="capitalize">{invoice.type}</TableCell>
-                    <TableCell>{invoice.payerName}</TableCell>
-                    <TableCell>{invoice.currency} {invoice.amount.toFixed(2)}</TableCell>
-                    <TableCell className="font-medium">{invoice.currency} {invoice.balanceAmount.toFixed(2)}</TableCell>
-                    <TableCell>{invoice.dueDate}</TableCell>
-                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+            {loadingInvoices ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Loading invoices...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Payer</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Base Amount</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Reprints</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredInvoices.length === 0 && (
+                </TableHeader>
+                <TableBody>
+                  {(invoices || []).map((inv: any) => (
+                    <TableRow key={inv.id} className={inv.status === 'C' ? 'opacity-60' : ''}>
+                      <TableCell className="font-medium">{inv.invoice_number}</TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="text-sm">{inv.payer_name || '-'}</span>
+                          <span className="block text-xs text-muted-foreground">{inv.payer_id}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{inv.invoice_type}</TableCell>
+                      <TableCell>{formatCurrencyWithCode(inv.total_amount, inv.currency_code)}</TableCell>
+                      <TableCell>{formatCurrencyWithCode(inv.total_amount_base, inv.base_currency)}</TableCell>
+                      <TableCell>{inv.due_date ? formatDisplayDate(inv.due_date) : '-'}</TableCell>
+                      <TableCell>{getStatusBadge(inv.status)}</TableCell>
+                      <TableCell className="text-center">{inv.reprint_times || 0}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReprint(inv.id)}
+                            disabled={inv.status === 'C' || invoiceActions.isLoading}
+                            title="Re-Print Invoice"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCancelClick(inv.id, inv.invoice_number)}
+                            disabled={inv.status === 'C' || invoiceActions.isLoading}
+                            title="Cancel Invoice"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!loadingInvoices && (!invoices || invoices.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">No invoices found matching your search criteria</div>
             )}
           </CardContent>
         </Card>
 
-        {/* Payment Summary */}
-        {selectedInvoices.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Payment Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Selected Invoices:</span>
-                    <div className="font-medium">{selectedInvoices.length}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Total Amount:</span>
-                    <div className="font-medium text-lg">EC$ {totalAmount.toFixed(2)}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Payer:</span>
-                    <div className="font-medium">{selectedInvoiceDetails[0]?.payerName || 'Multiple Payers'}</div>
-                  </div>
-                </div>
-                
-                <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Process Payment
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Process Payment</DialogTitle>
-                      <DialogDescription>Select payment mode and enter payment details</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-base font-medium">Payment Methods</Label>
-                        <Button onClick={addPaymentSplit} variant="outline" size="sm">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Payment
-                        </Button>
-                      </div>
-
-                      {paymentSplits.map((split, index) => (
-                        <Card key={split.id} className="p-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium">Payment {index + 1}</h4>
-                            {paymentSplits.length > 1 && (
-                              <Button onClick={() => removePaymentSplit(split.id)} variant="ghost" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label>Currency</Label>
-                              <Select value={split.currency} onValueChange={(value) => updatePaymentSplit(split.id, 'currency', value)}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="EC$">EC$</SelectItem>
-                                  <SelectItem value="US$">US$</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Payment Mode</Label>
-                              <Select value={split.paymentMode} onValueChange={(value) => updatePaymentSplit(split.id, 'paymentMode', value)}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="cash">Cash</SelectItem>
-                                  <SelectItem value="check">Check</SelectItem>
-                                  <SelectItem value="card">Card</SelectItem>
-                                  <SelectItem value="eft">EFT</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Amount</Label>
-                              <Input
-                                type="number"
-                                value={split.amount || ''}
-                                onChange={(e) => updatePaymentSplit(split.id, 'amount', parseFloat(e.target.value) || 0)}
-                                placeholder="0.00"
-                              />
-                            </div>
-                          </div>
-                          {split.paymentMode === 'check' && (
-                            <div className="grid grid-cols-2 gap-4 mt-4">
-                              <div className="space-y-2">
-                                <Label>Check Number</Label>
-                                <Input
-                                  value={split.checkNumber || ''}
-                                  onChange={(e) => updatePaymentSplit(split.id, 'checkNumber', e.target.value)}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Bank Name</Label>
-                                <Select value={split.bankName || ''} onValueChange={(value) => updatePaymentSplit(split.id, 'bankName', value)}>
-                                  <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
-                                  <SelectContent>
-                                    {banks.map(bank => (
-                                      <SelectItem key={bank.id} value={bank.name}>{bank.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      ))}
-
-                      <div className="flex justify-between items-center pt-2 border-t">
-                        <span className="font-medium">Total: EC$ {getTotalPaymentAmount().toFixed(2)}</span>
-                        <span className={`text-sm ${Math.abs(getTotalPaymentAmount() - totalAmount) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                          {Math.abs(getTotalPaymentAmount() - totalAmount) < 0.01 ? '✓ Balanced' : `Difference: EC$ ${(totalAmount - getTotalPaymentAmount()).toFixed(2)}`}
-                        </span>
-                      </div>
-
-                      <Button onClick={processPayment} className="w-full" disabled={Math.abs(getTotalPaymentAmount() - totalAmount) >= 0.01}>
-                        <Receipt className="h-4 w-4 mr-2" />
-                        Confirm Payment
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Receipt Preview */}
-        {currentReceiptData && (
-          <ReceiptPreview
-            isOpen={isReceiptPreviewOpen}
-            onClose={() => setIsReceiptPreviewOpen(false)}
-            receiptData={currentReceiptData}
-          />
-        )}
+        {/* Cancel Invoice Modal */}
+        <InvoiceCancelModal
+          open={showCancelModal}
+          onClose={() => { setShowCancelModal(false); setSelectedInvoiceId(null); }}
+          onConfirm={handleCancelConfirm}
+          isLoading={invoiceActions.isLoading}
+          invoiceNumber={selectedInvoiceNumber}
+        />
       </div>
     </BatchSelectionGuard>
   );
