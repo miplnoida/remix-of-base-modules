@@ -562,9 +562,26 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* ─── RECEIPT TAB ─── */}
+        {/* ─── RECEIPT & INVOICE TAB ─── */}
         <TabsContent value="receipt" className="space-y-6">
-          <ReceiptTemplateTab />
+          <Tabs defaultValue="receipt-tpl" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="receipt-tpl">
+                <Receipt className="h-3.5 w-3.5 mr-1" />
+                Receipt Template
+              </TabsTrigger>
+              <TabsTrigger value="invoice-tpl">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Invoice Template
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="receipt-tpl">
+              <ReceiptTemplateTab />
+            </TabsContent>
+            <TabsContent value="invoice-tpl">
+              <InvoiceTemplateTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </div>

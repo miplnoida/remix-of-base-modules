@@ -449,6 +449,12 @@ const CreateInvoice: React.FC = () => {
       }
       await invoiceActions.loadInvoice(result.invoice_id);
       toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
+      // Auto-print the invoice
+      try {
+        await printConfiguredInvoice(result.invoice_id);
+      } catch (printErr: any) {
+        toast.error('Print failed', { description: printErr.message });
+      }
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });
     } finally {
