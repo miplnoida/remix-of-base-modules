@@ -10,13 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from 'sonner';
-import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText, Printer, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useAllCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
+import { useInvoiceActions, InvoiceData } from '@/hooks/useInvoiceActions';
+import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
 
 // ---------- types ----------
 interface InvoiceLine {
