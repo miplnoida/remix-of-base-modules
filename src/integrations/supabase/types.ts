@@ -2882,6 +2882,7 @@ export type Database = {
         Row: {
           bank_code: string | null
           base_amount: number
+          base_currency: string
           cheque_date: string | null
           created_at: string | null
           credit_card_code: string | null
@@ -2900,6 +2901,7 @@ export type Database = {
         Insert: {
           bank_code?: string | null
           base_amount?: number
+          base_currency?: string
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
@@ -2918,6 +2920,7 @@ export type Database = {
         Update: {
           bank_code?: string | null
           base_amount?: number
+          base_currency?: string
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
@@ -5512,9 +5515,12 @@ export type Database = {
         Row: {
           bank_code: string | null
           bank_lodgement_code: string | null
+          base_currency: string
           cheque_date: string | null
           created_at: string | null
           credit_card_code: string | null
+          currency_code: string
+          currency_conversion_rate: number
           expiration_date: string | null
           fund_code: string
           mop_account_number: string | null
@@ -5532,9 +5538,12 @@ export type Database = {
         Insert: {
           bank_code?: string | null
           bank_lodgement_code?: string | null
+          base_currency?: string
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
+          currency_code?: string
+          currency_conversion_rate?: number
           expiration_date?: string | null
           fund_code: string
           mop_account_number?: string | null
@@ -5552,9 +5561,12 @@ export type Database = {
         Update: {
           bank_code?: string | null
           bank_lodgement_code?: string | null
+          base_currency?: string
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
+          currency_code?: string
+          currency_conversion_rate?: number
           expiration_date?: string | null
           fund_code?: string
           mop_account_number?: string | null
