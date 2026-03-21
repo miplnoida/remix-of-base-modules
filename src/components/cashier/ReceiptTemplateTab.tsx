@@ -298,6 +298,29 @@ const ReceiptTemplateTab: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      {/* ─── Preview Dialog ─── */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Receipt Preview (Sample Data)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="border rounded-md bg-white p-2 overflow-auto max-h-[70vh]">
+            <iframe
+              title="Receipt Preview"
+              srcDoc={getPreviewHtml()}
+              className="w-full border-0"
+              style={{ minHeight: 500 }}
+              sandbox=""
+            />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            This preview uses sample data. Actual receipts will use real payment values.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
