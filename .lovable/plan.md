@@ -1,125 +1,79 @@
 
 
-# C3 Payments Screen — Full Rewrite Plan
+# Create Invoice — Full Functional Implementation
 
 ## Overview
-Rewrite `src/pages/cashier/C3Payments.tsx` from its current mock-data implementation to a fully functional Supabase-backed C3 payment entry screen. Create two new database tables for preserving the C3-specific entry structure, and create a server-side RPC for the intelligent payment split logic.
+Complete rewrite of `/cashier/create-invoice` from hardcoded mock to fully Supabase-backed invoice creation with dynamic dropdowns, payer lookup, multi-currency line items, and atomic database persistence.
 
-## Database Changes (2 migrations)
+## Database Changes (1 migration)
 
-### Migration 1: New tables for C3 entry structure
-```sql
--- Stores payment components entered per transaction
-CREATE TABLE public.c3_payment_components (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_id INTEGER NOT NULL,
-  payment_code TEXT NOT NULL,
-  fund_code TEXT NOT NULL,
-  component_amount NUMERIC NOT NULL DEFAULT 0,
-  period TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.c3_payment_components ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated_full" ON public.c3_payment_components FOR ALL TO authenticated USING (true) WITH CHECK (true);
+### 3 New Tables
 
--- Stores payment methods entered per transaction
-CREATE TABLE public.c3_payment_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_id INTEGER NOT NULL,
-  mop_code TEXT NOT NULL,
-  currency_code TEXT NOT NULL DEFAULT 'XCD',
-  original_amount NUMERIC NOT NULL DEFAULT 0,
-  exchange_rate NUMERIC NOT NULL DEFAULT 1,
-  base_amount NUMERIC NOT NULL DEFAULT 0,
-  bank_code TEXT,
-  mop_number TEXT,
-  cheque_date DATE,
-  mop_account_number TEXT,
-  mop_notes1 TEXT,
-  credit_card_code TEXT,
-  expiration_date TEXT,
-  sort_order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.c3_payment_methods ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated_full" ON public.c3_payment_methods FOR ALL TO authenticated USING (true) WITH CHECK (true);
-```
+**tb_invoices** — Invoice header
+- `id SERIAL PRIMARY KEY`, `invoice_number TEXT UNIQUE NOT NULL`
+- `invoice_type TEXT NOT NULL` (from tb_invoice_types.code)
+- `payment_source TEXT NOT NULL` (from tb_payment_sources.code)
+- `payer_type TEXT NOT NULL`, `payer_id TEXT NOT NULL`, `payer_name TEXT`
+- `currency_code TEXT NOT NULL DEFAULT 'XCD'`, `exchange_rate NUMERIC DEFAULT 1`
+- `total_amount NUMERIC DEFAULT 0`, `total_amount_base NUMERIC DEFAULT 0`
+- `due_date DATE NOT NULL`
+- `public_notes TEXT`, `internal_notes TEXT`
+- `is_recurring BOOLEAN DEFAULT false`, `status TEXT DEFAULT 'pending'`
+- `created_by TEXT`, `created_at TIMESTAMPTZ DEFAULT now()`
 
-### Migration 2: RPC for C3 payment processing with intelligent split
-```sql
-CREATE OR REPLACE FUNCTION public.create_c3_payment_with_receipt(
-  p_batch_number TEXT, p_payer_type TEXT, p_payer_id TEXT,
-  p_date_received DATE, p_remarks TEXT,
-  p_components JSONB,  -- [{payment_code, fund_code, amount, period}]
-  p_methods JSONB,     -- [{mop_code, currency_code, original_amount, exchange_rate, base_amount, bank_code, mop_number, cheque_date, ...}]
-  p_receipt_total NUMERIC, p_user_code TEXT
-) RETURNS JSONB ...
-```
+**tb_invoice_lines** — Line items
+- `id SERIAL PRIMARY KEY`, `invoice_id INTEGER REFERENCES tb_invoices(id)`
+- `payment_code TEXT NOT NULL`, `currency_code TEXT DEFAULT 'XCD'`
+- `amount NUMERIC DEFAULT 0`, `exchange_rate NUMERIC DEFAULT 1`, `amount_base NUMERIC DEFAULT 0`
+- `sort_order INTEGER DEFAULT 0`
 
-**Split algorithm** (inside RPC):
-1. Build ordered arrays: components (by input order) and methods (by input order)
-2. For each component, consume from methods sequentially until the component amount is fulfilled
-3. Each consumed slice becomes a `cn_payment` row with that component's `payment_code`/`fund_code` and that method's `mop_code`/details
-4. Also insert into `c3_payment_components` and `c3_payment_methods` for structure preservation
-5. Create `cn_receipt` and `cn_receipt_prints` as existing RPC does
-6. Return `{payment_id, receipt_id, status, detail_count}`
+**tb_invoice_recurring** — Recurring config
+- `id SERIAL PRIMARY KEY`, `invoice_id INTEGER REFERENCES tb_invoices(id)`
+- `frequency TEXT NOT NULL`, `start_date DATE NOT NULL`, `end_date DATE`
+- `next_run_date DATE`, `is_active BOOLEAN DEFAULT true`
 
-## UI Rewrite: `src/pages/cashier/C3Payments.tsx`
+All tables: RLS enabled with `FOR ALL TO authenticated USING (true)`.
 
-### Structure
-The screen uses `BatchSelectionGuard` (existing) and has three main sections:
+### RPC: `create_invoice_with_lines`
+Atomic function using advisory lock to generate invoice number (INV-YYYYMM-NNN), insert header + lines + recurring config. Returns `{invoice_id, invoice_number}`.
 
-**Header**: Payer Type, Payer ID (with blur lookup via `usePaymentEntry().lookupPayer()`), C3 Period (Month/Year), Remarks
+## UI Rewrite: `src/pages/cashier/CreateInvoice.tsx`
 
-**Payment Components Section**:
-- Fetches configured C3 payment type codes from `useC3PaymentTypes()` hook
-- Fetches full details from `tb_payment_type` filtered to only those codes
-- Search box at top to filter components by name/code
-- Each component row: checkbox + name + amount input (enabled only when checked)
-- Selected components with amounts pinned to top of list
-- Total shown at bottom
+### Header Section (single Card, grid layout)
+- **Invoice Type** — `Select` from `tb_invoice_types` where `is_active = true` (code/description)
+- **Payment Source** — `Select` from `tb_payment_sources` where `is_active = true` (code/description)
+- **Payer Type** — `Select` from `tb_payer_type` where `is_active = true` (code/description)
+- **Payer ID / SSN** — `Input` with onBlur calling `usePaymentEntry().lookupPayer()`. Shows payer name + status indicator exactly like PaymentHeaderForm (CheckCircle/AlertCircle icons, read-only name field)
+- **Invoice Currency** — `Select` from `useEnabledCashierCurrencies()`, default = main currency
+- **Due Date** — `DatePicker`, validation: no past dates
 
-**Payment Methods Section**:
-- Add Method button adds a row
-- Each row: MOP dropdown (from `tb_method_of_payment`), Currency dropdown (from `useEnabledCashierCurrencies()`), Amount input, Base Amount (auto-calculated if foreign currency using `exchange_rate` from `tb_currencies`)
-- CHQ/CHK → opens `ChequeDetailModal`; CRD → opens `CardDetailModal`
-- Edit/Remove per row
+### Payment Details Section (Card with dynamic table)
+- Table columns: Payment Type (`tb_payment_type` code/description), Currency, Amount, Base Amount (read-only text showing `<currency_code> <converted_amount>`)
+- Add Row / Delete Row buttons. Minimum 1 row required.
+- Exchange rates from `tb_currencies`. Base amount = amount × exchange_rate, recalculated on currency or amount change.
+- Total row showing sum of all base amounts with main currency code.
 
-**Footer (sticky)**:
-- Total Payment Received = sum of all method rows' base_amount
-- C3 Amount = sum of all component amounts
-- Difference = C3 Amount − Total Payment Received
-- "Process C3 Payment" button with confirmation dialog
+### Notes Section
+- Public Notes textarea, Internal Notes textarea
 
-### Processing Flow
-1. Validate: payer, components, methods, totals
-2. Show `AlertDialog` confirmation
-3. Call `create_c3_payment_with_receipt` RPC
-4. On success: load receipt, trigger print, show toast
-5. Reset form for next entry
+### Recurring Section
+- `Switch` toggle "Is Recurring"
+- When enabled: Frequency dropdown (weekly/monthly/quarterly/semi-annual/annual), Start Date (mandatory), End Date (optional)
 
-### Reused Components/Hooks
-- `BatchSelectionGuard`, `BatchInfoBar`, `useBatchSelection`
-- `usePaymentEntry().lookupPayer()` for payer validation
-- `useC3PaymentTypes()` for configured payment codes
-- `useEnabledCashierCurrencies()` for currency list
-- `ChequeDetailModal`, `CardDetailModal` for MOP details
-- `useReceiptActions().loadReceipt()` for post-save receipt loading
-- `useUserCode()` for current user
-- `ReceiptCancelModal` for cancellation
+### Submit
+- "Create Invoice" button: validates all mandatory fields, payer exists, amounts > 0, due date >= today
+- Calls `create_invoice_with_lines` RPC
+- Success toast with invoice number, form reset
+- Button disabled during submission
+
+### Data Fetching
+- `useQuery` hooks for tb_invoice_types, tb_payment_sources, tb_payer_type, tb_payment_type
+- Reuse `useEnabledCashierCurrencies()` and `usePaymentEntry().lookupPayer()`
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| Migration 1 | Create `c3_payment_components` and `c3_payment_methods` tables |
-| Migration 2 | Create `create_c3_payment_with_receipt` RPC with split logic |
-| `src/pages/cashier/C3Payments.tsx` | Complete rewrite — remove all mock data, implement real Supabase flow |
-
-## Technical Details
-- The split algorithm is purely server-side in the RPC — no client-side splitting
-- Currency conversion uses `exchange_rate` from `tb_currencies` fetched client-side, passed to RPC as `base_amount`
-- The `c3_payment_components` and `c3_payment_methods` tables store the exact user-entered structure for later reconstruction
-- The `cn_payment` rows store the split result (one row per component×method slice) for accounting
-- Advisory lock pattern reused from existing `create_payment_with_receipt` for safe `payment_id` generation
+| New migration | 3 tables + RPC + RLS |
+| `src/pages/cashier/CreateInvoice.tsx` | Complete rewrite |
 
