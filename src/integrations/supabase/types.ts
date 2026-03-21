@@ -18723,6 +18723,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_invoice_status: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       tb_invoice_types: {
         Row: {
           code: string
