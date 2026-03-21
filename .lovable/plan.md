@@ -1,79 +1,71 @@
 
 
-# Create Invoice — Full Functional Implementation
+# Invoice Printing and Template System
 
-## Overview
-Complete rewrite of `/cashier/create-invoice` from hardcoded mock to fully Supabase-backed invoice creation with dynamic dropdowns, payer lookup, multi-currency line items, and atomic database persistence.
+## Problem
+1. Invoice creation does not trigger actual printing — only a toast message appears.
+2. Re-Print button on both CreateInvoice and SearchPayInvoices only updates the DB status but never opens a print window.
+3. No invoice template system exists — receipts have a configurable HTML template, invoices do not.
 
-## Database Changes (1 migration)
+## Solution
 
-### 3 New Tables
+### 1. Database: Add `invoice_template` config row
 
-**tb_invoices** — Invoice header
-- `id SERIAL PRIMARY KEY`, `invoice_number TEXT UNIQUE NOT NULL`
-- `invoice_type TEXT NOT NULL` (from tb_invoice_types.code)
-- `payment_source TEXT NOT NULL` (from tb_payment_sources.code)
-- `payer_type TEXT NOT NULL`, `payer_id TEXT NOT NULL`, `payer_name TEXT`
-- `currency_code TEXT NOT NULL DEFAULT 'XCD'`, `exchange_rate NUMERIC DEFAULT 1`
-- `total_amount NUMERIC DEFAULT 0`, `total_amount_base NUMERIC DEFAULT 0`
-- `due_date DATE NOT NULL`
-- `public_notes TEXT`, `internal_notes TEXT`
-- `is_recurring BOOLEAN DEFAULT false`, `status TEXT DEFAULT 'pending'`
-- `created_by TEXT`, `created_at TIMESTAMPTZ DEFAULT now()`
+Insert a new row into `payment_module_config` with `config_key = 'invoice_template'` containing a default industry-standard invoice HTML template. The template will use invoice-specific placeholders like `{{invoice_number}}`, `{{payer_name}}`, `{{due_date}}`, `{{line_rows}}`, `{{total_amount}}`, etc.
 
-**tb_invoice_lines** — Line items
-- `id SERIAL PRIMARY KEY`, `invoice_id INTEGER REFERENCES tb_invoices(id)`
-- `payment_code TEXT NOT NULL`, `currency_code TEXT DEFAULT 'XCD'`
-- `amount NUMERIC DEFAULT 0`, `exchange_rate NUMERIC DEFAULT 1`, `amount_base NUMERIC DEFAULT 0`
-- `sort_order INTEGER DEFAULT 0`
+### 2. New file: `src/lib/invoicePrinter.ts`
 
-**tb_invoice_recurring** — Recurring config
-- `id SERIAL PRIMARY KEY`, `invoice_id INTEGER REFERENCES tb_invoices(id)`
-- `frequency TEXT NOT NULL`, `start_date DATE NOT NULL`, `end_date DATE`
-- `next_run_date DATE`, `is_active BOOLEAN DEFAULT true`
+Mirrors `src/lib/receiptPrinter.ts` pattern exactly:
+- `fetchInvoiceTemplate()` — reads `invoice_template` from `payment_module_config`
+- `fetchInvoiceData(invoiceId)` — queries `cn_invoices` + `cn_invoice_lines` + resolves payer name, payment type descriptions, currency info, and builds line item HTML rows
+- `printConfiguredInvoice(invoiceId)` — main entry point: fetches template + data, replaces placeholders, opens print window
 
-All tables: RLS enabled with `FOR ALL TO authenticated USING (true)`.
+Placeholders to support:
+- `{{org_name}}`, `{{invoice_number}}`, `{{invoice_date}}`, `{{due_date}}`, `{{status}}`
+- `{{payer_name}}`, `{{payer_id}}`, `{{payer_type}}`, `{{payer_email}}`, `{{payer_phone}}`, `{{payer_address}}`
+- `{{invoice_type}}`, `{{payment_source}}`, `{{currency_code}}`
+- `{{line_rows}}` — HTML table rows for each invoice line (payment type, currency, amount, base amount)
+- `{{total_amount}}`, `{{total_amount_base}}`, `{{base_currency}}`
+- `{{public_notes}}`, `{{print_date}}`
 
-### RPC: `create_invoice_with_lines`
-Atomic function using advisory lock to generate invoice number (INV-YYYYMM-NNN), insert header + lines + recurring config. Returns `{invoice_id, invoice_number}`.
+Default HTML template: A4-style invoice layout with organization header, bill-to section, line items table, totals, and notes footer.
 
-## UI Rewrite: `src/pages/cashier/CreateInvoice.tsx`
+### 3. New file: `src/components/cashier/InvoiceTemplateTab.tsx`
 
-### Header Section (single Card, grid layout)
-- **Invoice Type** — `Select` from `tb_invoice_types` where `is_active = true` (code/description)
-- **Payment Source** — `Select` from `tb_payment_sources` where `is_active = true` (code/description)
-- **Payer Type** — `Select` from `tb_payer_type` where `is_active = true` (code/description)
-- **Payer ID / SSN** — `Input` with onBlur calling `usePaymentEntry().lookupPayer()`. Shows payer name + status indicator exactly like PaymentHeaderForm (CheckCircle/AlertCircle icons, read-only name field)
-- **Invoice Currency** — `Select` from `useEnabledCashierCurrencies()`, default = main currency
-- **Due Date** — `DatePicker`, validation: no past dates
+Cloned from `ReceiptTemplateTab.tsx` but configured for invoices:
+- Reads/writes `invoice_template` config key
+- Uses invoice-specific PLACEHOLDERS list
+- Uses invoice-specific SAMPLE_DATA for preview
+- Same HTML editor + placeholder sidebar + preview dialog pattern
 
-### Payment Details Section (Card with dynamic table)
-- Table columns: Payment Type (`tb_payment_type` code/description), Currency, Amount, Base Amount (read-only text showing `<currency_code> <converted_amount>`)
-- Add Row / Delete Row buttons. Minimum 1 row required.
-- Exchange rates from `tb_currencies`. Base amount = amount × exchange_rate, recalculated on currency or amount change.
-- Total row showing sum of all base amounts with main currency code.
+### 4. Update `src/pages/cashier/PaymentModuleConfig.tsx`
 
-### Notes Section
-- Public Notes textarea, Internal Notes textarea
+Change the "Receipt" tab to "Receipt & Invoice" (shared tab approach per user preference):
+- Add a sub-toggle or sub-tabs within the tab content to switch between Receipt Template and Invoice Template
+- Import and render both `ReceiptTemplateTab` and `InvoiceTemplateTab`
 
-### Recurring Section
-- `Switch` toggle "Is Recurring"
-- When enabled: Frequency dropdown (weekly/monthly/quarterly/semi-annual/annual), Start Date (mandatory), End Date (optional)
+### 5. Update `src/pages/cashier/CreateInvoice.tsx`
 
-### Submit
-- "Create Invoice" button: validates all mandatory fields, payer exists, amounts > 0, due date >= today
-- Calls `create_invoice_with_lines` RPC
-- Success toast with invoice number, form reset
-- Button disabled during submission
+- After successful invoice creation (line ~450), call `printConfiguredInvoice(result.invoice_id)` to auto-print
+- In `handleReprintInvoice` (line ~458), after the status update call, call `printConfiguredInvoice(createdInvoice.id)` to actually print
 
-### Data Fetching
-- `useQuery` hooks for tb_invoice_types, tb_payment_sources, tb_payer_type, tb_payment_type
-- Reuse `useEnabledCashierCurrencies()` and `usePaymentEntry().lookupPayer()`
+### 6. Update `src/hooks/useInvoiceActions.ts`
+
+- Add `printConfiguredInvoice` import
+- In `reprintInvoice`, after successful DB update, call `printConfiguredInvoice(invoiceId)` so that re-printing from SearchPayInvoices also triggers actual printing
+
+### 7. Update `src/pages/cashier/SearchPayInvoices.tsx`
+
+- No additional changes needed since it already calls `invoiceActions.reprintInvoice()` which will now trigger printing via the updated hook
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| New migration | 3 tables + RPC + RLS |
-| `src/pages/cashier/CreateInvoice.tsx` | Complete rewrite |
+| Migration (INSERT) | Add `invoice_template` row to `payment_module_config` |
+| `src/lib/invoicePrinter.ts` | New — invoice print engine |
+| `src/components/cashier/InvoiceTemplateTab.tsx` | New — invoice template designer |
+| `src/pages/cashier/PaymentModuleConfig.tsx` | Add Invoice sub-section to Receipt tab |
+| `src/pages/cashier/CreateInvoice.tsx` | Auto-print on create + reprint |
+| `src/hooks/useInvoiceActions.ts` | Trigger print on reprint action |
 
