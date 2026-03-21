@@ -5366,6 +5366,148 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_invoice_lines: {
+        Row: {
+          amount: number
+          amount_base: number
+          currency_code: string
+          exchange_rate: number
+          id: number
+          invoice_id: number
+          payment_code: string
+          sort_order: number | null
+        }
+        Insert: {
+          amount?: number
+          amount_base?: number
+          currency_code?: string
+          exchange_rate?: number
+          id?: number
+          invoice_id: number
+          payment_code: string
+          sort_order?: number | null
+        }
+        Update: {
+          amount?: number
+          amount_base?: number
+          currency_code?: string
+          exchange_rate?: number
+          id?: number
+          invoice_id?: number
+          payment_code?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "cn_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cn_invoice_recurring: {
+        Row: {
+          end_date: string | null
+          frequency: string
+          id: number
+          invoice_id: number
+          is_active: boolean
+          next_run_date: string | null
+          start_date: string
+        }
+        Insert: {
+          end_date?: string | null
+          frequency: string
+          id?: number
+          invoice_id: number
+          is_active?: boolean
+          next_run_date?: string | null
+          start_date: string
+        }
+        Update: {
+          end_date?: string | null
+          frequency?: string
+          id?: number
+          invoice_id?: number
+          is_active?: boolean
+          next_run_date?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_invoice_recurring_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "cn_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cn_invoices: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency_code: string
+          due_date: string
+          exchange_rate: number
+          id: number
+          internal_notes: string | null
+          invoice_number: string
+          invoice_type: string
+          is_recurring: boolean
+          payer_id: string
+          payer_name: string | null
+          payer_type: string
+          payment_source: string
+          public_notes: string | null
+          status: string
+          total_amount: number
+          total_amount_base: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string
+          due_date: string
+          exchange_rate?: number
+          id?: number
+          internal_notes?: string | null
+          invoice_number: string
+          invoice_type: string
+          is_recurring?: boolean
+          payer_id: string
+          payer_name?: string | null
+          payer_type: string
+          payment_source: string
+          public_notes?: string | null
+          status?: string
+          total_amount?: number
+          total_amount_base?: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string
+          due_date?: string
+          exchange_rate?: number
+          id?: number
+          internal_notes?: string | null
+          invoice_number?: string
+          invoice_type?: string
+          is_recurring?: boolean
+          payer_id?: string
+          payer_name?: string | null
+          payer_type?: string
+          payment_source?: string
+          public_notes?: string | null
+          status?: string
+          total_amount?: number
+          total_amount_base?: number
+        }
+        Relationships: []
+      }
       cn_payment: {
         Row: {
           bank_code: string | null
@@ -18563,85 +18705,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tb_invoice_lines: {
-        Row: {
-          amount: number
-          amount_base: number
-          currency_code: string
-          exchange_rate: number
-          id: number
-          invoice_id: number
-          payment_code: string
-          sort_order: number | null
-        }
-        Insert: {
-          amount?: number
-          amount_base?: number
-          currency_code?: string
-          exchange_rate?: number
-          id?: number
-          invoice_id: number
-          payment_code: string
-          sort_order?: number | null
-        }
-        Update: {
-          amount?: number
-          amount_base?: number
-          currency_code?: string
-          exchange_rate?: number
-          id?: number
-          invoice_id?: number
-          payment_code?: string
-          sort_order?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tb_invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "tb_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tb_invoice_recurring: {
-        Row: {
-          end_date: string | null
-          frequency: string
-          id: number
-          invoice_id: number
-          is_active: boolean
-          next_run_date: string | null
-          start_date: string
-        }
-        Insert: {
-          end_date?: string | null
-          frequency: string
-          id?: number
-          invoice_id: number
-          is_active?: boolean
-          next_run_date?: string | null
-          start_date: string
-        }
-        Update: {
-          end_date?: string | null
-          frequency?: string
-          id?: number
-          invoice_id?: number
-          is_active?: boolean
-          next_run_date?: string | null
-          start_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tb_invoice_recurring_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "tb_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tb_invoice_types: {
         Row: {
           code: string
@@ -18669,69 +18732,6 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
           updated_by?: string | null
-        }
-        Relationships: []
-      }
-      tb_invoices: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          currency_code: string
-          due_date: string
-          exchange_rate: number
-          id: number
-          internal_notes: string | null
-          invoice_number: string
-          invoice_type: string
-          is_recurring: boolean
-          payer_id: string
-          payer_name: string | null
-          payer_type: string
-          payment_source: string
-          public_notes: string | null
-          status: string
-          total_amount: number
-          total_amount_base: number
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          currency_code?: string
-          due_date: string
-          exchange_rate?: number
-          id?: number
-          internal_notes?: string | null
-          invoice_number: string
-          invoice_type: string
-          is_recurring?: boolean
-          payer_id: string
-          payer_name?: string | null
-          payer_type: string
-          payment_source: string
-          public_notes?: string | null
-          status?: string
-          total_amount?: number
-          total_amount_base?: number
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          currency_code?: string
-          due_date?: string
-          exchange_rate?: number
-          id?: number
-          internal_notes?: string | null
-          invoice_number?: string
-          invoice_type?: string
-          is_recurring?: boolean
-          payer_id?: string
-          payer_name?: string | null
-          payer_type?: string
-          payment_source?: string
-          public_notes?: string | null
-          status?: string
-          total_amount?: number
-          total_amount_base?: number
         }
         Relationships: []
       }
