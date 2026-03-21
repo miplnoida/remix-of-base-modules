@@ -248,12 +248,7 @@ const CashDetails: React.FC = () => {
 
         {/* Physical Count card */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Cashier / Office</p>
-              <p className="text-sm font-semibold">{batchSel.selectedBatch?.entered_by || '—'} • {batchSel.selectedBatch?.office_code || '—'}</p>
-            </CardContent>
-          </Card>
+          
           <Card>
             <CardContent className="p-4 text-center border-secondary">
               <div className="flex items-center justify-center gap-1 mb-1">
