@@ -1,110 +1,173 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Eye, Receipt, GripVertical } from 'lucide-react';
+import { Save, Loader2, RotateCcw, Copy, Check } from 'lucide-react';
 import { usePaymentConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { toast } from 'sonner';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface BodySection {
-  key: string;
-  label: string;
-  enabled: boolean;
-}
-
-interface ReceiptTemplate {
-  header: { org_name: string; show_org_name: boolean };
-  body_sections: BodySection[];
-  footer: { disclaimer: string; show_disclaimer: boolean };
-  print_settings: { paper_width_mm: number; font_size_pt: number; font_family: string };
-}
-
-const SECTION_DESCRIPTIONS: Record<string, string> = {
-  status_line: 'Receipt status (Original / Reprint / Cancelled)',
-  cashier_line: 'Name of cashier who received payment',
-  received_from: 'Payer name (employer or insured person)',
-  payer_address: 'Payer mailing address lines',
-  ssn_line: 'SSN / Registration number of the payer',
-  date_line: 'Date payment was received',
-  receipt_number: 'System-generated receipt number',
-  total_amount: 'Total sum of the payment',
-  fund_table: 'Table of funds (Social Security, Levy, etc.) and amounts',
-  mop_table: 'Table of payment methods (Cash, Cheque, etc.) and amounts',
-};
-
-const PLACEHOLDER_LIST = [
-  { placeholder: '{{status}}', description: 'Receipt status (Original/Reprint/Cancelled)' },
-  { placeholder: '{{cashier_name}}', description: 'Full name of cashier' },
-  { placeholder: '{{payer_name}}', description: 'Payer / company name' },
-  { placeholder: '{{payer_address}}', description: 'Payer mailing address' },
-  { placeholder: '{{payer_ssn}}', description: 'SSN or registration number' },
-  { placeholder: '{{date_received}}', description: 'Date in dd-MMM-yyyy format' },
-  { placeholder: '{{receipt_number}}', description: 'Receipt # (payer_id/receipt_id/timestamp)' },
-  { placeholder: '{{receipt_total}}', description: 'Total payment amount' },
-  { placeholder: '{{fund_table}}', description: 'Fund breakdown table (auto-generated)' },
-  { placeholder: '{{mop_table}}', description: 'Method of payment table (auto-generated)' },
+/* ─── Placeholder definitions (real data resolved in receiptPrinter.ts) ─── */
+const PLACEHOLDERS = [
+  { key: '{{org_name}}', description: 'Organization name (multi-line supported)' },
+  { key: '{{status}}', description: 'Receipt status — Original / Reprint / Cancelled' },
+  { key: '{{cashier_name}}', description: 'Full name of the cashier who received the payment' },
+  { key: '{{payer_name}}', description: 'Payer / company name (employer or insured person)' },
+  { key: '{{payer_id}}', description: 'Payer ID / Registration number' },
+  { key: '{{payer_address}}', description: 'Payer mailing address (line-break separated)' },
+  { key: '{{payer_ssn}}', description: 'SSN of the insured person (if applicable)' },
+  { key: '{{payer_type}}', description: 'Payer type code — ER / IP / SE' },
+  { key: '{{date_received}}', description: 'Date payment was received (dd-MMM-yyyy)' },
+  { key: '{{receipt_number}}', description: 'System-generated receipt number' },
+  { key: '{{receipt_id}}', description: 'Numeric receipt ID' },
+  { key: '{{receipt_total}}', description: 'Total payment amount (formatted with 2 decimals)' },
+  { key: '{{payment_id}}', description: 'Payment transaction ID' },
+  { key: '{{batch_number}}', description: 'Batch number the payment belongs to' },
+  { key: '{{fund_rows}}', description: 'Fund breakdown table rows — <tr><td>Fund</td><td>Amount</td></tr>' },
+  { key: '{{mop_rows}}', description: 'Method of payment table rows — <tr><td>Method</td><td>Amount</td></tr>' },
+  { key: '{{print_date}}', description: 'Current date/time when receipt is printed' },
+  { key: '{{period}}', description: 'Payment period (if available)' },
+  { key: '{{remarks}}', description: 'Payment header remarks' },
 ];
+
+/* ─── Default HTML template based on the existing receipt design ─── */
+const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    font-size: 10pt;
+    color: #000;
+    max-width: 300px;
+    padding: 4mm;
+  }
+  .header { text-align: center; margin-bottom: 8px; }
+  .header b { text-decoration: underline; }
+  .divider { border-top: 1px dashed #000; margin: 6px 0; }
+  .row { display: flex; justify-content: space-between; padding: 1px 0; }
+  .label { font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+  td { padding: 2px 0; }
+  td:last-child { text-align: right; }
+  .total-row { font-weight: bold; border-top: 1px solid #000; }
+  .footer { margin-top: 16px; font-size: 9pt; text-align: center; }
+  .status { text-align: center; font-weight: bold; font-size: 11pt; margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <b>{{org_name}}</b>
+</div>
+
+<div class="status">*** {{status}} ***</div>
+
+<div class="divider"></div>
+
+<div class="row"><span class="label">Receipt #:</span><span>{{receipt_number}}</span></div>
+<div class="row"><span class="label">Date:</span><span>{{date_received}}</span></div>
+<div class="row"><span class="label">Cashier:</span><span>{{cashier_name}}</span></div>
+
+<div class="divider"></div>
+
+<div class="row"><span class="label">Received From:</span></div>
+<div style="padding-left: 8px;">{{payer_name}}</div>
+<div style="padding-left: 8px;">{{payer_id}}</div>
+<div style="padding-left: 8px;">{{payer_address}}</div>
+
+<div class="divider"></div>
+
+<div class="label">Fund Breakdown:</div>
+<table>
+  <tr><td><u>Fund</u></td><td><u>Amount</u></td></tr>
+  {{fund_rows}}
+</table>
+
+<div class="divider"></div>
+
+<div class="label">Method of Payment:</div>
+<table>
+  <tr><td><u>Method</u></td><td><u>Amount</u></td></tr>
+  {{mop_rows}}
+</table>
+
+<div class="divider"></div>
+
+<div class="row total-row"><span>TOTAL:</span><span>\${{receipt_total}}</span></div>
+
+<div class="footer">
+  <p>Thank you for your payment.</p>
+  <p>This receipt is computer-generated.</p>
+  <p>Printed: {{print_date}}</p>
+</div>
+
+</body>
+</html>`;
 
 const ReceiptTemplateTab: React.FC = () => {
   const { data: config, isLoading } = usePaymentConfig('receipt_template');
   const updateConfig = useUpdatePaymentConfig();
 
-  const [template, setTemplate] = useState<ReceiptTemplate | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [htmlTemplate, setHtmlTemplate] = useState('');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Load template from DB or use default
   useEffect(() => {
     if (config?.config_value) {
-      setTemplate(config.config_value as unknown as ReceiptTemplate);
+      const val = config.config_value;
+      if (typeof val === 'string') {
+        setHtmlTemplate(val);
+      } else if (typeof val === 'object' && (val as any).html_template) {
+        setHtmlTemplate((val as any).html_template);
+      } else {
+        // Old format — load default
+        setHtmlTemplate(DEFAULT_HTML_TEMPLATE);
+      }
     }
   }, [config]);
 
   const handleSave = useCallback(async () => {
-    if (!template) return;
-    await updateConfig.mutateAsync({ key: 'receipt_template', value: template });
-  }, [template, updateConfig]);
-
-  const updateHeader = (field: string, value: any) => {
-    setTemplate(prev => prev ? { ...prev, header: { ...prev.header, [field]: value } } : prev);
-  };
-
-  const updateFooter = (field: string, value: any) => {
-    setTemplate(prev => prev ? { ...prev, footer: { ...prev.footer, [field]: value } } : prev);
-  };
-
-  const updatePrintSetting = (field: string, value: any) => {
-    setTemplate(prev => prev ? { ...prev, print_settings: { ...prev.print_settings, [field]: value } } : prev);
-  };
-
-  const toggleSection = (key: string) => {
-    setTemplate(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        body_sections: prev.body_sections.map(s =>
-          s.key === key ? { ...s, enabled: !s.enabled } : s
-        ),
-      };
+    if (!htmlTemplate.trim()) {
+      toast.error('Template cannot be empty');
+      return;
+    }
+    await updateConfig.mutateAsync({
+      key: 'receipt_template',
+      value: { html_template: htmlTemplate },
     });
+  }, [htmlTemplate, updateConfig]);
+
+  const handleReset = () => {
+    setHtmlTemplate(DEFAULT_HTML_TEMPLATE);
+    toast.info('Template reset to default. Click Save to persist.');
   };
 
-  const updateSectionLabel = (key: string, label: string) => {
-    setTemplate(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        body_sections: prev.body_sections.map(s =>
-          s.key === key ? { ...s, label } : s
-        ),
-      };
-    });
+  const handleCopyPlaceholder = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1500);
   };
 
-  if (isLoading || !template) {
+  const handleInsertPlaceholder = (key: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = htmlTemplate.substring(0, start);
+    const after = htmlTemplate.substring(end);
+    setHtmlTemplate(before + key + after);
+    // Set cursor after inserted placeholder
+    setTimeout(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + key.length;
+    }, 0);
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -113,172 +176,90 @@ const ReceiptTemplateTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Receipt className="h-4 w-4" />
-            Receipt Header
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Organization name and branding shown at the top of the receipt.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={template.header.show_org_name}
-              onCheckedChange={(v) => updateHeader('show_org_name', v)}
-            />
-            <Label>Show organization name</Label>
-          </div>
-          {template.header.show_org_name && (
-            <div className="space-y-1">
-              <Label className="text-xs">Organization Name (use line breaks for multi-line)</Label>
-              <Textarea
-                value={template.header.org_name.replace(/\\n/g, '\n')}
-                onChange={(e) => updateHeader('org_name', e.target.value)}
-                rows={3}
-                className="font-mono text-sm"
-              />
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ─── HTML Editor (2/3 width) ─── */}
+      <div className="lg:col-span-2 space-y-3">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Receipt HTML Template</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleReset}>
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Reset Default
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={updateConfig.isPending}>
+                  {updateConfig.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Save Template
+                </Button>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">
+              Write the receipt layout in HTML. Use placeholders from the list on the right. Click a placeholder to insert it at cursor position.
+            </p>
+          </CardHeader>
+          <CardContent className="flex-1 pb-3">
+            <textarea
+              ref={textareaRef}
+              value={htmlTemplate}
+              onChange={(e) => setHtmlTemplate(e.target.value)}
+              className="w-full h-[600px] font-mono text-xs p-3 rounded-md border border-input bg-muted/30 text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              spellCheck={false}
+              placeholder="Enter receipt HTML template..."
+            />
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Body Sections Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Receipt Body Sections</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Enable/disable and customize labels for each section of the receipt. Sections appear in the order shown.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {template.body_sections.map((section) => (
-              <div
-                key={section.key}
-                className="flex items-center gap-4 p-3 rounded-lg border bg-card"
-              >
-                <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Switch
-                  checked={section.enabled}
-                  onCheckedChange={() => toggleSection(section.key)}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={section.label}
-                      onChange={(e) => updateSectionLabel(section.key, e.target.value)}
-                      className="h-8 text-sm max-w-[200px]"
-                      placeholder="Label..."
-                    />
-                    <Badge variant="outline" className="text-xs whitespace-nowrap shrink-0">
-                      {section.key}
-                    </Badge>
+      {/* ─── Placeholder List (1/3 width) ─── */}
+      <div className="space-y-3">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Available Placeholders</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Click to insert at cursor. These are resolved dynamically from payment data at print time.
+            </p>
+          </CardHeader>
+          <CardContent className="flex-1 pb-3">
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-1.5 pr-2">
+                {PLACEHOLDERS.map((p) => (
+                  <div
+                    key={p.key}
+                    className="flex items-start gap-2 p-2 rounded-md border bg-muted/30 hover:bg-muted/60 cursor-pointer transition-colors group"
+                    onClick={() => handleInsertPlaceholder(p.key)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <code className="font-mono text-xs text-primary font-semibold">{p.key}</code>
+                        <button
+                          type="button"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyPlaceholder(p.key);
+                          }}
+                          title="Copy to clipboard"
+                        >
+                          {copiedKey === p.key ? (
+                            <Check className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{p.description}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {SECTION_DESCRIPTIONS[section.key] || ''}
-                  </p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Footer Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Receipt Footer / Disclaimer</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={template.footer.show_disclaimer}
-              onCheckedChange={(v) => updateFooter('show_disclaimer', v)}
-            />
-            <Label>Show disclaimer text</Label>
-          </div>
-          {template.footer.show_disclaimer && (
-            <div className="space-y-1">
-              <Label className="text-xs">Disclaimer Text</Label>
-              <Textarea
-                value={template.footer.disclaimer.replace(/\\n/g, '\n')}
-                onChange={(e) => updateFooter('disclaimer', e.target.value)}
-                rows={4}
-                className="text-sm"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Print Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Print Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Paper Width (mm)</Label>
-              <Input
-                type="number"
-                value={template.print_settings.paper_width_mm}
-                onChange={(e) => updatePrintSetting('paper_width_mm', Number(e.target.value))}
-                className="h-8"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Font Size (pt)</Label>
-              <Input
-                type="number"
-                value={template.print_settings.font_size_pt}
-                onChange={(e) => updatePrintSetting('font_size_pt', Number(e.target.value))}
-                className="h-8"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Font Family</Label>
-              <Input
-                value={template.print_settings.font_family}
-                onChange={(e) => updatePrintSetting('font_family', e.target.value)}
-                className="h-8"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Placeholders Reference */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Available Placeholders</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            These dynamic values are automatically resolved from payment data when printing.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            {PLACEHOLDER_LIST.map((p) => (
-              <div key={p.placeholder} className="flex items-start gap-2 text-xs p-2 bg-muted/50 rounded">
-                <code className="font-mono text-primary whitespace-nowrap">{p.placeholder}</code>
-                <span className="text-muted-foreground">{p.description}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Save Button */}
-      <div className="flex justify-end gap-2">
-        <Button size="sm" onClick={handleSave} disabled={updateConfig.isPending}>
-          {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-          Save Receipt Template
-        </Button>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
