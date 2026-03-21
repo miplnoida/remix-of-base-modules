@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +10,17 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from 'sonner';
-import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText, Printer, XCircle } from 'lucide-react';
+import { PlusCircle, Trash2, CheckCircle, AlertCircle, Loader2, FileText, Printer, XCircle, UserPlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useAllCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
-import { useInvoiceActions, InvoiceData } from '@/hooks/useInvoiceActions';
+import { useInvoiceActions } from '@/hooks/useInvoiceActions';
 import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
+import { validateEmail, validatePhone } from '@/lib/contactValidation';
+import { cn } from '@/lib/utils';
 
 // ---------- types ----------
 interface InvoiceLine {
@@ -28,6 +30,14 @@ interface InvoiceLine {
   amount: string;
   exchange_rate: number;
   amount_base: number;
+}
+
+interface APPayer {
+  payer_id: string;
+  payer_name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
 }
 
 const emptyLine = (): InvoiceLine => ({
@@ -98,18 +108,49 @@ function usePaymentTypes() {
   });
 }
 
+// ---------- AP Payer Search Hook ----------
+function useAPPayerSearch(searchTerm: string) {
+  return useQuery({
+    queryKey: ['ap_payer_search', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 1) return [];
+      const { data, error } = await supabase
+        .from('cn_payer')
+        .select('payer_id, payer_name, email, phone, address')
+        .eq('payer_type', 'AP')
+        .ilike('payer_name', `%${searchTerm}%`)
+        .order('payer_name')
+        .limit(20);
+      if (error) throw error;
+      return (data || []) as APPayer[];
+    },
+    enabled: searchTerm.length >= 1,
+  });
+}
+
 // ---------- Component ----------
 const CreateInvoice: React.FC = () => {
   // header state
   const [invoiceType, setInvoiceType] = useState('');
   const [paymentSource, setPaymentSource] = useState('');
-  const [payerType, setPayerType] = useState('');
+  const [payerType, setPayerType] = useState('ER');
   const [payerId, setPayerId] = useState('');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [payerLookupDone, setPayerLookupDone] = useState(false);
   const [payerLoading, setPayerLoading] = useState(false);
   const [currencyCode, setCurrencyCode] = useState('XCD');
   const [dueDate, setDueDate] = useState<Date | undefined>();
+
+  // AP payer state
+  const [apSearchTerm, setApSearchTerm] = useState('');
+  const [apDropdownOpen, setApDropdownOpen] = useState(false);
+  const [apSelectedIndex, setApSelectedIndex] = useState(0);
+  const [isNewPayer, setIsNewPayer] = useState(false);
+  const [payerEmail, setPayerEmail] = useState('');
+  const [payerPhone, setPayerPhone] = useState('');
+  const [payerAddress, setPayerAddress] = useState('');
+  const apNameRef = useRef<HTMLInputElement>(null);
+  const apDropdownRef = useRef<HTMLDivElement>(null);
 
   // lines
   const [lines, setLines] = useState<InvoiceLine[]>([emptyLine()]);
@@ -142,7 +183,21 @@ const CreateInvoice: React.FC = () => {
   const { userCode } = useUserCode();
   const invoiceActions = useInvoiceActions();
 
-  // currency map for exchange rates
+  // AP search
+  const { data: apResults = [], isLoading: apSearching } = useAPPayerSearch(
+    payerType === 'AP' ? apSearchTerm : ''
+  );
+
+  // Build AP options list (results + "New Payer" option)
+  const apOptions = useMemo(() => {
+    const opts: (APPayer | { _new: true })[] = [...apResults];
+    if (apSearchTerm.trim().length >= 1) {
+      opts.push({ _new: true } as any);
+    }
+    return opts;
+  }, [apResults, apSearchTerm]);
+
+  // currency map
   const currencyMap = useMemo(() => {
     const map = new Map<string, number>();
     (allCurrencies || []).forEach(c => map.set(c.currency_code, c.exchange_rate));
@@ -156,8 +211,11 @@ const CreateInvoice: React.FC = () => {
   // ---------- helpers ----------
   const clearError = (field: string) => setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
 
+  const isAP = payerType === 'AP';
+
+  // Standard payer lookup (ER, IP, SE, VC)
   const handlePayerBlur = useCallback(async () => {
-    if (!payerType || !payerId) return;
+    if (isAP || !payerType || !payerId) return;
     setPayerLoading(true);
     try {
       const info = await lookupPayer(payerType, payerId);
@@ -171,7 +229,93 @@ const CreateInvoice: React.FC = () => {
     } finally {
       setPayerLoading(false);
     }
-  }, [payerType, payerId, lookupPayer]);
+  }, [payerType, payerId, lookupPayer, isAP]);
+
+  // AP payer selection
+  const selectAPPayer = useCallback((payer: APPayer) => {
+    setPayerId(payer.payer_id);
+    setApSearchTerm(payer.payer_name || '');
+    setPayerInfo({ id: payer.payer_id, name: payer.payer_name || '', status: 'Active' });
+    setPayerLookupDone(true);
+    setIsNewPayer(false);
+    setPayerEmail(payer.email || '');
+    setPayerPhone(payer.phone || '');
+    setPayerAddress(payer.address || '');
+    setApDropdownOpen(false);
+    clearError('payerId');
+    clearError('payerName');
+  }, []);
+
+  const selectNewPayer = useCallback(() => {
+    setIsNewPayer(true);
+    setPayerId('');
+    setPayerInfo({ id: 'NEW', name: apSearchTerm.trim(), status: 'New' });
+    setPayerLookupDone(true);
+    setPayerEmail('');
+    setPayerPhone('');
+    setPayerAddress('');
+    setApDropdownOpen(false);
+    clearError('payerId');
+  }, [apSearchTerm]);
+
+  // Handle payer type change
+  const handlePayerTypeChange = useCallback((v: string) => {
+    setPayerType(v);
+    setPayerInfo(null);
+    setPayerLookupDone(false);
+    setPayerId('');
+    setApSearchTerm('');
+    setIsNewPayer(false);
+    setPayerEmail('');
+    setPayerPhone('');
+    setPayerAddress('');
+    clearError('payerType');
+    clearError('payerId');
+    clearError('payerName');
+
+    if (v === 'AP') {
+      setTimeout(() => apNameRef.current?.focus(), 50);
+    }
+  }, []);
+
+  // AP keyboard navigation
+  const handleAPKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!apDropdownOpen || apOptions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setApSelectedIndex(prev => Math.min(prev + 1, apOptions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setApSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const selected = apOptions[apSelectedIndex];
+      if (selected && '_new' in selected) {
+        selectNewPayer();
+      } else if (selected) {
+        selectAPPayer(selected as APPayer);
+      }
+    } else if (e.key === 'Escape') {
+      setApDropdownOpen(false);
+    }
+  }, [apDropdownOpen, apOptions, apSelectedIndex, selectAPPayer, selectNewPayer]);
+
+  // Close AP dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (apDropdownRef.current && !apDropdownRef.current.contains(e.target as Node)) {
+        setApDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Reset selected index when results change
+  useEffect(() => {
+    setApSelectedIndex(0);
+  }, [apResults]);
 
   const updateLine = (key: string, field: keyof InvoiceLine, value: string) => {
     setLines(prev => prev.map(l => {
@@ -204,8 +348,25 @@ const CreateInvoice: React.FC = () => {
     if (!invoiceType) e.invoiceType = 'Required';
     if (!paymentSource) e.paymentSource = 'Required';
     if (!payerType) e.payerType = 'Required';
-    if (!payerId) e.payerId = 'Required';
-    if (!payerInfo) e.payerId = 'Valid payer required';
+
+    if (isAP) {
+      if (!isNewPayer && !payerId) e.payerId = 'Select a payer or create new';
+      if (isNewPayer && !apSearchTerm.trim()) e.payerName = 'Payer name is required';
+      if (!payerInfo) e.payerId = 'Valid payer required';
+
+      // Contact validation for AP
+      const emailResult = validateEmail(payerEmail, 'email', 'Email', true);
+      if (!emailResult.valid) e.payerEmail = emailResult.error || 'Invalid email';
+
+      const phoneResult = validatePhone(payerPhone, 'phone', 'Phone', true);
+      if (!phoneResult.valid) e.payerPhone = phoneResult.error || 'Invalid phone';
+
+      if (!payerAddress.trim()) e.payerAddress = 'Mailing address is required';
+    } else {
+      if (!payerId) e.payerId = 'Required';
+      if (!payerInfo) e.payerId = 'Valid payer required';
+    }
+
     if (!dueDate) e.dueDate = 'Required';
     else {
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -241,12 +402,16 @@ const CreateInvoice: React.FC = () => {
     setSubmitting(true);
     try {
       const headerRate = currencyMap.get(currencyCode) || 1;
+      const payerName = isAP
+        ? (isNewPayer ? apSearchTerm.trim() : payerInfo?.name || '')
+        : (payerInfo?.name || '');
+
       const { data, error } = await supabase.rpc('create_invoice_with_lines', {
         p_invoice_type: invoiceType,
         p_payment_source: paymentSource,
         p_payer_type: payerType,
-        p_payer_id: payerId,
-        p_payer_name: payerInfo?.name || '',
+        p_payer_id: isNewPayer ? '' : payerId,
+        p_payer_name: payerName,
         p_currency_code: currencyCode,
         p_exchange_rate: headerRate,
         p_total_amount: totalBase / (headerRate || 1),
@@ -269,11 +434,18 @@ const CreateInvoice: React.FC = () => {
           start_date: startDate!.toISOString().split('T')[0],
           end_date: endDate ? endDate.toISOString().split('T')[0] : null,
         } : null,
+        p_payer_email: isAP ? payerEmail : null,
+        p_payer_phone: isAP ? payerPhone : null,
+        p_payer_address: isAP ? payerAddress : null,
+        p_create_new_payer: isNewPayer,
       });
 
       if (error) throw error;
       const result = data as any;
       setCreatedInvoice({ id: result.invoice_id, invoice_number: result.invoice_number });
+      if (isNewPayer && result.payer_id) {
+        setPayerId(result.payer_id);
+      }
       await invoiceActions.loadInvoice(result.invoice_id);
       toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
     } catch (err: any) {
@@ -295,13 +467,15 @@ const CreateInvoice: React.FC = () => {
   };
 
   const resetForm = () => {
-    setInvoiceType(''); setPaymentSource(''); setPayerType(''); setPayerId('');
+    setInvoiceType(''); setPaymentSource(''); setPayerType('ER'); setPayerId('');
     setPayerInfo(null); setPayerLookupDone(false); setCurrencyCode(mainCurrency);
     setDueDate(undefined); setLines([emptyLine()]);
     setPublicNotes(''); setInternalNotes('');
     setIsRecurring(false); setFrequency(''); setStartDate(undefined); setEndDate(undefined);
     setErrors({});
     setCreatedInvoice(null);
+    setApSearchTerm(''); setIsNewPayer(false);
+    setPayerEmail(''); setPayerPhone(''); setPayerAddress('');
     invoiceActions.setCurrentInvoice(null);
   };
 
@@ -359,9 +533,7 @@ const CreateInvoice: React.FC = () => {
             {/* Payer Type */}
             <div className="space-y-1.5">
               <Label>Payer Type *</Label>
-              <Select value={payerType} onValueChange={v => {
-                setPayerType(v); setPayerInfo(null); setPayerLookupDone(false); clearError('payerType');
-              }}>
+              <Select value={payerType} onValueChange={handlePayerTypeChange}>
                 <SelectTrigger className={errors.payerType ? 'border-destructive' : ''}>
                   <SelectValue placeholder={loadingPT ? 'Loading...' : 'Select payer type'} />
                 </SelectTrigger>
@@ -372,29 +544,126 @@ const CreateInvoice: React.FC = () => {
               <FieldError name="payerType" />
             </div>
 
-            {/* Payer ID */}
-            <div className="space-y-1.5">
-              <Label>Payer ID / SSN *</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  value={payerId}
-                  onChange={e => { setPayerId(e.target.value); setPayerInfo(null); setPayerLookupDone(false); clearError('payerId'); }}
-                  onBlur={handlePayerBlur}
-                  placeholder="Enter ID or SSN"
-                  className={errors.payerId ? 'border-destructive' : ''}
-                />
-                {payerLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {!payerLoading && payerLookupDone && payerInfo && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
-                {!payerLoading && payerLookupDone && !payerInfo && <AlertCircle className="h-5 w-5 text-destructive" />}
-              </div>
-              <FieldError name="payerId" />
-            </div>
+            {/* Payer ID / Payer Name - conditional on AP */}
+            {isAP ? (
+              <>
+                {/* AP: Payer Name (searchable) */}
+                <div className="space-y-1.5 relative" ref={apDropdownRef}>
+                  <Label>Payer Name *</Label>
+                  <Input
+                    ref={apNameRef}
+                    value={apSearchTerm}
+                    onChange={e => {
+                      setApSearchTerm(e.target.value);
+                      setApDropdownOpen(true);
+                      setPayerInfo(null);
+                      setPayerLookupDone(false);
+                      setIsNewPayer(false);
+                      setPayerId('');
+                      clearError('payerName');
+                      clearError('payerId');
+                    }}
+                    onFocus={() => { if (apSearchTerm) setApDropdownOpen(true); }}
+                    onKeyDown={handleAPKeyDown}
+                    placeholder="Type payer name to search..."
+                    className={errors.payerName ? 'border-destructive' : ''}
+                    autoComplete="off"
+                  />
+                  {apSearching && (
+                    <div className="absolute right-3 top-[34px]">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  <FieldError name="payerName" />
 
-            {/* Payer Name (read-only) */}
-            <div className="space-y-1.5">
-              <Label>Payer Name</Label>
-              <Input value={payerInfo?.name || ''} readOnly placeholder="Auto-filled on lookup" className="bg-muted" />
-            </div>
+                  {/* AP Dropdown */}
+                  {apDropdownOpen && apSearchTerm.trim().length >= 1 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 border rounded-md bg-popover shadow-md max-h-[240px] overflow-auto">
+                      {apSearching ? (
+                        <div className="p-3 text-center text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Searching...
+                        </div>
+                      ) : (
+                        <>
+                          {apResults.length === 0 && (
+                            <div className="p-3 text-center text-sm text-muted-foreground">No matching payers found</div>
+                          )}
+                          {apResults.map((payer, idx) => (
+                            <div
+                              key={payer.payer_id}
+                              className={cn(
+                                'px-3 py-2 cursor-pointer text-sm flex justify-between items-center hover:bg-accent',
+                                idx === apSelectedIndex && 'bg-accent'
+                              )}
+                              onMouseEnter={() => setApSelectedIndex(idx)}
+                              onClick={() => selectAPPayer(payer)}
+                            >
+                              <span className="truncate">{payer.payer_name}</span>
+                              <span className="text-xs font-mono text-muted-foreground ml-2 shrink-0">ID: {payer.payer_id}</span>
+                            </div>
+                          ))}
+                          {/* New Payer option */}
+                          <div
+                            className={cn(
+                              'px-3 py-2 cursor-pointer text-sm flex items-center gap-2 hover:bg-accent border-t',
+                              apSelectedIndex === apResults.length && 'bg-accent'
+                            )}
+                            onMouseEnter={() => setApSelectedIndex(apResults.length)}
+                            onClick={selectNewPayer}
+                          >
+                            <UserPlus className="h-4 w-4 text-primary" />
+                            <span className="font-medium text-primary">New Payer: "{apSearchTerm.trim()}"</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* AP: Payer ID (read-only, auto-filled) */}
+                <div className="space-y-1.5">
+                  <Label>Payer ID</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={isNewPayer ? '(auto-generated)' : payerId}
+                      readOnly
+                      placeholder="Auto-filled on selection"
+                      className="bg-muted"
+                    />
+                    {payerLookupDone && payerInfo && !isNewPayer && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                    {isNewPayer && <Badge variant="secondary" className="shrink-0">New</Badge>}
+                  </div>
+                  <FieldError name="payerId" />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Non-AP: Payer ID */}
+                <div className="space-y-1.5">
+                  <Label>Payer ID / SSN *</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={payerId}
+                      onChange={e => { setPayerId(e.target.value); setPayerInfo(null); setPayerLookupDone(false); clearError('payerId'); }}
+                      onBlur={handlePayerBlur}
+                      placeholder={payerType === 'ER' ? 'Reg. No.' : 'SSN'}
+                      className={errors.payerId ? 'border-destructive' : ''}
+                      autoFocus
+                    />
+                    {payerLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+                    {!payerLoading && payerLookupDone && payerInfo && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                    {!payerLoading && payerLookupDone && !payerInfo && <AlertCircle className="h-5 w-5 text-destructive shrink-0" />}
+                  </div>
+                  <FieldError name="payerId" />
+                </div>
+
+                {/* Non-AP: Payer Name (read-only) */}
+                <div className="space-y-1.5">
+                  <Label>Payer Name</Label>
+                  <Input value={payerInfo?.name || ''} readOnly placeholder="Auto-filled on lookup" className="bg-muted" />
+                </div>
+              </>
+            )}
 
             {/* Invoice Currency */}
             <div className="space-y-1.5">
@@ -423,6 +692,48 @@ const CreateInvoice: React.FC = () => {
               <FieldError name="dueDate" />
             </div>
           </div>
+
+          {/* AP Contact Fields */}
+          {isAP && payerInfo && (
+            <div className="mt-4 pt-4 border-t">
+              <Label className="text-sm font-semibold text-foreground mb-3 block">
+                {isNewPayer ? 'New Payer Contact Details' : 'Payer Contact Details'} *
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email Address *</Label>
+                  <Input
+                    value={payerEmail}
+                    onChange={e => { setPayerEmail(e.target.value); clearError('payerEmail'); }}
+                    placeholder="email@example.com"
+                    className={errors.payerEmail ? 'border-destructive' : ''}
+                    type="email"
+                  />
+                  <FieldError name="payerEmail" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Phone Number *</Label>
+                  <Input
+                    value={payerPhone}
+                    onChange={e => { setPayerPhone(e.target.value); clearError('payerPhone'); }}
+                    placeholder="Phone number"
+                    className={errors.payerPhone ? 'border-destructive' : ''}
+                  />
+                  <FieldError name="payerPhone" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Mailing Address *</Label>
+                  <Input
+                    value={payerAddress}
+                    onChange={e => { setPayerAddress(e.target.value); clearError('payerAddress'); }}
+                    placeholder="Mailing address"
+                    className={errors.payerAddress ? 'border-destructive' : ''}
+                  />
+                  <FieldError name="payerAddress" />
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
