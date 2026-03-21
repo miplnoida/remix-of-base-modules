@@ -577,13 +577,66 @@ const CreateInvoice: React.FC = () => {
         )}
       </Card>
 
+      {/* Created Invoice Actions */}
+      {createdInvoice && invoiceActions.currentInvoice && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-semibold text-foreground">Invoice {createdInvoice.invoice_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: <Badge variant={invoiceActions.currentInvoice.status === 'C' ? 'destructive' : 'default'} className="ml-1">
+                      {invoiceActions.currentInvoice.status === 'O' ? 'Original' : invoiceActions.currentInvoice.status === 'R' ? 'Reprinted' : invoiceActions.currentInvoice.status === 'C' ? 'Cancelled' : invoiceActions.currentInvoice.status}
+                    </Badge>
+                    {invoiceActions.currentInvoice.reprint_times > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">(Reprinted {invoiceActions.currentInvoice.reprint_times}x)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReprintInvoice}
+                  disabled={invoiceActions.isLoading || invoiceActions.currentInvoice.status === 'C'}
+                >
+                  {invoiceActions.isLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Printer className="h-4 w-4 mr-1" />}
+                  Re-Print
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={invoiceActions.isLoading || invoiceActions.currentInvoice.status === 'C'}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Cancel Invoice
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Submit */}
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={resetForm} disabled={submitting}>Reset</Button>
-        <Button onClick={handleSubmit} disabled={submitting} className="min-w-[180px]">
+        <Button onClick={handleSubmit} disabled={submitting || !!createdInvoice} className="min-w-[180px]">
           {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : 'Create Invoice'}
         </Button>
       </div>
+
+      {/* Cancel Invoice Modal */}
+      <InvoiceCancelModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelInvoice}
+        isLoading={invoiceActions.isLoading}
+        invoiceNumber={createdInvoice?.invoice_number}
+      />
     </div>
   );
 };
