@@ -108,12 +108,36 @@ const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+/* ─── Sample data for preview ─── */
+const SAMPLE_DATA: Record<string, string> = {
+  '{{org_name}}': 'Social Security Board\nSt. Kitts and Nevis',
+  '{{status}}': 'Original',
+  '{{cashier_name}}': 'Jane Williams',
+  '{{payer_name}}': 'ABC Construction Ltd.',
+  '{{payer_id}}': 'ER-10234',
+  '{{payer_address}}': 'Bay Road, Basseterre<br/>St. Kitts',
+  '{{payer_ssn}}': '123456',
+  '{{payer_type}}': 'ER',
+  '{{date_received}}': '20-Mar-2026',
+  '{{receipt_number}}': 'RCT-2026-001234',
+  '{{receipt_id}}': '1234',
+  '{{receipt_total}}': '3,250.00',
+  '{{payment_id}}': '5678',
+  '{{batch_number}}': 'B-2026-0042',
+  '{{fund_rows}}': '<tr><td>Social Security</td><td>$2,000.00</td></tr>\n  <tr><td>Levy</td><td>$750.00</td></tr>\n  <tr><td>Employment Injury</td><td>$500.00</td></tr>',
+  '{{mop_rows}}': '<tr><td>Cash</td><td>$1,250.00</td></tr>\n  <tr><td>Cheque</td><td>$2,000.00</td></tr>',
+  '{{print_date}}': '20-Mar-2026 14:35:22',
+  '{{period}}': '03/2026',
+  '{{remarks}}': 'Monthly contribution payment',
+};
+
 const ReceiptTemplateTab: React.FC = () => {
   const { data: config, isLoading } = usePaymentConfig('receipt_template');
   const updateConfig = useUpdatePaymentConfig();
 
   const [htmlTemplate, setHtmlTemplate] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load template from DB or use default
