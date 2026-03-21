@@ -192,6 +192,14 @@ const ReceiptTemplateTab: React.FC = () => {
     }, 0);
   };
 
+  const getPreviewHtml = useCallback(() => {
+    let html = htmlTemplate;
+    for (const [key, value] of Object.entries(SAMPLE_DATA)) {
+      html = html.split(key).join(value);
+    }
+    return html;
+  }, [htmlTemplate]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
