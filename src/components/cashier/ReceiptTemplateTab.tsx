@@ -246,7 +246,7 @@ const ReceiptTemplateTab: React.FC = () => {
                           title="Copy to clipboard"
                         >
                           {copiedKey === p.key ? (
-                            <Check className="h-3 w-3 text-green-500" />
+                            <Check className="h-3 w-3 text-primary" />
                           ) : (
                             <Copy className="h-3 w-3 text-muted-foreground" />
                           )}

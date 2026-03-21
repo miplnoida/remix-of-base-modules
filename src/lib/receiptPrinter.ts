@@ -188,7 +188,7 @@ export async function printConfiguredReceipt(paymentId: number): Promise<void> {
   // Replace all placeholders in the HTML template
   let resolvedHtml = templateHtml;
   for (const [key, value] of Object.entries(placeholders)) {
-    resolvedHtml = resolvedHtml.replaceAll(key, value);
+    resolvedHtml = resolvedHtml.split(key).join(value);
   }
 
   const printWindow = window.open('', '_blank', 'width=400,height=600');
