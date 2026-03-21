@@ -21,6 +21,7 @@ import { useInvoiceActions } from '@/hooks/useInvoiceActions';
 import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
 import { validateEmail, validatePhone } from '@/lib/contactValidation';
 import { cn } from '@/lib/utils';
+import { printConfiguredInvoice } from '@/lib/invoicePrinter';
 
 // ---------- types ----------
 interface InvoiceLine {
