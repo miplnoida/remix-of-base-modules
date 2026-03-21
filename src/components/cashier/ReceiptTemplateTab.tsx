@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, RotateCcw, Copy, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Save, Loader2, RotateCcw, Copy, Check, Eye } from 'lucide-react';
 import { usePaymentConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -107,12 +108,36 @@ const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+/* ─── Sample data for preview ─── */
+const SAMPLE_DATA: Record<string, string> = {
+  '{{org_name}}': 'Social Security Board\nSt. Kitts and Nevis',
+  '{{status}}': 'Original',
+  '{{cashier_name}}': 'Jane Williams',
+  '{{payer_name}}': 'ABC Construction Ltd.',
+  '{{payer_id}}': 'ER-10234',
+  '{{payer_address}}': 'Bay Road, Basseterre<br/>St. Kitts',
+  '{{payer_ssn}}': '123456',
+  '{{payer_type}}': 'ER',
+  '{{date_received}}': '20-Mar-2026',
+  '{{receipt_number}}': 'RCT-2026-001234',
+  '{{receipt_id}}': '1234',
+  '{{receipt_total}}': '3,250.00',
+  '{{payment_id}}': '5678',
+  '{{batch_number}}': 'B-2026-0042',
+  '{{fund_rows}}': '<tr><td>Social Security</td><td>$2,000.00</td></tr>\n  <tr><td>Levy</td><td>$750.00</td></tr>\n  <tr><td>Employment Injury</td><td>$500.00</td></tr>',
+  '{{mop_rows}}': '<tr><td>Cash</td><td>$1,250.00</td></tr>\n  <tr><td>Cheque</td><td>$2,000.00</td></tr>',
+  '{{print_date}}': '20-Mar-2026 14:35:22',
+  '{{period}}': '03/2026',
+  '{{remarks}}': 'Monthly contribution payment',
+};
+
 const ReceiptTemplateTab: React.FC = () => {
   const { data: config, isLoading } = usePaymentConfig('receipt_template');
   const updateConfig = useUpdatePaymentConfig();
 
   const [htmlTemplate, setHtmlTemplate] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load template from DB or use default
@@ -167,6 +192,14 @@ const ReceiptTemplateTab: React.FC = () => {
     }, 0);
   };
 
+  const getPreviewHtml = useCallback(() => {
+    let html = htmlTemplate;
+    for (const [key, value] of Object.entries(SAMPLE_DATA)) {
+      html = html.split(key).join(value);
+    }
+    return html;
+  }, [htmlTemplate]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -184,9 +217,13 @@ const ReceiptTemplateTab: React.FC = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Receipt HTML Template</CardTitle>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset}>
+               <Button variant="outline" size="sm" onClick={handleReset}>
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
                   Reset Default
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)} disabled={!htmlTemplate.trim()}>
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  Preview
                 </Button>
                 <Button size="sm" onClick={handleSave} disabled={updateConfig.isPending}>
                   {updateConfig.isPending ? (
@@ -261,6 +298,29 @@ const ReceiptTemplateTab: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      {/* ─── Preview Dialog ─── */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Receipt Preview (Sample Data)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="border rounded-md bg-white p-2 overflow-auto max-h-[70vh]">
+            <iframe
+              title="Receipt Preview"
+              srcDoc={getPreviewHtml()}
+              className="w-full border-0"
+              style={{ minHeight: 500 }}
+              sandbox=""
+            />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            This preview uses sample data. Actual receipts will use real payment values.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
