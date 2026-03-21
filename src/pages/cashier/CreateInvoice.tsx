@@ -365,7 +365,7 @@ const CreateInvoice: React.FC = () => {
                   className={errors.payerId ? 'border-destructive' : ''}
                 />
                 {payerLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {!payerLoading && payerLookupDone && payerInfo && <CheckCircle className="h-5 w-5 text-green-600" />}
+                {!payerLoading && payerLookupDone && payerInfo && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
                 {!payerLoading && payerLookupDone && !payerInfo && <AlertCircle className="h-5 w-5 text-destructive" />}
               </div>
               <FieldError name="payerId" />
