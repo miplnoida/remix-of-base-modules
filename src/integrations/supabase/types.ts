@@ -5467,8 +5467,11 @@ export type Database = {
           invoice_number: string
           invoice_type: string
           is_recurring: boolean
+          payer_address: string | null
+          payer_email: string | null
           payer_id: string
           payer_name: string | null
+          payer_phone: string | null
           payer_type: string
           payment_source: string
           public_notes: string | null
@@ -5494,8 +5497,11 @@ export type Database = {
           invoice_number: string
           invoice_type: string
           is_recurring?: boolean
+          payer_address?: string | null
+          payer_email?: string | null
           payer_id: string
           payer_name?: string | null
+          payer_phone?: string | null
           payer_type: string
           payment_source: string
           public_notes?: string | null
@@ -5521,8 +5527,11 @@ export type Database = {
           invoice_number?: string
           invoice_type?: string
           is_recurring?: boolean
+          payer_address?: string | null
+          payer_email?: string | null
           payer_id?: string
           payer_name?: string | null
+          payer_phone?: string | null
           payer_type?: string
           payment_source?: string
           public_notes?: string | null
@@ -5537,19 +5546,34 @@ export type Database = {
       }
       cn_payer: {
         Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
           payer_id: string
           payer_name: string | null
           payer_type: string
+          phone: string | null
         }
         Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
           payer_id: string
           payer_name?: string | null
           payer_type: string
+          phone?: string | null
         }
         Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
           payer_id?: string
           payer_name?: string | null
           payer_type?: string
+          phone?: string | null
         }
         Relationships: []
       }
@@ -21658,27 +21682,53 @@ export type Database = {
         }
         Returns: Json
       }
-      create_invoice_with_lines: {
-        Args: {
-          p_created_by: string
-          p_currency_code: string
-          p_due_date: string
-          p_exchange_rate: number
-          p_internal_notes: string
-          p_invoice_type: string
-          p_is_recurring: boolean
-          p_lines: Json
-          p_payer_id: string
-          p_payer_name: string
-          p_payer_type: string
-          p_payment_source: string
-          p_public_notes: string
-          p_recurring?: Json
-          p_total_amount: number
-          p_total_amount_base: number
-        }
-        Returns: Json
-      }
+      create_invoice_with_lines:
+        | {
+            Args: {
+              p_created_by: string
+              p_currency_code: string
+              p_due_date: string
+              p_exchange_rate: number
+              p_internal_notes: string
+              p_invoice_type: string
+              p_is_recurring: boolean
+              p_lines: Json
+              p_payer_id: string
+              p_payer_name: string
+              p_payer_type: string
+              p_payment_source: string
+              p_public_notes: string
+              p_recurring?: Json
+              p_total_amount: number
+              p_total_amount_base: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_create_new_payer?: boolean
+              p_created_by: string
+              p_currency_code: string
+              p_due_date: string
+              p_exchange_rate: number
+              p_internal_notes: string
+              p_invoice_type: string
+              p_is_recurring: boolean
+              p_lines: Json
+              p_payer_address?: string
+              p_payer_email?: string
+              p_payer_id: string
+              p_payer_name: string
+              p_payer_phone?: string
+              p_payer_type: string
+              p_payment_source: string
+              p_public_notes: string
+              p_recurring?: Json
+              p_total_amount: number
+              p_total_amount_base: number
+            }
+            Returns: Json
+          }
       create_payment_header_with_next_id: {
         Args: {
           p_batch_number: string
