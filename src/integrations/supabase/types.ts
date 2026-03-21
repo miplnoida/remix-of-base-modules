@@ -5373,6 +5373,7 @@ export type Database = {
         Row: {
           amount: number
           amount_base: number
+          base_currency: string
           currency_code: string
           exchange_rate: number
           id: number
@@ -5383,6 +5384,7 @@ export type Database = {
         Insert: {
           amount?: number
           amount_base?: number
+          base_currency?: string
           currency_code?: string
           exchange_rate?: number
           id?: number
@@ -5393,6 +5395,7 @@ export type Database = {
         Update: {
           amount?: number
           amount_base?: number
+          base_currency?: string
           currency_code?: string
           exchange_rate?: number
           id?: number
@@ -5450,6 +5453,7 @@ export type Database = {
       }
       cn_invoices: {
         Row: {
+          base_currency: string
           created_at: string | null
           created_by: string | null
           currency_code: string
@@ -5470,6 +5474,7 @@ export type Database = {
           total_amount_base: number
         }
         Insert: {
+          base_currency?: string
           created_at?: string | null
           created_by?: string | null
           currency_code?: string
@@ -5490,6 +5495,7 @@ export type Database = {
           total_amount_base?: number
         }
         Update: {
+          base_currency?: string
           created_at?: string | null
           created_by?: string | null
           currency_code?: string
