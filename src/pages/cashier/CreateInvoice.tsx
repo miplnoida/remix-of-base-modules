@@ -301,6 +301,8 @@ const CreateInvoice: React.FC = () => {
     setPublicNotes(''); setInternalNotes('');
     setIsRecurring(false); setFrequency(''); setStartDate(undefined); setEndDate(undefined);
     setErrors({});
+    setCreatedInvoice(null);
+    invoiceActions.setCurrentInvoice(null);
   };
 
   const FieldError = ({ name }: { name: string }) =>
