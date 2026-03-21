@@ -125,6 +125,8 @@ const CreateInvoice: React.FC = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
 
   const [submitting, setSubmitting] = useState(false);
+  const [createdInvoice, setCreatedInvoice] = useState<{ id: number; invoice_number: string } | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -138,6 +140,7 @@ const CreateInvoice: React.FC = () => {
   const { data: allCurrencies } = useAllCurrencies();
   const { lookupPayer } = usePaymentEntry();
   const { userCode } = useUserCode();
+  const invoiceActions = useInvoiceActions();
 
   // currency map for exchange rates
   const currencyMap = useMemo(() => {
