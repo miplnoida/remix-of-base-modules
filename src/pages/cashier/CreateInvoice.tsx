@@ -273,13 +273,25 @@ const CreateInvoice: React.FC = () => {
 
       if (error) throw error;
       const result = data as any;
-      toast.success(`Invoice ${result.invoice_number} created successfully`);
-      resetForm();
+      setCreatedInvoice({ id: result.invoice_id, invoice_number: result.invoice_number });
+      await invoiceActions.loadInvoice(result.invoice_id);
+      toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleReprintInvoice = async () => {
+    if (!createdInvoice) return;
+    await invoiceActions.reprintInvoice(createdInvoice.id, userCode || 'SYSTEM');
+  };
+
+  const handleCancelInvoice = async (reason: string) => {
+    if (!createdInvoice) return;
+    const result = await invoiceActions.cancelInvoice(createdInvoice.id, reason, userCode || 'SYSTEM');
+    if (result) setShowCancelModal(false);
   };
 
   const resetForm = () => {
