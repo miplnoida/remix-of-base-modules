@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredInvoice } from '@/lib/invoicePrinter';
 
 export interface InvoiceData {
   id: number;
