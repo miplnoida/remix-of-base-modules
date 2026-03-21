@@ -5535,6 +5535,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_payer: {
+        Row: {
+          payer_id: string
+          payer_name: string | null
+          payer_type: string
+        }
+        Insert: {
+          payer_id: string
+          payer_name?: string | null
+          payer_type: string
+        }
+        Update: {
+          payer_id?: string
+          payer_name?: string | null
+          payer_type?: string
+        }
+        Relationships: []
+      }
       cn_payment: {
         Row: {
           bank_code: string | null
