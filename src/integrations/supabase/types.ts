@@ -5413,6 +5413,30 @@ export type Database = {
           },
         ]
       }
+      cn_invoice_payment: {
+        Row: {
+          amount_applied: number
+          created_at: string | null
+          id: number
+          invoice_id: number
+          payment_id: number
+        }
+        Insert: {
+          amount_applied: number
+          created_at?: string | null
+          id?: number
+          invoice_id: number
+          payment_id: number
+        }
+        Update: {
+          amount_applied?: number
+          created_at?: string | null
+          id?: number
+          invoice_id?: number
+          payment_id?: number
+        }
+        Relationships: []
+      }
       cn_invoice_recurring: {
         Row: {
           end_date: string | null
@@ -5467,12 +5491,15 @@ export type Database = {
           invoice_number: string
           invoice_type: string
           is_recurring: boolean
+          outstanding_amount: number | null
+          paid_amount: number
           payer_address: string | null
           payer_email: string | null
           payer_id: string
           payer_name: string | null
           payer_phone: string | null
           payer_type: string
+          payment_reference: string | null
           payment_source: string
           public_notes: string | null
           reprint_times: number
@@ -5497,12 +5524,15 @@ export type Database = {
           invoice_number: string
           invoice_type: string
           is_recurring?: boolean
+          outstanding_amount?: number | null
+          paid_amount?: number
           payer_address?: string | null
           payer_email?: string | null
           payer_id: string
           payer_name?: string | null
           payer_phone?: string | null
           payer_type: string
+          payment_reference?: string | null
           payment_source: string
           public_notes?: string | null
           reprint_times?: number
@@ -5527,12 +5557,15 @@ export type Database = {
           invoice_number?: string
           invoice_type?: string
           is_recurring?: boolean
+          outstanding_amount?: number | null
+          paid_amount?: number
           payer_address?: string | null
           payer_email?: string | null
           payer_id?: string
           payer_name?: string | null
           payer_phone?: string | null
           payer_type?: string
+          payment_reference?: string | null
           payment_source?: string
           public_notes?: string | null
           reprint_times?: number
@@ -22141,6 +22174,22 @@ export type Database = {
           _workflow_instance_id: string
         }
         Returns: string
+      }
+      pay_invoices_with_receipt: {
+        Args: {
+          p_batch_number: string
+          p_date_received: string
+          p_detail_lines: Json
+          p_invoice_ids: number[]
+          p_payer_id: string
+          p_payer_name: string
+          p_payer_type: string
+          p_receipt_total: number
+          p_remarks: string
+          p_total_payments: number
+          p_user_code: string
+        }
+        Returns: Json
       }
       process_meeting_outcome: {
         Args: {
