@@ -18563,6 +18563,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_invoice_types: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       tb_legal_status: {
         Row: {
           code: string
@@ -18846,6 +18876,36 @@ export type Database = {
           is_active?: boolean | null
           updated_by?: string | null
           updated_on?: string | null
+        }
+        Relationships: []
+      }
+      tb_payment_sources: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
