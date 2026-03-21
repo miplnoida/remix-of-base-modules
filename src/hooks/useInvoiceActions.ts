@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { printConfiguredInvoice } from '@/lib/invoicePrinter';
 
 export interface InvoiceData {
   id: number;
@@ -65,6 +66,12 @@ export function useInvoiceActions() {
       if (error) throw error;
       setCurrentInvoice(data as unknown as InvoiceData);
       toast({ title: 'Invoice Reprinted', description: `Reprint #${data.reprint_times}` });
+      // Trigger actual printing
+      try {
+        await printConfiguredInvoice(invoiceId);
+      } catch (printErr: any) {
+        toast({ title: 'Print Warning', description: printErr.message, variant: 'destructive' });
+      }
       return data as unknown as InvoiceData;
     } catch (err: any) {
       await logApplicationError(err, { module: 'useInvoiceActions', action: 'reprintInvoice', entity_type: 'cn_invoices', request_payload: { invoiceId } });

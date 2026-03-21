@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
 import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt } from 'lucide-react';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
+import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { useAllCurrencies, useAllCashierCurrencyConfigs, useDenominationsForCurrency } from '@/hooks/useCashierCurrencyConfig';
 import { supabase } from '@/integrations/supabase/client';
@@ -257,7 +258,7 @@ const PaymentModuleConfig: React.FC = () => {
           <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
-          <TabsTrigger value="receipt">Receipt</TabsTrigger>
+          <TabsTrigger value="receipt">Receipt & Invoice</TabsTrigger>
         </TabsList>
 
         {/* ─── ROLES TAB ─── */}
@@ -561,9 +562,26 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* ─── RECEIPT TAB ─── */}
+        {/* ─── RECEIPT & INVOICE TAB ─── */}
         <TabsContent value="receipt" className="space-y-6">
-          <ReceiptTemplateTab />
+          <Tabs defaultValue="receipt-tpl" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="receipt-tpl">
+                <Receipt className="h-3.5 w-3.5 mr-1" />
+                Receipt Template
+              </TabsTrigger>
+              <TabsTrigger value="invoice-tpl">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Invoice Template
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="receipt-tpl">
+              <ReceiptTemplateTab />
+            </TabsContent>
+            <TabsContent value="invoice-tpl">
+              <InvoiceTemplateTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </div>
