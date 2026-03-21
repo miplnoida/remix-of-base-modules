@@ -90,7 +90,6 @@ export function useReceiptActions() {
       const { data, error } = await supabase
         .from('cn_receipt')
         .update({
-          status: 'R',
           reprint_times: (existing.reprint_times || 0) + 1,
           updated_by: updatedBy,
           updated_at: new Date().toISOString(),

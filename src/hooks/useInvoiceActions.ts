@@ -55,7 +55,6 @@ export function useInvoiceActions() {
       const { data, error } = await supabase
         .from('cn_invoices')
         .update({
-          status: 'R',
           reprint_times: (existing.reprint_times || 0) + 1,
           updated_by: updatedBy,
           updated_at: new Date().toISOString(),

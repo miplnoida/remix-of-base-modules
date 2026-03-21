@@ -48,7 +48,7 @@ async function fetchInvoiceData(invoiceId: number) {
 
   const statusMap: Record<string, string> = {};
   statuses?.forEach((s: any) => {
-    statusMap[s.status_code] = s.status_description || s.status_code;
+    statusMap[s.code] = s.description || s.code;
   });
 
   // Resolve payer name
