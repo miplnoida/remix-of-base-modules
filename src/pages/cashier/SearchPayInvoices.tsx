@@ -442,7 +442,7 @@ const SearchPayInvoices: React.FC = () => {
                           <TableCell>{inv.due_date ? formatDisplayDate(inv.due_date) : '-'}</TableCell>
                           <TableCell>{getStatusBadge(inv.status)}</TableCell>
                           <TableCell className="text-center">{inv.reprint_times || 0}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
                               <Button variant="outline" size="sm" onClick={() => handleReprint(inv.id)} disabled={inv.status === 'C' || invoiceActions.isLoading} title="Re-Print Invoice">
                                 <Printer className="h-3.5 w-3.5" />
