@@ -91,8 +91,10 @@ const SearchPayInvoices: React.FC = () => {
   const [editingMethod, setEditingMethod] = useState<MethodRow | null>(null);
   const addMethodBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Submission state
+  // Submission & UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   const { data: invoiceStatuses } = useInvoiceStatuses();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
