@@ -379,9 +379,7 @@ const C3Payments: React.FC = () => {
     receiptActions.setCurrentReceipt(null);
   }, [receiptActions]);
 
-  /* ── pending modal data ───────────────── */
-
-  const pendingMethod = pendingMethodId ? methods.find(m => m.id === pendingMethodId) : null;
+  /* ── render ────────────────────────────── */
 
   /* ── render ────────────────────────────── */
 
