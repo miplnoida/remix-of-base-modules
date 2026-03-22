@@ -22207,6 +22207,15 @@ export type Database = {
             }
             Returns: Json
           }
+      preview_payment_allocation: {
+        Args: {
+          p_components: Json
+          p_invoice_ids?: number[]
+          p_methods: Json
+          p_mode: string
+        }
+        Returns: Json
+      }
       process_meeting_outcome: {
         Args: {
           p_meeting_id: string
