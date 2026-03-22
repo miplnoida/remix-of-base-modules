@@ -12,7 +12,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export type EntityType = 'ER' | 'IP' | 'SE' | 'VC';
+export type EntityType = 'ER' | 'IP' | 'SE' | 'VC' | 'AP';
 
 export interface ResolvedEntity {
   entityType: EntityType | 'IP_VC';
