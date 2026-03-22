@@ -72,7 +72,8 @@ const BatchClosing: React.FC = () => {
 
         for (const row of cashRows) {
           const denomVal = denomMap.get(row.denomination_id) || 0;
-          const currInfo = currMap.get(row.currency_id);
+          const tbCurrId = cfgToCurrMap.get(row.currency_id);
+          const currInfo = tbCurrId ? tbCurrMap.get(tbCurrId) : undefined;
           const rate = currInfo?.isMain ? 1 : (currInfo?.rate || 1);
           physCsh += row.count * denomVal * rate;
         }
