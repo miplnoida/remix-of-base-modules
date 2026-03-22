@@ -675,6 +675,18 @@ const C3Payments: React.FC = () => {
           isLoading={receiptActions.isLoading}
           receiptId={receiptActions.currentReceipt?.receipt_id}
         />
+        <AllocationPreviewModal
+          open={showAllocationPreview}
+          onOpenChange={setShowAllocationPreview}
+          mode="c3"
+          components={selectedComponents.map((c, i) => ({
+            payment_code: c.payment_code,
+            fund_code: c.fund_code,
+            amount: c.amount,
+            sort_order: i,
+          }))}
+          methods={methods.map(m => ({ mop_code: m.mop_code, currency_code: m.currency_code, original_amount: m.original_amount }))}
+        />
       </div>
     </BatchSelectionGuard>
   );
