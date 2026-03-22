@@ -19,30 +19,8 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
-import { ChequeDetailModal, type ChequeDetails } from '@/components/payments/ChequeDetailModal';
-import { CardDetailModal, type CardDetails } from '@/components/payments/CardDetailModal';
+import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
-
-/* ─── types ──────────────────────────────────────── */
-
-interface MethodRow {
-  id: string;
-  mop_code: string;
-  mop_desc: string;
-  currency_code: string;
-  original_amount: number;
-  exchange_rate: number;
-  base_amount: number;
-  bank_code: string;
-  mop_number: string;
-  cheque_date: string | null;
-  mop_account_number: string;
-  mop_notes1: string;
-  credit_card_code: string;
-  expiration_date: string;
-  card_desc: string;
-  bank_desc: string;
-}
 
 function useInvoiceStatuses() {
   return useQuery({
