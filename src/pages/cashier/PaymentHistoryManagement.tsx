@@ -83,6 +83,7 @@ const PAYER_TYPE_MAP: Record<string, string> = {
   SE: 'Self-Employed',
   IP: 'Insured-Person',
   VC: 'Voluntary-Contributor',
+  AP: 'Accounts Payable',
 };
 
 const PaymentHistoryManagement = () => {
