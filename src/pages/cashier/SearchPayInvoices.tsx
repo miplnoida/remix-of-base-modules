@@ -19,6 +19,7 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { useInvoiceActions } from '@/hooks/useInvoiceActions';
 import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
+import { InvoiceDetailModal } from '@/components/payments/InvoiceDetailModal';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
@@ -36,6 +37,20 @@ function useInvoiceStatuses() {
         .select('code, description')
         .eq('is_active', true)
         .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+}
+
+function useInvoiceTypes() {
+  return useQuery({
+    queryKey: ['tb_invoice_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_invoice_types')
+        .select('code, description')
+        .eq('is_active', true);
       if (error) throw error;
       return data as { code: string; description: string }[];
     },
