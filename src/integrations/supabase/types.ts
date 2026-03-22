@@ -21624,10 +21624,15 @@ export type Database = {
         Args: { p_new_name?: string; p_source_workflow_id: string }
         Returns: string
       }
-      close_batch: {
-        Args: { p_batch_number: string; p_user_code: string }
-        Returns: Json
-      }
+      close_batch:
+        | {
+            Args: { p_batch_number: string; p_user_code: string }
+            Returns: Json
+          }
+        | {
+            Args: { p_batch_number: string; p_user_code: string }
+            Returns: Json
+          }
       convert_application_atomic: {
         Args: {
           p_alias: string
