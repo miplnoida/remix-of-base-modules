@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Calculator, DollarSign, Save, Loader2, TrendingUp, Plus, Trash2, CreditCard, Landmark } from 'lucide-react';
+import { Calculator, DollarSign, Save, Loader2, TrendingUp, Plus, Trash2, CreditCard, Landmark, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnabledCashierCurrencies, useCashierDenominations, DenominationConfig } from '@/hooks/useCashierCurrencyConfig';
@@ -16,16 +15,8 @@ import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useQuery } from '@tanstack/react-query';
-import { DatePicker } from '@/components/ui/date-picker';
-
-interface ChequeEntry {
-  id?: string;
-  cheque_number: string;
-  bank_code: string;
-  amount: number;
-  currency_code: string;
-  date_of_issue: Date | undefined;
-}
+import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
@@ -39,6 +30,9 @@ const CashDetails: React.FC = () => {
   // Cheque entries
   const [cheques, setCheques] = useState<ChequeEntry[]>([]);
   const [loadingCheques, setLoadingCheques] = useState(false);
+  const [chequeModalOpen, setChequeModalOpen] = useState(false);
+  const [editingChequeIndex, setEditingChequeIndex] = useState<number | null>(null);
+  const addChequeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Card totals
   const [creditCardTotal, setCreditCardTotal] = useState<number>(0);
@@ -217,7 +211,18 @@ const CashDetails: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabledCurrencies, mainCurrency, denomCounts, allDenominations]);
 
-  const chequesTotal = useMemo(() => cheques.reduce((sum, c) => sum + (c.amount || 0), 0), [cheques]);
+  // Convert cheque amounts to base currency
+  const getBaseAmount = useCallback((chq: ChequeEntry): number => {
+    if (!enabledCurrencies) return chq.amount;
+    const curr = enabledCurrencies.find(c => c.currency_code === chq.currency_code);
+    if (!curr || curr.is_main_currency) return chq.amount;
+    return chq.amount * curr.exchange_rate;
+  }, [enabledCurrencies]);
+
+  const chequesTotal = useMemo(
+    () => cheques.reduce((sum, c) => sum + getBaseAmount(c), 0),
+    [cheques, getBaseAmount]
+  );
 
   const physicalCountInMain = cashPhysicalTotal + chequesTotal + creditCardTotal + debitCardTotal;
 
@@ -225,17 +230,40 @@ const CashDetails: React.FC = () => {
     return d.label || (d.denomination_value >= 1 ? `$${d.denomination_value}` : `${(d.denomination_value * 100).toFixed(0)}¢`);
   };
 
-  // Cheque handlers
-  const addChequeRow = () => {
-    setCheques(prev => [...prev, { cheque_number: '', bank_code: '', amount: 0, currency_code: 'XCD', date_of_issue: undefined }]);
+  // Cheque modal handlers
+  const openAddCheque = () => {
+    setEditingChequeIndex(null);
+    setChequeModalOpen(true);
   };
 
-  const updateCheque = (index: number, field: keyof ChequeEntry, value: any) => {
-    setCheques(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
+  const openEditCheque = (index: number) => {
+    setEditingChequeIndex(index);
+    setChequeModalOpen(true);
+  };
+
+  const handleChequeModalClose = () => {
+    setChequeModalOpen(false);
+    setEditingChequeIndex(null);
+    // Restore focus to Add Cheque button
+    setTimeout(() => addChequeButtonRef.current?.focus(), 50);
+  };
+
+  const handleChequeModalSave = (entry: ChequeEntry) => {
+    if (editingChequeIndex !== null) {
+      setCheques(prev => prev.map((c, i) => i === editingChequeIndex ? { ...entry, id: c.id } : c));
+    } else {
+      setCheques(prev => [...prev, entry]);
+    }
+    handleChequeModalClose();
   };
 
   const removeCheque = (index: number) => {
     setCheques(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getBankName = (bankCode: string): string => {
+    const bank = banks.find((b: any) => b.bank_code === bankCode);
+    return bank ? (bank as any).name : bankCode;
   };
 
   // Save all: cash counts + cheques + card totals
@@ -504,7 +532,7 @@ const CashDetails: React.FC = () => {
           </Card>
         )}
 
-        {/* Cheque Entry Section */}
+        {/* Cheque Entry Section — Read-only display with modal for add/edit */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -512,7 +540,7 @@ const CashDetails: React.FC = () => {
                 <Landmark className="h-4 w-4" />
                 Cheque Entries (CHQ)
               </CardTitle>
-              <Button size="sm" variant="outline" onClick={addChequeRow}>
+              <Button ref={addChequeButtonRef} size="sm" variant="outline" onClick={openAddCheque}>
                 <Plus className="h-4 w-4 mr-1" /> Add Cheque
               </Button>
             </div>
@@ -529,80 +557,53 @@ const CashDetails: React.FC = () => {
                     <TableRow>
                       <TableHead>Cheque #</TableHead>
                       <TableHead>Bank</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Currency</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Base Amount</TableHead>
                       <TableHead>Date of Issue</TableHead>
-                      <TableHead className="w-12"></TableHead>
+                      <TableHead className="w-20 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cheques.map((chq, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>
-                          <Input
-                            value={chq.cheque_number}
-                            onChange={e => updateCheque(idx, 'cheque_number', e.target.value)}
-                            placeholder="Cheque number"
-                            maxLength={30}
-                            className="w-36"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select value={chq.bank_code} onValueChange={v => updateCheque(idx, 'bank_code', v)}>
-                            <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Select bank" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {banks.map((b: any) => (
-                                <SelectItem key={b.bank_code} value={b.bank_code}>{b.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={chq.amount || ''}
-                            onChange={e => updateCheque(idx, 'amount', parseFloat(e.target.value) || 0)}
-                            placeholder="0.00"
-                            className="w-28"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select value={chq.currency_code} onValueChange={v => updateCheque(idx, 'currency_code', v)}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(enabledCurrencies || []).map(c => (
-                                <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <DatePicker
-                            date={chq.date_of_issue}
-                            onDateChange={d => updateCheque(idx, 'date_of_issue', d)}
-                            className="w-40"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button size="icon" variant="ghost" onClick={() => removeCheque(idx)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {cheques.map((chq, idx) => {
+                      const baseAmt = getBaseAmount(chq);
+                      const isConverted = chq.currency_code !== (mainCurrency?.currency_code || 'XCD');
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-sm">{chq.cheque_number}</TableCell>
+                          <TableCell className="text-sm">{chq.bank_code ? getBankName(chq.bank_code) : '—'}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {chq.currency_code} {chq.amount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {isConverted ? (
+                              <span className="text-muted-foreground">{mainCurrency?.currency_code || 'XCD'} {baseAmt.toFixed(2)}</span>
+                            ) : (
+                              <span>{mainCurrency?.currency_code || 'XCD'} {baseAmt.toFixed(2)}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {chq.date_of_issue ? formatDateForDisplay(chq.date_of_issue.toISOString()) : '—'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditCheque(idx)} className="h-7 w-7">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => removeCheque(idx)} className="h-7 w-7">
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
             )}
             {cheques.length > 0 && (
               <div className="mt-4 p-3 bg-muted rounded-lg flex justify-between items-center">
-                <span className="font-semibold text-sm">Total Cheques:</span>
+                <span className="font-semibold text-sm">Total Cheques ({mainCurrency?.currency_code || 'XCD'}):</span>
                 <span className="text-lg font-bold">{formatCurrency(chequesTotal)}</span>
               </div>
             )}
@@ -650,6 +651,15 @@ const CashDetails: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Cheque Entry Modal */}
+        <ChequeEntryModal
+          open={chequeModalOpen}
+          onClose={handleChequeModalClose}
+          onSave={handleChequeModalSave}
+          initialData={editingChequeIndex !== null ? cheques[editingChequeIndex] : null}
+          enabledCurrencies={enabledCurrencies || []}
+        />
       </div>
     </BatchSelectionGuard>
   );
