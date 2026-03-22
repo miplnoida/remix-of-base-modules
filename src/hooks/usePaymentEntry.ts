@@ -126,7 +126,6 @@ export function usePaymentEntry() {
           .limit(20);
         return (data || []).map(d => ({ id: d.regno, name: d.name, status: d.status }));
       } else if (payerType === 'SE') {
-        // Self-Employed: search in ip_self_employ joined with ip_master for name
         const { data } = await supabase
           .from('ip_self_employ')
           .select('ssn, status')
@@ -144,6 +143,15 @@ export function usePaymentEntry() {
           name: ipMap.has(d.ssn!) ? `${ipMap.get(d.ssn!)!.firstname} ${ipMap.get(d.ssn!)!.surname}` : d.ssn || '',
           status: d.status,
         }));
+      } else if (payerType === 'AP') {
+        const { data } = await supabase
+          .from('cn_payer')
+          .select('payer_id, payer_name')
+          .eq('payer_type', 'AP')
+          .or(`payer_id.ilike.%${searchTerm}%,payer_name.ilike.%${searchTerm}%`)
+          .order('payer_name')
+          .limit(20);
+        return (data || []).map(d => ({ id: d.payer_id, name: d.payer_name || d.payer_id, status: 'A' }));
       } else {
         const { data } = await supabase
           .from('ip_master')
