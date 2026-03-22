@@ -424,8 +424,8 @@ const SearchPayInvoices: React.FC = () => {
                       const payable = isPayable(inv);
                       const selected = shortlistIds.has(inv.id);
                       return (
-                        <TableRow key={inv.id} className={`${inv.status === 'C' ? 'opacity-60' : ''} ${selected ? 'bg-primary/5' : ''}`}>
-                          <TableCell>
+                        <TableRow key={inv.id} className={`cursor-pointer ${inv.status === 'C' ? 'opacity-60' : ''} ${selected ? 'bg-primary/5' : ''}`} onClick={() => { setDetailInvoiceId(inv.id); setShowDetailModal(true); }}>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox checked={selected} onCheckedChange={() => toggleShortlist(inv)} disabled={!payable} />
                           </TableCell>
                           <TableCell className="font-medium">{inv.invoice_number}</TableCell>
@@ -435,7 +435,7 @@ const SearchPayInvoices: React.FC = () => {
                               <span className="block text-xs text-muted-foreground">{inv.payer_id}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{inv.invoice_type}</TableCell>
+                          <TableCell>{invoiceTypeMap.get(inv.invoice_type) || inv.invoice_type}</TableCell>
                           <TableCell className="text-right font-mono">{formatCurrencyWithCode(inv.total_amount, inv.currency_code)}</TableCell>
                           <TableCell className="text-right font-mono">{formatCurrencyWithCode(inv.paid_amount || 0, inv.currency_code)}</TableCell>
                           <TableCell className="text-right font-mono font-semibold">{formatCurrencyWithCode(inv.outstanding_amount || 0, inv.currency_code)}</TableCell>
