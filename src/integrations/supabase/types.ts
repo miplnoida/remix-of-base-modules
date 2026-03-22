@@ -22377,10 +22377,9 @@ export type Database = {
         Args: { p_c3_id: string; p_user_id?: string }
         Returns: Json
       }
-      submit_er_registration: {
-        Args: { p_temp_regno: string; p_user_id?: string }
-        Returns: Json
-      }
+      submit_er_registration:
+        | { Args: { p_temp_regno: string }; Returns: Json }
+        | { Args: { p_temp_regno: string; p_user_id?: string }; Returns: Json }
       submit_ip_registration: { Args: { p_unique_uuid: string }; Returns: Json }
       test_data_policy: {
         Args: { _action: string; _module_name: string; _test_user_id: string }
@@ -22401,6 +22400,18 @@ export type Database = {
           p_user_code?: string
         }
         Returns: boolean
+      }
+      upsert_cn_payer: {
+        Args: {
+          p_address?: string
+          p_created_by?: string
+          p_email?: string
+          p_payer_id: string
+          p_payer_name: string
+          p_payer_type: string
+          p_phone?: string
+        }
+        Returns: undefined
       }
       validate_and_save_ip_rule: {
         Args: {

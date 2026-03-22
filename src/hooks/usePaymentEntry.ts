@@ -61,7 +61,6 @@ export function usePaymentEntry() {
   ): Promise<PayerInfo | null> => {
     try {
       if (payerType === 'ER') {
-        // Employer: lookup by regno in er_master
         const { data, error } = await supabase
           .from('er_master')
           .select('regno, name, status')
@@ -70,7 +69,6 @@ export function usePaymentEntry() {
         if (error || !data) return null;
         return { id: data.regno, name: data.name, status: data.status };
       } else if (payerType === 'SE') {
-        // Self-Employed: lookup by ssn in ip_self_employ, then get name from ip_master
         const { data: seData, error: seError } = await supabase
           .from('ip_self_employ')
           .select('ssn, status')
@@ -78,7 +76,6 @@ export function usePaymentEntry() {
           .limit(1)
           .maybeSingle();
         if (seError || !seData) return null;
-        // Get name from ip_master
         const { data: ipData } = await supabase
           .from('ip_master')
           .select('ssn, firstname, surname')
@@ -89,8 +86,16 @@ export function usePaymentEntry() {
           name: ipData ? `${ipData.firstname} ${ipData.surname}` : payerId,
           status: seData.status,
         };
+      } else if (payerType === 'AP') {
+        const { data, error } = await supabase
+          .from('cn_payer')
+          .select('payer_id, payer_name, email, phone, address')
+          .eq('payer_id', payerId)
+          .eq('payer_type', 'AP')
+          .single();
+        if (error || !data) return null;
+        return { id: data.payer_id, name: data.payer_name || payerId, status: 'A' };
       } else {
-        // IP, VC: lookup by ssn in ip_master
         const { data, error } = await supabase
           .from('ip_master')
           .select('ssn, firstname, surname, status')
@@ -121,7 +126,6 @@ export function usePaymentEntry() {
           .limit(20);
         return (data || []).map(d => ({ id: d.regno, name: d.name, status: d.status }));
       } else if (payerType === 'SE') {
-        // Self-Employed: search in ip_self_employ joined with ip_master for name
         const { data } = await supabase
           .from('ip_self_employ')
           .select('ssn, status')
@@ -139,6 +143,15 @@ export function usePaymentEntry() {
           name: ipMap.has(d.ssn!) ? `${ipMap.get(d.ssn!)!.firstname} ${ipMap.get(d.ssn!)!.surname}` : d.ssn || '',
           status: d.status,
         }));
+      } else if (payerType === 'AP') {
+        const { data } = await supabase
+          .from('cn_payer')
+          .select('payer_id, payer_name')
+          .eq('payer_type', 'AP')
+          .or(`payer_id.ilike.%${searchTerm}%,payer_name.ilike.%${searchTerm}%`)
+          .order('payer_name')
+          .limit(20);
+        return (data || []).map(d => ({ id: d.payer_id, name: d.payer_name || d.payer_id, status: 'A' }));
       } else {
         const { data } = await supabase
           .from('ip_master')

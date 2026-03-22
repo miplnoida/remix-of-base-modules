@@ -50,7 +50,7 @@ export function PayerSearchModal({ open, onClose, payerType, onSelect, searchFn 
         <DialogHeader>
           <DialogTitle>Search Payer</DialogTitle>
           <DialogDescription>
-            Searching {payerType === 'ER' || payerType === 'SE' ? 'Employers' : 'Insured Persons'}
+            Searching {payerType === 'ER' || payerType === 'SE' ? 'Employers' : payerType === 'AP' ? 'Accounts Payable Payers' : 'Insured Persons'}
           </DialogDescription>
         </DialogHeader>
 

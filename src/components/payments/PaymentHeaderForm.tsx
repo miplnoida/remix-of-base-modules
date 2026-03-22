@@ -36,6 +36,7 @@ const PAYER_TYPES = [
   { value: 'IP', label: 'Insured Person' },
   { value: 'SE', label: 'Self-Employed' },
   { value: 'VC', label: 'Voluntary Contributor' },
+  { value: 'AP', label: 'Accounts Payable' },
 ];
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
