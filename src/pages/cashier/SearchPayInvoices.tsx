@@ -421,9 +421,11 @@ const SearchPayInvoices: React.FC = () => {
                               <Button variant="outline" size="sm" onClick={() => handleReprint(inv.id)} disabled={inv.status === 'C' || invoiceActions.isLoading} title="Re-Print Invoice">
                                 <Printer className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleCancelClick(inv.id, inv.invoice_number)} disabled={inv.status === 'C' || invoiceActions.isLoading} title="Cancel Invoice">
-                                <XCircle className="h-3.5 w-3.5" />
-                              </Button>
+                              {inv.status === 'O' && (
+                                <Button variant="destructive" size="sm" onClick={() => handleCancelClick(inv.id, inv.invoice_number)} disabled={invoiceActions.isLoading} title="Cancel Invoice">
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
