@@ -16,7 +16,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X } from 'lucide-react';
+import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
