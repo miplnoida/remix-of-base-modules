@@ -5237,6 +5237,69 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_batch_card_total: {
+        Row: {
+          amount: number
+          batch_number: string
+          id: string
+          mop_code: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount?: number
+          batch_number: string
+          id?: string
+          mop_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          batch_number?: string
+          id?: string
+          mop_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      cn_batch_cheque: {
+        Row: {
+          amount: number
+          bank_code: string | null
+          batch_number: string
+          cheque_number: string
+          created_at: string | null
+          created_by: string | null
+          currency_code: string
+          date_of_issue: string | null
+          id: string
+        }
+        Insert: {
+          amount: number
+          bank_code?: string | null
+          batch_number: string
+          cheque_number: string
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string
+          date_of_issue?: string | null
+          id?: string
+        }
+        Update: {
+          amount?: number
+          bank_code?: string | null
+          batch_number?: string
+          cheque_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency_code?: string
+          date_of_issue?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       cn_c3_reported: {
         Row: {
           created_at: string
@@ -21560,6 +21623,10 @@ export type Database = {
       clone_workflow: {
         Args: { p_new_name?: string; p_source_workflow_id: string }
         Returns: string
+      }
+      close_batch: {
+        Args: { p_batch_number: string; p_user_code: string }
+        Returns: Json
       }
       convert_application_atomic: {
         Args: {
