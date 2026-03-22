@@ -7,8 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Search, Printer, XCircle, Loader2, FileText, ShoppingCart, Trash2, CreditCard, CheckCircle, Inbox, Plus, Edit2 } from 'lucide-react';
+import { Search, Printer, XCircle, Loader2, FileText, ShoppingCart, Trash2, CreditCard, CheckCircle, Inbox, Plus, Edit2, Receipt, Eye } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -20,6 +24,7 @@ import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
+import { AllocationPreviewModal } from '@/components/payments/AllocationPreviewModal';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 
 function useInvoiceStatuses() {
@@ -86,8 +91,10 @@ const SearchPayInvoices: React.FC = () => {
   const [editingMethod, setEditingMethod] = useState<MethodRow | null>(null);
   const addMethodBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Submission state
+  // Submission & UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   const { data: invoiceStatuses } = useInvoiceStatuses();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
@@ -547,6 +554,69 @@ const SearchPayInvoices: React.FC = () => {
           </>
         )}
 
+        {/* Sticky Footer Summary */}
+        {shortlist.length > 0 && (
+          <div className="sticky bottom-0 z-10 bg-background border-t pt-3 pb-2">
+            <div className="grid grid-cols-3 gap-4 text-center mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Due</p>
+                <p className="text-lg font-bold">{baseCurrCode} {shortlistTotal.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Received</p>
+                <p className="text-lg font-bold">{baseCurrCode} {mopTotal.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Remaining</p>
+                <p className={`text-lg font-bold ${Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
+                  {baseCurrCode} {difference.toFixed(2)}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={methods.length === 0 || shortlist.length === 0}
+                onClick={() => setShowAllocationPreview(true)}
+              >
+                <Eye className="h-4 w-4 mr-1" /> Preview Allocation
+              </Button>
+              <Button
+                onClick={() => setShowConfirm(true)}
+                disabled={!canSubmit}
+                size="sm"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}
+                Process Payment
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Process Invoice Payment?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will create the payment transaction and generate a receipt.<br />
+                Invoices: {shortlist.length} selected<br />
+                Total Due: {baseCurrCode} {shortlistTotal.toFixed(2)} | Methods Total: {baseCurrCode} {mopTotal.toFixed(2)}<br />
+                {Math.abs(difference) >= 0.01 && (
+                  <span className="text-destructive font-medium">
+                    Warning: Difference of {baseCurrCode} {difference.toFixed(2)} exists.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSubmitPayment}>Confirm & Process</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Modals */}
         <PaymentMethodModal
           open={showMethodModal}
@@ -556,6 +626,13 @@ const SearchPayInvoices: React.FC = () => {
           mopTypes={mopTypes}
           enabledCurrencies={enabledCurrencies}
           baseCurrCode={baseCurrCode}
+        />
+        <AllocationPreviewModal
+          open={showAllocationPreview}
+          onOpenChange={setShowAllocationPreview}
+          mode="invoice"
+          invoiceIds={shortlist.map(s => s.id)}
+          methods={methods.map(m => ({ mop_code: m.mop_code, currency_code: m.currency_code, original_amount: m.original_amount }))}
         />
         <InvoiceCancelModal
           open={showCancelModal}

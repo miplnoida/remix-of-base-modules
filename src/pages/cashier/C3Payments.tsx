@@ -16,7 +16,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X } from 'lucide-react';
+import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
@@ -26,6 +26,7 @@ import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
+import { AllocationPreviewModal } from '@/components/payments/AllocationPreviewModal';
 import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -79,6 +80,7 @@ const C3Payments: React.FC = () => {
 
   // Modals
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   // Refs for auto-focus
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -434,6 +436,14 @@ const C3Payments: React.FC = () => {
             <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
           </Button>
           <div className="w-px bg-border mx-1" />
+          <Button
+            variant="outline" size="sm"
+            disabled={selectedComponents.length === 0 || methods.length === 0}
+            onClick={() => setShowAllocationPreview(true)}
+          >
+            <Eye className="h-4 w-4 mr-1" /> Preview Allocation
+          </Button>
+          <div className="w-px bg-border mx-1" />
           <Button onClick={resetForm} variant="outline" size="sm" disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
             <PlusCircle className="h-4 w-4 mr-1" /> New Payment
           </Button>
@@ -664,6 +674,18 @@ const C3Payments: React.FC = () => {
           onConfirm={handleCancelReceipt}
           isLoading={receiptActions.isLoading}
           receiptId={receiptActions.currentReceipt?.receipt_id}
+        />
+        <AllocationPreviewModal
+          open={showAllocationPreview}
+          onOpenChange={setShowAllocationPreview}
+          mode="c3"
+          components={selectedComponents.map((c, i) => ({
+            payment_code: c.payment_code,
+            fund_code: c.fund_code,
+            amount: c.amount,
+            sort_order: i,
+          }))}
+          methods={methods.map(m => ({ mop_code: m.mop_code, currency_code: m.currency_code, original_amount: m.original_amount }))}
         />
       </div>
     </BatchSelectionGuard>
