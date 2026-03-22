@@ -68,6 +68,9 @@ const C3Payments: React.FC = () => {
 
   // Methods
   const [methods, setMethods] = useState<MethodRow[]>([]);
+  const [showMethodModal, setShowMethodModal] = useState(false);
+  const [editingMethod, setEditingMethod] = useState<MethodRow | null>(null);
+  const addMethodBtnRef = useRef<HTMLButtonElement>(null);
 
   // Flow
   const [flowState, setFlowState] = useState<FlowState>('entry');
@@ -75,14 +78,10 @@ const C3Payments: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Modals
-  const [showChequeModal, setShowChequeModal] = useState(false);
-  const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [pendingMethodId, setPendingMethodId] = useState<string | null>(null);
 
   // Refs for auto-focus
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const methodAmountRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   /* ── data fetching ───────────────────── */
 
