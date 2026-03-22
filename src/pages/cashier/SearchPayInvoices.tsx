@@ -669,6 +669,13 @@ const SearchPayInvoices: React.FC = () => {
           isLoading={invoiceActions.isLoading}
           invoiceNumber={selectedInvoiceNumber}
         />
+        <InvoiceDetailModal
+          open={showDetailModal}
+          onOpenChange={setShowDetailModal}
+          invoiceId={detailInvoiceId}
+          invoiceTypeMap={invoiceTypeMap}
+          statusMap={statusMap}
+        />
       </div>
     </BatchSelectionGuard>
   );
