@@ -97,6 +97,10 @@ const SearchPayInvoices: React.FC = () => {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [selectedInvoiceNumber, setSelectedInvoiceNumber] = useState<string>('');
 
+  // Detail modal
+  const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
   // Shortlisted invoices
   const [shortlist, setShortlist] = useState<InvoiceRow[]>([]);
 
@@ -112,6 +116,7 @@ const SearchPayInvoices: React.FC = () => {
   const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   const { data: invoiceStatuses } = useInvoiceStatuses();
+  const { data: invoiceTypes } = useInvoiceTypes();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
 
   const { data: mopTypes = [] } = useQuery({
