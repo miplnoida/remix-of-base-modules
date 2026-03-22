@@ -487,13 +487,13 @@ const SearchPayInvoices: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Section C: Payment Methods (C3-style inline) */}
+        {/* Section C: Payment Methods (modal-based) */}
         {shortlist.length > 0 && (
           <>
             <Card>
               <CardHeader className="py-3 pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-base">Payment Methods</CardTitle>
-                <Button onClick={addMethodRow} variant="outline" size="sm" disabled={isSubmitting}>
+                <Button ref={addMethodBtnRef} onClick={addMethodRow} variant="outline" size="sm" disabled={isSubmitting}>
                   <Plus className="h-4 w-4 mr-1" /> Add Method
                 </Button>
               </CardHeader>
@@ -508,122 +508,40 @@ const SearchPayInvoices: React.FC = () => {
                 {methods.map((m, idx) => {
                   const isMainCurr = m.currency_code === baseCurrCode;
                   return (
-                    <div key={m.id} className="border rounded-md p-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Method {idx + 1}</span>
-                        <div className="flex gap-1">
-                          {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
-                            <Button onClick={() => handleEditMopDetail(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
+                    <div key={m.id} className="border rounded-md p-3 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{m.mop_desc || 'Unset'}</span>
+                          <span className="text-xs text-muted-foreground">({m.currency_code})</span>
+                        </div>
+                        <p className="text-base font-bold tabular-nums">
+                          {m.currency_code} {m.original_amount.toFixed(2)}
+                          {!isMainCurr && m.original_amount > 0 && (
+                            <span className="text-xs font-normal text-muted-foreground ml-2">
+                              = {baseCurrCode} {m.base_amount.toFixed(2)} @ {m.exchange_rate}
+                            </span>
                           )}
-                          <Button onClick={() => removeMethodRow(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                        </p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
+                            <span>Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}</span>
+                          )}
+                          {m.mop_code === 'CRD' && m.credit_card_code && (
+                            <span>{m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}</span>
+                          )}
                         </div>
                       </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Method</Label>
-                          <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={isSubmitting}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
-                            <SelectContent>
-                              {mopTypes.map((mt: any) => (
-                                <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-xs">Currency</Label>
-                          <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={isSubmitting}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {enabledCurrencies.map((c: any) => (
-                                <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-xs">Amount ({m.currency_code})</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              ref={el => { methodAmountRefs.current[m.id] = el; }}
-                              type="number" step="0.01" min="0"
-                              value={m.original_amount || ''}
-                              onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
-                              placeholder="0.00"
-                              className="text-right text-sm h-8"
-                              disabled={isSubmitting}
-                            />
-                            {!isMainCurr && m.original_amount > 0 && (
-                              <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-                                {baseCurrCode} {m.base_amount.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Info row: Rate + MOP details */}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        {!isMainCurr && <span>Rate: {m.exchange_rate}</span>}
-                        {m.mop_desc && <span>Method: {m.mop_desc}</span>}
-                        {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
-                          <span>Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}</span>
-                        )}
-                        {m.mop_code === 'CRD' && m.credit_card_code && (
-                          <span>{m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}</span>
-                        )}
+                      <div className="flex gap-1 shrink-0">
+                        <Button onClick={() => handleEditMethod(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button onClick={() => removeMethodRow(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
-              </CardContent>
-            </Card>
-
-            {/* Balance Indicator + Submit */}
-            <Card>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="grid grid-cols-3 gap-8 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Invoice Total:</span>
-                        <span className="ml-2 font-mono font-semibold">{baseCurrCode} {shortlistTotal.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">MOP Total:</span>
-                        <span className="ml-2 font-mono font-semibold">{baseCurrCode} {mopTotal.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Difference:</span>
-                        <span className={`ml-2 font-mono font-semibold ${Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                          {baseCurrCode} {difference.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                    {Math.abs(difference) >= 0.01 && methods.length > 0 && (
-                      <p className="text-xs text-destructive">Payment methods total must equal the invoice outstanding total to proceed.</p>
-                    )}
-                  </div>
-                  <Button
-                    size="lg"
-                    onClick={handleSubmitPayment}
-                    disabled={!canSubmit}
-                    className="min-w-[180px]"
-                  >
-                    {isSubmitting ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
-                    ) : (
-                      <><CheckCircle className="h-4 w-4 mr-2" /> Process Payment</>
-                    )}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </>
