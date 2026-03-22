@@ -80,12 +80,11 @@ const SearchPayInvoices: React.FC = () => {
   // Shortlisted invoices
   const [shortlist, setShortlist] = useState<InvoiceRow[]>([]);
 
-  // C3-style inline MOP rows
+  // Payment methods (modal-based)
   const [methods, setMethods] = useState<MethodRow[]>([]);
-  const [showChequeModal, setShowChequeModal] = useState(false);
-  const [showCardModal, setShowCardModal] = useState(false);
-  const [pendingMethodId, setPendingMethodId] = useState<string | null>(null);
-  const methodAmountRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [showMethodModal, setShowMethodModal] = useState(false);
+  const [editingMethod, setEditingMethod] = useState<MethodRow | null>(null);
+  const addMethodBtnRef = useRef<HTMLButtonElement>(null);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
