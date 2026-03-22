@@ -126,6 +126,7 @@ export const ENTITY_TYPE_LABELS: Record<EntityType | 'IP_VC', string> = {
   IP: 'Insured Person',
   SE: 'Self-Employed',
   VC: 'Voluntary Contributor',
+  AP: 'Accounts Payable',
   IP_VC: 'Insured Person (Voluntary Contributor)',
 };
 
@@ -134,4 +135,5 @@ export const ENTITY_TYPE_TABLE_MAP: Record<EntityType, { table: string; idColumn
   IP: { table: 'ip_master', idColumn: 'ssn' },
   SE: { table: 'ip_self_employ', idColumn: 'ssn' },
   VC: { table: 'ip_master', idColumn: 'ssn' },
+  AP: { table: 'cn_payer', idColumn: 'payer_id' },
 };
