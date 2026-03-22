@@ -24,8 +24,7 @@ import { useReceiptActions } from '@/hooks/useReceiptActions';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
-import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDetailModal';
-import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
+import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,25 +40,6 @@ interface PaymentComponent {
   fund_code: string;
   description: string;
   amount: number;
-}
-
-interface MethodRow {
-  id: string;
-  mop_code: string;
-  mop_desc: string;
-  currency_code: string;
-  original_amount: number;
-  exchange_rate: number;
-  base_amount: number;
-  bank_code: string;
-  mop_number: string;
-  cheque_date: string | null;
-  mop_account_number: string;
-  mop_notes1: string;
-  credit_card_code: string;
-  expiration_date: string;
-  card_desc: string;
-  bank_desc: string;
 }
 
 type FlowState = 'entry' | 'saving' | 'saved';
