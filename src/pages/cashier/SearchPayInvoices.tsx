@@ -158,104 +158,42 @@ const SearchPayInvoices: React.FC = () => {
   const mopTotal = useMemo(() => methods.reduce((s, m) => s + m.base_amount, 0), [methods]);
   const difference = mopTotal - shortlistTotal;
 
-  /* ── Method row handlers (C3 pattern) ── */
+  /* ── Method row handlers (modal-based) ── */
 
   const addMethodRow = useCallback(() => {
-    const defaultCurrency = mainCurrency?.currency_code || 'XCD';
-    setMethods(prev => [...prev, {
-      id: crypto.randomUUID(),
-      mop_code: '', mop_desc: '',
-      currency_code: defaultCurrency,
-      original_amount: 0, exchange_rate: 1, base_amount: 0,
-      bank_code: '', mop_number: '', cheque_date: null,
-      mop_account_number: '', mop_notes1: '',
-      credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
-    }]);
-  }, [mainCurrency]);
+    setEditingMethod(null);
+    setShowMethodModal(true);
+  }, []);
 
   const removeMethodRow = useCallback((id: string) => {
     setMethods(prev => prev.filter(m => m.id !== id));
   }, []);
 
-  const updateMethodField = useCallback((id: string, field: keyof MethodRow, value: any) => {
-    setMethods(prev => prev.map(m => {
-      if (m.id !== id) return m;
-      const updated = { ...m, [field]: value };
-      if (field === 'original_amount' || field === 'exchange_rate') {
-        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
-      }
-      if (field === 'currency_code') {
-        const curr = enabledCurrencies.find((c: any) => c.currency_code === value);
-        updated.exchange_rate = curr?.exchange_rate || 1;
-        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
-      }
-      return updated;
-    }));
-  }, [enabledCurrencies]);
-
-  const focusMethodAmount = useCallback((id: string) => {
-    setTimeout(() => { methodAmountRefs.current[id]?.focus(); }, 100);
-  }, []);
-
-  const handleMopCodeChange = useCallback((id: string, mopCode: string) => {
-    const mop = mopTypes.find((m: any) => m.mop_code === mopCode);
-    setMethods(prev => prev.map(m => {
-      if (m.id !== id) return m;
-      return {
-        ...m, mop_code: mopCode, mop_desc: mop?.short_description || mopCode,
-        bank_code: '', mop_number: '', cheque_date: null,
-        mop_account_number: '', mop_notes1: '',
-        credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
-      };
-    }));
-    if (mopCode === 'CHQ' || mopCode === 'CHK') {
-      setPendingMethodId(id);
-      setTimeout(() => setShowChequeModal(true), 100);
-    } else if (mopCode === 'CRD') {
-      setPendingMethodId(id);
-      setTimeout(() => setShowCardModal(true), 100);
-    } else {
-      focusMethodAmount(id);
-    }
-  }, [mopTypes, focusMethodAmount]);
-
-  const handleEditMopDetail = useCallback((id: string) => {
+  const handleEditMethod = useCallback((id: string) => {
     const m = methods.find(r => r.id === id);
     if (!m) return;
-    setPendingMethodId(id);
-    if (m.mop_code === 'CHQ' || m.mop_code === 'CHK') setShowChequeModal(true);
-    else if (m.mop_code === 'CRD') setShowCardModal(true);
+    setEditingMethod(m);
+    setShowMethodModal(true);
   }, [methods]);
 
-  const pendingMethod = pendingMethodId ? methods.find(m => m.id === pendingMethodId) : null;
+  const handleMethodModalSave = useCallback((row: MethodRow) => {
+    setMethods(prev => {
+      const exists = prev.find(m => m.id === row.id);
+      if (exists) return prev.map(m => m.id === row.id ? row : m);
+      return [...prev, row];
+    });
+    setShowMethodModal(false);
+    setEditingMethod(null);
+    setTimeout(() => addMethodBtnRef.current?.focus(), 50);
+  }, []);
 
-  const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
-    if (pendingMethodId) {
-      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
-        ...m,
-        mop_number: details.mop_number, bank_code: details.bank_code,
-        cheque_date: details.cheque_date, mop_account_number: details.mop_account_number,
-        mop_notes1: details.mop_notes1, bank_desc: details.bank_desc || '',
-      } : m));
-      focusMethodAmount(pendingMethodId);
+  const handleMethodModalClose = useCallback((open: boolean) => {
+    if (!open) {
+      setShowMethodModal(false);
+      setEditingMethod(null);
+      setTimeout(() => addMethodBtnRef.current?.focus(), 50);
     }
-    setPendingMethodId(null);
-    setShowChequeModal(false);
-  }, [pendingMethodId, focusMethodAmount]);
-
-  const handleCardDetailsSave = useCallback((details: CardDetails) => {
-    if (pendingMethodId) {
-      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
-        ...m,
-        credit_card_code: details.credit_card_code, mop_number: details.mop_number,
-        expiration_date: details.expiration_date, mop_notes1: details.mop_notes1,
-        card_desc: details.card_desc || '',
-      } : m));
-      focusMethodAmount(pendingMethodId);
-    }
-    setPendingMethodId(null);
-    setShowCardModal(false);
-  }, [pendingMethodId, focusMethodAmount]);
+  }, []);
 
   // Reprint / Cancel
   const handleReprint = async (invoiceId: number) => {
