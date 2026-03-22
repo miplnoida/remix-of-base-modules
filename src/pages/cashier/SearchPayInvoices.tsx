@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Search, Printer, XCircle, Loader2, FileText, ShoppingCart, Trash2, CreditCard, CheckCircle, Inbox } from 'lucide-react';
+import { Search, Printer, XCircle, Loader2, FileText, ShoppingCart, Trash2, CreditCard, CheckCircle, Inbox, Plus, Edit2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -18,11 +18,31 @@ import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
-import { AddDetailModal, type DetailLineData } from '@/components/payments/AddDetailModal';
+import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { ChequeDetailModal, type ChequeDetails } from '@/components/payments/ChequeDetailModal';
 import { CardDetailModal, type CardDetails } from '@/components/payments/CardDetailModal';
-import { PaymentDetailGrid } from '@/components/payments/PaymentDetailGrid';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
+
+/* ─── types ──────────────────────────────────────── */
+
+interface MethodRow {
+  id: string;
+  mop_code: string;
+  mop_desc: string;
+  currency_code: string;
+  original_amount: number;
+  exchange_rate: number;
+  base_amount: number;
+  bank_code: string;
+  mop_number: string;
+  cheque_date: string | null;
+  mop_account_number: string;
+  mop_notes1: string;
+  credit_card_code: string;
+  expiration_date: string;
+  card_desc: string;
+  bank_desc: string;
+}
 
 function useInvoiceStatuses() {
   return useQuery({
@@ -39,7 +59,6 @@ function useInvoiceStatuses() {
   });
 }
 
-// Statuses that cannot be selected for payment
 const NON_PAYABLE_STATUSES = ['C', 'P', 'V'];
 
 interface InvoiceRow {
@@ -62,6 +81,8 @@ interface InvoiceRow {
   created_at: string;
 }
 
+/* ─── component ──────────────────────────────────── */
+
 const SearchPayInvoices: React.FC = () => {
   const batchSel = useBatchSelection();
   const invoiceActions = useInvoiceActions();
@@ -78,23 +99,36 @@ const SearchPayInvoices: React.FC = () => {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [selectedInvoiceNumber, setSelectedInvoiceNumber] = useState<string>('');
 
-  // Shortlisted invoices for payment
+  // Shortlisted invoices
   const [shortlist, setShortlist] = useState<InvoiceRow[]>([]);
 
-  // MOP detail lines
-  const [mopLines, setMopLines] = useState<DetailLineData[]>([]);
-  const [showAddDetail, setShowAddDetail] = useState(false);
-  const [editDetailIdx, setEditDetailIdx] = useState<number | null>(null);
-
-  // MOP sub-modals
+  // C3-style inline MOP rows
+  const [methods, setMethods] = useState<MethodRow[]>([]);
   const [showChequeModal, setShowChequeModal] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
-  const [pendingMopIdx, setPendingMopIdx] = useState<number | null>(null);
+  const [pendingMethodId, setPendingMethodId] = useState<string | null>(null);
+  const methodAmountRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: invoiceStatuses } = useInvoiceStatuses();
+  const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
+
+  const { data: mopTypes = [] } = useQuery({
+    queryKey: ['tb_method_of_payment'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tb_method_of_payment').select('mop_code, short_description, long_description');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const mainCurrency = useMemo(() =>
+    enabledCurrencies.find((c: any) => c.is_main_currency) || enabledCurrencies[0],
+    [enabledCurrencies]
+  );
+  const baseCurrCode = mainCurrency?.currency_code || 'XCD';
 
   const { data: invoices, isLoading: loadingInvoices, refetch } = useQuery({
     queryKey: ['cn_invoices_search', searchTerm, searchType, statusFilter],
@@ -105,18 +139,12 @@ const SearchPayInvoices: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(200);
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
+      if (statusFilter !== 'all') query = query.eq('status', statusFilter);
 
       if (searchTerm.trim()) {
-        if (searchType === 'invoice') {
-          query = query.ilike('invoice_number', `%${searchTerm.trim()}%`);
-        } else if (searchType === 'payer') {
-          query = query.ilike('payer_name', `%${searchTerm.trim()}%`);
-        } else if (searchType === 'payer_id') {
-          query = query.ilike('payer_id', `%${searchTerm.trim()}%`);
-        }
+        if (searchType === 'invoice') query = query.ilike('invoice_number', `%${searchTerm.trim()}%`);
+        else if (searchType === 'payer') query = query.ilike('payer_name', `%${searchTerm.trim()}%`);
+        else if (searchType === 'payer_id') query = query.ilike('payer_id', `%${searchTerm.trim()}%`);
       }
 
       const { data, error } = await query;
@@ -139,16 +167,10 @@ const SearchPayInvoices: React.FC = () => {
 
   // Shortlist helpers
   const shortlistIds = useMemo(() => new Set(shortlist.map(s => s.id)), [shortlist]);
-
   const isPayable = (inv: InvoiceRow) => !NON_PAYABLE_STATUSES.includes(inv.status) && inv.outstanding_amount > 0;
 
   const toggleShortlist = useCallback((inv: InvoiceRow) => {
-    setShortlist(prev => {
-      if (prev.find(s => s.id === inv.id)) {
-        return prev.filter(s => s.id !== inv.id);
-      }
-      return [...prev, inv];
-    });
+    setShortlist(prev => prev.find(s => s.id === inv.id) ? prev.filter(s => s.id !== inv.id) : [...prev, inv]);
   }, []);
 
   const removeFromShortlist = useCallback((id: number) => {
@@ -156,69 +178,107 @@ const SearchPayInvoices: React.FC = () => {
   }, []);
 
   const shortlistTotal = useMemo(() => shortlist.reduce((sum, inv) => sum + (inv.outstanding_amount || 0), 0), [shortlist]);
-  const mopTotal = useMemo(() => mopLines.reduce((sum, l) => sum + (l.payment_amount || 0), 0), [mopLines]);
+  const mopTotal = useMemo(() => methods.reduce((s, m) => s + m.base_amount, 0), [methods]);
   const difference = mopTotal - shortlistTotal;
 
-  // MOP handlers
-  const handleAddDetail = (detail: DetailLineData) => {
-    if (editDetailIdx !== null) {
-      setMopLines(prev => prev.map((l, i) => i === editDetailIdx ? detail : l));
-      setEditDetailIdx(null);
-    } else {
-      setMopLines(prev => [...prev, detail]);
-    }
-  };
+  /* ── Method row handlers (C3 pattern) ── */
 
-  const handleMopPopupNeeded = (mopCode: string) => {
-    const idx = mopLines.length - 1;
-    setPendingMopIdx(idx);
-    if (mopCode === 'CRD') {
-      setShowCardModal(true);
-    } else {
-      setShowChequeModal(true);
-    }
-  };
+  const addMethodRow = useCallback(() => {
+    const defaultCurrency = mainCurrency?.currency_code || 'XCD';
+    setMethods(prev => [...prev, {
+      id: crypto.randomUUID(),
+      mop_code: '', mop_desc: '',
+      currency_code: defaultCurrency,
+      original_amount: 0, exchange_rate: 1, base_amount: 0,
+      bank_code: '', mop_number: '', cheque_date: null,
+      mop_account_number: '', mop_notes1: '',
+      credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
+    }]);
+  }, [mainCurrency]);
 
-  const handleChequeDetailSave = (details: ChequeDetails) => {
-    if (pendingMopIdx !== null && pendingMopIdx < mopLines.length) {
-      setMopLines(prev => prev.map((l, i) => i === pendingMopIdx ? {
-        ...l,
-        mop_number: details.mop_number,
-        bank_code: details.bank_code,
-        cheque_date: details.cheque_date,
-        mop_account_number: details.mop_account_number,
-        mop_notes1: details.mop_notes1,
-        bank_desc: details.bank_desc,
-      } : l));
+  const removeMethodRow = useCallback((id: string) => {
+    setMethods(prev => prev.filter(m => m.id !== id));
+  }, []);
+
+  const updateMethodField = useCallback((id: string, field: keyof MethodRow, value: any) => {
+    setMethods(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      const updated = { ...m, [field]: value };
+      if (field === 'original_amount' || field === 'exchange_rate') {
+        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
+      }
+      if (field === 'currency_code') {
+        const curr = enabledCurrencies.find((c: any) => c.currency_code === value);
+        updated.exchange_rate = curr?.exchange_rate || 1;
+        updated.base_amount = Number((updated.original_amount * updated.exchange_rate).toFixed(2));
+      }
+      return updated;
+    }));
+  }, [enabledCurrencies]);
+
+  const focusMethodAmount = useCallback((id: string) => {
+    setTimeout(() => { methodAmountRefs.current[id]?.focus(); }, 100);
+  }, []);
+
+  const handleMopCodeChange = useCallback((id: string, mopCode: string) => {
+    const mop = mopTypes.find((m: any) => m.mop_code === mopCode);
+    setMethods(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      return {
+        ...m, mop_code: mopCode, mop_desc: mop?.short_description || mopCode,
+        bank_code: '', mop_number: '', cheque_date: null,
+        mop_account_number: '', mop_notes1: '',
+        credit_card_code: '', expiration_date: '', card_desc: '', bank_desc: '',
+      };
+    }));
+    if (mopCode === 'CHQ' || mopCode === 'CHK') {
+      setPendingMethodId(id);
+      setTimeout(() => setShowChequeModal(true), 100);
+    } else if (mopCode === 'CRD') {
+      setPendingMethodId(id);
+      setTimeout(() => setShowCardModal(true), 100);
+    } else {
+      focusMethodAmount(id);
     }
+  }, [mopTypes, focusMethodAmount]);
+
+  const handleEditMopDetail = useCallback((id: string) => {
+    const m = methods.find(r => r.id === id);
+    if (!m) return;
+    setPendingMethodId(id);
+    if (m.mop_code === 'CHQ' || m.mop_code === 'CHK') setShowChequeModal(true);
+    else if (m.mop_code === 'CRD') setShowCardModal(true);
+  }, [methods]);
+
+  const pendingMethod = pendingMethodId ? methods.find(m => m.id === pendingMethodId) : null;
+
+  const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
+    if (pendingMethodId) {
+      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
+        ...m,
+        mop_number: details.mop_number, bank_code: details.bank_code,
+        cheque_date: details.cheque_date, mop_account_number: details.mop_account_number,
+        mop_notes1: details.mop_notes1, bank_desc: details.bank_desc || '',
+      } : m));
+      focusMethodAmount(pendingMethodId);
+    }
+    setPendingMethodId(null);
     setShowChequeModal(false);
-    setPendingMopIdx(null);
-  };
+  }, [pendingMethodId, focusMethodAmount]);
 
-  const handleCardDetailSave = (details: CardDetails) => {
-    if (pendingMopIdx !== null && pendingMopIdx < mopLines.length) {
-      setMopLines(prev => prev.map((l, i) => i === pendingMopIdx ? {
-        ...l,
-        credit_card_code: details.credit_card_code,
-        mop_number: details.mop_number,
-        mop_notes1: details.mop_notes1,
-        expiration_date: details.expiration_date,
-        card_desc: details.card_desc,
-      } : l));
+  const handleCardDetailsSave = useCallback((details: CardDetails) => {
+    if (pendingMethodId) {
+      setMethods(prev => prev.map(m => m.id === pendingMethodId ? {
+        ...m,
+        credit_card_code: details.credit_card_code, mop_number: details.mop_number,
+        expiration_date: details.expiration_date, mop_notes1: details.mop_notes1,
+        card_desc: details.card_desc || '',
+      } : m));
+      focusMethodAmount(pendingMethodId);
     }
+    setPendingMethodId(null);
     setShowCardModal(false);
-    setPendingMopIdx(null);
-  };
-
-  const handleEditMopDetail = (idx: number) => {
-    const row = mopLines[idx];
-    setPendingMopIdx(idx);
-    if (row.mop_code === 'CRD') {
-      setShowCardModal(true);
-    } else if (row.mop_code === 'CHQ' || row.mop_code === 'CHK') {
-      setShowChequeModal(true);
-    }
-  };
+  }, [pendingMethodId, focusMethodAmount]);
 
   // Reprint / Cancel
   const handleReprint = async (invoiceId: number) => {
@@ -238,36 +298,32 @@ const SearchPayInvoices: React.FC = () => {
     if (result) {
       setShowCancelModal(false);
       setSelectedInvoiceId(null);
-      // Remove from shortlist if it was there
       removeFromShortlist(selectedInvoiceId);
       refetch();
     }
   };
 
   // Submit payment
-  const canSubmit = shortlist.length > 0 && mopLines.length > 0 && Math.abs(difference) < 0.01 && !isSubmitting && batchSel.isReady;
+  const canSubmit = shortlist.length > 0 && methods.length > 0 && Math.abs(difference) < 0.01 && !isSubmitting && batchSel.isReady
+    && methods.every(m => m.mop_code && m.base_amount > 0);
 
   const handleSubmitPayment = async () => {
     if (!canSubmit || !batchSel.selectedBatch) return;
     setIsSubmitting(true);
     try {
-      // Use first invoice payer info
       const firstInv = shortlist[0];
 
-      const detailLinesJson = mopLines.map(l => ({
-        payment_code: l.payment_code,
-        fund_code: l.fund_code,
-        payment_amount: l.payment_amount,
-        mop_code: l.mop_code,
-        period: l.period,
-        payment_date: l.payment_date,
-        bank_code: l.bank_code || null,
-        mop_number: l.mop_number || null,
-        cheque_date: l.cheque_date || null,
-        mop_account_number: l.mop_account_number || null,
-        mop_notes1: l.mop_notes1 || null,
-        credit_card_code: l.credit_card_code || null,
-        expiration_date: l.expiration_date || null,
+      const methodsJson = methods.map(m => ({
+        mop_code: m.mop_code,
+        currency_code: m.currency_code,
+        original_amount: m.original_amount,
+        bank_code: m.bank_code || null,
+        mop_number: m.mop_number || null,
+        cheque_date: m.cheque_date || null,
+        mop_account_number: m.mop_account_number || null,
+        mop_notes1: m.mop_notes1 || null,
+        credit_card_code: m.credit_card_code || null,
+        expiration_date: m.expiration_date || null,
       }));
 
       const { data, error } = await supabase.rpc('pay_invoices_with_receipt', {
@@ -277,10 +333,9 @@ const SearchPayInvoices: React.FC = () => {
         p_payer_name: firstInv.payer_name || '',
         p_date_received: new Date().toISOString().split('T')[0],
         p_remarks: `Payment for invoices: ${shortlist.map(s => s.invoice_number).join(', ')}`,
-        p_detail_lines: detailLinesJson,
+        p_methods: methodsJson,
         p_invoice_ids: shortlist.map(s => s.id),
         p_receipt_total: shortlistTotal,
-        p_total_payments: mopLines.length,
         p_user_code: userCode || 'SYSTEM',
       });
 
@@ -292,15 +347,11 @@ const SearchPayInvoices: React.FC = () => {
         description: `Payment ID: ${result.payment_id} | Receipt ID: ${result.receipt_id}`,
       });
 
-      // Clear shortlist and MOP lines
       setShortlist([]);
-      setMopLines([]);
-
-      // Refresh search results
+      setMethods([]);
       refetch();
       queryClient.invalidateQueries({ queryKey: ['cn_invoices_search'] });
 
-      // Print receipt
       try {
         await printConfiguredReceipt(result.receipt_id);
       } catch (printErr) {
@@ -427,11 +478,7 @@ const SearchPayInvoices: React.FC = () => {
                       return (
                         <TableRow key={inv.id} className={`${inv.status === 'C' ? 'opacity-60' : ''} ${selected ? 'bg-primary/5' : ''}`}>
                           <TableCell>
-                            <Checkbox
-                              checked={selected}
-                              onCheckedChange={() => toggleShortlist(inv)}
-                              disabled={!payable}
-                            />
+                            <Checkbox checked={selected} onCheckedChange={() => toggleShortlist(inv)} disabled={!payable} />
                           </TableCell>
                           <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                           <TableCell>
@@ -479,12 +526,10 @@ const SearchPayInvoices: React.FC = () => {
             </CardTitle>
             <div className="flex items-center gap-3">
               <span className="text-sm font-mono font-semibold text-primary">
-                Total: ${shortlistTotal.toFixed(2)}
+                Total: {baseCurrCode} {shortlistTotal.toFixed(2)}
               </span>
               {shortlist.length > 0 && (
-                <Button variant="outline" size="sm" onClick={() => setShortlist([])}>
-                  Clear All
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShortlist([])}>Clear All</Button>
               )}
             </div>
           </CardHeader>
@@ -511,7 +556,7 @@ const SearchPayInvoices: React.FC = () => {
                       <TableRow key={inv.id}>
                         <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                         <TableCell>{inv.payer_name || inv.payer_id}</TableCell>
-                        <TableCell className="text-right font-mono font-semibold">${(inv.outstanding_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-mono font-semibold">{baseCurrCode} {(inv.outstanding_amount || 0).toFixed(2)}</TableCell>
                         <TableCell>{inv.currency_code}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeFromShortlist(inv.id)}>
@@ -527,18 +572,104 @@ const SearchPayInvoices: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Section C: Payment Methods */}
+        {/* Section C: Payment Methods (C3-style inline) */}
         {shortlist.length > 0 && (
           <>
-            <PaymentDetailGrid
-              rows={mopLines}
-              onAddRow={() => { setEditDetailIdx(null); setShowAddDetail(true); }}
-              onDeleteRow={(idx) => setMopLines(prev => prev.filter((_, i) => i !== idx))}
-              onEditRow={(idx) => { setEditDetailIdx(idx); setShowAddDetail(true); }}
-              onEditMopDetail={handleEditMopDetail}
-              disabled={isSubmitting}
-              totalAmount={mopTotal}
-            />
+            <Card>
+              <CardHeader className="py-3 pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Payment Methods</CardTitle>
+                <Button onClick={addMethodRow} variant="outline" size="sm" disabled={isSubmitting}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Method
+                </Button>
+              </CardHeader>
+              <CardContent className="pb-4 space-y-3">
+                {methods.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+                    <CreditCard className="h-8 w-8" />
+                    <p className="text-sm">Click "Add Method" to add a payment method.</p>
+                  </div>
+                )}
+
+                {methods.map((m, idx) => {
+                  const isMainCurr = m.currency_code === baseCurrCode;
+                  return (
+                    <div key={m.id} className="border rounded-md p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Method {idx + 1}</span>
+                        <div className="flex gap-1">
+                          {(m.mop_code === 'CHQ' || m.mop_code === 'CHK' || m.mop_code === 'CRD') && (
+                            <Button onClick={() => handleEditMopDetail(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button onClick={() => removeMethodRow(m.id)} variant="ghost" size="sm" disabled={isSubmitting}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Method</Label>
+                          <Select value={m.mop_code} onValueChange={v => handleMopCodeChange(m.id, v)} disabled={isSubmitting}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                            <SelectContent>
+                              {mopTypes.map((mt: any) => (
+                                <SelectItem key={mt.mop_code} value={mt.mop_code}>{mt.short_description || mt.mop_code}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Currency</Label>
+                          <Select value={m.currency_code} onValueChange={v => updateMethodField(m.id, 'currency_code', v)} disabled={isSubmitting}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {enabledCurrencies.map((c: any) => (
+                                <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Amount ({m.currency_code})</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              ref={el => { methodAmountRefs.current[m.id] = el; }}
+                              type="number" step="0.01" min="0"
+                              value={m.original_amount || ''}
+                              onChange={e => updateMethodField(m.id, 'original_amount', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              className="text-right text-sm h-8"
+                              disabled={isSubmitting}
+                            />
+                            {!isMainCurr && m.original_amount > 0 && (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                                {baseCurrCode} {m.base_amount.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info row: Rate + MOP details */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        {!isMainCurr && <span>Rate: {m.exchange_rate}</span>}
+                        {m.mop_desc && <span>Method: {m.mop_desc}</span>}
+                        {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
+                          <span>Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}</span>
+                        )}
+                        {m.mop_code === 'CRD' && m.credit_card_code && (
+                          <span>{m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
 
             {/* Balance Indicator + Submit */}
             <Card>
@@ -548,20 +679,20 @@ const SearchPayInvoices: React.FC = () => {
                     <div className="grid grid-cols-3 gap-8 text-sm">
                       <div>
                         <span className="text-muted-foreground">Invoice Total:</span>
-                        <span className="ml-2 font-mono font-semibold">${shortlistTotal.toFixed(2)}</span>
+                        <span className="ml-2 font-mono font-semibold">{baseCurrCode} {shortlistTotal.toFixed(2)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">MOP Total:</span>
-                        <span className="ml-2 font-mono font-semibold">${mopTotal.toFixed(2)}</span>
+                        <span className="ml-2 font-mono font-semibold">{baseCurrCode} {mopTotal.toFixed(2)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Difference:</span>
                         <span className={`ml-2 font-mono font-semibold ${Math.abs(difference) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                          ${difference.toFixed(2)}
+                          {baseCurrCode} {difference.toFixed(2)}
                         </span>
                       </div>
                     </div>
-                    {Math.abs(difference) >= 0.01 && mopLines.length > 0 && (
+                    {Math.abs(difference) >= 0.01 && methods.length > 0 && (
                       <p className="text-xs text-destructive">Payment methods total must equal the invoice outstanding total to proceed.</p>
                     )}
                   </div>
@@ -584,34 +715,27 @@ const SearchPayInvoices: React.FC = () => {
         )}
 
         {/* Modals */}
-        <AddDetailModal
-          open={showAddDetail}
-          onClose={() => { setShowAddDetail(false); setEditDetailIdx(null); }}
-          onAdd={handleAddDetail}
-          editData={editDetailIdx !== null ? mopLines[editDetailIdx] : null}
-          onMopPopupNeeded={handleMopPopupNeeded}
-        />
         <ChequeDetailModal
           open={showChequeModal}
-          onClose={() => { setShowChequeModal(false); setPendingMopIdx(null); }}
-          onSave={handleChequeDetailSave}
-          initialData={pendingMopIdx !== null && pendingMopIdx < mopLines.length ? {
-            mop_number: mopLines[pendingMopIdx].mop_number || '',
-            bank_code: mopLines[pendingMopIdx].bank_code || '',
-            cheque_date: mopLines[pendingMopIdx].cheque_date,
-            mop_account_number: mopLines[pendingMopIdx].mop_account_number || '',
-            mop_notes1: mopLines[pendingMopIdx].mop_notes1 || '',
+          onClose={() => { setShowChequeModal(false); setPendingMethodId(null); }}
+          onSave={handleChequeDetailsSave}
+          initialData={pendingMethod ? {
+            mop_number: pendingMethod.mop_number,
+            bank_code: pendingMethod.bank_code,
+            cheque_date: pendingMethod.cheque_date,
+            mop_account_number: pendingMethod.mop_account_number,
+            mop_notes1: pendingMethod.mop_notes1,
           } : undefined}
         />
         <CardDetailModal
           open={showCardModal}
-          onClose={() => { setShowCardModal(false); setPendingMopIdx(null); }}
-          onSave={handleCardDetailSave}
-          initialData={pendingMopIdx !== null && pendingMopIdx < mopLines.length ? {
-            credit_card_code: mopLines[pendingMopIdx].credit_card_code || '',
-            mop_number: mopLines[pendingMopIdx].mop_number || '',
-            mop_notes1: mopLines[pendingMopIdx].mop_notes1 || '',
-            expiration_date: mopLines[pendingMopIdx].expiration_date || '',
+          onClose={() => { setShowCardModal(false); setPendingMethodId(null); }}
+          onSave={handleCardDetailsSave}
+          initialData={pendingMethod ? {
+            credit_card_code: pendingMethod.credit_card_code,
+            mop_number: pendingMethod.mop_number,
+            expiration_date: pendingMethod.expiration_date,
+            mop_notes1: pendingMethod.mop_notes1,
           } : undefined}
         />
         <InvoiceCancelModal

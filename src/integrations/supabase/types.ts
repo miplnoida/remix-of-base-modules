@@ -22175,22 +22175,38 @@ export type Database = {
         }
         Returns: string
       }
-      pay_invoices_with_receipt: {
-        Args: {
-          p_batch_number: string
-          p_date_received: string
-          p_detail_lines: Json
-          p_invoice_ids: number[]
-          p_payer_id: string
-          p_payer_name: string
-          p_payer_type: string
-          p_receipt_total: number
-          p_remarks: string
-          p_total_payments: number
-          p_user_code: string
-        }
-        Returns: Json
-      }
+      pay_invoices_with_receipt:
+        | {
+            Args: {
+              p_batch_number: string
+              p_date_received: string
+              p_detail_lines: Json
+              p_invoice_ids: number[]
+              p_payer_id: string
+              p_payer_name: string
+              p_payer_type: string
+              p_receipt_total: number
+              p_remarks: string
+              p_total_payments: number
+              p_user_code: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_batch_number: string
+              p_date_received: string
+              p_invoice_ids: number[]
+              p_methods: Json
+              p_payer_id: string
+              p_payer_name: string
+              p_payer_type: string
+              p_receipt_total: number
+              p_remarks: string
+              p_user_code: string
+            }
+            Returns: Json
+          }
       process_meeting_outcome: {
         Args: {
           p_meeting_id: string
