@@ -275,7 +275,7 @@ const SearchPayInvoices: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['cn_invoices_search'] });
 
       try {
-        await printConfiguredReceipt(result.receipt_id);
+        await printConfiguredReceipt(result.payment_id);
       } catch (printErr) {
         console.warn('Receipt print failed:', printErr);
       }
