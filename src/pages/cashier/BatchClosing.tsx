@@ -79,12 +79,28 @@ const BatchClosing: React.FC = () => {
         }
       }
 
-      // Physical CHQ
+      // Physical CHQ — convert each cheque to base currency
       const { data: chqRows } = await supabase
         .from('cn_batch_cheque')
-        .select('amount')
+        .select('amount, currency_code')
         .eq('batch_number', batchNumber);
-      const physChq = (chqRows || []).reduce((s, r) => s + Number(r.amount), 0);
+
+      let physChq = 0;
+      if (chqRows && chqRows.length > 0) {
+        const chqCurrCodes = [...new Set(chqRows.map(r => r.currency_code).filter(Boolean))];
+        const { data: chqCurrData } = await supabase
+          .from('tb_currencies')
+          .select('currency_code, is_main_currency, exchange_rate')
+          .in('currency_code', chqCurrCodes)
+          .eq('is_active', true);
+        const chqCurrMap = new Map((chqCurrData || []).map(c => [c.currency_code, { isMain: c.is_main_currency, rate: c.exchange_rate }]));
+
+        for (const row of chqRows) {
+          const info = chqCurrMap.get(row.currency_code);
+          const rate = info?.isMain ? 1 : (info?.rate || 1);
+          physChq += Number(row.amount) * rate;
+        }
+      }
 
       // Physical CRD / DRD
       const { data: cardRows } = await supabase
