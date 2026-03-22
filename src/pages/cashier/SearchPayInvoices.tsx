@@ -548,28 +548,14 @@ const SearchPayInvoices: React.FC = () => {
         )}
 
         {/* Modals */}
-        <ChequeDetailModal
-          open={showChequeModal}
-          onClose={() => { setShowChequeModal(false); setPendingMethodId(null); }}
-          onSave={handleChequeDetailsSave}
-          initialData={pendingMethod ? {
-            mop_number: pendingMethod.mop_number,
-            bank_code: pendingMethod.bank_code,
-            cheque_date: pendingMethod.cheque_date,
-            mop_account_number: pendingMethod.mop_account_number,
-            mop_notes1: pendingMethod.mop_notes1,
-          } : undefined}
-        />
-        <CardDetailModal
-          open={showCardModal}
-          onClose={() => { setShowCardModal(false); setPendingMethodId(null); }}
-          onSave={handleCardDetailsSave}
-          initialData={pendingMethod ? {
-            credit_card_code: pendingMethod.credit_card_code,
-            mop_number: pendingMethod.mop_number,
-            expiration_date: pendingMethod.expiration_date,
-            mop_notes1: pendingMethod.mop_notes1,
-          } : undefined}
+        <PaymentMethodModal
+          open={showMethodModal}
+          onOpenChange={handleMethodModalClose}
+          onSave={handleMethodModalSave}
+          editRow={editingMethod}
+          mopTypes={mopTypes}
+          enabledCurrencies={enabledCurrencies}
+          baseCurrCode={baseCurrCode}
         />
         <InvoiceCancelModal
           open={showCancelModal}
