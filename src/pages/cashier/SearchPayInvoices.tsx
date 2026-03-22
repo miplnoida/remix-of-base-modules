@@ -163,6 +163,12 @@ const SearchPayInvoices: React.FC = () => {
     return m;
   }, [invoiceStatuses]);
 
+  const invoiceTypeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (invoiceTypes || []).forEach(t => m.set(t.code, t.description));
+    return m;
+  }, [invoiceTypes]);
+
   const getStatusBadge = (status: string) => {
     const label = statusMap.get(status) || status;
     const variant = status === 'C' ? 'destructive' : status === 'P' ? 'secondary' : status === 'O' ? 'default' : 'outline';
