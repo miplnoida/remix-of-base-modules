@@ -436,6 +436,14 @@ const C3Payments: React.FC = () => {
             <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
           </Button>
           <div className="w-px bg-border mx-1" />
+          <Button
+            variant="outline" size="sm"
+            disabled={selectedComponents.length === 0 || methods.length === 0}
+            onClick={() => setShowAllocationPreview(true)}
+          >
+            <Eye className="h-4 w-4 mr-1" /> Preview Allocation
+          </Button>
+          <div className="w-px bg-border mx-1" />
           <Button onClick={resetForm} variant="outline" size="sm" disabled={isEntry && methods.length === 0 && selectedComponents.length === 0 && !payerInfo}>
             <PlusCircle className="h-4 w-4 mr-1" /> New Payment
           </Button>
