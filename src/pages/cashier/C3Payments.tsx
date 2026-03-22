@@ -26,6 +26,7 @@ import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
+import { AllocationPreviewModal } from '@/components/payments/AllocationPreviewModal';
 import { PaymentHeaderForm } from '@/components/payments/PaymentHeaderForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
