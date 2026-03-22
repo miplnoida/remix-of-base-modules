@@ -26,7 +26,9 @@ serve(async (req) => {
 
     const body = await req.json();
     const tableName: string = body.tableName;
-    const batchSize: number = body.batchSize || 200;
+    const offset: number = body.offset || 0;
+    const limit: number = body.limit || 500;
+    const conflictColumn: string = body.conflictColumn || "id";
 
     if (!tableName) {
       return new Response(
@@ -35,11 +37,10 @@ serve(async (req) => {
       );
     }
 
-    // Only allow specific tables for safety
-    const allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies"];
+    const allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies", "ip_depend", "ip_self_employ"];
     if (!allowedTables.includes(tableName)) {
       return new Response(
-        JSON.stringify({ error: `Table '${tableName}' is not allowed for bulk transfer. Allowed: ${allowedTables.join(", ")}` }),
+        JSON.stringify({ error: `Table '${tableName}' not allowed.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -47,82 +48,55 @@ serve(async (req) => {
     const testClient = createClient(testUrl, testServiceKey);
     const liveClient = createClient(liveUrl, liveKey);
 
-    let offset = 0;
-    let totalInserted = 0;
-    let totalErrors = 0;
-    const errors: string[] = [];
-
-    // Get total count
-    const { count } = await testClient
+    // Fetch batch from test
+    const { data: records, error: fetchError } = await testClient
       .from(tableName)
-      .select("*", { count: "exact", head: true });
+      .select("*")
+      .range(offset, offset + limit - 1);
 
-    const totalRecords = count || 0;
+    if (fetchError) {
+      return new Response(
+        JSON.stringify({ error: `Fetch error: ${fetchError.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    while (offset < totalRecords) {
-      // Fetch batch from test
-      const { data: records, error: fetchError } = await testClient
-        .from(tableName)
-        .select("*")
-        .range(offset, offset + batchSize - 1);
+    if (!records || records.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: "No more records", inserted: 0, offset }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      if (fetchError) {
-        errors.push(`Fetch error at offset ${offset}: ${fetchError.message}`);
-        break;
+    // Upsert into live
+    const { error: upsertError } = await liveClient
+      .from(tableName)
+      .upsert(records as any[], { onConflict: conflictColumn, ignoreDuplicates: false });
+
+    if (upsertError) {
+      // Fallback: individual upserts
+      let ok = 0, fail = 0;
+      const errs: string[] = [];
+      for (const record of records) {
+        const { error: e } = await liveClient
+          .from(tableName)
+          .upsert(record as any, { onConflict: conflictColumn, ignoreDuplicates: false });
+        if (e) { fail++; if (errs.length < 5) errs.push(e.message); } else { ok++; }
       }
-
-      if (!records || records.length === 0) break;
-
-      // Upsert batch into live
-      const { error: upsertError } = await liveClient
-        .from(tableName)
-        .upsert(records as any[], { 
-          onConflict: tableName === "er_master" ? "regno" : "id",
-          ignoreDuplicates: false 
-        });
-
-      if (upsertError) {
-        errors.push(`Upsert error at offset ${offset}: ${upsertError.message}`);
-        // Try individual inserts for this batch
-        for (const record of records) {
-          const { error: singleError } = await liveClient
-            .from(tableName)
-            .upsert(record as any, { 
-              onConflict: tableName === "er_master" ? "regno" : "id",
-              ignoreDuplicates: false 
-            });
-          if (singleError) {
-            totalErrors++;
-            if (errors.length < 20) {
-              errors.push(`Record error: ${singleError.message}`);
-            }
-          } else {
-            totalInserted++;
-          }
-        }
-      } else {
-        totalInserted += records.length;
-      }
-
-      offset += batchSize;
+      return new Response(
+        JSON.stringify({ success: true, offset, fetched: records.length, inserted: ok, failed: fail, errors: errs, nextOffset: offset + limit }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        tableName,
-        totalRecordsInTest: totalRecords,
-        totalInserted,
-        totalErrors,
-        errors: errors.slice(0, 20),
-      }),
+      JSON.stringify({ success: true, offset, fetched: records.length, inserted: records.length, failed: 0, nextOffset: offset + limit }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Transfer error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
