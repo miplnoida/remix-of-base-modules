@@ -149,7 +149,8 @@ const PaymentHistoryManagement = () => {
   ): Promise<Record<string, string>> => {
     const nameMap: Record<string, string> = {};
     const erIds = [...new Set(headers.filter(h => h.payer_type === 'ER').map(h => h.payer_id))];
-    const nonErIds = [...new Set(headers.filter(h => h.payer_type !== 'ER').map(h => h.payer_id))];
+    const apIds = [...new Set(headers.filter(h => h.payer_type === 'AP').map(h => h.payer_id))];
+    const nonErNonApIds = [...new Set(headers.filter(h => h.payer_type !== 'ER' && h.payer_type !== 'AP').map(h => h.payer_id))];
 
     const promises: Promise<void>[] = [];
 
@@ -161,10 +162,18 @@ const PaymentHistoryManagement = () => {
         })()
       );
     }
-    if (nonErIds.length > 0) {
+    if (apIds.length > 0) {
       promises.push(
         (async () => {
-          const { data } = await supabase.from('ip_master').select('ssn, firstname, surname').in('ssn', nonErIds);
+          const { data } = await supabase.from('cn_payer').select('payer_id, payer_name').eq('payer_type', 'AP').in('payer_id', apIds);
+          data?.forEach(r => { nameMap[r.payer_id] = r.payer_name || r.payer_id; });
+        })()
+      );
+    }
+    if (nonErNonApIds.length > 0) {
+      promises.push(
+        (async () => {
+          const { data } = await supabase.from('ip_master').select('ssn, firstname, surname').in('ssn', nonErNonApIds);
           data?.forEach(r => {
             nameMap[r.ssn] = `${r.firstname || ''} ${r.surname || ''}`.trim() || r.ssn;
           });
