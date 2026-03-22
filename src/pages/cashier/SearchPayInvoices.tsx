@@ -19,6 +19,7 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { useInvoiceActions } from '@/hooks/useInvoiceActions';
 import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
+import { InvoiceDetailModal } from '@/components/payments/InvoiceDetailModal';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
@@ -36,6 +37,20 @@ function useInvoiceStatuses() {
         .select('code, description')
         .eq('is_active', true)
         .order('description');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+}
+
+function useInvoiceTypes() {
+  return useQuery({
+    queryKey: ['tb_invoice_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tb_invoice_types')
+        .select('code, description')
+        .eq('is_active', true);
       if (error) throw error;
       return data as { code: string; description: string }[];
     },
@@ -82,6 +97,10 @@ const SearchPayInvoices: React.FC = () => {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [selectedInvoiceNumber, setSelectedInvoiceNumber] = useState<string>('');
 
+  // Detail modal
+  const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
   // Shortlisted invoices
   const [shortlist, setShortlist] = useState<InvoiceRow[]>([]);
 
@@ -97,6 +116,7 @@ const SearchPayInvoices: React.FC = () => {
   const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   const { data: invoiceStatuses } = useInvoiceStatuses();
+  const { data: invoiceTypes } = useInvoiceTypes();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
 
   const { data: mopTypes = [] } = useQuery({
@@ -142,6 +162,12 @@ const SearchPayInvoices: React.FC = () => {
     (invoiceStatuses || []).forEach(s => m.set(s.code, s.description));
     return m;
   }, [invoiceStatuses]);
+
+  const invoiceTypeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (invoiceTypes || []).forEach(t => m.set(t.code, t.description));
+    return m;
+  }, [invoiceTypes]);
 
   const getStatusBadge = (status: string) => {
     const label = statusMap.get(status) || status;
@@ -398,8 +424,8 @@ const SearchPayInvoices: React.FC = () => {
                       const payable = isPayable(inv);
                       const selected = shortlistIds.has(inv.id);
                       return (
-                        <TableRow key={inv.id} className={`${inv.status === 'C' ? 'opacity-60' : ''} ${selected ? 'bg-primary/5' : ''}`}>
-                          <TableCell>
+                        <TableRow key={inv.id} className={`cursor-pointer ${inv.status === 'C' ? 'opacity-60' : ''} ${selected ? 'bg-primary/5' : ''}`} onClick={() => { setDetailInvoiceId(inv.id); setShowDetailModal(true); }}>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox checked={selected} onCheckedChange={() => toggleShortlist(inv)} disabled={!payable} />
                           </TableCell>
                           <TableCell className="font-medium">{inv.invoice_number}</TableCell>
@@ -409,14 +435,14 @@ const SearchPayInvoices: React.FC = () => {
                               <span className="block text-xs text-muted-foreground">{inv.payer_id}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{inv.invoice_type}</TableCell>
+                          <TableCell>{invoiceTypeMap.get(inv.invoice_type) || inv.invoice_type}</TableCell>
                           <TableCell className="text-right font-mono">{formatCurrencyWithCode(inv.total_amount, inv.currency_code)}</TableCell>
                           <TableCell className="text-right font-mono">{formatCurrencyWithCode(inv.paid_amount || 0, inv.currency_code)}</TableCell>
                           <TableCell className="text-right font-mono font-semibold">{formatCurrencyWithCode(inv.outstanding_amount || 0, inv.currency_code)}</TableCell>
                           <TableCell>{inv.due_date ? formatDisplayDate(inv.due_date) : '-'}</TableCell>
                           <TableCell>{getStatusBadge(inv.status)}</TableCell>
                           <TableCell className="text-center">{inv.reprint_times || 0}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
                               <Button variant="outline" size="sm" onClick={() => handleReprint(inv.id)} disabled={inv.status === 'C' || invoiceActions.isLoading} title="Re-Print Invoice">
                                 <Printer className="h-3.5 w-3.5" />
@@ -642,6 +668,13 @@ const SearchPayInvoices: React.FC = () => {
           onConfirm={handleCancelConfirm}
           isLoading={invoiceActions.isLoading}
           invoiceNumber={selectedInvoiceNumber}
+        />
+        <InvoiceDetailModal
+          open={showDetailModal}
+          onOpenChange={setShowDetailModal}
+          invoiceId={detailInvoiceId}
+          invoiceTypeMap={invoiceTypeMap}
+          statusMap={statusMap}
         />
       </div>
     </BatchSelectionGuard>
