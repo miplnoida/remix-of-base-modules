@@ -80,6 +80,7 @@ const C3Payments: React.FC = () => {
 
   // Modals
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showAllocationPreview, setShowAllocationPreview] = useState(false);
 
   // Refs for auto-focus
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
