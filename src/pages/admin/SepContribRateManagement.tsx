@@ -30,9 +30,11 @@ interface ContribRate {
   sep_penalty_percent: number | null;
 }
 
-interface IncomeCategory {
-  category_code: string;
-  wage_upper: number | null;
+interface WageCategory {
+  category_id: number;
+  category: string;
+  weekly_income: number;
+  weekly_contribution: number;
 }
 
 const MODULE_NAME = "self_employed_contrib_rates";
@@ -58,16 +60,14 @@ const SepContribRateManagement = () => {
     },
   });
 
-  const { data: incomeCategories = [] } = useQuery({
-    queryKey: ["tb_income_cat_lookup"],
+  const { data: wageCategories = [] } = useQuery({
+    queryKey: ["c3_wage_category_lookup"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("tb_income_cat").select("category_code, wage_upper").order("category_code");
+      const { data, error } = await supabase.from("c3_wage_category").select("category_id, category, weekly_income, weekly_contribution").order("weekly_income");
       if (error) throw error;
-      return data as IncomeCategory[];
+      return data as WageCategory[];
     },
   });
-
-  const wageOptions = incomeCategories.filter((c) => c.wage_upper != null);
 
   const saveMutation = useMutation({
     mutationFn: async (record: ContribRate) => {
@@ -116,8 +116,8 @@ const SepContribRateManagement = () => {
   };
 
   const getWageLabel = (wc: number) => {
-    const cat = incomeCategories.find((c) => Number(c.wage_upper) === wc);
-    return cat ? `Cat ${cat.category_code} — $${Number(cat.wage_upper).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
+    const cat = wageCategories.find((c) => Number(c.weekly_income) === wc);
+    return cat ? `Cat ${cat.category} — $${Number(cat.weekly_income).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
   };
 
   const filtered = rates.filter((r) =>
