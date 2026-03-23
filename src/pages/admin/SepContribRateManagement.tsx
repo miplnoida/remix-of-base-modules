@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +38,11 @@ interface IncomeCategory {
 
 const MODULE_NAME = "self_employed_contrib_rates";
 
-const SepContribRateManagement = () => {
+interface SepContribRateManagementProps {
+  embedMode?: boolean;
+}
+
+const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ embedMode = false }) => {
   const queryClient = useQueryClient();
   const { can } = useActionPermissions(MODULE_NAME);
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,9 +160,9 @@ const SepContribRateManagement = () => {
     });
   };
 
-  return (
-    <PermissionWrapper moduleName={MODULE_NAME}>
-      <div className="container mx-auto p-6 space-y-6">
+  const content = (
+      <div className={embedMode ? "space-y-6" : "container mx-auto p-6 space-y-6"}>
+        {!embedMode && (
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">SEP Contribution Rates</h1>
@@ -170,6 +174,14 @@ const SepContribRateManagement = () => {
             </Button>
           )}
         </div>
+        )}
+        {embedMode && can("create") && (
+          <div className="flex justify-end">
+            <Button onClick={openAdd}>
+              <Plus className="mr-2 h-4 w-4" /> Add Rate
+            </Button>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
@@ -312,6 +324,13 @@ const SepContribRateManagement = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+  );
+
+  if (embedMode) return content;
+
+  return (
+    <PermissionWrapper moduleName={MODULE_NAME}>
+      {content}
     </PermissionWrapper>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList } from 'lucide-react';
+import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
@@ -16,6 +16,8 @@ import { HolidayPayPolicyExceptionsTab } from '@/components/admin/c3-configurati
 import { IncomeCodePolicyDefaultTab } from '@/components/admin/c3-configuration/IncomeCodePolicyDefaultTab';
 import { IncomeCodePolicyExceptionsTab } from '@/components/admin/c3-configuration/IncomeCodePolicyExceptionsTab';
 import { C3FilingConfigTab } from '@/components/admin/c3-configuration/C3FilingConfigTab';
+import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
+import CyberSourceSettings from '@/pages/c3Management/CyberSourceSettings';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
@@ -81,6 +83,16 @@ const C3ConfigurationPage: React.FC = () => {
             <span className="hidden sm:inline">IC Exceptions</span>
             <span className="sm:hidden">IC Exc</span>
           </TabsTrigger>
+          <TabsTrigger value="sep-rates" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            <span className="hidden sm:inline">SE Contribution Rates</span>
+            <span className="sm:hidden">SE Rates</span>
+          </TabsTrigger>
+          <TabsTrigger value="cybersource" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">CyberSource Settings</span>
+            <span className="sm:hidden">CyberSource</span>
+          </TabsTrigger>
           <TabsTrigger value="audit-logs" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">Audit Logs</span>
@@ -127,6 +139,14 @@ const C3ConfigurationPage: React.FC = () => {
 
         <TabsContent value="income-code-exceptions" className="mt-6">
           <IncomeCodePolicyExceptionsTab />
+        </TabsContent>
+
+        <TabsContent value="sep-rates" className="mt-6">
+          <SepContribRateManagement embedMode />
+        </TabsContent>
+
+        <TabsContent value="cybersource" className="mt-6">
+          <CyberSourceSettings embedMode />
         </TabsContent>
 
         <TabsContent value="audit-logs" className="mt-6">
