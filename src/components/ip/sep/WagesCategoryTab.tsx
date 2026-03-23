@@ -11,8 +11,14 @@ import { Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
-import { SelfEmployedService, SelfEmployCategory } from '@/services/selfEmployedService';
+import { SelfEmployCategory } from '@/services/selfEmployedService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface IncomeCategoryOption {
+  category_code: string;
+  wage_upper: number | null;
+}
 
 interface WagesCategoryTabProps {
   ssn: string;
@@ -24,7 +30,7 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
   const [showDialog, setShowDialog] = useState(false);
   const [editingRecord, setEditingRecord] = useState<SelfEmployCategory | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SelfEmployCategory | null>(null);
-  const [wageCatOptions, setWageCatOptions] = useState<number[]>([]);
+  const [incomeCatOptions, setIncomeCatOptions] = useState<IncomeCategoryOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -37,10 +43,14 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
     const load = async () => {
       setLoadingOptions(true);
       try {
-        const options = await SelfEmployedService.getWageCategoryOptions();
-        setWageCatOptions(options);
+        const { data, error } = await (supabase as any)
+          .from('tb_income_cat')
+          .select('category_code, wage_upper')
+          .order('category_code');
+        if (error) throw error;
+        setIncomeCatOptions((data || []) as IncomeCategoryOption[]);
       } catch (err: any) {
-        console.error('Failed to load wage category options:', err);
+        console.error('Failed to load income category options:', err);
       } finally {
         setLoadingOptions(false);
       }
