@@ -18,10 +18,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { parseE164Phone, composeE164 } from '@/services/wizAdminApiService';
 
-interface LocalWageCategory {
-  category_id: number;
-  category: string;
-  weekly_income: number;
+interface IncomeCategoryOption {
+  category_code: string;
+  wage_upper: number;
   weekly_contribution: number;
 }
 
@@ -38,8 +37,9 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
-  const [categories, setCategories] = useState<LocalWageCategory[]>([]);
+  const [categories, setCategories] = useState<IncomeCategoryOption[]>([]);
   const [countries, setCountries] = useState<WizCountry[]>([]);
+  const [wizCategoryMap, setWizCategoryMap] = useState<Map<string, number>>(new Map());
 
   // Phone state
   const [mobileDialCode, setMobileDialCode] = useState('+1869');
@@ -53,19 +53,29 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const [detailsRes, catResult, countryRes] = await Promise.all([
+        const [detailsRes, catResult, ratesResult, wizCatResult, countryRes] = await Promise.all([
           getSelfEmployedDetails(Number(selfEmployedId)),
-          supabase.from('c3_wage_category').select('*').order('weekly_income'),
+          (supabase as any).from('tb_income_cat').select('category_code, wage_upper').order('wage_upper'),
+          (supabase as any).from('tb_self_emp_contrib_rate').select('wage_cat, sep_ss_percent, effstart, effend').order('effstart', { ascending: false }),
+          supabase.from('c3_wage_category').select('category_id, category, weekly_income'),
           getCountries(),
         ]);
         const d = detailsRes.data as WizSelfEmployedDetails;
+
+        // Build wizard category_id → category_code mapping
+        const wizCats = (wizCatResult.data || []) as { category_id: number; category: string; weekly_income: number }[];
+        
+        // Resolve the stored category_Type (wizard category_id) to category_code for form value
+        const wizMatch = wizCats.find(w => w.category_id === d.category_Type);
+        const resolvedCategoryCode = wizMatch?.category || d.category_Type?.toString() || '';
+
         setForm({
           socSecNum: d.socSecNum || '',
           email: d.email || '',
           firstName: d.firstName || '',
           lastName: d.lastName || '',
           birthDate: d.birthDate || '',
-          category_Type: d.category_Type?.toString() || '',
+          category_Type: resolvedCategoryCode,
           phone: d.phone || '',
           tin: d.tin || '',
           maritalStat: d.maritalStat || '',
@@ -88,7 +98,28 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         setMobileDialCode(parsed.dialCode);
         setMobileLocal(parsed.localNumber);
 
-        setCategories((catResult.data || []) as LocalWageCategory[]);
+        // Build categories with weekly_contribution from current rates
+        const incCats = (catResult.data || []) as { category_code: string; wage_upper: number }[];
+        const rates = (ratesResult.data || []) as { wage_cat: number; sep_ss_percent: number; effstart: string; effend: string }[];
+        const now = new Date();
+        const enriched: IncomeCategoryOption[] = incCats.map(cat => {
+          const activeRate = rates.find(r =>
+            Number(r.wage_cat) === Number(cat.wage_upper) &&
+            new Date(r.effstart) <= now &&
+            new Date(r.effend) >= now
+          );
+          const ssPercent = activeRate?.sep_ss_percent ?? 0;
+          return {
+            category_code: cat.category_code,
+            wage_upper: Number(cat.wage_upper),
+            weekly_contribution: Number(((Number(cat.wage_upper) * ssPercent) / 100).toFixed(2)),
+          };
+        });
+        setCategories(enriched);
+        // Build category_code → wizard category_id map for save
+        const codeToIdMap = new Map<string, number>();
+        wizCats.forEach(w => { if (w.category) codeToIdMap.set(w.category, w.category_id); });
+        setWizCategoryMap(codeToIdMap);
         setCountries(countryRes.data?.countries || []);
       } catch (err: any) {
         toast.error(err.message || 'Failed to load details');
@@ -150,7 +181,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         zip: form.zip || '',
         country: form.country || '',
         occupation: form.occupation || '',
-        category_Type: form.category_Type ? Number(form.category_Type) : null,
+        category_Type: form.category_Type ? (wizCategoryMap.get(form.category_Type) ?? Number(form.category_Type)) : null,
         question1: form.question1 || '',
         answer1: form.answer1 || '',
         question2: form.question2 || '',
@@ -177,8 +208,8 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   }
 
   // Build category description matching legacy format
-  const getCategoryLabel = (cat: LocalWageCategory) =>
-    `${cat.category} (Weekly Income : ${Number(cat.weekly_income).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
+  const getCategoryLabel = (cat: IncomeCategoryOption) =>
+    `${cat.category_code} (Weekly Income : ${Number(cat.wage_upper).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
 
   return (
     <div className="space-y-4 p-6">
@@ -237,7 +268,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
                   {categories.map(cat => (
-                    <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
+                    <SelectItem key={cat.category_code} value={cat.category_code}>
                       {getCategoryLabel(cat)}
                     </SelectItem>
                   ))}
