@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +23,8 @@ import { ER_STATUS_CODES } from '@/types/employerRegistration';
 import { exportToExcel, exportToPDF, ExportColumn, ExportData } from '@/utils/exportUtils';
 import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTablePagination } from '@/hooks/useTablePagination';
+import { TablePagination } from '@/components/shared/TablePagination';
 
 interface Filters {
   regno: string;
@@ -50,7 +52,6 @@ export default function EmployerRegistrationList() {
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Filters>({
     regno: '',
     name: '',
@@ -100,6 +101,19 @@ export default function EmployerRegistrationList() {
 
     return result;
   }, [employers, filters, searchText]);
+
+  const {
+    paginatedData,
+    pagination,
+    goToPage,
+    changePageSize,
+    resetPagination,
+  } = useTablePagination(filteredEmployers, 10);
+
+  // Reset to page 1 when filters, search, or tab change
+  useEffect(() => {
+    resetPagination();
+  }, [searchText, filters, activeTab]);
 
   const handleNewRegistration = () => {
     navigate('/employer-registration/new');
@@ -382,7 +396,7 @@ export default function EmployerRegistrationList() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">show</span>
-                <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(parseInt(v))}>
+                <Select value={pagination.pageSize.toString()} onValueChange={(v) => changePageSize(parseInt(v))}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
@@ -460,7 +474,7 @@ export default function EmployerRegistrationList() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredEmployers.slice(0, pageSize).map((employer) => (
+                    paginatedData.map((employer) => (
                       <TableRow key={employer.regno}>
                         <TableCell className="font-medium">{employer.regno}</TableCell>
                         <TableCell>{employer.name || '-'}</TableCell>
@@ -511,10 +525,13 @@ export default function EmployerRegistrationList() {
               </Table>
             </div>
 
-            {filteredEmployers.length > pageSize && (
-              <div className="mt-4 text-sm text-muted-foreground">
-                Showing 1 to {Math.min(pageSize, filteredEmployers.length)} of {filteredEmployers.length} entries
-              </div>
+            {filteredEmployers.length > 0 && (
+              <TablePagination
+                pagination={pagination}
+                onPageChange={goToPage}
+                onPageSizeChange={changePageSize}
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
             )}
           </CardContent>
         </Card>
