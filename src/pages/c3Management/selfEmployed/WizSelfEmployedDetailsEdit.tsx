@@ -81,7 +81,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         setMobileDialCode(parsed.dialCode);
         setMobileLocal(parsed.localNumber);
 
-        setCategories(catRes.data?.categories || []);
+        setCategories((catResult.data || []) as LocalWageCategory[]);
         setCountries(countryRes.data?.countries || []);
       } catch (err: any) {
         toast.error(err.message || 'Failed to load details');
