@@ -14,7 +14,7 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
-//import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
 import { formatDateForDisplay } from '@/lib/format-config';
 
