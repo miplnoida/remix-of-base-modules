@@ -14,7 +14,7 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
-import { useQuery } from '@tanstack/react-query';
+//import { useQuery } from '@tanstack/react-query';
 import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
 import { formatDateForDisplay } from '@/lib/format-config';
 
@@ -22,7 +22,7 @@ const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
   const { userCode } = useUserCode();
-  const [systemTotal, setSystemTotal] = useState<number>(0);
+  //const [systemTotal, setSystemTotal] = useState<number>(0);
   const [systemTotalLoading, setSystemTotalLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
@@ -399,14 +399,14 @@ const CashDetails: React.FC = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          <Card>
+          {/* <Card>
             <CardContent className="p-3 text-center">
               <span className="text-xs text-muted-foreground block">System Total</span>
               {systemTotalLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : (
                 <p className="text-lg font-bold">{formatCurrency(systemTotal)}</p>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
           <Card>
             <CardContent className="p-3 text-center">
               <span className="text-xs text-muted-foreground block">Cash (CSH)</span>
@@ -440,7 +440,7 @@ const CashDetails: React.FC = () => {
         </div>
 
         {/* Variance */}
-        <Card>
+        {/* <Card>
           <CardContent className="py-2 px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ const CashDetails: React.FC = () => {
               </span>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Currency Tabs for cash denominations */}
         {denomLoading ? (
