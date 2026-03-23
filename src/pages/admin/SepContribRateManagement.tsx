@@ -30,11 +30,10 @@ interface ContribRate {
   sep_penalty_percent: number | null;
 }
 
-interface WageCategory {
-  category_id: number;
-  category: string;
-  weekly_income: number;
-  weekly_contribution: number;
+interface IncomeCategory {
+  category_code: string;
+  wage_upper: number | null;
+  appeal: string | null;
 }
 
 const MODULE_NAME = "self_employed_contrib_rates";
@@ -60,12 +59,12 @@ const SepContribRateManagement = () => {
     },
   });
 
-  const { data: wageCategories = [] } = useQuery({
-    queryKey: ["c3_wage_category_lookup"],
+  const { data: incomeCategories = [] } = useQuery({
+    queryKey: ["tb_income_cat"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("c3_wage_category").select("category_id, category, weekly_income, weekly_contribution").order("weekly_income");
+      const { data, error } = await (supabase as any).from("tb_income_cat").select("category_code, wage_upper, appeal").order("category_code");
       if (error) throw error;
-      return data as WageCategory[];
+      return data as IncomeCategory[];
     },
   });
 
@@ -116,8 +115,8 @@ const SepContribRateManagement = () => {
   };
 
   const getWageLabel = (wc: number) => {
-    const cat = wageCategories.find((c) => Number(c.weekly_income) === wc);
-    return cat ? `Cat ${cat.category} — $${Number(cat.weekly_income).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
+    const cat = incomeCategories.find((c) => Number(c.wage_upper) === wc);
+    return cat ? `Cat ${cat.category_code} — $${Number(cat.wage_upper).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
   };
 
   const filtered = rates.filter((r) =>
@@ -275,9 +274,9 @@ const SepContribRateManagement = () => {
                 <Select value={form.wage_cat} onValueChange={(v) => setForm({ ...form, wage_cat: v })}>
                   <SelectTrigger><SelectValue placeholder="Select wage category" /></SelectTrigger>
                   <SelectContent>
-                    {wageCategories.map((c) => (
-                      <SelectItem key={c.category_id} value={String(c.weekly_income)}>
-                        Cat {c.category} — ${Number(c.weekly_income).toFixed(2)}
+                    {incomeCategories.map((c) => (
+                      <SelectItem key={c.category_code} value={String(c.wage_upper)}>
+                        Cat {c.category_code} — ${Number(c.wage_upper ?? 0).toFixed(2)}
                       </SelectItem>
                     ))}
                   </SelectContent>
