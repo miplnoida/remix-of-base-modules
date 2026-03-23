@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
+import { Calendar, Layers, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
 import { LevySlabsConfigTab } from '@/components/admin/c3-configuration/LevySlabsConfigTab';
-import { C3AuditLogsTab } from '@/components/admin/c3-configuration/C3AuditLogsTab';
+
 import { C3PublishButton } from '@/components/admin/c3-configuration/C3PublishButton';
 import { C3SyncHistoryTab } from '@/components/admin/c3-configuration/C3SyncHistoryTab';
 import { BonusPolicyDefaultTab } from '@/components/admin/c3-configuration/BonusPolicyDefaultTab';
