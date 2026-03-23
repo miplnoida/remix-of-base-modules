@@ -116,6 +116,10 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
           };
         });
         setCategories(enriched);
+        // Build category_code → wizard category_id map for save
+        const codeToIdMap = new Map<string, number>();
+        wizCats.forEach(w => { if (w.category) codeToIdMap.set(w.category, w.category_id); });
+        setWizCategoryMap(codeToIdMap);
         setCountries(countryRes.data?.countries || []);
       } catch (err: any) {
         toast.error(err.message || 'Failed to load details');
