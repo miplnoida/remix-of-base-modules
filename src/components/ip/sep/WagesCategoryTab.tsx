@@ -198,7 +198,14 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                       <TableCell className="font-mono">{cat.self_ref_no}</TableCell>
                       <TableCell>{cat.effective_start_date ? formatDisplayDate(cat.effective_start_date) : '-'}</TableCell>
                       <TableCell>{cat.effective_end_date ? formatDisplayDate(cat.effective_end_date) : '-'}</TableCell>
-                      <TableCell>{cat.wage_category ?? '-'}</TableCell>
+                      <TableCell>
+                        {cat.wage_category != null
+                          ? (() => {
+                              const ic = incomeCatOptions.find(c => Number(c.wage_upper) === Number(cat.wage_category));
+                              return ic ? `Cat ${ic.category_code} — $${Number(ic.wage_upper ?? 0).toFixed(2)}` : `$${Number(cat.wage_category).toFixed(2)}`;
+                            })()
+                          : '-'}
+                      </TableCell>
                       {isEditable && (
                         <TableCell>
                           <div className="flex gap-1">
