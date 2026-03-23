@@ -30,11 +30,10 @@ interface ContribRate {
   sep_penalty_percent: number | null;
 }
 
-interface WageCategory {
-  category_id: number;
-  category: string;
-  weekly_income: number;
-  weekly_contribution: number;
+interface IncomeCategory {
+  category_code: string;
+  wage_upper: number | null;
+  appeal: string | null;
 }
 
 const MODULE_NAME = "self_employed_contrib_rates";
