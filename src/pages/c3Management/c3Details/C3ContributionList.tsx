@@ -139,18 +139,18 @@ const C3ContributionList: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Select Employer</Label>
-              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Employer..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.company_name} ({c.registration_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={selectedCompanyId}
+                onValueChange={setSelectedCompanyId}
+                placeholder="Select Employer..."
+                searchPlaceholder="Search by name or code..."
+                emptyMessage="No employers found."
+                options={companies.map(c => ({
+                  value: String(c.id),
+                  label: `${c.company_name} (${c.registration_number})`,
+                  searchText: `${c.registration_number}`,
+                }))}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Period From:</Label>

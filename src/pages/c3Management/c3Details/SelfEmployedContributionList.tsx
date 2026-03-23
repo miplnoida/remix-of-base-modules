@@ -125,16 +125,18 @@ const SelfEmployedContributionList: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Select Self Employee</Label>
-              <Select value={selectedSeId} onValueChange={setSelectedSeId}>
-                <SelectTrigger><SelectValue placeholder="Select Self Employee..." /></SelectTrigger>
-                <SelectContent>
-                  {seList.map(s => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name} ({s.social_security_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={selectedSeId}
+                onValueChange={setSelectedSeId}
+                placeholder="Select Self Employee..."
+                searchPlaceholder="Search by name or SSN..."
+                emptyMessage="No self employed found."
+                options={seList.map(s => ({
+                  value: String(s.id),
+                  label: `${s.name} (${s.social_security_number})`,
+                  searchText: `${s.social_security_number}`,
+                }))}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Period From:</Label>
