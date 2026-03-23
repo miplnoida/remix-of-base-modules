@@ -525,10 +525,13 @@ export default function EmployerRegistrationList() {
               </Table>
             </div>
 
-            {filteredEmployers.length > pageSize && (
-              <div className="mt-4 text-sm text-muted-foreground">
-                Showing 1 to {Math.min(pageSize, filteredEmployers.length)} of {filteredEmployers.length} entries
-              </div>
+            {filteredEmployers.length > 0 && (
+              <TablePagination
+                pagination={pagination}
+                onPageChange={goToPage}
+                onPageSizeChange={changePageSize}
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
             )}
           </CardContent>
         </Card>
