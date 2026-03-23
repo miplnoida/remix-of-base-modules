@@ -18,10 +18,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { parseE164Phone, composeE164 } from '@/services/wizAdminApiService';
 
-interface LocalWageCategory {
-  category_id: number;
-  category: string;
-  weekly_income: number;
+interface IncomeCategoryOption {
+  category_code: string;
+  wage_upper: number;
   weekly_contribution: number;
 }
 
