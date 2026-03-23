@@ -37,7 +37,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
-  const [categories, setCategories] = useState<LocalWageCategory[]>([]);
+  const [categories, setCategories] = useState<IncomeCategoryOption[]>([]);
   const [countries, setCountries] = useState<WizCountry[]>([]);
 
   // Phone state
