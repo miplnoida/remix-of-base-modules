@@ -92,6 +92,8 @@ export interface EmployerApplicationDetail {
   date_acquired: string | null;
   previous_owner: string | null;
   previous_owner_reg_no: string | null;
+  previous_owner_address1: string | null;
+  previous_owner_address2: string | null;
   ownership_code: string | null;
   ownership_name: string | null;
   sector_code: string | null;
@@ -138,9 +140,20 @@ export interface EmployerApplicationDetail {
   employee_count: number | null;  // Mapped from total_employees
   payroll_frequency: string | null;
   
-  // Step 3: Key Officials
+  // Step 3: Contact & Reach - Location
   activity_type: string | null;
   activity_type_name: string | null;
+  village_code: string | null;
+  village_name: string | null;
+  inspector_code: string | null;
+  inspector_name: string | null;
+  
+  // Tech & Finance
+  computer_payroll: boolean | null;
+  make_model: string | null;
+  disk_tape: string | null;
+
+  // Key Officials
   officials: EmployerOfficial[];
   
   // Step 4: Contact & Reach
