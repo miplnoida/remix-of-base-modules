@@ -395,50 +395,67 @@ export default function EmployerApplications() {
               </div>
 
               {/* API-Driven Pagination */}
-              <div className="flex items-center justify-between pt-4 border-t mt-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t mt-4 gap-3">
                 <p className="text-sm text-muted-foreground">
-                  Showing {applications.length} of {totalRecords} results
+                  Showing {((currentPage - 1) * apiParams.limit) + 1}–{Math.min(currentPage * apiParams.limit, totalRecords)} of {totalRecords} results
                 </p>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage <= 1 || isFetching}
-                    onClick={() => goToPage(1)}
-                  >
+
+                <div className="flex items-center gap-2">
+                  {/* Results per page */}
+                  <div className="flex items-center gap-1.5 mr-4">
+                    <span className="text-sm text-muted-foreground">Rows:</span>
+                    <Select value={String(apiParams.limit)} onValueChange={(v) => changePageSize(Number(v))}>
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map(size => (
+                          <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Navigation */}
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1 || isFetching} onClick={() => goToPage(1)}>
                     <ChevronsLeft className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage <= 1 || isFetching}
-                    onClick={() => goToPage(currentPage - 1)}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage <= 1 || isFetching} onClick={() => goToPage(currentPage - 1)}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="px-3 text-sm font-medium">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage >= totalPages || isFetching}
-                    onClick={() => goToPage(currentPage + 1)}
-                  >
+
+                  {/* Page number buttons */}
+                  {(() => {
+                    const pages: number[] = [];
+                    const maxVisible = 5;
+                    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                    let end = Math.min(totalPages, start + maxVisible - 1);
+                    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+                    for (let i = start; i <= end; i++) pages.push(i);
+                    return pages.map(p => (
+                      <Button
+                        key={p}
+                        variant={p === currentPage ? 'default' : 'outline'}
+                        size="icon"
+                        className="h-8 w-8 text-xs"
+                        disabled={isFetching}
+                        onClick={() => goToPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    ));
+                  })()}
+
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages || isFetching} onClick={() => goToPage(currentPage + 1)}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage >= totalPages || isFetching}
-                    onClick={() => goToPage(totalPages)}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages || isFetching} onClick={() => goToPage(totalPages)}>
                     <ChevronsRight className="h-4 w-4" />
                   </Button>
+
+                  <span className="text-sm text-muted-foreground ml-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
                 </div>
               </div>
             </>
