@@ -478,6 +478,12 @@ import WizSelfEmployedList from '@/pages/c3Management/selfEmployed/WizSelfEmploy
 import WizSelfEmployedDetailsEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit';
 import WizSelfEmployedUserEdit from '@/pages/c3Management/selfEmployed/WizSelfEmployedUserEdit';
 
+// C3 Wizard Admin - Manage Users Module
+import WizEmployerUsers from '@/pages/c3Management/manageUsers/WizEmployerUsers';
+import WizSelfEmployedUsers from '@/pages/c3Management/manageUsers/WizSelfEmployedUsers';
+import WizRolePermission from '@/pages/c3Management/manageUsers/WizRolePermission';
+import WizRoleMaster from '@/pages/c3Management/manageUsers/WizRoleMaster';
+
 // C3 Wizard Admin - Payment Details
 import WizPaymentDetails from '@/pages/c3Management/payments/WizPaymentDetails';
 
