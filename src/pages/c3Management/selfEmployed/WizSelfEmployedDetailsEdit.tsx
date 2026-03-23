@@ -52,20 +52,29 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const [detailsRes, catResult, ratesResult, countryRes] = await Promise.all([
+        const [detailsRes, catResult, ratesResult, wizCatResult, countryRes] = await Promise.all([
           getSelfEmployedDetails(Number(selfEmployedId)),
           (supabase as any).from('tb_income_cat').select('category_code, wage_upper').order('wage_upper'),
           (supabase as any).from('tb_self_emp_contrib_rate').select('wage_cat, sep_ss_percent, effstart, effend').order('effstart', { ascending: false }),
+          supabase.from('c3_wage_category').select('category_id, category, weekly_income'),
           getCountries(),
         ]);
         const d = detailsRes.data as WizSelfEmployedDetails;
+
+        // Build wizard category_id → category_code mapping
+        const wizCats = (wizCatResult.data || []) as { category_id: number; category: string; weekly_income: number }[];
+        
+        // Resolve the stored category_Type (wizard category_id) to category_code for form value
+        const wizMatch = wizCats.find(w => w.category_id === d.category_Type);
+        const resolvedCategoryCode = wizMatch?.category || d.category_Type?.toString() || '';
+
         setForm({
           socSecNum: d.socSecNum || '',
           email: d.email || '',
           firstName: d.firstName || '',
           lastName: d.lastName || '',
           birthDate: d.birthDate || '',
-          category_Type: d.category_Type?.toString() || '',
+          category_Type: resolvedCategoryCode,
           phone: d.phone || '',
           tin: d.tin || '',
           maritalStat: d.maritalStat || '',
@@ -93,7 +102,6 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         const rates = (ratesResult.data || []) as { wage_cat: number; sep_ss_percent: number; effstart: string; effend: string }[];
         const now = new Date();
         const enriched: IncomeCategoryOption[] = incCats.map(cat => {
-          // Find current active rate for this wage_upper
           const activeRate = rates.find(r =>
             Number(r.wage_cat) === Number(cat.wage_upper) &&
             new Date(r.effstart) <= now &&
