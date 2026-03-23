@@ -95,9 +95,11 @@ const WizRoleMaster: React.FC = () => {
     }
   };
 
+  const isSystemRole = (roleId: number) => roleId >= 13 && roleId <= 25;
+
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-    if (deleteConfirm.role_id <= 6) {
+    if (isSystemRole(deleteConfirm.role_id)) {
       toast.error('You are not allowed to delete system default roles.');
       setDeleteConfirm(null);
       return;
@@ -125,7 +127,7 @@ const WizRoleMaster: React.FC = () => {
         {categoryRoles.map((role, idx) => (
           <TableRow key={role.role_id}>
             <TableCell>{idx + 1}</TableCell>
-            <TableCell className={role.role_id <= 6 ? 'text-primary' : ''}>{role.role_id}</TableCell>
+            <TableCell className={isSystemRole(role.role_id) ? 'text-primary' : ''}>{role.role_id}</TableCell>
             <TableCell className="text-primary font-medium">{role.role_name}</TableCell>
             <TableCell>{role.description || 'N/A'}</TableCell>
             <TableCell>
@@ -136,7 +138,7 @@ const WizRoleMaster: React.FC = () => {
                 <Button
                   variant="ghost" size="icon"
                   onClick={() => setDeleteConfirm(role)}
-                  disabled={role.role_id <= 6}
+                  disabled={isSystemRole(role.role_id)}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -246,7 +248,7 @@ const WizRoleMaster: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteConfirm && deleteConfirm.role_id <= 6
+              {deleteConfirm && isSystemRole(deleteConfirm.role_id)
                 ? 'You are not allowed to delete system default roles.'
                 : `Are you sure you want to delete role "${deleteConfirm?.role_name}"? This action cannot be undone.`}
             </AlertDialogDescription>
