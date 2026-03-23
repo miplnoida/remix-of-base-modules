@@ -237,7 +237,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
                   {categories.map(cat => (
-                    <SelectItem key={cat.categoryID} value={cat.categoryID.toString()}>
+                    <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
                       {getCategoryLabel(cat)}
                     </SelectItem>
                   ))}
