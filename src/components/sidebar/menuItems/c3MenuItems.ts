@@ -11,7 +11,8 @@ import {
   UserCheck,
   CreditCard,
   RefreshCw,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -98,9 +99,27 @@ export const c3MenuItems = [
         requiresPermission: "view_dashboard",
         subItems: [
           {
-            title: "Company Users",
-            url: "/c3-management/reports/users-history",
+            title: "Employers",
+            url: "/c3-management/manage-users/employer-users",
             icon: Users,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Self Employed",
+            url: "/c3-management/manage-users/self-employed-users",
+            icon: UserCheck,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Role Permission",
+            url: "/c3-management/manage-users/role-permission",
+            icon: Shield,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Role Master",
+            url: "/c3-management/manage-users/role-master",
+            icon: Shield,
             requiresPermission: "view_dashboard"
           }
         ]
