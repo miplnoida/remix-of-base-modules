@@ -70,7 +70,6 @@ export const EMPLOYER_APP_DEFAULT_PARAMS: EmployerApplicationApiParams = {
 
 export const EMPLOYER_STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
-  { value: 'in_progress', label: 'In Progress' },
   { value: 'submitted', label: 'Submitted' },
   { value: 'under_review', label: 'Under Review' },
   { value: 'approved', label: 'Approved' },
