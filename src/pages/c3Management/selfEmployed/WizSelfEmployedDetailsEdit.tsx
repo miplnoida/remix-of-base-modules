@@ -169,9 +169,9 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     );
   }
 
-  // Build category description for dropdown display
-  const getCategoryLabel = (cat: WizWageCategory) =>
-    `${cat.categoryCode} (Weekly Income : ${cat.weeklyIncome.toFixed(2)}, Weekly Contribution : ${cat.weeklyContribution.toFixed(2)} )`;
+  // Build category description matching legacy format
+  const getCategoryLabel = (cat: LocalWageCategory) =>
+    `${cat.category} (Weekly Income : ${Number(cat.weekly_income).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
 
   return (
     <div className="space-y-4 p-6">
