@@ -248,7 +248,7 @@ const WizRoleMaster: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteConfirm && deleteConfirm.role_id <= 6
+              {deleteConfirm && isSystemRole(deleteConfirm.role_id)
                 ? 'You are not allowed to delete system default roles.'
                 : `Are you sure you want to delete role "${deleteConfirm?.role_name}"? This action cannot be undone.`}
             </AlertDialogDescription>
