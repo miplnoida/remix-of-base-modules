@@ -1,64 +1,54 @@
 
 
-# Move SEP Contrib Rates & CyberSource Settings into C3 Configuration
+# Make Employer Applications Fully Functional (Matching IP Applications Pattern)
 
 ## Summary
 
-Integrate two existing components — **SepContribRateManagement** and **CyberSourceSettings** — as new tabs inside the C3 Configuration page at `/admin/c3-configuration`. Add server-side audit logging via database triggers for SEP contribution rate changes.
+The Employer Applications screens already exist but have gaps compared to the Insured Person implementation. The main work is: updating the workflow binding config to use "V2", activating that workflow, aligning the list page filtering with the IP pattern, and adding meeting integration to the detail page.
+
+## Current State
+
+- **List page** (`EmployerApplications.tsx`): Working — fetches from external API via proxy, has workflow binding, workflow status display, sorting, pagination. Uses simple search + status dropdown.
+- **Detail page** (`EmployerApplicationDetailPage.tsx`): Working — fetches detail via proxy, shows tabs (Business, Profile, Contact, Address, Workforce, Officials, Owners, Locations, Documents, Declaration), has WorkflowActionButtons and approve/reject dialog.
+- **Hooks**: `useEmployerApplications`, `useEmployerApplicationDetail`, workflow binding all functional.
+- **Workflow Config**: Currently points to `72795139...` ("Online Employer Registration Review Workflow", **inactive**). The user wants V2: `bf8e92bc-527f-4c67-8c65-1ed5df59fb84` (also inactive, has 1 step).
 
 ## Changes
 
-### 1. Add two new tabs to `C3ConfigurationPage.tsx`
+### 1. Activate "Online Employer Registration Review Workflow V2" and update config
 
-- Import `SepContribRateManagement` and `CyberSourceSettings`
-- Add tab triggers: **"SE Contribution Rates"** and **"CyberSource Settings"**
-- Add corresponding `TabsContent` sections rendering each component
-- Add icons (Calculator for SE rates, CreditCard for CyberSource)
+- **Database**: Set `is_active = true` on workflow `bf8e92bc-527f-4c67-8c65-1ed5df59fb84`.
+- **Code** (`useOnlineApplicationWorkflowBinding.ts`): Update the `'employer'` entry in `WORKFLOW_CONFIGS` to point to the V2 workflow ID and name.
 
-### 2. Refactor `SepContribRateManagement.tsx` for embeddable use
+### 2. Align list page filtering with IP pattern
 
-- Remove the outer `<PermissionWrapper>` and page-level heading/container since the parent C3 Configuration page already handles layout
-- Export a version that renders just the Card content (table + dialogs) so it fits naturally as a tab
-- Keep all existing Supabase queries, mutations, and permission checks (`useActionPermissions`) intact
+Update `EmployerApplications.tsx` to match `InsuredPersonApplications.tsx` filtering:
+- Replace the single search bar with separate **Name**, **Reference Number** filter fields (matching IP pattern).
+- Change status filter to use **Pending** (default, excludes closed/approved/rejected), **Closed**, **Rejected** options matching IP.
+- Use workflow status (from `workflowStatusMap`) as the effective status for filtering (same logic as IP).
+- Add exclusion of approved/completed employer applications from the list (fetch from `workflow_instances` like IP does with `fetchApprovedConvertedRefs`).
 
-### 3. Refactor `CyberSourceSettings.tsx` for embeddable use
+### 3. Add meeting integration to detail page
 
-- Remove `<PageShell>` wrapper and breadcrumbs (parent page provides context)
-- Remove `useNavigate` since it's no longer a standalone page
-- Export content that renders the table + modals directly as a tab section
-- Keep all existing `wizReconciliationService` calls intact
+Update `EmployerApplicationDetailPage.tsx`:
+- Import and use `useApplicationMeeting` hook to fetch active meetings for the application.
+- Add `MeetingActionButtons` in the header (same as IP detail page).
+- Add "Go to Meeting" button when an active meeting is in progress.
+- Wire `WorkflowActionButtons.onActionComplete` to refresh meeting state after actions.
 
-### 4. Update routing (`AppRoutes.tsx`)
+### 4. Enhance detail page to fully match IP behavior
 
-- Keep old routes but redirect them to `/admin/c3-configuration`:
-  - `/admin/master-data/sep-contrib-rates` → redirect to `/admin/c3-configuration`
-  - `/c3-management/settings/cybersource` → redirect to `/admin/c3-configuration`
-
-### 5. Add audit trigger for `tb_self_emp_contrib_rate`
-
-**Database migration** — attach the existing `audit_table_changes()` trigger:
-
-```sql
-CREATE TRIGGER trg_audit_tb_self_emp_contrib_rate
-  AFTER INSERT OR UPDATE OR DELETE ON public.tb_self_emp_contrib_rate
-  FOR EACH ROW EXECUTE FUNCTION public.audit_table_changes('SE Contribution Rates');
-```
-
-This ensures all create/update/delete operations on this table are automatically logged to `system_audit_trail` with before/after values, user attribution, and timestamps — visible at `/system-logs/audit`.
-
-### 6. CyberSource audit logging
-
-CyberSource settings are managed via the external `wiz-admin-api` edge function (not a local table). Add client-side `logAuditTrail()` calls in `CyberSourceSettings.tsx`:
-- After successful **toggle** → log action `'update'`, entity type `'cybersource_settings'`, with before/after status values
-- After successful **edit** → log action `'update'`, entity type `'cybersource_settings'`, with field changes
+- Add a **Remarks** tab (already has `application.remarks` in declaration — extract to standalone tab like IP).
+- Remove the standalone approve/reject dialog from the detail page (workflow actions handle this via `WorkflowActionButtons`).
+- Ensure `WorkflowActionButtons` uses the correct `sourceModule` (`'online-employer-applications'`) and `sourceRecordId` (reference_number or id).
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/admin/C3ConfigurationPage.tsx` | Add 2 new tabs (SE Rates, CyberSource) |
-| `src/pages/admin/SepContribRateManagement.tsx` | Remove page wrapper, export embeddable content |
-| `src/pages/c3Management/CyberSourceSettings.tsx` | Remove PageShell, add audit logging calls |
-| `src/components/routing/AppRoutes.tsx` | Redirect old routes to `/admin/c3-configuration` |
-| **New migration** | Add audit trigger on `tb_self_emp_contrib_rate` |
+| `src/hooks/useOnlineApplicationWorkflowBinding.ts` | Update employer config to V2 workflow ID and name |
+| `src/pages/online-applications/EmployerApplications.tsx` | Align filtering with IP pattern (name/ref fields, Pending/Closed/Rejected, exclude approved) |
+| `src/hooks/useEmployerApplications.ts` | Add `fetchApprovedConvertedEmployerRefs()` to exclude completed apps |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Add meeting integration, remarks tab, clean up redundant approve/reject dialog |
+| **Database migration** | `UPDATE workflow_definitions SET is_active = true WHERE id = 'bf8e92bc-527f-4c67-8c65-1ed5df59fb84'` |
 
