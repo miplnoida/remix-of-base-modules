@@ -93,11 +93,6 @@ const C3ConfigurationPage: React.FC = () => {
             <span className="hidden sm:inline">CyberSource Settings</span>
             <span className="sm:hidden">CyberSource</span>
           </TabsTrigger>
-          <TabsTrigger value="audit-logs" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Audit Logs</span>
-            <span className="sm:hidden">Logs</span>
-          </TabsTrigger>
           <TabsTrigger value="sync-history" className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Sync History</span>
@@ -149,9 +144,6 @@ const C3ConfigurationPage: React.FC = () => {
           <CyberSourceSettings embedMode />
         </TabsContent>
 
-        <TabsContent value="audit-logs" className="mt-6">
-          <C3AuditLogsTab />
-        </TabsContent>
 
         <TabsContent value="sync-history" className="mt-6">
           <C3SyncHistoryTab />
