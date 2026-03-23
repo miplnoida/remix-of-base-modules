@@ -19,7 +19,7 @@ const WizSelfEmployedUsers: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<SEUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
+  const [searchText] = useState('');
 
   // Change password
   const [pwdOpen, setPwdOpen] = useState(false);

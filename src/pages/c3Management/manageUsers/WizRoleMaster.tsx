@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Edit, Trash2, Home, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  getRolesByCategory, getRoleById, saveRole, updateRole, deleteRole, WizRole
+  getRolesByCategory, saveRole, updateRole, deleteRole, WizRole
 } from '@/services/wizManageUsersService';
 
 const CATEGORY_OPTIONS = [

@@ -60,8 +60,6 @@ const WizEmployerUsers: React.FC = () => {
         setCompanies(res.data?.companies || []);
       } catch (err: any) {
         toast.error(err.message);
-      } finally {
-        setCompaniesLoading(false);
       }
     })();
   }, []);

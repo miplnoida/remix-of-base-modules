@@ -117,8 +117,8 @@ const WizRolePermission: React.FC = () => {
   const companyRoles = roles.filter(r => r.role_category === 'Company');
   const seRoles = roles.filter(r => r.role_category === 'SelfEmployee');
 
-  // Identify parent modules
-  const parentIds = new Set(permissions.filter(p => p.is_parent).map(p => p.module_id));
+  // Parent IDs for rendering
+  const _parentIds = new Set(permissions.filter(p => p.is_parent).map(p => p.module_id));
 
   return (
     <div className="space-y-4">
