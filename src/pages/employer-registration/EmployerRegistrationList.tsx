@@ -396,7 +396,7 @@ export default function EmployerRegistrationList() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">show</span>
-                <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(parseInt(v))}>
+                <Select value={pagination.pageSize.toString()} onValueChange={(v) => changePageSize(parseInt(v))}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
