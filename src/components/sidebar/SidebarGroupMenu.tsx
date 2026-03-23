@@ -81,14 +81,14 @@ const NestedGroup: React.FC<{
     !c.requiresPermission || hasPermission(c.requiresPermission)
   );
 
-  if (visibleChildren.length === 0) return null;
-
   const isChildActive = visibleChildren.some(c => c.url && currentPath === c.url);
 
   // Auto-open if a child is active
   React.useEffect(() => {
     if (isChildActive) setOpen(true);
   }, [isChildActive]);
+
+  if (visibleChildren.length === 0) return null;
 
   return (
     <SidebarMenuSubItem>
