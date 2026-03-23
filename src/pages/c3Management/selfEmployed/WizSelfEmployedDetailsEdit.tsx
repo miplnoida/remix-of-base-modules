@@ -46,9 +46,9 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const [detailsRes, catRes, countryRes] = await Promise.all([
+        const [detailsRes, catResult, countryRes] = await Promise.all([
           getSelfEmployedDetails(Number(selfEmployedId)),
-          getWageCategories(),
+          supabase.from('c3_wage_category').select('*').order('weekly_income'),
           getCountries(),
         ]);
         const d = detailsRes.data as WizSelfEmployedDetails;
