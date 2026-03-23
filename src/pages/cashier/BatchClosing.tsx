@@ -49,31 +49,20 @@ const BatchClosing: React.FC = () => {
 
       let physCsh = 0;
       if (cashRows && cashRows.length > 0) {
-        // Get denomination values
         const denomIds = [...new Set(cashRows.map(r => r.denomination_id))];
         const currIds = [...new Set(cashRows.map(r => r.currency_id))];
 
-        const [denomRes, cfgRes] = await Promise.all([
+        const [denomRes, currRes] = await Promise.all([
           supabase.from('cashier_currency_denominations').select('id, denomination_value').in('id', denomIds),
-          supabase.from('cashier_currency_config').select('id, currency_id').in('id', currIds),
+          supabase.from('tb_currencies').select('id, is_main_currency, exchange_rate').in('id', currIds),
         ]);
 
-        // Get the tb_currencies data for exchange rates
-        const tbCurrIds = [...new Set((cfgRes.data || []).map(c => c.currency_id))];
-        const { data: tbCurrData } = await supabase
-          .from('tb_currencies')
-          .select('id, is_main_currency, exchange_rate')
-          .in('id', tbCurrIds);
-
-        const tbCurrMap = new Map((tbCurrData || []).map(c => [c.id, { isMain: c.is_main_currency, rate: c.exchange_rate }]));
-        const cfgToCurrMap = new Map((cfgRes.data || []).map(c => [c.id, c.currency_id]));
-
         const denomMap = new Map((denomRes.data || []).map(d => [d.id, d.denomination_value]));
+        const currMap = new Map((currRes.data || []).map(c => [c.id, { isMain: c.is_main_currency, rate: c.exchange_rate }]));
 
         for (const row of cashRows) {
           const denomVal = denomMap.get(row.denomination_id) || 0;
-          const tbCurrId = cfgToCurrMap.get(row.currency_id);
-          const currInfo = tbCurrId ? tbCurrMap.get(tbCurrId) : undefined;
+          const currInfo = currMap.get(row.currency_id);
           const rate = currInfo?.isMain ? 1 : (currInfo?.rate || 1);
           physCsh += row.count * denomVal * rate;
         }
