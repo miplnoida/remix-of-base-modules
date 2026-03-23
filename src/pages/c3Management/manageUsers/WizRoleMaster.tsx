@@ -127,7 +127,7 @@ const WizRoleMaster: React.FC = () => {
         {categoryRoles.map((role, idx) => (
           <TableRow key={role.role_id}>
             <TableCell>{idx + 1}</TableCell>
-            <TableCell className={role.role_id <= 6 ? 'text-primary' : ''}>{role.role_id}</TableCell>
+            <TableCell className={isSystemRole(role.role_id) ? 'text-primary' : ''}>{role.role_id}</TableCell>
             <TableCell className="text-primary font-medium">{role.role_name}</TableCell>
             <TableCell>{role.description || 'N/A'}</TableCell>
             <TableCell>
