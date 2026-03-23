@@ -116,8 +116,8 @@ const SepContribRateManagement = () => {
   };
 
   const getWageLabel = (wc: number) => {
-    const cat = incomeCategories.find((c) => Number(c.wage_upper) === wc);
-    return cat ? `Cat ${cat.category_code} — $${Number(cat.wage_upper).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
+    const cat = wageCategories.find((c) => Number(c.weekly_income) === wc);
+    return cat ? `Cat ${cat.category} — $${Number(cat.weekly_income).toFixed(2)}` : `$${Number(wc).toFixed(2)}`;
   };
 
   const filtered = rates.filter((r) =>
