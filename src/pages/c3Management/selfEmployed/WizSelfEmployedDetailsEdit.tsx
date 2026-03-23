@@ -18,6 +18,13 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { parseE164Phone, composeE164 } from '@/services/wizAdminApiService';
 
+interface LocalWageCategory {
+  category_id: number;
+  category: string;
+  weekly_income: number;
+  weekly_contribution: number;
+}
+
 const SECURITY_QUESTIONS = [
   "What Is Your Birth Place",
   "What Is Your Favorite Dish",
