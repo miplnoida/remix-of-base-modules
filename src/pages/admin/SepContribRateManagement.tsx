@@ -275,9 +275,9 @@ const SepContribRateManagement = () => {
                 <Select value={form.wage_cat} onValueChange={(v) => setForm({ ...form, wage_cat: v })}>
                   <SelectTrigger><SelectValue placeholder="Select wage category" /></SelectTrigger>
                   <SelectContent>
-                    {wageOptions.map((c) => (
-                      <SelectItem key={c.category_code} value={String(c.wage_upper)}>
-                        Cat {c.category_code} — ${Number(c.wage_upper).toFixed(2)}
+                    {wageCategories.map((c) => (
+                      <SelectItem key={c.category_id} value={String(c.weekly_income)}>
+                        Cat {c.category} — ${Number(c.weekly_income).toFixed(2)}
                       </SelectItem>
                     ))}
                   </SelectContent>
