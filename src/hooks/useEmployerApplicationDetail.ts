@@ -92,6 +92,8 @@ export interface EmployerApplicationDetail {
   date_acquired: string | null;
   previous_owner: string | null;
   previous_owner_reg_no: string | null;
+  previous_owner_address1: string | null;
+  previous_owner_address2: string | null;
   ownership_code: string | null;
   ownership_name: string | null;
   sector_code: string | null;
@@ -138,9 +140,20 @@ export interface EmployerApplicationDetail {
   employee_count: number | null;  // Mapped from total_employees
   payroll_frequency: string | null;
   
-  // Step 3: Key Officials
+  // Step 3: Contact & Reach - Location
   activity_type: string | null;
   activity_type_name: string | null;
+  village_code: string | null;
+  village_name: string | null;
+  inspector_code: string | null;
+  inspector_name: string | null;
+  
+  // Tech & Finance
+  computer_payroll: boolean | null;
+  make_model: string | null;
+  disk_tape: string | null;
+
+  // Key Officials
   officials: EmployerOfficial[];
   
   // Step 4: Contact & Reach
@@ -295,6 +308,8 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     date_acquired: (raw.date_acquired as string) || null,
     previous_owner: (raw.previous_owner as string) || null,
     previous_owner_reg_no: (raw.previous_owner_reg_no as string) || null,
+    previous_owner_address1: (raw.previous_owner_address1 as string) || (raw.prev_owner_addr1 as string) || null,
+    previous_owner_address2: (raw.previous_owner_address2 as string) || (raw.prev_owner_addr2 as string) || null,
     ownership_code: (raw.ownership_code as string) || null,
     ownership_name: (raw.ownership_name as string) || null,
     sector_code: (raw.sector_code as string) || null,
@@ -341,9 +356,20 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     employee_count: (raw.total_employees as number) ?? null,
     payroll_frequency: (raw.payroll_frequency as string) || null,
     
-    // Step 3: Key Officials
+    // Step 3: Contact & Reach - Location
     activity_type: (raw.activity_type as string) || null,
     activity_type_name: (raw.activity_type_name as string) || null,
+    village_code: (raw.village_code as string) || null,
+    village_name: (raw.village_name as string) || null,
+    inspector_code: (raw.inspector_code as string) || null,
+    inspector_name: (raw.inspector_name as string) || null,
+    
+    // Tech & Finance
+    computer_payroll: (raw.computer_payroll as boolean) ?? (raw.computerised_payroll as boolean) ?? null,
+    make_model: (raw.make_model as string) || null,
+    disk_tape: (raw.disk_tape as string) || null,
+
+    // Key Officials
     officials: normalizeOfficials(raw.officials),
     
     // Step 4: Contact & Reach - Map contact_telephone to phone
