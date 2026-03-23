@@ -5,13 +5,13 @@ import { useOnlineApplicationWorkflowBinding } from './useOnlineApplicationWorkf
 
 /**
  * Employer applications API (external)
- * NOTE: The configured base_url for this module points to the employer applications function.
- * The list endpoint is the root path ("/") rather than "/applications".
+ * The configured base_url for this module points to the employer applications function.
+ * The list endpoint is the root path ("/") with query parameters for filtering, pagination, sorting.
  */
 
 // Raw employer list item returned by external API
 export interface ExternalEmployerApplicationListItem {
-  id: string; // e.g. "ER-2026-835294" (used for detail fetching)
+  id: string;
   reference_number: string | null;
   registration_id: string | null;
   contact_name: string | null;
@@ -45,38 +45,106 @@ export interface EmployerApplication {
   createdAt: string;
 }
 
-export interface ApplicationFilters {
-  status?: string;
-  fromDate?: string;
-  toDate?: string;
+/**
+ * All supported API filter/pagination/sort parameters
+ */
+export interface EmployerApplicationApiParams {
+  page: number;
+  limit: number;
+  status: string;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
   search?: string;
+  email?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-// Response type from external API
+export const EMPLOYER_APP_DEFAULT_PARAMS: EmployerApplicationApiParams = {
+  page: 1,
+  limit: 20,
+  status: 'active',
+  sortBy: 'created_at',
+  sortOrder: 'desc',
+};
+
+export const EMPLOYER_STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'under_review', label: 'Under Review' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'appointment_scheduled', label: 'Appointment Scheduled' },
+];
+
+export const EMPLOYER_SORT_BY_OPTIONS = [
+  { value: 'created_at', label: 'Created Date' },
+  { value: 'updated_at', label: 'Updated Date' },
+  { value: 'submitted_at', label: 'Submitted Date' },
+  { value: 'email', label: 'Email' },
+  { value: 'status', label: 'Status' },
+];
+
+export const EMPLOYER_SORT_ORDER_OPTIONS = [
+  { value: 'asc', label: 'Ascending' },
+  { value: 'desc', label: 'Descending' },
+];
+
+// Response type from external API (may include pagination metadata)
 interface ApiResponse<T> {
   data?: T;
   records?: T;
   applications?: T;
   success?: boolean;
   message?: string;
+  total?: number;
+  totalPages?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface EmployerApplicationsResult {
+  applications: EmployerApplication[];
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
 }
 
 /**
- * Normalize various API response formats to a consistent array
+ * Normalize various API response formats to a consistent array + pagination metadata
  */
-function normalizeApiResponse<T>(response: T | T[] | ApiResponse<T[]>): T[] {
+function normalizeApiResponse(response: unknown): { items: ExternalEmployerApplicationListItem[]; total: number; totalPages: number; page: number; limit: number } {
+  let items: ExternalEmployerApplicationListItem[] = [];
+  let total = 0;
+  let totalPages = 1;
+  let page = 1;
+  let limit = 20;
+
   if (Array.isArray(response)) {
-    return response;
+    items = response;
+    total = items.length;
+  } else if (typeof response === 'object' && response !== null) {
+    const obj = response as ApiResponse<ExternalEmployerApplicationListItem[]>;
+    if (obj.data && Array.isArray(obj.data)) items = obj.data;
+    else if (obj.records && Array.isArray(obj.records)) items = obj.records;
+    else if (obj.applications && Array.isArray(obj.applications)) items = obj.applications;
+    
+    if (typeof obj.total === 'number') total = obj.total;
+    else total = items.length;
+    
+    if (typeof obj.totalPages === 'number') totalPages = obj.totalPages;
+    if (typeof obj.page === 'number') page = obj.page;
+    if (typeof obj.limit === 'number') limit = obj.limit;
   }
-  
-  if (typeof response === 'object' && response !== null) {
-    const obj = response as ApiResponse<T[]>;
-    if (obj.data && Array.isArray(obj.data)) return obj.data;
-    if (obj.records && Array.isArray(obj.records)) return obj.records;
-    if (obj.applications && Array.isArray(obj.applications)) return obj.applications;
+
+  if (totalPages <= 0 && total > 0 && limit > 0) {
+    totalPages = Math.ceil(total / limit);
   }
-  
-  return [];
+
+  return { items, total, totalPages, page, limit };
 }
 
 /**
@@ -109,11 +177,15 @@ function mapEmployerFromApi(item: ExternalEmployerApplicationListItem): Employer
  */
 function formatStatusDisplay(status: string): string {
   const statusMap: Record<string, string> = {
+    active: 'Active',
     pending: 'Pending',
     approved: 'Approved',
     rejected: 'Rejected',
     submitted: 'Submitted',
     in_progress: 'In Progress',
+    under_review: 'Under Review',
+    cancelled: 'Cancelled',
+    appointment_scheduled: 'Appointment Scheduled',
   };
   
   return statusMap[status?.toLowerCase()] || status;
@@ -126,14 +198,13 @@ export function getEmployerStatusVariant(status: string): 'default' | 'secondary
   const lowerStatus = status?.toLowerCase();
   
   if (lowerStatus === 'approved') return 'default';
-  if (lowerStatus === 'rejected') return 'destructive';
-  if (lowerStatus === 'pending' || lowerStatus === 'submitted') return 'outline';
+  if (lowerStatus === 'rejected' || lowerStatus === 'cancelled') return 'destructive';
+  if (lowerStatus === 'pending' || lowerStatus === 'submitted' || lowerStatus === 'active') return 'outline';
   return 'secondary';
 }
 
 /**
  * Call the proxy-api edge function to fetch data from external APIs
- * The proxy always returns 200 with _proxyStatus and _proxyOk fields
  */
 async function callProxyApi(moduleName: string, endpoint: string, method: string = 'GET', body?: unknown) {
   const { data, error } = await supabase.functions.invoke('proxy-api', {
@@ -150,10 +221,8 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
     throw new Error(error.message || 'Failed to call proxy API');
   }
 
-  // Check if the proxied request was successful
   if (data && typeof data === 'object' && '_proxyOk' in data) {
     if (!data._proxyOk) {
-      // External API returned an error (e.g., 404)
       const errorMsg = data.error || data.message || 'Request failed';
       throw new Error(errorMsg);
     }
@@ -163,94 +232,53 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 }
 
 /**
- * Fetch reference numbers of employer applications that have been approved AND converted
- * by querying the local workflow_instances table.
- * Returns a Set of reference numbers to exclude from the listing.
+ * Build query string from API params
  */
-async function fetchApprovedConvertedEmployerRefs(): Promise<Set<string>> {
-  const { data, error } = await supabase
-    .from('workflow_instances')
-    .select('source_record_id')
-    .eq('source_module', 'online-employer-applications')
-    .eq('status', 'Approved');
-
-  if (error) {
-    console.error('[useEmployerApplications] Failed to fetch approved refs:', error);
-    return new Set();
-  }
-
-  const refs = new Set<string>(
-    (data || [])
-      .map((r: { source_record_id: string | null }) => r.source_record_id)
-      .filter((ref): ref is string => !!ref)
-  );
-
-  console.log(`[useEmployerApplications] Excluding ${refs.size} approved/converted employer applications from listing`);
-  return refs;
+function buildEndpoint(params: EmployerApplicationApiParams): string {
+  const qs = new URLSearchParams();
+  
+  qs.append('page', String(params.page));
+  qs.append('limit', String(Math.min(params.limit, 100)));
+  qs.append('status', params.status);
+  qs.append('sortBy', params.sortBy);
+  qs.append('sortOrder', params.sortOrder);
+  
+  if (params.search?.trim()) qs.append('search', params.search.trim());
+  if (params.email?.trim()) qs.append('email', params.email.trim());
+  if (params.dateFrom) qs.append('dateFrom', params.dateFrom);
+  if (params.dateTo) qs.append('dateTo', params.dateTo);
+  
+  return `/?${qs.toString()}`;
 }
 
 /**
- * Hook to fetch employer applications from external API via edge function proxy
- * Automatically binds workflow instances to each application
- * Excludes approved/converted applications from the listing
+ * Hook to fetch employer applications with full API-driven filtering, pagination, sorting
  */
-export function useEmployerApplications(filters?: ApplicationFilters) {
+export function useEmployerApplications(params: EmployerApplicationApiParams = EMPLOYER_APP_DEFAULT_PARAMS) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['online-applications', 'employer', filters],
-    queryFn: async (): Promise<EmployerApplication[]> => {
-      // Build query params for the endpoint (list endpoint is root path)
-      const params = new URLSearchParams();
-      if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters?.fromDate) params.append('fromDate', filters.fromDate);
-      if (filters?.toDate) params.append('toDate', filters.toDate);
-      if (filters?.search) params.append('search', filters.search);
+    queryKey: ['online-applications', 'employer', params],
+    queryFn: async (): Promise<EmployerApplicationsResult> => {
+      const endpoint = buildEndpoint(params);
+      console.log(`[useEmployerApplications] Fetching employer applications, endpoint: ${endpoint}`);
 
-      const queryString = params.toString();
-      const endpoint = `/${queryString ? `?${queryString}` : ''}`;
+      const data = await callProxyApi('employer-applications', endpoint);
+      const { items, total, totalPages, page, limit } = normalizeApiResponse(data);
+      const applications = items.map(mapEmployerFromApi);
 
-      console.log(`Fetching employer applications via proxy, endpoint: ${endpoint}`);
+      console.log(`[useEmployerApplications] Fetched ${applications.length} applications (total: ${total}, page: ${page}/${totalPages})`);
 
-      // Run both fetches in parallel — external API data + local approved refs
-      const [data, approvedRefs] = await Promise.all([
-        callProxyApi('employer-applications', endpoint),
-        fetchApprovedConvertedEmployerRefs(),
-      ]);
-
-      const rawApplications = normalizeApiResponse<ExternalEmployerApplicationListItem>(data);
-      
-      // Map external API format to internal format, then exclude approved+converted ones
-      const applications = rawApplications
-        .map(mapEmployerFromApi)
-        .filter(app => {
-          const ref = app.referenceNumber || app.applicationId;
-          if (ref && approvedRefs.has(ref)) {
-            console.log(`[useEmployerApplications] Excluding approved application: ${ref}`);
-            return false;
-          }
-          return true;
-        });
-      
-      console.log(`Fetched ${rawApplications.length} employer applications from external API, showing ${applications.length} after excluding approved/converted`);
-      return applications;
+      return { applications, total, totalPages, page, limit };
     },
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
     retry: 1,
   });
 
-  // Debug logging
-  console.log('[useEmployerApplications] Hook state:', {
-    isSuccess: query.isSuccess,
-    isFetching: query.isFetching,
-    dataLength: query.data?.length,
-    enabled: query.isSuccess && !query.isFetching
-  });
-
   // Automatically bind workflows to applications when data is fetched
   useOnlineApplicationWorkflowBinding(
-    query.data?.map(app => ({
+    query.data?.applications?.map(app => ({
       applicationId: app.applicationId,
       referenceNumber: app.referenceNumber,
       contactName: app.contactName,
@@ -281,7 +309,6 @@ export function useApproveEmployerApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
       const endpoint = `/${applicationId}/approve`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
     },
@@ -303,7 +330,6 @@ export function useRejectEmployerApplication() {
 
   return useMutation({
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
-      // Employer API uses applicationId path (e.g. /ER-2026-xxxxxx)
       const endpoint = `/${applicationId}/reject`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
     },
