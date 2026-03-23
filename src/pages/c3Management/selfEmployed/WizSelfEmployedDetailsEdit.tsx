@@ -11,13 +11,19 @@ import { toast } from 'sonner';
 import {
   getSelfEmployedDetails,
   updateSelfEmployed,
-  getWageCategories,
   getCountries,
   WizSelfEmployedDetails,
-  WizWageCategory,
   WizCountry,
 } from '@/services/wizSelfEmployedService';
+import { supabase } from '@/integrations/supabase/client';
 import { parseE164Phone, composeE164 } from '@/services/wizAdminApiService';
+
+interface LocalWageCategory {
+  category_id: number;
+  category: string;
+  weekly_income: number;
+  weekly_contribution: number;
+}
 
 const SECURITY_QUESTIONS = [
   "What Is Your Birth Place",
@@ -32,7 +38,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
-  const [categories, setCategories] = useState<WizWageCategory[]>([]);
+  const [categories, setCategories] = useState<LocalWageCategory[]>([]);
   const [countries, setCountries] = useState<WizCountry[]>([]);
 
   // Phone state
@@ -47,9 +53,9 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const [detailsRes, catRes, countryRes] = await Promise.all([
+        const [detailsRes, catResult, countryRes] = await Promise.all([
           getSelfEmployedDetails(Number(selfEmployedId)),
-          getWageCategories(),
+          supabase.from('c3_wage_category').select('*').order('weekly_income'),
           getCountries(),
         ]);
         const d = detailsRes.data as WizSelfEmployedDetails;
@@ -82,7 +88,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         setMobileDialCode(parsed.dialCode);
         setMobileLocal(parsed.localNumber);
 
-        setCategories(catRes.data?.categories || []);
+        setCategories((catResult.data || []) as LocalWageCategory[]);
         setCountries(countryRes.data?.countries || []);
       } catch (err: any) {
         toast.error(err.message || 'Failed to load details');
@@ -170,9 +176,9 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
     );
   }
 
-  // Build category description for dropdown display
-  const getCategoryLabel = (cat: WizWageCategory) =>
-    `${cat.categoryCode} (Weekly Income : ${cat.weeklyIncome.toFixed(2)}, Weekly Contribution : ${cat.weeklyContribution.toFixed(2)} )`;
+  // Build category description matching legacy format
+  const getCategoryLabel = (cat: LocalWageCategory) =>
+    `${cat.category} (Weekly Income : ${Number(cat.weekly_income).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
 
   return (
     <div className="space-y-4 p-6">
@@ -231,7 +237,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
                   {categories.map(cat => (
-                    <SelectItem key={cat.categoryID} value={cat.categoryID.toString()}>
+                    <SelectItem key={cat.category_id} value={cat.category_id.toString()}>
                       {getCategoryLabel(cat)}
                     </SelectItem>
                   ))}
