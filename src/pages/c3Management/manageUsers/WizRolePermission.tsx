@@ -33,7 +33,7 @@ const WizRolePermission: React.FC = () => {
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [rolesLoading, setRolesLoading] = useState(true);
+  const [_rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
