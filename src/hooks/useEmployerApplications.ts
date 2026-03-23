@@ -163,8 +163,36 @@ async function callProxyApi(moduleName: string, endpoint: string, method: string
 }
 
 /**
+ * Fetch reference numbers of employer applications that have been approved AND converted
+ * by querying the local workflow_instances table.
+ * Returns a Set of reference numbers to exclude from the listing.
+ */
+async function fetchApprovedConvertedEmployerRefs(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('workflow_instances')
+    .select('source_record_id')
+    .eq('source_module', 'online-employer-applications')
+    .eq('status', 'Approved');
+
+  if (error) {
+    console.error('[useEmployerApplications] Failed to fetch approved refs:', error);
+    return new Set();
+  }
+
+  const refs = new Set<string>(
+    (data || [])
+      .map((r: { source_record_id: string | null }) => r.source_record_id)
+      .filter((ref): ref is string => !!ref)
+  );
+
+  console.log(`[useEmployerApplications] Excluding ${refs.size} approved/converted employer applications from listing`);
+  return refs;
+}
+
+/**
  * Hook to fetch employer applications from external API via edge function proxy
  * Automatically binds workflow instances to each application
+ * Excludes approved/converted applications from the listing
  */
 export function useEmployerApplications(filters?: ApplicationFilters) {
   const queryClient = useQueryClient();
@@ -184,13 +212,27 @@ export function useEmployerApplications(filters?: ApplicationFilters) {
 
       console.log(`Fetching employer applications via proxy, endpoint: ${endpoint}`);
 
-      const data = await callProxyApi('employer-applications', endpoint);
+      // Run both fetches in parallel — external API data + local approved refs
+      const [data, approvedRefs] = await Promise.all([
+        callProxyApi('employer-applications', endpoint),
+        fetchApprovedConvertedEmployerRefs(),
+      ]);
+
       const rawApplications = normalizeApiResponse<ExternalEmployerApplicationListItem>(data);
       
-      // Map external API format to internal format
-      const applications = rawApplications.map(mapEmployerFromApi);
+      // Map external API format to internal format, then exclude approved+converted ones
+      const applications = rawApplications
+        .map(mapEmployerFromApi)
+        .filter(app => {
+          const ref = app.referenceNumber || app.applicationId;
+          if (ref && approvedRefs.has(ref)) {
+            console.log(`[useEmployerApplications] Excluding approved application: ${ref}`);
+            return false;
+          }
+          return true;
+        });
       
-      console.log(`Fetched ${applications.length} employer applications from external API`);
+      console.log(`Fetched ${rawApplications.length} employer applications from external API, showing ${applications.length} after excluding approved/converted`);
       return applications;
     },
     staleTime: 30 * 1000,

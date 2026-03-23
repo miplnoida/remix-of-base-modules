@@ -7,18 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Briefcase, Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Briefcase, Filter, RefreshCw, Eye, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import {
   useEmployerApplications,
-  useApproveEmployerApplication,
-  useRejectEmployerApplication,
   EmployerApplication,
-  getEmployerStatusVariant,
 } from '@/hooks/useEmployerApplications';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -31,16 +26,9 @@ import { WorkflowStatusCell } from '@/components/online-applications/WorkflowSta
 export default function EmployerApplications() {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  
-  // Action dialog state
-  const [actionDialog, setActionDialog] = useState<{
-    open: boolean;
-    type: 'approve' | 'reject';
-    application: EmployerApplication | null;
-  }>({ open: false, type: 'approve', application: null });
-  const [actionRemarks, setActionRemarks] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [refFilter, setRefFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Pending');
 
   // Fetch applications from external API
   const { 
@@ -50,32 +38,7 @@ export default function EmployerApplications() {
     isFetching,
     refresh,
     dataUpdatedAt 
-  } = useEmployerApplications({ 
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
-
-  const approveApplication = useApproveEmployerApplication();
-  const rejectApplication = useRejectEmployerApplication();
-
-  const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
-  const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
-  const canApprove = isAdmin || isOfficer;
-
-  const getStatusBadge = (status: string, label?: string) => {
-    return <Badge variant={getEmployerStatusVariant(status)}>{label ?? status}</Badge>;
-  };
-
-  // Filter applications client-side for search
-  const filteredApplications = (applications || []).filter(app => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      (app.referenceNumber || app.applicationId)?.toLowerCase().includes(searchLower) ||
-      app.contactName?.toLowerCase().includes(searchLower) ||
-      app.email?.toLowerCase().includes(searchLower) ||
-      app.mobile?.toLowerCase().includes(searchLower)
-    );
-  });
+  } = useEmployerApplications();
 
   // Get reference numbers for workflow status lookup
   const referenceNumbers = useMemo(() => 
@@ -89,6 +52,43 @@ export default function EmployerApplications() {
     isLoading: isLoadingWorkflowStatus 
   } = useApplicationWorkflowStatus(referenceNumbers, 'employer', !isLoading && !error);
 
+  // Apply filters based on business rules matching IP pattern
+  const filteredApplications = useMemo(() => {
+    return (applications || []).filter(app => {
+      // Determine the effective status: prefer workflow status over raw API status
+      const ref = app.referenceNumber || app.applicationId;
+      const workflowInfo = workflowStatusMap?.[ref];
+      const effectiveStatus = (workflowInfo?.workflowStatus || app.status || '').toLowerCase();
+
+      // Status filter logic (case-insensitive)
+      if (statusFilter === 'Pending') {
+        const excludedStatuses = ['closed', 'completed', 'approved', 'rejected'];
+        if (excludedStatuses.includes(effectiveStatus)) return false;
+      } else if (statusFilter === 'Closed') {
+        const closedStatuses = ['closed', 'completed', 'approved'];
+        if (!closedStatuses.includes(effectiveStatus)) return false;
+      } else if (statusFilter === 'Rejected') {
+        if (effectiveStatus !== 'rejected') return false;
+      }
+
+      // Name filter (partial, case-insensitive)
+      if (nameFilter.trim()) {
+        const search = nameFilter.trim().toLowerCase();
+        const nameMatch = app.contactName?.toLowerCase().includes(search);
+        if (!nameMatch) return false;
+      }
+
+      // Reference Number filter (partial, case-insensitive)
+      if (refFilter.trim()) {
+        const search = refFilter.trim().toLowerCase();
+        const refMatch = (app.referenceNumber || app.applicationId)?.toLowerCase().includes(search);
+        if (!refMatch) return false;
+      }
+
+      return true;
+    });
+  }, [applications, statusFilter, nameFilter, refFilter, workflowStatusMap]);
+
   // Sorting
   const { sortedData, sortConfig, handleSort } = useTableSort(filteredApplications, {
     key: 'submittedAt',
@@ -101,39 +101,7 @@ export default function EmployerApplications() {
   // Reset pagination when filters change
   useEffect(() => {
     resetPagination();
-  }, [searchTerm, statusFilter]);
-
-  const handleApprove = (application: EmployerApplication) => {
-    setActionDialog({ open: true, type: 'approve', application });
-    setActionRemarks('');
-  };
-
-  const handleReject = (application: EmployerApplication) => {
-    setActionDialog({ open: true, type: 'reject', application });
-    setActionRemarks('');
-  };
-
-  const handleConfirmAction = async () => {
-    if (!actionDialog.application) return;
-
-    // Use applicationId (the actual API id) for approve/reject calls
-    const apiId = actionDialog.application.applicationId;
-
-    if (actionDialog.type === 'approve') {
-      await approveApplication.mutateAsync({
-        applicationId: apiId,
-        remarks: actionRemarks,
-      });
-    } else {
-      await rejectApplication.mutateAsync({
-        applicationId: apiId,
-        remarks: actionRemarks,
-      });
-    }
-
-    setActionDialog({ open: false, type: 'approve', application: null });
-    setActionRemarks('');
-  };
+  }, [nameFilter, refFilter, statusFilter]);
 
   if (isLoading) {
     return (
@@ -218,34 +186,56 @@ export default function EmployerApplications() {
         </AlertDescription>
       </Alert>
 
-      {/* Filters */}
+      {/* Filters — matching IP pattern with separate Name, Ref No, Status */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by Reference No, Contact Name, Email, or Mobile..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Contact Name</Label>
+              <Input
+                placeholder="Search by contact name..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Reference Number</Label>
+              <Input
+                placeholder="Search by reference no..."
+                value={refFilter}
+                onChange={(e) => setRefFilter(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  setNameFilter('');
+                  setRefFilter('');
+                  setStatusFilter('Pending');
+                }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reset
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -312,15 +302,6 @@ export default function EmployerApplications() {
                         Submitted Date
                       </SortableTableHead>
                       <SortableTableHead
-                        sortKey="currentStep"
-                        currentSortKey={sortConfig.key}
-                        direction={sortConfig.direction}
-                        onSort={handleSort}
-                        className="text-right"
-                      >
-                        Step
-                      </SortableTableHead>
-                      <SortableTableHead
                         sortKey="status"
                         currentSortKey={sortConfig.key}
                         direction={sortConfig.direction}
@@ -341,7 +322,6 @@ export default function EmployerApplications() {
                         <TableCell>
                           {app.submittedAt ? format(new Date(app.submittedAt), 'MMM d, yyyy') : '—'}
                         </TableCell>
-                        <TableCell className="text-right">{app.currentStep ?? '—'}</TableCell>
                         <TableCell>
                           <WorkflowStatusCell
                             status={getApplicationWorkflowStatus(workflowStatusMap, app.referenceNumber || app.applicationId)}
@@ -350,42 +330,17 @@ export default function EmployerApplications() {
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1"
-                              onClick={() => {
-                                // Use applicationId (the actual API id) for detail fetching, not referenceNumber
-                                navigate(`/online-applications/employer/${encodeURIComponent(app.applicationId)}`);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
-                            {canApprove && app.status?.toLowerCase() === 'submitted' && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="gap-1 text-primary hover:text-primary/80"
-                                  onClick={() => handleApprove(app)}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  Approve
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="gap-1 text-destructive hover:text-destructive"
-                                  onClick={() => handleReject(app)}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => {
+                              navigate(`/online-applications/employer/${encodeURIComponent(app.applicationId)}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -403,7 +358,7 @@ export default function EmployerApplications() {
               <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No applications found</p>
               <p className="text-sm mt-1">
-                {searchTerm || statusFilter !== 'all' 
+                {nameFilter || refFilter || statusFilter !== 'Pending' 
                   ? 'Try adjusting your search or filter criteria'
                   : 'No employer applications have been submitted yet'}
               </p>
@@ -411,77 +366,6 @@ export default function EmployerApplications() {
           ) : null}
         </CardContent>
       </Card>
-
-      {/* Approve/Reject Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
-        onOpenChange={(open) => !open && setActionDialog({ open: false, type: 'approve', application: null })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {actionDialog.type === 'approve' ? (
-                <CheckCircle className="h-5 w-5 text-primary" />
-              ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Application
-            </DialogTitle>
-            <DialogDescription>
-              {actionDialog.type === 'approve' 
-                ? 'This will approve the employer application and notify the applicant.'
-                : 'This will reject the application. Please provide a reason.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">Reference No: {actionDialog.application?.referenceNumber || actionDialog.application?.applicationId}</p>
-              <p className="text-sm text-muted-foreground">
-                {actionDialog.application?.contactName || '—'}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="remarks">
-                Remarks {actionDialog.type === 'reject' && <span className="text-destructive">*</span>}
-              </Label>
-              <Textarea
-                id="remarks"
-                value={actionRemarks}
-                onChange={(e) => setActionRemarks(e.target.value)}
-                placeholder={actionDialog.type === 'approve' 
-                  ? 'Optional remarks for the approval...'
-                  : 'Please provide a reason for rejection...'}
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setActionDialog({ open: false, type: 'approve', application: null })}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={actionDialog.type === 'approve' ? 'default' : 'destructive'}
-              onClick={handleConfirmAction}
-              disabled={
-                (actionDialog.type === 'reject' && !actionRemarks.trim()) ||
-                approveApplication.isPending ||
-                rejectApplication.isPending
-              }
-            >
-              {(approveApplication.isPending || rejectApplication.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
