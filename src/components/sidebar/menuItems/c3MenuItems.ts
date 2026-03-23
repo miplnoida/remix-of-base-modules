@@ -11,7 +11,8 @@ import {
   UserCheck,
   CreditCard,
   RefreshCw,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from "lucide-react";
 
 export const c3MenuItems = [
