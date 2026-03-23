@@ -52,7 +52,6 @@ export default function EmployerRegistrationList() {
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<Filters>({
     regno: '',
     name: '',
