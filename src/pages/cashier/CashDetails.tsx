@@ -14,7 +14,7 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
-//import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
 import { formatDateForDisplay } from '@/lib/format-config';
 
@@ -22,7 +22,7 @@ const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
   const { userCode } = useUserCode();
-  //const [systemTotal, setSystemTotal] = useState<number>(0);
+  const [systemTotal, setSystemTotal] = useState<number>(0);
   const [systemTotalLoading, setSystemTotalLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
