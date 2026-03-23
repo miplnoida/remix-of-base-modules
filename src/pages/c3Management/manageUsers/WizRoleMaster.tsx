@@ -95,9 +95,11 @@ const WizRoleMaster: React.FC = () => {
     }
   };
 
+  const isSystemRole = (roleId: number) => roleId >= 13 && roleId <= 25;
+
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-    if (deleteConfirm.role_id <= 6) {
+    if (isSystemRole(deleteConfirm.role_id)) {
       toast.error('You are not allowed to delete system default roles.');
       setDeleteConfirm(null);
       return;
