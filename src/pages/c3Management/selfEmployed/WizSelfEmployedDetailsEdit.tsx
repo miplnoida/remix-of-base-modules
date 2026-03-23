@@ -195,8 +195,8 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   }
 
   // Build category description matching legacy format
-  const getCategoryLabel = (cat: LocalWageCategory) =>
-    `${cat.category} (Weekly Income : ${Number(cat.weekly_income).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
+  const getCategoryLabel = (cat: IncomeCategoryOption) =>
+    `${cat.category_code} (Weekly Income : ${Number(cat.wage_upper).toFixed(2)}, Weekly Contribution : ${Number(cat.weekly_contribution).toFixed(2)} )`;
 
   return (
     <div className="space-y-4 p-6">
