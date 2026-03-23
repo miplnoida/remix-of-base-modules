@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Layers, History, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
+import { Calendar, Layers, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
 
 // Tab content components
 import { C3PeriodConfigTab } from '@/components/admin/c3-configuration/C3PeriodConfigTab';
 import { LevySlabsConfigTab } from '@/components/admin/c3-configuration/LevySlabsConfigTab';
-import { C3AuditLogsTab } from '@/components/admin/c3-configuration/C3AuditLogsTab';
+
 import { C3PublishButton } from '@/components/admin/c3-configuration/C3PublishButton';
 import { C3SyncHistoryTab } from '@/components/admin/c3-configuration/C3SyncHistoryTab';
 import { BonusPolicyDefaultTab } from '@/components/admin/c3-configuration/BonusPolicyDefaultTab';
@@ -93,11 +93,6 @@ const C3ConfigurationPage: React.FC = () => {
             <span className="hidden sm:inline">CyberSource Settings</span>
             <span className="sm:hidden">CyberSource</span>
           </TabsTrigger>
-          <TabsTrigger value="audit-logs" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Audit Logs</span>
-            <span className="sm:hidden">Logs</span>
-          </TabsTrigger>
           <TabsTrigger value="sync-history" className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Sync History</span>
@@ -149,9 +144,6 @@ const C3ConfigurationPage: React.FC = () => {
           <CyberSourceSettings embedMode />
         </TabsContent>
 
-        <TabsContent value="audit-logs" className="mt-6">
-          <C3AuditLogsTab />
-        </TabsContent>
 
         <TabsContent value="sync-history" className="mt-6">
           <C3SyncHistoryTab />
