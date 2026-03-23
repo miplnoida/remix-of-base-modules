@@ -474,7 +474,7 @@ export default function EmployerRegistrationList() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredEmployers.slice(0, pageSize).map((employer) => (
+                    paginatedData.map((employer) => (
                       <TableRow key={employer.regno}>
                         <TableCell className="font-medium">{employer.regno}</TableCell>
                         <TableCell>{employer.name || '-'}</TableCell>
