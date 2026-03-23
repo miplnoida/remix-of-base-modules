@@ -1815,6 +1815,48 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_api_keys: {
+        Row: {
+          client_email: string | null
+          client_name: string | null
+          created_date: string | null
+          description: string | null
+          expiry_date: string | null
+          id: number
+          is_active: boolean | null
+          key: string
+          last_used_date: string | null
+          name: string
+          usage_count: number | null
+        }
+        Insert: {
+          client_email?: string | null
+          client_name?: string | null
+          created_date?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: number
+          is_active?: boolean | null
+          key: string
+          last_used_date?: string | null
+          name: string
+          usage_count?: number | null
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string | null
+          created_date?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: number
+          is_active?: boolean | null
+          key?: string
+          last_used_date?: string | null
+          name?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       c3_bonus_policy_default: {
         Row: {
           calc_flat_enabled: boolean
