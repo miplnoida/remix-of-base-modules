@@ -39,6 +39,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
   const [form, setForm] = useState<Record<string, any>>({});
   const [categories, setCategories] = useState<IncomeCategoryOption[]>([]);
   const [countries, setCountries] = useState<WizCountry[]>([]);
+  const [wizCategoryMap, setWizCategoryMap] = useState<Map<string, number>>(new Map());
 
   // Phone state
   const [mobileDialCode, setMobileDialCode] = useState('+1869');
