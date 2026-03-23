@@ -88,7 +88,25 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         setMobileDialCode(parsed.dialCode);
         setMobileLocal(parsed.localNumber);
 
-        setCategories((catResult.data || []) as LocalWageCategory[]);
+        // Build categories with weekly_contribution from current rates
+        const incCats = (catResult.data || []) as { category_code: string; wage_upper: number }[];
+        const rates = (ratesResult.data || []) as { wage_cat: number; sep_ss_percent: number; effstart: string; effend: string }[];
+        const now = new Date();
+        const enriched: IncomeCategoryOption[] = incCats.map(cat => {
+          // Find current active rate for this wage_upper
+          const activeRate = rates.find(r =>
+            Number(r.wage_cat) === Number(cat.wage_upper) &&
+            new Date(r.effstart) <= now &&
+            new Date(r.effend) >= now
+          );
+          const ssPercent = activeRate?.sep_ss_percent ?? 0;
+          return {
+            category_code: cat.category_code,
+            wage_upper: Number(cat.wage_upper),
+            weekly_contribution: Number(((Number(cat.wage_upper) * ssPercent) / 100).toFixed(2)),
+          };
+        });
+        setCategories(enriched);
         setCountries(countryRes.data?.countries || []);
       } catch (err: any) {
         toast.error(err.message || 'Failed to load details');
