@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      __EFMigrationsHistory: {
+        Row: {
+          MigrationId: string
+          ProductVersion: string
+        }
+        Insert: {
+          MigrationId: string
+          ProductVersion: string
+        }
+        Update: {
+          MigrationId?: string
+          ProductVersion?: string
+        }
+        Relationships: []
+      }
       api_config_audit_logs: {
         Row: {
           action: string
