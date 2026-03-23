@@ -11,12 +11,11 @@ import { toast } from 'sonner';
 import {
   getSelfEmployedDetails,
   updateSelfEmployed,
-  getWageCategories,
   getCountries,
   WizSelfEmployedDetails,
-  WizWageCategory,
   WizCountry,
 } from '@/services/wizSelfEmployedService';
+import { supabase } from '@/integrations/supabase/client';
 import { parseE164Phone, composeE164 } from '@/services/wizAdminApiService';
 
 const SECURITY_QUESTIONS = [
