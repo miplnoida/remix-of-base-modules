@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, Plus, Home, Loader2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, Plus, Home, Loader2, ChevronsUpDown, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   getCompanyDropdown, getCompanyUsers, getUserForEdit, updateCompanyUser,
@@ -30,6 +33,7 @@ const WizEmployerUsers: React.FC = () => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<CompanyDropdownItem[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [companyOpen, setCompanyOpen] = useState(false);
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -216,22 +220,44 @@ const WizEmployerUsers: React.FC = () => {
             <Users className="h-5 w-5" /> Employer Users
           </CardTitle>
           <div className="flex items-center gap-3">
-            <div className="w-[420px]">
-              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a company...">
-                    {selectedCompany ? `${selectedCompany.company_name} (${selectedCompany.registration_number})` : 'Select a company...'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.company_name} ({c.registration_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={companyOpen}
+                  className="w-[420px] justify-between font-normal"
+                >
+                  {selectedCompany
+                    ? `${selectedCompany.company_name} (${selectedCompany.registration_number})`
+                    : 'Select a company...'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[420px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Type to search company..." />
+                  <CommandList>
+                    <CommandEmpty>No company found.</CommandEmpty>
+                    <CommandGroup>
+                      {companies.map(c => (
+                        <CommandItem
+                          key={c.id}
+                          value={`${c.company_name} ${c.registration_number}`}
+                          onSelect={() => {
+                            setSelectedCompanyId(String(c.id));
+                            setCompanyOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedCompanyId === String(c.id) ? "opacity-100" : "opacity-0")} />
+                          {c.company_name} ({c.registration_number})
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {canAddUser && selectedCompanyId && (
               <Button onClick={openAddUser} className="gap-1">
                 <Plus className="h-4 w-4" /> Add User
