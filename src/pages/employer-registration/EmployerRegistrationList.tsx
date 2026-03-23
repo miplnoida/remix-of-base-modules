@@ -102,6 +102,19 @@ export default function EmployerRegistrationList() {
     return result;
   }, [employers, filters, searchText]);
 
+  const {
+    paginatedData,
+    pagination,
+    goToPage,
+    changePageSize,
+    resetPagination,
+  } = useTablePagination(filteredEmployers, 10);
+
+  // Reset to page 1 when filters, search, or tab change
+  useEffect(() => {
+    resetPagination();
+  }, [searchText, filters, activeTab]);
+
   const handleNewRegistration = () => {
     navigate('/employer-registration/new');
   };
