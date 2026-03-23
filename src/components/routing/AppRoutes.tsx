@@ -816,7 +816,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/injury/simulator" element={<ProtectedLayout><InjurySimulator /></ProtectedLayout>} />
       <Route path="/c3-management/settings/c3file/formats" element={<ProtectedLayout><C3FormatsList /></ProtectedLayout>} />
       <Route path="/c3-management/settings/c3file/formats/:formatId" element={<ProtectedLayout><C3FormatDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/cybersource" element={<ProtectedLayout><CyberSourceSettings /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/cybersource" element={<Navigate to="/admin/c3-configuration" replace />} />
       <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Reports Routes */}
@@ -1025,7 +1025,7 @@ export const AppRoutes = () => {
 
       {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
       <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/sep-contrib-rates" element={<ProtectedLayout><SepContribRateManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/sep-contrib-rates" element={<Navigate to="/admin/c3-configuration" replace />} />
       <Route path="/admin/master-data/income-codes" element={<ProtectedLayout><IncomeCodeManagement /></ProtectedLayout>} />
       <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />

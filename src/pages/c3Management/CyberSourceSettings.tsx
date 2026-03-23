@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageShell } from '@/components/common/PageShell';
+import { logAuditTrail } from '@/services/auditService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -21,8 +21,11 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const CyberSourceSettings: React.FC = () => {
-  const navigate = useNavigate();
+interface CyberSourceSettingsProps {
+  embedMode?: boolean;
+}
+
+const CyberSourceSettings: React.FC<CyberSourceSettingsProps> = ({ embedMode = false }) => {
   const [settings, setSettings] = useState<CyberSourceSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,9 +88,18 @@ const CyberSourceSettings: React.FC = () => {
         toast.error('Authentication failed: ' + authError.message);
         return;
       }
-      // User verified locally — send only the ID to C3-Wizard to toggle status
+      const previousStatus = toggleRow!.is_active;
       await toggleCyberSourceStatus(toggleRow!.id);
       toast.success('Status Change Success');
+      // Audit log for toggle
+      await logAuditTrail({
+        action: 'update',
+        entityType: 'cybersource_settings',
+        entityId: String(toggleRow!.id),
+        module: 'C3 Configuration',
+        beforeValue: { is_active: previousStatus, environment: toggleRow!.environment },
+        afterValue: { is_active: !previousStatus, environment: toggleRow!.environment },
+      });
       setToggleRow(null);
       fetchSettings();
     } catch (e: any) {
@@ -114,6 +126,15 @@ const CyberSourceSettings: React.FC = () => {
       setEditSubmitting(true);
       await updateCyberSourceSettings(editRow!.id, editMerchant, editKeyId, editSecret);
       toast.success('Cyber Source Settings updated');
+      // Audit log for edit
+      await logAuditTrail({
+        action: 'update',
+        entityType: 'cybersource_settings',
+        entityId: String(editRow!.id),
+        module: 'C3 Configuration',
+        beforeValue: { merchant_id: editRow!.merchant_id, key_id: editRow!.key_id, environment: editRow!.environment },
+        afterValue: { merchant_id: editMerchant, key_id: editKeyId, environment: editRow!.environment },
+      });
       setEditRow(null);
       fetchSettings();
     } catch (e: any) {
@@ -126,16 +147,7 @@ const CyberSourceSettings: React.FC = () => {
   const envLabel = (env: string) =>
     env.toLowerCase().includes('production') ? 'Live Environment' : 'Test Environment';
 
-  return (
-    <PageShell
-      title="CyberSource Settings"
-      breadcrumbs={[
-        { label: 'Admin Dashboard', href: '/c3-management/dashboard' },
-        { label: 'CyberSource Settings' },
-      ]}
-      isLoading={loading}
-      error={error}
-    >
+  const innerContent = (
       <div className="bg-card rounded-lg border p-6">
         <div className="flex items-center gap-2 mb-6">
           <CreditCard className="h-5 w-5 text-primary" />
@@ -245,6 +257,23 @@ const CyberSourceSettings: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+  if (embedMode) {
+    if (loading) return <div className="text-center py-8">Loading...</div>;
+    if (error) return <div className="text-center py-8 text-destructive">{error}</div>;
+    return innerContent;
+  }
+
+  return (
+    <PageShell
+      title="CyberSource Settings"
+      breadcrumbs={[
+        { label: 'Admin Dashboard', href: '/c3-management/dashboard' },
+        { label: 'CyberSource Settings' },
+      ]}
+      isLoading={loading}
+      error={error}
+    >
+      {innerContent}
     </PageShell>
   );
 };
