@@ -8262,6 +8262,42 @@ export type Database = {
         }
         Relationships: []
       }
+      er_validation_config: {
+        Row: {
+          created_at: string
+          id: string
+          input_size: string | null
+          input_type: string | null
+          is_mandatory: boolean
+          item_label: string
+          item_name: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_size?: string | null
+          input_type?: string | null
+          is_mandatory?: boolean
+          item_label: string
+          item_name: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_size?: string | null
+          input_type?: string | null
+          is_mandatory?: boolean
+          item_label?: string
+          item_name?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       er_visit: {
         Row: {
           date_of_visit: string
@@ -14057,6 +14093,42 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+        }
+        Relationships: []
+      }
+      ip_validation_config: {
+        Row: {
+          created_at: string
+          id: string
+          input_size: string | null
+          input_type: string | null
+          is_mandatory: boolean
+          item_label: string
+          item_name: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_size?: string | null
+          input_type?: string | null
+          is_mandatory?: boolean
+          item_label: string
+          item_name: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_size?: string | null
+          input_type?: string | null
+          is_mandatory?: boolean
+          item_label?: string
+          item_name?: string
+          step_number?: number
+          updated_at?: string
         }
         Relationships: []
       }
