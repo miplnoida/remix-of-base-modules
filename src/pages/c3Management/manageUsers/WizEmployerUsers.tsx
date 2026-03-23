@@ -51,8 +51,7 @@ const WizEmployerUsers: React.FC = () => {
   const [toggleConfirm, setToggleConfirm] = useState<CompanyUser | null>(null);
   const [resetConfirm, setResetConfirm] = useState<CompanyUser | null>(null);
 
-  // Search
-  const [searchText, setSearchText] = useState('');
+  const [searchText] = useState('');
 
   useEffect(() => {
     (async () => {
