@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User, Plus, Home, Loader2 } from 'lucide-react';
+import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, Plus, Home, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getCompanyDropdown, getCompanyUsers, getUserForEdit, updateCompanyUser,

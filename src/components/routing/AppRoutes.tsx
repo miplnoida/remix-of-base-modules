@@ -785,6 +785,12 @@ export const AppRoutes = () => {
       <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<ProtectedLayout><WizSelfEmployedDetailsEdit /></ProtectedLayout>} />
       <Route path="/c3-management/self-employed-user/:userId" element={<ProtectedLayout><WizSelfEmployedUserEdit /></ProtectedLayout>} />
 
+      {/* C3 Wizard Admin - Manage Users Module */}
+      <Route path="/c3-management/manage-users/employer-users" element={<ProtectedLayout><WizEmployerUsers /></ProtectedLayout>} />
+      <Route path="/c3-management/manage-users/self-employed-users" element={<ProtectedLayout><WizSelfEmployedUsers /></ProtectedLayout>} />
+      <Route path="/c3-management/manage-users/role-permission" element={<ProtectedLayout><WizRolePermission /></ProtectedLayout>} />
+      <Route path="/c3-management/manage-users/role-master" element={<ProtectedLayout><WizRoleMaster /></ProtectedLayout>} />
+
       {/* C3 Details - Contribution Screens */}
       <Route path="/c3-management/c3-contribution" element={<ProtectedLayout><C3ContributionList /></ProtectedLayout>} />
       <Route path="/c3-management/nw-director" element={<ProtectedLayout><NwDirectorList /></ProtectedLayout>} />
