@@ -148,6 +148,7 @@ const CyberSourceSettings: React.FC<CyberSourceSettingsProps> = ({ embedMode = f
     env.toLowerCase().includes('production') ? 'Live Environment' : 'Test Environment';
 
   const innerContent = (
+    <>
       <div className="bg-card rounded-lg border p-6">
         <div className="flex items-center gap-2 mb-6">
           <CreditCard className="h-5 w-5 text-primary" />
@@ -257,6 +258,9 @@ const CyberSourceSettings: React.FC<CyberSourceSettingsProps> = ({ embedMode = f
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
   if (embedMode) {
     if (loading) return <div className="text-center py-8">Loading...</div>;
     if (error) return <div className="text-center py-8 text-destructive">{error}</div>;
