@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Lock, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -12,36 +12,45 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
-interface MopTotals {
-  CSH: number;
-  CHQ: number;
-  CRD: number;
-  DRD: number;
-}
+// The 4 MOPs that require physical verification
+const PHYSICAL_MOP_CODES = ['CSH', 'CHQ', 'CRD', 'DRD'];
 
-const MOP_LABELS: Record<string, string> = {
-  CSH: 'Cash',
-  CHQ: 'Cheques',
-  CRD: 'Credit Card',
-  DRD: 'Debit Card',
-};
+interface MopMaster {
+  mop_code: string;
+  short_description: string;
+}
 
 const BatchClosing: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
   const { userCode } = useUserCode();
 
-  const [physical, setPhysical] = useState<MopTotals>({ CSH: 0, CHQ: 0, CRD: 0, DRD: 0 });
-  const [system, setSystem] = useState<MopTotals>({ CSH: 0, CHQ: 0, CRD: 0, DRD: 0 });
+  const [allMops, setAllMops] = useState<MopMaster[]>([]);
+  const [physical, setPhysical] = useState<Record<string, number>>({});
+  const [system, setSystem] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [batchClosed, setBatchClosed] = useState(false);
 
+  // Fetch all MOPs from tb_method_of_payment on mount
+  useEffect(() => {
+    const fetchMops = async () => {
+      const { data, error } = await supabase
+        .from('tb_method_of_payment')
+        .select('mop_code, short_description')
+        .order('mop_code');
+      if (!error && data) {
+        setAllMops(data as MopMaster[]);
+      }
+    };
+    fetchMops();
+  }, []);
+
   const fetchTotals = useCallback(async (batchNumber: string) => {
     setLoading(true);
     try {
-      // Physical CSH: cn_cash_count joined with denominations and currency config
+      // ---- Physical CSH ----
       const { data: cashRows } = await supabase
         .from('cn_cash_count')
         .select('count, denomination_id, currency_id')
@@ -68,7 +77,7 @@ const BatchClosing: React.FC = () => {
         }
       }
 
-      // Physical CHQ — convert each cheque to base currency
+      // ---- Physical CHQ ----
       const { data: chqRows } = await supabase
         .from('cn_batch_cheque')
         .select('amount, currency_code')
@@ -91,7 +100,7 @@ const BatchClosing: React.FC = () => {
         }
       }
 
-      // Physical CRD / DRD
+      // ---- Physical CRD / DRD ----
       const { data: cardRows } = await supabase
         .from('cn_batch_card_total')
         .select('mop_code, amount')
@@ -104,14 +113,14 @@ const BatchClosing: React.FC = () => {
 
       setPhysical({ CSH: physCsh, CHQ: physChq, CRD: physCrd, DRD: physDrd });
 
-      // System totals from cn_payment via cn_payment_header
+      // ---- System totals for ALL MOPs ----
       const { data: headers } = await supabase
         .from('cn_payment_header')
         .select('payment_id')
         .eq('batch_number', batchNumber)
         .or('status.is.null,status.eq.active');
 
-      const sysTotals: MopTotals = { CSH: 0, CHQ: 0, CRD: 0, DRD: 0 };
+      const sysTotals: Record<string, number> = {};
 
       if (headers && headers.length > 0) {
         const paymentIds = headers.map(h => h.payment_id);
@@ -121,10 +130,8 @@ const BatchClosing: React.FC = () => {
           .in('payment_id', paymentIds);
 
         (payments || []).forEach(p => {
-          const code = p.mop_code as keyof MopTotals;
-          if (code in sysTotals) {
-            sysTotals[code] += Number(p.payment_amount || 0);
-          }
+          const code = p.mop_code || '';
+          sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
         });
       }
 
@@ -170,10 +177,19 @@ const BatchClosing: React.FC = () => {
     }
   };
 
-  const mopCodes: (keyof MopTotals)[] = ['CSH', 'CHQ', 'CRD', 'DRD'];
-  const physicalTotal = mopCodes.reduce((s, k) => s + physical[k], 0);
-  const systemTotal = mopCodes.reduce((s, k) => s + system[k], 0);
-  const allMatch = mopCodes.every(k => Math.round(physical[k] * 100) === Math.round(system[k] * 100));
+  // Derive lists
+  const physicalMops = allMops.filter(m => PHYSICAL_MOP_CODES.includes(m.mop_code));
+  const systemOnlyMops = allMops.filter(m => !PHYSICAL_MOP_CODES.includes(m.mop_code) && (system[m.mop_code] || 0) > 0);
+  const mopLabel = (code: string) => allMops.find(m => m.mop_code === code)?.short_description || code;
+
+  const physicalTotal = PHYSICAL_MOP_CODES.reduce((s, k) => s + (physical[k] || 0), 0);
+  const systemPhysicalTotal = PHYSICAL_MOP_CODES.reduce((s, k) => s + (system[k] || 0), 0);
+  const systemOnlyTotal = systemOnlyMops.reduce((s, m) => s + (system[m.mop_code] || 0), 0);
+
+  // Validation only on physical MOPs
+  const allMatch = PHYSICAL_MOP_CODES.every(k =>
+    Math.round((physical[k] || 0) * 100) === Math.round((system[k] || 0) * 100)
+  );
 
   return (
     <BatchSelectionGuard
@@ -212,10 +228,10 @@ const BatchClosing: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Comparison Grid */}
+            {/* Physical vs System Reconciliation */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">MOP Reconciliation</CardTitle>
+                <CardTitle className="text-base">MOP Reconciliation — Physical Count</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -229,19 +245,21 @@ const BatchClosing: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mopCodes.map(code => {
-                      const variance = physical[code] - system[code];
-                      const match = Math.round(physical[code] * 100) === Math.round(system[code] * 100);
+                    {physicalMops.map(mop => {
+                      const phys = physical[mop.mop_code] || 0;
+                      const sys = system[mop.mop_code] || 0;
+                      const variance = phys - sys;
+                      const match = Math.round(phys * 100) === Math.round(sys * 100);
                       return (
-                        <TableRow key={code}>
+                        <TableRow key={mop.mop_code}>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="font-mono text-xs">{code}</Badge>
-                              <span className="text-sm">{MOP_LABELS[code]}</span>
+                              <Badge variant="outline" className="font-mono text-xs">{mop.mop_code}</Badge>
+                              <span className="text-sm">{mop.short_description}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(physical[code])}</TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(system[code])}</TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(phys)}</TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(sys)}</TableCell>
                           <TableCell className={`text-right font-mono ${!match ? 'text-destructive font-semibold' : ''}`}>
                             {variance >= 0 ? '+' : ''}{formatCurrency(variance)}
                           </TableCell>
@@ -257,11 +275,11 @@ const BatchClosing: React.FC = () => {
                     })}
                     {/* Totals row */}
                     <TableRow className="border-t-2 font-semibold">
-                      <TableCell>Total</TableCell>
+                      <TableCell>Total (Physical MOPs)</TableCell>
                       <TableCell className="text-right font-mono">{formatCurrency(physicalTotal)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(systemTotal)}</TableCell>
-                      <TableCell className={`text-right font-mono ${physicalTotal !== systemTotal ? 'text-destructive' : ''}`}>
-                        {physicalTotal - systemTotal >= 0 ? '+' : ''}{formatCurrency(physicalTotal - systemTotal)}
+                      <TableCell className="text-right font-mono">{formatCurrency(systemPhysicalTotal)}</TableCell>
+                      <TableCell className={`text-right font-mono ${physicalTotal !== systemPhysicalTotal ? 'text-destructive' : ''}`}>
+                        {physicalTotal - systemPhysicalTotal >= 0 ? '+' : ''}{formatCurrency(physicalTotal - systemPhysicalTotal)}
                       </TableCell>
                       <TableCell className="text-center">
                         {allMatch ? (
@@ -276,6 +294,50 @@ const BatchClosing: React.FC = () => {
               </CardContent>
             </Card>
 
+            {/* System-only MOPs (informational) */}
+            {systemOnlyMops.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                    System Summary — Other Payment Methods
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    These payment methods do not require physical verification and are shown for informational purposes only.
+                  </p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Payment Method</TableHead>
+                        <TableHead className="text-right">System Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {systemOnlyMops.map(mop => (
+                        <TableRow key={mop.mop_code}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="font-mono text-xs">{mop.mop_code}</Badge>
+                              <span className="text-sm">{mop.short_description}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(system[mop.mop_code] || 0)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {systemOnlyMops.length > 1 && (
+                        <TableRow className="border-t-2 font-semibold">
+                          <TableCell>Total (Other MOPs)</TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(systemOnlyTotal)}</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Status & Action */}
             <Card>
               <CardContent className="p-6">
@@ -284,18 +346,18 @@ const BatchClosing: React.FC = () => {
                     <XCircle className="h-10 w-10 text-destructive mx-auto" />
                     <p className="font-semibold text-destructive">Cannot Close Batch</p>
                     <p className="text-sm text-muted-foreground">
-                      One or more payment method totals do not match. Please correct the physical counts in Cash Details Entry before closing.
+                      One or more physical payment method totals do not match. Please correct the physical counts in Cash Details Entry before closing.
                     </p>
-                    {mopCodes.filter(k => Math.round(physical[k] * 100) !== Math.round(system[k] * 100)).map(k => (
+                    {PHYSICAL_MOP_CODES.filter(k => Math.round((physical[k] || 0) * 100) !== Math.round((system[k] || 0) * 100)).map(k => (
                       <Badge key={k} variant="destructive" className="mr-1">
-                        {MOP_LABELS[k]}: Physical {formatCurrency(physical[k])} ≠ System {formatCurrency(system[k])}
+                        {mopLabel(k)}: Physical {formatCurrency(physical[k] || 0)} ≠ System {formatCurrency(system[k] || 0)}
                       </Badge>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center space-y-4">
                     <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
-                    <p className="font-semibold text-green-600">All Totals Match — Ready to Close</p>
+                    <p className="font-semibold text-green-600">All Physical Totals Match — Ready to Close</p>
                     <Button size="lg" onClick={() => setConfirmOpen(true)} disabled={closing}>
                       {closing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Close & Post Batch
