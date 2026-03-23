@@ -22,7 +22,7 @@ const CashDetails: React.FC = () => {
   const { toast } = useToast();
   const batchSel = useBatchSelection();
   const { userCode } = useUserCode();
-  //const [systemTotal, setSystemTotal] = useState<number>(0);
+  const [systemTotal, setSystemTotal] = useState<number>(0);
   const [systemTotalLoading, setSystemTotalLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
