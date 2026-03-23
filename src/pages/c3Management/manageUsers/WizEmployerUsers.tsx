@@ -33,6 +33,7 @@ const WizEmployerUsers: React.FC = () => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<CompanyDropdownItem[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [companyOpen, setCompanyOpen] = useState(false);
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [loading, setLoading] = useState(false);
 
