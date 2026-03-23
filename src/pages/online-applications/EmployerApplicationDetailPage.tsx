@@ -233,15 +233,15 @@ export default function EmployerApplicationDetailPage() {
             </Avatar>
             <div className="flex-1 space-y-2">
               <h2 className="text-xl font-semibold">
-                {application.trading_name || application.legal_name || application.employer_name || 'Unnamed Employer'}
+                {application.trade_name || application.legal_name || application.employer_name || 'Unnamed Employer'}
               </h2>
-              {application.legal_name && application.trading_name && application.legal_name !== application.trading_name && (
-                <p className="text-sm text-muted-foreground">Legal Name: {application.legal_name}</p>
+              {application.legal_name && application.trade_name && application.legal_name !== application.trade_name && (
+                <p className="text-sm text-muted-foreground">Employer Name: {application.employer_name}</p>
               )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{application.email || application.employer_email || '—'}</span>
+                  <span className="truncate">{application.email || application.business_email || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="h-4 w-4 shrink-0" />
@@ -253,7 +253,7 @@ export default function EmployerApplicationDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4 shrink-0" />
-                  {application.employee_count != null ? `${application.employee_count} employees` : totalEmployees > 0 ? `${totalEmployees} employees` : '—'}
+                  {application.total_employees != null ? `${application.total_employees} employees` : totalEmployees > 0 ? `${totalEmployees} employees` : '—'}
                 </div>
               </div>
             </div>
@@ -298,7 +298,7 @@ export default function EmployerApplicationDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="notes-declaration" className="gap-1.5 text-xs px-2 py-2">
             <ClipboardCheck className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Notes & Declaration</span>
+            <span className="hidden sm:inline">Notes</span>
             <span className="sm:hidden">Notes</span>
           </TabsTrigger>
         </TabsList>
@@ -312,8 +312,8 @@ export default function EmployerApplicationDetailPage() {
                 <SectionHeader icon={Users} title="Previous Owner Information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Previous Owner" value={application.previous_owner} />
-                  <DetailField label="Previous Owner SSB Reg. No." value={application.previous_owner_reg_no} />
-                  <DetailField label="Previous Owner Address" value={application.previous_owner_address1} />
+                  {/* <DetailField label="Previous Owner SSB Reg. No." value={application.previous_owner_reg_no} /> */}
+                  <DetailField label="Previous Owner Address" value={application.prev_owner_address1} />
                   <DetailField label="Previous Owner Address 2" value={application.previous_owner_address2} />
                 </div>
               </CardContent>
@@ -333,7 +333,7 @@ export default function EmployerApplicationDetailPage() {
                     } 
                   />
                   <DetailField label="Acquisition Date" value={formatDate(application.date_acquired)} />
-                  <DetailField label="Incorporated Date" value={formatDate(application.date_incorporated)} />
+                  <DetailField label="Incorporated Date" value={formatDate(application.incorporated_date)} />
                 </div>
               </CardContent>
             </Card>
@@ -343,8 +343,8 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={Shield} title="Organization Classification" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailField label="Ownership Type" value={application.ownership_name || application.ownership_code} />
-                  <DetailField label="Sector" value={application.sector_name || application.sector_code} />
+                  <DetailField label="Ownership Type" value={application.ownership_code} />
+                  <DetailField label="Sector" value={application.sector_code} />
                 </div>
               </CardContent>
             </Card>
@@ -355,8 +355,8 @@ export default function EmployerApplicationDetailPage() {
                 <SectionHeader icon={Building2} title="Organization Details" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Parent Registration Number" value={application.parent_reg_no} />
-                  <DetailField label="Office" value={application.office_name || application.office_code} />
-                  <DetailField label="Industry" value={application.industry_name || application.industry_code} />
+                  <DetailField label="Office" value={application.office_code} />
+                  <DetailField label="Industry" value={application.industry_code} />
                   <DetailField label="Registration ID" value={application.registration_id} />
                 </div>
               </CardContent>
@@ -373,8 +373,8 @@ export default function EmployerApplicationDetailPage() {
                 <SectionHeader icon={Building2} title="Business Identity" subtitle="Core employer information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Employer Name" value={application.legal_name || application.employer_name} />
-                  <DetailField label="Trade Name" value={application.trading_name} />
-                  <DetailField label="E-Mail Address" value={application.employer_email || application.email} />
+                  <DetailField label="Trade Name" value={application.trade_name} />
+                  <DetailField label="E-Mail Address" value={application.business_email || application.email} />
                 </div>
               </CardContent>
             </Card>
@@ -385,8 +385,8 @@ export default function EmployerApplicationDetailPage() {
                 <CardContent className="p-6">
                   <SectionHeader icon={MapPin} title="HQ Address" subtitle="Headquarters / Physical address" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <DetailField label="HQ Address 1" value={application.address_line1} />
-                    <DetailField label="HQ Address 2" value={application.address_line2} />
+                    <DetailField label="HQ Address 1" value={application.hq_address1} />
+                    <DetailField label="HQ Address 2" value={application.hq_address2} />
                     <DetailField label="Country" value={application.hq_country || application.country} />
                   </div>
                 </CardContent>
@@ -396,12 +396,12 @@ export default function EmployerApplicationDetailPage() {
                 <CardContent className="p-6">
                   <SectionHeader icon={Mail} title="Mailing Address" subtitle="Postal / Mailing address" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <DetailField label="Mailing Address 1" value={application.mailing_address_line1} />
-                    <DetailField label="Mailing Address 2" value={application.mailing_address_line2} />
-                    <DetailField label="Country" value={application.mailing_country} />
-                    {application.same_as_physical != null && (
+                    <DetailField label="Mailing Address 1" value={application.mailing_address1} />
+                    <DetailField label="Mailing Address 2" value={application.mailing_address2} />
+                    {/* <DetailField label="Country" value={application.mailing_country} /> */}
+                    {/* {application.same_as_physical != null && (
                       <DetailField label="Same as HQ" value={formatBoolean(application.same_as_physical)} />
-                    )}
+                    )} */}
                   </div>
                 </CardContent>
               </Card>
@@ -414,7 +414,7 @@ export default function EmployerApplicationDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Date of Application" value={formatDate(application.application_date)} />
                   <DetailField label="Date Wages First Paid" value={formatDate(application.wages_first_paid_date)} />
-                  <DetailField label="Total Employees" value={application.employee_count?.toString() || totalEmployees > 0 ? totalEmployees.toString() : '—'} />
+                  <DetailField label="Total Employees" value={application.total_employees?.toString() || totalEmployees > 0 ? totalEmployees.toString() : '—'} />
                   <DetailField label="Male Employees" value={application.male_count?.toString() ?? '0'} />
                   <DetailField label="Female Employees" value={application.female_count?.toString() ?? '0'} />
                 </div>
@@ -431,8 +431,8 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={Phone} title="Contact Information" subtitle="Business telephone and fax" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailField label="Contact Telephone Number" value={formatPhone(application.phone, application.phone_dial_code)} />
-                  <DetailField label="Contact Fax Number" value={formatPhone(application.fax, application.fax_dial_code)} />
+                  <DetailField label="Contact Telephone Number" value={formatPhone(application.contact_telephone, application.contact_telephone_dial_code)} />
+                  <DetailField label="Contact Fax Number" value={formatPhone(application.contact_fax, application.contact_fax_dial_code)} />
                   <DetailField label="Contact Name" value={application.contact_name} />
                   <DetailField label="Mobile" value={formatPhone(application.mobile, application.mobile_dial_code)} />
                   <DetailField label="Email" value={application.email} />
@@ -446,9 +446,9 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={MapPin} title="Location Information" subtitle="Business location and activity" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <DetailField label="Village" value={application.village_name || application.village_code} />
-                  <DetailField label="Activity Type" value={application.activity_type_name || application.activity_type} />
-                  <DetailField label="Inspector Code" value={application.inspector_name || application.inspector_code} />
+                  <DetailField label="Village" value={application.village_code} />
+                  {/* <DetailField label="Activity Type" value={application.activity_type_name || application.activity_type} /> */}
+                  {/* <DetailField label="Inspector Code" value={application.inspector_name || application.inspector_code} /> */}
                 </div>
               </CardContent>
             </Card>
@@ -472,13 +472,13 @@ export default function EmployerApplicationDetailPage() {
                 {application.computer_payroll && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DetailField label="Make / Model" value={application.make_model} />
-                    <DetailField label="Disk / Tape" value={application.disk_tape} />
+                    {/* <DetailField label="Disk / Tape" value={application.disk_tape} /> */}
                   </div>
                 )}
                 <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <DetailField label="Payroll Frequency" value={application.payroll_frequency} />
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -695,7 +695,7 @@ export default function EmployerApplicationDetailPage() {
             </Card>
 
             {/* Declaration */}
-            <Card>
+            {/* <Card>
               <CardContent className="p-6">
                 <SectionHeader icon={ClipboardCheck} title="Declaration & Signature" subtitle="Signatory information and declaration status" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -712,7 +712,7 @@ export default function EmployerApplicationDetailPage() {
                   <DetailField label="Declaration Date" value={formatDate(application.declaration_date)} />
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </TabsContent>
       </Tabs>
