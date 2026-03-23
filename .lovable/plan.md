@@ -1,46 +1,64 @@
-# Fix: `SepContribRateManagement.tsx` Build Error & Consolidate `c3_wage_category` Usage
 
-## Problem
 
-The previous edit partially replaced the wage category dropdown in `SepContribRateManagement.tsx`. The query was updated to fetch from `c3_wage_category` (line 63-70, variable `wageCategories`), but the JSX on line 278 still references the old variable name `wageOptions` with old field names (`category_code`, `wage_upper`), causing the build error.
+# Move SEP Contrib Rates & CyberSource Settings into C3 Configuration
 
-## Plan
+## Summary
 
-### 1. Fix `SepContribRateManagement.tsx` — Replace `wageOptions` with `wageCategories`
+Integrate two existing components — **SepContribRateManagement** and **CyberSourceSettings** — as new tabs inside the C3 Configuration page at `/admin/c3-configuration`. Add server-side audit logging via database triggers for SEP contribution rate changes.
 
-**Lines 278-282**: Replace the broken dropdown mapping:
+## Changes
 
-```tsx
-// FROM (broken):
-{wageOptions.map((c) => (
-  <SelectItem key={c.category_code} value={String(c.wage_upper)}>
-    Cat {c.category_code} — ${Number(c.wage_upper).toFixed(2)}
-  </SelectItem>
-))}
+### 1. Add two new tabs to `C3ConfigurationPage.tsx`
 
-// TO (fixed, using wageCategories from line 63):
-{wageCategories.map((c) => (
-  <SelectItem key={c.category_id} value={String(c.weekly_income)}>
-    Cat {c.category} — ${Number(c.weekly_income).toFixed(2)}
-  </SelectItem>
-))}
+- Import `SepContribRateManagement` and `CyberSourceSettings`
+- Add tab triggers: **"SE Contribution Rates"** and **"CyberSource Settings"**
+- Add corresponding `TabsContent` sections rendering each component
+- Add icons (Calculator for SE rates, CreditCard for CyberSource)
+
+### 2. Refactor `SepContribRateManagement.tsx` for embeddable use
+
+- Remove the outer `<PermissionWrapper>` and page-level heading/container since the parent C3 Configuration page already handles layout
+- Export a version that renders just the Card content (table + dialogs) so it fits naturally as a tab
+- Keep all existing Supabase queries, mutations, and permission checks (`useActionPermissions`) intact
+
+### 3. Refactor `CyberSourceSettings.tsx` for embeddable use
+
+- Remove `<PageShell>` wrapper and breadcrumbs (parent page provides context)
+- Remove `useNavigate` since it's no longer a standalone page
+- Export content that renders the table + modals directly as a tab section
+- Keep all existing `wizReconciliationService` calls intact
+
+### 4. Update routing (`AppRoutes.tsx`)
+
+- Keep old routes but redirect them to `/admin/c3-configuration`:
+  - `/admin/master-data/sep-contrib-rates` → redirect to `/admin/c3-configuration`
+  - `/c3-management/settings/cybersource` → redirect to `/admin/c3-configuration`
+
+### 5. Add audit trigger for `tb_self_emp_contrib_rate`
+
+**Database migration** — attach the existing `audit_table_changes()` trigger:
+
+```sql
+CREATE TRIGGER trg_audit_tb_self_emp_contrib_rate
+  AFTER INSERT OR UPDATE OR DELETE ON public.tb_self_emp_contrib_rate
+  FOR EACH ROW EXECUTE FUNCTION public.audit_table_changes('SE Contribution Rates');
 ```
 
-This aligns the JSX with the `wageCategories` query already fetching from `c3_wage_category`.
+This ensures all create/update/delete operations on this table are automatically logged to `system_audit_trail` with before/after values, user attribution, and timestamps — visible at `/system-logs/audit`.
 
-### 2. Update `WagesCategoryTab.tsx` — Use `c3_wage_category` instead of `tb_self_emp_contrib_rate`
+### 6. CyberSource audit logging
 
-Replace the `SelfEmployedService.getWageCategoryOptions()` call (which queries stale `tb_self_emp_contrib_rate` for distinct `wage_cat` numbers) with a direct query to `c3_wage_category`. This ensures the dropdown reflects configuration changes.
-
-- Replace `wageCatOptions: number[]` state with a typed `WageCategory[]` array
-- Query `c3_wage_category` directly for `category_id, category, weekly_income`
-- Update the dropdown to display `Cat [category] — $[weekly_income]` instead of raw numbers
-- Update the form value handling to use `weekly_income` as the stored value
+CyberSource settings are managed via the external `wiz-admin-api` edge function (not a local table). Add client-side `logAuditTrail()` calls in `CyberSourceSettings.tsx`:
+- After successful **toggle** → log action `'update'`, entity type `'cybersource_settings'`, with before/after status values
+- After successful **edit** → log action `'update'`, entity type `'cybersource_settings'`, with field changes
 
 ### Files Changed
 
+| File | Change |
+|------|--------|
+| `src/pages/admin/C3ConfigurationPage.tsx` | Add 2 new tabs (SE Rates, CyberSource) |
+| `src/pages/admin/SepContribRateManagement.tsx` | Remove page wrapper, export embeddable content |
+| `src/pages/c3Management/CyberSourceSettings.tsx` | Remove PageShell, add audit logging calls |
+| `src/components/routing/AppRoutes.tsx` | Redirect old routes to `/admin/c3-configuration` |
+| **New migration** | Add audit trigger on `tb_self_emp_contrib_rate` |
 
-| File                                           | Change                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages/admin/SepContribRateManagement.tsx` | Fix line 278-282: replace `wageOptions` → `wageCategories` with correct field names                                                                                                                                                                                                                                                                                                                        |
-| `src/components/ip/sep/WagesCategoryTab.tsx`   | Replace `getWageCategoryOptions()` with direct `c3_wage_category` query; update dropdown labels But wait configuration page for the c3 is using the master tables not the c3_wage_category then why are you editing other ppage to use the c3_wage_categort instead of fixinf the selfempyer edit page??? I have attached the tables used in the configuration.Please check the screenshot properly&nbsp; |
