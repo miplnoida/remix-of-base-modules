@@ -138,7 +138,7 @@ const WizRoleMaster: React.FC = () => {
                 <Button
                   variant="ghost" size="icon"
                   onClick={() => setDeleteConfirm(role)}
-                  disabled={role.role_id <= 6}
+                  disabled={isSystemRole(role.role_id)}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
