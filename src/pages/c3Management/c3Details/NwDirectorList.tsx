@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Search, Eye, Trash2, CheckCircle2, XCircle, Printer, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -124,14 +125,18 @@ const NwDirectorList: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Select Non Working Director</Label>
-              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                <SelectTrigger><SelectValue placeholder="Select Non Working Director..." /></SelectTrigger>
-                <SelectContent>
-                  {companies.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.company_name} ({c.registration_number})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={selectedCompanyId}
+                onValueChange={setSelectedCompanyId}
+                placeholder="Select Non Working Director..."
+                searchPlaceholder="Search by name or code..."
+                emptyMessage="No directors found."
+                options={companies.map(c => ({
+                  value: String(c.id),
+                  label: `${c.company_name} (${c.registration_number})`,
+                  searchText: `${c.registration_number}`,
+                }))}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Period From:</Label>
