@@ -279,9 +279,9 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
                   <SelectValue placeholder={loadingOptions ? 'Loading...' : 'Select wage category'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {wageCatOptions.map((wc) => (
-                    <SelectItem key={wc} value={String(wc)}>
-                      {wc.toFixed(2)}
+                  {incomeCatOptions.map((ic) => (
+                    <SelectItem key={ic.category_code} value={String(ic.wage_upper)}>
+                      Cat {ic.category_code} — ${Number(ic.wage_upper ?? 0).toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>
