@@ -60,16 +60,14 @@ const SepContribRateManagement = () => {
     },
   });
 
-  const { data: incomeCategories = [] } = useQuery({
-    queryKey: ["tb_income_cat_lookup"],
+  const { data: wageCategories = [] } = useQuery({
+    queryKey: ["c3_wage_category_lookup"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("tb_income_cat").select("category_code, wage_upper").order("category_code");
+      const { data, error } = await supabase.from("c3_wage_category").select("category_id, category, weekly_income, weekly_contribution").order("weekly_income");
       if (error) throw error;
-      return data as IncomeCategory[];
+      return data as WageCategory[];
     },
   });
-
-  const wageOptions = incomeCategories.filter((c) => c.wage_upper != null);
 
   const saveMutation = useMutation({
     mutationFn: async (record: ContribRate) => {
