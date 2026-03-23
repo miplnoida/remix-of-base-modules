@@ -32,7 +32,6 @@ const WizEmployerUsers: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [loading, setLoading] = useState(false);
-  const [companiesLoading, setCompaniesLoading] = useState(true);
 
   // Add/Edit user
   const [userFormOpen, setUserFormOpen] = useState(false);
