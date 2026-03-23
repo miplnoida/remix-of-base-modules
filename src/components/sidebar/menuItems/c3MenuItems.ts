@@ -100,25 +100,25 @@ export const c3MenuItems = [
         subItems: [
           {
             title: "Employers",
-            url: "/c3-management/manage-users/employer-users",
+            url: "/c3-management/users/employers",
             icon: Users,
             requiresPermission: "view_dashboard"
           },
           {
             title: "Self Employed",
-            url: "/c3-management/manage-users/self-employed-users",
+            url: "/c3-management/users/self-employed",
             icon: UserCheck,
             requiresPermission: "view_dashboard"
           },
           {
             title: "Role Permission",
-            url: "/c3-management/manage-users/role-permission",
+            url: "/c3-management/users/role-permission",
             icon: Shield,
             requiresPermission: "view_dashboard"
           },
           {
             title: "Role Master",
-            url: "/c3-management/manage-users/role-master",
+            url: "/c3-management/users/role-master",
             icon: Shield,
             requiresPermission: "view_dashboard"
           }
