@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,11 +14,8 @@ import {
   Building2,
   Mail, 
   Phone, 
-  Calendar, 
   MapPin,
   RefreshCw,
-  CheckCircle, 
-  XCircle, 
   AlertTriangle,
   Loader2,
   FileText,
@@ -30,13 +24,17 @@ import {
   ClipboardCheck,
   UserCircle,
   Factory,
-  ScrollText
+  ScrollText,
+  MessageSquare,
+  Play,
+  Calendar
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
-import { useApproveEmployerApplication, useRejectEmployerApplication, getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
+import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
+import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
 import { toast } from 'sonner';
 
 // Helper functions
@@ -84,44 +82,16 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
 export default function EmployerApplicationDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
-  
-  const approveApplication = useApproveEmployerApplication();
-  const rejectApplication = useRejectEmployerApplication();
 
-  const [actionDialog, setActionDialog] = useState<{ open: boolean; type: 'approve' | 'reject' }>({
-    open: false,
-    type: 'approve',
-  });
-  const [actionRemarks, setActionRemarks] = useState('');
+  // Meeting integration — same as IP detail page
+  const applicationRef = application?.reference_number || application?.id || applicationId;
+  const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
-  const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
-  const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
-  const canApprove = isAdmin || isOfficer;
-  const isPending = application?.status?.toLowerCase() === 'submitted' || application?.status?.toLowerCase() === 'pending';
-
-  const handleConfirmAction = async () => {
-    // Use the normalized application.id for API calls
-    const actionId = application?.id || applicationId;
-    if (!actionId) return;
-
-    if (actionDialog.type === 'approve') {
-      await approveApplication.mutateAsync({
-        applicationId: actionId,
-        remarks: actionRemarks,
-      });
-    } else {
-      await rejectApplication.mutateAsync({
-        applicationId: actionId,
-        remarks: actionRemarks,
-      });
-    }
-
-    setActionDialog({ open: false, type: 'approve' });
-    setActionRemarks('');
+  const handleActionComplete = () => {
     refetch();
+    invalidateMeeting();
   };
 
   if (isLoading) {
@@ -191,17 +161,43 @@ export default function EmployerApplicationDetailPage() {
           <Badge variant={getEmployerStatusVariant(application.status)} className="text-sm px-3 py-1">
             {formatStatusDisplay(application.status)}
           </Badge>
+
+          {/* Go to Meeting button when meeting is in progress */}
+          {meeting && meeting.status === 'InProgress' && (
+            <Button
+              variant="default"
+              className="gap-2"
+              onClick={() => navigate(`/meetings/start/${meeting.id}`)}
+            >
+              <Play className="h-4 w-4" />
+              Go to Meeting
+            </Button>
+          )}
+
+          {/* Meeting action buttons for scheduled meetings */}
+          {meeting && meeting.status !== 'InProgress' && (
+            <MeetingActionButtons meeting={meeting} onActionComplete={handleActionComplete} />
+          )}
+
+          {/* Meeting indicator */}
+          {meeting && (
+            <Badge variant="outline" className="gap-1">
+              <Calendar className="h-3 w-3" />
+              Meeting: {meeting.status}
+            </Badge>
+          )}
+
           <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="gap-2">
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          {/* Dynamic workflow action buttons based on workflow configuration */}
+          {/* Dynamic workflow action buttons */}
           <WorkflowActionButtons
             sourceModule="online-employer-applications"
             sourceRecordId={application.reference_number || application.id || applicationId || null}
-            onActionComplete={(action, endState) => {
+            onActionComplete={(action) => {
               toast.success(`Action "${action}" completed successfully`);
-              refetch();
+              handleActionComplete();
             }}
           />
         </div>
@@ -289,6 +285,10 @@ export default function EmployerApplicationDetailPage() {
             <ClipboardCheck className="h-4 w-4" />
             Declaration
           </TabsTrigger>
+          <TabsTrigger value="remarks" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Remarks
+          </TabsTrigger>
         </TabsList>
 
         {/* Business Tab */}
@@ -315,7 +315,7 @@ export default function EmployerApplicationDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Profile Tab (Acquisition History) */}
+        {/* Profile Tab */}
         <TabsContent value="profile">
           <Card>
             <CardHeader>
@@ -615,9 +615,31 @@ export default function EmployerApplicationDetailPage() {
                 } 
               />
               <DetailField label="Declaration Date" value={formatDate(application.declaration_date)} />
-              <div className="md:col-span-2">
-                <DetailField label="Remarks / Notes" value={application.remarks} />
-              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Remarks Tab */}
+        <TabsContent value="remarks">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Remarks
+              </CardTitle>
+              <CardDescription>Application notes and remarks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {application.remarks ? (
+                <div className="rounded-lg bg-muted p-4">
+                  <p className="whitespace-pre-wrap">{application.remarks}</p>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No remarks available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -637,79 +659,6 @@ export default function EmployerApplicationDetailPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Action Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
-        onOpenChange={(open) => !open && setActionDialog({ open: false, type: 'approve' })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {actionDialog.type === 'approve' ? (
-                <CheckCircle className="h-5 w-5 text-primary" />
-              ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Application
-            </DialogTitle>
-            <DialogDescription>
-              {actionDialog.type === 'approve' 
-                ? 'This will approve the employer application and notify the applicant.'
-                : 'This will reject the application. Please provide a reason.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">
-                Reference: {application.reference_number || application.id}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {application.trading_name || application.legal_name || application.employer_name}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="remarks">
-                Remarks {actionDialog.type === 'reject' && <span className="text-destructive">*</span>}
-              </Label>
-              <Textarea
-                id="remarks"
-                value={actionRemarks}
-                onChange={(e) => setActionRemarks(e.target.value)}
-                placeholder={actionDialog.type === 'approve' 
-                  ? 'Optional remarks for the approval...'
-                  : 'Please provide a reason for rejection...'}
-                rows={4}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setActionDialog({ open: false, type: 'approve' })}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={actionDialog.type === 'approve' ? 'default' : 'destructive'}
-              onClick={handleConfirmAction}
-              disabled={
-                (actionDialog.type === 'reject' && !actionRemarks.trim()) ||
-                approveApplication.isPending ||
-                rejectApplication.isPending
-              }
-            >
-              {(approveApplication.isPending || rejectApplication.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {actionDialog.type === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

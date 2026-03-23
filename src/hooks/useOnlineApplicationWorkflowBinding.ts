@@ -16,8 +16,8 @@ export const WORKFLOW_CONFIGS = {
     sourceModule: 'online-insured-person-applications',
   },
   'employer': {
-    workflowId: '72795139-1a58-4915-8bce-a14269ca9972',
-    workflowName: 'Online Employer Registration Review Workflow',
+    workflowId: 'bf8e92bc-527f-4c67-8c65-1ed5df59fb84',
+    workflowName: 'Online Employer Registration Review Workflow V2',
     sourceModule: 'online-employer-applications',
   },
   'doctor': {
