@@ -23,6 +23,8 @@ import { ER_STATUS_CODES } from '@/types/employerRegistration';
 import { exportToExcel, exportToPDF, ExportColumn, ExportData } from '@/utils/exportUtils';
 import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTablePagination } from '@/hooks/useTablePagination';
+import { TablePagination } from '@/components/shared/TablePagination';
 
 interface Filters {
   regno: string;
