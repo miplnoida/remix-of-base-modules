@@ -111,7 +111,7 @@ export default function EmployerApplicationDetailPage() {
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
 
   // Meeting integration
-  const applicationRef = application?.reference_number || application?.id || applicationId;
+  const applicationRef = application?.registration_id || application?.id || applicationId;
   const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
   const handleActionComplete = () => {
@@ -180,7 +180,7 @@ export default function EmployerApplicationDetailPage() {
               Employer Application Review
             </h1>
             <p className="text-muted-foreground">
-              {application.reference_number || application.id} • Submitted {formatDate(application.submitted_at || application.created_at)}
+              {application.registration_id || application.id} • Submitted {formatDate(application.submitted_at || application.created_at)}
             </p>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function EmployerApplicationDetailPage() {
           </Button>
           <WorkflowActionButtons
             sourceModule="online-employer-applications"
-            sourceRecordId={application.reference_number || application.id || applicationId || null}
+            sourceRecordId={application.registration_id || application.id || applicationId || null}
             onActionComplete={(action) => {
               toast.success(`Action "${action}" completed successfully`);
               handleActionComplete();
@@ -233,9 +233,9 @@ export default function EmployerApplicationDetailPage() {
             </Avatar>
             <div className="flex-1 space-y-2">
               <h2 className="text-xl font-semibold">
-                {application.trade_name || application.legal_name || application.employer_name || 'Unnamed Employer'}
+                {application.trade_name || application.employer_name || 'Unnamed Employer'}
               </h2>
-              {application.legal_name && application.trade_name && application.legal_name !== application.trade_name && (
+              {application.employer_name && application.trade_name && application.employer_name !== application.trade_name && (
                 <p className="text-sm text-muted-foreground">Employer Name: {application.employer_name}</p>
               )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3">
@@ -314,7 +314,7 @@ export default function EmployerApplicationDetailPage() {
                   <DetailField label="Previous Owner" value={application.previous_owner} />
                   {/* <DetailField label="Previous Owner SSB Reg. No." value={application.previous_owner_reg_no} /> */}
                   <DetailField label="Previous Owner Address" value={application.prev_owner_address1} />
-                  <DetailField label="Previous Owner Address 2" value={application.previous_owner_address2} />
+                  <DetailField label="Previous Owner Address 2" value={application.prev_owner_address2} />
                 </div>
               </CardContent>
             </Card>
@@ -372,7 +372,7 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={Building2} title="Business Identity" subtitle="Core employer information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <DetailField label="Employer Name" value={application.legal_name || application.employer_name} />
+                  <DetailField label="Employer Name" value={application.employer_name} />
                   <DetailField label="Trade Name" value={application.trade_name} />
                   <DetailField label="E-Mail Address" value={application.business_email || application.email} />
                 </div>
