@@ -59,12 +59,12 @@ const SepContribRateManagement = () => {
     },
   });
 
-  const { data: wageCategories = [] } = useQuery({
-    queryKey: ["c3_wage_category_lookup"],
+  const { data: incomeCategories = [] } = useQuery({
+    queryKey: ["tb_income_cat"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("c3_wage_category").select("category_id, category, weekly_income, weekly_contribution").order("weekly_income");
+      const { data, error } = await (supabase as any).from("tb_income_cat").select("category_code, wage_upper, appeal").order("category_code");
       if (error) throw error;
-      return data as WageCategory[];
+      return data as IncomeCategory[];
     },
   });
 
