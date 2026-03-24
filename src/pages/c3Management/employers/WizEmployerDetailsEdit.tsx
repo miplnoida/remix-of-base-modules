@@ -109,9 +109,9 @@ const WizEmployerDetails: React.FC = () => {
       if (d.security_questions?.length > 0) {
         setSq({
           question1: d.security_questions[0]?.question || '',
-          answer1: d.security_questions[0]?.answer_hash || '',
+          answer1: '', // Never pre-fill with hash — user must re-enter to change
           question2: d.security_questions[1]?.question || '',
-          answer2: d.security_questions[1]?.answer_hash || '',
+          answer2: '', // Never pre-fill with hash — user must re-enter to change
         });
       }
     } catch (err: any) {
