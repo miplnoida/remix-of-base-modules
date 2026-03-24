@@ -1,119 +1,101 @@
 
 
-# Publish Self-Employed Income (Wages) Sync: SSB Admin → C3-Wizard
+# Create Three Public APIs for C3 Data Ingestion (Updated)
 
 ## Overview
 
-Add a "Publish SE Wages" button on the Wages tab of the IP Registration view page. When clicked, it publishes all `ip_self_category` wage records (with joined `ip_self_employ` activity data) to the C3-Wizard via a new edge function, following the exact same pattern as the existing C3 Configuration publish flow.
+Three POST endpoints in the `public-api` edge function for external C3 data submission. All use PostgreSQL RPC functions for transactional logic and are registered in the API registry.
 
-## Architecture
+## API 1: Insert C3 Reported Record — `POST /api/v1/c3-reported`
 
-```text
-┌─────────────────────┐       ┌──────────────────────────┐       ┌──────────────┐
-│ WagesCategoryTab    │──────▶│ se-wages-sync-publish    │──────▶│ C3-Wizard    │
-│ (Publish Button)    │       │ (Edge Function)          │       │ API endpoint │
-│                     │       │ Forwards payload with    │       │              │
-│ usePublishSEWages() │       │ x-sync-api-key header    │       │ Upserts into │
-│ builds payload from │       │                          │       │ wiz_ip_self_ │
-│ ip_self_category +  │       │                          │       │ category     │
-│ ip_self_employ      │       │                          │       │              │
-└─────────────────────┘       └──────────────────────────┘       └──────────────┘
+**No changes from original plan.** Auto-generates `sequence_no` as `MAX(sequence_no) + 1` for the given `payer_id + payer_type + period` using advisory lock. Forces `posting_status = 'DEL'`. Returns `payer_id`, `payer_type`, `sequence_no`, `period`.
+
+## API 2: Insert IP Wages — `POST /api/v1/c3-wages` (Updated)
+
+**New: Parent validation before insert.** Before inserting into `ip_wages`, the RPC checks for a matching row in `cn_c3_reported` with the same `payer_id`, `payer_type`, `period`, `sequence_no` AND `posting_status = 'DEL'`. If no such parent exists, the insert is rejected with:
+
+```json
+{
+  "status": "error",
+  "message": "Cannot insert wages because no matching C3 record with status DEL exists for the given payer_id, payer_type, period, and sequence_no."
+}
 ```
 
-## Changes
+If the parent exists, it also sets `c3_id` on the new `ip_wages` row to the parent's `id`. Forces `posting_status = 'DEL'` on the wages row.
 
-### 1. New DB Table: `se_wages_sync_log` (Migration)
+## API 3: Verify C3 — `POST /api/v1/c3-verify` (Updated)
 
-Tracks publish history, same pattern as `c3_config_sync_log`:
+**Updated verification logic with recalculation and nil_return handling:**
 
-```sql
-CREATE TABLE public.se_wages_sync_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sync_version TEXT NOT NULL DEFAULT '1.0',
-  status TEXT NOT NULL DEFAULT 'pending',
-  payload JSONB,
-  payload_hash TEXT,
-  records_count INTEGER DEFAULT 0,
-  error_message TEXT,
-  published_by TEXT,
-  published_at TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+### Input
+`payer_id`, `payer_type`, `sequence_no`, `period` (all required).
 
-ALTER TABLE public.se_wages_sync_log ENABLE ROW LEVEL SECURITY;
+### Flow
 
-CREATE POLICY "Authenticated users can manage SE wages sync log"
-  ON public.se_wages_sync_log
-  FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
-```
+1. Find `cn_c3_reported` row by composite key. If not found → error.
 
-### 2. New Edge Function: `supabase/functions/se-wages-sync-publish/index.ts`
+2. **Check `nil_return`**: If `cn_c3_reported.nil_return = true`:
+   - Check that **zero** `ip_wages` rows exist for this composite key
+   - If any wages rows exist → error: "Cannot verify nil-return C3 because wage records exist"
+   - If no wages rows → verify: set `posting_status = 'VAC'`, `date_verified = NOW()` on `cn_c3_reported`. Return success.
 
-Mirrors `c3-config-sync-publish` — reads `C3_WIZARD_SYNC_URL` and `C3_CONFIG_SYNC_API_KEY` secrets, forwards payload to C3-Wizard's SE wages sync endpoint (e.g., `/sync-se-wages`). Same error handling pattern.
+3. **Non-nil-return path**: Query all `ip_wages` rows for the same composite key. If none exist → error: "No wage records found."
 
-### 3. New Hook: `src/hooks/usePublishSEWages.ts`
+4. **Recalculate and set `cn_c3_reported` fields from `ip_wages` sums**:
+   - `total_wages` = SUM of (`wages_paid1 + wages_paid2 + wages_paid3 + wages_paid4 + wages_paid5 + wages_paid6`) across all matching `ip_wages` rows (treating NULLs as 0)
+   - `emp_ss_amt_calc` = SUM of (`er_ss_amt + er_ei_amt + ip_ss_amt`) across all matching rows
+   - `emp_levy_amt_calc` = SUM of (`er_levy_amt + ip_levy_amt`) across all matching rows
+   - `emp_pe_amt_calc` = SUM of (`ip_pe_amt`) across all matching rows
 
-- **`buildSEWagesPayload(ssn)`**: Fetches all `ip_self_category` records for the SSN, joins with `ip_self_employ` for activity metadata (activity_type, self_ref_no), and with `tb_income_cat` for category code. Returns structured payload:
-  ```typescript
-  {
-    sync_version: '1.0',
-    sync_timestamp: string,
-    ssn: string,
-    self_ref_no: string,
-    wages: [{
-      activity_seq_no: string,
-      activity_type: string,
-      self_ref_no: string,
-      effective_start_date: string,
-      effective_end_date: string,
-      wage_category: number,       // wage_upper value
-      category_code: string,       // e.g. 'A', 'B', 'S'
-    }]
+5. **Update `cn_c3_reported`** with the recalculated values, set `posting_status = 'VAC'`, `date_verified = NOW()`, `number_employed` = count of matching `ip_wages` rows.
+
+6. **Mark all matching `ip_wages` rows** as `is_verified = true`, `verified_by = 'API'`, `date_verified = NOW()`.
+
+7. All updates in a single transaction — any failure rolls back everything.
+
+### Response (success)
+```json
+{
+  "status": "success",
+  "message": "C3 verified successfully",
+  "data": {
+    "payer_id": "...",
+    "total_wages": 12500.00,
+    "emp_ss_amt_calc": 450.00,
+    "emp_levy_amt_calc": 200.00,
+    "emp_pe_amt_calc": 100.00,
+    "number_employed": 5,
+    "wages_rows_verified": 5
   }
-  ```
-- **`usePublishSEWages()`**: Mutation that builds payload → inserts pending log → invokes `se-wages-sync-publish` edge function → updates log to success/failed. Same flow as `usePublishToC3Wizard`.
-
-### 4. Update `src/components/ip/sep/WagesCategoryTab.tsx`
-
-Add a "Publish to C3-Wizard" button (Upload icon) in the header next to "Add Wage Category". Shows confirmation dialog before publishing. Includes sync status badge (pending/synced) matching the C3 config pattern.
-
-### 5. Message for C3-Wizard Team
-
-A structured implementation guide will be prepared covering:
-
-**A. New API Endpoint**: Accept POST at a new route (e.g., action `sync_se_wages` in wiz-admin-api) authenticated via `x-sync-api-key`.
-
-**B. Mirror Table Schema**:
-```sql
-CREATE TABLE wiz_ip_self_category (
-  ssn TEXT NOT NULL,
-  self_ref_no TEXT NOT NULL,
-  activity_seq_no TEXT NOT NULL,
-  activity_type TEXT,
-  effective_start_date DATE NOT NULL,
-  effective_end_date DATE,
-  wage_category NUMERIC,
-  category_code TEXT,
-  synced_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (ssn, activity_seq_no, effective_start_date)
-);
+}
 ```
 
-**C. Upsert Logic**: On receive, delete all existing records for the SSN and re-insert (Full Replace strategy, same as `wiz_self_emp_contrib_rate`).
+### Response (nil_return success)
+```json
+{
+  "status": "success",
+  "message": "Nil-return C3 verified successfully. No wages expected.",
+  "data": { "payer_id": "...", "nil_return": true }
+}
+```
 
-**D. C3 Submission Change** (Critical): When calculating SE contributions during C3 filing:
-- **Current** (incorrect): Income fetched from personal details / SE profile
-- **Required**: Query `wiz_ip_self_category` WHERE `ssn = :ssn` AND `effective_start_date <= :period_date` AND `effective_end_date >= :period_date`, use the matched `wage_category` for contribution calculation
-- If no matching wage period found, block submission with error: "No wage category configured for the selected period"
+## Implementation
 
-## Files Created/Modified
+### Migration SQL
+- **RPC `public_api_insert_c3_reported`**: Advisory lock, sequence generation, insert with `posting_status = 'DEL'`
+- **RPC `public_api_insert_ip_wages`**: Parent validation (must exist in `cn_c3_reported` with `posting_status = 'DEL'`), set `c3_id`, insert with `posting_status = 'DEL'`
+- **RPC `public_api_verify_c3`**: Transactional function — nil_return check, recalculate totals from `ip_wages`, update `cn_c3_reported` fields, mark wages verified
+- **3 API registry inserts**
+
+### Edge Function: `supabase/functions/public-api/index.ts`
+- Add 3 POST routes to `matchRoute()`
+- Add 3 handler functions that validate required fields and call RPCs
+- Add handlers to `executeHandler()` switch
+
+## Files Modified
 
 | File | Action |
 |------|--------|
-| Migration SQL | Create `se_wages_sync_log` table |
-| `supabase/functions/se-wages-sync-publish/index.ts` | New edge function |
-| `src/hooks/usePublishSEWages.ts` | New hook for payload building + mutation |
-| `src/components/ip/sep/WagesCategoryTab.tsx` | Add Publish button + confirmation dialog |
-| `src/components/ip/sep/index.ts` | No change needed |
+| Migration SQL | Create 3 RPCs + 3 API registry rows |
+| `supabase/functions/public-api/index.ts` | Add route matching + handlers for 3 POST endpoints |
 
