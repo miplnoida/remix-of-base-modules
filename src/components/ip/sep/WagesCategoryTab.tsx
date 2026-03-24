@@ -359,6 +359,35 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Publish Confirmation */}
+      <AlertDialog open={showPublishConfirm} onOpenChange={setShowPublishConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish SE Wages to C3-Wizard?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will sync all wage categories for SSN <span className="font-mono font-medium">{ssn}</span> to the C3-Wizard system for contribution calculation.
+              </p>
+              <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
+                <p className="font-medium text-foreground">Payload Summary:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  <li>{categories.length} wage categor{categories.length === 1 ? 'y' : 'ies'}</li>
+                  <li>{Object.keys(groupedCategories).length} activit{Object.keys(groupedCategories).length === 1 ? 'y' : 'ies'}</li>
+                </ul>
+              </div>
+              <p className="text-sm font-medium text-destructive">
+                This will update income data used for C3 contribution calculations in the employer system.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowPublishConfirm(false); publishMutation.mutate(ssn); }}>
+              Yes, Publish to C3-Wizard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
