@@ -1,64 +1,52 @@
 
 
-# Fix Plan: C3 Management Issues (4 Items)
+# Fix: React Error #31 — Remarks Object Rendered as React Child
 
-## Issue 1: Employer Users — Red Labels (UI Fix)
-**File**: `src/pages/c3Management/employers/WizCompanyUsers.tsx`
+## Root Cause
 
-Lines 222-249: All field labels in the edit view use `className="text-destructive"` which renders them in red. Change to standard label text with a red asterisk span, matching the SE edit page pattern:
-```
-<Label>First Name <span className="text-destructive">*</span></Label>
-```
-Apply to: First Name, Last Name, Email, User Name, User Role, Select Company labels.
+On `/online-applications/employer/:id`, the API returns `remarks` as an **array of objects** (each with `{id, application_id, seq_no, note_date, note, created_at, updated_at, created_by, updated_by, is_deleted}`), but the code treats it as a plain string. This causes React error #31 ("Objects are not valid as a React child") when the Notes tab renders `{application.remarks}` directly inside a `<p>` tag.
 
-## Issue 2: Employer Users — Profile Upload Not Working
-**File**: `src/pages/c3Management/employers/WizCompanyUsers.tsx`
+## Changes
 
-The edit view (line 213-218) shows a static placeholder with "Change Profile Photo" text but no upload logic. Implement a working profile image upload using the same pattern as `WizSelfEmployedUserEdit.tsx`:
-- Add a hidden file input and `useRef`
-- Add `uploading` state
-- Call `uploadCompanyLogo` (already exists in `wizAdminApiService.ts`) when a file is selected, converting to base64
-- Display the uploaded image in the avatar circle
-- Need to also fetch current profile image — the `getUserDetails` response doesn't include one, but `uploadCompanyLogo` returns `logo_url`. Store and display from the upload response or from user data if available.
+### 1. `src/hooks/useEmployerApplicationDetail.ts` — Fix type + normalization
 
-Since the C3-Wizard API has `uploadCompanyLogo` for company logos (not user profile photos), and there's no user-level profile image API for employer users, we'll add a `upload_user_profile_image` service function similar to SE's `uploadSelfEmployedProfileImage`, calling the same wiz-admin-api. If this action doesn't exist on the C3-Wizard side, we'll document it for their team.
-
-**Alternative approach**: Add the upload call using `upload_user_profile_image` action. If the API doesn't support it yet, we'll prepare a message for the C3-Wizard team.
-
-## Issue 3: SE User Edit — Cancel Goes to Wrong Page
-**File**: `src/pages/c3Management/selfEmployed/WizSelfEmployedUserEdit.tsx`
-
-Line 166: Cancel navigates to `/c3-management/self-employed-details` but users may come from `/c3-management/users/self-employed` (Manage Users module). Fix by using `navigate(-1)` to go back to wherever the user came from.
-
-## Issue 4: SE Details Edit — Category Type Not Updating
-**File**: `src/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit.tsx`
-
-**Root cause**: The save payload converts `category_Type` from category code (e.g. `"B"`) to wizard category_id (number) via `wizCategoryMap`. But the C3-Wizard API's `update_self_employed` handler expects `category_Type` as the category code string directly (it writes `wage_category_code: d.category_Type`).
-
-**Fix** (line 184): Change from:
+**Type change** (line ~180): Change `remarks` from `string | null` to an array type:
 ```typescript
-category_Type: form.category_Type ? (wizCategoryMap.get(form.category_Type) ?? Number(form.category_Type)) : null,
+remarks: Array<{ id: number; seq_no: number; note_date: string; note: string; created_by: string | null; created_at: string }> | null;
 ```
-To:
+
+**Normalization** (line ~396): Instead of casting to string, keep the array:
 ```typescript
-category_Type: form.category_Type || null,
+remarks: Array.isArray(raw.remarks) ? raw.remarks : (Array.isArray(raw.notes) ? raw.notes : null),
 ```
 
-This sends the category code string (`"B"`, `"S"`, etc.) directly, which is what the API expects.
+### 2. `src/pages/online-applications/EmployerApplicationDetailPage.tsx` — Render remarks array
 
-## Issue 5: Reset Password — Already Fixed by C3-Wizard Team
+Replace lines 684–692 (the remarks rendering block) to iterate over the array instead of rendering a single string:
 
-The C3-Wizard team confirmed they've fixed the `reset_password` handler to now dispatch emails via `send-email`. The SSB-Admin UI code is already correct — `resetPassword(userId)` calls the `reset_password` action. No changes needed on our side. Will verify this works after deployment.
+```tsx
+{application.remarks && application.remarks.length > 0 ? (
+  <div className="space-y-3">
+    {application.remarks.map((remark, idx) => (
+      <div key={remark.id || idx} className="rounded-lg bg-muted/50 border p-4 space-y-1">
+        <p className="text-sm whitespace-pre-wrap">{remark.note}</p>
+        <p className="text-xs text-muted-foreground">
+          {remark.note_date ? new Date(remark.note_date).toLocaleDateString() : ''}
+        </p>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="text-center py-8 text-muted-foreground">
+    <StickyNote className="h-10 w-10 mx-auto mb-3 opacity-50" />
+    <p className="text-sm">No notes added</p>
+  </div>
+)}
+```
 
-## Message for C3-Wizard Team (if profile upload needs backend support)
-
-If `upload_user_profile_image` action doesn't exist:
-
-> **Request**: Please add an `upload_user_profile_image` action to `wiz-admin-api` that accepts `{ user_id, image_base64, file_name }` and stores the profile image in Supabase Storage under `profile-images/{user_id}/`, returning `{ profileImage: <public_url> }`. This is needed for employer user profile photo uploads from the SSB-Admin portal (route `/c3-management/employer-users/:companyId`). The SE user equivalent (`upload_self_employed_profile_image`) already works — we need the same for employer/company users.
-
-## Files Modified
-- `src/pages/c3Management/employers/WizCompanyUsers.tsx` — Fix red labels, add profile upload
-- `src/pages/c3Management/selfEmployed/WizSelfEmployedUserEdit.tsx` — Fix cancel navigation
-- `src/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit.tsx` — Fix category_Type payload
-- `src/services/wizAdminApiService.ts` — Add `uploadUserProfileImage` function (if API exists)
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/hooks/useEmployerApplicationDetail.ts` | Update `remarks` type to array, fix normalization |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Render remarks as list of note objects |
 
