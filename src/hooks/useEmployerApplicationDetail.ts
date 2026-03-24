@@ -177,7 +177,7 @@ export interface EmployerApplicationDetail {
   total_documents: number | null;
   
   // Step 8: Notes
-  remarks: string | null;  // Mapped from notes
+  remarks: Array<{ id: number; seq_no: number; note_date: string; note: string; created_by: string | null; created_at: string }> | null;
   
   // // Step 9: Declaration
   // declaration_accepted: boolean | null;
@@ -393,7 +393,7 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     total_documents: (raw.total_documents as number) ?? null,
     
     // Step 8: Notes - Map notes to remarks
-    remarks: (raw.remarks as string) || (raw.notes as string) || null,
+    remarks: Array.isArray(raw.remarks) ? raw.remarks : (Array.isArray(raw.notes) ? raw.notes : null),
     
     // // Step 9: Declaration
     // declaration_accepted: (raw.declaration_accepted as boolean) ?? null,
