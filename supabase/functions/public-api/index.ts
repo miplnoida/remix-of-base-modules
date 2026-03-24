@@ -299,6 +299,99 @@ async function handleModuleDocuments(
   };
 }
 
+// ── C3 Ingestion Handlers ──
+async function handleC3ReportedInsert(supabase: ReturnType<typeof createClient>, payload: Record<string, unknown>) {
+  if (!payload.payer_id) throw { code: "BAD_REQUEST", message: "payer_id is required" };
+  if (!payload.payer_type) throw { code: "BAD_REQUEST", message: "payer_type is required" };
+  if (!payload.period) throw { code: "BAD_REQUEST", message: "period is required" };
+
+  const { data, error } = await supabase.rpc("public_api_insert_c3_reported", {
+    p_payer_id: String(payload.payer_id),
+    p_payer_type: String(payload.payer_type),
+    p_period: String(payload.period),
+    p_payer_name: payload.payer_name ? String(payload.payer_name) : null,
+    p_payer_address: payload.payer_address ? String(payload.payer_address) : null,
+    p_number_employed: payload.number_employed != null ? Number(payload.number_employed) : null,
+    p_total_wages: payload.total_wages != null ? Number(payload.total_wages) : null,
+    p_nil_return: payload.nil_return != null ? Boolean(payload.nil_return) : false,
+    p_notes: payload.notes ? String(payload.notes) : null,
+    p_entered_by: payload.entered_by ? String(payload.entered_by) : "API",
+    p_received_by: payload.received_by ? String(payload.received_by) : null,
+    p_date_received: payload.date_received ? String(payload.date_received) : null,
+    p_emp_ss_amt_calc: payload.emp_ss_amt_calc != null ? Number(payload.emp_ss_amt_calc) : null,
+    p_emp_levy_amt_calc: payload.emp_levy_amt_calc != null ? Number(payload.emp_levy_amt_calc) : null,
+    p_emp_pe_amt_calc: payload.emp_pe_amt_calc != null ? Number(payload.emp_pe_amt_calc) : null,
+    p_emp_ss_fines_due: payload.emp_ss_fines_due != null ? Number(payload.emp_ss_fines_due) : null,
+    p_emp_levy_penalty_amt: payload.emp_levy_penalty_amt != null ? Number(payload.emp_levy_penalty_amt) : null,
+    p_emp_pe_penalty_amt: payload.emp_pe_penalty_amt != null ? Number(payload.emp_pe_penalty_amt) : null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function handleC3WagesInsert(supabase: ReturnType<typeof createClient>, payload: Record<string, unknown>) {
+  if (!payload.ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
+  if (!payload.payer_id) throw { code: "BAD_REQUEST", message: "payer_id is required" };
+  if (!payload.payer_type) throw { code: "BAD_REQUEST", message: "payer_type is required" };
+  if (payload.sequence_no == null) throw { code: "BAD_REQUEST", message: "sequence_no is required" };
+  if (!payload.period) throw { code: "BAD_REQUEST", message: "period is required" };
+
+  const { data, error } = await supabase.rpc("public_api_insert_ip_wages", {
+    p_ssn: String(payload.ssn),
+    p_payer_id: String(payload.payer_id),
+    p_payer_type: String(payload.payer_type),
+    p_sequence_no: Number(payload.sequence_no),
+    p_period: String(payload.period),
+    p_employee_name: payload.employee_name ? String(payload.employee_name) : null,
+    p_pay_period: payload.pay_period ? String(payload.pay_period) : null,
+    p_wages_paid1: payload.wages_paid1 != null ? Number(payload.wages_paid1) : null,
+    p_wages_paid2: payload.wages_paid2 != null ? Number(payload.wages_paid2) : null,
+    p_wages_paid3: payload.wages_paid3 != null ? Number(payload.wages_paid3) : null,
+    p_wages_paid4: payload.wages_paid4 != null ? Number(payload.wages_paid4) : null,
+    p_wages_paid5: payload.wages_paid5 != null ? Number(payload.wages_paid5) : null,
+    p_wages_paid6: payload.wages_paid6 != null ? Number(payload.wages_paid6) : null,
+    p_wages_paid7: payload.wages_paid7 != null ? Number(payload.wages_paid7) : null,
+    p_paid_code1: payload.paid_code1 ? String(payload.paid_code1) : null,
+    p_paid_code2: payload.paid_code2 ? String(payload.paid_code2) : null,
+    p_paid_code3: payload.paid_code3 ? String(payload.paid_code3) : null,
+    p_paid_code4: payload.paid_code4 ? String(payload.paid_code4) : null,
+    p_paid_code5: payload.paid_code5 ? String(payload.paid_code5) : null,
+    p_paid_code6: payload.paid_code6 ? String(payload.paid_code6) : null,
+    p_paid_code7: payload.paid_code7 ? String(payload.paid_code7) : null,
+    p_er_ss_amt: payload.er_ss_amt != null ? Number(payload.er_ss_amt) : null,
+    p_er_ei_amt: payload.er_ei_amt != null ? Number(payload.er_ei_amt) : null,
+    p_er_levy_amt: payload.er_levy_amt != null ? Number(payload.er_levy_amt) : null,
+    p_ip_ss_amt: payload.ip_ss_amt != null ? Number(payload.ip_ss_amt) : null,
+    p_ip_levy_amt: payload.ip_levy_amt != null ? Number(payload.ip_levy_amt) : null,
+    p_ip_pe_amt: payload.ip_pe_amt != null ? Number(payload.ip_pe_amt) : null,
+    p_total_wages: payload.total_wages != null ? Number(payload.total_wages) : null,
+    p_entered_by: payload.entered_by ? String(payload.entered_by) : "API",
+    p_bonus_date: payload.bonus_date ? String(payload.bonus_date) : null,
+    p_bonus_exempt_levy: payload.bonus_exempt_levy != null ? Boolean(payload.bonus_exempt_levy) : null,
+    p_bonus_holiday_swapped: payload.bonus_holiday_swapped != null ? Boolean(payload.bonus_holiday_swapped) : null,
+    p_holiday_start_date: payload.holiday_start_date ? String(payload.holiday_start_date) : null,
+    p_holiday_end_date: payload.holiday_end_date ? String(payload.holiday_end_date) : null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function handleC3Verify(supabase: ReturnType<typeof createClient>, payload: Record<string, unknown>) {
+  if (!payload.payer_id) throw { code: "BAD_REQUEST", message: "payer_id is required" };
+  if (!payload.payer_type) throw { code: "BAD_REQUEST", message: "payer_type is required" };
+  if (payload.sequence_no == null) throw { code: "BAD_REQUEST", message: "sequence_no is required" };
+  if (!payload.period) throw { code: "BAD_REQUEST", message: "period is required" };
+
+  const { data, error } = await supabase.rpc("public_api_verify_c3", {
+    p_payer_id: String(payload.payer_id),
+    p_payer_type: String(payload.payer_type),
+    p_sequence_no: Number(payload.sequence_no),
+    p_period: String(payload.period),
+  });
+  if (error) throw error;
+  return data;
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
@@ -307,6 +400,17 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
 
   if (path === "/api/v1/module-documents" && method === "GET") {
     return { handler: "moduleDocuments", params: {} };
+  }
+
+  // C3 Ingestion POST routes
+  if (path === "/api/v1/c3-reported" && method === "POST") {
+    return { handler: "c3ReportedInsert", params: {} };
+  }
+  if (path === "/api/v1/c3-wages" && method === "POST") {
+    return { handler: "c3WagesInsert", params: {} };
+  }
+  if (path === "/api/v1/c3-verify" && method === "POST") {
+    return { handler: "c3Verify", params: {} };
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
@@ -335,6 +439,12 @@ async function executeHandler(
       return handleMasterGet(supabase, routeParams.resource, queryParams);
     case "moduleDocuments":
       return handleModuleDocuments(supabase, queryParams);
+    case "c3ReportedInsert":
+      return handleC3ReportedInsert(supabase, _payload);
+    case "c3WagesInsert":
+      return handleC3WagesInsert(supabase, _payload);
+    case "c3Verify":
+      return handleC3Verify(supabase, _payload);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
