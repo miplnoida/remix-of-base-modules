@@ -133,8 +133,14 @@ const WizEmployerDetails: React.FC = () => {
       // Only send user_data if we have a valid user with names
       const hasValidUser = userData.user_id && userData.first_name && userData.last_name;
       
-      // Only send security_questions if both Q&A pairs are fully populated
+      // Only send security_questions if both Q&A pairs are fully populated with new answers
       const hasValidSq = sq.question1 && sq.answer1 && sq.question2 && sq.answer2;
+      
+      if (hasValidSq && sq.question1 === sq.question2) {
+        toast.error('Security Question 2 must be different from Question 1');
+        setSaving(false);
+        return;
+      }
 
       await updateEmployer({
         company_id: Number(companyId),
