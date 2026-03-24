@@ -3046,6 +3046,129 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_regn: {
+        Row: {
+          ans1: string | null
+          ans2: string | null
+          compname: string | null
+          contaddress1: string | null
+          contaddress2: string | null
+          contcity: string | null
+          contemail: string | null
+          contmobile: string | null
+          contname: string | null
+          contph: string | null
+          country: string | null
+          creatmsp: string | null
+          creauser: string | null
+          devipaddr: string | null
+          devmacaddr: string | null
+          devname: string | null
+          dob: string | null
+          firstname: string | null
+          lastupdtpgm: string | null
+          lastupdttmsp: string | null
+          lastupdtuser: string | null
+          payer_type: string | null
+          postalcode: string | null
+          prntregno: string | null
+          quest1: string | null
+          quest2: string | null
+          regno: string
+          surname: string | null
+          tin: string | null
+          token: string | null
+          token_exp_tmsp: string | null
+          token_gen_tmsp: string | null
+          tradename: string | null
+          username: string
+          userpass: string
+          userstts: string | null
+          usertype: string | null
+          wagecategory: string | null
+        }
+        Insert: {
+          ans1?: string | null
+          ans2?: string | null
+          compname?: string | null
+          contaddress1?: string | null
+          contaddress2?: string | null
+          contcity?: string | null
+          contemail?: string | null
+          contmobile?: string | null
+          contname?: string | null
+          contph?: string | null
+          country?: string | null
+          creatmsp?: string | null
+          creauser?: string | null
+          devipaddr?: string | null
+          devmacaddr?: string | null
+          devname?: string | null
+          dob?: string | null
+          firstname?: string | null
+          lastupdtpgm?: string | null
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          payer_type?: string | null
+          postalcode?: string | null
+          prntregno?: string | null
+          quest1?: string | null
+          quest2?: string | null
+          regno: string
+          surname?: string | null
+          tin?: string | null
+          token?: string | null
+          token_exp_tmsp?: string | null
+          token_gen_tmsp?: string | null
+          tradename?: string | null
+          username: string
+          userpass: string
+          userstts?: string | null
+          usertype?: string | null
+          wagecategory?: string | null
+        }
+        Update: {
+          ans1?: string | null
+          ans2?: string | null
+          compname?: string | null
+          contaddress1?: string | null
+          contaddress2?: string | null
+          contcity?: string | null
+          contemail?: string | null
+          contmobile?: string | null
+          contname?: string | null
+          contph?: string | null
+          country?: string | null
+          creatmsp?: string | null
+          creauser?: string | null
+          devipaddr?: string | null
+          devmacaddr?: string | null
+          devname?: string | null
+          dob?: string | null
+          firstname?: string | null
+          lastupdtpgm?: string | null
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          payer_type?: string | null
+          postalcode?: string | null
+          prntregno?: string | null
+          quest1?: string | null
+          quest2?: string | null
+          regno?: string
+          surname?: string | null
+          tin?: string | null
+          token?: string | null
+          token_exp_tmsp?: string | null
+          token_gen_tmsp?: string | null
+          tradename?: string | null
+          username?: string
+          userpass?: string
+          userstts?: string | null
+          usertype?: string | null
+          wagecategory?: string | null
+        }
+        Relationships: []
+      }
       c3_submissions: {
         Row: {
           attachments: Json | null
