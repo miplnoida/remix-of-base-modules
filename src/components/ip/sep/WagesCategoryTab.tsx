@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertCircle, Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { format, addMonths } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { SelfEmployCategory } from '@/services/selfEmployedService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSEWagesSyncStatus, usePublishSEWages } from '@/hooks/usePublishSEWages';
 
 interface IncomeCategoryOption {
   category_code: string;
@@ -30,6 +32,9 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
   const [showDialog, setShowDialog] = useState(false);
   const [editingRecord, setEditingRecord] = useState<SelfEmployCategory | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SelfEmployCategory | null>(null);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const { data: syncStatus } = useSEWagesSyncStatus(ssn);
+  const publishMutation = usePublishSEWages();
   const [incomeCatOptions, setIncomeCatOptions] = useState<IncomeCategoryOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -154,12 +159,42 @@ export const WagesCategoryTab: React.FC<WagesCategoryTabProps> = ({ ssn, selfEmp
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        {isEditable && (
-          <Button variant="outline" size="sm" onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-1" /> Add Wage Category
-          </Button>
-        )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {syncStatus?.lastPublishedAt ? (
+            <Badge variant="outline" className="flex items-center gap-1.5 py-1 px-3 bg-primary/5 text-primary border-primary/20">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Synced {formatDisplayDate(syncStatus.lastPublishedAt)} ({syncStatus.lastRecordsCount} records)</span>
+            </Badge>
+          ) : categories.length > 0 ? (
+            <Badge variant="destructive" className="flex items-center gap-1.5 py-1 px-3">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <span>Not Published</span>
+            </Badge>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          {categories.length > 0 && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowPublishConfirm(true)}
+              disabled={publishMutation.isPending}
+            >
+              {publishMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-1" />
+              )}
+              {publishMutation.isPending ? 'Publishing...' : 'Publish to C3-Wizard'}
+            </Button>
+          )}
+          {isEditable && (
+            <Button variant="outline" size="sm" onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-1" /> Add Wage Category
+            </Button>
+          )}
+        </div>
       </div>
 
       {Object.keys(groupedCategories).length === 0 && (
