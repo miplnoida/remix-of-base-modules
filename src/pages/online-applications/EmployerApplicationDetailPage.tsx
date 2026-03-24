@@ -681,9 +681,17 @@ export default function EmployerApplicationDetailPage() {
             <Card>
               <CardContent className="p-6">
                 <SectionHeader icon={StickyNote} title="Notes" subtitle="Additional notes about the registration" />
-                {application.remarks ? (
-                  <div className="rounded-lg bg-muted/50 border p-4">
-                    <p className="text-sm whitespace-pre-wrap">{application.remarks}</p>
+                {application.remarks && application.remarks.length > 0 ? (
+                  <div className="space-y-3">
+                    {application.remarks.map((remark, idx) => (
+                      <div key={remark.id || idx} className="rounded-lg bg-muted/50 border p-4 space-y-1">
+                        <p className="text-sm whitespace-pre-wrap">{remark.note}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {remark.note_date ? new Date(remark.note_date).toLocaleDateString() : ''}
+                          {remark.created_by ? ` · By: ${remark.created_by}` : ''}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
