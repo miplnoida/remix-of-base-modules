@@ -22136,20 +22136,35 @@ export type Database = {
         }
         Returns: number
       }
-      create_payment_with_receipt: {
-        Args: {
-          p_batch_number: string
-          p_date_received: string
-          p_detail_lines?: Json
-          p_payer_id: string
-          p_payer_type: string
-          p_receipt_total?: number
-          p_remarks?: string
-          p_total_payments?: number
-          p_user_code?: string
-        }
-        Returns: Json
-      }
+      create_payment_with_receipt:
+        | {
+            Args: {
+              p_batch_number: string
+              p_date_received: string
+              p_detail_lines?: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total?: number
+              p_remarks?: string
+              p_total_payments?: number
+              p_user_code?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_batch_number: string
+              p_date_received: string
+              p_detail_lines?: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total?: number
+              p_remarks?: string
+              p_total_payments?: number
+              p_user_code?: string
+            }
+            Returns: Json
+          }
       create_pending_holiday_pay: {
         Args: {
           p_amount: number
