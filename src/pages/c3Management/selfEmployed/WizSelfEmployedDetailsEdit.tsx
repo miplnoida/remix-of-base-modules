@@ -181,7 +181,7 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
         zip: form.zip || '',
         country: form.country || '',
         occupation: form.occupation || '',
-        category_Type: form.category_Type ? (wizCategoryMap.get(form.category_Type) ?? Number(form.category_Type)) : null,
+        category_Type: form.category_Type || null,
         question1: form.question1 || '',
         answer1: form.answer1 || '',
         question2: form.question2 || '',
