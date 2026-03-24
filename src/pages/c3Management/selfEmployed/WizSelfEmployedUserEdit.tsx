@@ -163,7 +163,7 @@ const WizSelfEmployedUserEdit: React.FC = () => {
             <Button
               variant="outline"
               className="border-destructive text-destructive hover:bg-destructive/10"
-              onClick={() => navigate('/c3-management/self-employed-details')}
+              onClick={() => navigate(-1)}
             >
               <X className="h-4 w-4 mr-1" />
               Cancel

@@ -265,3 +265,13 @@ export async function getConfigChangeHistory(params: {
 export async function getConfigChangeSummary(syncLogId: string) {
   return callWizApi<WizConfigChangeSummary>("get_config_change_summary", { sync_log_id: syncLogId });
 }
+
+// ─── User Profile Image Upload ────────────────────────
+
+export async function uploadUserProfileImage(userId: number, imageBase64: string, fileName: string) {
+  return callWizApi<{ profileImage: string; message: string }>("upload_user_profile_image", {
+    user_id: userId,
+    image_base64: imageBase64,
+    file_name: fileName,
+  });
+}

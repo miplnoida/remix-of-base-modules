@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User } from 'lucide-react';
+import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getCompanyUsers, getCompaniesDropdown, getUserDetails, updateUser,
@@ -45,6 +45,9 @@ const WizCompanyUsers: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [editUser, setEditUser] = useState<Record<string, any>>({});
   const [editSaving, setEditSaving] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Change password dialog
   const [pwdOpen, setPwdOpen] = useState(false);
@@ -209,33 +212,76 @@ const WizCompanyUsers: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Profile photo placeholder */}
+            {/* Profile photo */}
             <div className="flex flex-col items-start gap-2">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
-                <User className="h-10 w-10 text-muted-foreground" />
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center overflow-hidden border">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-10 w-10 text-muted-foreground" />
+                )}
               </div>
-              <span className="text-sm text-primary cursor-pointer">Change Profile Photo</span>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploading(true);
+                  try {
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                      const base64 = reader.result as string;
+                      try {
+                        const { uploadUserProfileImage } = await import('@/services/wizAdminApiService');
+                        const res = await uploadUserProfileImage(editUser.user_id, base64, file.name);
+                        setProfileImage(res.data?.profileImage || base64);
+                        toast.success('Profile image uploaded');
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to upload image');
+                      }
+                      setUploading(false);
+                    };
+                    reader.readAsDataURL(file);
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to upload image');
+                    setUploading(false);
+                  }
+                }}
+              />
+              <Button
+                variant="link"
+                size="sm"
+                className="text-primary p-0 h-auto"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                {uploading ? 'Uploading...' : 'Change Profile Photo'}
+              </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-destructive">First Name *</Label>
+                <Label>First Name <span className="text-destructive">*</span></Label>
                 <Input value={editUser.first_name || ''} onChange={e => setEditUser(p => ({ ...p, first_name: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-destructive">Last Name *</Label>
+                <Label>Last Name <span className="text-destructive">*</span></Label>
                 <Input value={editUser.last_name || ''} onChange={e => setEditUser(p => ({ ...p, last_name: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-destructive">Email *</Label>
+                <Label>Email <span className="text-destructive">*</span></Label>
                 <Input value={editUser.email || ''} onChange={e => setEditUser(p => ({ ...p, email: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-destructive">User Name *</Label>
+                <Label>User Name <span className="text-destructive">*</span></Label>
                 <Input value={editUser.username || ''} disabled className="bg-muted" />
               </div>
               <div>
-                <Label className="text-destructive">User Role *</Label>
+                <Label>User Role <span className="text-destructive">*</span></Label>
                 <Select value={String(editUser.role_id)} onValueChange={v => setEditUser(p => ({ ...p, role_id: Number(v) }))}>
                   <SelectTrigger><SelectValue placeholder="Select a Role" /></SelectTrigger>
                   <SelectContent>
@@ -246,7 +292,7 @@ const WizCompanyUsers: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-destructive">Select Company *</Label>
+                <Label>Select Company <span className="text-destructive">*</span></Label>
                 <Select value={String(editUser.company_id)} onValueChange={v => setEditUser(p => ({ ...p, company_id: Number(v) }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
