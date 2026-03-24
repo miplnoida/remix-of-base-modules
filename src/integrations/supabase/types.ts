@@ -18141,6 +18141,51 @@ export type Database = {
         }
         Relationships: []
       }
+      se_wages_sync_log: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          payload: Json | null
+          payload_hash: string | null
+          published_at: string | null
+          published_by: string | null
+          records_count: number | null
+          response_data: Json | null
+          ssn: string
+          status: string
+          sync_version: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          payload_hash?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          records_count?: number | null
+          response_data?: Json | null
+          ssn: string
+          status?: string
+          sync_version?: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          payload_hash?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          records_count?: number | null
+          response_data?: Json | null
+          ssn?: string
+          status?: string
+          sync_version?: string
+        }
+        Relationships: []
+      }
       security_ip_blocks: {
         Row: {
           block_duration_minutes: number
