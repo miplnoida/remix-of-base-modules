@@ -439,6 +439,12 @@ async function executeHandler(
       return handleMasterGet(supabase, routeParams.resource, queryParams);
     case "moduleDocuments":
       return handleModuleDocuments(supabase, queryParams);
+    case "c3ReportedInsert":
+      return handleC3ReportedInsert(supabase, _payload);
+    case "c3WagesInsert":
+      return handleC3WagesInsert(supabase, _payload);
+    case "c3Verify":
+      return handleC3Verify(supabase, _payload);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
