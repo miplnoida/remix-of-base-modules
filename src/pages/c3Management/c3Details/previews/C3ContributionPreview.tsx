@@ -161,7 +161,7 @@ const C3ContributionPreview: React.FC<Props> = ({ open, onClose, data, loading }
                       <td className="border border-black p-1 text-right">{fmt(emp.totalWages)}</td>
                       <td className="border border-black p-1 text-right">{fmt((emp.levyEmployee || 0) + (emp.levyEmployer || 0))}</td>
                       <td className="border border-black p-1 text-right">{fmt(emp.ssTotal)}</td>
-                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1">{emp.remark || ''}</td>
                     </tr>
                   ))}
                 </tbody>
