@@ -214,7 +214,7 @@ export default function AuditPlanDetail() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="functions" className="space-y-4">
+      <Tabs defaultValue="engagements" className="space-y-4">
         <TabsList>
           <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
           <TabsTrigger value="functions">Functions ({(planFunctions || []).length})</TabsTrigger>
