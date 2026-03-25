@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Label } from '@/components/ui/label';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Search, Edit, Users, UserCheck, ChevronLeft, ChevronRight, ArrowUpDown, Link2 } from 'lucide-react';
@@ -264,33 +264,33 @@ const WizEmployerList: React.FC = () => {
           <div className="space-y-4">
             <div>
               <Label className="text-primary font-semibold">Parent Company</Label>
-              <Select value={parentId} onValueChange={setParentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Search by employer name or reg number" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.company_name} ({c.registration_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={parentId}
+                onValueChange={setParentId}
+                options={companies.map(c => ({
+                  value: String(c.id),
+                  label: `${c.company_name} (${c.registration_number})`,
+                  searchText: c.registration_number,
+                }))}
+                placeholder="Search by employer name or reg number"
+                searchPlaceholder="Type to search..."
+              />
             </div>
             <div>
               <Label className="text-primary font-semibold">Child Companies</Label>
-              <Select value="" onValueChange={(v) => { if (!childIds.includes(v)) setChildIds([...childIds, v]); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select child companies" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.filter(c => String(c.id) !== parentId && !childIds.includes(String(c.id))).map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.company_name} ({c.registration_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value=""
+                onValueChange={(v) => { if (v && !childIds.includes(v)) setChildIds([...childIds, v]); }}
+                options={companies
+                  .filter(c => String(c.id) !== parentId && !childIds.includes(String(c.id)))
+                  .map(c => ({
+                    value: String(c.id),
+                    label: `${c.company_name} (${c.registration_number})`,
+                    searchText: c.registration_number,
+                  }))}
+                placeholder="Select child companies"
+                searchPlaceholder="Type to search..."
+              />
               {childIds.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {childIds.map(id => {

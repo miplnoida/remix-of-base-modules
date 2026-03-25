@@ -6,7 +6,7 @@ import React, { useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Trash2, AlertCircle, Check, FileText } from 'lucide-react';
@@ -229,30 +229,20 @@ export default function OtherPaymentsSection({
                 {/* Income Code Selector */}
                 <div className="flex-1 min-w-[140px]">
                   <Label className="text-[10px] text-muted-foreground">Income Code</Label>
-                  <Select
-                    value={row.income_code_id || undefined}
+                  <SearchableSelect
+                    value={row.income_code_id || ''}
                     onValueChange={(v) => handleCodeChange(idx, v)}
                     disabled={isReadOnly}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select code" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {isLoadingCodes ? (
-                        <div className="p-2 text-xs text-muted-foreground">Loading...</div>
-                      ) : (
-                        (incomeCodes || []).map(code => (
-                          <SelectItem
-                            key={code.id}
-                            value={code.id}
-                            disabled={usedCodeIds.includes(code.id) && row.income_code_id !== code.id}
-                          >
-                            {code.code} - {code.description}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                    options={(incomeCodes || []).map(code => ({
+                      value: code.id,
+                      label: `${code.code} - ${code.description}`,
+                      searchText: `${code.code} ${code.description}`,
+                    }))}
+                    placeholder={isLoadingCodes ? "Loading..." : "Select code"}
+                    searchPlaceholder="Search by code or description..."
+                    emptyMessage="No income codes found."
+                    className="h-8 text-xs"
+                  />
                 </div>
 
                 {/* Amount */}

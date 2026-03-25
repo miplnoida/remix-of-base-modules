@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DataTable } from "@/components/ui/data-table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
@@ -1258,32 +1258,34 @@ export default function C3Management() {
 
                 <div className="space-y-2">
                   <Label htmlFor="enteredBy">Entered By</Label>
-                  <Select value={filters.enteredBy} onValueChange={(value) => setFilters({ ...filters, enteredBy: value === '__all__' ? '' : value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select user" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All</SelectItem>
-                      {profilesList.map((p) => (
-                        <SelectItem key={p.user_code} value={p.user_code}>{p.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={filters.enteredBy}
+                    onValueChange={(value) => setFilters({ ...filters, enteredBy: value })}
+                    options={profilesList.map((p) => ({
+                      value: p.user_code,
+                      label: p.full_name,
+                      searchText: p.user_code,
+                    }))}
+                    placeholder="Select user"
+                    searchPlaceholder="Search by name or code..."
+                    includeAllOption="All"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="verifiedBy">Verified By</Label>
-                  <Select value={filters.verifiedBy} onValueChange={(value) => setFilters({ ...filters, verifiedBy: value === '__all__' ? '' : value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select user" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All</SelectItem>
-                      {profilesList.map((p) => (
-                        <SelectItem key={p.user_code} value={p.user_code}>{p.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={filters.verifiedBy}
+                    onValueChange={(value) => setFilters({ ...filters, verifiedBy: value })}
+                    options={profilesList.map((p) => ({
+                      value: p.user_code,
+                      label: p.full_name,
+                      searchText: p.user_code,
+                    }))}
+                    placeholder="Select user"
+                    searchPlaceholder="Search by name or code..."
+                    includeAllOption="All"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -1298,17 +1300,18 @@ export default function C3Management() {
 
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value === '__all__' ? '' : value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All</SelectItem>
-                      {c3Statuses.map((s) => (
-                        <SelectItem key={s.code} value={s.code}>{s.description}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={filters.status}
+                    onValueChange={(value) => setFilters({ ...filters, status: value })}
+                    options={c3Statuses.map((s) => ({
+                      value: s.code,
+                      label: s.description,
+                      searchText: s.code,
+                    }))}
+                    placeholder="Select status"
+                    searchPlaceholder="Search status..."
+                    includeAllOption="All"
+                  />
                 </div>
               </div>
 

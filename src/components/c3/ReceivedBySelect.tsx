@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
@@ -57,6 +57,23 @@ export default function ReceivedBySelect({
     fetchProfiles();
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        {label && (
+          <Label>
+            {label}
+            {required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+        )}
+        <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
@@ -65,29 +82,19 @@ export default function ReceivedBySelect({
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
       )}
-      <Select
+      <SearchableSelect
         value={value}
         onValueChange={onChange}
-        disabled={disabled || isLoading}
-      >
-        <SelectTrigger className={error ? "border-destructive" : ""}>
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading...</span>
-            </div>
-          ) : (
-            <SelectValue placeholder="Select user" />
-          )}
-        </SelectTrigger>
-        <SelectContent>
-          {profiles.map((profile) => (
-            <SelectItem key={profile.id} value={profile.user_code}>
-              {profile.full_name} ({profile.user_code})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        disabled={disabled}
+        options={profiles.map((profile) => ({
+          value: profile.user_code,
+          label: `${profile.full_name} (${profile.user_code})`,
+          searchText: `${profile.user_code} ${profile.full_name}`,
+        }))}
+        placeholder="Select user"
+        searchPlaceholder="Search by name or code..."
+        emptyMessage="No users found."
+      />
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

@@ -31,6 +31,8 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  /** When set, prepends an "All" option with value "" that clears the selection */
+  includeAllOption?: string;
 }
 
 export function SearchableSelect({
@@ -42,10 +44,17 @@ export function SearchableSelect({
   emptyMessage = "No results found.",
   className,
   disabled = false,
+  includeAllOption,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
 
-  const selectedOption = options.find((o) => o.value === value);
+  // Build effective options list with optional "All" prepended
+  const effectiveOptions = React.useMemo(() => {
+    if (!includeAllOption) return options;
+    return [{ value: "__all__", label: includeAllOption }, ...options];
+  }, [options, includeAllOption]);
+
+  const selectedOption = effectiveOptions.find((o) => o.value === (value || (includeAllOption ? "__all__" : "")));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -70,7 +79,7 @@ export function SearchableSelect({
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command
           filter={(value, search) => {
-            const option = options.find((o) => o.value === value);
+            const option = effectiveOptions.find((o) => o.value === value);
             if (!option) return 0;
             const haystack = `${option.label} ${option.searchText || ""}`.toLowerCase();
             if (haystack.includes(search.toLowerCase())) return 1;
@@ -81,24 +90,33 @@ export function SearchableSelect({
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={(currentValue) => {
-                    onValueChange(currentValue === value ? "" : currentValue);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <span className="truncate">{option.label}</span>
-                </CommandItem>
-              ))}
+              {effectiveOptions.map((option) => {
+                const isSelected = includeAllOption
+                  ? (option.value === "__all__" ? !value : value === option.value)
+                  : value === option.value;
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={(currentValue) => {
+                      if (includeAllOption && currentValue === "__all__") {
+                        onValueChange("");
+                      } else {
+                        onValueChange(currentValue === value ? "" : currentValue);
+                      }
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        isSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="truncate">{option.label}</span>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
