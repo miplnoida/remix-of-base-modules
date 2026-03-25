@@ -79,8 +79,6 @@ async function buildSEWagesPayload(ssn: string): Promise<{
     ssn,
     self_ref_no: selfRefNo,
     wages,
-    config_periods: [],
-    levy_slabs: [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
