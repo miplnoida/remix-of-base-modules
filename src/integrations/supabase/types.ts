@@ -10277,6 +10277,88 @@ export type Database = {
           },
         ]
       }
+      ia_communication_stages: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledgment_required: boolean | null
+          communication_id: string | null
+          created_at: string | null
+          created_by: string | null
+          delivery_status: string | null
+          engagement_id: string
+          id: string
+          notes: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          sent_at: string | null
+          stage_code: string
+          stage_order: number
+          template_id: string | null
+          template_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledgment_required?: boolean | null
+          communication_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_status?: string | null
+          engagement_id: string
+          id?: string
+          notes?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sent_at?: string | null
+          stage_code: string
+          stage_order: number
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledgment_required?: boolean | null
+          communication_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_status?: string | null
+          engagement_id?: string
+          id?: string
+          notes?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sent_at?: string | null
+          stage_code?: string
+          stage_order?: number
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_communication_stages_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ia_communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_communication_stages_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_communication_stages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_communications: {
         Row: {
           acknowledged_date: string | null
@@ -10884,6 +10966,8 @@ export type Database = {
       }
       ia_document_templates: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           category: string | null
           content: string | null
           created_at: string | null
@@ -10892,11 +10976,15 @@ export type Database = {
           is_active: boolean | null
           merge_fields: string[] | null
           name: string
+          parent_template_id: string | null
           type: string
           updated_at: string | null
           updated_by: string | null
+          version_number: number | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           content?: string | null
           created_at?: string | null
@@ -10905,11 +10993,15 @@ export type Database = {
           is_active?: boolean | null
           merge_fields?: string[] | null
           name: string
+          parent_template_id?: string | null
           type: string
           updated_at?: string | null
           updated_by?: string | null
+          version_number?: number | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           content?: string | null
           created_at?: string | null
@@ -10918,11 +11010,21 @@ export type Database = {
           is_active?: boolean | null
           merge_fields?: string[] | null
           name?: string
+          parent_template_id?: string | null
           type?: string
           updated_at?: string | null
           updated_by?: string | null
+          version_number?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ia_document_templates_parent_template_id_fkey"
+            columns: ["parent_template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_escalation_rules: {
         Row: {
@@ -11711,38 +11813,77 @@ export type Database = {
           carried_by: string | null
           created_at: string | null
           description: string | null
+          escalation_count: number | null
           id: string
+          last_escalated_at: string | null
+          original_engagement_id: string | null
+          original_finding_id: string | null
           priority: string | null
+          resolved_at: string | null
+          resolved_by: string | null
           source_id: string | null
           source_reference: string | null
           source_type: string
           status: string | null
+          target_fiscal_year: string | null
+          target_resolution_date: string | null
         }
         Insert: {
           annual_plan_id?: string | null
           carried_by?: string | null
           created_at?: string | null
           description?: string | null
+          escalation_count?: number | null
           id?: string
+          last_escalated_at?: string | null
+          original_engagement_id?: string | null
+          original_finding_id?: string | null
           priority?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           source_id?: string | null
           source_reference?: string | null
           source_type: string
           status?: string | null
+          target_fiscal_year?: string | null
+          target_resolution_date?: string | null
         }
         Update: {
           annual_plan_id?: string | null
           carried_by?: string | null
           created_at?: string | null
           description?: string | null
+          escalation_count?: number | null
           id?: string
+          last_escalated_at?: string | null
+          original_engagement_id?: string | null
+          original_finding_id?: string | null
           priority?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           source_id?: string | null
           source_reference?: string | null
           source_type?: string
           status?: string | null
+          target_fiscal_year?: string | null
+          target_resolution_date?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ia_plan_carry_forward_original_engagement_id_fkey"
+            columns: ["original_engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_plan_carry_forward_original_finding_id_fkey"
+            columns: ["original_finding_id"]
+            isOneToOne: false
+            referencedRelation: "ia_findings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_plan_change_log: {
         Row: {
@@ -12781,6 +12922,36 @@ export type Database = {
           trigger_event?: string
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ia_template_policy_matrix: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_mandatory: boolean | null
+          required_template_category: string
+          required_template_type: string | null
+          stage_code: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          required_template_category: string
+          required_template_type?: string | null
+          stage_code: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          required_template_category?: string
+          required_template_type?: string | null
+          stage_code?: string
         }
         Relationships: []
       }
