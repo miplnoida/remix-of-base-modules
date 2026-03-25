@@ -353,6 +353,17 @@ export default function AuditReports() {
         </CardContent>
       </Card>
 
+      {/* Report Issuance Gate Panel */}
+      {gateCheckReportId && (
+        <ReportIssuanceGate
+          gateResult={reportGate}
+          isLoading={gateLoading}
+          onCheck={() => setGateCheckReportId(gateCheckReportId)}
+          onFinalize={reportGate?.can_issue ? handleGateFinalize : undefined}
+          isFinalizing={update.isPending}
+        />
+      )}
+
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
