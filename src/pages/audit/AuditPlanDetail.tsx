@@ -216,9 +216,10 @@ export default function AuditPlanDetail() {
       {/* Main Tabs */}
       <Tabs defaultValue="functions" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
           <TabsTrigger value="functions">Functions ({(planFunctions || []).length})</TabsTrigger>
           <TabsTrigger value="team">Audit Team ({auditTeam.length})</TabsTrigger>
-          <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
+          <TabsTrigger value="versions">Versions</TabsTrigger>
           <TabsTrigger value="changelog">Change Log ({(changeLog || []).length})</TabsTrigger>
           <TabsTrigger value="closure">Closure</TabsTrigger>
         </TabsList>
