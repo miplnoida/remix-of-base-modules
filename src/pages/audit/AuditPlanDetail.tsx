@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, User, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, User, Lock, ShieldCheck } from 'lucide-react';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { useIAPlanFunctions } from '@/hooks/useAuditPlanFunctions';
+import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
+import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
@@ -212,11 +214,12 @@ export default function AuditPlanDetail() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="functions" className="space-y-4">
+      <Tabs defaultValue="engagements" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
           <TabsTrigger value="functions">Functions ({(planFunctions || []).length})</TabsTrigger>
           <TabsTrigger value="team">Audit Team ({auditTeam.length})</TabsTrigger>
-          <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
+          <TabsTrigger value="versions">Versions</TabsTrigger>
           <TabsTrigger value="changelog">Change Log ({(changeLog || []).length})</TabsTrigger>
           <TabsTrigger value="closure">Closure</TabsTrigger>
         </TabsList>
@@ -259,18 +262,11 @@ export default function AuditPlanDetail() {
         </TabsContent>
 
         <TabsContent value="engagements">
-          <Card>
-            <CardContent className="pt-6">
-              <DataTable
-                columns={engColumns}
-                data={engagements || []}
-                emptyMessage="No engagements linked to this plan yet."
-                renderActions={(row) => (
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/audit/audits/${row.id}`)}>View</Button>
-                )}
-              />
-            </CardContent>
-          </Card>
+          <EngagementBuilder planId={id!} planStatus={plan?.status || 'Draft'} />
+        </TabsContent>
+
+        <TabsContent value="versions">
+          <PlanVersionHistory planId={id!} />
         </TabsContent>
 
         <TabsContent value="changelog">

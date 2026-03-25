@@ -23041,6 +23041,17 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_create_plan_header: {
+        Args: {
+          p_created_by?: string
+          p_fiscal_year: string
+          p_methodology?: string
+          p_objective?: string
+          p_scope?: string
+          p_title: string
+        }
+        Returns: Json
+      }
       ia_detect_material_plan_changes: {
         Args: { p_plan_id: string; p_proposed_changes: Json }
         Returns: Json
@@ -23071,6 +23082,10 @@ export type Database = {
           p_limit?: number
           p_plan_id?: string
         }
+        Returns: Json
+      }
+      ia_persist_plan_engagements: {
+        Args: { p_created_by?: string; p_engagements: Json; p_plan_id: string }
         Returns: Json
       }
       ia_record_communication_stage: {

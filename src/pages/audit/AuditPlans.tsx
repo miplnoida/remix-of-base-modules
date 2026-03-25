@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Eye, Edit, Send, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments } from '@/hooks/useAuditData';
+import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
@@ -25,10 +25,7 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
-  const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAnnualPlanMutations();
-
-  const departmentMap = useMemo(() => Object.fromEntries((departments || []).map((d: any) => [d.id, d])), [departments]);
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -48,10 +45,8 @@ export default function AuditPlans() {
   const columns: DataTableColumn<any>[] = [
     { key: 'fiscal_year', header: 'Fiscal Year' },
     { key: 'title', header: 'Plan Title' },
-    { key: 'department_id', header: 'Department', render: (row) => row.department_id ? departmentMap[row.department_id]?.name || '—' : 'All' },
-    { key: 'risk_level', header: 'Risk Level', render: (row) => row.risk_level ? <StatusBadge status={row.risk_level} /> : '—' },
+    { key: 'total_department_audits', header: 'Engagements', render: (row) => row.total_department_audits ?? 0 },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { key: 'planned_start_date', header: 'Start Date', render: (row) => row.planned_start_date ? new Date(row.planned_start_date).toLocaleDateString() : '—' },
     { key: 'created_at', header: 'Created', render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '—' },
   ];
 
