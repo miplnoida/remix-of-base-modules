@@ -195,12 +195,30 @@ export default function AuditEngagements() {
         <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search audits..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ status: 'all', risk: 'all' }); }} />
       </CardContent></Card>
 
+      {/* Conflict Alert */}
+      {conflictResult && conflictResult.total_conflicts > 0 && (
+        <ConflictAlertPanel conflicts={conflictResult.conflicts} onDismiss={() => setConflictResult(null)} />
+      )}
+
+      {/* Gate Panel for selected engagement */}
+      {selectedEngId && (
+        <EngagementGatePanel
+          canStart={startGate}
+          completeness={completenessGate}
+          isLoading={startGateLoading || completenessLoading}
+          onRefresh={() => setSelectedEngId(prev => prev)} 
+        />
+      )}
+
       <Card><CardContent>
         <DataTable columns={columns} data={filtered}
           renderActions={(row) => (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/audit/audits/${row.id}`); }}>View</Button>
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedEngId(row.id); }} title="Check Gates">
+                <ShieldCheck className="h-4 w-4" />
+              </Button>
             </div>
           )} />
       </CardContent></Card>
