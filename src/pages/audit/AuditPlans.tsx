@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Eye, Edit, Send, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments } from '@/hooks/useAuditData';
+import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
@@ -25,10 +25,7 @@ export default function AuditPlans() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
-  const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAnnualPlanMutations();
-
-  const departmentMap = useMemo(() => Object.fromEntries((departments || []).map((d: any) => [d.id, d])), [departments]);
 
   const filteredPlans = plans.filter((plan: any) => {
     const matchesSearch = (plan.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase()) || (plan.title || '').toLowerCase().includes(searchTerm.toLowerCase());
