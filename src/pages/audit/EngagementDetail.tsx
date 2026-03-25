@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Shield, User, Calendar, Briefcase, Loader2,
   Plus, Trash2, CheckCircle, XCircle, MinusCircle, ClipboardCheck, Lock,
-  Upload, FileText, Download, Send, AlertTriangle, MessageSquare, Eye
+  Upload, FileText, Download, Send, AlertTriangle, MessageSquare, Eye, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyManagementResponseSubmitted, notifyActionAssigned, notifyReportGenerated } from '@/services/auditNotificationService';
+import { CommunicationTimeline } from '@/components/audit/CommunicationTimeline';
+import { ClosureGatePanel } from '@/components/audit/ClosureGatePanel';
+import { useCanCloseEngagement } from '@/hooks/useAuditCommunicationStages';
 
 const ALLOWED_FILE_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/png', 'image/jpeg'];
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -822,8 +825,9 @@ export default function EngagementDetail() {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="findings">Findings ({auditFindings.length})</TabsTrigger>
           <TabsTrigger value="responses">Responses ({auditResponses.length})</TabsTrigger>
@@ -867,6 +871,10 @@ export default function EngagementDetail() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="communications">
+          <CommunicationTimeline engagementId={id!} engagementName={audit.engagement_name} />
         </TabsContent>
 
         <TabsContent value="checklist"><ChecklistTab auditId={id!} /></TabsContent>
