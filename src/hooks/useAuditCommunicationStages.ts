@@ -32,7 +32,7 @@ export function useCommunicationTimeline(engagementId?: string) {
   return useQuery({
     queryKey: ['ia_communication_timeline', engagementId],
     queryFn: async (): Promise<CommunicationStage[]> => {
-      const { data, error } = await supabase.rpc('ia_get_communication_timeline', {
+      const { data, error } = await supabase.rpc('ia_get_communication_timeline' as any, {
         p_engagement_id: engagementId!,
       });
       if (error) throw error;
@@ -59,7 +59,7 @@ export function useRecordCommunicationStage() {
       createdBy?: string;
       acknowledgmentRequired?: boolean;
     }) => {
-      const { data, error } = await supabase.rpc('ia_record_communication_stage', {
+      const { data, error } = await supabase.rpc('ia_record_communication_stage' as any, {
         p_engagement_id: params.engagementId,
         p_stage_code: params.stageCode,
         p_template_id: params.templateId || null,
@@ -113,7 +113,7 @@ export function useAcknowledgeStage() {
 export function useValidateTemplatePolicy() {
   return useMutation({
     mutationFn: async (params: { stageCode: string; templateId: string }) => {
-      const { data, error } = await supabase.rpc('ia_validate_template_policy', {
+      const { data, error } = await supabase.rpc('ia_validate_template_policy' as any, {
         p_stage_code: params.stageCode,
         p_template_id: params.templateId,
       });
@@ -161,7 +161,7 @@ export function useBuildCarryForward() {
 
   return useMutation({
     mutationFn: async (params: { sourceYear: string; targetYear: string; carriedBy?: string }) => {
-      const { data, error } = await supabase.rpc('ia_build_followup_carry_forward', {
+      const { data, error } = await supabase.rpc('ia_build_followup_carry_forward' as any, {
         p_source_fiscal_year: params.sourceYear,
         p_target_fiscal_year: params.targetYear,
         p_carried_by: params.carriedBy || null,
@@ -190,7 +190,7 @@ export function useCanCloseEngagement(engagementId?: string) {
   return useQuery({
     queryKey: ['ia_can_close_engagement', engagementId],
     queryFn: async (): Promise<ClosureGateResult> => {
-      const { data, error } = await supabase.rpc('ia_can_close_engagement', {
+      const { data, error } = await supabase.rpc('ia_can_close_engagement' as any, {
         p_engagement_id: engagementId!,
       });
       if (error) throw error;
@@ -207,7 +207,7 @@ export function useCheckOverdueActions() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('ia_check_overdue_actions');
+      const { data, error } = await supabase.rpc('ia_check_overdue_actions' as any);
       if (error) throw error;
       return data as any;
     },
