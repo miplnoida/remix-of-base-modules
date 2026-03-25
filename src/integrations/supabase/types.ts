@@ -10207,6 +10207,72 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_auto_notification_log: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          delivery_status: string
+          engagement_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_code: string
+          failure_reason: string | null
+          id: string
+          metadata: Json | null
+          plan_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_user_id: string | null
+          sent_at: string | null
+          subject: string | null
+          template_id: string | null
+          template_name: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          delivery_status?: string
+          engagement_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          delivery_status?: string
+          engagement_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code?: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Relationships: []
+      }
       ia_availability_conflicts: {
         Row: {
           auditor_id: string
@@ -11758,6 +11824,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_notification_triggers: {
+        Row: {
+          auto_fire: boolean
+          created_at: string
+          default_priority: string
+          default_template_category: string | null
+          description: string | null
+          event_code: string
+          event_label: string
+          id: string
+          is_enabled: boolean
+          notify_all_team: boolean
+          notify_auditee: boolean
+          notify_team_lead: boolean
+          target_roles: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          auto_fire?: boolean
+          created_at?: string
+          default_priority?: string
+          default_template_category?: string | null
+          description?: string | null
+          event_code: string
+          event_label: string
+          id?: string
+          is_enabled?: boolean
+          notify_all_team?: boolean
+          notify_auditee?: boolean
+          notify_team_lead?: boolean
+          target_roles?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          auto_fire?: boolean
+          created_at?: string
+          default_priority?: string
+          default_template_category?: string | null
+          description?: string | null
+          event_code?: string
+          event_label?: string
+          id?: string
+          is_enabled?: boolean
+          notify_all_team?: boolean
+          notify_auditee?: boolean
+          notify_team_lead?: boolean
+          target_roles?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       ia_plan_amendments: {
         Row: {
@@ -22891,8 +23008,32 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_fire_notification: {
+        Args: {
+          p_body?: string
+          p_engagement_id?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_code: string
+          p_metadata?: Json
+          p_plan_id?: string
+          p_recipient_email?: string
+          p_recipient_user_id?: string
+          p_subject?: string
+        }
+        Returns: Json
+      }
       ia_get_communication_timeline: {
         Args: { p_engagement_id: string }
+        Returns: Json
+      }
+      ia_get_notification_log: {
+        Args: {
+          p_engagement_id?: string
+          p_event_code?: string
+          p_limit?: number
+          p_plan_id?: string
+        }
         Returns: Json
       }
       ia_record_communication_stage: {
