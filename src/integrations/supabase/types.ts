@@ -22281,43 +22281,24 @@ export type Database = {
           display_name: string
         }[]
       }
-      get_c3_records_filtered:
-        | {
-            Args: {
-              p_date_entered?: string
-              p_date_received?: string
-              p_entered_by?: string
-              p_exclude_deleted?: boolean
-              p_page?: number
-              p_page_size?: number
-              p_payer_id?: string
-              p_payer_type?: string
-              p_period_month?: number
-              p_period_year?: number
-              p_schedule_no?: number
-              p_status?: string
-              p_verified_by?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_date_entered?: string
-              p_date_received?: string
-              p_entered_by?: string
-              p_exclude_deleted?: boolean
-              p_page?: number
-              p_page_size?: number
-              p_payer_id?: string
-              p_payer_type?: string
-              p_period_month?: number
-              p_period_year?: number
-              p_schedule_no?: number
-              p_status?: string
-              p_verified_by?: string
-            }
-            Returns: Json
-          }
+      get_c3_records_filtered: {
+        Args: {
+          p_date_entered?: string
+          p_date_received?: string
+          p_entered_by?: string
+          p_exclude_deleted?: boolean
+          p_page?: number
+          p_page_size?: number
+          p_payer_id?: string
+          p_payer_type?: string
+          p_period_month?: number
+          p_period_year?: number
+          p_schedule_no?: number
+          p_status?: string
+          p_verified_by?: string
+        }
+        Returns: Json
+      }
       get_income_code_policy_for_period: {
         Args: {
           p_income_code_id: string
