@@ -2,27 +2,39 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert } from 'lucide-react';
+import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle } from 'lucide-react';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
-import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge } from '@/components/common';
+import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
+import { useStartPlanApproval, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useToast } from '@/hooks/use-toast';
+import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
 
 export default function AuditPlansNew() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { userCode } = useUserCode();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all', department: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editPlan, setEditPlan] = useState<any>(null);
+  const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
+  const [conflictResult, setConflictResult] = useState<any>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
   const { data: departments = [] } = useIADepartments();
   const { data: functions = [] } = useIADepartmentFunctions('all');
   const { data: assessments = [] } = useIARiskAssessments();
   const { create, update } = useIAAnnualPlanMutations();
+  const startApproval = useStartPlanApproval();
+  const checkAvailability = useTeamAvailabilityCheck();
 
   const functionMap = useMemo(() => Object.fromEntries((functions || []).map((fn: any) => [fn.id, fn])), [functions]);
   const departmentMap = useMemo(() => new Map((departments || []).map((dept: any) => [dept.id, dept])), [departments]);
@@ -67,11 +79,42 @@ export default function AuditPlansNew() {
     total: enrichedPlans.length,
     linked: enrichedPlans.filter((plan: any) => !!plan.function_id).length,
     highRisk: enrichedPlans.filter((plan: any) => ['High', 'Critical'].includes(plan.derived_risk_level)).length,
-    active: enrichedPlans.filter((plan: any) => ['Approved', 'Active'].includes(plan.status || '')).length,
+    active: enrichedPlans.filter((plan: any) => ['Approved', 'Active', 'In Progress'].includes(plan.status || '')).length,
   };
 
-  const fiscalYears = [...new Set(enrichedPlans.map((plan: any) => plan.fiscal_year).filter(Boolean))];
   const departmentOptions = [...new Set(enrichedPlans.map((plan: any) => plan.department_name).filter((value: string) => value && value !== 'Not linked'))];
+
+  const handleSubmitForApproval = async (planId: string) => {
+    // First run conflict check
+    try {
+      const conflicts = await checkAvailability.mutateAsync({ planId });
+      setConflictResult(conflicts);
+
+      if (conflicts.has_blocking) {
+        toast({
+          title: 'Blocking Conflicts Detected',
+          description: `${conflicts.total_conflicts} conflict(s) found. Resolve blocking conflicts before submitting.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Proceed with workflow submission
+      await startApproval.mutateAsync({
+        planId,
+        submittedBy: userCode || 'SYSTEM',
+        isRevision: false,
+      });
+    } catch (err: any) {
+      toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setSubmitPlanId(null);
+    }
+  };
+
+  const canSubmitPlan = (plan: any) => {
+    return ['Draft', 'Rejected'].includes(plan.status || 'Draft') && hasPermission('create_audit_plans');
+  };
 
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Audit Plan', render: (row) => <span className="font-medium">{row.title}</span> },
@@ -80,12 +123,24 @@ export default function AuditPlansNew() {
     { key: 'function_name', header: 'Function' },
     { key: 'derived_risk_level', header: 'Risk Level', render: (row) => <StatusBadge status={row.derived_risk_level} /> },
     { key: 'assigned_auditor', header: 'Assigned Auditor', render: (row) => row.assigned_auditor || '—' },
-    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status || 'Draft'} /> },
+    {
+      key: 'status', header: 'Status', render: (row) => {
+        const status = row.status || 'Draft';
+        return (
+          <div className="flex items-center gap-1.5">
+            <StatusBadge status={status} />
+            {row.current_version_number > 1 && (
+              <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">v{row.current_version_number}</span>
+            )}
+          </div>
+        );
+      }
+    },
     { key: 'updated_at', header: 'Last Updated', render: (row) => row.updated_at ? formatDateForDisplay(row.updated_at) : '—' },
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Approved', label: 'Approved' }, { value: 'Active', label: 'Active' }, { value: 'Completed', label: 'Completed' }] },
+    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'all', label: 'All Statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Submitted', label: 'Submitted' }, { value: 'Approved', label: 'Approved' }, { value: 'In Progress', label: 'In Progress' }, { value: 'Revision Pending', label: 'Revision Pending' }, { value: 'Rejected', label: 'Rejected' }, { value: 'Completed', label: 'Completed' }] },
     { key: 'risk', label: 'Risk Level', type: 'select', options: [{ value: 'all', label: 'All Risk Levels' }, { value: 'Critical', label: 'Critical' }, { value: 'High', label: 'High' }, { value: 'Medium', label: 'Medium' }, { value: 'Low', label: 'Low' }, { value: 'Unrated', label: 'Unrated' }] },
     { key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departmentOptions.map((name) => ({ value: name, label: name }))] },
   ];
@@ -104,6 +159,11 @@ export default function AuditPlansNew() {
         <SummaryCard icon={ShieldAlert} label="High / Critical" value={metrics.highRisk} />
         <SummaryCard icon={ClipboardList} label="Approved / Active" value={metrics.active} />
       </div>
+
+      {/* Conflict Alert Panel */}
+      {conflictResult && conflictResult.total_conflicts > 0 && (
+        <ConflictAlertPanel conflicts={conflictResult.conflicts} onDismiss={() => setConflictResult(null)} />
+      )}
 
       <Card>
         <CardContent className="p-4">
@@ -130,9 +190,14 @@ export default function AuditPlansNew() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}>
                   <Eye className="h-4 w-4" />
                 </Button>
-                {!['Completed', 'Closed'].includes(row.status || '') && (
+                {!['Completed', 'Closed', 'Submitted', 'Revision Pending'].includes(row.status || '') && (
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)}>
                     <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+                {canSubmitPlan(row) && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setSubmitPlanId(row.id)} title="Submit for Approval">
+                    <Send className="h-4 w-4" />
                   </Button>
                 )}
               </div>
@@ -159,6 +224,14 @@ export default function AuditPlansNew() {
           />
         )}
       </StandardModal>
+
+      <ConfirmDialog
+        open={submitPlanId !== null}
+        onOpenChange={() => setSubmitPlanId(null)}
+        title="Submit Plan for Approval"
+        description="This will run a team availability check (holidays, leave, engagement overlaps) and then submit the plan through the approval workflow. The plan creator cannot approve it (maker-checker enforced)."
+        onConfirm={() => submitPlanId && handleSubmitForApproval(submitPlanId)}
+      />
     </PageShell>
   );
 }
