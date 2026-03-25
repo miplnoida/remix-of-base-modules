@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle, History } from 'lucide-react';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
@@ -210,6 +210,9 @@ export default function AuditPlansNew() {
             emptyMessage="No audit plans found."
             renderActions={(row) => (
               <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)} title="Version & Approval History">
+                  <History className={`h-4 w-4 ${row.id === selectedPlanId ? 'text-primary' : ''}`} />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}>
                   <Eye className="h-4 w-4" />
                 </Button>
