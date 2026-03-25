@@ -22689,9 +22689,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      ia_apply_plan_revision: {
+        Args: {
+          p_changes: Json
+          p_plan_id: string
+          p_reason?: string
+          p_requested_by?: string
+        }
+        Returns: Json
+      }
       ia_can_issue_report: { Args: { p_report_id: string }; Returns: Json }
       ia_can_start_engagement: {
         Args: { p_engagement_id: string }
+        Returns: Json
+      }
+      ia_start_plan_approval_workflow: {
+        Args: {
+          p_is_revision?: boolean
+          p_plan_id: string
+          p_submitted_by?: string
+        }
         Returns: Json
       }
       ia_validate_team_availability: {
