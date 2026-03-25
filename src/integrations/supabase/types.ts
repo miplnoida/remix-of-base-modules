@@ -10168,6 +10168,76 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_availability_conflicts: {
+        Row: {
+          auditor_id: string
+          conflict_date_end: string
+          conflict_date_start: string
+          conflict_reference: string | null
+          conflict_type: string
+          created_at: string
+          engagement_id: string | null
+          id: string
+          plan_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          auditor_id: string
+          conflict_date_end: string
+          conflict_date_start: string
+          conflict_reference?: string | null
+          conflict_type: string
+          created_at?: string
+          engagement_id?: string | null
+          id?: string
+          plan_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Update: {
+          auditor_id?: string
+          conflict_date_end?: string
+          conflict_date_start?: string
+          conflict_reference?: string | null
+          conflict_type?: string
+          created_at?: string
+          engagement_id?: string | null
+          id?: string
+          plan_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_availability_conflicts_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "ia_auditors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_availability_conflicts_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_availability_conflicts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_communications: {
         Row: {
           acknowledged_date: string | null
@@ -10957,6 +11027,45 @@ export type Database = {
           },
         ]
       }
+      ia_execution_gate_config: {
+        Row: {
+          created_at: string
+          gate_type: string
+          id: string
+          is_active: boolean
+          min_evidence_count: number
+          min_findings_documented: boolean
+          min_working_papers_count: number
+          require_action_plans: boolean
+          require_management_responses: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          gate_type: string
+          id?: string
+          is_active?: boolean
+          min_evidence_count?: number
+          min_findings_documented?: boolean
+          min_working_papers_count?: number
+          require_action_plans?: boolean
+          require_management_responses?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          gate_type?: string
+          id?: string
+          is_active?: boolean
+          min_evidence_count?: number
+          min_findings_documented?: boolean
+          min_working_papers_count?: number
+          require_action_plans?: boolean
+          require_management_responses?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ia_findings: {
         Row: {
           activity_id: string | null
@@ -11633,6 +11742,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_plan_versions: {
+        Row: {
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          plan_id: string
+          snapshot_data: Json
+          status_at_snapshot: string
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_id: string
+          snapshot_data: Json
+          status_at_snapshot: string
+          version_number?: number
+        }
+        Update: {
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_id?: string
+          snapshot_data?: Json
+          status_at_snapshot?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_plan_versions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_plan_workflow_bindings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          is_active: boolean
+          workflow_definition_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          is_active?: boolean
+          workflow_definition_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          is_active?: boolean
+          workflow_definition_id?: string
+        }
+        Relationships: []
       }
       ia_planning_assumptions: {
         Row: {
