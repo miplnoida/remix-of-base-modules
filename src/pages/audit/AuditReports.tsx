@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Plus, RefreshCw, Eye, Mail, Download, Loader2, ShieldAlert, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { FileText, Plus, RefreshCw, Eye, Mail, Download, Loader2, ShieldAlert, ClipboardList, CheckCircle2, BarChart3, MessageSquare, CalendarClock, AlertTriangle, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAFindings, useIAManagementResponses, useIAActionTracking } from '@/hooks/useAuditData';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
