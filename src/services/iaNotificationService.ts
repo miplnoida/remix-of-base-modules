@@ -48,8 +48,8 @@ export async function sendIANotification({ event, recipientIds = [], variables, 
     let subject = template.subject || '';
     Object.entries(variables).forEach(([key, value]) => {
       const placeholder = `{{${key}}}`;
-      body = body.replaceAll(placeholder, value);
-      subject = subject.replaceAll(placeholder, value);
+      body = body.split(placeholder).join(value);
+      subject = subject.split(placeholder).join(value);
     });
 
     // Insert into system_notifications for each recipient
