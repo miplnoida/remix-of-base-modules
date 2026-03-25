@@ -1,51 +1,81 @@
 
-1. Confirmed root cause
-- The page error is not from the API sync itself. It is caused by two live database functions with the same name and same overall argument types:
-```text
-get_c3_records_filtered(text,text,text,text,text,integer,integer,text,text,integer,boolean,integer,integer)
-get_c3_records_filtered(text,text,text,text,text,integer,integer,text,text,integer,integer,integer,boolean)
-```
-- They differ only by parameter order near the end:
-```text
-original: p_schedule_no, p_exclude_deleted, p_page, p_page_size
-duplicate: p_schedule_no, p_page, p_page_size, p_exclude_deleted
-```
-- Because the app calls the RPC with named arguments, the backend cannot choose between them, which is why the Manage page still fails.
 
-2. What the data visibility should be
-- In the current “as before” behavior, `/c3-management/manage` shows only `DFT` and `PEN` by default.
-- The API sync flow marks synced/submitted records as `VAC` (`verified_by = 'API'` in the backend logic).
-- So: yes, that data belongs to the same C3 domain, but no, it is not expected to appear in the default Manage list after reverting to the old behavior. It should only appear when filtering for Verified/Approved (or in other pages that load that record directly).
+# Implement Typable Search in All C3 Management Dropdowns
 
-3. Revert plan
-- Revert only the changes introduced for the “show API-synced data by default” attempt.
-- Keep the original intended behavior:
-  - default Manage page filter = `DFT` + `PEN`
-  - only one canonical `get_c3_records_filtered` function
-  - original parameter order preserved
+## Problem
+Most dropdowns in the C3 Management module use the basic `Select` component (Radix), which only supports prefix-character matching (typing first letter jumps to match). The `SearchableSelect` combobox component already exists and supports full free-text, case-insensitive, substring matching -- but it is only used in 3 places (entity selection on C3ContributionList, NwDirectorList, SelfEmployedContributionList).
 
-4. Implementation steps
-- Create one cleanup migration that:
-  - drops both conflicting `get_c3_records_filtered` signatures explicitly
-  - recreates only the original canonical signature:
-```text
-(p_payer_type, p_payer_id, p_status, p_entered_by, p_verified_by,
- p_period_month, p_period_year, p_date_received, p_date_entered,
- p_schedule_no, p_exclude_deleted, p_page, p_page_size)
-```
-  - restores the default status condition to:
-```sql
-(p_status IS NULL AND c.posting_status IN ('DFT', 'PEN'))
-```
-- Do not change the frontend RPC call, since it already matches the original canonical argument naming.
+## Scope of Changes
 
-5. Validation after fix
-- Verify `/c3-management/manage` loads without the candidate-function error.
-- Verify default results exclude `VAC` records.
-- Verify selecting a Verified/Approved status filter returns the API-synced record.
-- Verify no other C3 search filters break (payer, period, date, schedule no, entered by, verified by, pagination).
+Dropdowns are categorized into two groups:
+1. **Large/dynamic lists** -- these MUST be converted to `SearchableSelect` for usability
+2. **Small/static lists** (2-6 fixed items like status, gender, pay period) -- these do NOT need search; the current `Select` is appropriate
 
-6. Expected outcome
-- The runtime error disappears.
-- The Manage page returns to its pre-change behavior.
-- The API-synced record remains in the database but is not shown by default because it is `VAC`, which matches your requested revert.
+### Dropdowns to Convert (large dynamic lists)
+
+| File | Dropdown | Data Source |
+|------|----------|-------------|
+| `C3Management.tsx` | Entered By filter | profiles list |
+| `C3Management.tsx` | Verified By filter | profiles list |
+| `C3Management.tsx` | Status filter | c3Statuses list |
+| `WizEmployerList.tsx` | Parent Company selector | companies list |
+| `WizEmployerList.tsx` | Child Companies selector | companies list |
+| `WizEmployeeList.tsx` | Employer selector | companies list |
+| `WizPaymentDetails.tsx` | Employer filter | companies list |
+| `WizPaymentDetails.tsx` | Employer User filter | companyUsers list |
+| `WizPaymentDetails.tsx` | Self Employee filter | selfEmployedList |
+| `WizSelfEmployedDetailsEdit.tsx` | Category selector | categories list |
+| `WizSelfEmployedDetailsEdit.tsx` | Country selector | countries list |
+| `WizSelfEmployedDetailsEdit.tsx` | Security Question 1 | SECURITY_QUESTIONS |
+| `WizSelfEmployedDetailsEdit.tsx` | Security Question 2 | SECURITY_QUESTIONS |
+| `WizEmployerDetailsEdit.tsx` | Country selector | COUNTRIES |
+| `WizEmployerDetailsEdit.tsx` | Security Question 1 | SECURITY_QUESTIONS |
+| `WizEmployerDetailsEdit.tsx` | Security Question 2 | SECURITY_QUESTIONS |
+| `WizEmployerDetailsEdit.tsx` | Dial Code (x2) | DIAL_CODES |
+| `ReceivedBySelect.tsx` | Received By | profiles list |
+| `OtherPaymentsSection.tsx` | Income Code | incomeCodes list |
+
+### Dropdowns to Leave As-Is (small static lists)
+
+- Pay Period (4 items: Weekly, Bi-Weekly, Monthly, 2 Monthly)
+- Payer Type (3 items: Employer, Self-Employed, Voluntary)
+- Status filters with < 6 fixed items (Pending/Approved/Rejected, Gender, Marital Status)
+- Payment status (AUTHORIZED/DECLINED/INVALID_REQUEST)
+- Payment type (3 items)
+
+## Implementation Approach
+
+### Step 1: Enhance SearchableSelect with "All" option support
+Add an optional `includeAllOption` prop (label like "All") so filter dropdowns can include an "All" choice without custom wiring.
+
+### Step 2: Convert each file
+For each file listed above:
+- Replace `Select`/`SelectContent`/`SelectItem` with `SearchableSelect`
+- Map data into `{ value, label, searchText? }` format
+- Wire `onValueChange` to existing handler
+- For filter dropdowns with "All" option, handle the `__all__` → empty string mapping
+
+### Step 3: Convert ReceivedBySelect component
+Replace its internal `Select` with `SearchableSelect`, making the profiles list searchable by name and user code.
+
+### Step 4: Convert OtherPaymentsSection income code selector
+Replace the income code `Select` with `SearchableSelect` to allow searching by code or description.
+
+## Technical Details
+
+- **No API changes** -- all data is already loaded client-side
+- **No new dependencies** -- reuses existing `SearchableSelect` component built on `cmdk`
+- **Performance** -- cmdk handles filtering efficiently; no debounce needed for pre-loaded lists
+- **Consistency** -- all large-list dropdowns will use the same combobox pattern with substring matching
+
+## Files Modified
+- `src/components/ui/searchable-select.tsx` (minor: add `includeAllOption` support)
+- `src/pages/c3Management/C3Management.tsx`
+- `src/pages/c3Management/employers/WizEmployerList.tsx`
+- `src/pages/c3Management/employers/WizEmployeeList.tsx`
+- `src/pages/c3Management/employers/WizEmployerDetailsEdit.tsx`
+- `src/pages/c3Management/payments/WizPaymentDetails.tsx`
+- `src/pages/c3Management/selfEmployed/WizSelfEmployedDetailsEdit.tsx`
+- `src/components/c3/ReceivedBySelect.tsx`
+- `src/components/c3/OtherPaymentsSection.tsx`
+
