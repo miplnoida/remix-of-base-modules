@@ -43,6 +43,7 @@ function joinLines(lines: string[]) {
 }
 
 export default function AuditReports() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { userCode } = useUserCode();
   const { engagementId } = useEngagementFilter();
