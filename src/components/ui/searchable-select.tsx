@@ -44,10 +44,17 @@ export function SearchableSelect({
   emptyMessage = "No results found.",
   className,
   disabled = false,
+  includeAllOption,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
 
-  const selectedOption = options.find((o) => o.value === value);
+  // Build effective options list with optional "All" prepended
+  const effectiveOptions = React.useMemo(() => {
+    if (!includeAllOption) return options;
+    return [{ value: "__all__", label: includeAllOption }, ...options];
+  }, [options, includeAllOption]);
+
+  const selectedOption = effectiveOptions.find((o) => o.value === (value || (includeAllOption ? "__all__" : "")));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
