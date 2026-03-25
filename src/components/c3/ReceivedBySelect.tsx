@@ -99,3 +99,38 @@ export default function ReceivedBySelect({
     </div>
   );
 }
+
+// Hook to fetch profiles list for use in other components
+export function useProfiles() {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('profiles')
+          .select('id, user_code, full_name')
+          .not('user_code', 'is', null)
+          .order('full_name');
+
+        if (fetchError) throw fetchError;
+
+        setProfiles(data || []);
+      } catch (err: any) {
+        console.error('Error fetching profiles:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
+  return { profiles, isLoading, error };
+}
