@@ -14,6 +14,8 @@ import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { notifyReportGenerated } from '@/services/auditNotificationService';
+import { useCanIssueReport } from '@/hooks/useAuditWorkflowGates';
+import { ReportIssuanceGate } from '@/components/audit/ReportIssuanceGate';
 
 interface ReportPreview {
   title: string;
