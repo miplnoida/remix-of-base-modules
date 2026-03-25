@@ -1,37 +1,50 @@
 
 
-# Generate C3 Public API Documentation PDF
+# Fix: Type Mismatch in C3 Public API RPCs — `date = text` Error
 
-## Task
-Generate a professional, downloadable PDF document covering all three C3 Ingestion public APIs with complete request/response parameter details, authentication requirements, error codes, and usage examples.
+## Root Cause
 
-## Approach
-Use Python with `reportlab` to create a multi-page PDF at `/mnt/documents/C3_Public_API_Documentation.pdf`. The document will include:
+The `period` column in both `cn_c3_reported` and `ip_wages` is of type **`date`** in PostgreSQL. However, all three RPC functions cast the period to `TEXT` (`v_period_ts::TEXT`) when comparing and inserting, causing the error: `"operator does not exist: date = text"`.
 
-1. **Cover / Title section** — SSB C3 Public API Documentation, version, date
-2. **Authentication** — `x-api-key` header requirement, API key assignment via API Registry
-3. **Base URL** — Edge function URL pattern
-4. **API 1: Insert C3 Reported** (`POST /api/v1/c3-reported`)
-   - All 18 parameters with type, required/optional, description, default
-   - Success response with auto-generated `sequence_no`
-   - Error responses
-5. **API 2: Insert C3 Wages** (`POST /api/v1/c3-wages`)
-   - All 27 parameters with type, required/optional, description, default
-   - Parent validation error response
-   - Success response with `c3_id` linkage
-6. **API 3: Verify C3** (`POST /api/v1/c3-verify`)
-   - 4 required parameters
-   - Recalculation formulas
-   - Nil-return vs non-nil-return flows
-   - Success/error response variants
-7. **Error Reference** — Standard error codes (401, 403, 404, 429, 400, 500)
-8. **Integration Flow** — Step-by-step: create C3 → add wages → verify
+## Fix
 
-Data sourced directly from the migration SQL and edge function handler code reviewed above.
+Create a migration that replaces all three RPCs. Change the internal variable from `TIMESTAMP` to `DATE`, and remove all `::TEXT` casts when comparing or inserting into the `period` column.
 
-## Implementation
-Single Python script using `reportlab.platypus` (SimpleDocTemplate, Tables, Paragraphs) to produce a clean, professional PDF. Then QA via `pdftoppm` conversion and visual inspection.
+### Changes across all 3 RPCs
 
-## Output
-`/mnt/documents/C3_Public_API_Documentation.pdf`
+| Current (broken) | Fixed |
+|---|---|
+| `v_period_ts TIMESTAMP` | `v_period_ts DATE` |
+| `v_period_ts := p_period::TIMESTAMP` | `v_period_ts := p_period::DATE` |
+| `AND period = v_period_ts::TEXT` | `AND period = v_period_ts` |
+| `v_period_ts::TEXT` in INSERT VALUES | `v_period_ts` |
+| `NOW()::TEXT` for date_entered/date_verified | `NOW()::TEXT` (keep — these are text columns) |
+| `v_period_ts::TEXT` in response JSON | `v_period_ts::TEXT` (keep — JSON needs text) |
+
+### Specific locations in each RPC
+
+**RPC 1 (`public_api_insert_c3_reported`):**
+- Line 32: `v_period_ts TIMESTAMP` → `v_period_ts DATE`
+- Line 46: `::TIMESTAMP` → `::DATE`
+- Line 57: `period = v_period_ts::TEXT` → `period = v_period_ts`
+- Line 67: `v_period_ts::TEXT` in INSERT → `v_period_ts`
+
+**RPC 2 (`public_api_insert_ip_wages`):**
+- Line 136: `v_period_ts TIMESTAMP` → `v_period_ts DATE`
+- Line 156: `::TIMESTAMP` → `::DATE`
+- Line 164: `period = v_period_ts::TEXT` → `period = v_period_ts`
+- Line 186: `v_period_ts::TEXT` in INSERT → `v_period_ts`
+
+**RPC 3 (`public_api_verify_c3`):**
+- Line 235: `v_period_ts TIMESTAMP` → `v_period_ts DATE`
+- Line 252: `::TIMESTAMP` → `::DATE`
+- Lines 261, 278, 342, 364: `period = v_period_ts::TEXT` → `period = v_period_ts`
+
+### Files
+| File | Action |
+|---|---|
+| Migration SQL | `CREATE OR REPLACE` all 3 RPCs with `DATE` type fix |
+
+### Expected Input Format (unchanged)
+External apps still send `"period": "2026-03-01"` (ISO date string). The `::DATE` cast handles this correctly.
 
