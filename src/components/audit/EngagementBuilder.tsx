@@ -37,7 +37,7 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
     mutationFn: async (payload: any) => {
       const { data, error } = await supabase.rpc('ia_persist_plan_engagements' as any, {
         p_plan_id: planId,
-        p_engagements: JSON.stringify([payload]),
+        p_engagements: [payload],
         p_created_by: userCode || 'system',
       });
       if (error) throw error;
