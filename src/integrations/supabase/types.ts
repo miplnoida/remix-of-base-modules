@@ -23008,6 +23008,10 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_detect_material_plan_changes: {
+        Args: { p_plan_id: string; p_proposed_changes: Json }
+        Returns: Json
+      }
       ia_fire_notification: {
         Args: {
           p_body?: string
@@ -23047,6 +23051,14 @@ export type Database = {
           p_stage_code: string
           p_template_id?: string
         }
+        Returns: Json
+      }
+      ia_start_annual_plan_approval_workflow: {
+        Args: { p_plan_id: string; p_submitted_by?: string }
+        Returns: Json
+      }
+      ia_start_annual_plan_revision_workflow: {
+        Args: { p_plan_id: string; p_submitted_by?: string }
         Returns: Json
       }
       ia_start_plan_approval_workflow: {
