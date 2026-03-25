@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -236,19 +236,18 @@ const WizEmployeeList: React.FC = () => {
             <Users className="h-5 w-5" /> Employee List
           </CardTitle>
           <div className="flex items-center gap-3">
-            <Select value={selectedCompanyId} onValueChange={handleCompanyChange}>
-              <SelectTrigger className="w-80">
-                <SelectValue>
-                  {selectedCompany ? `${selectedCompany.company_name} (${selectedCompany.registration_number})` : 'Select company'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.company_name} ({c.registration_number})
-                  </SelectItem>
-                ))}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={selectedCompanyId}
+              onValueChange={handleCompanyChange}
+              options={companies.map(c => ({
+                value: String(c.id),
+                label: `${c.company_name} (${c.registration_number})`,
+                searchText: c.registration_number,
+              }))}
+              placeholder="Select company"
+              searchPlaceholder="Search by name or reg number..."
+              className="w-80"
+            />
             <div className="flex items-center gap-1">
               <Input placeholder="Search by name, SSN, department" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-60" />
             </div>
