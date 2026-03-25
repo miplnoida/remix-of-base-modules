@@ -245,6 +245,7 @@ export default function AuditPlansNew() {
         </Tabs>
       )}
 
+      <StandardModal open={isCreateOpen} onOpenChange={setIsCreateOpen} title="Create Audit Plan" mode="create" size="4xl">
         <AnnualPlanForm
           onClose={() => setIsCreateOpen(false)}
           onCreate={(data) => create.mutateAsync(data)}
