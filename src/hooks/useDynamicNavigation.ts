@@ -307,6 +307,14 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     aliases: ['/audit/audit-reports', '/audit/reports'],
     description: 'Generate audit reports',
   },
+  {
+    id: 'ia-auditor-profiles',
+    title: 'Auditor Profiles',
+    icon: UserCheck,
+    path: '/audit/auditor-profiles',
+    aliases: ['/audit/auditor-profiles'],
+    description: 'Manage auditor registry and roles',
+  },
 ];
 
 function normalizePath(path?: string): string {
