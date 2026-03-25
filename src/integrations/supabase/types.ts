@@ -11095,6 +11095,44 @@ export type Database = {
           },
         ]
       }
+      ia_engagement_risk_overrides: {
+        Row: {
+          created_at: string
+          derived_risk_rating: string
+          engagement_id: string
+          id: string
+          overridden_by: string
+          overridden_risk_rating: string
+          override_reason: string
+        }
+        Insert: {
+          created_at?: string
+          derived_risk_rating: string
+          engagement_id: string
+          id?: string
+          overridden_by: string
+          overridden_risk_rating: string
+          override_reason: string
+        }
+        Update: {
+          created_at?: string
+          derived_risk_rating?: string
+          engagement_id?: string
+          id?: string
+          overridden_by?: string
+          overridden_risk_rating?: string
+          override_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_engagement_risk_overrides_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_escalation_rules: {
         Row: {
           action_type: string | null
@@ -23101,6 +23139,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ia_resolve_engagement_risk: {
+        Args: { p_department_id?: string; p_function_id?: string }
+        Returns: Json
+      }
+      ia_seed_ssb_audit_reference_data: {
+        Args: { p_created_by?: string }
+        Returns: Json
+      }
       ia_start_annual_plan_approval_workflow: {
         Args: { p_plan_id: string; p_submitted_by?: string }
         Returns: Json
@@ -23114,6 +23160,13 @@ export type Database = {
           p_is_revision?: boolean
           p_plan_id: string
           p_submitted_by?: string
+        }
+        Returns: Json
+      }
+      ia_validate_audit_team_user_mapping: {
+        Args: {
+          p_lead_auditor_id?: string
+          p_supportive_auditor_ids?: string[]
         }
         Returns: Json
       }

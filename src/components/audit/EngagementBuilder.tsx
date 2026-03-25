@@ -35,14 +35,26 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
 
   const persistEngagement = useMutation({
     mutationFn: async (payload: any) => {
+      const { risk_override_reason, derived_risk_rating, ...engPayload } = payload;
       const { data, error } = await supabase.rpc('ia_persist_plan_engagements' as any, {
         p_plan_id: planId,
-        p_engagements: [payload],
+        p_engagements: [engPayload],
         p_created_by: userCode || 'system',
       });
       if (error) throw error;
       const result = data as any;
       if (!result?.success) throw new Error(result?.error || 'Failed to save engagement');
+
+      // Log risk override if applicable
+      if (risk_override_reason && derived_risk_rating && result.engagement_ids?.[0]) {
+        await supabase.from('ia_engagement_risk_overrides' as any).insert({
+          engagement_id: result.engagement_ids[0],
+          derived_risk_rating,
+          overridden_risk_rating: engPayload.engagement_risk_rating,
+          override_reason: risk_override_reason,
+          overridden_by: userCode || 'system',
+        } as any);
+      }
       return result;
     },
     onSuccess: () => {
