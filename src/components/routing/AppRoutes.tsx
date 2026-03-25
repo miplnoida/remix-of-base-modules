@@ -217,6 +217,7 @@ import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import PlanApproval from '@/pages/audit/PlanApproval';
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
+const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
@@ -915,6 +916,7 @@ export const AppRoutes = () => {
       <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/queries" element={<ProtectedLayout><Suspense fallback={<div />}><AuditQueries /></Suspense></ProtectedLayout>} />
+      <Route path="/audit/auditor-profiles" element={<ProtectedLayout><Suspense fallback={<div />}><AuditorProfiles /></Suspense></ProtectedLayout>} />
 
       {/* Legacy redirects */}
       <Route path="/audit/engagements" element={<ProtectedLayout><Navigate to="/audit/audits" replace /></ProtectedLayout>} />
