@@ -30,6 +30,7 @@ export default function AuditPlansNew() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editPlan, setEditPlan] = useState<any>(null);
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [conflictResult, setConflictResult] = useState<any>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
@@ -89,7 +90,7 @@ export default function AuditPlansNew() {
   const departmentOptions = [...new Set(enrichedPlans.map((plan: any) => plan.department_name).filter((value: string) => value && value !== 'Not linked'))];
 
   const handleSubmitForApproval = async (planId: string) => {
-    // First run conflict check
+    const plan = enrichedPlans.find((p: any) => p.id === planId);
     try {
       const conflicts = await checkAvailability.mutateAsync({ planId });
       setConflictResult(conflicts);
@@ -100,6 +101,14 @@ export default function AuditPlansNew() {
           description: `${conflicts.total_conflicts} conflict(s) found. Resolve blocking conflicts before submitting.`,
           variant: 'destructive',
         });
+        // Fire conflict notification
+        notifyTeamConflict(planId, {
+          plan_title: plan?.title || 'Audit Plan',
+          conflict_type: 'multiple',
+          auditor_name: 'Team',
+          conflict_dates: 'See details',
+          severity: 'blocking',
+        });
         return;
       }
 
@@ -108,6 +117,16 @@ export default function AuditPlansNew() {
         planId,
         submittedBy: userCode || 'SYSTEM',
         isRevision: false,
+      });
+
+      // Fire submitted notification
+      notifyPlanSubmitted(planId, {
+        plan_title: plan?.title || 'Audit Plan',
+        fiscal_year: plan?.fiscal_year || '',
+        submitted_by: userCode || 'SYSTEM',
+        plan_id: planId,
+        department_name: plan?.department_name || '',
+        risk_level: plan?.derived_risk_level || '',
       });
     } catch (err: any) {
       toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
