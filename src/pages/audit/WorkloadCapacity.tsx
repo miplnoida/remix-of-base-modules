@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { useIAAuditors, useIAActivities } from '@/hooks/useAuditData';
 import { TrendingUp, Users, Clock, CheckCircle } from 'lucide-react';
 import { PageShell, StatusBadge } from '@/components/common';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TeamAvailabilityDashboard } from '@/components/audit/TeamAvailabilityDashboard';
 
 export default function WorkloadCapacity() {
   const { data: auditors = [], isLoading: loadingAuditors } = useIAAuditors();
@@ -36,51 +38,67 @@ export default function WorkloadCapacity() {
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Completed</CardTitle><CheckCircle className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{auditorWorkloads.reduce((s: number, a: any) => s + a.completedActivities, 0)}</div></CardContent></Card>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Auditor Capacity Overview</CardTitle></CardHeader>
-        <CardContent>
-          {auditorWorkloads.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No auditors found.</div>
-          ) : (
-            <div className="space-y-6">
-              {auditorWorkloads.map((auditor: any) => (
-                <div key={auditor.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div><div className="font-medium">{auditor.name}</div><div className="text-sm text-muted-foreground">{auditor.role}</div></div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right"><div className="text-sm font-medium">{auditor.assignedHours} / {auditor.totalHours} hours</div><div className="text-xs text-muted-foreground">{auditor.availableHours} hrs available</div></div>
-                      <StatusBadge status={`${Math.round(auditor.utilizationRate)}% Utilized`} />
-                    </div>
-                  </div>
-                  <Progress value={auditor.utilizationRate} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{auditor.totalActivities} activities assigned</span>
-                    <span>{auditor.completedActivities} completed | {auditor.inProgressActivities} in progress</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="workload" className="w-full">
+        <TabsList>
+          <TabsTrigger value="workload">Workload & Capacity</TabsTrigger>
+          <TabsTrigger value="availability">Team Availability</TabsTrigger>
+          <TabsTrigger value="skills">Skills Coverage</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader><CardTitle>Skills Coverage</CardTitle></CardHeader>
-        <CardContent>
-          {auditors.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No auditors found.</div>
-          ) : (
-            <div className="space-y-4">
-              {auditors.map((auditor: any) => (
-                <div key={auditor.id} className="flex items-start gap-4">
-                  <div className="min-w-[200px]"><div className="font-medium">{auditor.name}</div><div className="text-sm text-muted-foreground">{auditor.seniority_level}</div></div>
-                  <div className="flex flex-wrap gap-2">{(auditor.skills || []).map((skill: string, idx: number) => <Badge key={idx} variant="outline">{skill}</Badge>)}</div>
+        <TabsContent value="workload">
+          <Card>
+            <CardHeader><CardTitle>Auditor Capacity Overview</CardTitle></CardHeader>
+            <CardContent>
+              {auditorWorkloads.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No auditors found.</div>
+              ) : (
+                <div className="space-y-6">
+                  {auditorWorkloads.map((auditor: any) => (
+                    <div key={auditor.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div><div className="font-medium">{auditor.name}</div><div className="text-sm text-muted-foreground">{auditor.role}</div></div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right"><div className="text-sm font-medium">{auditor.assignedHours} / {auditor.totalHours} hours</div><div className="text-xs text-muted-foreground">{auditor.availableHours} hrs available</div></div>
+                          <StatusBadge status={`${Math.round(auditor.utilizationRate)}% Utilized`} />
+                        </div>
+                      </div>
+                      <Progress value={auditor.utilizationRate} className="h-2" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{auditor.totalActivities} activities assigned</span>
+                        <span>{auditor.completedActivities} completed | {auditor.inProgressActivities} in progress</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="availability">
+          <TeamAvailabilityDashboard />
+        </TabsContent>
+
+        <TabsContent value="skills">
+          <Card>
+            <CardHeader><CardTitle>Skills Coverage</CardTitle></CardHeader>
+            <CardContent>
+              {auditors.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No auditors found.</div>
+              ) : (
+                <div className="space-y-4">
+                  {auditors.map((auditor: any) => (
+                    <div key={auditor.id} className="flex items-start gap-4">
+                      <div className="min-w-[200px]"><div className="font-medium">{auditor.name}</div><div className="text-sm text-muted-foreground">{auditor.seniority_level}</div></div>
+                      <div className="flex flex-wrap gap-2">{(auditor.skills || []).map((skill: string, idx: number) => <Badge key={idx} variant="outline">{skill}</Badge>)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
