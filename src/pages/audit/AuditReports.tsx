@@ -59,6 +59,10 @@ export default function AuditReports() {
   const [viewReport, setViewReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
+  const [gateCheckReportId, setGateCheckReportId] = useState<string | null>(null);
+
+  // Report issuance gate
+  const { data: reportGate, isLoading: gateLoading } = useCanIssueReport(gateCheckReportId || undefined);
 
   const departmentNameById = useMemo(
     () => Object.fromEntries(departments.map((department: any) => [department.id, department.name])),
