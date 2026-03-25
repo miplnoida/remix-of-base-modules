@@ -25,8 +25,6 @@ interface SEWagesPayload {
   ssn: string;
   self_ref_no: string;
   wages: SEWagesPayloadEntry[];
-  config_periods: any[];
-  levy_slabs: any[];
 }
 
 // Build publish payload from ip_self_category + ip_self_employ + tb_income_cat
@@ -81,8 +79,6 @@ async function buildSEWagesPayload(ssn: string): Promise<{
     ssn,
     self_ref_no: selfRefNo,
     wages,
-    config_periods: [],
-    levy_slabs: [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);

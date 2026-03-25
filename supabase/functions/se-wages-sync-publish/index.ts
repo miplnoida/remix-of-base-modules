@@ -37,8 +37,9 @@ serve(async (req) => {
       wages_count: payload.wages?.length ?? 0,
     });
 
-    // Construct SE wages sync endpoint (append /sync-se-wages to base URL)
-    const seWagesSyncUrl = syncUrl.replace(/\/$/, '') + '/sync-se-wages';
+    // Derive base URL from C3_WIZARD_SYNC_URL (which points to /c3-config-sync)
+    // and replace the last path segment with /sync-se-wages
+    const seWagesSyncUrl = syncUrl.replace(/\/[^\/]*\/?$/, '/sync-se-wages');
 
     let response: Response;
     try {
