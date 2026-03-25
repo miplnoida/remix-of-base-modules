@@ -9159,22 +9159,27 @@ export type Database = {
           committee_email_proof_url: string | null
           committee_minutes_url: string | null
           committee_noted: boolean | null
+          conflict_check_result: Json | null
           created_at: string | null
           created_by: string | null
           created_date: string | null
+          current_version_number: number | null
           department_id: string | null
+          execution_gate_status: string | null
           fiscal_year: string
           function_id: string | null
           id: string
           internally_approved: boolean | null
           internally_approved_by: string | null
           internally_approved_date: string | null
+          last_conflict_check_at: string | null
           methodology: string | null
           objective: string | null
           planned_end_date: string | null
           planned_start_date: string | null
           reviewed_by: string | null
           reviewed_date: string | null
+          revision_count: number | null
           risk_level: string | null
           scope: string | null
           status: string | null
@@ -9183,6 +9188,7 @@ export type Database = {
           total_department_audits: number | null
           updated_at: string | null
           updated_by: string | null
+          workflow_instance_id: string | null
         }
         Insert: {
           approval_comments?: string | null
@@ -9196,22 +9202,27 @@ export type Database = {
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
+          conflict_check_result?: Json | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
+          current_version_number?: number | null
           department_id?: string | null
+          execution_gate_status?: string | null
           fiscal_year: string
           function_id?: string | null
           id?: string
           internally_approved?: boolean | null
           internally_approved_by?: string | null
           internally_approved_date?: string | null
+          last_conflict_check_at?: string | null
           methodology?: string | null
           objective?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
+          revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
           status?: string | null
@@ -9220,6 +9231,7 @@ export type Database = {
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Update: {
           approval_comments?: string | null
@@ -9233,22 +9245,27 @@ export type Database = {
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
+          conflict_check_result?: Json | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
+          current_version_number?: number | null
           department_id?: string | null
+          execution_gate_status?: string | null
           fiscal_year?: string
           function_id?: string | null
           id?: string
           internally_approved?: boolean | null
           internally_approved_by?: string | null
           internally_approved_date?: string | null
+          last_conflict_check_at?: string | null
           methodology?: string | null
           objective?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
+          revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
           status?: string | null
@@ -9257,6 +9274,7 @@ export type Database = {
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Relationships: [
           {
@@ -9467,6 +9485,7 @@ export type Database = {
           closed_by: string | null
           closure_date: string | null
           closure_notes: string | null
+          conflict_check_result: Json | null
           created_at: string | null
           created_by: string | null
           criteria: string | null
@@ -9478,6 +9497,7 @@ export type Database = {
           engagement_type: string | null
           estimated_budget: number | null
           estimated_hours: number | null
+          execution_gate_status: Json | null
           function_id: string | null
           id: string
           is_active: boolean | null
@@ -9492,6 +9512,7 @@ export type Database = {
           team_member_ids: Json | null
           updated_at: string | null
           updated_by: string | null
+          workflow_instance_id: string | null
         }
         Insert: {
           actual_end_date?: string | null
@@ -9503,6 +9524,7 @@ export type Database = {
           closed_by?: string | null
           closure_date?: string | null
           closure_notes?: string | null
+          conflict_check_result?: Json | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -9514,6 +9536,7 @@ export type Database = {
           engagement_type?: string | null
           estimated_budget?: number | null
           estimated_hours?: number | null
+          execution_gate_status?: Json | null
           function_id?: string | null
           id?: string
           is_active?: boolean | null
@@ -9528,6 +9551,7 @@ export type Database = {
           team_member_ids?: Json | null
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Update: {
           actual_end_date?: string | null
@@ -9539,6 +9563,7 @@ export type Database = {
           closed_by?: string | null
           closure_date?: string | null
           closure_notes?: string | null
+          conflict_check_result?: Json | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -9550,6 +9575,7 @@ export type Database = {
           engagement_type?: string | null
           estimated_budget?: number | null
           estimated_hours?: number | null
+          execution_gate_status?: Json | null
           function_id?: string | null
           id?: string
           is_active?: boolean | null
@@ -9564,6 +9590,7 @@ export type Database = {
           team_member_ids?: Json | null
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Relationships: [
           {
@@ -9830,6 +9857,9 @@ export type Database = {
           follow_up_actions: string | null
           generated_on: string | null
           id: string
+          issuance_gate_status: Json | null
+          issued_at: string | null
+          issued_by: string | null
           key_highlights: string | null
           limitations: string | null
           methodology: string | null
@@ -9847,6 +9877,7 @@ export type Database = {
           title: string
           updated_at: string | null
           updated_by: string | null
+          workflow_instance_id: string | null
         }
         Insert: {
           approved_by?: string | null
@@ -9865,6 +9896,9 @@ export type Database = {
           follow_up_actions?: string | null
           generated_on?: string | null
           id?: string
+          issuance_gate_status?: Json | null
+          issued_at?: string | null
+          issued_by?: string | null
           key_highlights?: string | null
           limitations?: string | null
           methodology?: string | null
@@ -9882,6 +9916,7 @@ export type Database = {
           title: string
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Update: {
           approved_by?: string | null
@@ -9900,6 +9935,9 @@ export type Database = {
           follow_up_actions?: string | null
           generated_on?: string | null
           id?: string
+          issuance_gate_status?: Json | null
+          issued_at?: string | null
+          issued_by?: string | null
           key_highlights?: string | null
           limitations?: string | null
           methodology?: string | null
@@ -9917,6 +9955,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           updated_by?: string | null
+          workflow_instance_id?: string | null
         }
         Relationships: [
           {
@@ -11712,8 +11751,12 @@ export type Database = {
           changed_by: string | null
           created_at: string | null
           description: string | null
+          entity_id: string | null
+          entity_type: string | null
           id: string
           plan_id: string
+          requires_reapproval: boolean | null
+          version_number: number | null
         }
         Insert: {
           change_date?: string | null
@@ -11721,8 +11764,12 @@ export type Database = {
           changed_by?: string | null
           created_at?: string | null
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           plan_id: string
+          requires_reapproval?: boolean | null
+          version_number?: number | null
         }
         Update: {
           change_date?: string | null
@@ -11730,8 +11777,12 @@ export type Database = {
           changed_by?: string | null
           created_at?: string | null
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           plan_id?: string
+          requires_reapproval?: boolean | null
+          version_number?: number | null
         }
         Relationships: [
           {
