@@ -258,7 +258,16 @@ export default function AuditReports() {
   };
 
   const finalizeReport = (report: any) => {
-    update.mutate({ id: report.id, status: 'Final', generated_on: new Date().toISOString() });
+    // Trigger gate check first - the gate panel handles the actual finalize
+    setGateCheckReportId(report.id);
+  };
+
+  const handleGateFinalize = () => {
+    if (!gateCheckReportId) return;
+    update.mutate(
+      { id: gateCheckReportId, status: 'Final', generated_on: new Date().toISOString(), issued_at: new Date().toISOString(), issued_by: userCode || 'SYSTEM' } as any,
+      { onSuccess: () => { setGateCheckReportId(null); toast({ title: 'Report Finalized & Issued' }); } }
+    );
   };
 
   const columns: DataTableColumn<any>[] = [
