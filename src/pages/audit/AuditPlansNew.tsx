@@ -208,7 +208,6 @@ export default function AuditPlansNew() {
             columns={columns}
             data={filteredPlans}
             emptyMessage="No audit plans found."
-            onRowClick={(row) => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)}
             renderActions={(row) => (
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}>
