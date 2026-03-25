@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Shield, Flag, MapPin, Plus, Trash2, Target, Clock, BarChart3, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, Bell, Shield, Flag, MapPin, Plus, Trash2, Target, Clock, BarChart3, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { NotificationTriggerManager } from '@/components/audit/NotificationTriggerManager';
+import { TemplatePolicyMatrix } from '@/components/audit/TemplatePolicyMatrix';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useConfigChangeRequests, useConfigChangeRequestMutations } from '@/hooks/useConfigChangeRequests';
@@ -573,9 +575,9 @@ export default function AuditConfig() {
         </TabsContent>
 
         {/* Notifications & SLA */}
-        <TabsContent value="sla">
+        <TabsContent value="sla" className="space-y-6">
           <Card>
-            <CardHeader><CardTitle>Notifications & SLA Settings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>SLA Settings</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -598,6 +600,12 @@ export default function AuditConfig() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Auto-Notification Triggers */}
+          <NotificationTriggerManager />
+
+          {/* Template Policy Matrix */}
+          <TemplatePolicyMatrix />
         </TabsContent>
 
         {/* Feature Flags */}
