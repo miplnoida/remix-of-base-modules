@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
 import { Save, X, Building2, MapPin, User, Eye, EyeOff, Upload } from 'lucide-react';
@@ -352,12 +353,13 @@ const WizEmployerDetails: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-destructive">Question 1 *</Label>
-                <Select value={sq.question1} onValueChange={v => setSq(p => ({ ...p, question1: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
-                  <SelectContent>
-                    {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={sq.question1}
+                  onValueChange={v => setSq(p => ({ ...p, question1: v }))}
+                  options={SECURITY_QUESTIONS.map(q => ({ value: q, label: q }))}
+                  placeholder="Select a question"
+                  searchPlaceholder="Search question..."
+                />
               </div>
               <div>
                 <Label className="text-destructive">Answer 1 *</Label>
@@ -382,12 +384,13 @@ const WizEmployerDetails: React.FC = () => {
               </div>
               <div>
                 <Label className="text-destructive">Question 2 *</Label>
-                <Select value={sq.question2} onValueChange={v => setSq(p => ({ ...p, question2: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select a question" /></SelectTrigger>
-                  <SelectContent>
-                    {SECURITY_QUESTIONS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={sq.question2}
+                  onValueChange={v => setSq(p => ({ ...p, question2: v }))}
+                  options={SECURITY_QUESTIONS.map(q => ({ value: q, label: q }))}
+                  placeholder="Select a question"
+                  searchPlaceholder="Search question..."
+                />
               </div>
               <div>
                 <Label className="text-destructive">Answer 2 *</Label>

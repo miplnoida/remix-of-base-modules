@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { User, MapPin, Eye, EyeOff, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -262,18 +263,17 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
             </div>
             <div className="space-y-1">
               <Label>Category Type *</Label>
-              <Select value={form.category_Type} onValueChange={(v) => updateField('category_Type', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Category" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {categories.map(cat => (
-                    <SelectItem key={cat.category_code} value={cat.category_code}>
-                      {getCategoryLabel(cat)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.category_Type}
+                onValueChange={(v) => updateField('category_Type', v)}
+                options={categories.map(cat => ({
+                  value: cat.category_code,
+                  label: getCategoryLabel(cat),
+                  searchText: cat.category_code,
+                }))}
+                placeholder="Select Category"
+                searchPlaceholder="Search by category..."
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -363,18 +363,16 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Country</Label>
-              <Select value={form.country} onValueChange={(v) => updateField('country', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Country" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {countries.map(c => (
-                    <SelectItem key={c.conId} value={c.conId.toString()}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.country}
+                onValueChange={(v) => updateField('country', v)}
+                options={countries.map(c => ({
+                  value: c.conId.toString(),
+                  label: c.name,
+                }))}
+                placeholder="Select Country"
+                searchPlaceholder="Search country..."
+              />
             </div>
             <div className="space-y-1">
               <Label>Occupation</Label>
@@ -399,16 +397,13 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Question1 *</Label>
-              <Select value={form.question1} onValueChange={(v) => updateField('question1', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Question" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {SECURITY_QUESTIONS.map(q => (
-                    <SelectItem key={q} value={q}>{q}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.question1}
+                onValueChange={(v) => updateField('question1', v)}
+                options={SECURITY_QUESTIONS.map(q => ({ value: q, label: q }))}
+                placeholder="Select Question"
+                searchPlaceholder="Search question..."
+              />
             </div>
             <div className="space-y-1">
               <Label>Answer1 *</Label>
@@ -433,16 +428,13 @@ const WizSelfEmployedDetailsEdit: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Question2 *</Label>
-              <Select value={form.question2} onValueChange={(v) => updateField('question2', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Question" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {SECURITY_QUESTIONS.map(q => (
-                    <SelectItem key={q} value={q}>{q}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.question2}
+                onValueChange={(v) => updateField('question2', v)}
+                options={SECURITY_QUESTIONS.map(q => ({ value: q, label: q }))}
+                placeholder="Select Question"
+                searchPlaceholder="Search question..."
+              />
             </div>
             <div className="space-y-1">
               <Label>Answer2 *</Label>

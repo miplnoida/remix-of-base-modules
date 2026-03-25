@@ -3,6 +3,7 @@ import { PageShell } from '@/components/common/PageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -394,19 +395,19 @@ export default function WizPaymentDetails() {
             {selectedType === 'Company' && (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Select Employer</Label>
-                <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setUserId(ALL); }}>
-                  <SelectTrigger className="w-[240px]">
-                    <SelectValue placeholder="Select Employer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All Employers</SelectItem>
-                    {companies.map(c => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {c.company_name} ({c.registration_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={companyId === ALL ? '' : companyId}
+                  onValueChange={(v) => { setCompanyId(v || ALL); setUserId(ALL); }}
+                  options={companies.map(c => ({
+                    value: String(c.id),
+                    label: `${c.company_name} (${c.registration_number})`,
+                    searchText: c.registration_number,
+                  }))}
+                  placeholder="Select Employer"
+                  searchPlaceholder="Search by name or reg number..."
+                  includeAllOption="All Employers"
+                  className="w-[240px]"
+                />
               </div>
             )}
 
@@ -414,19 +415,18 @@ export default function WizPaymentDetails() {
             {selectedType === 'Company' && companyId && companyId !== ALL && (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Select User</Label>
-                <Select value={userId} onValueChange={setUserId}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select User" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All Users</SelectItem>
-                    {companyUsers.map(u => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.first_name} {u.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={userId === ALL ? '' : userId}
+                  onValueChange={(v) => setUserId(v || ALL)}
+                  options={companyUsers.map(u => ({
+                    value: String(u.id),
+                    label: `${u.first_name} ${u.last_name}`,
+                  }))}
+                  placeholder="Select User"
+                  searchPlaceholder="Search by name..."
+                  includeAllOption="All Users"
+                  className="w-[200px]"
+                />
               </div>
             )}
 
@@ -434,19 +434,19 @@ export default function WizPaymentDetails() {
             {selectedType === 'SelfEmployee' && (
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Select Self Employee</Label>
-                <Select value={selfEmployedId} onValueChange={setSelfEmployedId}>
-                  <SelectTrigger className="w-[240px]">
-                    <SelectValue placeholder="Select Self Employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All Self Employed</SelectItem>
-                    {selfEmployedList.map((se: any) => (
-                      <SelectItem key={se.employeeID || se.id} value={String(se.userId || se.id)}>
-                        {se.fullName || se.full_name} ({se.socSecNum || se.ssn})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={selfEmployedId === ALL ? '' : selfEmployedId}
+                  onValueChange={(v) => setSelfEmployedId(v || ALL)}
+                  options={selfEmployedList.map((se: any) => ({
+                    value: String(se.userId || se.id),
+                    label: `${se.fullName || se.full_name} (${se.socSecNum || se.ssn})`,
+                    searchText: se.socSecNum || se.ssn || '',
+                  }))}
+                  placeholder="Select Self Employee"
+                  searchPlaceholder="Search by name or SSN..."
+                  includeAllOption="All Self Employed"
+                  className="w-[240px]"
+                />
               </div>
             )}
 
