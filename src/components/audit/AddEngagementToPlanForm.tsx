@@ -205,10 +205,10 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
         </div>
 
         {form.risk_override && (
-          <div className="flex items-start gap-2 mt-1 p-2 rounded bg-amber-500/10 border border-amber-500/20">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-2 mt-1 p-2 rounded bg-destructive/10 border border-destructive/20">
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
             <div className="text-xs">
-              <span className="font-medium text-amber-700">Manual Override</span>
+              <span className="font-medium text-destructive">Manual Override</span>
               <span className="text-muted-foreground"> — Auto-derived was </span>
               <StatusBadge status={form.derived_risk_rating} />
               <p className="text-muted-foreground mt-0.5">Reason: {form.risk_override_reason}</p>
@@ -288,7 +288,7 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               Override Risk Rating
             </DialogTitle>
           </DialogHeader>
