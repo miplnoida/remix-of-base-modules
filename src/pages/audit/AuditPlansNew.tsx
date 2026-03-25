@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
+import { PlanRevisionDialog } from '@/components/audit/PlanRevisionDialog';
 import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -32,6 +33,7 @@ export default function AuditPlansNew() {
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [conflictResult, setConflictResult] = useState<any>(null);
+  const [revisionPlan, setRevisionPlan] = useState<any>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
   const { data: departments = [] } = useIADepartments();
