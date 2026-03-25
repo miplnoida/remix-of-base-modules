@@ -9481,6 +9481,7 @@ export type Database = {
           annual_plan_id: string | null
           approved_at: string | null
           approved_by: string | null
+          approved_plan_version: number | null
           budgeted_hours: number | null
           closed_by: string | null
           closure_date: string | null
@@ -9520,6 +9521,7 @@ export type Database = {
           annual_plan_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_plan_version?: number | null
           budgeted_hours?: number | null
           closed_by?: string | null
           closure_date?: string | null
@@ -9559,6 +9561,7 @@ export type Database = {
           annual_plan_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_plan_version?: number | null
           budgeted_hours?: number | null
           closed_by?: string | null
           closure_date?: string | null
@@ -12051,6 +12054,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_plan_version_engagements: {
+        Row: {
+          change_description: string | null
+          change_type: string | null
+          created_at: string | null
+          engagement_id: string
+          engagement_snapshot: Json | null
+          id: string
+          plan_version_id: string
+        }
+        Insert: {
+          change_description?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          engagement_id: string
+          engagement_snapshot?: Json | null
+          id?: string
+          plan_version_id: string
+        }
+        Update: {
+          change_description?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          engagement_id?: string
+          engagement_snapshot?: Json | null
+          id?: string
+          plan_version_id?: string
+        }
+        Relationships: []
       }
       ia_plan_versions: {
         Row: {
