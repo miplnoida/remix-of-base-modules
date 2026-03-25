@@ -22703,6 +22703,10 @@ export type Database = {
         Args: { p_engagement_id: string }
         Returns: Json
       }
+      ia_check_engagement_completeness: {
+        Args: { p_engagement_id: string }
+        Returns: Json
+      }
       ia_start_plan_approval_workflow: {
         Args: {
           p_is_revision?: boolean
