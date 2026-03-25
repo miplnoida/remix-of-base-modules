@@ -105,7 +105,7 @@ export default function AuditEngagements() {
     setModalState({ mode: 'edit', record: r });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.engagement_name) return;
     const payload = {
       engagement_name: form.engagement_name,
@@ -123,10 +123,34 @@ export default function AuditEngagements() {
       status: form.status,
       engagement_type: form.engagement_type,
     };
+
+    // Run availability check if we have dates and auditors
+    if (form.planned_start_date && form.planned_end_date && form.lead_auditor_id) {
+      try {
+        const teamIds = [form.lead_auditor_id, ...form.supportive_auditor_ids];
+        const conflicts = await checkAvailability.mutateAsync({
+          auditorIds: teamIds,
+          dateFrom: form.planned_start_date,
+          dateTo: form.planned_end_date,
+        });
+        setConflictResult(conflicts);
+        if (conflicts.has_blocking) {
+          toast({
+            title: 'Blocking Conflicts',
+            description: 'Resolve blocking conflicts before saving.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      } catch {
+        // Non-critical - proceed with save
+      }
+    }
+
     if (modalState.mode === 'create') {
-      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => { setModalState({ mode: null }); setConflictResult(null); } });
     } else if (modalState.mode === 'edit' && modalState.record) {
-      update.mutate({ id: modalState.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      update.mutate({ id: modalState.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => { setModalState({ mode: null }); setConflictResult(null); } });
     }
   };
 
