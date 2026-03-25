@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, FileText, FolderOpen, AlertTriangle, MessageSquare, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, FolderOpen, AlertTriangle, MessageSquare, Loader2, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { CompletenessResult, EngagementGateResult } from '@/hooks/useAuditWorkflowGates';
 
@@ -79,6 +79,18 @@ export function EngagementGatePanel({ canStart, completeness, isLoading, onRefre
               icon={FileText}
               label="Planned dates set"
               passed={!canStart!.reasons.some(r => r.includes('dates'))}
+            />
+            <GateItem
+              icon={Send}
+              label="Audit intimation sent"
+              passed={!canStart!.reasons.some(r => r.includes('intimation'))}
+              detail={canStart!.reasons.find(r => r.includes('intimation'))}
+            />
+            <GateItem
+              icon={Send}
+              label="Team & scope notice sent"
+              passed={!canStart!.reasons.some(r => r.includes('Team and scope'))}
+              detail={canStart!.reasons.find(r => r.includes('Team and scope'))}
             />
             {canStart!.can_start && (
               <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">✓ Ready to start execution</Badge>
