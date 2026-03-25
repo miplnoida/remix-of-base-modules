@@ -696,6 +696,10 @@ import ClaimsVolumeReport from '@/pages/reports/benefits/ClaimsVolumeReport';
 import OverpaymentsReport from '@/pages/reports/benefits/OverpaymentsReport';
 import EmployerStatusReport from '@/pages/reports/compliance/EmployerStatusReport';
 import EngagementSummaryReport from '@/pages/reports/audit/EngagementSummaryReport';
+import CommunicationComplianceReport from '@/pages/reports/audit/CommunicationComplianceReport';
+import PlanSlippageReport from '@/pages/reports/audit/PlanSlippageReport';
+import OverdueActionsReport from '@/pages/reports/audit/OverdueActionsReport';
+import CarryForwardAgingReport from '@/pages/reports/audit/CarryForwardAgingReport';
 import AccountRolesReport from '@/pages/reports/admin/AccountRolesReport';
 import PermissionChangesReport from '@/pages/reports/admin/PermissionChangesReport';
 import ConfigurationAuditReport from '@/pages/reports/admin/ConfigurationAuditReport';
@@ -1463,6 +1467,10 @@ export const AppRoutes = () => {
       
       {/* Report Routes - Audit */}
       <Route path="/audit/reports/engagement-summary" element={<ProtectedLayout><EngagementSummaryReport /></ProtectedLayout>} />
+      <Route path="/audit/reports/communication-compliance" element={<ProtectedLayout><CommunicationComplianceReport /></ProtectedLayout>} />
+      <Route path="/audit/reports/plan-slippage" element={<ProtectedLayout><PlanSlippageReport /></ProtectedLayout>} />
+      <Route path="/audit/reports/overdue-actions" element={<ProtectedLayout><OverdueActionsReport /></ProtectedLayout>} />
+      <Route path="/audit/reports/carry-forward-aging" element={<ProtectedLayout><CarryForwardAgingReport /></ProtectedLayout>} />
       
       {/* Report Routes - Admin */}
       <Route path="/admin/reports/account-roles" element={<ProtectedLayout><AccountRolesReport /></ProtectedLayout>} />

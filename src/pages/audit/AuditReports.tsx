@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Plus, RefreshCw, Eye, Mail, Download, Loader2, ShieldAlert, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { FileText, Plus, RefreshCw, Eye, Mail, Download, Loader2, ShieldAlert, ClipboardList, CheckCircle2, BarChart3, MessageSquare, CalendarClock, AlertTriangle, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAFindings, useIAManagementResponses, useIAActionTracking } from '@/hooks/useAuditData';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
@@ -42,6 +43,7 @@ function joinLines(lines: string[]) {
 }
 
 export default function AuditReports() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { userCode } = useUserCode();
   const { engagementId } = useEngagementFilter();
@@ -327,6 +329,38 @@ export default function AuditReports() {
       }
     >
       <EngagementFilterBanner />
+
+      {/* Dashboard Reports Quick Links */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Reporting Dashboards
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Communication Compliance', desc: 'Auditee lifecycle tracking', icon: MessageSquare, path: '/audit/reports/communication-compliance' },
+              { label: 'Plan Slippage', desc: 'Planned vs actual timelines', icon: CalendarClock, path: '/audit/reports/plan-slippage' },
+              { label: 'Overdue Actions', desc: 'Action aging analysis', icon: AlertTriangle, path: '/audit/reports/overdue-actions' },
+              { label: 'Carry-Forward Aging', desc: 'Prior audit finding tracking', icon: History, path: '/audit/reports/carry-forward-aging' },
+            ].map((rpt) => (
+              <button
+                key={rpt.path}
+                onClick={() => navigate(rpt.path)}
+                className="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
+              >
+                <rpt.icon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{rpt.label}</p>
+                  <p className="text-xs text-muted-foreground">{rpt.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardContent className="p-4"><div className="flex items-center gap-3"><FileText className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Reports</p><p className="text-xl font-semibold">{stats.totalReports}</p></div></div></CardContent></Card>
