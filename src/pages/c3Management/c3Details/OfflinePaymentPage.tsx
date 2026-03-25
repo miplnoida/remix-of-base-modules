@@ -111,7 +111,7 @@ const EmployerReport: React.FC<{ data: any; printRef: React.RefObject<HTMLDivEle
               <td className="border border-foreground p-1 text-right">{fmt(emp.totalWages)}</td>
               <td className="border border-foreground p-1 text-right">{fmt((emp.levyEmployee || 0) + (emp.levyEmployer || 0))}</td>
               <td className="border border-foreground p-1 text-right">{fmt(emp.ssTotal)}</td>
-              <td className="border border-foreground p-1"></td>
+              <td className="border border-foreground p-1">{emp.remark || ''}</td>
             </tr>
           ))}
         </tbody>
@@ -563,6 +563,21 @@ const OfflinePaymentPage: React.FC = () => {
     );
   }
 
+  if (!pageData) {
+    return (
+      <div className="p-6 space-y-4">
+        <Card>
+          <CardContent className="py-12 text-center space-y-4">
+            <p className="text-destructive font-medium">Failed to load payment data. The service may be temporarily unavailable.</p>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Show post-payment receipt screen
   if (paymentReceipt) {
     return (
@@ -715,7 +730,7 @@ const OfflinePaymentPage: React.FC = () => {
                         </div>
 
                         {/* Validation warnings */}
-                        {selectedPayment.validation_warnings.length > 0 && (
+                        {(selectedPayment.validation_warnings?.length ?? 0) > 0 && (
                           <div className="text-xs p-2 bg-amber-50 border border-amber-200 rounded space-y-1">
                             {selectedPayment.validation_warnings.map((w, i) => (
                               <p key={i} className="text-amber-800">⚠ {w}</p>

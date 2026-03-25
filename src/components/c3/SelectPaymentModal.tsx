@@ -59,7 +59,7 @@ const SelectPaymentModal: React.FC<SelectPaymentModalProps> = ({
                 </div>
               </div>
 
-              {p.validation_warnings.length > 0 && (
+              {(p.validation_warnings?.length ?? 0) > 0 && (
                 <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded space-y-1">
                   {p.validation_warnings.map((w, i) => (
                     <div key={i} className="flex gap-1"><AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /><span>{w}</span></div>
