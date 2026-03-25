@@ -262,18 +262,11 @@ export default function AuditPlanDetail() {
         </TabsContent>
 
         <TabsContent value="engagements">
-          <Card>
-            <CardContent className="pt-6">
-              <DataTable
-                columns={engColumns}
-                data={engagements || []}
-                emptyMessage="No engagements linked to this plan yet."
-                renderActions={(row) => (
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/audit/audits/${row.id}`)}>View</Button>
-                )}
-              />
-            </CardContent>
-          </Card>
+          <EngagementBuilder planId={id!} planStatus={plan?.status || 'Draft'} />
+        </TabsContent>
+
+        <TabsContent value="versions">
+          <PlanVersionHistory planId={id!} />
         </TabsContent>
 
         <TabsContent value="changelog">
