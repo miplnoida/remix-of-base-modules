@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
+import { CarryForwardBoard } from '@/components/audit/CarryForwardBoard';
 
 export default function FollowUpTracker() {
   const { toast } = useToast();
