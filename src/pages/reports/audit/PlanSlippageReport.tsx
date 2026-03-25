@@ -7,7 +7,7 @@ import { MetricCard } from "@/components/shared/MetricCard";
 import { QueryByFilter } from "@/components/shared/QueryByFilter";
 import { ExportActions } from '@/components/reports/ExportActions';
 import { ExportColumn } from '@/utils/exportUtils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import { CalendarClock, TrendingDown, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

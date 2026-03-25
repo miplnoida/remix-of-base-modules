@@ -138,7 +138,7 @@ export default function OverdueActionsReport() {
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard title="Total Actions" value={String(enriched.length)} icon={Clock} variant="info" />
         <MetricCard title="Overdue" value={String(overdueItems.length)} icon={AlertTriangle} variant="warning" />
-        <MetricCard title="Critical/High Overdue" value={String(criticalOverdue.length)} icon={ShieldAlert} variant="destructive" />
+        <MetricCard title="Critical/High Overdue" value={String(criticalOverdue.length)} icon={ShieldAlert} variant="error" />
         <MetricCard title="Completed" value={String(completedItems.length)} icon={CheckCircle2} variant="success" />
       </div>
 

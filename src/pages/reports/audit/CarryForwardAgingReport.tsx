@@ -131,7 +131,7 @@ export default function CarryForwardAgingReport() {
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard title="Open Items" value={String(openItems.length)} icon={History} variant="info" />
         <MetricCard title="Overdue" value={String(overdueItems.length)} icon={AlertTriangle} variant="warning" />
-        <MetricCard title="Escalated" value={String(escalatedItems.length)} icon={TrendingUp} variant="destructive" />
+        <MetricCard title="Escalated" value={String(escalatedItems.length)} icon={TrendingUp} variant="error" />
         <MetricCard title="Resolved" value={String(resolvedItems.length)} icon={CheckCircle2} variant="success" />
       </div>
 
