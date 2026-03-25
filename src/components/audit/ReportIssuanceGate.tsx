@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, FileText, FolderOpen, AlertTriangle, MessageSquare, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, FolderOpen, AlertTriangle, MessageSquare, Loader2, ShieldCheck, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ReportGateResult } from '@/hooks/useAuditWorkflowGates';
 
@@ -68,14 +68,21 @@ export function ReportIssuanceGate({ gateResult, isLoading, onCheck, onFinalize,
           </div>
         </div>
 
-        {!gateResult.can_issue && gateResult.reasons.length > 0 && (
+        {gateResult.reasons.length > 0 && (
           <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gate Checks</p>
             {gateResult.reasons.map((reason, idx) => (
               <div key={idx} className="flex items-start gap-2 text-xs text-destructive">
                 <XCircle className="h-3 w-3 shrink-0 mt-0.5" />
                 <span>{reason}</span>
               </div>
             ))}
+          </div>
+        )}
+        {gateResult.can_issue && (
+          <div className="flex items-start gap-2 text-xs text-green-700">
+            <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5" />
+            <span>All communication stages and artefact requirements met</span>
           </div>
         )}
 
