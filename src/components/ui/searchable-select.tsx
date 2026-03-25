@@ -31,6 +31,8 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  /** When set, prepends an "All" option with value "" that clears the selection */
+  includeAllOption?: string;
 }
 
 export function SearchableSelect({
