@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle, History } from 'lucide-react';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
@@ -15,6 +15,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useToast } from '@/hooks/use-toast';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
+import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
+import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AuditPlansNew() {
   const navigate = useNavigate();
@@ -26,6 +30,7 @@ export default function AuditPlansNew() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editPlan, setEditPlan] = useState<any>(null);
   const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [conflictResult, setConflictResult] = useState<any>(null);
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
@@ -85,7 +90,7 @@ export default function AuditPlansNew() {
   const departmentOptions = [...new Set(enrichedPlans.map((plan: any) => plan.department_name).filter((value: string) => value && value !== 'Not linked'))];
 
   const handleSubmitForApproval = async (planId: string) => {
-    // First run conflict check
+    const plan = enrichedPlans.find((p: any) => p.id === planId);
     try {
       const conflicts = await checkAvailability.mutateAsync({ planId });
       setConflictResult(conflicts);
@@ -96,6 +101,14 @@ export default function AuditPlansNew() {
           description: `${conflicts.total_conflicts} conflict(s) found. Resolve blocking conflicts before submitting.`,
           variant: 'destructive',
         });
+        // Fire conflict notification
+        notifyTeamConflict(planId, {
+          plan_title: plan?.title || 'Audit Plan',
+          conflict_type: 'multiple',
+          auditor_name: 'Team',
+          conflict_dates: 'See details',
+          severity: 'blocking',
+        });
         return;
       }
 
@@ -104,6 +117,16 @@ export default function AuditPlansNew() {
         planId,
         submittedBy: userCode || 'SYSTEM',
         isRevision: false,
+      });
+
+      // Fire submitted notification
+      notifyPlanSubmitted(planId, {
+        plan_title: plan?.title || 'Audit Plan',
+        fiscal_year: plan?.fiscal_year || '',
+        submitted_by: userCode || 'SYSTEM',
+        plan_id: planId,
+        department_name: plan?.department_name || '',
+        risk_level: plan?.derived_risk_level || '',
       });
     } catch (err: any) {
       toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
@@ -187,6 +210,9 @@ export default function AuditPlansNew() {
             emptyMessage="No audit plans found."
             renderActions={(row) => (
               <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)} title="Version & Approval History">
+                  <History className={`h-4 w-4 ${row.id === selectedPlanId ? 'text-primary' : ''}`} />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}>
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -205,6 +231,22 @@ export default function AuditPlansNew() {
           />
         </CardContent>
       </Card>
+
+      {/* Version & Approval History for selected plan */}
+      {selectedPlanId && (
+        <Tabs defaultValue="versions" className="w-full">
+          <TabsList>
+            <TabsTrigger value="versions">Version History</TabsTrigger>
+            <TabsTrigger value="approvals">Approval History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="versions">
+            <PlanVersionHistory planId={selectedPlanId} />
+          </TabsContent>
+          <TabsContent value="approvals">
+            <ApprovalHistoryPanel entityId={selectedPlanId} entityType="plan" />
+          </TabsContent>
+        </Tabs>
+      )}
 
       <StandardModal open={isCreateOpen} onOpenChange={setIsCreateOpen} title="Create Audit Plan" mode="create" size="4xl">
         <AnnualPlanForm

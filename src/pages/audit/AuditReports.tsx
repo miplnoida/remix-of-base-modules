@@ -14,6 +14,7 @@ import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { notifyReportGenerated } from '@/services/auditNotificationService';
+import { notifyReportIssued } from '@/services/iaNotificationService';
 import { useCanIssueReport } from '@/hooks/useAuditWorkflowGates';
 import { ReportIssuanceGate } from '@/components/audit/ReportIssuanceGate';
 
@@ -264,9 +265,21 @@ export default function AuditReports() {
 
   const handleGateFinalize = () => {
     if (!gateCheckReportId) return;
+    const report = scopedReports.find((r: any) => r.id === gateCheckReportId);
     update.mutate(
       { id: gateCheckReportId, status: 'Final', generated_on: new Date().toISOString(), issued_at: new Date().toISOString(), issued_by: userCode || 'SYSTEM' } as any,
-      { onSuccess: () => { setGateCheckReportId(null); toast({ title: 'Report Finalized & Issued' }); } }
+      {
+        onSuccess: () => {
+          setGateCheckReportId(null);
+          toast({ title: 'Report Finalized & Issued' });
+          notifyReportIssued(gateCheckReportId, {
+            report_title: report?.title || 'Audit Report',
+            report_number: report?.report_number || '',
+            issued_by: userCode || 'SYSTEM',
+            department_name: report?.department_id ? departmentNameById[report.department_id] || '' : '',
+          });
+        },
+      }
     );
   };
 
