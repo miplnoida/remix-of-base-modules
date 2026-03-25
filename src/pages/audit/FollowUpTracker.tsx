@@ -116,18 +116,32 @@ export default function FollowUpTracker() {
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Follow-Up</Button>}
     >
       <EngagementFilterBanner />
-      <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search follow-ups..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })} />
 
-      <Card><CardContent className="pt-6">
-        <DataTable columns={columns} data={filteredFollowUps} emptyMessage="No follow-up records found" rowClassName={(row) => (isOverdue(row) ? 'bg-muted/40' : '')} onView={(row) => setViewFollowUp(row)}
-          renderActions={(row) => (
-            <div className="flex gap-1">
-              <Button size="sm" variant="outline" onClick={() => { setStatusFollowUp(row); setNextStatus(row.status || 'Open'); }}><Edit3 className="w-4 h-4 mr-1" />Status</Button>
-              <Button size="sm" variant="outline" onClick={() => { setCommentFollowUp(row); setCommentText(''); }}><MessageSquare className="w-4 h-4 mr-1" />Comment</Button>
-            </div>
-          )}
-        />
-      </CardContent></Card>
+      <Tabs defaultValue="follow-ups" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="follow-ups">Follow-ups</TabsTrigger>
+          <TabsTrigger value="carry-forward">Prior Year Carry-Forward</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="follow-ups">
+          <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search follow-ups..." filters={filterFields} filterValues={filters} onFilterChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} onReset={() => setFilters({ status: 'all', departmentId: 'all', dueFrom: '', dueTo: '', assignedTo: 'all' })} />
+
+          <Card><CardContent className="pt-6">
+            <DataTable columns={columns} data={filteredFollowUps} emptyMessage="No follow-up records found" rowClassName={(row) => (isOverdue(row) ? 'bg-muted/40' : '')} onView={(row) => setViewFollowUp(row)}
+              renderActions={(row) => (
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={() => { setStatusFollowUp(row); setNextStatus(row.status || 'Open'); }}><Edit3 className="w-4 h-4 mr-1" />Status</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setCommentFollowUp(row); setCommentText(''); }}><MessageSquare className="w-4 h-4 mr-1" />Comment</Button>
+                </div>
+              )}
+            />
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="carry-forward">
+          <CarryForwardBoard />
+        </TabsContent>
+      </Tabs>
 
       {/* Create Modal */}
       <EntityModal open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) resetForm(); }} title="Create Follow-Up" mode="create" onSave={handleCreate} saveLabel="Create Follow-Up" isSaving={create.isPending}>
