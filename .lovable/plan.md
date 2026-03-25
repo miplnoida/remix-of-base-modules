@@ -1,28 +1,34 @@
-# Fix: SE Wages Publish — Missing `config_periods` and `levy_slabs` in Payload
+
+
+# Fix: SE Wages Publishing Hits Wrong Endpoint
 
 ## Root Cause
 
-The C3-Wizard's `/sync-se-wages` endpoint shares validation middleware with the main config sync endpoint. That middleware requires `config_periods` and `levy_slabs` to be arrays. The SE wages payload omits them entirely, causing: `"Validation failed: config_periods and levy_slabs must be arrays"`.
+The `se-wages-sync-publish` edge function constructs its target URL by **appending** `/sync-se-wages` to `C3_WIZARD_SYNC_URL`:
+
+```
+syncUrl.replace(/\/$/, '') + '/sync-se-wages'
+```
+
+But `C3_WIZARD_SYNC_URL` already points to the full config sync endpoint (e.g. `https://host/functions/v1/c3-config-sync`), so the result becomes `.../c3-config-sync/sync-se-wages` — which still routes to the config sync function and triggers its `config_periods`/`levy_slabs` validation.
 
 ## Fix
 
-Add empty `config_periods: []` and `levy_slabs: []` to the SE wages payload in `src/hooks/usePublishSEWages.ts`.
+Two changes:
 
-### File: `src/hooks/usePublishSEWages.ts`
-
-Update the `SEWagesPayload` interface and the payload construction:
-
+### 1. Edge function: `supabase/functions/se-wages-sync-publish/index.ts`
+Replace the URL construction (line 41) to derive the base URL and append the correct path:
 ```typescript
-// Add to interface
-config_periods: any[];
-levy_slabs: any[];
-
-// Add to payload object (lines 75-82)
-config_periods: [],
-levy_slabs: [],
+// Instead of appending to the full config-sync URL,
+// replace the last path segment with sync-se-wages
+const seWagesSyncUrl = syncUrl.replace(/\/[^\/]*\/?$/, '/sync-se-wages');
 ```
 
-This satisfies the wizard's shared validation without changing any other behavior. The `sync_type: 'se_wages'` field already tells the wizard to process the `wages` array specifically.  
-  
-I want you to create a proper message for the c3-wizard team, it should be chnage here as these fields doesnt relate to this functionality.  
-This chnages should be managed from the external team to follow the best practices.
+### 2. Hook cleanup: `src/hooks/usePublishSEWages.ts`
+Per the C3-Wizard team's confirmation, remove the unnecessary `config_periods` and `levy_slabs` fields from both the interface and payload — they are not needed by `/sync-se-wages`.
+
+| File | Change |
+|------|--------|
+| `supabase/functions/se-wages-sync-publish/index.ts` | Fix URL construction to target `/sync-se-wages` instead of appending to config-sync URL |
+| `src/hooks/usePublishSEWages.ts` | Remove `config_periods` and `levy_slabs` from interface and payload |
+
