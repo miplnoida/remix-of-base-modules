@@ -22869,6 +22869,18 @@ export type Database = {
         }
         Returns: Json
       }
+      ia_build_followup_carry_forward: {
+        Args: {
+          p_carried_by?: string
+          p_source_fiscal_year: string
+          p_target_fiscal_year: string
+        }
+        Returns: Json
+      }
+      ia_can_close_engagement: {
+        Args: { p_engagement_id: string }
+        Returns: Json
+      }
       ia_can_issue_report: { Args: { p_report_id: string }; Returns: Json }
       ia_can_start_engagement: {
         Args: { p_engagement_id: string }
@@ -22876,6 +22888,24 @@ export type Database = {
       }
       ia_check_engagement_completeness: {
         Args: { p_engagement_id: string }
+        Returns: Json
+      }
+      ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_get_communication_timeline: {
+        Args: { p_engagement_id: string }
+        Returns: Json
+      }
+      ia_record_communication_stage: {
+        Args: {
+          p_acknowledgment_required?: boolean
+          p_created_by?: string
+          p_engagement_id: string
+          p_notes?: string
+          p_recipient_email?: string
+          p_recipient_name?: string
+          p_stage_code: string
+          p_template_id?: string
+        }
         Returns: Json
       }
       ia_start_plan_approval_workflow: {
@@ -22894,6 +22924,10 @@ export type Database = {
           p_engagement_id?: string
           p_plan_id?: string
         }
+        Returns: Json
+      }
+      ia_validate_template_policy: {
+        Args: { p_stage_code: string; p_template_id: string }
         Returns: Json
       }
       initiate_ip_registration_workflow: {
