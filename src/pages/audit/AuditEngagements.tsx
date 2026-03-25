@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
@@ -15,6 +15,10 @@ import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunct
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useCanStartEngagement, useEngagementCompleteness, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
+import { EngagementGatePanel } from '@/components/audit/EngagementGatePanel';
+import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { useToast } from '@/hooks/use-toast';
 
 const STATUSES = ['Planned', 'In Progress', 'Findings Raised', 'Management Response', 'Closed'];
 const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
@@ -37,16 +41,24 @@ const emptyForm = {
 
 export default function AuditEngagements() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data = [], isLoading, isError, create, update } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: plans = [] } = useIAAnnualPlans();
   const { data: auditors = [] } = useIAAuditors();
   const { data: allFunctions = [] } = useIADepartmentFunctions('all');
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const checkAvailability = useTeamAvailabilityCheck();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
+  const [selectedEngId, setSelectedEngId] = useState<string | null>(null);
+  const [conflictResult, setConflictResult] = useState<any>(null);
+
+  // Gate queries for selected engagement
+  const { data: startGate, isLoading: startGateLoading } = useCanStartEngagement(selectedEngId || undefined);
+  const { data: completenessGate, isLoading: completenessLoading } = useEngagementCompleteness(selectedEngId || undefined);
 
   // Cascading: Department → Functions
   const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
@@ -93,7 +105,7 @@ export default function AuditEngagements() {
     setModalState({ mode: 'edit', record: r });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.engagement_name) return;
     const payload = {
       engagement_name: form.engagement_name,
@@ -111,10 +123,34 @@ export default function AuditEngagements() {
       status: form.status,
       engagement_type: form.engagement_type,
     };
+
+    // Run availability check if we have dates and auditors
+    if (form.planned_start_date && form.planned_end_date && form.lead_auditor_id) {
+      try {
+        const teamIds = [form.lead_auditor_id, ...form.supportive_auditor_ids];
+        const conflicts = await checkAvailability.mutateAsync({
+          auditorIds: teamIds,
+          dateFrom: form.planned_start_date,
+          dateTo: form.planned_end_date,
+        });
+        setConflictResult(conflicts);
+        if (conflicts.has_blocking) {
+          toast({
+            title: 'Blocking Conflicts',
+            description: 'Resolve blocking conflicts before saving.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      } catch {
+        // Non-critical - proceed with save
+      }
+    }
+
     if (modalState.mode === 'create') {
-      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => { setModalState({ mode: null }); setConflictResult(null); } });
     } else if (modalState.mode === 'edit' && modalState.record) {
-      update.mutate({ id: modalState.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => setModalState({ mode: null }) });
+      update.mutate({ id: modalState.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => { setModalState({ mode: null }); setConflictResult(null); } });
     }
   };
 
@@ -159,12 +195,30 @@ export default function AuditEngagements() {
         <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search audits..." filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields} onReset={() => { setSearchTerm(''); setFilters({ status: 'all', risk: 'all' }); }} />
       </CardContent></Card>
 
+      {/* Conflict Alert */}
+      {conflictResult && conflictResult.total_conflicts > 0 && (
+        <ConflictAlertPanel conflicts={conflictResult.conflicts} onDismiss={() => setConflictResult(null)} />
+      )}
+
+      {/* Gate Panel for selected engagement */}
+      {selectedEngId && (
+        <EngagementGatePanel
+          canStart={startGate}
+          completeness={completenessGate}
+          isLoading={startGateLoading || completenessLoading}
+          onRefresh={() => setSelectedEngId(prev => prev)} 
+        />
+      )}
+
       <Card><CardContent>
         <DataTable columns={columns} data={filtered}
           renderActions={(row) => (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/audit/audits/${row.id}`); }}>View</Button>
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedEngId(row.id); }} title="Check Gates">
+                <ShieldCheck className="h-4 w-4" />
+              </Button>
             </div>
           )} />
       </CardContent></Card>

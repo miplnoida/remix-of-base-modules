@@ -14,6 +14,8 @@ import { EngagementFilterBanner, useEngagementFilter } from '@/components/audit/
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { notifyReportGenerated } from '@/services/auditNotificationService';
+import { useCanIssueReport } from '@/hooks/useAuditWorkflowGates';
+import { ReportIssuanceGate } from '@/components/audit/ReportIssuanceGate';
 
 interface ReportPreview {
   title: string;
@@ -57,6 +59,10 @@ export default function AuditReports() {
   const [viewReport, setViewReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
+  const [gateCheckReportId, setGateCheckReportId] = useState<string | null>(null);
+
+  // Report issuance gate
+  const { data: reportGate, isLoading: gateLoading } = useCanIssueReport(gateCheckReportId || undefined);
 
   const departmentNameById = useMemo(
     () => Object.fromEntries(departments.map((department: any) => [department.id, department.name])),
@@ -252,7 +258,16 @@ export default function AuditReports() {
   };
 
   const finalizeReport = (report: any) => {
-    update.mutate({ id: report.id, status: 'Final', generated_on: new Date().toISOString() });
+    // Trigger gate check first - the gate panel handles the actual finalize
+    setGateCheckReportId(report.id);
+  };
+
+  const handleGateFinalize = () => {
+    if (!gateCheckReportId) return;
+    update.mutate(
+      { id: gateCheckReportId, status: 'Final', generated_on: new Date().toISOString(), issued_at: new Date().toISOString(), issued_by: userCode || 'SYSTEM' } as any,
+      { onSuccess: () => { setGateCheckReportId(null); toast({ title: 'Report Finalized & Issued' }); } }
+    );
   };
 
   const columns: DataTableColumn<any>[] = [
@@ -337,6 +352,17 @@ export default function AuditReports() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Report Issuance Gate Panel */}
+      {gateCheckReportId && (
+        <ReportIssuanceGate
+          gateResult={reportGate}
+          isLoading={gateLoading}
+          onCheck={() => setGateCheckReportId(gateCheckReportId)}
+          onFinalize={reportGate?.can_issue ? handleGateFinalize : undefined}
+          isFinalizing={update.isPending}
+        />
+      )}
 
       <StandardSearchFilterBar
         searchValue={searchTerm}
