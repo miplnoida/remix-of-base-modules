@@ -15,6 +15,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useToast } from '@/hooks/use-toast';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
+import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
+import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AuditPlansNew() {
   const navigate = useNavigate();
