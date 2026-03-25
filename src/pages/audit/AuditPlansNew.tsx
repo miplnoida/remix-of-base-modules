@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle, History } from 'lucide-react';
+import { Plus, Eye, Edit, ClipboardList, Link2, ShieldAlert, Send, AlertTriangle, History, FileEdit } from 'lucide-react';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import { StandardModal } from '@/components/common/StandardModal';
@@ -223,6 +223,11 @@ export default function AuditPlansNew() {
                     <Edit className="h-4 w-4" />
                   </Button>
                 )}
+                {['Approved', 'In Progress'].includes(row.status || '') && hasPermission('create_audit_plans') && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => setRevisionPlan(row)} title="Revise Plan">
+                    <FileEdit className="h-4 w-4" />
+                  </Button>
+                )}
                 {canSubmitPlan(row) && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setSubmitPlanId(row.id)} title="Submit for Approval">
                     <Send className="h-4 w-4" />
@@ -275,6 +280,12 @@ export default function AuditPlansNew() {
         title="Submit Plan for Approval"
         description="This will run a team availability check (holidays, leave, engagement overlaps) and then submit the plan through the approval workflow. The plan creator cannot approve it (maker-checker enforced)."
         onConfirm={() => submitPlanId && handleSubmitForApproval(submitPlanId)}
+      />
+
+      <PlanRevisionDialog
+        open={!!revisionPlan}
+        onOpenChange={(open) => !open && setRevisionPlan(null)}
+        plan={revisionPlan}
       />
     </PageShell>
   );
