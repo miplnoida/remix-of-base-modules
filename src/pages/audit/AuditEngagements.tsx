@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
@@ -15,6 +15,10 @@ import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunct
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useCanStartEngagement, useEngagementCompleteness, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
+import { EngagementGatePanel } from '@/components/audit/EngagementGatePanel';
+import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { useToast } from '@/hooks/use-toast';
 
 const STATUSES = ['Planned', 'In Progress', 'Findings Raised', 'Management Response', 'Closed'];
 const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
@@ -37,16 +41,24 @@ const emptyForm = {
 
 export default function AuditEngagements() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data = [], isLoading, isError, create, update } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: plans = [] } = useIAAnnualPlans();
   const { data: auditors = [] } = useIAAuditors();
   const { data: allFunctions = [] } = useIADepartmentFunctions('all');
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const checkAvailability = useTeamAvailabilityCheck();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', risk: 'all' });
   const [modalState, setModalState] = useState<{ mode: 'create' | 'edit' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
+  const [selectedEngId, setSelectedEngId] = useState<string | null>(null);
+  const [conflictResult, setConflictResult] = useState<any>(null);
+
+  // Gate queries for selected engagement
+  const { data: startGate, isLoading: startGateLoading } = useCanStartEngagement(selectedEngId || undefined);
+  const { data: completenessGate, isLoading: completenessLoading } = useEngagementCompleteness(selectedEngId || undefined);
 
   // Cascading: Department → Functions
   const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
