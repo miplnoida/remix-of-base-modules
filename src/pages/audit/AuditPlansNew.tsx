@@ -229,7 +229,22 @@ export default function AuditPlansNew() {
         </CardContent>
       </Card>
 
-      <StandardModal open={isCreateOpen} onOpenChange={setIsCreateOpen} title="Create Audit Plan" mode="create" size="4xl">
+      {/* Version & Approval History for selected plan */}
+      {selectedPlanId && (
+        <Tabs defaultValue="versions" className="w-full">
+          <TabsList>
+            <TabsTrigger value="versions">Version History</TabsTrigger>
+            <TabsTrigger value="approvals">Approval History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="versions">
+            <PlanVersionHistory planId={selectedPlanId} />
+          </TabsContent>
+          <TabsContent value="approvals">
+            <ApprovalHistoryPanel entityId={selectedPlanId} entityType="plan" />
+          </TabsContent>
+        </Tabs>
+      )}
+
         <AnnualPlanForm
           onClose={() => setIsCreateOpen(false)}
           onCreate={(data) => create.mutateAsync(data)}
