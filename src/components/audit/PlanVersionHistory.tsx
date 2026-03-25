@@ -99,7 +99,7 @@ export function PlanVersionHistory({ planId }: PlanVersionHistoryProps) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Badge variant="outline" className="text-[10px]">
-                  {version.status || 'Snapshot'}
+                  {version.status_at_snapshot || 'Snapshot'}
                 </Badge>
                 {idx < versions.length - 1 && (
                   <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleViewDiff(version, idx)}>
