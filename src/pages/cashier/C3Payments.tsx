@@ -64,7 +64,9 @@ const C3Payments: React.FC = () => {
   const [remarks, setRemarks] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
+  const [sequenceNo, setSequenceNo] = useState(() => searchParams.get('schedule') || '');
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
+  const [c3ComponentsLoaded, setC3ComponentsLoaded] = useState(false);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
