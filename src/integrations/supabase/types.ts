@@ -2395,6 +2395,54 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_filing_config_periods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_from: string
+          date_to: string | null
+          filing_window_unit: number
+          filing_window_value: number
+          id: string
+          is_active: boolean
+          penalty_initial_threshold: number
+          penalty_subsequent_threshold: number
+          updated_at: string
+          updated_by: string | null
+          week_start_day: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_from: string
+          date_to?: string | null
+          filing_window_unit?: number
+          filing_window_value?: number
+          id?: string
+          is_active?: boolean
+          penalty_initial_threshold?: number
+          penalty_subsequent_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+          week_start_day?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_from?: string
+          date_to?: string | null
+          filing_window_unit?: number
+          filing_window_value?: number
+          id?: string
+          is_active?: boolean
+          penalty_initial_threshold?: number
+          penalty_subsequent_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+          week_start_day?: number
+        }
+        Relationships: []
+      }
       c3_holiday_pay_policy_default: {
         Row: {
           created_by: string | null
@@ -23084,6 +23132,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_filing_config_for_date: { Args: { p_date: string }; Returns: Json }
       get_income_code_policy_for_period: {
         Args: {
           p_income_code_id: string
@@ -23752,6 +23801,21 @@ export type Database = {
           p_phone?: string
         }
         Returns: undefined
+      }
+      upsert_filing_config_period: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_filing_window_unit?: number
+          p_filing_window_value?: number
+          p_id?: string
+          p_is_active?: boolean
+          p_penalty_initial_threshold?: number
+          p_penalty_subsequent_threshold?: number
+          p_user_code?: string
+          p_week_start_day?: number
+        }
+        Returns: Json
       }
       validate_and_save_ip_rule: {
         Args: {
