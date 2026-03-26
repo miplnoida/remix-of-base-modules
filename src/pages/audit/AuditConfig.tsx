@@ -25,6 +25,7 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
+import { usePlanningWeights, useFrequencyPolicies } from '@/hooks/useAutoPlanEngine';
 
 export default function AuditConfig() {
   
@@ -187,6 +188,7 @@ export default function AuditConfig() {
           <TabsTrigger value="features"><Flag className="w-4 h-4 mr-2" />Feature Flags</TabsTrigger>
           <TabsTrigger value="reference"><MapPin className="w-4 h-4 mr-2" />Reference Settings</TabsTrigger>
           <TabsTrigger value="activities"><Settings className="w-4 h-4 mr-2" />Activity Types</TabsTrigger>
+          <TabsTrigger value="planning"><Target className="w-4 h-4 mr-2" />Planning Engine</TabsTrigger>
         </TabsList>
 
         {/* ===== Risk Assessment Configuration ===== */}
