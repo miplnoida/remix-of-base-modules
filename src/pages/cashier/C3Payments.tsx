@@ -178,6 +178,7 @@ const C3Payments: React.FC = () => {
     }
   }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
 
+  const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
     if (!pt) return;
     const newComp: PaymentComponent = {
