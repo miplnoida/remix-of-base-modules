@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -95,14 +96,19 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     staleTime: 5 * 60 * 1000,
   });
 
-  // Filtered lists
+  // Fetch C3 payment type codes to exclude from this dropdown
+  const { c3PaymentTypes } = useC3PaymentTypes();
+  const c3Exclusions = useMemo(() => new Set(c3PaymentTypes), [c3PaymentTypes]);
+
+  // Filtered lists — exclude C3 payment types, then apply search
   const filteredPaymentTypes = useMemo(() => {
-    if (!paymentCodeSearch) return paymentTypes;
+    const eligible = paymentTypes.filter((pt: any) => !c3Exclusions.has(pt.payment_code));
+    if (!paymentCodeSearch) return eligible;
     const q = paymentCodeSearch.toLowerCase();
-    return paymentTypes.filter((pt: any) =>
+    return eligible.filter((pt: any) =>
       pt.payment_code.toLowerCase().includes(q) || pt.payment_type_description.toLowerCase().includes(q)
     );
-  }, [paymentTypes, paymentCodeSearch]);
+  }, [paymentTypes, paymentCodeSearch, c3Exclusions]);
 
   const filteredMopTypes = useMemo(() => {
     if (!mopSearch) return mopTypes;
