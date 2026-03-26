@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, Clock, MapPin, User, Plus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIAActivities, useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
+import { useIAActivities, useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { ActivityScheduleForm } from '@/components/audit/ActivityScheduleForm';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PageShell, StandardSearchFilterBar, StatusBadge, EntityModal } from '@/components/common';
@@ -25,7 +25,7 @@ export default function ActivityCalendar() {
 
   const { data: activities = [], isLoading } = useIAActivities();
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
 
   const filteredActivities = activities.filter((a: any) => {
     const matchesAuditor = filters.auditor === 'all' || a.auditor_id === filters.auditor;

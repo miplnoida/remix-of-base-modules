@@ -11,7 +11,7 @@ import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle, ShieldCheck } from 
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartments, useIAAnnualPlans, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
@@ -45,7 +45,7 @@ export default function AuditEngagements() {
   const { data = [], isLoading, isError, create, update } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: plans = [] } = useIAAnnualPlans();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { data: allFunctions = [] } = useIADepartmentFunctions('all');
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const checkAvailability = useTeamAvailabilityCheck();
