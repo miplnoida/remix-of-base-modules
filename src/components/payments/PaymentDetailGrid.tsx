@@ -14,6 +14,8 @@ interface PaymentDetailGridProps {
   onEditMopDetail?: (index: number) => void;
   disabled?: boolean;
   totalAmount: number;
+  showChequeDetails?: boolean;
+  showCardDetails?: boolean;
 }
 
 const FUND_LABELS: Record<string, string> = {
@@ -21,13 +23,15 @@ const FUND_LABELS: Record<string, string> = {
   LV: 'Levy',
 };
 
-function needsMopDetail(mopCode: string): boolean {
-  return ['CHQ', 'CHK', 'CRD'].includes(mopCode);
+function needsMopDetail(mopCode: string, showCheque: boolean, showCard: boolean): boolean {
+  if ((mopCode === 'CHQ' || mopCode === 'CHK') && showCheque) return true;
+  if (mopCode === 'CRD' && showCard) return true;
+  return false;
 }
 
-function hasMopDetail(row: DetailLineData): boolean {
-  if (row.mop_code === 'CRD') return !!row.credit_card_code && !!row.mop_number;
-  if (row.mop_code === 'CHQ' || row.mop_code === 'CHK') return !!row.mop_number;
+function hasMopDetail(row: DetailLineData, showCheque: boolean, showCard: boolean): boolean {
+  if (row.mop_code === 'CRD' && showCard) return !!row.credit_card_code && !!row.mop_number;
+  if ((row.mop_code === 'CHQ' || row.mop_code === 'CHK') && showCheque) return !!row.mop_number;
   return true;
 }
 
@@ -39,6 +43,8 @@ export function PaymentDetailGrid({
   onEditMopDetail,
   disabled,
   totalAmount,
+  showChequeDetails = false,
+  showCardDetails = false,
 }: PaymentDetailGridProps) {
   return (
     <Card>
@@ -63,15 +69,13 @@ export function PaymentDetailGrid({
                 <TableHead>Fund</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Method of Payment</TableHead>
-                <TableHead>Period</TableHead>
-                <TableHead>Bank / Card</TableHead>
                 <TableHead className="w-[110px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Inbox className="h-8 w-8" />
                       <p className="text-sm">No payment lines. Click "Add Line" to begin.</p>
@@ -80,7 +84,7 @@ export function PaymentDetailGrid({
                 </TableRow>
               ) : (
                 rows.map((row, idx) => {
-                  const missingMop = needsMopDetail(row.mop_code) && !hasMopDetail(row);
+                  const missingMop = needsMopDetail(row.mop_code, showChequeDetails, showCardDetails) && !hasMopDetail(row, showChequeDetails, showCardDetails);
                   return (
                     <TableRow key={idx} className={missingMop ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
                       <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
@@ -90,12 +94,6 @@ export function PaymentDetailGrid({
                       <TableCell className="text-xs">{row.fund_code_desc || FUND_LABELS[row.fund_code] || row.fund_code}</TableCell>
                       <TableCell className="text-right font-mono">${(row.payment_amount || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-xs">{row.mop_desc || row.mop_code}</TableCell>
-                      <TableCell className="text-xs">
-                        {row.period ? new Date(row.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {row.bank_desc || row.card_desc || row.bank_code || row.credit_card_code || '—'}
-                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <TooltipProvider>
@@ -111,7 +109,7 @@ export function PaymentDetailGrid({
                               <TooltipContent>Edit Line</TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          {needsMopDetail(row.mop_code) && onEditMopDetail && (
+                          {needsMopDetail(row.mop_code, showChequeDetails, showCardDetails) && onEditMopDetail && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
