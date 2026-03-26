@@ -29,8 +29,8 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAActiveAuditors();
   const [showAddDialog, setShowAddDialog] = useState(false);
-
-  const canEdit = ['Draft', 'Revision'].includes(planStatus);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const manualOverride = useManualOverride(planId);
 
   const getDeptName = (id: string) => (departments || []).find((d: any) => d.id === id)?.name || '—';
   const getAuditorName = (id: string) => (auditors || []).find((a: any) => a.id === id)?.name || '—';
