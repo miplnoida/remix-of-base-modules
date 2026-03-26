@@ -1,113 +1,79 @@
 
 
-# Filing & Penalties: Date-Range-Based Configuration
+# Date-Based Restrictions for Filing & Penalties Configuration
 
 ## Current State
-- `c3_calculation_config` table stores 5 filing config keys as flat rows: `week_start_day`, `filing_window_unit`, `filing_window_value`, `penalty_initial_threshold`, `penalty_subsequent_threshold`
-- Table has `effective_from` and `effective_to` columns but they are unused for lookups
-- `config_key` has a `UNIQUE` constraint, preventing multiple records per key with different date ranges
-- The UI shows a simple edit-in-place table via `C3ConfigCategoryCard`
-- The latest `calculate_c3_contributions` RPC reads filing config from `c3_config_details` (period-based system), NOT from `c3_calculation_config`
-
-## Design Decision
-
-Rather than restructuring the flat `c3_calculation_config` table (which would break the UNIQUE constraint used by all other categories), create a dedicated **filing configuration periods** table. This mirrors how `c3_config_details`/`c3_config_periods` already work for rate configs — a clean, purpose-built date-range table for filing parameters.
-
-```text
-c3_filing_config_periods
-├── id (UUID PK)
-├── date_from (DATE, NOT NULL)
-├── date_to (DATE, nullable = open-ended)
-├── week_start_day (INTEGER)
-├── filing_window_unit (INTEGER)
-├── filing_window_value (INTEGER)
-├── penalty_initial_threshold (INTEGER)
-├── penalty_subsequent_threshold (INTEGER)
-├── is_active (BOOLEAN)
-├── created_by, created_at, updated_by, updated_at
-└── CONSTRAINT: no overlapping date ranges
-```
+- Table `c3_filing_config_periods` exists with `date_from`, `date_to`, overlap validation trigger, and `upsert_filing_config_period` RPC
+- Overlap and one-open-ended checks already exist in the trigger `validate_filing_config_period`
+- No historical period protection exists — users can freely edit past periods
+- No preview/analyze endpoint exists
 
 ## Changes
 
-### 1. Database Migration
+### 1. Database Migration — Two New RPCs
 
-**a) New table** `c3_filing_config_periods` with all 5 filing parameters as columns, plus `date_from`, `date_to`, audit columns.
+**a) `analyze_filing_config_change(p_id, p_date_from, p_date_to, p_week_start_day, ...)`**
+Returns a JSONB analysis:
+- Checks if the target record (for edits) has `date_from < DATE_TRUNC('month', CURRENT_DATE)` → historical period affected
+- If historical: returns `{ action: 'split', old_record_end: last_day_prev_month, new_record_start: first_day_current_month, original_values: {...}, new_values: {...} }`
+- If not historical: returns `{ action: 'normal' }`
+- For new records with `date_from < 1st of current month`: returns `{ action: 'split' }` with same split logic
+- Also pre-validates overlap and open-ended constraints, returning `{ action: 'error', message: '...' }` if invalid
 
-**b) Server-side validation function** `validate_filing_config_period()` as a BEFORE INSERT/UPDATE trigger:
-- `date_from` is required
-- `date_to` must be >= `date_from` if not null
-- No overlapping date ranges (only one open-ended record allowed)
-- Raises exception on violation
+**b) Replace `upsert_filing_config_period`** with enhanced version supporting `p_force_split BOOLEAN`:
+- If `p_force_split = false`: validates `date_from >= 1st of current month` for existing records that started before current month, then saves normally
+- If `p_force_split = true`:
+  1. Closes old record: `UPDATE SET date_to = (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day')::DATE`
+  2. Inserts new record: `date_from = DATE_TRUNC('month', CURRENT_DATE)::DATE` with new values
+  3. All in one transaction (already atomic within PL/pgSQL)
+- Overlap and open-ended validation still enforced by the existing trigger
 
-**c) RPC `get_filing_config_for_date(p_date DATE)`**: Returns the active filing config whose `date_from <= p_date` and (`date_to >= p_date` OR `date_to IS NULL`). Falls back to the open-ended record if no exact match.
+### 2. Frontend — Hook Updates (`useFilingConfigPeriods.ts`)
 
-**d) RPC `upsert_filing_config_period(...)`**: Creates or updates a filing config period with full server-side validation (overlap check, date validation). Returns the saved record or error.
+- Add `useAnalyzeFilingConfigChange()` mutation that calls `analyze_filing_config_change` RPC
+- Update `useUpsertFilingConfigPeriod` to pass `p_force_split` parameter
 
-**e) Data migration**: Copy current `c3_calculation_config` filing values into the new table as the initial period record.
+### 3. Frontend — Split Confirmation Modal (`C3FilingConfigTab.tsx`)
 
-**f) Policies**: Authenticated users can read; admins can manage.
+Update `handleSave` flow:
+1. Call `analyze_filing_config_change` with form data
+2. If response is `action: 'error'` → show toast with error message
+3. If response is `action: 'split'` → open confirmation dialog showing:
+   - "The existing configuration effective from {date_from} will be closed on {last_day_prev_month}"
+   - "A new configuration will be created effective from {1st_current_month} with your updated values"
+   - Confirm → call upsert with `force_split: true`
+   - Cancel → no action
+4. If response is `action: 'normal'` → call upsert directly with `force_split: false`
 
-### 2. Frontend: Rebuild `C3FilingConfigTab.tsx`
+Add a new `AlertDialog` for the split confirmation with clear before/after summary.
 
-Replace the current flat config card with a date-range-aware UI:
-- **Period list**: Table showing all filing config periods with `date_from`, `date_to`, status badge (Active/Historical/Open-ended), and all 5 parameter values
-- **Add Period button**: Opens a dialog/form to create a new period with date pickers for `date_from`/`date_to` and inputs for all 5 parameters
-- **Edit**: Inline or dialog edit for each period
-- **Validation messages**: Display server-returned overlap/date errors using toast
+### 4. Types Update (`filingConfigPeriod.ts`)
 
-### 3. Frontend: New Hook `useFilingConfigPeriods.ts`
-
-- `useFilingConfigPeriods()`: Fetches all periods ordered by `date_from DESC`
-- `useUpsertFilingConfigPeriod()`: Mutation calling the upsert RPC
-- `useDeleteFilingConfigPeriod()`: Soft-delete (set `is_active = false`)
-
-### 4. Backend RPCs Integration
-
-The existing `calculate_c3_contributions` RPC already reads filing config from `c3_config_details`. The new `get_filing_config_for_date` RPC provides standalone date-based lookup for any module that needs it. The old `c3_calculation_config` filing rows remain for backward compatibility but the UI will manage the new table going forward.
-
-### 5. No Changes to Other Categories
-
-Social Security, Levy, Severance, Penalty categories continue using the existing `c3_calculation_config` flat key-value approach unchanged.
-
-## Files Modified/Created
-
-1. **New migration**: Table creation, validation trigger, RPCs, data migration, policies
-2. **New file**: `src/hooks/useFilingConfigPeriods.ts`
-3. **Rewrite**: `src/components/admin/c3-configuration/C3FilingConfigTab.tsx` — period-based management UI
-4. **Minor update**: `src/types/c3CalculationConfig.ts` — add `FilingConfigPeriod` interface
+Add `FilingConfigAnalysis` interface for the analyze RPC response.
 
 ## SQL for Live Environment
 
 ```sql
--- 1. Create table
-CREATE TABLE public.c3_filing_config_periods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  date_from DATE NOT NULL,
-  date_to DATE,
-  week_start_day INTEGER NOT NULL DEFAULT 1,
-  filing_window_unit INTEGER NOT NULL DEFAULT 1,
-  filing_window_value INTEGER NOT NULL DEFAULT 1,
-  penalty_initial_threshold INTEGER NOT NULL DEFAULT 1,
-  penalty_subsequent_threshold INTEGER NOT NULL DEFAULT 12,
-  is_active BOOLEAN DEFAULT true,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_by UUID REFERENCES auth.users(id),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 1. Analyze RPC
+CREATE OR REPLACE FUNCTION public.analyze_filing_config_change(...) RETURNS JSONB ...
 
--- 2. Validation trigger (overlap + date checks)
--- 3. get_filing_config_for_date RPC
--- 4. upsert_filing_config_period RPC
--- 5. Migrate existing data from c3_calculation_config filing rows
--- 6. Indexes and policies
+-- 2. Replace upsert RPC with p_force_split support  
+CREATE OR REPLACE FUNCTION public.upsert_filing_config_period(..., p_force_split BOOLEAN DEFAULT false) RETURNS JSONB ...
 ```
 
-## Edge Cases Handled
-- Overlapping date ranges blocked server-side with clear error message
-- Only one open-ended (NULL `date_to`) record allowed
-- `date_to < date_from` blocked by trigger
-- Creating period for past dates allowed (historical correction)
-- All validation happens in PostgreSQL, not client-side
+Full SQL provided in migration file and as standalone queries.
+
+## Files Modified
+1. **New migration**: `analyze_filing_config_change` RPC + enhanced `upsert_filing_config_period`
+2. `src/types/filingConfigPeriod.ts` — add analysis response type
+3. `src/hooks/useFilingConfigPeriods.ts` — add analyze mutation, update upsert params
+4. `src/components/admin/c3-configuration/C3FilingConfigTab.tsx` — split confirmation modal + updated save flow
+
+## Edge Cases
+- Edit record starting before current month → split triggered, confirmation shown
+- Edit record starting in current month → normal save
+- Create new period overlapping existing → blocked by trigger with error message
+- Create second open-ended record → blocked by trigger
+- Split creates new open-ended record when old one already had null date_to → old gets closed, new gets null date_to (no conflict)
+- `date_to < date_from` → blocked by trigger
 
