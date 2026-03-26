@@ -25,7 +25,9 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
-import { usePlanningWeights, useFrequencyPolicies } from '@/hooks/useAutoPlanEngine';
+import { usePlanningWeights, useFrequencyPolicies, usePlanningParameters } from '@/hooks/useAutoPlanEngine';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AuditConfig() {
   
@@ -48,8 +50,24 @@ export default function AuditConfig() {
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
 
   // Planning engine config
-  const { data: planningWeights = [] } = usePlanningWeights();
-  const { data: freqPolicies = [] } = useFrequencyPolicies();
+  const { data: planningWeights = [], updateWeight } = usePlanningWeights();
+  const { data: freqPolicies = [], updatePolicy } = useFrequencyPolicies();
+  const { data: planningParams = [], updateParam } = usePlanningParameters();
+
+  // Weight edit state
+  const [editWeightDialog, setEditWeightDialog] = useState<any>(null);
+  const [editWeightValue, setEditWeightValue] = useState('');
+  const [editWeightReason, setEditWeightReason] = useState('');
+
+  // Frequency policy edit state
+  const [editPolicyDialog, setEditPolicyDialog] = useState<any>(null);
+  const [editPolicyValue, setEditPolicyValue] = useState('');
+  const [editPolicyReason, setEditPolicyReason] = useState('');
+
+  // Parameter edit state
+  const [editParamDialog, setEditParamDialog] = useState<any>(null);
+  const [editParamValue, setEditParamValue] = useState('');
+  const [editParamReason, setEditParamReason] = useState('');
 
   // Risk Management config hooks
   const { data: likelihoodLevels = [], create: createLikelihood, update: updateLikelihood, remove: removeLikelihood } = useIALikelihoodLevels();
