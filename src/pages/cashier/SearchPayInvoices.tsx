@@ -119,6 +119,7 @@ const SearchPayInvoices: React.FC = () => {
   const { data: invoiceStatuses } = useInvoiceStatuses();
   const { data: invoiceTypes } = useInvoiceTypes();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
+  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
 
   const { data: mopTypes = [] } = useQuery({
     queryKey: ['tb_method_of_payment'],
