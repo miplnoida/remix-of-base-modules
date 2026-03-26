@@ -97,15 +97,15 @@ const PaymentDataEntry = () => {
       const newIdx = detailLines.length;
       setDetailLines(prev => [...prev, detail]);
       // Check if MOP popup needed
-      if (detail.mop_code === 'CHQ' || detail.mop_code === 'CHK') {
+      if ((detail.mop_code === 'CHQ' || detail.mop_code === 'CHK') && showChequeDetails) {
         setPendingMopLineIndex(newIdx);
         setTimeout(() => setShowChequeModal(true), 100);
-      } else if (detail.mop_code === 'CRD') {
+      } else if (detail.mop_code === 'CRD' && showCardDetails) {
         setPendingMopLineIndex(newIdx);
         setTimeout(() => setShowCardModal(true), 100);
       }
     }
-  }, [editIndex, detailLines.length]);
+  }, [editIndex, detailLines.length, showChequeDetails, showCardDetails]);
 
   const handleEditRow = useCallback((index: number) => {
     setEditIndex(index);
@@ -121,12 +121,12 @@ const PaymentDataEntry = () => {
     const row = detailLines[index];
     if (!row) return;
     setPendingMopLineIndex(index);
-    if (row.mop_code === 'CHQ' || row.mop_code === 'CHK') {
+    if ((row.mop_code === 'CHQ' || row.mop_code === 'CHK') && showChequeDetails) {
       setShowChequeModal(true);
-    } else if (row.mop_code === 'CRD') {
+    } else if (row.mop_code === 'CRD' && showCardDetails) {
       setShowCardModal(true);
     }
-  }, [detailLines]);
+  }, [detailLines, showChequeDetails, showCardDetails]);
 
   const handleChequeDetailsSave = useCallback((details: ChequeDetails) => {
     if (pendingMopLineIndex !== null) {
