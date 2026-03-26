@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Award, X, Users, UserPlus, Info, CheckCircle2, Search } from 'lucide-react';
+import { Award, X, Users, UserPlus, Info, CheckCircle2, Search, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIAAuditors, useIAAuditorMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -39,10 +39,10 @@ export default function AuditorProfiles() {
   const { data: profiles = [] } = useIAProfiles();
   const { create, update } = useIAAuditorMutations();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all' });
+  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', status: 'all' });
   const [viewAuditor, setViewAuditor] = useState<any>(null);
   const [editAuditor, setEditAuditor] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[] });
+  const [editForm, setEditForm] = useState({ role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[], employment_status: 'Active' });
   const [showImport, setShowImport] = useState(false);
   const [importSearch, setImportSearch] = useState('');
   const [bulkSelections, setBulkSelections] = useState<Record<string, { selected: boolean; role: string; seniority: string }>>({});
@@ -61,8 +61,18 @@ export default function AuditorProfiles() {
   const filteredAuditors = auditors.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.email.toLowerCase().includes(searchTerm.toLowerCase()) || a.employee_no.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filters.role === 'all' || a.role === filters.role;
-    return matchesSearch && matchesRole;
+    const matchesStatus = filters.status === 'all' || (a.employment_status || 'Active') === filters.status;
+    return matchesSearch && matchesRole && matchesStatus;
   });
+
+  const handleToggleStatus = (auditor: any) => {
+    const newStatus = (auditor.employment_status || 'Active') === 'Active' ? 'Inactive' : 'Active';
+    update.mutate({
+      id: auditor.id,
+      employment_status: newStatus,
+      updated_by: (profile as any)?.user_code || '',
+    });
+  };
 
   // Import dialog handlers
   const openImport = () => {
@@ -139,6 +149,7 @@ export default function AuditorProfiles() {
       work_location: a.work_location || '',
       skills: a.skills || [],
       certifications: a.certifications || [],
+      employment_status: a.employment_status || 'Active',
     });
     setEditAuditor(a);
   };
@@ -159,7 +170,27 @@ export default function AuditorProfiles() {
     { key: 'certifications', header: 'Certifications', render: (row) => (
       <div className="flex gap-1 flex-wrap">{(row.certifications || []).map((c: string, i: number) => <Badge key={i} variant="outline" className="text-xs"><Award className="w-3 h-3 mr-1" />{c}</Badge>)}</div>
     )},
-    { key: 'employment_status', header: 'Status', render: (row) => <StatusBadge status={row.employment_status || 'Active'} /> },
+    { key: 'employment_status', header: 'Status', render: (row) => {
+      const isActive = (row.employment_status || 'Active') === 'Active';
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`gap-1.5 text-xs font-medium ${isActive ? 'text-primary hover:text-destructive' : 'text-muted-foreground hover:text-primary'}`}
+          onClick={(e) => { e.stopPropagation(); handleToggleStatus(row); }}
+          title={isActive ? 'Click to deactivate' : 'Click to reactivate'}
+        >
+          {isActive ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+          {isActive ? 'Active' : 'Inactive'}
+        </Button>
+      );
+    }},
+  ];
+
+  const statusFilterOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
   ];
 
   const roleFilterOptions = [
@@ -199,13 +230,14 @@ export default function AuditorProfiles() {
               <p className="text-muted-foreground">
                 Users are first created by the IT team in <strong>System Administration → User Management</strong>. 
                 Then, from this page, you <strong>import</strong> those users into the Audit Registry and assign them 
-                audit-specific roles (e.g., Lead Auditor, CAE). Only registered auditors appear in 
-                engagement planning and assignment dropdowns.
+                audit-specific roles (e.g., Lead Auditor, CAE). When an auditor leaves or is reassigned, set them to 
+                <strong> Inactive</strong> — their history is preserved but they won't appear in new assignment dropdowns.
               </p>
               <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {profiles.length} system users</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {auditors.length} registered auditors</span>
-                <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5 text-amber-600" /> {availableProfiles.length} available to import</span>
+                <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> {auditors.filter((a: any) => (a.employment_status || 'Active') === 'Active').length} active auditors</span>
+                <span className="flex items-center gap-1"><ShieldOff className="h-3.5 w-3.5 text-muted-foreground" /> {auditors.filter((a: any) => a.employment_status === 'Inactive').length} inactive</span>
+                <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5 text-accent-foreground" /> {availableProfiles.length} available to import</span>
               </div>
             </div>
           </div>
@@ -216,10 +248,13 @@ export default function AuditorProfiles() {
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search by name, email, or employee code..."
-        filters={[{ key: 'role', label: 'Audit Role', type: 'select', options: roleFilterOptions }] as StandardFilterField[]}
+        filters={[
+          { key: 'role', label: 'Audit Role', type: 'select', options: roleFilterOptions },
+          { key: 'status', label: 'Status', type: 'select', options: statusFilterOptions },
+        ] as StandardFilterField[]}
         filterValues={filters}
         onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ role: 'all' })}
+        onReset={() => setFilters({ role: 'all', status: 'all' })}
       />
 
       <Card>
@@ -300,9 +335,22 @@ export default function AuditorProfiles() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label>Work Location</Label>
-              <Input value={editForm.work_location} onChange={e => setEditForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Work Location</Label>
+                <Input value={editForm.work_location} onChange={e => setEditForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" />
+              </div>
+              <div>
+                <Label>Registry Status</Label>
+                <Select value={editForm.employment_status} onValueChange={v => setEditForm(f => ({ ...f, employment_status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Inactive auditors are preserved for history but excluded from new assignments.</p>
+              </div>
             </div>
             <div>
               <Label>Skills</Label>
