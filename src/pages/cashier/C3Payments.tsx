@@ -180,6 +180,64 @@ const C3Payments: React.FC = () => {
     }
   }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
 
+  // Auto-load C3 payment components from cn_c3_reported when navigated from C3 detail screens
+  useEffect(() => {
+    if (c3ComponentsLoaded) return;
+    const regNo = searchParams.get('regNo');
+    const schedule = searchParams.get('schedule');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
+    const pType = searchParams.get('payerType');
+    if (!regNo || !schedule || !month || !year || !pType) return;
+    if (!paymentTypesAll.length || ptLoading) return;
+
+    setC3ComponentsLoaded(true);
+    const periodDate = `${year}-${month.padStart(2, '0')}-01`;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_c3_payment_components' as any, {
+          p_payer_id: regNo,
+          p_payer_type: pType,
+          p_period: periodDate,
+          p_sequence_no: parseInt(schedule, 10),
+        });
+
+        if (error) {
+          console.error('Error fetching C3 components:', error);
+          toast({ title: 'Error', description: 'Failed to load C3 payment components.', variant: 'destructive' });
+          return;
+        }
+
+        const result = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!result || result.status !== 'found') {
+          toast({ title: 'No C3 Record', description: 'No matching C3 contribution record found for the given period and sequence.', variant: 'destructive' });
+          return;
+        }
+
+        const components: PaymentComponent[] = [];
+        for (const comp of result.components || []) {
+          const pt = paymentTypesAll.find((p: any) => p.payment_code === comp.payment_code);
+          if (pt && comp.amount > 0) {
+            components.push({
+              payment_code: comp.payment_code,
+              fund_code: pt.fund_code || '',
+              description: pt.payment_type_description || comp.payment_code,
+              amount: Number(comp.amount),
+            });
+          }
+        }
+
+        if (components.length > 0) {
+          setSelectedComponents(components);
+          toast({ title: 'Components Loaded', description: `${components.length} payment component(s) auto-populated from C3 record.` });
+        }
+      } catch (err: any) {
+        console.error('Error auto-loading C3 components:', err);
+      }
+    })();
+  }, [searchParams, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
+
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
     if (!pt) return;
