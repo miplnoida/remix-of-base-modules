@@ -4,10 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Pencil, Trash2, Calendar } from 'lucide-react';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+import { Loader2, Plus, Pencil, Trash2, Calendar, Save, X, Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -16,6 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFilingConfigPeriods, useUpsertFilingConfigPeriod, useDeactivateFilingConfigPeriod } from '@/hooks/useFilingConfigPeriods';
 import { FilingConfigPeriod, FilingConfigPeriodFormData } from '@/types/filingConfigPeriod';
 import { useDateFormat } from '@/hooks/useDateFormat';
@@ -35,6 +33,14 @@ const UNIT_OPTIONS = [
   { value: '1', label: 'Months' },
   { value: '2', label: 'Days' },
 ];
+
+const PARAM_ROWS = [
+  { key: 'week_start_day', label: 'Week Start Day', description: 'The day the contribution week begins', type: 'weekday' },
+  { key: 'filing_window_unit', label: 'Filing Window Unit', description: 'Unit of measure for the filing window (Months or Days)', type: 'unit' },
+  { key: 'filing_window_value', label: 'Allowed Filing Window', description: 'Number of units allowed for filing after the period ends', type: 'number' },
+  { key: 'penalty_initial_threshold', label: 'Initial Penalty Threshold', description: 'Number of periods before the initial penalty phase ends', type: 'number' },
+  { key: 'penalty_subsequent_threshold', label: 'Subsequent Penalty Period', description: 'Number of periods for the subsequent penalty phase', type: 'number' },
+] as const;
 
 const DEFAULT_FORM: FilingConfigPeriodFormData = {
   date_from: '',
@@ -65,7 +71,8 @@ export function C3FilingConfigTab() {
   const { formatDate } = useDateFormat();
   const { userCode } = useUserCode();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // Form state
+  const [formMode, setFormMode] = useState<'hidden' | 'create' | 'edit'>('hidden');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FilingConfigPeriodFormData>({ ...DEFAULT_FORM });
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
@@ -90,7 +97,7 @@ export function C3FilingConfigTab() {
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...DEFAULT_FORM });
-    setDialogOpen(true);
+    setFormMode('create');
   };
 
   const openEdit = (p: FilingConfigPeriod) => {
@@ -104,7 +111,13 @@ export function C3FilingConfigTab() {
       penalty_initial_threshold: p.penalty_initial_threshold,
       penalty_subsequent_threshold: p.penalty_subsequent_threshold,
     });
-    setDialogOpen(true);
+    setFormMode('edit');
+  };
+
+  const handleCancel = () => {
+    setFormMode('hidden');
+    setEditingId(null);
+    setForm({ ...DEFAULT_FORM });
   };
 
   const handleSave = () => {
@@ -121,12 +134,7 @@ export function C3FilingConfigTab() {
         penalty_subsequent_threshold: form.penalty_subsequent_threshold,
         user_code: userCode || undefined,
       },
-      {
-        onSuccess: () => {
-          setDialogOpen(false);
-          setEditingId(null);
-        },
-      }
+      { onSuccess: handleCancel }
     );
   };
 
@@ -141,8 +149,26 @@ export function C3FilingConfigTab() {
   const unitLabel = (v: number) => UNIT_OPTIONS.find(o => o.value === String(v))?.label || String(v);
   const weekdayLabel = (v: number) => WEEKDAY_OPTIONS.find(o => o.value === String(v))?.label || String(v);
 
+  const getDisplayValue = (key: string, value: number): string => {
+    if (key === 'week_start_day') return weekdayLabel(value);
+    if (key === 'filing_window_unit') return unitLabel(value);
+    return String(value);
+  };
+
+  const getDynamicSuffix = (key: string, unitValue: number): string => {
+    if (['filing_window_value', 'penalty_initial_threshold', 'penalty_subsequent_threshold'].includes(key)) {
+      return unitValue === 2 ? 'days' : 'months';
+    }
+    return '';
+  };
+
+  const updateFormField = (key: string, value: string) => {
+    setForm(prev => ({ ...prev, [key]: parseInt(value) || 0 }));
+  };
+
   return (
     <>
+      {/* Period List */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
@@ -153,7 +179,7 @@ export function C3FilingConfigTab() {
               Manage filing configuration periods with date ranges. Only one open-ended period is allowed at a time.
             </CardDescription>
           </div>
-          <Button onClick={openCreate} size="sm" className="gap-1">
+          <Button onClick={openCreate} size="sm" className="gap-1" disabled={formMode !== 'hidden'}>
             <Plus className="h-4 w-4" /> Add Period
           </Button>
         </CardHeader>
@@ -194,11 +220,11 @@ export function C3FilingConfigTab() {
                       <TableCell>{p.penalty_subsequent_threshold} {unitLabel(p.filing_window_unit)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(p)} disabled={!p.is_active}>
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(p)} disabled={!p.is_active || formMode !== 'hidden'}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           {p.is_active && (
-                            <Button size="sm" variant="ghost" onClick={() => setDeactivateId(p.id)}>
+                            <Button size="sm" variant="ghost" onClick={() => setDeactivateId(p.id)} disabled={formMode !== 'hidden'}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
@@ -213,93 +239,146 @@ export function C3FilingConfigTab() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit' : 'Create'} Filing Configuration Period</DialogTitle>
-            <DialogDescription>
-              Define the effective date range and filing parameters for this period.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date_from">Date From <span className="text-destructive">*</span></Label>
-                <Input
-                  id="date_from"
-                  type="date"
-                  value={form.date_from}
-                  onChange={(e) => setForm({ ...form, date_from: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date_to">Date To <span className="text-muted-foreground text-xs">(leave empty for open-ended)</span></Label>
-                <Input
-                  id="date_to"
-                  type="date"
-                  value={form.date_to || ''}
-                  onChange={(e) => setForm({ ...form, date_to: e.target.value || '' })}
-                />
-              </div>
+      {/* Inline Add/Edit Card — same style as C3ConfigCategoryCard */}
+      {formMode !== 'hidden' && (
+        <Card className="mt-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>{formMode === 'create' ? 'New' : 'Edit'} Filing Configuration Period</CardTitle>
+              <CardDescription>
+                Define the effective date range and filing parameters for this period.
+              </CardDescription>
             </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleSave} disabled={upsertMutation.isPending || !form.date_from} className="gap-1">
+                <Save className="h-4 w-4" />
+                {upsertMutation.isPending ? 'Saving...' : 'Save'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancel} disabled={upsertMutation.isPending} className="gap-1">
+                <X className="h-4 w-4" /> Cancel
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-2 sm:px-6">
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px] sm:w-[300px]">Parameter</TableHead>
+                    <TableHead className="min-w-[200px] sm:w-[250px]">Value</TableHead>
+                    <TableHead className="hidden sm:table-cell">Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* Date From */}
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Date From</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+                            <TooltipContent className="max-w-[300px]"><p>The start date for this configuration period (required)</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="date"
+                        value={form.date_from}
+                        onChange={(e) => setForm({ ...form, date_from: e.target.value })}
+                        className="w-44"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-muted-foreground text-sm">date</span>
+                    </TableCell>
+                  </TableRow>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Week Start Day</Label>
-                <Select value={String(form.week_start_day)} onValueChange={(v) => setForm({ ...form, week_start_day: parseInt(v) })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {WEEKDAY_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Filing Window Unit</Label>
-                <Select value={String(form.filing_window_unit)} onValueChange={(v) => setForm({ ...form, filing_window_unit: parseInt(v) })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UNIT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  {/* Date To */}
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Date To</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+                            <TooltipContent className="max-w-[300px]"><p>The end date for this period. Leave empty for an open-ended (current) period.</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="date"
+                        value={form.date_to || ''}
+                        onChange={(e) => setForm({ ...form, date_to: e.target.value || '' })}
+                        className="w-44"
+                        placeholder="Open-ended"
+                      />
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-muted-foreground text-sm">date (optional)</span>
+                    </TableCell>
+                  </TableRow>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Filing Window Value</Label>
-                <Input
-                  type="number" min={1}
-                  value={form.filing_window_value}
-                  onChange={(e) => setForm({ ...form, filing_window_value: parseInt(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Initial Threshold</Label>
-                <Input
-                  type="number" min={1}
-                  value={form.penalty_initial_threshold}
-                  onChange={(e) => setForm({ ...form, penalty_initial_threshold: parseInt(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Subsequent Threshold</Label>
-                <Input
-                  type="number" min={1}
-                  value={form.penalty_subsequent_threshold}
-                  onChange={(e) => setForm({ ...form, penalty_subsequent_threshold: parseInt(e.target.value) || 1 })}
-                />
-              </div>
+                  {/* 5 config parameters — one per row */}
+                  {PARAM_ROWS.map((param) => {
+                    const value = form[param.key as keyof FilingConfigPeriodFormData];
+                    const suffix = getDynamicSuffix(param.key, form.filing_window_unit);
+                    return (
+                      <TableRow key={param.key}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{param.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+                                <TooltipContent className="max-w-[300px]"><p>{param.description}</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {param.type === 'weekday' ? (
+                            <Select value={String(value)} onValueChange={(v) => updateFormField(param.key, v)}>
+                              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {WEEKDAY_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : param.type === 'unit' ? (
+                            <Select value={String(value)} onValueChange={(v) => updateFormField(param.key, v)}>
+                              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {UNIT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number" min={1}
+                                value={value as number}
+                                onChange={(e) => updateFormField(param.key, e.target.value)}
+                                className="w-24"
+                              />
+                              {suffix && <span className="text-muted-foreground text-sm">{suffix}</span>}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <span className="capitalize text-muted-foreground text-sm">{param.type === 'weekday' || param.type === 'unit' ? 'selection' : 'number'}</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={upsertMutation.isPending || !form.date_from}>
-              {upsertMutation.isPending ? 'Saving...' : 'Save Period'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Deactivate Confirmation */}
       <AlertDialog open={!!deactivateId} onOpenChange={(open) => !open && setDeactivateId(null)}>
