@@ -1,40 +1,90 @@
 
 
-# Server-Side Sortable Columns for Audit Trail
+# Fix user_code Length Mismatch Across All Tables
 
-## What Changes
+## Problem
+`profiles.user_code` was widened to `varchar(50)` in Live, but 79 columns across 45+ tables still use `varchar(5)`, `varchar(8)`, `varchar(10)`, `varchar(20)`, or `varchar(30)`. When a user_code longer than the column limit is inserted, PostgreSQL throws a value-too-long exception — breaking receipt creation and any other write path.
 
-**Single file**: `src/pages/system-logs/AuditTrail.tsx`
+## Root Cause (Receipt Flow)
+The C3 receipt creation path calls `create_c3_payment_with_receipt` RPC which inserts `p_user_code` (TEXT, no limit) into:
+- `cn_receipt.created_by` → **varchar(10)** — fails for codes > 10 chars
+- `cn_receipt_prints.printed_by` → **varchar(5)** — fails for codes > 5 chars
 
-1. Import `useTableSort`'s `SortConfig` type and `SortableTableHead` component (both already exist in the codebase).
+The `create_payment_with_receipt` and `pay_invoices_with_receipt` RPCs have the same issue.
 
-2. Add `sortKey` and `sortDirection` state (default: `timestamp` / `desc`). Reset page to 0 when sort changes.
+## Impact Analysis
 
-3. Update the Supabase query: replace the hardcoded `.order('timestamp', { ascending: false })` with `.order(sortKey, { ascending: sortDirection === 'asc', nullsFirst: false })`.
+No function signatures need changes (all use `TEXT` parameters). No frontend changes needed (TypeScript `string` has no length limit). The fix is **100% database column widening**.
 
-4. Add `sortKey`/`sortDirection` to the `queryKey` array so React Query refetches on sort change.
+### Columns to widen to varchar(50):
 
-5. Replace all 7 `<TableHead>` elements in the table header with `<SortableTableHead>` wired to a `handleSort` callback that toggles asc/desc and resets page.
+**varchar(5) columns (23 columns, 12 tables) — highest risk:**
 
-Column-to-DB-key mapping:
-| Header | sortKey |
+| Table | Columns |
 |---|---|
-| Timestamp | `timestamp` |
-| User | `user_name` |
-| Action | `action` |
-| Module | `module` |
-| Route | `route` |
-| Entity Type | `entity_type` |
-| Entity ID | `entity_id` |
+| cn_receipt_prints | printed_by |
+| cn_batch | entered_by, verified_by |
+| au_ip_self_employ | entered_by, verified_by |
+| c3_config_audit | changed_by |
+| c3_config_details | created_by, modified_by |
+| c3_config_periods | created_by, modified_by |
+| er_master | entered_by, modified_by, verified_by |
+| er_suit | entered_by, modified_by, verified_by |
+| ip_master | entered_by |
+| ip_self_employ | entered_by, verified_by |
+| tb_levy_slab_details | created_by, modified_by |
+| tb_levy_slabs | created_by, modified_by |
 
-## Why This Works
+**varchar(8) columns (1 column, 1 table):**
 
-- Sorting is fully server-side — Supabase `.order()` translates to SQL `ORDER BY`, so results come pre-sorted from PostgreSQL.
-- `nullsFirst: false` ensures nulls sort consistently to the end.
-- `timestamp` is a proper `timestamptz` column, so date sorting is native — no string comparison.
-- Existing filters, pagination, and search are preserved; only the `.order()` call and `queryKey` change.
-- `SortableTableHead` already renders arrow indicators for active sort state.
+| Table | Columns |
+|---|---|
+| cn_receipt | cancel_user |
 
-## Files Modified
-- `src/pages/system-logs/AuditTrail.tsx` — add sort state + swap table headers
+**varchar(10) columns (53 columns, 26 tables):**
+
+| Table | Columns |
+|---|---|
+| cn_receipt | created_by, updated_by |
+| c3_unified_audit_log | changed_by |
+| cashier_currency_config | updated_by |
+| cashier_currency_denominations | updated_by |
+| ce_* (14 tables) | created_by, updated_by, performed_by, approved_by |
+| ip_employer | entered_by, modified_by |
+| ip_other_payments | created_by, updated_by |
+| ip_vol_contrib_wages | entered_by, modified_by |
+| meeting_api_logs | created_by |
+| meetings | created_by, updated_by |
+| tb_batch_status | entered_by, modified_by |
+| tb_currencies | created_by, updated_by |
+| tb_payer_type | entered_by, updated_by |
+| tb_receipt_status | entered_by, modified_by |
+| tb_vc_eligibility_config | created_by, updated_by |
+| workflow_action_* (4 tables) | created_by, updated_by |
+
+**varchar(20) columns (2 columns, 1 table):**
+
+| Table | Columns |
+|---|---|
+| dev_info_screens | created_by, updated_by |
+
+**varchar(30) columns (1 column, 1 table):**
+
+| Table | Columns |
+|---|---|
+| er_commence | modified_by |
+
+## Implementation
+
+**Single database migration** containing ~80 `ALTER TABLE ... ALTER COLUMN ... TYPE varchar(50)` statements. These are safe, non-destructive widenings — no data loss, no downtime, no index rebuilds needed.
+
+No function changes required — all 3 receipt RPCs (`create_c3_payment_with_receipt`, `create_payment_with_receipt`, `pay_invoices_with_receipt`) use `TEXT` parameters internally.
+
+No frontend changes required — TypeScript types are `string` (no length limit).
+
+## Live Database Script
+The same ALTER statements will be provided as a standalone SQL script for manual execution in the Live environment.
+
+## Verification
+After migration, receipt creation via `/cashier/c3-payments` will succeed for any user_code up to 50 characters, and all audit/log inserts across the system will accept the full value without truncation or exception.
 
