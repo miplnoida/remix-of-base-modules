@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
 
@@ -25,7 +25,7 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
   const { userCode } = useUserCode();
   const { data: engagements = [], isLoading } = useIAPlanEngagements(planId);
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const canEdit = ['Draft', 'Revision'].includes(planStatus);
