@@ -6,6 +6,7 @@ import { useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { AddEngagementToPlanForm } from './AddEngagementToPlanForm';
+import { OverrideReasonModal } from './OverrideReasonModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useManualOverride } from '@/hooks/useAutoPlanEngine';
 
 interface EngagementBuilderProps {
   planId: string;
@@ -27,6 +29,8 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAActiveAuditors();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const manualOverride = useManualOverride(planId);
 
   const canEdit = ['Draft', 'Revision'].includes(planStatus);
 
@@ -124,11 +128,7 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm('Remove this engagement from the plan?')) {
-                    removeEngagement.mutate(row.id);
-                  }
-                }}
+                onClick={() => setRemoveTarget({ id: row.id, name: row.engagement_name || row.engagement_code || 'Engagement' })}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -149,6 +149,26 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
           />
         </DialogContent>
       </Dialog>
+
+      <OverrideReasonModal
+        open={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        title="Remove Engagement"
+        description={`Removing "${removeTarget?.name}" from the plan requires justification.`}
+        overrideTypes={[{ value: 'remove_engagement', label: 'Remove Engagement' }]}
+        onConfirm={(_type, reason) => {
+          if (removeTarget) {
+            manualOverride.mutate({
+              override_type: 'remove_engagement',
+              engagement_id: removeTarget.id,
+              reason,
+              changed_by: userCode || 'system',
+            });
+            removeEngagement.mutate(removeTarget.id);
+          }
+          setRemoveTarget(null);
+        }}
+      />
     </>
   );
 }

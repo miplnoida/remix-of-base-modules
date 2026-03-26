@@ -10279,6 +10279,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_auto_plan_candidates: {
+        Row: {
+          accepted: boolean | null
+          change_score: number | null
+          compliance_score: number | null
+          composite_score: number | null
+          created_at: string | null
+          department_id: string | null
+          entity_name: string | null
+          findings_score: number | null
+          followup_score: number | null
+          frequency_policy_months: number | null
+          function_id: string | null
+          id: string
+          is_overdue: boolean | null
+          last_audit_date: string | null
+          plan_id: string
+          rank_position: number | null
+          reason_codes: Json | null
+          recency_score: number | null
+          rejection_reason: string | null
+          risk_score: number | null
+          status: string | null
+          suggested_end_date: string | null
+          suggested_hours: number | null
+          suggested_lead_auditor_id: string | null
+          suggested_start_date: string | null
+        }
+        Insert: {
+          accepted?: boolean | null
+          change_score?: number | null
+          compliance_score?: number | null
+          composite_score?: number | null
+          created_at?: string | null
+          department_id?: string | null
+          entity_name?: string | null
+          findings_score?: number | null
+          followup_score?: number | null
+          frequency_policy_months?: number | null
+          function_id?: string | null
+          id?: string
+          is_overdue?: boolean | null
+          last_audit_date?: string | null
+          plan_id: string
+          rank_position?: number | null
+          reason_codes?: Json | null
+          recency_score?: number | null
+          rejection_reason?: string | null
+          risk_score?: number | null
+          status?: string | null
+          suggested_end_date?: string | null
+          suggested_hours?: number | null
+          suggested_lead_auditor_id?: string | null
+          suggested_start_date?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
+          change_score?: number | null
+          compliance_score?: number | null
+          composite_score?: number | null
+          created_at?: string | null
+          department_id?: string | null
+          entity_name?: string | null
+          findings_score?: number | null
+          followup_score?: number | null
+          frequency_policy_months?: number | null
+          function_id?: string | null
+          id?: string
+          is_overdue?: boolean | null
+          last_audit_date?: string | null
+          plan_id?: string
+          rank_position?: number | null
+          reason_codes?: Json | null
+          recency_score?: number | null
+          rejection_reason?: string | null
+          risk_score?: number | null
+          status?: string | null
+          suggested_end_date?: string | null
+          suggested_hours?: number | null
+          suggested_lead_auditor_id?: string | null
+          suggested_start_date?: string | null
+        }
+        Relationships: []
+      }
       ia_availability_conflicts: {
         Row: {
           auditor_id: string
@@ -10348,6 +10432,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_change_events: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          event_date: string | null
+          event_description: string | null
+          event_type: string
+          function_id: string | null
+          id: string
+          is_active: boolean | null
+          severity: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          event_date?: string | null
+          event_description?: string | null
+          event_type: string
+          function_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          severity?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          event_date?: string | null
+          event_description?: string | null
+          event_type?: string
+          function_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          severity?: string | null
+        }
+        Relationships: []
       }
       ia_communication_stages: {
         Row: {
@@ -12224,6 +12347,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_planning_scoring_weights: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          factor_key: string
+          factor_label: string
+          id: string
+          is_active: boolean
+          updated_at: string | null
+          weight: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          factor_key: string
+          factor_label: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string | null
+          weight?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          factor_key?: string
+          factor_label?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
       ia_preparation_checklists: {
         Row: {
           assigned_to: string | null
@@ -12843,6 +12999,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ia_risk_band_frequency_policy: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_months_between_audits: number
+          risk_level: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_months_between_audits: number
+          risk_level: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_months_between_audits?: number
+          risk_level?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       ia_risk_classification_thresholds: {
         Row: {
@@ -23051,6 +23237,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      ia_apply_manual_override: {
+        Args: {
+          p_candidate_id?: string
+          p_changed_by?: string
+          p_changes?: Json
+          p_engagement_id?: string
+          p_override_type: string
+          p_plan_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       ia_apply_plan_revision: {
         Args: {
           p_changes: Json
@@ -23082,6 +23280,10 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_compute_engagement_priority_score: {
+        Args: { p_department_id?: string; p_function_id?: string }
+        Returns: Json
+      }
       ia_create_plan_header: {
         Args: {
           p_created_by?: string
@@ -23110,6 +23312,10 @@ export type Database = {
           p_recipient_user_id?: string
           p_subject?: string
         }
+        Returns: Json
+      }
+      ia_generate_auto_plan_candidates: {
+        Args: { p_fiscal_year?: string; p_plan_id: string }
         Returns: Json
       }
       ia_get_communication_timeline: {
@@ -23143,6 +23349,10 @@ export type Database = {
         Returns: Json
       }
       ia_resolve_engagement_risk: {
+        Args: { p_department_id?: string; p_function_id?: string }
+        Returns: Json
+      }
+      ia_resolve_last_audit_date: {
         Args: { p_department_id?: string; p_function_id?: string }
         Returns: Json
       }
