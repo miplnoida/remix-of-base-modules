@@ -1,0 +1,128 @@
+CREATE OR REPLACE FUNCTION public.create_payment_with_receipt(
+  p_batch_number text,
+  p_payer_type text,
+  p_payer_id text,
+  p_date_received text,
+  p_remarks text DEFAULT NULL::text,
+  p_detail_lines jsonb DEFAULT '[]'::jsonb,
+  p_receipt_total numeric DEFAULT 0,
+  p_total_payments integer DEFAULT 0,
+  p_user_code text DEFAULT 'SYS'::text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+  v_payment_id integer;
+  v_receipt_id integer;
+  v_detail jsonb;
+  v_exp_date text;
+  v_exp_normalized text;
+  v_parts text[];
+  v_period_text text;
+  v_period_ts timestamp;
+  v_date_received_ts timestamp;
+BEGIN
+  IF p_batch_number IS NULL OR p_batch_number = '' THEN
+    RAISE EXCEPTION 'batch_number is required';
+  END IF;
+  IF p_payer_id IS NULL OR p_payer_id = '' THEN
+    RAISE EXCEPTION 'payer_id is required';
+  END IF;
+  IF jsonb_array_length(p_detail_lines) = 0 THEN
+    RAISE EXCEPTION 'At least one detail line is required';
+  END IF;
+  IF p_receipt_total <= 0 THEN
+    RAISE EXCEPTION 'receipt_total must be greater than zero';
+  END IF;
+
+  -- Safely cast date_received text to timestamp
+  BEGIN
+    v_date_received_ts := p_date_received::timestamp;
+  EXCEPTION WHEN OTHERS THEN
+    v_date_received_ts := now();
+  END;
+
+  PERFORM pg_advisory_xact_lock(7839201);
+
+  SELECT COALESCE(MAX(payment_id), 0) + 1
+  INTO v_payment_id
+  FROM public.cn_payment_header;
+
+  INSERT INTO public.cn_payment_header (
+    payment_id, batch_number, payer_type, payer_id, date_received, remarks
+  ) VALUES (
+    v_payment_id, p_batch_number, p_payer_type, p_payer_id, v_date_received_ts, p_remarks
+  );
+
+  FOR v_detail IN SELECT * FROM jsonb_array_elements(p_detail_lines)
+  LOOP
+    v_exp_normalized := NULL;
+    v_exp_date := v_detail->>'expiration_date';
+    IF v_exp_date IS NOT NULL AND v_exp_date != '' THEN
+      v_parts := string_to_array(v_exp_date, '/');
+      IF array_length(v_parts, 1) = 2 THEN
+        v_exp_normalized := '20' || lpad(v_parts[2], 2, '0') || '-' || lpad(v_parts[1], 2, '0') || '-01';
+      ELSE
+        v_exp_normalized := v_exp_date;
+      END IF;
+    END IF;
+
+    v_period_ts := NULL;
+    v_period_text := v_detail->>'period';
+    IF v_period_text IS NOT NULL AND v_period_text != '' THEN
+      BEGIN
+        v_period_ts := v_period_text::timestamp;
+      EXCEPTION WHEN OTHERS THEN
+        v_period_ts := NULL;
+      END;
+    END IF;
+
+    INSERT INTO public.cn_payment (
+      payment_id, payment_code, fund_code, payment_amount,
+      mop_code, period, payment_date, bank_code,
+      mop_number, cheque_date, mop_account_number, mop_notes1,
+      credit_card_code, expiration_date
+    ) VALUES (
+      v_payment_id,
+      v_detail->>'payment_code',
+      v_detail->>'fund_code',
+      (v_detail->>'payment_amount')::numeric,
+      v_detail->>'mop_code',
+      v_period_ts,
+      CASE WHEN v_detail->>'payment_date' IS NOT NULL AND v_detail->>'payment_date' != ''
+           THEN (v_detail->>'payment_date')::date ELSE NULL END,
+      NULLIF(v_detail->>'bank_code', ''),
+      NULLIF(v_detail->>'mop_number', ''),
+      CASE WHEN v_detail->>'cheque_date' IS NOT NULL AND v_detail->>'cheque_date' != ''
+           THEN (v_detail->>'cheque_date')::date ELSE NULL END,
+      NULLIF(v_detail->>'mop_account_number', ''),
+      NULLIF(v_detail->>'mop_notes1', ''),
+      NULLIF(v_detail->>'credit_card_code', ''),
+      CASE WHEN v_exp_normalized IS NOT NULL THEN v_exp_normalized::date ELSE NULL END
+    );
+  END LOOP;
+
+  INSERT INTO public.cn_receipt (
+    payment_id, status, receipt_total, total_number_of_payments,
+    reprint_times, created_by, updated_by
+  ) VALUES (
+    v_payment_id, 'O', p_receipt_total, p_total_payments,
+    0, p_user_code, p_user_code
+  )
+  RETURNING receipt_id INTO v_receipt_id;
+
+  INSERT INTO public.cn_receipt_prints (
+    receipt_id, printed_by, print_type
+  ) VALUES (
+    v_receipt_id, p_user_code, 'ORIGINAL'
+  );
+
+  RETURN jsonb_build_object(
+    'payment_id', v_payment_id,
+    'receipt_id', v_receipt_id,
+    'status', 'success'
+  );
+END;
+$function$;
