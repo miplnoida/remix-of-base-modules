@@ -12219,6 +12219,9 @@ export type Database = {
       }
       ia_plan_change_log: {
         Row: {
+          after_state: Json | null
+          before_state: Json | null
+          change_classification: string | null
           change_date: string | null
           change_type: string
           changed_by: string | null
@@ -12232,6 +12235,9 @@ export type Database = {
           version_number: number | null
         }
         Insert: {
+          after_state?: Json | null
+          before_state?: Json | null
+          change_classification?: string | null
           change_date?: string | null
           change_type: string
           changed_by?: string | null
@@ -12245,6 +12251,9 @@ export type Database = {
           version_number?: number | null
         }
         Update: {
+          after_state?: Json | null
+          before_state?: Json | null
+          change_classification?: string | null
           change_date?: string | null
           change_type?: string
           changed_by?: string | null
@@ -12395,8 +12404,198 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_planning_parameters: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          change_reason: string | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          parameter_group: string
+          parameter_key: string
+          scope_id: string | null
+          scope_type: string
+          updated_at: string | null
+          updated_by: string | null
+          value_json: Json
+          value_type: string
+          version_no: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          parameter_group?: string
+          parameter_key: string
+          scope_id?: string | null
+          scope_type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value_json?: Json
+          value_type?: string
+          version_no?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          parameter_group?: string
+          parameter_key?: string
+          scope_id?: string | null
+          scope_type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value_json?: Json
+          value_type?: string
+          version_no?: number
+        }
+        Relationships: []
+      }
+      ia_planning_score_explanations: {
+        Row: {
+          candidate_id: string | null
+          contrib_change: number | null
+          contrib_compliance: number | null
+          contrib_findings: number | null
+          contrib_followup: number | null
+          contrib_recency: number | null
+          contrib_risk: number | null
+          department_id: string | null
+          final_composite_score: number | null
+          frequency_policy_months: number | null
+          function_id: string | null
+          generated_at: string | null
+          generation_run_id: string | null
+          id: string
+          last_audit_date: string | null
+          last_audit_source: string | null
+          norm_change_score: number | null
+          norm_compliance_score: number | null
+          norm_findings_score: number | null
+          norm_followup_score: number | null
+          norm_recency_score: number | null
+          norm_risk_score: number | null
+          parameter_versions: Json | null
+          plan_id: string
+          raw_change_events_count: number | null
+          raw_findings_count: number | null
+          raw_overdue_actions_count: number | null
+          raw_recency_months: number | null
+          raw_risk_score: number | null
+          reason_codes: Json | null
+          resolved_scope: string | null
+          risk_assessment_date: string | null
+          risk_assessment_id: string | null
+          weight_change: number | null
+          weight_compliance: number | null
+          weight_findings: number | null
+          weight_followup: number | null
+          weight_recency: number | null
+          weight_risk: number | null
+        }
+        Insert: {
+          candidate_id?: string | null
+          contrib_change?: number | null
+          contrib_compliance?: number | null
+          contrib_findings?: number | null
+          contrib_followup?: number | null
+          contrib_recency?: number | null
+          contrib_risk?: number | null
+          department_id?: string | null
+          final_composite_score?: number | null
+          frequency_policy_months?: number | null
+          function_id?: string | null
+          generated_at?: string | null
+          generation_run_id?: string | null
+          id?: string
+          last_audit_date?: string | null
+          last_audit_source?: string | null
+          norm_change_score?: number | null
+          norm_compliance_score?: number | null
+          norm_findings_score?: number | null
+          norm_followup_score?: number | null
+          norm_recency_score?: number | null
+          norm_risk_score?: number | null
+          parameter_versions?: Json | null
+          plan_id: string
+          raw_change_events_count?: number | null
+          raw_findings_count?: number | null
+          raw_overdue_actions_count?: number | null
+          raw_recency_months?: number | null
+          raw_risk_score?: number | null
+          reason_codes?: Json | null
+          resolved_scope?: string | null
+          risk_assessment_date?: string | null
+          risk_assessment_id?: string | null
+          weight_change?: number | null
+          weight_compliance?: number | null
+          weight_findings?: number | null
+          weight_followup?: number | null
+          weight_recency?: number | null
+          weight_risk?: number | null
+        }
+        Update: {
+          candidate_id?: string | null
+          contrib_change?: number | null
+          contrib_compliance?: number | null
+          contrib_findings?: number | null
+          contrib_followup?: number | null
+          contrib_recency?: number | null
+          contrib_risk?: number | null
+          department_id?: string | null
+          final_composite_score?: number | null
+          frequency_policy_months?: number | null
+          function_id?: string | null
+          generated_at?: string | null
+          generation_run_id?: string | null
+          id?: string
+          last_audit_date?: string | null
+          last_audit_source?: string | null
+          norm_change_score?: number | null
+          norm_compliance_score?: number | null
+          norm_findings_score?: number | null
+          norm_followup_score?: number | null
+          norm_recency_score?: number | null
+          norm_risk_score?: number | null
+          parameter_versions?: Json | null
+          plan_id?: string
+          raw_change_events_count?: number | null
+          raw_findings_count?: number | null
+          raw_overdue_actions_count?: number | null
+          raw_recency_months?: number | null
+          raw_risk_score?: number | null
+          reason_codes?: Json | null
+          resolved_scope?: string | null
+          risk_assessment_date?: string | null
+          risk_assessment_id?: string | null
+          weight_change?: number | null
+          weight_compliance?: number | null
+          weight_findings?: number | null
+          weight_followup?: number | null
+          weight_recency?: number | null
+          weight_risk?: number | null
+        }
+        Relationships: []
+      }
       ia_planning_scoring_weights: {
         Row: {
+          change_reason: string | null
           created_at: string | null
           description: string | null
           factor_key: string
@@ -12404,9 +12603,11 @@ export type Database = {
           id: string
           is_active: boolean
           updated_at: string | null
+          updated_by: string | null
           weight: number
         }
         Insert: {
+          change_reason?: string | null
           created_at?: string | null
           description?: string | null
           factor_key: string
@@ -12414,9 +12615,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           updated_at?: string | null
+          updated_by?: string | null
           weight?: number
         }
         Update: {
+          change_reason?: string | null
           created_at?: string | null
           description?: string | null
           factor_key?: string
@@ -12424,7 +12627,50 @@ export type Database = {
           id?: string
           is_active?: boolean
           updated_at?: string | null
+          updated_by?: string | null
           weight?: number
+        }
+        Relationships: []
+      }
+      ia_planning_wizard_state: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          current_step: number | null
+          data_readiness: Json | null
+          id: string
+          is_complete: boolean | null
+          parameter_profile: string | null
+          plan_id: string
+          step_data: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          current_step?: number | null
+          data_readiness?: Json | null
+          id?: string
+          is_complete?: boolean | null
+          parameter_profile?: string | null
+          plan_id: string
+          step_data?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          current_step?: number | null
+          data_readiness?: Json | null
+          id?: string
+          is_complete?: boolean | null
+          parameter_profile?: string | null
+          plan_id?: string
+          step_data?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -12911,6 +13157,72 @@ export type Database = {
           },
         ]
       }
+      ia_resource_recommendations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          auditor_id: string
+          availability_score: number | null
+          candidate_id: string | null
+          conflict_indicators: Json | null
+          created_at: string | null
+          engagement_id: string | null
+          fit_score: number | null
+          id: string
+          is_accepted: boolean | null
+          plan_id: string
+          prior_involvement_score: number | null
+          reason_text: string | null
+          recommendation_rank: number | null
+          rotation_score: number | null
+          skill_match_score: number | null
+          workload_hours_current: number | null
+          workload_hours_if_assigned: number | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          auditor_id: string
+          availability_score?: number | null
+          candidate_id?: string | null
+          conflict_indicators?: Json | null
+          created_at?: string | null
+          engagement_id?: string | null
+          fit_score?: number | null
+          id?: string
+          is_accepted?: boolean | null
+          plan_id: string
+          prior_involvement_score?: number | null
+          reason_text?: string | null
+          recommendation_rank?: number | null
+          rotation_score?: number | null
+          skill_match_score?: number | null
+          workload_hours_current?: number | null
+          workload_hours_if_assigned?: number | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          auditor_id?: string
+          availability_score?: number | null
+          candidate_id?: string | null
+          conflict_indicators?: Json | null
+          created_at?: string | null
+          engagement_id?: string | null
+          fit_score?: number | null
+          id?: string
+          is_accepted?: boolean | null
+          plan_id?: string
+          prior_involvement_score?: number | null
+          reason_text?: string | null
+          recommendation_rank?: number | null
+          rotation_score?: number | null
+          skill_match_score?: number | null
+          workload_hours_current?: number | null
+          workload_hours_if_assigned?: number | null
+        }
+        Relationships: []
+      }
       ia_risk_assessment_factors: {
         Row: {
           assessment_id: string | null
@@ -13050,6 +13362,7 @@ export type Database = {
       }
       ia_risk_band_frequency_policy: {
         Row: {
+          change_reason: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -13057,8 +13370,10 @@ export type Database = {
           max_months_between_audits: number
           risk_level: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
+          change_reason?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -13066,8 +13381,10 @@ export type Database = {
           max_months_between_audits: number
           risk_level: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
+          change_reason?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -13075,6 +13392,7 @@ export type Database = {
           max_months_between_audits?: number
           risk_level?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -23350,6 +23668,7 @@ export type Database = {
         Args: { p_plan_id: string }
         Returns: Json
       }
+      ia_check_data_readiness: { Args: { p_plan_id?: string }; Returns: Json }
       ia_check_engagement_completeness: {
         Args: { p_engagement_id: string }
         Returns: Json
@@ -23401,6 +23720,10 @@ export type Database = {
         Args: { p_fiscal_year?: string; p_plan_id: string }
         Returns: Json
       }
+      ia_generate_resource_recommendations: {
+        Args: { p_candidate_id?: string; p_plan_id: string }
+        Returns: Json
+      }
       ia_get_communication_timeline: {
         Args: { p_engagement_id: string }
         Returns: Json
@@ -23437,6 +23760,16 @@ export type Database = {
       }
       ia_resolve_last_audit_date: {
         Args: { p_department_id?: string; p_function_id?: string }
+        Returns: Json
+      }
+      ia_resolve_planning_parameter: {
+        Args: {
+          p_department_id?: string
+          p_function_id?: string
+          p_parameter_key: string
+          p_plan_id?: string
+          p_scenario_id?: string
+        }
         Returns: Json
       }
       ia_seed_ssb_audit_reference_data: {
