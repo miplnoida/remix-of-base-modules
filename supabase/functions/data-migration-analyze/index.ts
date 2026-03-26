@@ -65,6 +65,7 @@ const DEFAULT_TABLES = [
   "security_policy_config",
   "ip_access_rules",
   "app_lockdown_state",
+  "tb_levy_slab_details",
 ];
 
 function deepEqual(a: unknown, b: unknown): boolean {
