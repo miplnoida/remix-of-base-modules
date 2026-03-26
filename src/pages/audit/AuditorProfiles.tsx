@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Award, X, Users, UserPlus, Info, CheckCircle2, Search } from 'lucide-react';
+import { Award, X, Users, UserPlus, Info, CheckCircle2, Search, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIAAuditors, useIAAuditorMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
