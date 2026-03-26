@@ -246,10 +246,13 @@ export default function AuditorProfiles() {
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search by name, email, or employee code..."
-        filters={[{ key: 'role', label: 'Audit Role', type: 'select', options: roleFilterOptions }] as StandardFilterField[]}
+        filters={[
+          { key: 'role', label: 'Audit Role', type: 'select', options: roleFilterOptions },
+          { key: 'status', label: 'Status', type: 'select', options: statusFilterOptions },
+        ] as StandardFilterField[]}
         filterValues={filters}
         onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ role: 'all' })}
+        onReset={() => setFilters({ role: 'all', status: 'all' })}
       />
 
       <Card>
