@@ -42,7 +42,7 @@ export default function AuditorProfiles() {
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', status: 'all' });
   const [viewAuditor, setViewAuditor] = useState<any>(null);
   const [editAuditor, setEditAuditor] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[] });
+  const [editForm, setEditForm] = useState({ role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[], employment_status: 'Active' });
   const [showImport, setShowImport] = useState(false);
   const [importSearch, setImportSearch] = useState('');
   const [bulkSelections, setBulkSelections] = useState<Record<string, { selected: boolean; role: string; seniority: string }>>({});
