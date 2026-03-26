@@ -25,7 +25,9 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
-import { usePlanningWeights, useFrequencyPolicies } from '@/hooks/useAutoPlanEngine';
+import { usePlanningWeights, useFrequencyPolicies, usePlanningParameters } from '@/hooks/useAutoPlanEngine';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AuditConfig() {
   
@@ -48,8 +50,24 @@ export default function AuditConfig() {
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
 
   // Planning engine config
-  const { data: planningWeights = [] } = usePlanningWeights();
-  const { data: freqPolicies = [] } = useFrequencyPolicies();
+  const { data: planningWeights = [], updateWeight: updatePlanningWeight } = usePlanningWeights();
+  const { data: freqPolicies = [], updatePolicy } = useFrequencyPolicies();
+  const { data: planningParams = [], updateParam } = usePlanningParameters();
+
+  // Weight edit state
+  const [editWeightDialog, setEditWeightDialog] = useState<any>(null);
+  const [editWeightValue, setEditWeightValue] = useState('');
+  const [editWeightReason, setEditWeightReason] = useState('');
+
+  // Frequency policy edit state
+  const [editPolicyDialog, setEditPolicyDialog] = useState<any>(null);
+  const [editPolicyValue, setEditPolicyValue] = useState('');
+  const [editPolicyReason, setEditPolicyReason] = useState('');
+
+  // Parameter edit state
+  const [editParamDialog, setEditParamDialog] = useState<any>(null);
+  const [editParamValue, setEditParamValue] = useState('');
+  const [editParamReason, setEditParamReason] = useState('');
 
   // Risk Management config hooks
   const { data: likelihoodLevels = [], create: createLikelihood, update: updateLikelihood, remove: removeLikelihood } = useIALikelihoodLevels();
@@ -693,45 +711,53 @@ export default function AuditConfig() {
               </p>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Factor</TableHead>
-                    <TableHead>Weight</TableHead>
-                    <TableHead>Percentage</TableHead>
-                    <TableHead>Description</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {planningWeights.map((w: any) => (
-                    <TableRow key={w.id}>
-                      <TableCell className="font-medium">{w.factor_label}</TableCell>
-                      <TableCell>{w.weight}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{(w.weight * 100).toFixed(0)}%</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{w.description}</TableCell>
-                    </TableRow>
-                  ))}
-                  {planningWeights.length > 0 && (
-                    <TableRow className="bg-muted/30">
-                      <TableCell className="font-semibold">Total</TableCell>
-                      <TableCell className="font-semibold">
-                        {planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          Math.abs(planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0) - 1.0) < 0.01
-                            ? 'default' : 'destructive'
-                        }>
-                          {(planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0) * 100).toFixed(0)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              {(() => {
+                const totalW = planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0);
+                const isValid = Math.abs(totalW - 1.0) < 0.01;
+                return (
+                  <>
+                    <div className="flex items-center gap-2 mb-3 text-sm">
+                      <span>Total Weight:</span>
+                      <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-green-600' : ''}>
+                        {(totalW * 100).toFixed(0)}%
+                      </Badge>
+                      {!isValid && <span className="text-destructive text-xs">Weights must sum to 100%</span>}
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Factor</TableHead>
+                          <TableHead className="w-24">Weight</TableHead>
+                          <TableHead>Percentage</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="w-16">Edit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {planningWeights.map((w: any) => (
+                          <TableRow key={w.id}>
+                            <TableCell className="font-medium">{w.factor_label}</TableCell>
+                            <TableCell>{w.weight}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{(w.weight * 100).toFixed(0)}%</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{w.description}</TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="sm" onClick={() => {
+                                setEditWeightDialog(w);
+                                setEditWeightValue(String(w.weight));
+                                setEditWeightReason('');
+                              }}>
+                                <Settings className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -752,6 +778,7 @@ export default function AuditConfig() {
                     <TableHead>Risk Level</TableHead>
                     <TableHead>Max Months Between Audits</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead className="w-16">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -768,8 +795,67 @@ export default function AuditConfig() {
                       </TableCell>
                       <TableCell className="font-medium">{p.max_months_between_audits} months</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{p.description}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setEditPolicyDialog(p);
+                          setEditPolicyValue(String(p.max_months_between_audits));
+                          setEditPolicyReason('');
+                        }}>
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Planning Parameters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Scoring Parameters (Global)
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Configurable multipliers and constants used by the scoring engine. Supports scope precedence: Scenario → Plan → Function → Department → Global.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parameter</TableHead>
+                    <TableHead>Group</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Scope</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead className="w-16">Edit</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {planningParams.map((p: any) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium text-xs">{p.parameter_key?.replace(/_/g, ' ')}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px]">{p.parameter_group}</Badge></TableCell>
+                      <TableCell className="font-mono text-xs">{JSON.stringify(p.value_json?.value ?? p.value_json)}</TableCell>
+                      <TableCell><Badge variant="secondary" className="text-[10px]">{p.scope_type}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground">v{p.version_no}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setEditParamDialog(p);
+                          setEditParamValue(String(p.value_json?.value ?? ''));
+                          setEditParamReason('');
+                        }}>
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {planningParams.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No parameters configured</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -797,6 +883,82 @@ export default function AuditConfig() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Weight Dialog */}
+      <Dialog open={!!editWeightDialog} onOpenChange={() => setEditWeightDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-sm">Edit Weight: {editWeightDialog?.factor_label}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Weight (0.00 – 1.00)</Label>
+              <Input type="number" step="0.01" min="0" max="1" value={editWeightValue} onChange={(e) => setEditWeightValue(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reason for Change *</Label>
+              <Textarea value={editWeightReason} onChange={(e) => setEditWeightReason(e.target.value)} placeholder="Why is this weight being changed?" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditWeightDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!editWeightReason.trim() || updatePlanningWeight.isPending} onClick={() => {
+              updatePlanningWeight.mutate({ id: editWeightDialog.id, weight: Number(editWeightValue), change_reason: editWeightReason, updated_by: userCode });
+              setEditWeightDialog(null);
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Frequency Policy Dialog */}
+      <Dialog open={!!editPolicyDialog} onOpenChange={() => setEditPolicyDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-sm">Edit Frequency: {editPolicyDialog?.risk_level}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Max Months Between Audits</Label>
+              <Input type="number" min="1" max="120" value={editPolicyValue} onChange={(e) => setEditPolicyValue(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reason for Change *</Label>
+              <Textarea value={editPolicyReason} onChange={(e) => setEditPolicyReason(e.target.value)} placeholder="Why is this policy being changed?" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditPolicyDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!editPolicyReason.trim() || updatePolicy.isPending} onClick={() => {
+              updatePolicy.mutate({ id: editPolicyDialog.id, max_months_between_audits: Number(editPolicyValue), change_reason: editPolicyReason, updated_by: userCode });
+              setEditPolicyDialog(null);
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Parameter Dialog */}
+      <Dialog open={!!editParamDialog} onOpenChange={() => setEditParamDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-sm">Edit Parameter: {editParamDialog?.parameter_key?.replace(/_/g, ' ')}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Value</Label>
+              <Input type="number" value={editParamValue} onChange={(e) => setEditParamValue(e.target.value)} />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <p>Current version: v{editParamDialog?.version_no}</p>
+              <p>Scope: {editParamDialog?.scope_type}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reason for Change *</Label>
+              <Textarea value={editParamReason} onChange={(e) => setEditParamReason(e.target.value)} placeholder="Why is this parameter being changed?" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditParamDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!editParamReason.trim() || updateParam.isPending} onClick={() => {
+              updateParam.mutate({ id: editParamDialog.id, value_json: { value: Number(editParamValue) }, change_reason: editParamReason, updated_by: userCode });
+              setEditParamDialog(null);
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

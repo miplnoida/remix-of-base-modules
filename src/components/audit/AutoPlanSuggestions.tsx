@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { CandidateDetailPanel } from './CandidateDetailPanel';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
@@ -27,18 +28,6 @@ const REASON_LABELS: Record<string, string> = {
   OVERDUE_ACTIONS: 'Overdue Action Items',
   RECENT_CHANGES: 'Recent Organizational Changes',
 };
-
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{Math.round(value)}</span>
-      </div>
-      <Progress value={value} className={`h-1.5 ${color}`} />
-    </div>
-  );
-}
 
 export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsProps) {
   const { userCode } = useUserCode();
@@ -114,6 +103,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
               <p>Risk: {Math.round(r.risk_score)} | Recency: {Math.round(r.recency_score)}</p>
               <p>Findings: {Math.round(r.findings_score)} | Follow-up: {Math.round(r.followup_score)}</p>
               <p>Compliance: {Math.round(r.compliance_score)} | Change: {Math.round(r.change_score)}</p>
+              <p className="text-primary mt-1">Click for full breakdown →</p>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -260,48 +250,13 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
         </DialogContent>
       </Dialog>
 
-      {/* Score Detail Dialog */}
-      <Dialog open={!!detailCandidate} onOpenChange={() => setDetailCandidate(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base">Score Breakdown</DialogTitle>
-          </DialogHeader>
-          {detailCandidate && (
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium text-sm">{detailCandidate.entity_name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-2xl font-bold">{Math.round(detailCandidate.composite_score)}</span>
-                  <StatusBadge status={getRiskBadgeVariant(detailCandidate.composite_score)} />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <ScoreBar label="Risk Assessment" value={detailCandidate.risk_score} color="[&>div]:bg-red-500" />
-                <ScoreBar label="Audit Recency" value={detailCandidate.recency_score} color="[&>div]:bg-amber-500" />
-                <ScoreBar label="Outstanding Findings" value={detailCandidate.findings_score} color="[&>div]:bg-orange-500" />
-                <ScoreBar label="Overdue Follow-Ups" value={detailCandidate.followup_score} color="[&>div]:bg-purple-500" />
-                <ScoreBar label="Compliance Frequency" value={detailCandidate.compliance_score} color="[&>div]:bg-blue-500" />
-                <ScoreBar label="Change Events" value={detailCandidate.change_score} color="[&>div]:bg-emerald-500" />
-              </div>
-
-              <div className="border-t pt-3 space-y-1 text-xs text-muted-foreground">
-                <p>Last Audit: {detailCandidate.last_audit_date ? formatDateForDisplay(detailCandidate.last_audit_date) : 'Never audited'}</p>
-                <p>Frequency Policy: Every {detailCandidate.frequency_policy_months || '—'} months</p>
-                <p>Status: {detailCandidate.is_overdue ? '⚠️ Overdue' : '✅ Within cycle'}</p>
-              </div>
-
-              <div className="flex gap-1 flex-wrap">
-                {(detailCandidate.reason_codes || []).map((code: string, i: number) => (
-                  <Badge key={i} variant="outline" className="text-xs">
-                    {REASON_LABELS[code] || code}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Score Detail Panel */}
+      <CandidateDetailPanel
+        candidate={detailCandidate}
+        planId={planId}
+        open={!!detailCandidate}
+        onOpenChange={(open) => { if (!open) setDetailCandidate(null); }}
+      />
     </>
   );
 }

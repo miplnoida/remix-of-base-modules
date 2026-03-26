@@ -11,6 +11,7 @@ import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
 import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
+import { PlanningWizard } from '@/components/audit/PlanningWizard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
@@ -218,6 +219,7 @@ export default function AuditPlanDetail() {
       {/* Main Tabs */}
       <Tabs defaultValue="engagements" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="wizard">Planning Wizard</TabsTrigger>
           <TabsTrigger value="auto-plan">Auto Plan</TabsTrigger>
           <TabsTrigger value="capacity">Capacity</TabsTrigger>
           <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
@@ -227,6 +229,10 @@ export default function AuditPlanDetail() {
           <TabsTrigger value="changelog">Change Log ({(changeLog || []).length})</TabsTrigger>
           <TabsTrigger value="closure">Closure</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="wizard">
+          <PlanningWizard planId={id!} planStatus={plan?.status || 'Draft'} fiscalYear={plan?.fiscal_year} />
+        </TabsContent>
 
         <TabsContent value="auto-plan">
           <AutoPlanSuggestions planId={id!} planStatus={plan?.status || 'Draft'} />
