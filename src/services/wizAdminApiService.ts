@@ -204,6 +204,10 @@ export async function getCompaniesDropdown() {
   return callWizApi<{ companies: WizCompanyDropdown[] }>("get_companies_dropdown");
 }
 
+export async function getNwCompanies() {
+  return callWizApi<{ companies: WizCompanyDropdown[] }>("get_nw_companies");
+}
+
 // ─── Config Change History ─────────────────────────────
 
 export interface WizConfigSyncLog {
