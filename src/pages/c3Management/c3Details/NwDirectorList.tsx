@@ -17,7 +17,7 @@ import {
   getNwdContributionPreview,
   type NwdContributionRecord,
 } from '@/services/wizC3DetailsService';
-import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
+import { getNwCompanies, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import NwdContributionPreview from './previews/NwdContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
 
@@ -53,7 +53,7 @@ const NwDirectorList: React.FC = () => {
   const [receiptModalRecord, setReceiptModalRecord] = useState<NwdContributionRecord | null>(null);
 
   useEffect(() => {
-    getCompaniesDropdown().then(res => setCompanies(res.data?.companies || [])).catch(() => {});
+    getNwCompanies().then(res => setCompanies(res.data?.companies || [])).catch(() => {});
   }, []);
 
   const handleSearch = useCallback(async () => {
