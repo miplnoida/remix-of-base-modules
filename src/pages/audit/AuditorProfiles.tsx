@@ -335,9 +335,10 @@ export default function AuditorProfiles() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label>Work Location</Label>
-              <Input value={editForm.work_location} onChange={e => setEditForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Work Location</Label>
+                <Input value={editForm.work_location} onChange={e => setEditForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" />
             </div>
             <div>
               <Label>Skills</Label>
