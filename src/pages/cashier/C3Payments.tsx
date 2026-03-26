@@ -337,12 +337,14 @@ const C3Payments: React.FC = () => {
     setFlowState('saving');
 
     try {
+      const seqNoVal = sequenceNo ? parseInt(sequenceNo, 10) : null;
       const componentsJson = selectedComponents.map((c, i) => ({
         payment_code: c.payment_code,
         fund_code: c.fund_code,
         amount: c.amount,
         period,
         sort_order: i,
+        sequence_no: seqNoVal,
       }));
 
       const methodsJson = methods.map((m, i) => ({
