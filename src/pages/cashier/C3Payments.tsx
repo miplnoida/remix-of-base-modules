@@ -398,6 +398,7 @@ const C3Payments: React.FC = () => {
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
+    setInitialParamsApplied(true); // prevent re-applying URL params after reset
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
