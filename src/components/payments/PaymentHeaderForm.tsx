@@ -109,6 +109,7 @@ export function PaymentHeaderForm({
   payerType, setPayerType, payerId, setPayerId, payerInfo,
   dateReceived, setDateReceived, remarks, setRemarks, onPayerBlur,
   isValidating, disabled, showPeriod, periodMonth, setPeriodMonth, periodYear, setPeriodYear,
+  sequenceNo, setSequenceNo,
 }: PaymentHeaderFormProps) {
   return (
     <Card>
