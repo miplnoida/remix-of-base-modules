@@ -100,6 +100,20 @@ const SelfEmployedContributionList: React.FC = () => {
     navigate(`/c3-management/offline-payment/self_employed/${record.contribution_id}`);
   };
 
+  // "Payment" → navigate to C3 Payments cashier screen
+  const handlePayment = (record: SeContributionRecord) => {
+    const se = seList.find(s => String(s.id) === selectedSeId);
+    if (!se) return;
+    const params = new URLSearchParams({
+      regNo: se.social_security_number,
+      month: String(record.month_number),
+      year: record.year,
+      schedule: '0',
+      payerType: 'SE',
+    });
+    navigate(`/cashier/c3-payments?${params.toString()}`);
+  };
+
   // "Paid" → open receipt modal
   const handlePaid = (record: SeContributionRecord) => {
     setReceiptModalRecord(record);
@@ -238,10 +252,16 @@ const SelfEmployedContributionList: React.FC = () => {
                             Paid <Printer className="h-3 w-3 text-green-600" />
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
-                          <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => handlePay(c)}>
-                            $ Pay
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
+                              onClick={() => handlePay(c)}>
+                              $ Pay
+                            </Button>
+                            <Button variant="outline" size="sm" className="border-blue-500 text-blue-600 text-xs h-7"
+                              onClick={() => handlePayment(c)}>
+                              Payment
+                            </Button>
+                          </div>
                         ) : c.payment_status === 'BEMA' ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs text-muted-foreground">BEMA</span>
                         ) : null}
