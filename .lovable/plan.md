@@ -1,50 +1,51 @@
 
 
-# Fix: Remove Invalid Column References from `create_c3_payment_with_receipt` RPC
+# Fix: Replace Invalid Column Names in `create_c3_payment_with_receipt` RPC
 
 ## Problem
 
-The `create_c3_payment_with_receipt` RPC (migration `20260326141422`) fails with `column "payer_type" of relation "cn_payment" does not exist` because the INSERT at lines 193-221 references 4 columns that don't exist in `cn_payment`:
+The `cn_receipt` INSERT in the RPC references two columns that don't exist:
 
-- `payer_type` — not in `cn_payment` (lives in `cn_payment_header`)
-- `payer_id` — not in `cn_payment` (lives in `cn_payment_header`)
-- `inserted_by` — not in `cn_payment`
-- `insert_date` — not in `cn_payment`
-
-The column `currency_code` **does exist** — no issue there.
-
-The column `sequence_no` **already exists** in `c3_payment_components` — no schema change needed.
+| RPC uses | Actual column in `cn_receipt` |
+|---|---|
+| `receipt_amount` | `receipt_total` |
+| `receipt_date` | *(no such column — `created_at` already captures this)* |
 
 ## Fix — Single Migration
 
-Recreate the `create_c3_payment_with_receipt` function with the corrected `cn_payment` INSERT. Remove the 4 non-existent columns and their corresponding VALUES. Keep everything else identical.
+Recreate `create_c3_payment_with_receipt` with the corrected `cn_receipt` INSERT:
 
-**Corrected INSERT into `cn_payment`:**
+**Before (broken):**
 ```sql
-INSERT INTO public.cn_payment (
-  payment_id, payment_code, fund_code, period,
-  payment_amount, mop_code,
-  base_currency, currency_conversion_rate, currency_code
+INSERT INTO public.cn_receipt (
+  receipt_id, payment_id, receipt_amount, receipt_date, status,
+  created_by, created_at
 ) VALUES (
-  v_payment_id,
-  v_comp_arr[v_comp_idx]->>'payment_code',
-  v_comp_arr[v_comp_idx]->>'fund_code',
-  v_period_ts,
-  v_alloc,
-  v_meth_arr[v_meth_idx]->>'mop_code',
-  v_base_currency,
-  v_method_rate,
-  v_method_currency
+  v_receipt_id, v_payment_id, p_receipt_total, NOW(), 'O',
+  p_user_code, NOW()
 );
 ```
 
+**After (fixed):**
+```sql
+INSERT INTO public.cn_receipt (
+  receipt_id, payment_id, receipt_total, status,
+  created_by, created_at
+) VALUES (
+  v_receipt_id, v_payment_id, p_receipt_total, 'O',
+  p_user_code, NOW()
+);
+```
+
+Changes:
+- `receipt_amount` → `receipt_total` (correct column name)
+- Remove `receipt_date` column and its `NOW()` value (column doesn't exist; `created_at` already serves this purpose)
+
 ## What Is NOT Changed
-- No schema changes needed (all columns already exist where needed)
+- No schema changes needed
 - No UI changes
-- `cn_payment_header` — untouched, already stores `payer_type` and `payer_id`
-- `c3_payment_components` — untouched, already has `sequence_no` and the RPC already saves it (line 101-109)
-- All other RPC logic (validation, advisory lock, component saving, method saving, sequential allocation, receipt generation, print logging) remains identical
+- All other RPC logic (header, components with `sequence_no`, payments, allocation, print logging) remains identical
 
 ## File
-- 1 new Supabase migration: `CREATE OR REPLACE FUNCTION create_c3_payment_with_receipt` with the 4 invalid columns removed from the `cn_payment` INSERT
+- 1 new Supabase migration: `CREATE OR REPLACE FUNCTION create_c3_payment_with_receipt` with the corrected receipt INSERT
 
