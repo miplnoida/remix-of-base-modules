@@ -167,8 +167,26 @@ export function useDuplicateBatchMode() {
   return { mode: mode as 'warning' | 'restriction', isLoading };
 }
 
+// ── Fetch MOP detail display config ──
+export function useMopDetailConfig() {
+  const { data: chequeConfig, isLoading: chqLoading } = usePaymentConfig('show_cheque_details');
+  const { data: cardConfig, isLoading: crdLoading } = usePaymentConfig('show_card_details');
+
+  return {
+    showChequeDetails: chequeConfig?.config_value !== false,
+    showCardDetails: cardConfig?.config_value !== false,
+    isLoading: chqLoading || crdLoading,
+  };
+}
+
 // ── Fetch C3 payment types config ──
 export function useC3PaymentTypes() {
+  const { data: config, isLoading } = usePaymentConfig('c3_payment_types');
+  const c3PaymentTypes = (!isLoading && config && Array.isArray(config.config_value))
+    ? (config.config_value as string[])
+    : [];
+  return { c3PaymentTypes, isLoading };
+}
   const { data: config, isLoading } = usePaymentConfig('c3_payment_types');
   const c3PaymentTypes = (!isLoading && config && Array.isArray(config.config_value))
     ? (config.config_value as string[])
