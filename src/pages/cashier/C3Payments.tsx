@@ -455,12 +455,14 @@ const C3Payments: React.FC = () => {
     setRemarks('');
     setSelectedMonth((new Date().getMonth() + 1).toString());
     setSelectedYear(new Date().getFullYear().toString());
+    setSequenceNo('');
     setSelectedComponents([]);
     setMethods([]);
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
     setInitialParamsApplied(true); // prevent re-applying URL params after reset
+    setC3ComponentsLoaded(true); // prevent re-loading components after reset
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
