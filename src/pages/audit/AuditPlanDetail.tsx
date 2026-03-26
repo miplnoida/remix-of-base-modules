@@ -232,6 +232,10 @@ export default function AuditPlanDetail() {
           <AutoPlanSuggestions planId={id!} planStatus={plan?.status || 'Draft'} />
         </TabsContent>
 
+        <TabsContent value="capacity">
+          <CapacityCalendarPanel planId={id!} />
+        </TabsContent>
+
         <TabsContent value="functions">
           <Card>
             <CardContent className="pt-6">
