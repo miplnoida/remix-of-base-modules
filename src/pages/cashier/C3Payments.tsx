@@ -533,7 +533,7 @@ const C3Payments: React.FC = () => {
           </Button>
         </div>
 
-        {/* Payment Header (now includes C3 Period) */}
+        {/* Payment Header (now includes C3 Period and Sequence Number) */}
         <PaymentHeaderForm
           payerType={payerType} setPayerType={setPayerType}
           payerId={payerId} setPayerId={setPayerId}
@@ -546,6 +546,8 @@ const C3Payments: React.FC = () => {
           showPeriod
           periodMonth={selectedMonth} setPeriodMonth={setSelectedMonth}
           periodYear={selectedYear} setPeriodYear={setSelectedYear}
+          sequenceNo={sequenceNo}
+          setSequenceNo={setSequenceNo}
         />
 
         {/* Payment Components */}
