@@ -11,7 +11,8 @@ interface UserCodeData {
 
 /**
  * Hook to get the current authenticated user's user_code.
- * The user_code is a 5-character unique identifier generated from first/last name.
+ * The user_code is derived as first-initial + full last name (e.g. "JBarry").
+ * Duplicates get a numeric suffix (JBarry2, JBarry3).
  * Use this code for audit fields like entered_by, modified_by, verified_by, etc.
  */
 export function useUserCode(): UserCodeData {
