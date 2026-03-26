@@ -93,7 +93,7 @@ const C3Payments: React.FC = () => {
   /* ── data fetching ───────────────────── */
 
   const { c3PaymentTypes, isLoading: c3TypesLoading } = useC3PaymentTypes();
-  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
+  const { showChequeDetails, showCardDetails, isLoading: mopConfigLoading } = useMopDetailConfig();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
 
   const { data: paymentTypesAll = [], isLoading: ptLoading } = useQuery({
@@ -507,7 +507,7 @@ const C3Payments: React.FC = () => {
         <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-lg border">
           <Button
             onClick={() => setShowConfirm(true)}
-            disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo}
+            disabled={!isEntry || isSaving || selectedComponents.length === 0 || methods.length === 0 || !payerInfo || mopConfigLoading}
             size="sm"
           >
             {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}

@@ -169,8 +169,32 @@ export function useDuplicateBatchMode() {
 
 // ── Fetch MOP detail display config ──
 export function useMopDetailConfig() {
-  const { data: chequeConfig, isLoading: chqLoading } = usePaymentConfig('show_cheque_details');
-  const { data: cardConfig, isLoading: crdLoading } = usePaymentConfig('show_card_details');
+  const { data: chequeConfig, isLoading: chqLoading } = useQuery({
+    queryKey: ['payment-module-config', 'show_cheque_details'],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_module_config')
+        .select('*')
+        .eq('config_key', 'show_cheque_details')
+        .single();
+      if (error) throw error;
+      return data as { id: string; config_key: string; config_value: any; description: string | null };
+    },
+  });
+  const { data: cardConfig, isLoading: crdLoading } = useQuery({
+    queryKey: ['payment-module-config', 'show_card_details'],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_module_config')
+        .select('*')
+        .eq('config_key', 'show_card_details')
+        .single();
+      if (error) throw error;
+      return data as { id: string; config_key: string; config_value: any; description: string | null };
+    },
+  });
 
   return {
     showChequeDetails: chequeConfig?.config_value !== false,

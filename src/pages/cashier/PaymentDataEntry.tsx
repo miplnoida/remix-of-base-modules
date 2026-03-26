@@ -32,7 +32,7 @@ const PaymentDataEntry = () => {
   const payment = usePaymentEntry();
   const receipt = useReceiptActions();
   const { userCode } = useUserCode();
-  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
+  const { showChequeDetails, showCardDetails, isLoading: mopConfigLoading } = useMopDetailConfig();
 
   // Sync batch
   React.useEffect(() => {
@@ -367,7 +367,7 @@ const PaymentDataEntry = () => {
 
         {/* Action Bar */}
         <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-lg border">
-          <Button onClick={handleGenerateReceipt} disabled={!isEntry || isSaving || detailLines.length === 0 || !payerInfo} size="sm">
+          <Button onClick={handleGenerateReceipt} disabled={!isEntry || isSaving || detailLines.length === 0 || !payerInfo || mopConfigLoading} size="sm">
             {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Receipt className="h-4 w-4 mr-1" />}
             Generate Receipt
           </Button>
