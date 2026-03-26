@@ -186,6 +186,12 @@ export default function AuditorProfiles() {
     }},
   ];
 
+  const statusFilterOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
+  ];
+
   const roleFilterOptions = [
     { value: 'all', label: 'All Roles' },
     ...AUDIT_ROLES.map(r => ({ value: r.value, label: r.label })),
