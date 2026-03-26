@@ -162,7 +162,22 @@ const C3Payments: React.FC = () => {
     setIsValidating(false);
   }, [payerType, payerId, payment, isValidating]);
 
-  const handleSelectComponent = useCallback((code: string) => {
+  // Auto-validate payer when navigated from C3 detail screens with query params
+  useEffect(() => {
+    if (initialParamsApplied) return;
+    const regNo = searchParams.get('regNo');
+    if (regNo && regNo.trim() && !payerInfo) {
+      setInitialParamsApplied(true);
+      (async () => {
+        setIsValidating(true);
+        const info = await payment.lookupPayer(payerType, regNo.trim());
+        setPayerInfo(info);
+        if (!info) toast({ title: 'Not Found', description: 'Payer not found. Please check the ID.', variant: 'destructive' });
+        setIsValidating(false);
+      })();
+    }
+  }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
+
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
     if (!pt) return;
     const newComp: PaymentComponent = {
