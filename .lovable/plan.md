@@ -1,90 +1,55 @@
 
 
-# Fix user_code Length Mismatch Across All Tables
+# Configurable Card & Cheque Detail Display
 
-## Problem
-`profiles.user_code` was widened to `varchar(50)` in Live, but 79 columns across 45+ tables still use `varchar(5)`, `varchar(8)`, `varchar(10)`, `varchar(20)`, or `varchar(30)`. When a user_code longer than the column limit is inserted, PostgreSQL throws a value-too-long exception — breaking receipt creation and any other write path.
+## Summary
+Add two new boolean config keys (`show_cheque_details`, `show_card_details`) to `payment_module_config`. Expose toggle switches on the config screen. Consume them in both payment entry routes to conditionally show/hide detail sections and skip related validations.
 
-## Root Cause (Receipt Flow)
-The C3 receipt creation path calls `create_c3_payment_with_receipt` RPC which inserts `p_user_code` (TEXT, no limit) into:
-- `cn_receipt.created_by` → **varchar(10)** — fails for codes > 10 chars
-- `cn_receipt_prints.printed_by` → **varchar(5)** — fails for codes > 5 chars
+## Database Change
+Insert two rows into `payment_module_config` via migration:
+- `show_cheque_details` → `true` (default enabled, preserves current behavior)
+- `show_card_details` → `true` (default enabled)
 
-The `create_payment_with_receipt` and `pay_invoices_with_receipt` RPCs have the same issue.
+## Config Screen (`PaymentModuleConfig.tsx`)
+Add a new tab **"MOP Detail Settings"** with two Switch toggles:
+- **Show Cheque Details** — "When enabled, cheque detail fields appear when CHQ is selected"
+- **Show Card Details** — "When enabled, card detail fields appear when CRD is selected"
 
-## Impact Analysis
+Each toggle saves immediately via `useUpdatePaymentConfig`.
 
-No function signatures need changes (all use `TEXT` parameters). No frontend changes needed (TypeScript `string` has no length limit). The fix is **100% database column widening**.
+## New Hook (`usePaymentModuleConfig.ts`)
+Add `useMopDetailConfig()` hook:
+```ts
+export function useMopDetailConfig() {
+  const { data: chequeConfig } = usePaymentConfig('show_cheque_details');
+  const { data: cardConfig } = usePaymentConfig('show_card_details');
+  return {
+    showChequeDetails: chequeConfig?.config_value !== false,
+    showCardDetails: cardConfig?.config_value !== false,
+    isLoading: ...
+  };
+}
+```
 
-### Columns to widen to varchar(50):
+## C3Payments + SearchPayInvoices (via `PaymentMethodModal.tsx`)
+- Accept optional `showChequeDetails` and `showCardDetails` boolean props (default `true`).
+- If `showChequeDetails` is false: hide the "Cheque Details" section, remove cheque validation from `canSave`.
+- If `showCardDetails` is false: hide the "Card Details" section, remove card validation from `canSave`.
+- When hidden, the saved `MethodRow` will have empty cheque/card fields (same as a CSH method).
+- Both `C3Payments.tsx` and `SearchPayInvoices.tsx` call `useMopDetailConfig()` and pass the flags to `PaymentMethodModal`.
 
-**varchar(5) columns (23 columns, 12 tables) — highest risk:**
+## PaymentDataEntry (`PaymentDataEntry.tsx`)
+- Call `useMopDetailConfig()`.
+- In `handleAddDetail`: only open `ChequeDetailModal` if `showChequeDetails` is true; only open `CardDetailModal` if `showCardDetails` is true.
+- In `handleEditMopDetail`: same conditional check.
+- Modal components remain unchanged — they simply won't be opened.
 
-| Table | Columns |
-|---|---|
-| cn_receipt_prints | printed_by |
-| cn_batch | entered_by, verified_by |
-| au_ip_self_employ | entered_by, verified_by |
-| c3_config_audit | changed_by |
-| c3_config_details | created_by, modified_by |
-| c3_config_periods | created_by, modified_by |
-| er_master | entered_by, modified_by, verified_by |
-| er_suit | entered_by, modified_by, verified_by |
-| ip_master | entered_by |
-| ip_self_employ | entered_by, verified_by |
-| tb_levy_slab_details | created_by, modified_by |
-| tb_levy_slabs | created_by, modified_by |
-
-**varchar(8) columns (1 column, 1 table):**
-
-| Table | Columns |
-|---|---|
-| cn_receipt | cancel_user |
-
-**varchar(10) columns (53 columns, 26 tables):**
-
-| Table | Columns |
-|---|---|
-| cn_receipt | created_by, updated_by |
-| c3_unified_audit_log | changed_by |
-| cashier_currency_config | updated_by |
-| cashier_currency_denominations | updated_by |
-| ce_* (14 tables) | created_by, updated_by, performed_by, approved_by |
-| ip_employer | entered_by, modified_by |
-| ip_other_payments | created_by, updated_by |
-| ip_vol_contrib_wages | entered_by, modified_by |
-| meeting_api_logs | created_by |
-| meetings | created_by, updated_by |
-| tb_batch_status | entered_by, modified_by |
-| tb_currencies | created_by, updated_by |
-| tb_payer_type | entered_by, updated_by |
-| tb_receipt_status | entered_by, modified_by |
-| tb_vc_eligibility_config | created_by, updated_by |
-| workflow_action_* (4 tables) | created_by, updated_by |
-
-**varchar(20) columns (2 columns, 1 table):**
-
-| Table | Columns |
-|---|---|
-| dev_info_screens | created_by, updated_by |
-
-**varchar(30) columns (1 column, 1 table):**
-
-| Table | Columns |
-|---|---|
-| er_commence | modified_by |
-
-## Implementation
-
-**Single database migration** containing ~80 `ALTER TABLE ... ALTER COLUMN ... TYPE varchar(50)` statements. These are safe, non-destructive widenings — no data loss, no downtime, no index rebuilds needed.
-
-No function changes required — all 3 receipt RPCs (`create_c3_payment_with_receipt`, `create_payment_with_receipt`, `pay_invoices_with_receipt`) use `TEXT` parameters internally.
-
-No frontend changes required — TypeScript types are `string` (no length limit).
-
-## Live Database Script
-The same ALTER statements will be provided as a standalone SQL script for manual execution in the Live environment.
-
-## Verification
-After migration, receipt creation via `/cashier/c3-payments` will succeed for any user_code up to 50 characters, and all audit/log inserts across the system will accept the full value without truncation or exception.
+## Files Modified
+1. **Migration SQL** — INSERT two config rows
+2. **`src/hooks/usePaymentModuleConfig.ts`** — add `useMopDetailConfig()` hook
+3. **`src/pages/cashier/PaymentModuleConfig.tsx`** — add "MOP Detail Settings" tab with toggles
+4. **`src/components/payments/PaymentMethodModal.tsx`** — accept config props, conditionally render sections and adjust validation
+5. **`src/pages/cashier/C3Payments.tsx`** — consume hook, pass props to modal
+6. **`src/pages/cashier/SearchPayInvoices.tsx`** — consume hook, pass props to modal
+7. **`src/pages/cashier/PaymentDataEntry.tsx`** — consume hook, conditionally skip opening cheque/card modals
 
