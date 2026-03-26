@@ -29,7 +29,13 @@ export async function logApplicationError(
   context: ErrorContext = {}
 ): Promise<void> {
   try {
-    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const errorObj = error instanceof Error
+      ? error
+      : new Error(
+          typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as any).message)
+            : String(error)
+        );
     const errorMessage = errorObj.message || 'Unknown error occurred';
     const stackTrace = errorObj.stack || '';
     
