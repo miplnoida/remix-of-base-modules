@@ -1,98 +1,62 @@
-# Parent-Child Company Mapping — Legacy Parity Implementation
-
-## Legacy Behavior (from screenshots)
-
-**Screenshot 1 — Mapping Result Dialog**: After saving a mapping, a "Mapping Result" dialog appears showing three categories:
-
-- **Mapped** (green ✅): Companies successfully linked (e.g., "A.D.T Incorporated")
-- **Unmapped** (red ✗): Companies that failed to map ("None")
-- **Already Linked** (yellow ⚠): Companies already linked to other parents (e.g., "A Fulton & Co. Ltd")
-
-**Screenshot 2 — Unmap Confirmation Dialog**: When removing a child company from a parent, a "Confirm Action" dialog appears showing:
-
-- Parent and child company names
-- List of affected users (with person icons) who will lose access
-- "Cancel" / "Yes, Remove" buttons
-- Warning: "This action cannot be undone"
-
-## Current Implementation Gaps
 
 
-| Feature                 | Legacy                                              | Current                                                                 | Gap         |
-| ----------------------- | --------------------------------------------------- | ----------------------------------------------------------------------- | ----------- |
-| Mapping result feedback | Detailed dialog with Mapped/Unmapped/Already Linked | Simple toast "Company mapping updated"                                  | **Missing** |
-| Unmap confirmation      | Dialog listing affected users                       | Badge click instantly removes from array (no confirmation, no API call) | **Missing** |
-| Affected users lookup   | Shows user names who lose access                    | No API call or UI                                                       | **Missing** |
+# Add "Payment" Button to C3 Detail Screens → Navigate to C3 Payments
 
+## Overview
+
+Add a "Payment" button in each row of the Report List table on the three C3 detail screens, visible only when the existing `$ Pay` button is shown and enabled. Clicking it navigates to `/cashier/c3-payments` with query params pre-filled. The C3 Payments page must read those params and auto-populate its header fields.
+
+## Current State
+
+- **C3ContributionList**, **NwDirectorList**, **SelfEmployedContributionList** each have a Payment column with `$ Pay`, `Paid`, and `BEMA` states.
+- The `$ Pay` button navigates to the offline payment page.
+- The record types (`C3ContributionRecord`, `NwdContributionRecord`, `SeContributionRecord`) have `month`, `year`, `schedule` (ER/NW only).
+- The `registration_number` (regNo) is available from the selected company/SE dropdown, not from the row data.
+- `C3Payments.tsx` does NOT read any query params or location state — it starts with defaults (`payerType = 'ER'`, empty `payerId`).
 
 ## Implementation Plan
 
-### 1. Add two new service functions in `wizAdminApiService.ts`
+### 1. Add "Payment" button to all 3 list screens
 
-- `**removeCompanyMapping(parentId, childId)**` — calls `{ action: "remove_company_mapping", params: { parent_id, child_id } }`. Returns `{ affected_users: [{ name }] }`.
-- `**getCompanyMappingUsers(parentId, childId)**` — calls `{ action: "get_mapping_users", params: { parent_id, child_id } }`. Returns `{ users: [{ id, first_name, last_name }] }`.
+In each screen, add a new "Payment" button **next to** the existing `$ Pay` button (inside the same `payment_status === '$ Pay'` conditional block). The button navigates to `/cashier/c3-payments` with query params:
 
-### 2. Update `WizEmployerList.tsx` — Mapping Result Dialog
-
-After `saveMapping` succeeds, instead of a toast, parse the API response which should return:
-
-```json
-{
-  "mapped": [{ "id": 1, "company_name": "..." }],
-  "unmapped": [{ "id": 2, "company_name": "...", "reason": "..." }],
-  "already_linked": [{ "id": 3, "company_name": "...", "current_parent": "..." }]
-}
+```
+/cashier/c3-payments?regNo={regNo}&month={month_number}&year={year}&schedule={schedule}&payerType={type}
 ```
 
-Display a **"Mapping Result" dialog** with three columns (green/red/yellow) matching the legacy layout. Include a "Close" button that dismisses and refreshes the list.
+**Source of values per screen:**
 
-### 3. Update `WizEmployerList.tsx` — Unmap Confirmation Dialog
+| Param | C3ContributionList | NwDirectorList | SelfEmployedContributionList |
+|-------|-------------------|----------------|------------------------------|
+| `regNo` | `companies.find(c => c.id === selectedCompanyId).registration_number` | Same from NW companies | `seList.find(s => s.id === selectedSeId).social_security_number` |
+| `month` | `c.month_number` | `c.month_number` | `c.month_number` |
+| `year` | `c.year` | `c.year` | `c.year` |
+| `schedule` | `c.schedule` | `c.schedule` | `0` (SE has no schedule) |
+| `payerType` | `ER` | `NW` | `SE` |
 
-When a user clicks the `×` on a child company badge:
+**Files**: `C3ContributionList.tsx`, `NwDirectorList.tsx`, `SelfEmployedContributionList.tsx`
 
-1. Call `getCompanyMappingUsers(parentId, childId)` to fetch affected users
-2. Show a **"Confirm Action" dialog** with:
-  - Parent and child company names (bold)
-  - "Removing this mapping will revoke access for the following user(s):"
-  - List of user names with person icons
-  - "This action cannot be undone. Do you want to continue?"
-  - "Cancel" and "Yes, Remove" buttons
-3. On "Yes, Remove": call `removeCompanyMapping(parentId, childId)`, then remove from `childIds` state and refresh companies list
+Each file gets:
+- A helper to resolve `regNo` from the selected dropdown entity
+- A `handlePayment(record)` function that builds the URL and calls `navigate()`
+- A "Payment" button rendered alongside `$ Pay` in the `payment_status === '$ Pay'` block, styled consistently (outline, blue text)
 
-### 4. API Requirements from C3-Wizard
+### 2. Update C3Payments.tsx to read query params
 
-Two API actions are needed. Check if they already exist; if not, specify:
+Add `useSearchParams` from `react-router-dom` and on mount:
+- Read `regNo`, `month`, `year`, `schedule`, `payerType` from query params
+- Pre-set `payerType`, `payerId` (to `regNo`), `selectedMonth`, `selectedYear`
+- Auto-trigger `handlePayerBlur()` to validate the payer and load info
+- Store schedule in state if needed for downstream use
 
-**Action: `get_mapping_users**`
+This ensures the C3 Payments screen opens with the correct context fully loaded from real backend data.
 
-- Request: `{ "action": "get_mapping_users", "params": { "parent_id": 123, "child_id": 456 } }`
-- Response: `{ "status": "success", "data": { "users": [{ "id": 1, "first_name": "David", "last_name": "Walwyn" }] } }`
+### Files Modified
+1. `src/pages/c3Management/c3Details/C3ContributionList.tsx` — add Payment button with `payerType=ER`
+2. `src/pages/c3Management/c3Details/NwDirectorList.tsx` — add Payment button with `payerType=NW`
+3. `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` — add Payment button with `payerType=SE`
+4. `src/pages/cashier/C3Payments.tsx` — read query params and auto-populate header
 
-**Action: `remove_company_mapping**`
+### No API Changes Required
+All required data (regNo, month, year, schedule) is already available from the existing dropdown selections and row data. No new backend calls needed.
 
-- Request: `{ "action": "remove_company_mapping", "params": { "parent_id": 123, "child_id": 456 } }`
-- Response: `{ "status": "success", "data": { "affected_users": [...], "removed": true } }`
-
-**Action: `update_company_mapping` (existing)** — Response should be enhanced to return:
-
-```json
-{
-  "status": "success",
-  "data": {
-    "mapped": [{ "id": 1, "company_name": "A.D.T Incorporated" }],
-    "unmapped": [],
-    "already_linked": [{ "id": 2, "company_name": "A Fulton & Co. Ltd" }]
-  }
-}
-```
-
-### Files to Modify
-
-- `src/services/wizAdminApiService.ts` — add `removeCompanyMapping`, `getCompanyMappingUsers`, and response types
-- `src/pages/c3Management/employers/WizEmployerList.tsx` — add Mapping Result dialog, Unmap Confirmation dialog, and updated save flow
-
-### Important Notes
-
-- If the C3-Wizard APIs (`get_mapping_users`, `remove_company_mapping`) do not yet exist, they must be implemented on the wizard side first. The enhanced `update_company_mapping` response is also required.
-- No hardcoded logic — all user/company data comes from API responses.
-- Backward compatible — the existing mapping flow continues to work; we're adding result feedback and confirmation on top.
