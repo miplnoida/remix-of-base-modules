@@ -24,6 +24,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
+import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { AllocationPreviewModal } from '@/components/payments/AllocationPreviewModal';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
