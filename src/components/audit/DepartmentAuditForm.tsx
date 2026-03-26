@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Zap } from 'lucide-react';
-import { useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 
 interface DepartmentAuditFormProps {
@@ -26,7 +26,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, isAdHoc = f
   const [isSaving, setIsSaving] = useState(false);
   
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: activeAuditors = [] } = useIAActiveAuditors();
   
   const [formData, setFormData] = useState({
     departmentId: departmentAudit?.department_id || '',
@@ -45,7 +45,6 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, isAdHoc = f
   const { data: departmentFunctions = [] } = useIADepartmentFunctions(formData.departmentId || undefined);
 
   const selectedDepartment = departments.find((d: any) => d.id === formData.departmentId);
-  const activeAuditors = auditors.filter((a: any) => a.employment_status === 'Active' || a.status === 'Active');
 
   const toggleFunction = (func: string) => {
     setFormData(prev => ({

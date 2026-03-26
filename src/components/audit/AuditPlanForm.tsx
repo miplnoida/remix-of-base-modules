@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
+import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuditPlanFormProps {
@@ -18,8 +18,7 @@ interface AuditPlanFormProps {
 export function AuditPlanForm({ plan, onClose }: AuditPlanFormProps) {
   const { toast } = useToast();
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
-  const activeAuditors = auditors.filter((a: any) => a.employment_status === 'Active' || a.status === 'Active');
+  const { data: activeAuditors = [] } = useIAActiveAuditors();
 
   const [formData, setFormData] = useState({
     period: plan?.period || 'Monthly',

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Calendar, AlertTriangle, CheckCircle2, Clock, Users, Search, RefreshCw, Loader2, Shield } from 'lucide-react';
-import { useIAAuditors, useIALeaveRequests, useIAHolidays } from '@/hooks/useAuditData';
+import { useIAActiveAuditors, useIALeaveRequests, useIAHolidays } from '@/hooks/useAuditData';
 import { useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
 import { ConflictAlertPanel } from './ConflictAlertPanel';
 import { formatDateForDisplay } from '@/lib/format-config';
@@ -23,7 +23,7 @@ interface AuditorDayCell {
 }
 
 export function TeamAvailabilityDashboard({ planId }: TeamAvailabilityDashboardProps) {
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { data: leaveRequests = [] } = useIALeaveRequests();
   const { data: holidays = [] } = useIAHolidays();
   const checkAvailability = useTeamAvailabilityCheck();

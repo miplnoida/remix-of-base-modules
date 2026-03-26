@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
 
 interface ActivityScheduleFormProps {
@@ -16,8 +16,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
   const { toast } = useToast();
   const { data: departments = [] } = useIADepartments();
   const { data: departmentAudits = [] } = useIADepartmentAudits();
-  const { data: auditors = [] } = useIAAuditors();
-  const activeAuditors = auditors.filter((a: any) => a.employment_status === 'Active' || a.status === 'Active');
+  const { data: activeAuditors = [] } = useIAActiveAuditors();
 
   const [formData, setFormData] = useState({
     title: '',
