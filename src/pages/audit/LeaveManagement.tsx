@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, CheckCircle, XCircle, Clock, Calendar as CalendarIcon } from 'lucide-react';
-import { useIALeaveRequests, useIALeaveRequestMutations, useIAAuditors } from '@/hooks/useAuditData';
+import { useIALeaveRequests, useIALeaveRequestMutations, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
@@ -16,7 +16,7 @@ export default function LeaveAndVacationManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all' });
   const { data: leaveRequests = [], isLoading } = useIALeaveRequests();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { create, updateStatus } = useIALeaveRequestMutations();
   const [formData, setFormData] = useState({ auditor_id: '', leave_type: '', start_date: '', end_date: '', reason: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);

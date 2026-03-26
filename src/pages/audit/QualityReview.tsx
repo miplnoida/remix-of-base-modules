@@ -10,7 +10,7 @@ import { Plus, ClipboardCheck, Star, AlertTriangle, CheckCircle } from 'lucide-r
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAQualityReviews, useIAEngagements } from '@/hooks/useAuditDataPhase2';
-import { useIAAuditors } from '@/hooks/useAuditData';
+import { useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
@@ -23,7 +23,7 @@ const emptyForm = { engagement_id: '', reviewer_id: '', review_date: new Date().
 export default function QualityReview() {
   const { data = [], isLoading, isError, create, update } = useIAQualityReviews();
   const { data: engagements = [] } = useIAEngagements();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [searchParams] = useSearchParams();
   const engagementIdFilter = searchParams.get('engagement_id');

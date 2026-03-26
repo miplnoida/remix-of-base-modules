@@ -222,6 +222,26 @@ export function useIAAuditors() {
   });
 }
 
+/**
+ * Returns only active auditors for use in assignment dropdowns,
+ * engagement forms, and any selection context.
+ * Inactive auditors are preserved in the registry for history but excluded here.
+ */
+export function useIAActiveAuditors() {
+  return useQuery({
+    queryKey: ['ia_auditors', 'active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_auditors')
+        .select('*')
+        .eq('employment_status', 'Active')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useIAAuditorMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

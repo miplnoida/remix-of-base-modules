@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertTriangle, ShieldCheck, Info } from 'lucide-react';
-import { useIADepartments, useIADepartmentFunctions, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useResolvedEngagementRisk } from '@/hooks/useEngagementRisk';
 import { StatusBadge } from '@/components/common';
 
@@ -29,7 +29,7 @@ const RISK_SOURCE_LABELS: Record<string, string> = {
 
 export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagementToPlanFormProps) {
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [form, setForm] = useState({

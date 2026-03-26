@@ -2911,6 +2911,7 @@ export type Database = {
           payment_code: string
           payment_id: number
           period: string | null
+          sequence_no: number | null
           sort_order: number | null
         }
         Insert: {
@@ -2921,6 +2922,7 @@ export type Database = {
           payment_code: string
           payment_id: number
           period?: string | null
+          sequence_no?: number | null
           sort_order?: number | null
         }
         Update: {
@@ -2931,6 +2933,7 @@ export type Database = {
           payment_code?: string
           payment_id?: number
           period?: string | null
+          sequence_no?: number | null
           sort_order?: number | null
         }
         Relationships: []

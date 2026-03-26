@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Edit3, MessageSquare, Plus } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
-import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities, useIAAuditors } from '@/hooks/useAuditData';
+import { useIAFollowUps, useIAFollowUpMutations, useIADepartments, useIAFindings, useIAActivities, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { EngagementFilterBanner } from '@/components/audit/EngagementFilterBanner';
@@ -38,7 +38,7 @@ export default function FollowUpTracker() {
   const { data: departments = [] } = useIADepartments();
   const { data: findings = [] } = useIAFindings();
   const { data: activities = [] } = useIAActivities();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { create, update } = useIAFollowUpMutations();
 
   const departmentMap = useMemo(() => new Map((departments || []).map((d: any) => [d.id, d.name])), [departments]);

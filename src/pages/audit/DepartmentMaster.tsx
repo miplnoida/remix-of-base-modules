@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useTbOffices, useDepartments } from '@/hooks/useAdminData';
@@ -239,18 +240,46 @@ export default function DepartmentMaster() {
       <div>
         <Label>Department Head *</Label>
         {headSelectMode === 'select' ? (
-          <Select
-            value={form.head_profile_id || ''}
-            onValueChange={handleHeadSelect}
-          >
-            <SelectTrigger><SelectValue placeholder="Select department head" /></SelectTrigger>
-            <SelectContent>
-              {profiles.map(p => (
-                <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-              ))}
-              <SelectItem value={OTHER_VALUE}>Other (Enter manually)</SelectItem>
-            </SelectContent>
-          </Select>
+          <>
+            <SearchableSelect
+              value={form.head_profile_id || ''}
+              onValueChange={(val) => {
+                if (val === OTHER_VALUE) {
+                  setHeadSelectMode('other');
+                  setForm(f => ({ ...f, head: '', head_profile_id: null, custom_head: '', email: '', phone: '' }));
+                } else {
+                  const p = profiles.find(pr => pr.id === val);
+                  setForm(f => ({
+                    ...f,
+                    head: p?.full_name || '',
+                    head_profile_id: val,
+                    custom_head: '',
+                    email: p?.email || '',
+                    phone: p?.phone || '',
+                  }));
+                }
+              }}
+              options={[
+                ...profiles.map(p => ({
+                  value: p.id,
+                  label: `${p.full_name}${p.user_code ? ` (${p.user_code})` : ''}`,
+                  searchText: `${p.email || ''} ${p.user_code || ''} ${p.full_name}`,
+                })),
+                { value: OTHER_VALUE, label: 'Other (Enter manually)' },
+              ]}
+              placeholder="Search by name, email, or code..."
+              searchPlaceholder="Type to search system users..."
+              emptyMessage="No system users found."
+            />
+            {form.head_profile_id && (() => {
+              const selected = profiles.find(p => p.id === form.head_profile_id);
+              return selected?.email ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email: {selected.email}{selected.phone ? ` • Phone: ${selected.phone}` : ''}
+                </p>
+              ) : null;
+            })()}
+          </>
         ) : (
           <div className="space-y-2">
             <Input
