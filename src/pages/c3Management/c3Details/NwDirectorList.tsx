@@ -100,6 +100,20 @@ const NwDirectorList: React.FC = () => {
     navigate(`/c3-management/offline-payment/nw_director/${record.header_id}?companyId=${selectedCompanyId}`);
   };
 
+  // "Payment" → navigate to C3 Payments cashier screen
+  const handlePayment = (record: NwdContributionRecord) => {
+    const company = companies.find(c => String(c.id) === selectedCompanyId);
+    if (!company) return;
+    const params = new URLSearchParams({
+      regNo: company.registration_number,
+      month: String(record.month_number),
+      year: record.year,
+      schedule: String(record.schedule),
+      payerType: 'NW',
+    });
+    navigate(`/cashier/c3-payments?${params.toString()}`);
+  };
+
   // "Paid" → open receipt modal
   const handlePaid = (record: NwdContributionRecord) => {
     setReceiptModalRecord(record);
@@ -244,10 +258,16 @@ const NwDirectorList: React.FC = () => {
                             Paid <Printer className="h-3 w-3 text-green-600" />
                           </span>
                         ) : c.payment_status === '$ Pay' ? (
-                          <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
-                            onClick={() => handlePay(c)}>
-                            $ Pay
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="outline" size="sm" className="border-green-500 text-green-600 text-xs h-7"
+                              onClick={() => handlePay(c)}>
+                              $ Pay
+                            </Button>
+                            <Button variant="outline" size="sm" className="border-blue-500 text-blue-600 text-xs h-7"
+                              onClick={() => handlePayment(c)}>
+                              Payment
+                            </Button>
+                          </div>
                         ) : c.payment_status === 'BEMA' ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs text-muted-foreground">BEMA</span>
                         ) : null}

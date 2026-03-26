@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,16 +53,18 @@ const C3Payments: React.FC = () => {
   const payment = usePaymentEntry();
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
+  const [searchParams] = useSearchParams();
 
   // Header state
-  const [payerType, setPayerType] = useState('ER');
-  const [payerId, setPayerId] = useState('');
+  const [payerType, setPayerType] = useState(() => searchParams.get('payerType') || 'ER');
+  const [payerId, setPayerId] = useState(() => searchParams.get('regNo') || '');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [dateReceived, setDateReceived] = useState<Date | undefined>(new Date());
   const [remarks, setRemarks] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
+  const [initialParamsApplied, setInitialParamsApplied] = useState(false);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
@@ -158,6 +161,22 @@ const C3Payments: React.FC = () => {
     if (!info) toast({ title: 'Not Found', description: 'Payer not found. Please check the ID.', variant: 'destructive' });
     setIsValidating(false);
   }, [payerType, payerId, payment, isValidating]);
+
+  // Auto-validate payer when navigated from C3 detail screens with query params
+  useEffect(() => {
+    if (initialParamsApplied) return;
+    const regNo = searchParams.get('regNo');
+    if (regNo && regNo.trim() && !payerInfo) {
+      setInitialParamsApplied(true);
+      (async () => {
+        setIsValidating(true);
+        const info = await payment.lookupPayer(payerType, regNo.trim());
+        setPayerInfo(info);
+        if (!info) toast({ title: 'Not Found', description: 'Payer not found. Please check the ID.', variant: 'destructive' });
+        setIsValidating(false);
+      })();
+    }
+  }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
 
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
@@ -379,6 +398,7 @@ const C3Payments: React.FC = () => {
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
+    setInitialParamsApplied(true); // prevent re-applying URL params after reset
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
