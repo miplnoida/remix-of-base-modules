@@ -6,6 +6,7 @@ import { useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { AddEngagementToPlanForm } from './AddEngagementToPlanForm';
+import { OverrideReasonModal } from './OverrideReasonModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useManualOverride } from '@/hooks/useAutoPlanEngine';
 
 interface EngagementBuilderProps {
   planId: string;
