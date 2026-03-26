@@ -24,6 +24,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrencyWithCode } from '@/utils/currencyConverter';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
+import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { AllocationPreviewModal } from '@/components/payments/AllocationPreviewModal';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
@@ -118,6 +119,7 @@ const SearchPayInvoices: React.FC = () => {
   const { data: invoiceStatuses } = useInvoiceStatuses();
   const { data: invoiceTypes } = useInvoiceTypes();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
+  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
 
   const { data: mopTypes = [] } = useQuery({
     queryKey: ['tb_method_of_payment'],
@@ -654,6 +656,8 @@ const SearchPayInvoices: React.FC = () => {
           mopTypes={mopTypes}
           enabledCurrencies={enabledCurrencies}
           baseCurrCode={baseCurrCode}
+          showChequeDetails={showChequeDetails}
+          showCardDetails={showCardDetails}
         />
         <AllocationPreviewModal
           open={showAllocationPreview}

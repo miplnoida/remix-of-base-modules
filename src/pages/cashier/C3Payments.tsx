@@ -23,7 +23,7 @@ import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
 import { useUserCode } from '@/hooks/useUserCode';
-import { useC3PaymentTypes } from '@/hooks/usePaymentModuleConfig';
+import { useC3PaymentTypes, useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
 import { useEnabledCashierCurrencies } from '@/hooks/useCashierCurrencyConfig';
 import { PaymentMethodModal, type MethodRow } from '@/components/payments/PaymentMethodModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
@@ -93,6 +93,7 @@ const C3Payments: React.FC = () => {
   /* ── data fetching ───────────────────── */
 
   const { c3PaymentTypes, isLoading: c3TypesLoading } = useC3PaymentTypes();
+  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
 
   const { data: paymentTypesAll = [], isLoading: ptLoading } = useQuery({
@@ -753,6 +754,8 @@ const C3Payments: React.FC = () => {
           mopTypes={mopTypes}
           enabledCurrencies={enabledCurrencies}
           baseCurrCode={baseCurrCode}
+          showChequeDetails={showChequeDetails}
+          showCardDetails={showCardDetails}
         />
         <ReceiptCancelModal
           open={showCancelModal}

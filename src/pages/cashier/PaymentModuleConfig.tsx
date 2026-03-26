@@ -256,6 +256,7 @@ const PaymentModuleConfig: React.FC = () => {
         <TabsList>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
           <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
+          <TabsTrigger value="mop-details">MOP Detail Settings</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
           <TabsTrigger value="receipt">Receipt & Invoice</TabsTrigger>
@@ -390,6 +391,52 @@ const PaymentModuleConfig: React.FC = () => {
                 {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
                 Save C3 Payment Types
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── MOP DETAIL SETTINGS TAB ─── */}
+        <TabsContent value="mop-details" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Settings className="h-4 w-4" />
+                Method of Payment — Detail Entry
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Control whether supplementary detail fields appear when specific payment methods are selected during payment entry.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Cheque Details Toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Show Cheque Details</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, cheque detail fields (cheque number, bank, date, etc.) appear when CHQ method is selected.
+                  </p>
+                </div>
+                <Switch
+                  checked={configs?.find(c => c.config_key === 'show_cheque_details')?.config_value !== false}
+                  onCheckedChange={(checked) => handleSave('show_cheque_details', checked)}
+                  disabled={updateConfig.isPending}
+                />
+              </div>
+
+              {/* Card Details Toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Show Card Details</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, card detail fields (card type, card number, expiry, etc.) appear when CRD method is selected.
+                  </p>
+                </div>
+                <Switch
+                  checked={configs?.find(c => c.config_key === 'show_card_details')?.config_value !== false}
+                  onCheckedChange={(checked) => handleSave('show_card_details', checked)}
+                  disabled={updateConfig.isPending}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -37,12 +37,15 @@ interface PaymentMethodModalProps {
   mopTypes: { mop_code: string; short_description: string; long_description?: string }[];
   enabledCurrencies: { currency_code: string; exchange_rate: number; is_main_currency?: boolean }[];
   baseCurrCode: string;
+  showChequeDetails?: boolean;
+  showCardDetails?: boolean;
 }
 
 /* ─── Component ─────────────────────────────────── */
 
 export function PaymentMethodModal({
   open, onOpenChange, onSave, editRow, mopTypes, enabledCurrencies, baseCurrCode,
+  showChequeDetails = true, showCardDetails = true,
 }: PaymentMethodModalProps) {
   const [mopCode, setMopCode] = useState('');
   const [currencyCode, setCurrencyCode] = useState('');
@@ -178,9 +181,12 @@ export function PaymentMethodModal({
     setExpireDate(formatted);
   };
 
+  const chequeEnabled = isCheque && showChequeDetails;
+  const cardEnabled = isCard && showCardDetails;
+
   const canSave = mopCode && originalAmount > 0
-    && (!isCheque || chequeNumber.trim())
-    && (!isCard || (cardType && cardNumber.trim()));
+    && (!chequeEnabled || chequeNumber.trim())
+    && (!cardEnabled || (cardType && cardNumber.trim()));
 
   const handleSave = () => {
     if (!canSave) return;
@@ -196,15 +202,15 @@ export function PaymentMethodModal({
       original_amount: originalAmount,
       exchange_rate: exchangeRate,
       base_amount: baseAmount,
-      bank_code: isCheque ? bankCode : '',
-      mop_number: isCheque ? chequeNumber.trim() : isCard ? cardNumber.trim() : '',
-      cheque_date: isCheque ? parseDateStr(chequeDateStr) : null,
-      mop_account_number: isCheque ? accountNumber.trim() : '',
-      mop_notes1: isCheque ? chequeNotes.trim() : isCard ? cardNotes.trim() : '',
-      credit_card_code: isCard ? cardType : '',
-      expiration_date: isCard ? expireDate : '',
-      card_desc: isCard && merchant ? (merchant as any).credit_card_name : '',
-      bank_desc: isCheque && bankObj ? (bankObj as any).name : '',
+      bank_code: chequeEnabled ? bankCode : '',
+      mop_number: chequeEnabled ? chequeNumber.trim() : cardEnabled ? cardNumber.trim() : '',
+      cheque_date: chequeEnabled ? parseDateStr(chequeDateStr) : null,
+      mop_account_number: chequeEnabled ? accountNumber.trim() : '',
+      mop_notes1: chequeEnabled ? chequeNotes.trim() : cardEnabled ? cardNotes.trim() : '',
+      credit_card_code: cardEnabled ? cardType : '',
+      expiration_date: cardEnabled ? expireDate : '',
+      card_desc: cardEnabled && merchant ? (merchant as any).credit_card_name : '',
+      bank_desc: chequeEnabled && bankObj ? (bankObj as any).name : '',
     };
     onSave(row);
     onOpenChange(false);
@@ -278,7 +284,7 @@ export function PaymentMethodModal({
         )}
 
         {/* ── Cheque Fields ── */}
-        {isCheque && (
+        {chequeEnabled && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cheque Details</p>
             <div className="grid grid-cols-2 gap-4">
@@ -320,7 +326,7 @@ export function PaymentMethodModal({
         )}
 
         {/* ── Card Fields ── */}
-        {isCard && (
+        {cardEnabled && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card Details</p>
             <div className="grid grid-cols-2 gap-4">
