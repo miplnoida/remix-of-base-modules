@@ -9,6 +9,7 @@ import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements }
 import { useIAPlanFunctions } from '@/hooks/useAuditPlanFunctions';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
+import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
