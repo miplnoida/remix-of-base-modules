@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/shared/SortableTableHead';
+import type { SortDirection } from '@/hooks/useTableSort';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,6 +37,8 @@ const PAGE_SIZE = 20;
 
 const AuditTrail: React.FC = () => {
   const [page, setPage] = useState(0);
+  const [sortKey, setSortKey] = useState('timestamp');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [userFilter, setUserFilter] = useState('');
@@ -44,13 +48,22 @@ const AuditTrail: React.FC = () => {
   const [actionFilter, setActionFilter] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+    setPage(0);
+  };
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['audit-trail', page, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
+    queryKey: ['audit-trail', page, sortKey, sortDirection, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
     queryFn: async () => {
       let query = supabase
         .from('system_audit_trail')
         .select('*', { count: 'exact' })
-        .order('timestamp', { ascending: false })
+        .order(sortKey, { ascending: sortDirection === 'asc', nullsFirst: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (dateFrom) query = query.gte('timestamp', new Date(dateFrom).toISOString());
@@ -173,13 +186,13 @@ const AuditTrail: React.FC = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Timestamp</TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Action</TableHead>
-                          <TableHead>Module</TableHead>
-                          <TableHead>Route</TableHead>
-                          <TableHead>Entity Type</TableHead>
-                          <TableHead>Entity ID</TableHead>
+                          <SortableTableHead sortKey="timestamp" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Timestamp</SortableTableHead>
+                          <SortableTableHead sortKey="user_name" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>User</SortableTableHead>
+                          <SortableTableHead sortKey="action" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Action</SortableTableHead>
+                          <SortableTableHead sortKey="module" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Module</SortableTableHead>
+                          <SortableTableHead sortKey="route" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Route</SortableTableHead>
+                          <SortableTableHead sortKey="entity_type" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Entity Type</SortableTableHead>
+                          <SortableTableHead sortKey="entity_id" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort}>Entity ID</SortableTableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
