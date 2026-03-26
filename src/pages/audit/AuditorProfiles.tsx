@@ -234,8 +234,9 @@ export default function AuditorProfiles() {
               </p>
               <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {profiles.length} system users</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {auditors.length} registered auditors</span>
-                <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5 text-amber-600" /> {availableProfiles.length} available to import</span>
+                <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> {auditors.filter((a: any) => (a.employment_status || 'Active') === 'Active').length} active auditors</span>
+                <span className="flex items-center gap-1"><ShieldOff className="h-3.5 w-3.5 text-muted-foreground" /> {auditors.filter((a: any) => a.employment_status === 'Inactive').length} inactive</span>
+                <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5 text-accent-foreground" /> {availableProfiles.length} available to import</span>
               </div>
             </div>
           </div>
