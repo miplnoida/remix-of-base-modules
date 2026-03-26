@@ -1,55 +1,54 @@
 
 
-# Configurable Card & Cheque Detail Display
+# Fix Payment Processing After MOP Detail Settings Change
 
-## Summary
-Add two new boolean config keys (`show_cheque_details`, `show_card_details`) to `payment_module_config`. Expose toggle switches on the config screen. Consume them in both payment entry routes to conditionally show/hide detail sections and skip related validations.
+## Root Cause Analysis
 
-## Database Change
-Insert two rows into `payment_module_config` via migration:
-- `show_cheque_details` → `true` (default enabled, preserves current behavior)
-- `show_card_details` → `true` (default enabled)
+After investigating the database, RPC functions, error logs, and frontend code, I identified **three concrete issues** causing payment failures:
 
-## Config Screen (`PaymentModuleConfig.tsx`)
-Add a new tab **"MOP Detail Settings"** with two Switch toggles:
-- **Show Cheque Details** — "When enabled, cheque detail fields appear when CHQ is selected"
-- **Show Card Details** — "When enabled, card detail fields appear when CRD is selected"
+### Issue 1: Duplicate `create_payment_with_receipt` RPC (PRIMARY CAUSE)
+There are **two overloads** of `create_payment_with_receipt` in PostgreSQL that differ only in `p_date_received` type (`text` vs `date`). All other parameters are identical. PostgREST cannot reliably disambiguate these, causing intermittent `could not choose a best candidate function` errors. This is the most likely cause of the RPC failures logged in `system_error_logs`.
 
-Each toggle saves immediately via `useUpdatePaymentConfig`.
+### Issue 2: Error messages logged as `[object Object]`
+The `logApplicationError` function does `new Error(String(error))` for non-Error objects. Supabase RPC errors are plain objects `{message, code, details, hint}`, so `String(obj)` produces `[object Object]`, hiding the real error message.
 
-## New Hook (`usePaymentModuleConfig.ts`)
-Add `useMopDetailConfig()` hook:
-```ts
-export function useMopDetailConfig() {
-  const { data: chequeConfig } = usePaymentConfig('show_cheque_details');
-  const { data: cardConfig } = usePaymentConfig('show_card_details');
-  return {
-    showChequeDetails: chequeConfig?.config_value !== false,
-    showCardDetails: cardConfig?.config_value !== false,
-    isLoading: ...
-  };
-}
+### Issue 3: MOP config freshness not guaranteed
+The `useMopDetailConfig` hook uses default React Query `staleTime`, meaning after toggling config on the settings page, navigating to a payment screen could show stale config values briefly.
+
+## Fixes
+
+### 1. Database Migration — Drop duplicate RPC overload
+Drop the `create_payment_with_receipt(... p_date_received date ...)` overload, keeping only the `text` version (which the frontend already uses). This eliminates PostgREST ambiguity.
+
+```sql
+DROP FUNCTION IF EXISTS public.create_payment_with_receipt(
+  text, text, text, date, text, jsonb, numeric, integer, text
+);
 ```
 
-## C3Payments + SearchPayInvoices (via `PaymentMethodModal.tsx`)
-- Accept optional `showChequeDetails` and `showCardDetails` boolean props (default `true`).
-- If `showChequeDetails` is false: hide the "Cheque Details" section, remove cheque validation from `canSave`.
-- If `showCardDetails` is false: hide the "Card Details" section, remove card validation from `canSave`.
-- When hidden, the saved `MethodRow` will have empty cheque/card fields (same as a CSH method).
-- Both `C3Payments.tsx` and `SearchPayInvoices.tsx` call `useMopDetailConfig()` and pass the flags to `PaymentMethodModal`.
+### 2. Fix `logApplicationError` — Properly extract error messages
+In `src/lib/globalErrorHandler.ts`, update the error serialization on line 32 to extract `.message` from Supabase error objects before wrapping in `new Error()`:
 
-## PaymentDataEntry (`PaymentDataEntry.tsx`)
-- Call `useMopDetailConfig()`.
-- In `handleAddDetail`: only open `ChequeDetailModal` if `showChequeDetails` is true; only open `CardDetailModal` if `showCardDetails` is true.
-- In `handleEditMopDetail`: same conditional check.
-- Modal components remain unchanged — they simply won't be opened.
+```typescript
+const errorObj = error instanceof Error 
+  ? error 
+  : new Error(
+      typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as any).message)
+        : String(error)
+    );
+```
+
+### 3. Ensure fresh MOP config on payment screens
+In `useMopDetailConfig()` in `src/hooks/usePaymentModuleConfig.ts`, set `staleTime: 0` on both `usePaymentConfig` calls so config is always refetched when navigating to payment screens. This requires a small refactor since `usePaymentConfig` is a shared hook — add a dedicated variant or pass options.
+
+### 4. Defensive handling in PaymentDataEntry and C3Payments
+Add a loading guard in both payment screens: while `useMopDetailConfig().isLoading` is true, disable the Process/Generate Receipt button to prevent submissions before config is resolved.
 
 ## Files Modified
-1. **Migration SQL** — INSERT two config rows
-2. **`src/hooks/usePaymentModuleConfig.ts`** — add `useMopDetailConfig()` hook
-3. **`src/pages/cashier/PaymentModuleConfig.tsx`** — add "MOP Detail Settings" tab with toggles
-4. **`src/components/payments/PaymentMethodModal.tsx`** — accept config props, conditionally render sections and adjust validation
-5. **`src/pages/cashier/C3Payments.tsx`** — consume hook, pass props to modal
-6. **`src/pages/cashier/SearchPayInvoices.tsx`** — consume hook, pass props to modal
-7. **`src/pages/cashier/PaymentDataEntry.tsx`** — consume hook, conditionally skip opening cheque/card modals
+1. **Database migration** — DROP duplicate `create_payment_with_receipt` overload
+2. **`src/lib/globalErrorHandler.ts`** — Fix Supabase error object serialization
+3. **`src/hooks/usePaymentModuleConfig.ts`** — Add `staleTime: 0` for MOP config queries
+4. **`src/pages/cashier/C3Payments.tsx`** — Disable process button while config loading
+5. **`src/pages/cashier/PaymentDataEntry.tsx`** — Disable generate button while config loading
 
