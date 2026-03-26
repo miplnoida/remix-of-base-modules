@@ -39,7 +39,7 @@ export default function AuditorProfiles() {
   const { data: profiles = [] } = useIAProfiles();
   const { create, update } = useIAAuditorMutations();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all' });
+  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', status: 'all' });
   const [viewAuditor, setViewAuditor] = useState<any>(null);
   const [editAuditor, setEditAuditor] = useState<any>(null);
   const [editForm, setEditForm] = useState({ role: 'Auditor', seniority_level: 'Junior', work_location: '', skills: [] as string[], certifications: [] as string[] });
