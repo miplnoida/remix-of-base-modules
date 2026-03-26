@@ -1,62 +1,50 @@
 
 
-# Add "Payment" Button to C3 Detail Screens → Navigate to C3 Payments
+# Fix: Remove Invalid Column References from `create_c3_payment_with_receipt` RPC
 
-## Overview
+## Problem
 
-Add a "Payment" button in each row of the Report List table on the three C3 detail screens, visible only when the existing `$ Pay` button is shown and enabled. Clicking it navigates to `/cashier/c3-payments` with query params pre-filled. The C3 Payments page must read those params and auto-populate its header fields.
+The `create_c3_payment_with_receipt` RPC (migration `20260326141422`) fails with `column "payer_type" of relation "cn_payment" does not exist` because the INSERT at lines 193-221 references 4 columns that don't exist in `cn_payment`:
 
-## Current State
+- `payer_type` — not in `cn_payment` (lives in `cn_payment_header`)
+- `payer_id` — not in `cn_payment` (lives in `cn_payment_header`)
+- `inserted_by` — not in `cn_payment`
+- `insert_date` — not in `cn_payment`
 
-- **C3ContributionList**, **NwDirectorList**, **SelfEmployedContributionList** each have a Payment column with `$ Pay`, `Paid`, and `BEMA` states.
-- The `$ Pay` button navigates to the offline payment page.
-- The record types (`C3ContributionRecord`, `NwdContributionRecord`, `SeContributionRecord`) have `month`, `year`, `schedule` (ER/NW only).
-- The `registration_number` (regNo) is available from the selected company/SE dropdown, not from the row data.
-- `C3Payments.tsx` does NOT read any query params or location state — it starts with defaults (`payerType = 'ER'`, empty `payerId`).
+The column `currency_code` **does exist** — no issue there.
 
-## Implementation Plan
+The column `sequence_no` **already exists** in `c3_payment_components` — no schema change needed.
 
-### 1. Add "Payment" button to all 3 list screens
+## Fix — Single Migration
 
-In each screen, add a new "Payment" button **next to** the existing `$ Pay` button (inside the same `payment_status === '$ Pay'` conditional block). The button navigates to `/cashier/c3-payments` with query params:
+Recreate the `create_c3_payment_with_receipt` function with the corrected `cn_payment` INSERT. Remove the 4 non-existent columns and their corresponding VALUES. Keep everything else identical.
 
+**Corrected INSERT into `cn_payment`:**
+```sql
+INSERT INTO public.cn_payment (
+  payment_id, payment_code, fund_code, period,
+  payment_amount, mop_code,
+  base_currency, currency_conversion_rate, currency_code
+) VALUES (
+  v_payment_id,
+  v_comp_arr[v_comp_idx]->>'payment_code',
+  v_comp_arr[v_comp_idx]->>'fund_code',
+  v_period_ts,
+  v_alloc,
+  v_meth_arr[v_meth_idx]->>'mop_code',
+  v_base_currency,
+  v_method_rate,
+  v_method_currency
+);
 ```
-/cashier/c3-payments?regNo={regNo}&month={month_number}&year={year}&schedule={schedule}&payerType={type}
-```
 
-**Source of values per screen:**
+## What Is NOT Changed
+- No schema changes needed (all columns already exist where needed)
+- No UI changes
+- `cn_payment_header` — untouched, already stores `payer_type` and `payer_id`
+- `c3_payment_components` — untouched, already has `sequence_no` and the RPC already saves it (line 101-109)
+- All other RPC logic (validation, advisory lock, component saving, method saving, sequential allocation, receipt generation, print logging) remains identical
 
-| Param | C3ContributionList | NwDirectorList | SelfEmployedContributionList |
-|-------|-------------------|----------------|------------------------------|
-| `regNo` | `companies.find(c => c.id === selectedCompanyId).registration_number` | Same from NW companies | `seList.find(s => s.id === selectedSeId).social_security_number` |
-| `month` | `c.month_number` | `c.month_number` | `c.month_number` |
-| `year` | `c.year` | `c.year` | `c.year` |
-| `schedule` | `c.schedule` | `c.schedule` | `0` (SE has no schedule) |
-| `payerType` | `ER` | `NW` | `SE` |
-
-**Files**: `C3ContributionList.tsx`, `NwDirectorList.tsx`, `SelfEmployedContributionList.tsx`
-
-Each file gets:
-- A helper to resolve `regNo` from the selected dropdown entity
-- A `handlePayment(record)` function that builds the URL and calls `navigate()`
-- A "Payment" button rendered alongside `$ Pay` in the `payment_status === '$ Pay'` block, styled consistently (outline, blue text)
-
-### 2. Update C3Payments.tsx to read query params
-
-Add `useSearchParams` from `react-router-dom` and on mount:
-- Read `regNo`, `month`, `year`, `schedule`, `payerType` from query params
-- Pre-set `payerType`, `payerId` (to `regNo`), `selectedMonth`, `selectedYear`
-- Auto-trigger `handlePayerBlur()` to validate the payer and load info
-- Store schedule in state if needed for downstream use
-
-This ensures the C3 Payments screen opens with the correct context fully loaded from real backend data.
-
-### Files Modified
-1. `src/pages/c3Management/c3Details/C3ContributionList.tsx` — add Payment button with `payerType=ER`
-2. `src/pages/c3Management/c3Details/NwDirectorList.tsx` — add Payment button with `payerType=NW`
-3. `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` — add Payment button with `payerType=SE`
-4. `src/pages/cashier/C3Payments.tsx` — read query params and auto-populate header
-
-### No API Changes Required
-All required data (regNo, month, year, schedule) is already available from the existing dropdown selections and row data. No new backend calls needed.
+## File
+- 1 new Supabase migration: `CREATE OR REPLACE FUNCTION create_c3_payment_with_receipt` with the 4 invalid columns removed from the `cn_payment` INSERT
 
