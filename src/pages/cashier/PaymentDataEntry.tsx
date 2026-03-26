@@ -408,6 +408,8 @@ const PaymentDataEntry = () => {
           onEditMopDetail={handleEditMopDetail}
           disabled={!isEntry}
           totalAmount={totalAmount}
+          showChequeDetails={showChequeDetails}
+          showCardDetails={showCardDetails}
         />
 
         {/* Modals */}
