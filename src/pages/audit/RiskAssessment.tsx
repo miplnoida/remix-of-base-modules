@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, BarChart3, AlertTriangle, TrendingUp, Shield, Building2 } from 'lucide-react';
+import { Plus, BarChart3, AlertTriangle, TrendingUp, Shield, Building2, Eye, Edit } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
-import { useIADepartments, useIADepartmentFunctions, useIAAuditors } from '@/hooks/useAuditData';
+import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { RISK_ASSESSMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
@@ -203,7 +203,7 @@ function DepartmentRiskSummary({ assessments, deptMap, allFunctions }: {
 export default function RiskAssessment() {
   const { data = [], isLoading, isError, create, update } = useIARiskAssessments();
   const { data: departments = [] } = useIADepartments();
-  const { data: auditors = [] } = useIAAuditors();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   // Fetch all functions for display
@@ -394,7 +394,16 @@ export default function RiskAssessment() {
 
           <Card><CardContent>
             <DataTable columns={columns} data={filtered} onView={openView}
-              renderActions={(row) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>} />
+              renderActions={(row) => (
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openView(row); }}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              )} />
           </CardContent></Card>
         </TabsContent>
 
