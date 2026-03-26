@@ -47,6 +47,8 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const { data: policies = [] } = useFrequencyPolicies();
   const generatePlan = useGenerateAutoPlan(planId);
   const manualOverride = useManualOverride(planId);
+  const capacitySchedule = useCapacitySchedule(planId);
+  const convertCandidates = useConvertCandidates(planId);
 
   const [rejectDialog, setRejectDialog] = useState<{ id: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
