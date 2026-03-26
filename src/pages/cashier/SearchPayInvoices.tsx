@@ -654,6 +654,8 @@ const SearchPayInvoices: React.FC = () => {
           mopTypes={mopTypes}
           enabledCurrencies={enabledCurrencies}
           baseCurrCode={baseCurrCode}
+          showChequeDetails={showChequeDetails}
+          showCardDetails={showCardDetails}
         />
         <AllocationPreviewModal
           open={showAllocationPreview}

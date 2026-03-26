@@ -754,6 +754,8 @@ const C3Payments: React.FC = () => {
           mopTypes={mopTypes}
           enabledCurrencies={enabledCurrencies}
           baseCurrCode={baseCurrCode}
+          showChequeDetails={showChequeDetails}
+          showCardDetails={showCardDetails}
         />
         <ReceiptCancelModal
           open={showCancelModal}
