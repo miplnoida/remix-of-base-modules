@@ -53,16 +53,18 @@ const C3Payments: React.FC = () => {
   const payment = usePaymentEntry();
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
+  const [searchParams] = useSearchParams();
 
   // Header state
-  const [payerType, setPayerType] = useState('ER');
-  const [payerId, setPayerId] = useState('');
+  const [payerType, setPayerType] = useState(() => searchParams.get('payerType') || 'ER');
+  const [payerId, setPayerId] = useState(() => searchParams.get('regNo') || '');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [dateReceived, setDateReceived] = useState<Date | undefined>(new Date());
   const [remarks, setRemarks] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
+  const [initialParamsApplied, setInitialParamsApplied] = useState(false);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
