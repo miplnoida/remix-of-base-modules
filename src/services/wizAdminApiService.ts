@@ -97,8 +97,36 @@ export async function updateEmployer(params: {
   return callWizApi("update_employer", params);
 }
 
+// ─── Company Mapping ──────────────────────────────────
+export interface MappingResultCompany {
+  id: number;
+  company_name: string;
+  reason?: string;
+  current_parent?: string;
+}
+
+export interface MappingResultData {
+  mapped: MappingResultCompany[];
+  unmapped: MappingResultCompany[];
+  already_linked: MappingResultCompany[];
+}
+
+export interface MappingUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+}
+
 export async function updateCompanyMapping(parentId: number, childIds: number[]) {
-  return callWizApi("update_company_mapping", { parent_id: parentId, child_ids: childIds });
+  return callWizApi<MappingResultData>("update_company_mapping", { parent_id: parentId, child_ids: childIds });
+}
+
+export async function getCompanyMappingUsers(parentId: number, childId: number) {
+  return callWizApi<{ users: MappingUser[] }>("get_mapping_users", { parent_id: parentId, child_id: childId });
+}
+
+export async function removeCompanyMapping(parentId: number, childId: number) {
+  return callWizApi<{ affected_users: MappingUser[]; removed: boolean }>("remove_company_mapping", { parent_id: parentId, child_id: childId });
 }
 
 export async function uploadCompanyLogo(companyId: number, imageBase64: string) {
