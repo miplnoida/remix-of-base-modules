@@ -219,6 +219,7 @@ export default function AuditPlanDetail() {
       <Tabs defaultValue="engagements" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="auto-plan">Auto Plan</TabsTrigger>
+          <TabsTrigger value="capacity">Capacity</TabsTrigger>
           <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
           <TabsTrigger value="functions">Functions ({(planFunctions || []).length})</TabsTrigger>
           <TabsTrigger value="team">Audit Team ({auditTeam.length})</TabsTrigger>
