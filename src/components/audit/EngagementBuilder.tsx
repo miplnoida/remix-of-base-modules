@@ -149,6 +149,26 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
           />
         </DialogContent>
       </Dialog>
+
+      <OverrideReasonModal
+        open={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        title="Remove Engagement"
+        description={`Removing "${removeTarget?.name}" from the plan requires justification.`}
+        overrideTypes={[{ value: 'remove_engagement', label: 'Remove Engagement' }]}
+        onConfirm={(_type, reason) => {
+          if (removeTarget) {
+            manualOverride.mutate({
+              override_type: 'remove_engagement',
+              engagement_id: removeTarget.id,
+              reason,
+              changed_by: userCode || 'system',
+            });
+            removeEngagement.mutate(removeTarget.id);
+          }
+          setRemoveTarget(null);
+        }}
+      />
     </>
   );
 }
