@@ -61,8 +61,18 @@ export default function AuditorProfiles() {
   const filteredAuditors = auditors.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.email.toLowerCase().includes(searchTerm.toLowerCase()) || a.employee_no.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filters.role === 'all' || a.role === filters.role;
-    return matchesSearch && matchesRole;
+    const matchesStatus = filters.status === 'all' || (a.employment_status || 'Active') === filters.status;
+    return matchesSearch && matchesRole && matchesStatus;
   });
+
+  const handleToggleStatus = (auditor: any) => {
+    const newStatus = (auditor.employment_status || 'Active') === 'Active' ? 'Inactive' : 'Active';
+    update.mutate({
+      id: auditor.id,
+      employment_status: newStatus,
+      updated_by: (profile as any)?.user_code || '',
+    });
+  };
 
   // Import dialog handlers
   const openImport = () => {
