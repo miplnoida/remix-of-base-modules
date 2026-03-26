@@ -29,6 +29,8 @@ interface PaymentHeaderFormProps {
   setPeriodMonth?: (v: string) => void;
   periodYear?: string;
   setPeriodYear?: (v: string) => void;
+  sequenceNo?: string;
+  setSequenceNo?: (v: string) => void;
 }
 
 const PAYER_TYPES = [
@@ -107,6 +109,7 @@ export function PaymentHeaderForm({
   payerType, setPayerType, payerId, setPayerId, payerInfo,
   dateReceived, setDateReceived, remarks, setRemarks, onPayerBlur,
   isValidating, disabled, showPeriod, periodMonth, setPeriodMonth, periodYear, setPeriodYear,
+  sequenceNo, setSequenceNo,
 }: PaymentHeaderFormProps) {
   return (
     <Card>
@@ -114,7 +117,7 @@ export function PaymentHeaderForm({
         <CardTitle className="text-base">Payment Header</CardTitle>
       </CardHeader>
       <CardContent className="pb-4">
-        <div className={`grid grid-cols-1 ${showPeriod ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Payer Type</Label>
             <Select value={payerType} onValueChange={setPayerType} disabled={disabled}>
@@ -178,6 +181,21 @@ export function PaymentHeaderForm({
                 onMonthChange={setPeriodMonth}
                 onYearChange={setPeriodYear}
                 disabled={disabled}
+              />
+            </div>
+          )}
+
+          {sequenceNo !== undefined && setSequenceNo && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Sequence No.</Label>
+              <Input
+                type="number"
+                min="0"
+                value={sequenceNo}
+                onChange={e => setSequenceNo(e.target.value)}
+                placeholder="Seq #"
+                disabled={disabled}
+                className="h-9"
               />
             </div>
           )}

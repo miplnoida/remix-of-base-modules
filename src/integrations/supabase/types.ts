@@ -23057,6 +23057,15 @@ export type Database = {
           display_name: string
         }[]
       }
+      get_c3_payment_components: {
+        Args: {
+          p_payer_id: string
+          p_payer_type: string
+          p_period: string
+          p_sequence_no: number
+        }
+        Returns: Json
+      }
       get_c3_records_filtered: {
         Args: {
           p_date_entered?: string

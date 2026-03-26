@@ -64,7 +64,9 @@ const C3Payments: React.FC = () => {
   const [remarks, setRemarks] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
+  const [sequenceNo, setSequenceNo] = useState(() => searchParams.get('schedule') || '');
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
+  const [c3ComponentsLoaded, setC3ComponentsLoaded] = useState(false);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
@@ -178,6 +180,64 @@ const C3Payments: React.FC = () => {
     }
   }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
 
+  // Auto-load C3 payment components from cn_c3_reported when navigated from C3 detail screens
+  useEffect(() => {
+    if (c3ComponentsLoaded) return;
+    const regNo = searchParams.get('regNo');
+    const schedule = searchParams.get('schedule');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
+    const pType = searchParams.get('payerType');
+    if (!regNo || !schedule || !month || !year || !pType) return;
+    if (!paymentTypesAll.length || ptLoading) return;
+
+    setC3ComponentsLoaded(true);
+    const periodDate = `${year}-${month.padStart(2, '0')}-01`;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_c3_payment_components' as any, {
+          p_payer_id: regNo,
+          p_payer_type: pType,
+          p_period: periodDate,
+          p_sequence_no: parseInt(schedule, 10),
+        });
+
+        if (error) {
+          console.error('Error fetching C3 components:', error);
+          toast({ title: 'Error', description: 'Failed to load C3 payment components.', variant: 'destructive' });
+          return;
+        }
+
+        const result = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!result || result.status !== 'found') {
+          toast({ title: 'No C3 Record', description: 'No matching C3 contribution record found for the given period and sequence.', variant: 'destructive' });
+          return;
+        }
+
+        const components: PaymentComponent[] = [];
+        for (const comp of result.components || []) {
+          const pt = paymentTypesAll.find((p: any) => p.payment_code === comp.payment_code);
+          if (pt && comp.amount > 0) {
+            components.push({
+              payment_code: comp.payment_code,
+              fund_code: pt.fund_code || '',
+              description: pt.payment_type_description || comp.payment_code,
+              amount: Number(comp.amount),
+            });
+          }
+        }
+
+        if (components.length > 0) {
+          setSelectedComponents(components);
+          toast({ title: 'Components Loaded', description: `${components.length} payment component(s) auto-populated from C3 record.` });
+        }
+      } catch (err: any) {
+        console.error('Error auto-loading C3 components:', err);
+      }
+    })();
+  }, [searchParams, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
+
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
     if (!pt) return;
@@ -277,12 +337,14 @@ const C3Payments: React.FC = () => {
     setFlowState('saving');
 
     try {
+      const seqNoVal = sequenceNo ? parseInt(sequenceNo, 10) : null;
       const componentsJson = selectedComponents.map((c, i) => ({
         payment_code: c.payment_code,
         fund_code: c.fund_code,
         amount: c.amount,
         period,
         sort_order: i,
+        sequence_no: seqNoVal,
       }));
 
       const methodsJson = methods.map((m, i) => ({
@@ -393,12 +455,14 @@ const C3Payments: React.FC = () => {
     setRemarks('');
     setSelectedMonth((new Date().getMonth() + 1).toString());
     setSelectedYear(new Date().getFullYear().toString());
+    setSequenceNo('');
     setSelectedComponents([]);
     setMethods([]);
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
     setInitialParamsApplied(true); // prevent re-applying URL params after reset
+    setC3ComponentsLoaded(true); // prevent re-loading components after reset
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
@@ -469,7 +533,7 @@ const C3Payments: React.FC = () => {
           </Button>
         </div>
 
-        {/* Payment Header (now includes C3 Period) */}
+        {/* Payment Header (now includes C3 Period and Sequence Number) */}
         <PaymentHeaderForm
           payerType={payerType} setPayerType={setPayerType}
           payerId={payerId} setPayerId={setPayerId}
@@ -482,6 +546,8 @@ const C3Payments: React.FC = () => {
           showPeriod
           periodMonth={selectedMonth} setPeriodMonth={setSelectedMonth}
           periodYear={selectedYear} setPeriodYear={setSelectedYear}
+          sequenceNo={sequenceNo}
+          setSequenceNo={setSequenceNo}
         />
 
         {/* Payment Components */}
