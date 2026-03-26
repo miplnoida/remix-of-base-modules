@@ -187,9 +187,3 @@ export function useC3PaymentTypes() {
     : [];
   return { c3PaymentTypes, isLoading };
 }
-  const { data: config, isLoading } = usePaymentConfig('c3_payment_types');
-  const c3PaymentTypes = (!isLoading && config && Array.isArray(config.config_value))
-    ? (config.config_value as string[])
-    : [];
-  return { c3PaymentTypes, isLoading };
-}
