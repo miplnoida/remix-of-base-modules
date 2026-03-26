@@ -32,6 +32,7 @@ const PaymentDataEntry = () => {
   const payment = usePaymentEntry();
   const receipt = useReceiptActions();
   const { userCode } = useUserCode();
+  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
 
   // Sync batch
   React.useEffect(() => {
