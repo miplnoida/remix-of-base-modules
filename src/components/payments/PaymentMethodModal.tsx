@@ -37,12 +37,15 @@ interface PaymentMethodModalProps {
   mopTypes: { mop_code: string; short_description: string; long_description?: string }[];
   enabledCurrencies: { currency_code: string; exchange_rate: number; is_main_currency?: boolean }[];
   baseCurrCode: string;
+  showChequeDetails?: boolean;
+  showCardDetails?: boolean;
 }
 
 /* ─── Component ─────────────────────────────────── */
 
 export function PaymentMethodModal({
   open, onOpenChange, onSave, editRow, mopTypes, enabledCurrencies, baseCurrCode,
+  showChequeDetails = true, showCardDetails = true,
 }: PaymentMethodModalProps) {
   const [mopCode, setMopCode] = useState('');
   const [currencyCode, setCurrencyCode] = useState('');
