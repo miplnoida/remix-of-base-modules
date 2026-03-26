@@ -90,7 +90,7 @@ export function PlanningWizard({ planId, planStatus, fiscalYear, onComplete }: P
   };
 
   const handleGenerateResources = async () => {
-    await generateRecs.mutateAsync();
+    await generateRecs.mutateAsync(undefined);
   };
 
   const handlePublish = async () => {
