@@ -29,6 +29,8 @@ interface PaymentHeaderFormProps {
   setPeriodMonth?: (v: string) => void;
   periodYear?: string;
   setPeriodYear?: (v: string) => void;
+  sequenceNo?: string;
+  setSequenceNo?: (v: string) => void;
 }
 
 const PAYER_TYPES = [
