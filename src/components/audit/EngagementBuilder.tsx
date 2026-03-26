@@ -32,6 +32,8 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const manualOverride = useManualOverride(planId);
 
+  const canEdit = ['Draft', 'Revision'].includes(planStatus);
+
   const getDeptName = (id: string) => (departments || []).find((d: any) => d.id === id)?.name || '—';
   const getAuditorName = (id: string) => (auditors || []).find((a: any) => a.id === id)?.name || '—';
 
