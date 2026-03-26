@@ -50,7 +50,7 @@ export default function AuditConfig() {
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
 
   // Planning engine config
-  const { data: planningWeights = [], updateWeight } = usePlanningWeights();
+  const { data: planningWeights = [], updateWeight: updatePlanningWeight } = usePlanningWeights();
   const { data: freqPolicies = [], updatePolicy } = useFrequencyPolicies();
   const { data: planningParams = [], updateParam } = usePlanningParameters();
 
