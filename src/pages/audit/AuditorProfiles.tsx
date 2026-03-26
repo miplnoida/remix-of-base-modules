@@ -339,6 +339,18 @@ export default function AuditorProfiles() {
               <div>
                 <Label>Work Location</Label>
                 <Input value={editForm.work_location} onChange={e => setEditForm(f => ({ ...f, work_location: e.target.value }))} placeholder="SSB Head Office" />
+              </div>
+              <div>
+                <Label>Registry Status</Label>
+                <Select value={editForm.employment_status} onValueChange={v => setEditForm(f => ({ ...f, employment_status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Inactive auditors are preserved for history but excluded from new assignments.</p>
+              </div>
             </div>
             <div>
               <Label>Skills</Label>
