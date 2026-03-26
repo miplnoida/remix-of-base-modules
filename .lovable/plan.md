@@ -1,33 +1,23 @@
 
 
-# Fix: Replace Invalid Column Names in `create_c3_payment_with_receipt` RPC
+# Fix: `receipt_id` is GENERATED ALWAYS AS IDENTITY — Cannot Insert Explicit Value
 
 ## Problem
 
-The `cn_receipt` INSERT in the RPC references two columns that don't exist:
-
-| RPC uses | Actual column in `cn_receipt` |
-|---|---|
-| `receipt_amount` | `receipt_total` |
-| `receipt_date` | *(no such column — `created_at` already captures this)* |
+The `cn_receipt.receipt_id` column is defined as `INTEGER GENERATED ALWAYS AS IDENTITY`. PostgreSQL does not allow inserting an explicit value into such columns. The current RPC manually calculates `v_receipt_id = MAX(receipt_id) + 1` and inserts it — this is what causes the error.
 
 ## Fix — Single Migration
 
-Recreate `create_c3_payment_with_receipt` with the corrected `cn_receipt` INSERT:
+Update the `cn_receipt` INSERT in the RPC to:
+1. **Remove `receipt_id`** from the INSERT column list (let the database auto-generate it)
+2. **Use `RETURNING receipt_id INTO v_receipt_id`** to capture the generated value for use in the print log and response
 
 **Before (broken):**
 ```sql
-INSERT INTO public.cn_receipt (
-  receipt_id, payment_id, receipt_amount, receipt_date, status,
-  created_by, created_at
-) VALUES (
-  v_receipt_id, v_payment_id, p_receipt_total, NOW(), 'O',
-  p_user_code, NOW()
-);
-```
+SELECT COALESCE(MAX(receipt_id), 0) + 1
+INTO v_receipt_id
+FROM public.cn_receipt;
 
-**After (fixed):**
-```sql
 INSERT INTO public.cn_receipt (
   receipt_id, payment_id, receipt_total, status,
   created_by, created_at
@@ -37,15 +27,30 @@ INSERT INTO public.cn_receipt (
 );
 ```
 
+**After (fixed):**
+```sql
+INSERT INTO public.cn_receipt (
+  payment_id, receipt_total, status,
+  created_by, created_at
+) VALUES (
+  v_payment_id, p_receipt_total, 'O',
+  p_user_code, NOW()
+)
+RETURNING receipt_id INTO v_receipt_id;
+```
+
 Changes:
-- `receipt_amount` → `receipt_total` (correct column name)
-- Remove `receipt_date` column and its `NOW()` value (column doesn't exist; `created_at` already serves this purpose)
+- Remove the manual `MAX(receipt_id) + 1` calculation (no longer needed)
+- Remove `receipt_id` from the INSERT columns/values (let IDENTITY auto-generate)
+- Add `RETURNING receipt_id INTO v_receipt_id` to capture the auto-generated ID
+- The captured `v_receipt_id` continues to be used for the `cn_receipt_prints` log and the response JSON
 
 ## What Is NOT Changed
-- No schema changes needed
+- No schema changes
 - No UI changes
-- All other RPC logic (header, components with `sequence_no`, payments, allocation, print logging) remains identical
+- All other RPC logic (header, components with `sequence_no`, payment allocation, print logging, response) remains identical
+- The `cn_receipt_prints` INSERT and the return JSON both continue to use `v_receipt_id` as before
 
 ## File
-- 1 new Supabase migration: `CREATE OR REPLACE FUNCTION create_c3_payment_with_receipt` with the corrected receipt INSERT
+- 1 new Supabase migration: `CREATE OR REPLACE FUNCTION create_c3_payment_with_receipt` with the corrected receipt INSERT using `RETURNING`
 
