@@ -230,8 +230,8 @@ export default function AuditorProfiles() {
               <p className="text-muted-foreground">
                 Users are first created by the IT team in <strong>System Administration → User Management</strong>. 
                 Then, from this page, you <strong>import</strong> those users into the Audit Registry and assign them 
-                audit-specific roles (e.g., Lead Auditor, CAE). Only registered auditors appear in 
-                engagement planning and assignment dropdowns.
+                audit-specific roles (e.g., Lead Auditor, CAE). When an auditor leaves or is reassigned, set them to 
+                <strong> Inactive</strong> — their history is preserved but they won't appear in new assignment dropdowns.
               </p>
               <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {profiles.length} system users</span>
