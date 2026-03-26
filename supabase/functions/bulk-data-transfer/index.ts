@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies", "ip_depend", "ip_self_employ", "tb_levy_slab_details"];
+    const allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies", "ip_depend", "ip_self_employ", "tb_levy_slabs", "tb_levy_slab_details"];
     if (!allowedTables.includes(tableName)) {
       return new Response(
         JSON.stringify({ error: `Table '${tableName}' not allowed.` }),
