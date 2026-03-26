@@ -93,6 +93,7 @@ const C3Payments: React.FC = () => {
   /* ── data fetching ───────────────────── */
 
   const { c3PaymentTypes, isLoading: c3TypesLoading } = useC3PaymentTypes();
+  const { showChequeDetails, showCardDetails } = useMopDetailConfig();
   const { data: enabledCurrencies = [] } = useEnabledCashierCurrencies();
 
   const { data: paymentTypesAll = [], isLoading: ptLoading } = useQuery({
