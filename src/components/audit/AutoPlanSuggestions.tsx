@@ -156,18 +156,38 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
             </p>
           </div>
           {canEdit && (
-            <Button
-              size="sm"
-              onClick={() => generatePlan.mutate()}
-              disabled={generatePlan.isPending}
-            >
-              {generatePlan.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-1" />
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => generatePlan.mutate()}
+                disabled={generatePlan.isPending}
+              >
+                {generatePlan.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                {candidates.length > 0 ? 'Re-Generate' : 'Generate Suggestions'}
+              </Button>
+              {accepted.length > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => capacitySchedule.mutate()}
+                    disabled={capacitySchedule.isPending}
+                  >
+                    {capacitySchedule.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Calendar className="h-4 w-4 mr-1" />}
+                    Schedule Capacity
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => convertCandidates.mutate(userCode || 'system')}
+                    disabled={convertCandidates.isPending}
+                  >
+                    {convertCandidates.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
+                    Create Engagements ({accepted.length})
+                  </Button>
+                </>
               )}
-              {candidates.length > 0 ? 'Re-Generate' : 'Generate Suggestions'}
-            </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent>
