@@ -110,3 +110,72 @@ export function useManualOverride(planId?: string) {
     },
   });
 }
+
+export function useCapacitySchedule(planId?: string) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('ia_capacity_schedule_candidates' as any, {
+        p_plan_id: planId,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['ia_auto_plan_candidates', planId] });
+      toast({
+        title: 'Capacity Scheduled',
+        description: `${result?.assigned || 0} candidates assigned to auditor slots. ${result?.conflicts_detected || 0} conflicts detected.`,
+      });
+    },
+    onError: (e: any) => {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useConvertCandidates(planId?: string) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (createdBy: string) => {
+      const { data, error } = await supabase.rpc('ia_convert_candidates_to_engagements' as any, {
+        p_plan_id: planId,
+        p_created_by: createdBy,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['ia_auto_plan_candidates', planId] });
+      queryClient.invalidateQueries({ queryKey: ['ia_plan_engagements', planId] });
+      queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
+      toast({
+        title: 'Engagements Created',
+        description: `${result?.engagements_created || 0} engagements created from accepted candidates.`,
+      });
+    },
+    onError: (e: any) => {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useAvailabilityConflicts(planId?: string) {
+  return useQuery({
+    queryKey: ['ia_availability_conflicts', planId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_availability_conflicts' as any)
+        .select('*')
+        .eq('plan_id', planId!)
+        .order('detected_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!planId,
+  });
+}

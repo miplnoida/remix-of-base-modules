@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Zap, Check, X, Info, Loader2, RefreshCw, ArrowUpDown } from 'lucide-react';
-import { useAutoPlanCandidates, useGenerateAutoPlan, useManualOverride, usePlanningWeights, useFrequencyPolicies } from '@/hooks/useAutoPlanEngine';
+import { Zap, Check, X, Info, Loader2, RefreshCw, Calendar, ArrowRight } from 'lucide-react';
+import { useAutoPlanCandidates, useGenerateAutoPlan, useManualOverride, usePlanningWeights, useFrequencyPolicies, useCapacitySchedule, useConvertCandidates } from '@/hooks/useAutoPlanEngine';
 import { DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -47,6 +47,8 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const { data: policies = [] } = useFrequencyPolicies();
   const generatePlan = useGenerateAutoPlan(planId);
   const manualOverride = useManualOverride(planId);
+  const capacitySchedule = useCapacitySchedule(planId);
+  const convertCandidates = useConvertCandidates(planId);
 
   const [rejectDialog, setRejectDialog] = useState<{ id: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -154,18 +156,38 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
             </p>
           </div>
           {canEdit && (
-            <Button
-              size="sm"
-              onClick={() => generatePlan.mutate()}
-              disabled={generatePlan.isPending}
-            >
-              {generatePlan.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-1" />
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => generatePlan.mutate()}
+                disabled={generatePlan.isPending}
+              >
+                {generatePlan.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                {candidates.length > 0 ? 'Re-Generate' : 'Generate Suggestions'}
+              </Button>
+              {accepted.length > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => capacitySchedule.mutate()}
+                    disabled={capacitySchedule.isPending}
+                  >
+                    {capacitySchedule.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Calendar className="h-4 w-4 mr-1" />}
+                    Schedule Capacity
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => convertCandidates.mutate(userCode || 'system')}
+                    disabled={convertCandidates.isPending}
+                  >
+                    {convertCandidates.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
+                    Create Engagements ({accepted.length})
+                  </Button>
+                </>
               )}
-              {candidates.length > 0 ? 'Re-Generate' : 'Generate Suggestions'}
-            </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent>

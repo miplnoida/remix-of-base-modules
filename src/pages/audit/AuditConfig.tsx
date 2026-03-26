@@ -25,6 +25,7 @@ import {
   useIALikelihoodLevels, useIAImpactLevels,
   useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
+import { usePlanningWeights, useFrequencyPolicies } from '@/hooks/useAutoPlanEngine';
 
 export default function AuditConfig() {
   
@@ -45,6 +46,10 @@ export default function AuditConfig() {
   const { data: criteriaWeights = [] } = useIARiskCriteriaWeights(scoringModel?.id);
   const { create: createWeight, update: updateWeight, remove: removeWeight } = useIARiskCriteriaWeightMutations();
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
+
+  // Planning engine config
+  const { data: planningWeights = [] } = usePlanningWeights();
+  const { data: freqPolicies = [] } = useFrequencyPolicies();
 
   // Risk Management config hooks
   const { data: likelihoodLevels = [], create: createLikelihood, update: updateLikelihood, remove: removeLikelihood } = useIALikelihoodLevels();
@@ -187,6 +192,7 @@ export default function AuditConfig() {
           <TabsTrigger value="features"><Flag className="w-4 h-4 mr-2" />Feature Flags</TabsTrigger>
           <TabsTrigger value="reference"><MapPin className="w-4 h-4 mr-2" />Reference Settings</TabsTrigger>
           <TabsTrigger value="activities"><Settings className="w-4 h-4 mr-2" />Activity Types</TabsTrigger>
+          <TabsTrigger value="planning"><Target className="w-4 h-4 mr-2" />Planning Engine</TabsTrigger>
         </TabsList>
 
         {/* ===== Risk Assessment Configuration ===== */}
@@ -669,6 +675,124 @@ export default function AuditConfig() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Planning Engine Config Tab */}
+        <TabsContent value="planning" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Planning Priority Score Weights
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Configure the weight each factor contributes to the composite priority score.
+                Total should equal 1.0 (100%).
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Factor</TableHead>
+                    <TableHead>Weight</TableHead>
+                    <TableHead>Percentage</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {planningWeights.map((w: any) => (
+                    <TableRow key={w.id}>
+                      <TableCell className="font-medium">{w.factor_label}</TableCell>
+                      <TableCell>{w.weight}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{(w.weight * 100).toFixed(0)}%</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{w.description}</TableCell>
+                    </TableRow>
+                  ))}
+                  {planningWeights.length > 0 && (
+                    <TableRow className="bg-muted/30">
+                      <TableCell className="font-semibold">Total</TableCell>
+                      <TableCell className="font-semibold">
+                        {planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          Math.abs(planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0) - 1.0) < 0.01
+                            ? 'default' : 'destructive'
+                        }>
+                          {(planningWeights.reduce((sum: number, w: any) => sum + Number(w.weight || 0), 0) * 100).toFixed(0)}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Risk Band Frequency Policy
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Maximum months between audits for each risk band. Functions exceeding this are flagged as overdue.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Risk Level</TableHead>
+                    <TableHead>Max Months Between Audits</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {freqPolicies.map((p: any) => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <Badge variant={
+                          p.risk_level === 'Critical' ? 'destructive' :
+                          p.risk_level === 'High' ? 'destructive' :
+                          p.risk_level === 'Medium' ? 'secondary' : 'outline'
+                        }>
+                          {p.risk_level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{p.max_months_between_audits} months</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.description}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Score Formula</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/50 rounded-lg p-4 font-mono text-xs">
+                <p className="text-muted-foreground mb-2">Composite Priority Score =</p>
+                <p className="pl-4">
+                  {planningWeights.map((w: any, i: number) => (
+                    <span key={w.id}>
+                      {i > 0 && ' + '}
+                      <span className="text-primary font-semibold">{w.weight}</span>
+                      <span> × {w.factor_label}</span>
+                    </span>
+                  ))}
+                </p>
+                <p className="text-muted-foreground mt-3">Each factor is normalized to 0–100 scale before weighting.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

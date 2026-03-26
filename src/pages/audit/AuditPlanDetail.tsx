@@ -10,6 +10,7 @@ import { useIAPlanFunctions } from '@/hooks/useAuditPlanFunctions';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
+import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
@@ -218,6 +219,7 @@ export default function AuditPlanDetail() {
       <Tabs defaultValue="engagements" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="auto-plan">Auto Plan</TabsTrigger>
+          <TabsTrigger value="capacity">Capacity</TabsTrigger>
           <TabsTrigger value="engagements">Engagements ({(engagements || []).length})</TabsTrigger>
           <TabsTrigger value="functions">Functions ({(planFunctions || []).length})</TabsTrigger>
           <TabsTrigger value="team">Audit Team ({auditTeam.length})</TabsTrigger>
@@ -228,6 +230,10 @@ export default function AuditPlanDetail() {
 
         <TabsContent value="auto-plan">
           <AutoPlanSuggestions planId={id!} planStatus={plan?.status || 'Draft'} />
+        </TabsContent>
+
+        <TabsContent value="capacity">
+          <CapacityCalendarPanel planId={id!} />
         </TabsContent>
 
         <TabsContent value="functions">
