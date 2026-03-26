@@ -149,6 +149,7 @@ export default function AuditorProfiles() {
       work_location: a.work_location || '',
       skills: a.skills || [],
       certifications: a.certifications || [],
+      employment_status: a.employment_status || 'Active',
     });
     setEditAuditor(a);
   };
