@@ -47,6 +47,10 @@ export default function AuditConfig() {
   const { create: createWeight, update: updateWeight, remove: removeWeight } = useIARiskCriteriaWeightMutations();
   const { data: frequencyMap = {} } = useIAFrequencyMapping();
 
+  // Planning engine config
+  const { data: planningWeights = [] } = usePlanningWeights();
+  const { data: freqPolicies = [] } = useFrequencyPolicies();
+
   // Risk Management config hooks
   const { data: likelihoodLevels = [], create: createLikelihood, update: updateLikelihood, remove: removeLikelihood } = useIALikelihoodLevels();
   const { data: impactLevels = [], create: createImpact, update: updateImpact, remove: removeImpact } = useIAImpactLevels();
