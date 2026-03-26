@@ -169,7 +169,21 @@ export default function AuditorProfiles() {
     { key: 'certifications', header: 'Certifications', render: (row) => (
       <div className="flex gap-1 flex-wrap">{(row.certifications || []).map((c: string, i: number) => <Badge key={i} variant="outline" className="text-xs"><Award className="w-3 h-3 mr-1" />{c}</Badge>)}</div>
     )},
-    { key: 'employment_status', header: 'Status', render: (row) => <StatusBadge status={row.employment_status || 'Active'} /> },
+    { key: 'employment_status', header: 'Status', render: (row) => {
+      const isActive = (row.employment_status || 'Active') === 'Active';
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`gap-1.5 text-xs font-medium ${isActive ? 'text-primary hover:text-destructive' : 'text-muted-foreground hover:text-primary'}`}
+          onClick={(e) => { e.stopPropagation(); handleToggleStatus(row); }}
+          title={isActive ? 'Click to deactivate' : 'Click to reactivate'}
+        >
+          {isActive ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+          {isActive ? 'Active' : 'Inactive'}
+        </Button>
+      );
+    }},
   ];
 
   const roleFilterOptions = [
