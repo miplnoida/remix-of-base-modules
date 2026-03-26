@@ -1,31 +1,35 @@
 
 
-# Conditionally Show MOP Detail Icon & Remove Columns
+# Update `/api/v1/c3-reported` to Accept `sequence_no` from Request
+
+## Problem
+The `public_api_insert_c3_reported` RPC currently auto-generates `sequence_no` by reading `MAX(sequence_no) + 1` from `cn_c3_reported`. The API must instead accept `sequence_no` from the request payload and validate uniqueness before inserting.
+
+## What Already Exists
+- A unique constraint `cn_c3_reported_unique` on `(payer_id, payer_type, sequence_no, period)` already exists in the database — no schema change needed.
+- The advisory lock on `payer_id || payer_type || period` is currently used for sequence generation — it should be retained but now protects the uniqueness check.
 
 ## Changes
 
-### 1. `PaymentDetailGrid.tsx` — Add config props, remove columns, conditionally show icon
+### 1. Database Migration — Replace `public_api_insert_c3_reported` RPC
 
-- Add `showChequeDetails` and `showCardDetails` boolean props to the component interface
-- Remove the "Period" and "Bank / Card" `<TableHead>` columns and their corresponding `<TableCell>` entries
-- Update `colSpan` on the empty-state row from 8 to 6
-- Update the MOP detail icon visibility logic: instead of just `needsMopDetail(row.mop_code)`, check:
-  - For `CHQ`/`CHK` mop codes: show icon only if `showChequeDetails` is true
-  - For `CRD` mop code: show icon only if `showCardDetails` is true
-  - If neither config is true for the row's MOP code, hide the icon
-- Update `needsMopDetail` and `hasMopDetail` to also respect the config flags (so the amber highlight row is also suppressed when the detail is not required)
+- **Add parameter**: `p_sequence_no INTEGER` (required, no default)
+- **Remove**: The `SELECT COALESCE(MAX(sequence_no), 0) + 1` auto-generation logic and `v_seq` variable
+- **Add validation**: `IF p_sequence_no IS NULL THEN RAISE EXCEPTION 'sequence_no is required'`
+- **Add duplicate check**: Before insert, query for existing record with same `(payer_id, payer_type, period, sequence_no)`. If found, return a JSONB error: `"This schedule/sequence number has already been submitted for this payer and period"`
+- **Keep** the advisory lock to prevent race conditions
+- **Update INSERT** to use `p_sequence_no` instead of `v_seq`
+- **Update RETURN** to reference `p_sequence_no` instead of `v_seq`
 
-### 2. `PaymentDataEntry.tsx` — Pass config props to grid
+### 2. Edge Function — Update `handleC3ReportedInsert` in `public-api/index.ts`
 
-- Pass `showChequeDetails` and `showCardDetails` (already available from `useMopDetailConfig()`) as props to `<PaymentDetailGrid>`
+- **Add validation**: `if (payload.sequence_no == null) throw { code: "BAD_REQUEST", message: "sequence_no is required" }`
+- **Add RPC parameter**: `p_sequence_no: Number(payload.sequence_no)` in the `.rpc()` call
 
-## Logic Summary
-
-```
-showMopIcon = (mop is CHQ/CHK AND showChequeDetails) OR (mop is CRD AND showCardDetails)
-```
-
-When both configs are false, no MOP detail icon appears for any row. When one is enabled, only matching MOP codes show the icon.
-
-No backend changes needed — the config is already database-driven via `payment_module_config` table.
+### Summary of Behavior
+- Request must include `sequence_no`
+- RPC checks uniqueness of `(payer_id, payer_type, period, sequence_no)` inside advisory lock
+- If duplicate: returns structured error (no DB exception)
+- If unique: inserts and returns success with the provided `sequence_no`
+- The existing DB unique constraint provides a safety net for concurrent edge cases
 
