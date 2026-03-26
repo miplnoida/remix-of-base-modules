@@ -23284,19 +23284,14 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
-      ia_compute_engagement_priority_score:
-        | {
-            Args: { p_department_id?: string; p_function_id?: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_department_id?: string
-              p_function_id?: string
-              p_plan_id?: string
-            }
-            Returns: Json
-          }
+      ia_compute_engagement_priority_score: {
+        Args: {
+          p_department_id?: string
+          p_function_id?: string
+          p_plan_id?: string
+        }
+        Returns: Json
+      }
       ia_convert_candidates_to_engagements: {
         Args: { p_created_by?: string; p_plan_id: string }
         Returns: Json
