@@ -181,9 +181,12 @@ export function PaymentMethodModal({
     setExpireDate(formatted);
   };
 
+  const chequeEnabled = isCheque && showChequeDetails;
+  const cardEnabled = isCard && showCardDetails;
+
   const canSave = mopCode && originalAmount > 0
-    && (!isCheque || chequeNumber.trim())
-    && (!isCard || (cardType && cardNumber.trim()));
+    && (!chequeEnabled || chequeNumber.trim())
+    && (!cardEnabled || (cardType && cardNumber.trim()));
 
   const handleSave = () => {
     if (!canSave) return;
@@ -281,7 +284,7 @@ export function PaymentMethodModal({
         )}
 
         {/* ── Cheque Fields ── */}
-        {isCheque && (
+        {chequeEnabled && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cheque Details</p>
             <div className="grid grid-cols-2 gap-4">
@@ -323,7 +326,7 @@ export function PaymentMethodModal({
         )}
 
         {/* ── Card Fields ── */}
-        {isCard && (
+        {cardEnabled && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card Details</p>
             <div className="grid grid-cols-2 gap-4">
