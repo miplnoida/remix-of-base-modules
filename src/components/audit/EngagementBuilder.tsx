@@ -128,11 +128,7 @@ export function EngagementBuilder({ planId, planStatus }: EngagementBuilderProps
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm('Remove this engagement from the plan?')) {
-                    removeEngagement.mutate(row.id);
-                  }
-                }}
+                onClick={() => setRemoveTarget({ id: row.id, name: row.engagement_name || row.engagement_code || 'Engagement' })}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
