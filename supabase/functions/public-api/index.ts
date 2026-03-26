@@ -304,11 +304,13 @@ async function handleC3ReportedInsert(supabase: ReturnType<typeof createClient>,
   if (!payload.payer_id) throw { code: "BAD_REQUEST", message: "payer_id is required" };
   if (!payload.payer_type) throw { code: "BAD_REQUEST", message: "payer_type is required" };
   if (!payload.period) throw { code: "BAD_REQUEST", message: "period is required" };
+  if (payload.sequence_no == null) throw { code: "BAD_REQUEST", message: "sequence_no is required" };
 
   const { data, error } = await supabase.rpc("public_api_insert_c3_reported", {
     p_payer_id: String(payload.payer_id),
     p_payer_type: String(payload.payer_type),
     p_period: String(payload.period),
+    p_sequence_no: Number(payload.sequence_no),
     p_payer_name: payload.payer_name ? String(payload.payer_name) : null,
     p_payer_address: payload.payer_address ? String(payload.payer_address) : null,
     p_number_employed: payload.number_employed != null ? Number(payload.number_employed) : null,

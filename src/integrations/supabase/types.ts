@@ -23948,29 +23948,54 @@ export type Database = {
         Args: { p_unique_uuid: string }
         Returns: Json
       }
-      public_api_insert_c3_reported: {
-        Args: {
-          p_date_received?: string
-          p_emp_levy_amt_calc?: number
-          p_emp_levy_penalty_amt?: number
-          p_emp_pe_amt_calc?: number
-          p_emp_pe_penalty_amt?: number
-          p_emp_ss_amt_calc?: number
-          p_emp_ss_fines_due?: number
-          p_entered_by?: string
-          p_nil_return?: boolean
-          p_notes?: string
-          p_number_employed?: number
-          p_payer_address?: string
-          p_payer_id: string
-          p_payer_name?: string
-          p_payer_type: string
-          p_period: string
-          p_received_by?: string
-          p_total_wages?: number
-        }
-        Returns: Json
-      }
+      public_api_insert_c3_reported:
+        | {
+            Args: {
+              p_date_received?: string
+              p_emp_levy_amt_calc?: number
+              p_emp_levy_penalty_amt?: number
+              p_emp_pe_amt_calc?: number
+              p_emp_pe_penalty_amt?: number
+              p_emp_ss_amt_calc?: number
+              p_emp_ss_fines_due?: number
+              p_entered_by?: string
+              p_nil_return?: boolean
+              p_notes?: string
+              p_number_employed?: number
+              p_payer_address?: string
+              p_payer_id: string
+              p_payer_name?: string
+              p_payer_type: string
+              p_period: string
+              p_received_by?: string
+              p_total_wages?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_date_received?: string
+              p_emp_levy_amt_calc?: number
+              p_emp_levy_penalty_amt?: number
+              p_emp_pe_amt_calc?: number
+              p_emp_pe_penalty_amt?: number
+              p_emp_ss_amt_calc?: number
+              p_emp_ss_fines_due?: number
+              p_entered_by?: string
+              p_nil_return?: boolean
+              p_notes?: string
+              p_number_employed?: number
+              p_payer_address?: string
+              p_payer_id: string
+              p_payer_name?: string
+              p_payer_type: string
+              p_period: string
+              p_received_by?: string
+              p_sequence_no: number
+              p_total_wages?: number
+            }
+            Returns: Json
+          }
       public_api_insert_ip_wages: {
         Args: {
           p_bonus_date?: string
