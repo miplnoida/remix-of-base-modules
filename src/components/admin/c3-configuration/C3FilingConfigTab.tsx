@@ -4,8 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Pencil, Trash2, Calendar, Save, X, Info } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Loader2, Plus, Pencil, Trash2, Calendar, Save, X, Info, AlertTriangle } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -14,10 +13,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useFilingConfigPeriods, useUpsertFilingConfigPeriod, useDeactivateFilingConfigPeriod } from '@/hooks/useFilingConfigPeriods';
-import { FilingConfigPeriod, FilingConfigPeriodFormData } from '@/types/filingConfigPeriod';
+import { useFilingConfigPeriods, useUpsertFilingConfigPeriod, useDeactivateFilingConfigPeriod, useAnalyzeFilingConfigChange } from '@/hooks/useFilingConfigPeriods';
+import { FilingConfigPeriod, FilingConfigPeriodFormData, FilingConfigAnalysis } from '@/types/filingConfigPeriod';
 import { useDateFormat } from '@/hooks/useDateFormat';
 import { useUserCode } from '@/hooks/useUserCode';
+import { toast } from 'sonner';
 
 const WEEKDAY_OPTIONS = [
   { value: '1', label: 'Monday' },
@@ -68,14 +68,18 @@ export function C3FilingConfigTab() {
   const { data: periods, isLoading, error } = useFilingConfigPeriods();
   const upsertMutation = useUpsertFilingConfigPeriod();
   const deactivateMutation = useDeactivateFilingConfigPeriod();
+  const analyzeMutation = useAnalyzeFilingConfigChange();
   const { formatDate } = useDateFormat();
   const { userCode } = useUserCode();
 
-  // Form state
   const [formMode, setFormMode] = useState<'hidden' | 'create' | 'edit'>('hidden');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FilingConfigPeriodFormData>({ ...DEFAULT_FORM });
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
+
+  // Split confirmation state
+  const [splitAnalysis, setSplitAnalysis] = useState<FilingConfigAnalysis | null>(null);
+  const [showSplitConfirm, setShowSplitConfirm] = useState(false);
 
   if (isLoading) {
     return (
@@ -120,22 +124,68 @@ export function C3FilingConfigTab() {
     setForm({ ...DEFAULT_FORM });
   };
 
-  const handleSave = () => {
+  const getFormParams = () => ({
+    id: editingId || undefined,
+    date_from: form.date_from,
+    date_to: form.date_to || null,
+    week_start_day: form.week_start_day,
+    filing_window_unit: form.filing_window_unit,
+    filing_window_value: form.filing_window_value,
+    penalty_initial_threshold: form.penalty_initial_threshold,
+    penalty_subsequent_threshold: form.penalty_subsequent_threshold,
+  });
+
+  const handleSave = async () => {
     if (!form.date_from) return;
+
+    try {
+      const analysis = await analyzeMutation.mutateAsync(getFormParams());
+
+      if (analysis.action === 'error') {
+        toast.error(analysis.message || 'Validation failed');
+        return;
+      }
+
+      if (analysis.action === 'split') {
+        setSplitAnalysis(analysis);
+        setShowSplitConfirm(true);
+        return;
+      }
+
+      // Normal save
+      upsertMutation.mutate(
+        {
+          ...getFormParams(),
+          user_code: userCode || undefined,
+          force_split: false,
+        },
+        { onSuccess: handleCancel }
+      );
+    } catch {
+      // Error already handled by mutation
+    }
+  };
+
+  const handleConfirmSplit = () => {
+    setShowSplitConfirm(false);
     upsertMutation.mutate(
       {
-        id: editingId || undefined,
-        date_from: form.date_from,
-        date_to: form.date_to || null,
-        week_start_day: form.week_start_day,
-        filing_window_unit: form.filing_window_unit,
-        filing_window_value: form.filing_window_value,
-        penalty_initial_threshold: form.penalty_initial_threshold,
-        penalty_subsequent_threshold: form.penalty_subsequent_threshold,
+        ...getFormParams(),
         user_code: userCode || undefined,
+        force_split: true,
       },
-      { onSuccess: handleCancel }
+      {
+        onSuccess: () => {
+          setSplitAnalysis(null);
+          handleCancel();
+        },
+      }
     );
+  };
+
+  const handleCancelSplit = () => {
+    setShowSplitConfirm(false);
+    setSplitAnalysis(null);
   };
 
   const handleDeactivate = () => {
@@ -149,12 +199,6 @@ export function C3FilingConfigTab() {
   const unitLabel = (v: number) => UNIT_OPTIONS.find(o => o.value === String(v))?.label || String(v);
   const weekdayLabel = (v: number) => WEEKDAY_OPTIONS.find(o => o.value === String(v))?.label || String(v);
 
-  const getDisplayValue = (key: string, value: number): string => {
-    if (key === 'week_start_day') return weekdayLabel(value);
-    if (key === 'filing_window_unit') return unitLabel(value);
-    return String(value);
-  };
-
   const getDynamicSuffix = (key: string, unitValue: number): string => {
     if (['filing_window_value', 'penalty_initial_threshold', 'penalty_subsequent_threshold'].includes(key)) {
       return unitValue === 2 ? 'days' : 'months';
@@ -165,6 +209,8 @@ export function C3FilingConfigTab() {
   const updateFormField = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: parseInt(value) || 0 }));
   };
+
+  const isSaving = upsertMutation.isPending || analyzeMutation.isPending;
 
   return (
     <>
@@ -239,7 +285,7 @@ export function C3FilingConfigTab() {
         </CardContent>
       </Card>
 
-      {/* Inline Add/Edit Card — same style as C3ConfigCategoryCard */}
+      {/* Inline Add/Edit Card */}
       {formMode !== 'hidden' && (
         <Card className="mt-4">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -250,11 +296,11 @@ export function C3FilingConfigTab() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" onClick={handleSave} disabled={upsertMutation.isPending || !form.date_from} className="gap-1">
+              <Button size="sm" onClick={handleSave} disabled={isSaving || !form.date_from} className="gap-1">
                 <Save className="h-4 w-4" />
-                {upsertMutation.isPending ? 'Saving...' : 'Save'}
+                {isSaving ? 'Saving...' : 'Save'}
               </Button>
-              <Button size="sm" variant="outline" onClick={handleCancel} disabled={upsertMutation.isPending} className="gap-1">
+              <Button size="sm" variant="outline" onClick={handleCancel} disabled={isSaving} className="gap-1">
                 <X className="h-4 w-4" /> Cancel
               </Button>
             </div>
@@ -323,7 +369,7 @@ export function C3FilingConfigTab() {
                     </TableCell>
                   </TableRow>
 
-                  {/* 5 config parameters — one per row */}
+                  {/* 5 config parameters */}
                   {PARAM_ROWS.map((param) => {
                     const value = form[param.key as keyof FilingConfigPeriodFormData];
                     const suffix = getDynamicSuffix(param.key, form.filing_window_unit);
@@ -393,6 +439,65 @@ export function C3FilingConfigTab() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeactivate} disabled={deactivateMutation.isPending}>
               {deactivateMutation.isPending ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Split Confirmation Dialog */}
+      <AlertDialog open={showSplitConfirm} onOpenChange={(open) => !open && handleCancelSplit()}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Historical Period Protection
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-sm">
+                <p>
+                  The configuration you are editing covers dates before the 1st of the current month. To protect historical data, the system will perform the following changes:
+                </p>
+
+                {splitAnalysis && (
+                  <>
+                    {/* Old record summary */}
+                    <div className="rounded-md border border-border bg-muted/50 p-3 space-y-1">
+                      <p className="font-semibold text-foreground">Existing Configuration (will be preserved)</p>
+                      <p>
+                        Period: <span className="font-medium">{splitAnalysis.old_record_original_from}</span> → will be closed on <span className="font-medium text-destructive">{splitAnalysis.old_record_new_end}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Original end date: {splitAnalysis.old_record_original_to}
+                      </p>
+                    </div>
+
+                    {/* New record summary */}
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
+                      <p className="font-semibold text-foreground">New Configuration (will be created)</p>
+                      <p>
+                        Period: <span className="font-medium text-primary">{splitAnalysis.new_record_start}</span> → <span className="font-medium">{splitAnalysis.new_record_end}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Your updated values will apply from the 1st of the current month onward.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <p className="text-muted-foreground">
+                  Do you want to proceed with this change?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSplit}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSplit} disabled={upsertMutation.isPending}>
+              {upsertMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+              ) : (
+                'Confirm & Save'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

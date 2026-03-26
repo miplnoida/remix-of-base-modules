@@ -22572,6 +22572,19 @@ export type Database = {
         }
         Returns: string
       }
+      analyze_filing_config_change: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_filing_window_unit?: number
+          p_filing_window_value?: number
+          p_id?: string
+          p_penalty_initial_threshold?: number
+          p_penalty_subsequent_threshold?: number
+          p_week_start_day?: number
+        }
+        Returns: Json
+      }
       apply_pending_holiday_pay: {
         Args: { p_applied_by?: string; p_pending_ids: string[] }
         Returns: undefined
@@ -23802,21 +23815,38 @@ export type Database = {
         }
         Returns: undefined
       }
-      upsert_filing_config_period: {
-        Args: {
-          p_date_from?: string
-          p_date_to?: string
-          p_filing_window_unit?: number
-          p_filing_window_value?: number
-          p_id?: string
-          p_is_active?: boolean
-          p_penalty_initial_threshold?: number
-          p_penalty_subsequent_threshold?: number
-          p_user_code?: string
-          p_week_start_day?: number
-        }
-        Returns: Json
-      }
+      upsert_filing_config_period:
+        | {
+            Args: {
+              p_date_from?: string
+              p_date_to?: string
+              p_filing_window_unit?: number
+              p_filing_window_value?: number
+              p_id?: string
+              p_is_active?: boolean
+              p_penalty_initial_threshold?: number
+              p_penalty_subsequent_threshold?: number
+              p_user_code?: string
+              p_week_start_day?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_date_from?: string
+              p_date_to?: string
+              p_filing_window_unit?: number
+              p_filing_window_value?: number
+              p_force_split?: boolean
+              p_id?: string
+              p_is_active?: boolean
+              p_penalty_initial_threshold?: number
+              p_penalty_subsequent_threshold?: number
+              p_user_code?: string
+              p_week_start_day?: number
+            }
+            Returns: Json
+          }
       validate_and_save_ip_rule: {
         Args: {
           p_id?: string
