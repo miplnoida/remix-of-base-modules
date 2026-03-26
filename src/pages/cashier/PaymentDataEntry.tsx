@@ -13,6 +13,7 @@ import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
+import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
