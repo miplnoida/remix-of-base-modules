@@ -165,6 +165,32 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
     let failCount = 0;
 
     try {
+      // Download the PDF as base64 if artifact has a file path
+      let pdfBase64: string | null = null;
+      let pdfFileName = 'Internal-Audit-Plan.pdf';
+      if (selectedArtifact?.file_path) {
+        pdfFileName = selectedArtifact.file_name || 'Internal-Audit-Plan.pdf';
+        try {
+          const { data: fileData, error: fileError } = await supabase.storage
+            .from('ia-artifacts')
+            .download(selectedArtifact.file_path);
+          if (fileError) {
+            console.error('[Distribution] Failed to download artifact:', fileError);
+            toast({ title: 'Attachment Error', description: 'Could not download the PDF for attachment. Emails will be sent without attachment.', variant: 'destructive' });
+          } else if (fileData) {
+            const arrayBuffer = await fileData.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            pdfBase64 = btoa(binary);
+          }
+        } catch (dlErr) {
+          console.error('[Distribution] Exception downloading artifact:', dlErr);
+        }
+      }
+
       for (const recipient of recipients) {
         const resolvedSubject = resolveMergeFields(subject, recipient.name);
         const resolvedBody = resolveMergeFields(messageBody, recipient.name);
@@ -179,7 +205,7 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
             ${resolvedBody.split('\n').map((line) => (line.trim() ? `<p style="margin: 0 0 10px; line-height: 1.6; color: #333;">${line}</p>` : '<br/>')).join('')}
             ${selectedArtifact?.file_path ? `<div style="margin: 25px 0; padding: 15px; background: #f0f4f8; border-radius: 8px; border-left: 4px solid #1a365d;">
               <p style="margin: 0 0 8px; font-weight: 600; color: #1a365d;">📎 Attached Document</p>
-              <p style="margin: 0; color: #555;">${selectedArtifact.file_name || 'Annual Audit Plan'}</p>
+              <p style="margin: 0; color: #555;">${pdfFileName}</p>
             </div>` : ''}
             <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #999;">
               <p>This is an official communication from the Internal Audit Department.</p>
@@ -189,6 +215,13 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
         let sendStatus = 'Pending';
         let providerMessageId: string | null = null;
 
+        // Build attachments array
+        const emailAttachments = pdfBase64 ? [{
+          filename: pdfFileName,
+          content: pdfBase64,
+          contentType: 'application/pdf',
+        }] : undefined;
+
         // Call the edge function and track result
         try {
           const { data: sendResult, error: sendError } = await supabase.functions.invoke('send-notification', {
@@ -197,7 +230,8 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
               subject: resolvedSubject,
               body: htmlBody,
               from_name: 'SSBM Internal Audit',
-              from_email: 'noreply@secureserve.biz',
+              from_email: 'Audit@secureserve.biz',
+              attachments: emailAttachments,
             },
           });
 
