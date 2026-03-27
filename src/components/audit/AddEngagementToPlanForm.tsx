@@ -46,6 +46,12 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
     lead_auditor_id: '',
     supportive_auditor_ids: [] as string[],
     scope: '',
+    quarter: '',
+    estimated_hours: '',
+    inclusion_rationale: '',
+    coverage_category: '',
+    board_priority_flag: false,
+    is_adhoc: false,
   });
 
   const { data: deptFunctions = [] } = useIADepartmentFunctions(form.department_id || undefined);
