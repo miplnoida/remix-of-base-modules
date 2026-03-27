@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const RESEND_API = "https://api.resend.com/emails";
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType?: string;
+}
+
 interface SendNotificationRequest {
   notification_log_id?: string;
   recipient_email: string;
@@ -15,6 +21,7 @@ interface SendNotificationRequest {
   body: string;
   from_name?: string;
   from_email?: string;
+  attachments?: EmailAttachment[];
 }
 
 async function logToSystem(
@@ -40,21 +47,32 @@ async function sendViaResend(
   subject: string,
   html: string,
   fromName: string,
-  fromEmail: string
+  fromEmail: string,
+  attachments?: EmailAttachment[]
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
+    const emailPayload: Record<string, any> = {
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject,
+      html,
+    };
+
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments.map((att) => ({
+        filename: att.filename,
+        content: att.content, // Resend accepts base64 strings directly
+        content_type: att.contentType || 'application/pdf',
+      }));
+    }
+
     const res = await fetch(RESEND_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        from: `${fromName} <${fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(emailPayload),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -86,7 +104,8 @@ const handler = async (req: Request): Promise<Response> => {
       subject, 
       body,
       from_name = "SSBM Internal Audit",
-      from_email = "Audit@secureserve.biz"
+      from_email = "Audit@secureserve.biz",
+      attachments,
     }: SendNotificationRequest = await req.json();
 
     console.log("Sending email notification to:", recipient_email);
@@ -106,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Try sending via Resend if API key is configured
     if (resendApiKey) {
-      const result = await sendViaResend(resendApiKey, recipient_email, subject, body, from_name, from_email);
+      const result = await sendViaResend(resendApiKey, recipient_email, subject, body, from_name, from_email, attachments);
       if (result.success) {
         sendStatus = 'sent';
         resendMessageId = result.id;
