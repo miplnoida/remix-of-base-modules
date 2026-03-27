@@ -22971,6 +22971,15 @@ export type Database = {
         }
         Returns: string
       }
+      admin_bulk_insert_jsonb: {
+        Args: { p_records: Json; p_table_name: string }
+        Returns: Json
+      }
+      admin_create_enum_if_not_exists: {
+        Args: { p_enum_name: string; p_values: string[] }
+        Returns: Json
+      }
+      admin_execute_ddl: { Args: { p_sql: string }; Returns: Json }
       analyze_filing_config_change: {
         Args: {
           p_date_from?: string
@@ -23637,6 +23646,7 @@ export type Database = {
           is_nullable: boolean
         }[]
       }
+      get_table_ddl_info: { Args: { p_table_name: string }; Returns: Json }
       get_table_foreign_keys: {
         Args: never
         Returns: {
