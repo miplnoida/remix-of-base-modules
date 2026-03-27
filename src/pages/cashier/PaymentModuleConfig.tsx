@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
-import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt } from 'lucide-react';
+import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash } from 'lucide-react';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
 import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
@@ -21,12 +21,92 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { logAuditTrail } from '@/services/auditService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
+
+/* ─── Number Format Placeholder definitions ─── */
+const SYSTEM_PLACEHOLDERS = [
+  { key: '{YYYY}', desc: 'Four-digit year (e.g. 2026)' },
+  { key: '{YY}', desc: 'Two-digit year (e.g. 26)' },
+  { key: '{MM}', desc: 'Month (01–12)' },
+  { key: '{DD}', desc: 'Day (01–31)' },
+  { key: '{YYYYMM}', desc: 'Year-month (e.g. 202603)' },
+  { key: '{YYYYMMDD}', desc: 'Date (e.g. 20260327)' },
+  { key: '{DDMMYYYY}', desc: 'Date (e.g. 27032026)' },
+  { key: '{HH}', desc: 'Hour 24h (00–23)' },
+  { key: '{MI}', desc: 'Minutes (00–59)' },
+  { key: '{SS}', desc: 'Seconds (00–59)' },
+  { key: '{HHMM}', desc: 'Time (e.g. 1430)' },
+  { key: '{HHMMSS}', desc: 'Time (e.g. 143025)' },
+  { key: '{DDMMYYYYHHMM}', desc: 'DateTime (e.g. 270320261430)' },
+  { key: '{SEQ}', desc: 'Auto-increment sequence (zero-padded)' },
+  { key: '{OFFICE_CODE}', desc: 'Current user office code' },
+];
+
+const ENTITY_PLACEHOLDERS = [
+  { key: '{PAYER_ID}', desc: 'Payer identifier' },
+  { key: '{PAYER_TYPE}', desc: 'Payer type code (ER/IP/SE/AP)' },
+  { key: '{USER_CODE}', desc: "Current cashier's user code" },
+  { key: '{RECEIPT_ID}', desc: 'DB-generated receipt identity' },
+  { key: '{INVOICE_ID}', desc: 'DB-generated invoice identity' },
+  { key: '{BATCH_NUMBER}', desc: 'Parent batch number' },
+];
+
+/** Generate a live preview of a format string */
+function previewFormat(fmt: string): string {
+  if (!fmt) return '—';
+  const now = new Date();
+  let r = fmt;
+  r = r.replace('{YYYY}', format(now, 'yyyy'));
+  r = r.replace('{YY}', format(now, 'yy'));
+  r = r.replace('{MM}', format(now, 'MM'));
+  r = r.replace('{DD}', format(now, 'dd'));
+  r = r.replace('{YYYYMM}', format(now, 'yyyyMM'));
+  r = r.replace('{YYYYMMDD}', format(now, 'yyyyMMdd'));
+  r = r.replace('{DDMMYYYY}', format(now, 'ddMMyyyy'));
+  r = r.replace('{HH}', format(now, 'HH'));
+  r = r.replace('{MI}', format(now, 'mm'));
+  r = r.replace('{SS}', format(now, 'ss'));
+  r = r.replace('{HHMM}', format(now, 'HHmm'));
+  r = r.replace('{HHMMSS}', format(now, 'HHmmss'));
+  r = r.replace('{DDMMYYYYHHMM}', format(now, 'ddMMyyyyHHmm'));
+  r = r.replace('{SEQ}', '001');
+  r = r.replace('{OFFICE_CODE}', 'HQ');
+  r = r.replace('{PAYER_ID}', '100234');
+  r = r.replace('{PAYER_TYPE}', 'ER');
+  r = r.replace('{USER_CODE}', 'JD01');
+  r = r.replace('{RECEIPT_ID}', '42');
+  r = r.replace('{INVOICE_ID}', '15');
+  r = r.replace('{BATCH_NUMBER}', 'HQ-20260327-143025');
+  return r;
+}
+
+/* ─── Currency Dialog ─── */
+interface CurrencyFormData {
+  currency_code: string;
+  currency_name: string;
+  symbol: string;
+  exchange_rate: string;
+  is_main_currency: boolean;
+  sort_order: string;
+}
+
+const emptyCurrencyForm: CurrencyFormData = {
+  currency_code: '',
+  currency_name: '',
+  symbol: '',
+  exchange_rate: '1',
+  is_main_currency: false,
+  sort_order: '10',
+};
 
 const PaymentModuleConfig: React.FC = () => {
   const { data: configs, isLoading } = usePaymentModuleConfig();
   const updateConfig = useUpdatePaymentConfig();
   const queryClient = useQueryClient();
-  const { profile } = useSupabaseAuth();
+  const { profile, user } = useSupabaseAuth();
 
   const { data: allRoles } = useQuery({
     queryKey: ['all-active-roles'],
@@ -41,7 +121,7 @@ const PaymentModuleConfig: React.FC = () => {
     },
   });
 
-  const { data: allCurrencies } = useAllCurrencies();
+  const { data: allCurrencies, refetch: refetchCurrencies } = useAllCurrencies();
   const { data: currencyConfigs } = useAllCashierCurrencyConfigs();
 
   const [cashierRoles, setCashierRoles] = useState<string[]>([]);
@@ -55,6 +135,22 @@ const PaymentModuleConfig: React.FC = () => {
   const [newDenomType, setNewDenomType] = useState('note');
   const [newDenomLabel, setNewDenomLabel] = useState('');
   const [savingCurrency, setSavingCurrency] = useState(false);
+
+  // Currency CRUD dialog
+  const [currencyDialogOpen, setCurrencyDialogOpen] = useState(false);
+  const [editingCurrencyId, setEditingCurrencyId] = useState<string | null>(null);
+  const [currencyForm, setCurrencyForm] = useState<CurrencyFormData>(emptyCurrencyForm);
+  const [currencyFormErrors, setCurrencyFormErrors] = useState<Record<string, string>>({});
+  const [savingCurrencyForm, setSavingCurrencyForm] = useState(false);
+
+  // Number Format states
+  const [invoiceFormat, setInvoiceFormat] = useState('');
+  const [invoiceSeqLen, setInvoiceSeqLen] = useState(3);
+  const [receiptFormat, setReceiptFormat] = useState('');
+  const [receiptIdMinLen, setReceiptIdMinLen] = useState(1);
+  const [batchFormat, setBatchFormat] = useState('');
+  const [receiptIdDisplayMin, setReceiptIdDisplayMin] = useState(1);
+  const [invoiceIdDisplayMin, setInvoiceIdDisplayMin] = useState(1);
 
   // Fetch all payment types from tb_payment_type
   const { data: allPaymentTypes } = useQuery({
@@ -83,6 +179,26 @@ const PaymentModuleConfig: React.FC = () => {
     if (dm?.mode) setDuplicateMode(dm.mode);
     const c3pt = getVal('c3_payment_types');
     if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
+
+    // Number formats
+    const invFmt = getVal('invoice_number_format');
+    if (invFmt && typeof invFmt === 'object') {
+      setInvoiceFormat((invFmt as any).format || '');
+      setInvoiceSeqLen((invFmt as any).seq_min_length || 3);
+    }
+    const rcptFmt = getVal('receipt_number_format');
+    if (rcptFmt && typeof rcptFmt === 'object') {
+      setReceiptFormat((rcptFmt as any).format || '');
+      setReceiptIdMinLen((rcptFmt as any).id_min_length || 1);
+    }
+    const batchFmt = getVal('batch_number_format');
+    if (batchFmt && typeof batchFmt === 'object') {
+      setBatchFormat((batchFmt as any).format || '');
+    }
+    const ridMin = getVal('receipt_id_min_length');
+    if (ridMin !== undefined) setReceiptIdDisplayMin(typeof ridMin === 'number' ? ridMin : 1);
+    const iidMin = getVal('invoice_id_min_length');
+    if (iidMin !== undefined) setInvoiceIdDisplayMin(typeof iidMin === 'number' ? iidMin : 1);
   }, [configs]);
 
   // Auto-select first currency for denomination management
@@ -95,8 +211,6 @@ const PaymentModuleConfig: React.FC = () => {
   const handleSave = async (key: string, value: any) => {
     await updateConfig.mutateAsync({ key, value });
   };
-
-  const { user } = useSupabaseAuth();
 
   const auditLog = async (action: string, entityType: string, entityId: string, before: any, after: any, meta?: Record<string, any>) => {
     const result = await logAuditTrail({
@@ -113,6 +227,7 @@ const PaymentModuleConfig: React.FC = () => {
     if (!result) console.error('[PaymentConfig] Audit log failed:', action, entityType, entityId);
   };
 
+  // ─── Currency enable/disable ───
   const toggleCurrencyEnabled = async (currencyId: string, currentlyEnabled: boolean) => {
     setSavingCurrency(true);
     const currencyName = allCurrencies?.find(c => c.id === currencyId)?.currency_code || currencyId;
@@ -147,6 +262,110 @@ const PaymentModuleConfig: React.FC = () => {
     }
   };
 
+  // ─── Currency CRUD ───
+  const openCurrencyDialog = (currencyId?: string) => {
+    setCurrencyFormErrors({});
+    if (currencyId && allCurrencies) {
+      const c = allCurrencies.find(x => x.id === currencyId);
+      if (c) {
+        setEditingCurrencyId(currencyId);
+        setCurrencyForm({
+          currency_code: c.currency_code,
+          currency_name: c.currency_name,
+          symbol: c.symbol || '',
+          exchange_rate: String(c.exchange_rate),
+          is_main_currency: c.is_main_currency,
+          sort_order: String(c.sort_order),
+        });
+      }
+    } else {
+      setEditingCurrencyId(null);
+      setCurrencyForm(emptyCurrencyForm);
+    }
+    setCurrencyDialogOpen(true);
+  };
+
+  const validateCurrencyForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const code = currencyForm.currency_code.trim().toUpperCase();
+    if (!code || code.length !== 3 || !/^[A-Z]{3}$/.test(code)) errors.currency_code = 'Must be 3 uppercase letters';
+    // Check uniqueness
+    if (!editingCurrencyId && allCurrencies?.some(c => c.currency_code === code)) errors.currency_code = 'Currency code already exists';
+    if (editingCurrencyId) {
+      const existing = allCurrencies?.find(c => c.currency_code === code && c.id !== editingCurrencyId);
+      if (existing) errors.currency_code = 'Currency code already exists';
+    }
+    if (!currencyForm.currency_name.trim()) errors.currency_name = 'Required';
+    const rate = parseFloat(currencyForm.exchange_rate);
+    if (isNaN(rate) || rate <= 0) errors.exchange_rate = 'Must be greater than 0';
+    const sort = parseInt(currencyForm.sort_order);
+    if (isNaN(sort) || sort < 0) errors.sort_order = 'Must be a valid number';
+    setCurrencyFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const saveCurrency = async () => {
+    if (!validateCurrencyForm()) return;
+    setSavingCurrencyForm(true);
+    const code = currencyForm.currency_code.trim().toUpperCase();
+    const payload = {
+      currency_code: code,
+      currency_name: currencyForm.currency_name.trim(),
+      symbol: currencyForm.symbol.trim() || null,
+      exchange_rate: parseFloat(currencyForm.exchange_rate),
+      is_main_currency: currencyForm.is_main_currency,
+      sort_order: parseInt(currencyForm.sort_order) || 10,
+    };
+
+    try {
+      // If setting as main, demote existing main first
+      if (payload.is_main_currency) {
+        const currentMain = allCurrencies?.find(c => c.is_main_currency && c.id !== editingCurrencyId);
+        if (currentMain) {
+          const { error: demoteErr } = await supabase
+            .from('tb_currencies')
+            .update({ is_main_currency: false })
+            .eq('id', currentMain.id);
+          if (demoteErr) throw demoteErr;
+          await auditLog('update', 'tb_currencies', currentMain.id,
+            { currency_code: currentMain.currency_code, is_main_currency: true },
+            { currency_code: currentMain.currency_code, is_main_currency: false },
+            { reason: 'Demoted from main currency' },
+          );
+        }
+      }
+
+      if (editingCurrencyId) {
+        const before = allCurrencies?.find(c => c.id === editingCurrencyId);
+        const { error } = await supabase
+          .from('tb_currencies')
+          .update(payload)
+          .eq('id', editingCurrencyId);
+        if (error) throw error;
+        await auditLog('update', 'tb_currencies', editingCurrencyId, before, payload);
+        toast.success('Currency updated successfully');
+      } else {
+        const { data: inserted, error } = await supabase
+          .from('tb_currencies')
+          .insert({ ...payload, is_active: true })
+          .select('id')
+          .single();
+        if (error) throw error;
+        await auditLog('create', 'tb_currencies', inserted?.id || '', null, payload);
+        toast.success('Currency created successfully');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['tb-currencies'] });
+      queryClient.invalidateQueries({ queryKey: ['cashier-currency-config-enabled'] });
+      setCurrencyDialogOpen(false);
+    } catch (err: any) {
+      toast.error('Failed to save currency', { description: err.message });
+    } finally {
+      setSavingCurrencyForm(false);
+    }
+  };
+
+  // ─── Denominations ───
   const addDenomination = async () => {
     if (!selectedDenomCurrencyId || !newDenomValue) return;
     const val = parseFloat(newDenomValue);
@@ -226,10 +445,6 @@ const PaymentModuleConfig: React.FC = () => {
     return currencyConfigs?.find(c => c.currency_id === currencyId)?.is_enabled ?? false;
   };
 
-  const isMainCurrency = (currencyId: string) => {
-    return allCurrencies?.find(c => c.id === currencyId)?.is_main_currency ?? false;
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -237,8 +452,6 @@ const PaymentModuleConfig: React.FC = () => {
       </div>
     );
   }
-
-  const selectedCurrencyName = allCurrencies?.find(c => c.id === selectedDenomCurrencyId);
 
   return (
     <div className="p-6 space-y-6">
@@ -259,6 +472,7 @@ const PaymentModuleConfig: React.FC = () => {
           <TabsTrigger value="mop-details">MOP Detail Settings</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
+          <TabsTrigger value="number-formats">Number Formats</TabsTrigger>
           <TabsTrigger value="receipt">Receipt & Invoice</TabsTrigger>
         </TabsList>
 
@@ -358,17 +572,14 @@ const PaymentModuleConfig: React.FC = () => {
                 C3 Payment Types
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Select which payment types from the master list should be treated as C3 payments. These are persisted and used across the system for C3-specific processing logic.
+                Select which payment types from the master list should be treated as C3 payments.
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <MultiSelectCheckbox
                 options={allPaymentTypes || []}
                 selected={c3PaymentTypes}
-                onChange={(selected) => {
-                  // Deduplicate just in case
-                  setC3PaymentTypes([...new Set(selected)]);
-                }}
+                onChange={(selected) => setC3PaymentTypes([...new Set(selected)])}
                 placeholder="Select C3 payment types..."
               />
               {c3PaymentTypes.length > 0 && (
@@ -428,7 +639,7 @@ const PaymentModuleConfig: React.FC = () => {
                 <div className="space-y-0.5">
                   <Label className="text-sm font-medium">Show Card Details</Label>
                   <p className="text-xs text-muted-foreground">
-                    When enabled, card detail fields (card type, card number, expiry, etc.) appear when CRD method is selected.
+                    When enabled, card detail fields (card type, card number, expiry, etc.) appear when <strong>CRD (Credit Card)</strong> or <strong>DRD (Debit Card)</strong> method is selected.
                   </p>
                 </div>
                 <Switch
@@ -441,16 +652,24 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
+        {/* ─── CURRENCIES TAB ─── */}
         <TabsContent value="currencies" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Coins className="h-4 w-4" />
-                Cashier Currencies
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Enable or disable currencies that cashiers can use in the Cash Details screen. The main system currency is always enabled.
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Coins className="h-4 w-4" />
+                    Cashier Currencies
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Manage currencies and enable/disable them for cashier use. The main system currency is always enabled.
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => openCurrencyDialog()}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Currency
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -461,6 +680,7 @@ const PaymentModuleConfig: React.FC = () => {
                     <TableHead>Exchange Rate (to Main)</TableHead>
                     <TableHead>Main</TableHead>
                     <TableHead className="text-center">Enabled</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -479,6 +699,11 @@ const PaymentModuleConfig: React.FC = () => {
                             disabled={isMain || savingCurrency}
                             onCheckedChange={() => toggleCurrencyEnabled(c.id, enabled)}
                           />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="sm" onClick={() => openCurrencyDialog(c.id)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -609,6 +834,167 @@ const PaymentModuleConfig: React.FC = () => {
           </Card>
         </TabsContent>
 
+        {/* ─── NUMBER FORMATS TAB ─── */}
+        <TabsContent value="number-formats" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Invoice Number */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Hash className="h-4 w-4" />
+                  Invoice Number
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Configure the format for <code>invoice_number</code> in cn_invoices.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Format Pattern</Label>
+                  <Input value={invoiceFormat} onChange={e => setInvoiceFormat(e.target.value)} placeholder="INV-{YYYYMM}-{SEQ}" className="font-mono text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Sequence Min Length (zero-padded)</Label>
+                  <Input type="number" min={1} max={10} value={invoiceSeqLen} onChange={e => setInvoiceSeqLen(parseInt(e.target.value) || 1)} className="w-20" />
+                </div>
+                <div className="rounded-md bg-muted p-2">
+                  <Label className="text-xs text-muted-foreground">Preview</Label>
+                  <p className="font-mono text-sm text-foreground">{previewFormat(invoiceFormat)}</p>
+                </div>
+                <Button size="sm" onClick={() => handleSave('invoice_number_format', { format: invoiceFormat, seq_min_length: invoiceSeqLen })} disabled={updateConfig.isPending}>
+                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Save
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Receipt Number */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Hash className="h-4 w-4" />
+                  Receipt Number
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Configure the format for <code>receipt_number</code> in cn_receipt.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Format Pattern</Label>
+                  <Input value={receiptFormat} onChange={e => setReceiptFormat(e.target.value)} placeholder="{PAYER_ID}/{RECEIPT_ID}/{DDMMYYYYHHMM}" className="font-mono text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Receipt ID Min Length (zero-padded)</Label>
+                  <Input type="number" min={1} max={10} value={receiptIdMinLen} onChange={e => setReceiptIdMinLen(parseInt(e.target.value) || 1)} className="w-20" />
+                </div>
+                <div className="rounded-md bg-muted p-2">
+                  <Label className="text-xs text-muted-foreground">Preview</Label>
+                  <p className="font-mono text-sm text-foreground">{previewFormat(receiptFormat)}</p>
+                </div>
+                <Button size="sm" onClick={() => handleSave('receipt_number_format', { format: receiptFormat, id_min_length: receiptIdMinLen })} disabled={updateConfig.isPending}>
+                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Save
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Batch Number */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Hash className="h-4 w-4" />
+                  Batch Number
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Configure the format for <code>batch_number</code> in cn_batch.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Format Pattern</Label>
+                  <Input value={batchFormat} onChange={e => setBatchFormat(e.target.value)} placeholder="{OFFICE_CODE}-{YYYYMMDD}-{HHMMSS}" className="font-mono text-sm" />
+                </div>
+                <div className="rounded-md bg-muted p-2">
+                  <Label className="text-xs text-muted-foreground">Preview</Label>
+                  <p className="font-mono text-sm text-foreground">{previewFormat(batchFormat)}</p>
+                </div>
+                <Button size="sm" onClick={() => handleSave('batch_number_format', { format: batchFormat })} disabled={updateConfig.isPending}>
+                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Save
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ID Min Length Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Minimum ID Display Length</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Configure zero-padding for receipt_id and invoice_id display values.
+              </p>
+            </CardHeader>
+            <CardContent className="flex gap-6">
+              <div className="space-y-1">
+                <Label className="text-xs">Receipt ID Min Digits</Label>
+                <Input type="number" min={1} max={10} value={receiptIdDisplayMin} onChange={e => setReceiptIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Invoice ID Min Digits</Label>
+                <Input type="number" min={1} max={10} value={invoiceIdDisplayMin} onChange={e => setInvoiceIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
+              </div>
+              <div className="flex items-end">
+                <Button size="sm" onClick={async () => {
+                  await Promise.all([
+                    handleSave('receipt_id_min_length', receiptIdDisplayMin),
+                    handleSave('invoice_id_min_length', invoiceIdDisplayMin),
+                  ]);
+                }} disabled={updateConfig.isPending}>
+                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Save
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Placeholder Reference */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Available Placeholders</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Use these placeholders in format patterns. Static text outside <code>{'{}'}</code> is treated as literal.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">System Placeholders</h4>
+                  <div className="space-y-1">
+                    {SYSTEM_PLACEHOLDERS.map(p => (
+                      <div key={p.key} className="flex gap-2 text-xs">
+                        <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-primary whitespace-nowrap">{p.key}</code>
+                        <span className="text-muted-foreground">{p.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Entity Placeholders</h4>
+                  <div className="space-y-1">
+                    {ENTITY_PLACEHOLDERS.map(p => (
+                      <div key={p.key} className="flex gap-2 text-xs">
+                        <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-primary whitespace-nowrap">{p.key}</code>
+                        <span className="text-muted-foreground">{p.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ─── RECEIPT & INVOICE TAB ─── */}
         <TabsContent value="receipt" className="space-y-6">
           <Tabs defaultValue="receipt-tpl" className="space-y-4">
@@ -631,6 +1017,76 @@ const PaymentModuleConfig: React.FC = () => {
           </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* ─── Currency Add/Edit Dialog ─── */}
+      <Dialog open={currencyDialogOpen} onOpenChange={setCurrencyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCurrencyId ? 'Edit Currency' : 'Add New Currency'}</DialogTitle>
+            <DialogDescription>
+              {editingCurrencyId ? 'Update the currency details below.' : 'Enter details for the new currency.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Currency Code (3 letters, e.g. USD)</Label>
+              <Input
+                value={currencyForm.currency_code}
+                onChange={e => { setCurrencyForm(f => ({ ...f, currency_code: e.target.value.toUpperCase().slice(0, 3) })); setCurrencyFormErrors(prev => ({ ...prev, currency_code: '' })); }}
+                maxLength={3}
+                className={currencyFormErrors.currency_code ? 'border-destructive' : ''}
+                disabled={!!editingCurrencyId}
+              />
+              {currencyFormErrors.currency_code && <p className="text-xs text-destructive">{currencyFormErrors.currency_code}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Currency Name</Label>
+              <Input
+                value={currencyForm.currency_name}
+                onChange={e => { setCurrencyForm(f => ({ ...f, currency_name: e.target.value })); setCurrencyFormErrors(prev => ({ ...prev, currency_name: '' })); }}
+                className={currencyFormErrors.currency_name ? 'border-destructive' : ''}
+              />
+              {currencyFormErrors.currency_name && <p className="text-xs text-destructive">{currencyFormErrors.currency_name}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Symbol</Label>
+                <Input value={currencyForm.symbol} onChange={e => setCurrencyForm(f => ({ ...f, symbol: e.target.value }))} placeholder="e.g. $" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Sort Order</Label>
+                <Input type="number" value={currencyForm.sort_order} onChange={e => setCurrencyForm(f => ({ ...f, sort_order: e.target.value }))} className={currencyFormErrors.sort_order ? 'border-destructive' : ''} />
+                {currencyFormErrors.sort_order && <p className="text-xs text-destructive">{currencyFormErrors.sort_order}</p>}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Exchange Rate (to main currency)</Label>
+              <Input type="number" step="0.000001" min="0.000001" value={currencyForm.exchange_rate} onChange={e => setCurrencyForm(f => ({ ...f, exchange_rate: e.target.value }))} className={currencyFormErrors.exchange_rate ? 'border-destructive' : ''} />
+              {currencyFormErrors.exchange_rate && <p className="text-xs text-destructive">{currencyFormErrors.exchange_rate}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={currencyForm.is_main_currency}
+                onCheckedChange={(checked) => setCurrencyForm(f => ({ ...f, is_main_currency: !!checked }))}
+              />
+              <Label className="text-xs cursor-pointer">Set as main (system) currency</Label>
+            </div>
+            {currencyForm.is_main_currency && allCurrencies?.some(c => c.is_main_currency && c.id !== editingCurrencyId) && (
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 text-xs text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
+                The current main currency ({allCurrencies.find(c => c.is_main_currency)?.currency_code}) will be demoted.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCurrencyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={saveCurrency} disabled={savingCurrencyForm}>
+              {savingCurrencyForm ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              {editingCurrencyId ? 'Update Currency' : 'Create Currency'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
