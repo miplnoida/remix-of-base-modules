@@ -288,6 +288,58 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
         <Textarea value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} placeholder="Describe the scope of this engagement..." rows={3} />
       </div>
 
+      {/* Portfolio Fields */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Quarter</Label>
+          <Select value={form.quarter} onValueChange={v => setForm(f => ({ ...f, quarter: v }))}>
+            <SelectTrigger><SelectValue placeholder="Select quarter" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Q1">Q1</SelectItem>
+              <SelectItem value="Q2">Q2</SelectItem>
+              <SelectItem value="Q3">Q3</SelectItem>
+              <SelectItem value="Q4">Q4</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Estimated Hours</Label>
+          <Input type="number" value={form.estimated_hours} onChange={e => setForm(f => ({ ...f, estimated_hours: e.target.value }))} placeholder="e.g. 120" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Coverage Category</Label>
+          <Select value={form.coverage_category} onValueChange={v => setForm(f => ({ ...f, coverage_category: v }))}>
+            <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Compliance">Compliance</SelectItem>
+              <SelectItem value="Financial">Financial</SelectItem>
+              <SelectItem value="Operational">Operational</SelectItem>
+              <SelectItem value="IT">IT</SelectItem>
+              <SelectItem value="Governance">Governance</SelectItem>
+              <SelectItem value="Special">Special</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Inclusion Rationale</Label>
+          <Input value={form.inclusion_rationale} onChange={e => setForm(f => ({ ...f, inclusion_rationale: e.target.value }))} placeholder="Why this audit is included" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={form.board_priority_flag} onCheckedChange={(c) => setForm(f => ({ ...f, board_priority_flag: !!c }))} />
+          Board Priority
+        </label>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={form.is_adhoc} onCheckedChange={(c) => setForm(f => ({ ...f, is_adhoc: !!c }))} />
+          Ad-hoc Audit
+        </label>
+      </div>
+
       <div className="flex justify-end">
         <Button onClick={handleSubmit} disabled={isSaving || !form.engagement_name.trim()}>
           {isSaving ? 'Saving...' : 'Add Engagement'}
