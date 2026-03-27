@@ -86,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject, 
       body,
       from_name = "SSBM Internal Audit",
-      from_email = "noreply@system.local"
+      from_email = "noreply@secureserve.biz"
     }: SendNotificationRequest = await req.json();
 
     console.log("Sending email notification to:", recipient_email);
