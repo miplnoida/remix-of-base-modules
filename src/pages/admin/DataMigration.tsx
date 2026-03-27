@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { MultiSelectCheckbox } from "@/components/ui/multi-select-checkbox";
+import { Input } from "@/components/ui/input";
 import { 
   Database, 
   Download, 
@@ -27,6 +27,7 @@ import {
   Plus,
   AlertTriangle,
   X,
+  Search,
   Settings2,
   Loader2,
 } from "lucide-react";
@@ -785,6 +786,7 @@ const DataMigration = () => {
     [allTables]
   );
   
+  const [tableSearch, setTableSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -993,17 +995,54 @@ const DataMigration = () => {
                     <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />Refresh
                   </Button>
                 </div>
-                <div className="border rounded-lg p-3">
-                  {isLoadingTables ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
-                  ) : (
-                    <MultiSelectCheckbox
-                      options={tableOptions}
-                      selected={selectedTables}
-                      onChange={setSelectedTables}
-                      placeholder="Search and select tables..."
-                    />
-                  )}
+                <div className="border rounded-lg">
+                  <div className="p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search tables..."
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-[350px] overflow-y-auto p-2 space-y-0.5">
+                    {isLoadingTables ? (
+                      <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
+                    ) : (
+                      tableOptions
+                        .filter(t => t.label.toLowerCase().includes(tableSearch.toLowerCase()))
+                        .map(t => (
+                          <div
+                            key={t.value}
+                            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                            onClick={() => {
+                              setSelectedTables(prev =>
+                                prev.includes(t.value)
+                                  ? prev.filter(v => v !== t.value)
+                                  : [...prev, t.value]
+                              );
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedTables.includes(t.value)}
+                              onCheckedChange={() => {
+                                setSelectedTables(prev =>
+                                  prev.includes(t.value)
+                                    ? prev.filter(v => v !== t.value)
+                                    : [...prev, t.value]
+                                );
+                              }}
+                            />
+                            <span className="text-sm font-mono">{t.label}</span>
+                          </div>
+                        ))
+                    )}
+                    {!isLoadingTables && tableOptions.filter(t => t.label.toLowerCase().includes(tableSearch.toLowerCase())).length === 0 && (
+                      <div className="text-center py-4 text-sm text-muted-foreground">No tables match "{tableSearch}"</div>
+                    )}
+                  </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Selected: <strong>{selectedTables.length} tables</strong> of {allTables.length} total
