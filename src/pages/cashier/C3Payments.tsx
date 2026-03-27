@@ -53,20 +53,27 @@ const C3Payments: React.FC = () => {
   const payment = usePaymentEntry();
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navState = (location.state || {}) as Record<string, string>;
 
   // Header state
-  const [payerType, setPayerType] = useState(() => searchParams.get('payerType') || 'ER');
-  const [payerId, setPayerId] = useState(() => searchParams.get('regNo') || '');
+  const [payerType, setPayerType] = useState(() => navState.payerType || 'ER');
+  const [payerId, setPayerId] = useState(() => navState.regNo || '');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [dateReceived, setDateReceived] = useState<Date | undefined>(new Date());
   const [remarks, setRemarks] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
-  const [sequenceNo, setSequenceNo] = useState(() => searchParams.get('schedule') || '');
+  const [selectedMonth, setSelectedMonth] = useState(() => navState.month || (new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(() => navState.year || new Date().getFullYear().toString());
+  const [sequenceNo, setSequenceNo] = useState(() => navState.schedule || '');
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
   const [c3ComponentsLoaded, setC3ComponentsLoaded] = useState(false);
+
+  // Sync status
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'sync_failed' | 'not_configured'>('idle');
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncPaymentId, setSyncPaymentId] = useState<number | null>(null);
+  const [syncReceiptId, setSyncReceiptId] = useState<number | null>(null);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
