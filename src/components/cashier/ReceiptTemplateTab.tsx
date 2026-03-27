@@ -20,7 +20,7 @@ const PLACEHOLDERS = [
   { key: '{{payer_type}}', description: 'Payer type code — ER / IP / SE' },
   { key: '{{date_received}}', description: 'Date payment was received (dd-MMM-yyyy)' },
   { key: '{{receipt_number}}', description: 'System-generated receipt number' },
-  { key: '{{receipt_id}}', description: 'Numeric receipt ID' },
+  
   { key: '{{receipt_total}}', description: 'Total payment amount (formatted with 2 decimals)' },
   { key: '{{payment_id}}', description: 'Payment transaction ID' },
   { key: '{{batch_number}}', description: 'Batch number the payment belongs to' },

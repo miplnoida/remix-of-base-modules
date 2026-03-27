@@ -755,7 +755,7 @@ const C3Payments: React.FC = () => {
                       {(m.mop_code === 'CHQ' || m.mop_code === 'CHK') && m.mop_number && (
                         <span>Cheque #{m.mop_number} {m.bank_desc ? `• ${m.bank_desc}` : ''} {m.cheque_date ? `• ${new Date(m.cheque_date).toLocaleDateString()}` : ''}</span>
                       )}
-                      {m.mop_code === 'CRD' && m.credit_card_code && (
+                      {(m.mop_code === 'CRD' || m.mop_code === 'DRD') && m.credit_card_code && (
                         <span>{m.card_desc || m.credit_card_code} {m.mop_number ? `• ****${m.mop_number.slice(-4)}` : ''} {m.expiration_date ? `• Exp: ${m.expiration_date}` : ''}</span>
                       )}
                     </div>

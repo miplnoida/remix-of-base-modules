@@ -48,7 +48,7 @@ export function MOPDetailModal({ open, onClose, detailRow, onSave }: MOPDetailMo
   if (!detailRow) return null;
 
   const isCheque = detailRow.mop_code === 'CHQ';
-  const isCard = detailRow.mop_code === 'CRD';
+  const isCard = detailRow.mop_code === 'CRD' || detailRow.mop_code === 'DRD';
   const isEFT = detailRow.mop_code === 'EFT';
 
   const handleSave = () => {

@@ -197,7 +197,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     onAdd(detail);
     onClose();
 
-    if ((mopCode === 'CHQ' || mopCode === 'CHK' || mopCode === 'CRD') && onMopPopupNeeded) {
+    if ((mopCode === 'CHQ' || mopCode === 'CHK' || mopCode === 'CRD' || mopCode === 'DRD') && onMopPopupNeeded) {
       setTimeout(() => onMopPopupNeeded(mopCode), 100);
     }
   };

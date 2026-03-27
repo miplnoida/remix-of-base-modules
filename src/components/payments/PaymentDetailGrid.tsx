@@ -25,12 +25,12 @@ const FUND_LABELS: Record<string, string> = {
 
 function needsMopDetail(mopCode: string, showCheque: boolean, showCard: boolean): boolean {
   if ((mopCode === 'CHQ' || mopCode === 'CHK') && showCheque) return true;
-  if (mopCode === 'CRD' && showCard) return true;
+  if ((mopCode === 'CRD' || mopCode === 'DRD') && showCard) return true;
   return false;
 }
 
 function hasMopDetail(row: DetailLineData, showCheque: boolean, showCard: boolean): boolean {
-  if (row.mop_code === 'CRD' && showCard) return !!row.credit_card_code && !!row.mop_number;
+  if ((row.mop_code === 'CRD' || row.mop_code === 'DRD') && showCard) return !!row.credit_card_code && !!row.mop_number;
   if ((row.mop_code === 'CHQ' || row.mop_code === 'CHK') && showCheque) return !!row.mop_number;
   return true;
 }

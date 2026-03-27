@@ -110,9 +110,9 @@ export function PaymentMethodModal({
         }
         // Card
         setCardType(editRow.credit_card_code || '');
-        setCardNumber((editRow.mop_code === 'CRD' ? editRow.mop_number : '') || '');
+        setCardNumber(((editRow.mop_code === 'CRD' || editRow.mop_code === 'DRD') ? editRow.mop_number : '') || '');
         setExpireDate(editRow.expiration_date || '');
-        setCardNotes((editRow.mop_code === 'CRD' ? editRow.mop_notes1 : '') || '');
+        setCardNotes(((editRow.mop_code === 'CRD' || editRow.mop_code === 'DRD') ? editRow.mop_notes1 : '') || '');
       } else {
         setMopCode('');
         setCurrencyCode(baseCurrCode);
@@ -143,7 +143,7 @@ export function PaymentMethodModal({
   const baseAmount = Number((originalAmount * exchangeRate).toFixed(2));
   const isMainCurr = currencyCode === baseCurrCode;
   const isCheque = mopCode === 'CHQ' || mopCode === 'CHK';
-  const isCard = mopCode === 'CRD';
+  const isCard = mopCode === 'CRD' || mopCode === 'DRD';
 
   // Date auto-format DD/MM/YYYY
   const handleDateChange = (val: string) => {
