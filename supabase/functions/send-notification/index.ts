@@ -47,21 +47,32 @@ async function sendViaResend(
   subject: string,
   html: string,
   fromName: string,
-  fromEmail: string
+  fromEmail: string,
+  attachments?: EmailAttachment[]
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
+    const emailPayload: Record<string, any> = {
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject,
+      html,
+    };
+
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments.map((att) => ({
+        filename: att.filename,
+        content: att.content, // Resend accepts base64 strings directly
+        content_type: att.contentType || 'application/pdf',
+      }));
+    }
+
     const res = await fetch(RESEND_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        from: `${fromName} <${fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(emailPayload),
     });
     const data = await res.json();
     if (!res.ok) {
