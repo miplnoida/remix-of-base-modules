@@ -5,14 +5,17 @@ import { useIsAdmin } from "@/hooks/useNavigationMenu";
 import { useLocation } from "react-router-dom";
 import { DeveloperInfoModal } from "./DeveloperInfoModal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSystemSettingsContext } from "@/contexts/SystemSettingsContext";
 
 export const DeveloperInfoFAB = () => {
   const isAdmin = useIsAdmin();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { getSetting } = useSystemSettingsContext();
+  const devInfoEnabled = getSetting('developer_info_enabled', 'false') === 'true';
 
-  // Only visible for Admin (Super Admin)
-  if (!isAdmin) return null;
+  // Only visible for Admin (Super Admin) AND when enabled via backend setting
+  if (!isAdmin || !devInfoEnabled) return null;
 
   return (
     <>
