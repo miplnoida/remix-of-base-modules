@@ -19,16 +19,56 @@ export interface BatchData {
   batch_date: string | null;
 }
 
+/** Resolve batch number format from config, falling back to legacy */
+function resolveBatchFormat(formatStr: string | null, officeCode: string): string {
+  const now = new Date();
+  if (!formatStr) {
+    // Legacy fallback
+    const dateStr = format(now, 'yyyyMMdd');
+    const timeStr = format(now, 'HHmmss');
+    return `${officeCode}-${dateStr}-${timeStr}`;
+  }
+
+  let result = formatStr;
+  result = result.replace('{OFFICE_CODE}', officeCode);
+  result = result.replace('{YYYY}', format(now, 'yyyy'));
+  result = result.replace('{YY}', format(now, 'yy'));
+  result = result.replace('{YYYYMMDD}', format(now, 'yyyyMMdd'));
+  result = result.replace('{YYYYMM}', format(now, 'yyyyMM'));
+  result = result.replace('{DDMMYYYY}', format(now, 'ddMMyyyy'));
+  result = result.replace('{DDMMYYYYHHMM}', format(now, 'ddMMyyyyHHmm'));
+  result = result.replace('{MM}', format(now, 'MM'));
+  result = result.replace('{DD}', format(now, 'dd'));
+  result = result.replace('{HHMMSS}', format(now, 'HHmmss'));
+  result = result.replace('{HHMM}', format(now, 'HHmm'));
+  result = result.replace('{HH}', format(now, 'HH'));
+  result = result.replace('{MI}', format(now, 'mm'));
+  result = result.replace('{SS}', format(now, 'ss'));
+  return result;
+}
+
 export function usePaymentBatch() {
   const [currentBatch, setCurrentBatch] = useState<BatchData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const generateBatchNumber = (officeCode: string): string => {
-    const now = new Date();
-    const dateStr = format(now, 'yyyyMMdd');
-    const timeStr = format(now, 'HHmmss');
-    return `${officeCode}-${dateStr}-${timeStr}`;
-  };
+  const generateBatchNumber = useCallback(async (officeCode: string): Promise<string> => {
+    try {
+      const { data } = await supabase
+        .from('payment_module_config')
+        .select('config_value')
+        .eq('config_key', 'batch_number_format')
+        .maybeSingle();
+
+      const formatStr = data?.config_value
+        ? (typeof data.config_value === 'object' ? (data.config_value as any).format : null)
+        : null;
+
+      return resolveBatchFormat(formatStr, officeCode);
+    } catch {
+      // Fallback on error
+      return resolveBatchFormat(null, officeCode);
+    }
+  }, []);
 
   const getBalanceForward = useCallback(async (): Promise<number> => {
     const { data } = await supabase
@@ -50,7 +90,7 @@ export function usePaymentBatch() {
   ): Promise<BatchData | null> => {
     setIsLoading(true);
     try {
-      const batchNumber = generateBatchNumber(officeCode);
+      const batchNumber = await generateBatchNumber(officeCode);
       const balanceForward = await getBalanceForward();
       const now = new Date().toISOString();
 
@@ -82,7 +122,7 @@ export function usePaymentBatch() {
     } finally {
       setIsLoading(false);
     }
-  }, [getBalanceForward]);
+  }, [generateBatchNumber, getBalanceForward]);
 
   const loadBatch = useCallback(async (batchNumber: string): Promise<BatchData | null> => {
     setIsLoading(true);
