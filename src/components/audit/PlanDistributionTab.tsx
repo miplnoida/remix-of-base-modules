@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Plus, Trash2, AlertTriangle, Loader2, Info, ShieldAlert } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Send, Plus, Trash2, AlertTriangle, Loader2, Info, ShieldAlert, Zap, Users, UserPlus, Save, Mail } from 'lucide-react';
 import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useIAPlanArtifacts } from '@/hooks/useAuditPlanArtifacts';
 import { useIAPlanDistributionLogs, useIAPlanDistributionLogMutations } from '@/hooks/useAuditPlanArtifacts';
+import {
+  useDistributionRecipients,
+  useDistributionRecipientMutations,
+  useDistributionTemplates,
+  type DistributionRecipient,
+  type DistributionTemplate,
+} from '@/hooks/useDistributionRecipients';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { supabase } from '@/integrations/supabase/client';
+import { StandardModal } from '@/components/common/StandardModal';
 
 interface PlanDistributionTabProps {
   planId: string;
@@ -24,6 +34,7 @@ interface Recipient {
   name: string;
   email: string;
   type: string;
+  savedId?: string; // if loaded from saved list
 }
 
 const MERGE_FIELDS = ['{{plan_title}}', '{{fiscal_year}}', '{{version_number}}', '{{approved_by}}', '{{approved_date}}', '{{board_committee_name}}', '{{recipient_name}}'];
@@ -37,42 +48,57 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
   const { data: logs = [], isLoading } = useIAPlanDistributionLogs(planId);
   const { create: createLog } = useIAPlanDistributionLogMutations();
 
+  // Saved recipients
+  const { data: savedRecipients = [] } = useDistributionRecipients();
+  const recipientMutations = useDistributionRecipientMutations();
+
+  // Templates
+  const { data: templates = [] } = useDistributionTemplates();
+
   const isApproved = plan?.status === 'Approved';
   const isDraftOrSubmitted = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
 
-  // Available artifacts: for review = Draft/Generated; for final = Final only
   const reviewArtifacts = artifacts.filter((a: any) => ['Draft', 'Generated'].includes(a.status));
   const finalArtifacts = artifacts.filter((a: any) => a.is_final);
   const allDistributableArtifacts = isApproved ? [...finalArtifacts, ...reviewArtifacts] : reviewArtifacts;
   const hasSuperseded = artifacts.some((a: any) => a.status === 'Superseded');
 
-  // Determine distribution purpose
   const [purpose, setPurpose] = useState<DistributionPurpose>(isApproved ? 'final_distribution' : 'board_review');
-
-  const canSend = allDistributableArtifacts.length > 0;
-
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [newRecipient, setNewRecipient] = useState<Recipient>({ name: '', email: '', type: 'board' });
-  const defaultSubject = isDraftOrSubmitted
-    ? `Annual Audit Plan ${plan?.fiscal_year || ''} — For Board Review`
-    : `Annual Audit Plan ${plan?.fiscal_year || ''} — Final Approved Version`;
-  const [subject, setSubject] = useState(defaultSubject);
+  const [subject, setSubject] = useState('');
   const [messageBody, setMessageBody] = useState('');
   const [selectedArtifactId, setSelectedArtifactId] = useState('');
   const [sending, setSending] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [activeTab, setActiveTab] = useState('compose');
 
-  const addRecipient = () => {
-    if (!newRecipient.email.trim()) return;
-    setRecipients(prev => [...prev, { ...newRecipient }]);
-    setNewRecipient({ name: '', email: '', type: purpose === 'board_review' ? 'board' : 'external' });
-  };
+  // Manage Recipients modal
+  const [showManageRecipients, setShowManageRecipients] = useState(false);
+  const [newSavedRecipient, setNewSavedRecipient] = useState({ name: '', email: '', recipient_type: 'board', designation: '', organization: '' });
 
-  const removeRecipient = (idx: number) => {
-    setRecipients(prev => prev.filter((_, i) => i !== idx));
-  };
+  // Auto-select first artifact
+  useEffect(() => {
+    const selectable = purpose === 'final_distribution' ? finalArtifacts : allDistributableArtifacts;
+    if (selectable.length > 0 && !selectedArtifactId) {
+      setSelectedArtifactId((selectable[0] as any).id);
+    }
+  }, [artifacts, purpose]);
 
-  const insertMergeField = (field: string) => {
-    setMessageBody(prev => prev + ' ' + field);
+  // Load default template on mount
+  useEffect(() => {
+    const templateType = isDraftOrSubmitted ? 'board_review' : 'final_distribution';
+    const defaultTemplate = templates.find((t) => t.template_type === templateType && t.is_default);
+    if (defaultTemplate && !selectedTemplateId) {
+      applyTemplate(defaultTemplate);
+      setSelectedTemplateId(defaultTemplate.id);
+    }
+  }, [templates, isDraftOrSubmitted]);
+
+  const applyTemplate = (template: DistributionTemplate) => {
+    setSubject(template.subject);
+    setMessageBody(template.body);
+    setSelectedTemplateId(template.id);
   };
 
   const resolveMergeFields = (text: string, recipientName?: string) => {
@@ -86,6 +112,39 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
       .replace(/\{\{recipient_name\}\}/g, recipientName || '');
   };
 
+  // Load saved recipients by type
+  const loadSavedRecipientsByType = (type: string) => {
+    const filtered = savedRecipients.filter((r) => r.recipient_type === type);
+    const newRecs: Recipient[] = filtered
+      .filter((sr) => !recipients.some((r) => r.email === sr.email))
+      .map((sr) => ({ name: sr.name, email: sr.email, type: sr.recipient_type, savedId: sr.id }));
+    if (newRecs.length > 0) {
+      setRecipients((prev) => [...prev, ...newRecs]);
+      toast({ title: `${newRecs.length} Recipient(s) Added`, description: `Loaded ${type} recipients from saved list.` });
+    } else {
+      toast({ title: 'No New Recipients', description: `All saved ${type} recipients are already in the list.` });
+    }
+  };
+
+  const addRecipient = () => {
+    if (!newRecipient.email.trim()) return;
+    if (recipients.some((r) => r.email === newRecipient.email)) {
+      toast({ title: 'Duplicate', description: 'This email is already in the list.', variant: 'destructive' });
+      return;
+    }
+    setRecipients((prev) => [...prev, { ...newRecipient }]);
+    setNewRecipient({ name: '', email: '', type: purpose === 'board_review' ? 'board' : 'external' });
+  };
+
+  const removeRecipient = (idx: number) => {
+    setRecipients((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const insertMergeField = (field: string) => {
+    setMessageBody((prev) => prev + ' ' + field);
+  };
+
+  // ===== ACTUAL EMAIL SEND WITH STATUS TRACKING =====
   const handleSend = async () => {
     if (recipients.length === 0) {
       toast({ title: 'No Recipients', description: 'Add at least one recipient before sending.', variant: 'destructive' });
@@ -95,21 +154,73 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
       toast({ title: 'No Artifact Selected', description: 'Select an artifact to attach.', variant: 'destructive' });
       return;
     }
-
-    // Check if selected artifact is superseded
     const selectedArtifact = (artifacts as any[]).find((a) => a.id === selectedArtifactId);
     if (selectedArtifact?.status === 'Superseded') {
-      toast({ title: 'Outdated Artifact', description: 'This artifact has been superseded. Please select a current version.', variant: 'destructive' });
+      toast({ title: 'Outdated Artifact', description: 'This artifact has been superseded. Select a current version.', variant: 'destructive' });
       return;
     }
 
     setSending(true);
+    let successCount = 0;
+    let failCount = 0;
+
     try {
       for (const recipient of recipients) {
         const resolvedSubject = resolveMergeFields(subject, recipient.name);
         const resolvedBody = resolveMergeFields(messageBody, recipient.name);
 
-        // Log distribution with purpose context
+        // Build HTML email body
+        const htmlBody = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="border-bottom: 2px solid #1a365d; padding-bottom: 15px; margin-bottom: 20px;">
+              <h2 style="color: #1a365d; margin: 0;">Social Security Board</h2>
+              <p style="color: #666; margin: 5px 0 0;">Internal Audit Department</p>
+            </div>
+            ${resolvedBody.split('\n').map((line) => (line.trim() ? `<p style="margin: 0 0 10px; line-height: 1.6; color: #333;">${line}</p>` : '<br/>')).join('')}
+            ${selectedArtifact?.file_path ? `<div style="margin: 25px 0; padding: 15px; background: #f0f4f8; border-radius: 8px; border-left: 4px solid #1a365d;">
+              <p style="margin: 0 0 8px; font-weight: 600; color: #1a365d;">📎 Attached Document</p>
+              <p style="margin: 0; color: #555;">${selectedArtifact.file_name || 'Annual Audit Plan'}</p>
+            </div>` : ''}
+            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #999;">
+              <p>This is an official communication from the Internal Audit Department.</p>
+            </div>
+          </div>`;
+
+        let sendStatus = 'Pending';
+        let providerMessageId: string | null = null;
+
+        // Call the edge function and track result
+        try {
+          const { data: sendResult, error: sendError } = await supabase.functions.invoke('send-notification', {
+            body: {
+              recipient_email: recipient.email,
+              subject: resolvedSubject,
+              body: htmlBody,
+              from_name: 'SSBM Internal Audit',
+              from_email: 'noreply@secureserve.biz',
+            },
+          });
+
+          if (sendError) {
+            sendStatus = 'Failed';
+            failCount++;
+            console.error(`[Distribution] Send failed for ${recipient.email}:`, sendError);
+          } else if (sendResult?.success) {
+            sendStatus = 'Sent';
+            providerMessageId = sendResult.resend_id || null;
+            successCount++;
+          } else {
+            sendStatus = 'Failed';
+            failCount++;
+            console.error(`[Distribution] Send failed for ${recipient.email}:`, sendResult?.message);
+          }
+        } catch (err: any) {
+          sendStatus = 'Failed';
+          failCount++;
+          console.error(`[Distribution] Exception for ${recipient.email}:`, err);
+        }
+
+        // Log distribution with actual status
         await createLog.mutateAsync({
           plan_id: planId,
           artifact_id: selectedArtifactId || null,
@@ -118,33 +229,70 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
           recipient_type: recipient.type,
           subject: resolvedSubject,
           message_body: resolvedBody,
-          send_status: 'Pending',
+          send_status: sendStatus,
+          provider_message_id: providerMessageId,
+          sent_at: sendStatus === 'Sent' ? new Date().toISOString() : null,
           sent_by: userCode || 'system',
         });
-
-        // Invoke send-notification
-        try {
-          await supabase.functions.invoke('send-notification', {
-            body: {
-              recipient_email: recipient.email,
-              subject: resolvedSubject,
-              body: `<p>${resolvedBody.replace(/\n/g, '</p><p>')}</p>`,
-              from_name: 'SSBM Internal Audit',
-            },
-          });
-        } catch {
-          // Non-critical, logged as pending
-        }
       }
 
-      toast({ title: 'Distribution Complete', description: `Sent to ${recipients.length} recipient(s).` });
+      if (failCount === 0) {
+        toast({ title: 'Distribution Complete', description: `Successfully sent to ${successCount} recipient(s).` });
+      } else if (successCount > 0) {
+        toast({ title: 'Partially Sent', description: `${successCount} sent, ${failCount} failed. Check distribution history.`, variant: 'destructive' });
+      } else {
+        toast({ title: 'Send Failed', description: `All ${failCount} emails failed to send. Check the logs.`, variant: 'destructive' });
+      }
       setRecipients([]);
     } catch (err: any) {
-      toast({ title: 'Send Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Send Error', description: err.message, variant: 'destructive' });
     } finally {
       setSending(false);
     }
   };
+
+  // ===== QUICK SEND: Load defaults and all board members in one click =====
+  const handleQuickSend = () => {
+    // Load appropriate template
+    const templateType = isDraftOrSubmitted ? 'board_review' : 'final_distribution';
+    const defaultTemplate = templates.find((t) => t.template_type === templateType && t.is_default);
+    if (defaultTemplate) {
+      applyTemplate(defaultTemplate);
+    }
+    // Load board recipients
+    const boardRecipients = savedRecipients
+      .filter((r) => r.recipient_type === 'board')
+      .filter((sr) => !recipients.some((r) => r.email === sr.email))
+      .map((sr) => ({ name: sr.name, email: sr.email, type: 'board', savedId: sr.id }));
+    if (boardRecipients.length > 0) {
+      setRecipients((prev) => [...prev, ...boardRecipients]);
+    }
+    // Auto-select first artifact
+    const selectable = purpose === 'final_distribution' ? finalArtifacts : allDistributableArtifacts;
+    if (selectable.length > 0) {
+      setSelectedArtifactId((selectable[0] as any).id);
+    }
+    toast({ title: 'Quick Send Ready', description: `Template loaded with ${boardRecipients.length} board recipient(s). Review and click Send.` });
+  };
+
+  // Save recipient to permanent list
+  const handleSaveRecipient = async () => {
+    if (!newSavedRecipient.name || !newSavedRecipient.email) {
+      toast({ title: 'Required', description: 'Name and email are required.', variant: 'destructive' });
+      return;
+    }
+    await recipientMutations.create.mutateAsync({
+      name: newSavedRecipient.name,
+      email: newSavedRecipient.email,
+      recipient_type: newSavedRecipient.recipient_type,
+      designation: newSavedRecipient.designation || undefined,
+      organization: newSavedRecipient.organization || undefined,
+      created_by: userCode || 'system',
+    });
+    setNewSavedRecipient({ name: '', email: '', recipient_type: 'board', designation: '', organization: '' });
+  };
+
+  const selectableArtifacts = purpose === 'final_distribution' ? finalArtifacts : allDistributableArtifacts;
 
   const logColumns: DataTableColumn<any>[] = [
     { key: 'recipient_name', header: 'Recipient', render: (r) => r.recipient_name || r.recipient_email },
@@ -155,145 +303,299 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
     { key: 'created_at', header: 'Date', render: (r) => r.created_at ? formatDateForDisplay(r.created_at) : '—' },
   ];
 
-  // Determine which artifacts to show in the selector
-  const selectableArtifacts = purpose === 'final_distribution' ? finalArtifacts : allDistributableArtifacts;
+  const savedRecipientColumns: DataTableColumn<DistributionRecipient>[] = [
+    { key: 'name', header: 'Name' },
+    { key: 'email', header: 'Email' },
+    { key: 'recipient_type', header: 'Type', render: (r) => <StatusBadge status={r.recipient_type} /> },
+    { key: 'designation', header: 'Designation', render: (r) => r.designation || '—' },
+    { key: 'organization', header: 'Organization', render: (r) => r.organization || '—' },
+    {
+      key: 'actions', header: '', render: (r) => (
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => recipientMutations.remove.mutate(r.id)}>
+          <Trash2 className="h-3 w-3 text-destructive" />
+        </Button>
+      )
+    },
+  ];
 
   return (
     <div className="space-y-4">
-      {/* Contextual guidance banner */}
+      {/* Contextual guidance banners */}
       {isDraftOrSubmitted && (
         <Card className="border-blue-200 bg-blue-50/50">
           <CardContent className="flex items-center gap-3 pt-6">
             <Info className="h-5 w-5 text-blue-600 shrink-0" />
             <div className="text-sm text-blue-800">
               <p className="font-medium">Pre-Approval Distribution for Board Review</p>
-              <p>You can distribute draft board pack artifacts to board/committee members for review and feedback before formal approval. Documents sent at this stage are clearly marked as drafts.</p>
+              <p>Distribute draft board pack artifacts to board/committee members for review before formal approval.</p>
             </div>
           </CardContent>
         </Card>
       )}
-
       {isApproved && finalArtifacts.length === 0 && (
         <Card className="border-amber-200 bg-amber-50/50">
           <CardContent className="flex items-center gap-3 pt-6">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
             <div className="text-sm text-amber-800">
               <p className="font-medium">No Final Artifact Available</p>
-              <p>The plan is approved, but no artifact has been marked as Final. You can still distribute draft/generated artifacts, or go to the Board Pack tab to finalize an artifact for official distribution.</p>
+              <p>The plan is approved, but no artifact has been marked as Final. Go to Board Pack tab to finalize an artifact.</p>
             </div>
           </CardContent>
         </Card>
       )}
-
       {hasSuperseded && (
         <Card className="border-red-200 bg-red-50/50">
           <CardContent className="flex items-center gap-3 pt-6">
             <ShieldAlert className="h-5 w-5 text-red-600 shrink-0" />
-            <p className="text-sm text-red-800">
-              Some artifacts have been superseded by newer versions. Make sure to select a current artifact when distributing.
-            </p>
+            <p className="text-sm text-red-800">Some artifacts have been superseded. Make sure to select a current artifact.</p>
           </CardContent>
         </Card>
       )}
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Compose Distribution</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {/* Distribution Purpose Selector */}
-          {isApproved && (
-            <div className="space-y-2">
-              <Label>Distribution Purpose</Label>
-              <Select value={purpose} onValueChange={(v) => setPurpose(v as DistributionPurpose)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="board_review">Board Review (Draft / Pre-Approval)</SelectItem>
-                  <SelectItem value="final_distribution">Official Final Distribution</SelectItem>
-                </SelectContent>
-              </Select>
-              {purpose === 'final_distribution' && finalArtifacts.length === 0 && (
-                <p className="text-xs text-destructive">No finalized artifacts available. Go to Board Pack tab to mark an artifact as Final.</p>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="compose"><Mail className="h-4 w-4 mr-1" /> Compose & Send</TabsTrigger>
+          <TabsTrigger value="recipients"><Users className="h-4 w-4 mr-1" /> Saved Recipients</TabsTrigger>
+          <TabsTrigger value="history"><Send className="h-4 w-4 mr-1" /> History</TabsTrigger>
+        </TabsList>
+
+        {/* ===== COMPOSE TAB ===== */}
+        <TabsContent value="compose" className="space-y-4">
+          {/* Quick Actions */}
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <Button variant="default" onClick={handleQuickSend} disabled={selectableArtifacts.length === 0}>
+                <Zap className="h-4 w-4 mr-2" />
+                Quick Send to Board
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Loads default template + all saved board members. Review and click Send.
+              </span>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Compose Distribution</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {/* Distribution Purpose */}
+              {isApproved && (
+                <div className="space-y-2">
+                  <Label>Distribution Purpose</Label>
+                  <Select value={purpose} onValueChange={(v) => setPurpose(v as DistributionPurpose)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="board_review">Board Review (Draft / Pre-Approval)</SelectItem>
+                      <SelectItem value="final_distribution">Official Final Distribution</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-            </div>
-          )}
 
-          {/* Recipients */}
-          <div className="space-y-2">
-            <Label>Recipients</Label>
-            {recipients.map((r, idx) => (
-              <div key={idx} className="flex items-center gap-2 p-2 border rounded text-sm">
-                <span className="flex-1">{r.name} ({r.email})</span>
-                <StatusBadge status={r.type} />
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeRecipient(idx)}><Trash2 className="h-3 w-3" /></Button>
+              {/* Template Selection */}
+              <div className="space-y-2">
+                <Label>Email Template</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedTemplateId} onValueChange={(id) => {
+                    const tmpl = templates.find((t) => t.id === id);
+                    if (tmpl) applyTemplate(tmpl);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Select a template..." /></SelectTrigger>
+                    <SelectContent>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name} {t.is_default ? '(Default)' : ''} — {t.template_type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ))}
-            <div className="flex gap-2">
-              <Input placeholder="Name" value={newRecipient.name} onChange={e => setNewRecipient(p => ({ ...p, name: e.target.value }))} className="flex-1" />
-              <Input placeholder="Email" value={newRecipient.email} onChange={e => setNewRecipient(p => ({ ...p, email: e.target.value }))} className="flex-1" />
-              <Select value={newRecipient.type} onValueChange={v => setNewRecipient(p => ({ ...p, type: v }))}>
-                <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="internal">Internal</SelectItem>
-                  <SelectItem value="external">External</SelectItem>
-                  <SelectItem value="board">Board</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" onClick={addRecipient}><Plus className="h-4 w-4" /></Button>
-            </div>
-          </div>
 
-          {/* Subject */}
-          <div className="space-y-2">
-            <Label>Subject</Label>
-            <Input value={subject} onChange={e => setSubject(e.target.value)} />
-          </div>
+              {/* Recipients */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Recipients ({recipients.length})</Label>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" onClick={() => loadSavedRecipientsByType('board')}>
+                      <Users className="h-3 w-3 mr-1" /> Load Board
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => loadSavedRecipientsByType('external')}>
+                      <Users className="h-3 w-3 mr-1" /> Load External
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => loadSavedRecipientsByType('internal')}>
+                      <Users className="h-3 w-3 mr-1" /> Load Internal
+                    </Button>
+                  </div>
+                </div>
+                {recipients.map((r, idx) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 border rounded text-sm bg-muted/30">
+                    <span className="flex-1 font-medium">{r.name}</span>
+                    <span className="text-muted-foreground">{r.email}</span>
+                    <StatusBadge status={r.type} />
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeRecipient(idx)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Input placeholder="Name" value={newRecipient.name} onChange={(e) => setNewRecipient((p) => ({ ...p, name: e.target.value }))} className="flex-1" />
+                  <Input placeholder="Email" value={newRecipient.email} onChange={(e) => setNewRecipient((p) => ({ ...p, email: e.target.value }))} className="flex-1" />
+                  <Select value={newRecipient.type} onValueChange={(v) => setNewRecipient((p) => ({ ...p, type: v }))}>
+                    <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="internal">Internal</SelectItem>
+                      <SelectItem value="external">External</SelectItem>
+                      <SelectItem value="board">Board</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon" onClick={addRecipient}><Plus className="h-4 w-4" /></Button>
+                </div>
+              </div>
 
-          {/* Merge Fields */}
-          <div className="flex flex-wrap gap-1">
-            {MERGE_FIELDS.map(f => (
-              <Button key={f} variant="outline" size="sm" className="h-6 text-xs" onClick={() => insertMergeField(f)}>{f}</Button>
-            ))}
-          </div>
+              {/* Subject */}
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+              </div>
 
-          {/* Message Body */}
-          <div className="space-y-2">
-            <Label>Message Body</Label>
-            <Textarea value={messageBody} onChange={e => setMessageBody(e.target.value)} rows={5} placeholder="Dear {{recipient_name}},&#10;&#10;Please find attached the Annual Audit Plan for your review..." />
-          </div>
+              {/* Merge Fields */}
+              <div className="flex flex-wrap gap-1">
+                {MERGE_FIELDS.map((f) => (
+                  <Button key={f} variant="outline" size="sm" className="h-6 text-xs" onClick={() => insertMergeField(f)}>{f}</Button>
+                ))}
+              </div>
 
-          {/* Artifact Selection */}
-          {selectableArtifacts.length > 0 ? (
-            <div className="space-y-2">
-              <Label>Attach Artifact</Label>
-              <Select value={selectedArtifactId} onValueChange={setSelectedArtifactId}>
-                <SelectTrigger><SelectValue placeholder="Select artifact" /></SelectTrigger>
-                <SelectContent>
-                  {selectableArtifacts.map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.file_name} (v{a.version_number}) — {a.status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">No artifacts available. Generate one in the Board Pack tab first.</p>
-          )}
+              {/* Message Body */}
+              <div className="space-y-2">
+                <Label>Message Body</Label>
+                <Textarea value={messageBody} onChange={(e) => setMessageBody(e.target.value)} rows={8} placeholder="Dear {{recipient_name}},&#10;&#10;Please find attached the Annual Audit Plan..." className="font-mono text-sm" />
+              </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSend} disabled={recipients.length === 0 || !selectedArtifactId || sending}>
-              {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              {isDraftOrSubmitted ? 'Send for Review' : 'Send'} to {recipients.length} Recipient(s)
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              {/* Artifact Selection */}
+              {selectableArtifacts.length > 0 ? (
+                <div className="space-y-2">
+                  <Label>Attach Artifact</Label>
+                  <Select value={selectedArtifactId} onValueChange={setSelectedArtifactId}>
+                    <SelectTrigger><SelectValue placeholder="Select artifact" /></SelectTrigger>
+                    <SelectContent>
+                      {selectableArtifacts.map((a: any) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.file_name} (v{a.version_number}) — {a.status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No artifacts available. Generate one in the Board Pack tab first.</p>
+              )}
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Distribution History</CardTitle></CardHeader>
-        <CardContent>
-          <DataTable columns={logColumns} data={logs} emptyMessage="No distributions sent yet." />
-        </CardContent>
-      </Card>
+              <div className="flex justify-end">
+                <Button onClick={handleSend} disabled={recipients.length === 0 || !selectedArtifactId || sending} size="lg">
+                  {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  {isDraftOrSubmitted ? 'Send for Review' : 'Send Final Distribution'} ({recipients.length})
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ===== SAVED RECIPIENTS TAB ===== */}
+        <TabsContent value="recipients" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <UserPlus className="h-4 w-4" /> Add New Saved Recipient
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Name *</Label>
+                  <Input value={newSavedRecipient.name} onChange={(e) => setNewSavedRecipient((p) => ({ ...p, name: e.target.value }))} placeholder="Full name" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email *</Label>
+                  <Input type="email" value={newSavedRecipient.email} onChange={(e) => setNewSavedRecipient((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Type</Label>
+                  <Select value={newSavedRecipient.recipient_type} onValueChange={(v) => setNewSavedRecipient((p) => ({ ...p, recipient_type: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="board">Board Member</SelectItem>
+                      <SelectItem value="external">External Stakeholder</SelectItem>
+                      <SelectItem value="internal">Internal Staff</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Designation</Label>
+                  <Input value={newSavedRecipient.designation} onChange={(e) => setNewSavedRecipient((p) => ({ ...p, designation: e.target.value }))} placeholder="e.g. Chairperson" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Organization</Label>
+                  <Input value={newSavedRecipient.organization} onChange={(e) => setNewSavedRecipient((p) => ({ ...p, organization: e.target.value }))} placeholder="e.g. Social Security Board" />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleSaveRecipient} disabled={recipientMutations.create.isPending}>
+                    <Save className="h-4 w-4 mr-2" /> Save Recipient
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Board Members</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={savedRecipientColumns}
+                data={savedRecipients.filter((r) => r.recipient_type === 'board')}
+                emptyMessage="No board members saved yet."
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">External Stakeholders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={savedRecipientColumns}
+                data={savedRecipients.filter((r) => r.recipient_type === 'external')}
+                emptyMessage="No external stakeholders saved yet."
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Internal Staff</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={savedRecipientColumns}
+                data={savedRecipients.filter((r) => r.recipient_type === 'internal')}
+                emptyMessage="No internal staff saved yet."
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ===== HISTORY TAB ===== */}
+        <TabsContent value="history">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Distribution History</CardTitle></CardHeader>
+            <CardContent>
+              <DataTable columns={logColumns} data={logs} emptyMessage="No distributions sent yet." />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
