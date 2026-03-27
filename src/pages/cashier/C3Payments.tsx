@@ -17,7 +17,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye } from 'lucide-react';
+import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
@@ -403,6 +403,9 @@ const C3Payments: React.FC = () => {
 
       toast({ title: 'C3 Payment Processed', description: `Receipt #${res.receipt_id} created. ${res.detail_count} payment line(s) generated.` });
       setTimeout(() => printConfiguredReceipt(res.payment_id as number).catch(e => console.error('Receipt print error:', e)), 300);
+
+      // Trigger async external sync (non-blocking)
+      triggerPaymentSync(res.payment_id as number, res.receipt_id as number);
     } catch (err: any) {
       await logApplicationError(err, { ...logCtx, action: 'handleProcessPayment_catch' });
       toast({ title: 'Error Processing C3 Payment', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
