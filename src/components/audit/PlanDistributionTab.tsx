@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Plus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Send, Plus, Trash2, AlertTriangle, Loader2, Info, ShieldAlert } from 'lucide-react';
 import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useIAPlanArtifacts } from '@/hooks/useAuditPlanArtifacts';
@@ -28,6 +28,8 @@ interface Recipient {
 
 const MERGE_FIELDS = ['{{plan_title}}', '{{fiscal_year}}', '{{version_number}}', '{{approved_by}}', '{{approved_date}}', '{{board_committee_name}}', '{{recipient_name}}'];
 
+type DistributionPurpose = 'board_review' | 'final_distribution';
+
 export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) {
   const { toast } = useToast();
   const { userCode } = useUserCode();
@@ -35,13 +37,26 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
   const { data: logs = [], isLoading } = useIAPlanDistributionLogs(planId);
   const { create: createLog } = useIAPlanDistributionLogMutations();
 
-  const finalArtifacts = artifacts.filter((a: any) => a.is_final);
   const isApproved = plan?.status === 'Approved';
-  const canSend = isApproved && finalArtifacts.length > 0;
+  const isDraftOrSubmitted = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
+
+  // Available artifacts: for review = Draft/Generated; for final = Final only
+  const reviewArtifacts = artifacts.filter((a: any) => ['Draft', 'Generated'].includes(a.status));
+  const finalArtifacts = artifacts.filter((a: any) => a.is_final);
+  const allDistributableArtifacts = isApproved ? [...finalArtifacts, ...reviewArtifacts] : reviewArtifacts;
+  const hasSuperseded = artifacts.some((a: any) => a.status === 'Superseded');
+
+  // Determine distribution purpose
+  const [purpose, setPurpose] = useState<DistributionPurpose>(isApproved ? 'final_distribution' : 'board_review');
+
+  const canSend = allDistributableArtifacts.length > 0;
 
   const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [newRecipient, setNewRecipient] = useState<Recipient>({ name: '', email: '', type: 'external' });
-  const [subject, setSubject] = useState(`Annual Audit Plan ${plan?.fiscal_year || ''} — Final Version`);
+  const [newRecipient, setNewRecipient] = useState<Recipient>({ name: '', email: '', type: 'board' });
+  const defaultSubject = isDraftOrSubmitted
+    ? `Annual Audit Plan ${plan?.fiscal_year || ''} — For Board Review`
+    : `Annual Audit Plan ${plan?.fiscal_year || ''} — Final Approved Version`;
+  const [subject, setSubject] = useState(defaultSubject);
   const [messageBody, setMessageBody] = useState('');
   const [selectedArtifactId, setSelectedArtifactId] = useState('');
   const [sending, setSending] = useState(false);
@@ -49,7 +64,7 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
   const addRecipient = () => {
     if (!newRecipient.email.trim()) return;
     setRecipients(prev => [...prev, { ...newRecipient }]);
-    setNewRecipient({ name: '', email: '', type: 'external' });
+    setNewRecipient({ name: '', email: '', type: purpose === 'board_review' ? 'board' : 'external' });
   };
 
   const removeRecipient = (idx: number) => {
@@ -72,17 +87,29 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
   };
 
   const handleSend = async () => {
-    if (!canSend || recipients.length === 0) {
-      toast({ title: 'Cannot Send', description: 'Ensure plan is approved, final artifact exists, and recipients are added.', variant: 'destructive' });
+    if (recipients.length === 0) {
+      toast({ title: 'No Recipients', description: 'Add at least one recipient before sending.', variant: 'destructive' });
       return;
     }
+    if (!selectedArtifactId) {
+      toast({ title: 'No Artifact Selected', description: 'Select an artifact to attach.', variant: 'destructive' });
+      return;
+    }
+
+    // Check if selected artifact is superseded
+    const selectedArtifact = (artifacts as any[]).find((a) => a.id === selectedArtifactId);
+    if (selectedArtifact?.status === 'Superseded') {
+      toast({ title: 'Outdated Artifact', description: 'This artifact has been superseded. Please select a current version.', variant: 'destructive' });
+      return;
+    }
+
     setSending(true);
     try {
       for (const recipient of recipients) {
         const resolvedSubject = resolveMergeFields(subject, recipient.name);
         const resolvedBody = resolveMergeFields(messageBody, recipient.name);
 
-        // Log distribution
+        // Log distribution with purpose context
         await createLog.mutateAsync({
           plan_id: planId,
           artifact_id: selectedArtifactId || null,
@@ -128,14 +155,42 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
     { key: 'created_at', header: 'Date', render: (r) => r.created_at ? formatDateForDisplay(r.created_at) : '—' },
   ];
 
+  // Determine which artifacts to show in the selector
+  const selectableArtifacts = purpose === 'final_distribution' ? finalArtifacts : allDistributableArtifacts;
+
   return (
     <div className="space-y-4">
-      {!canSend && (
+      {/* Contextual guidance banner */}
+      {isDraftOrSubmitted && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="flex items-center gap-3 pt-6">
+            <Info className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">Pre-Approval Distribution for Board Review</p>
+              <p>You can distribute draft board pack artifacts to board/committee members for review and feedback before formal approval. Documents sent at this stage are clearly marked as drafts.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isApproved && finalArtifacts.length === 0 && (
         <Card className="border-amber-200 bg-amber-50/50">
           <CardContent className="flex items-center gap-3 pt-6">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <p className="text-sm text-amber-800">
-              {!isApproved ? 'Plan must be approved before distribution.' : 'Generate and finalize a board pack artifact before distributing.'}
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="text-sm text-amber-800">
+              <p className="font-medium">No Final Artifact Available</p>
+              <p>The plan is approved, but no artifact has been marked as Final. You can still distribute draft/generated artifacts, or go to the Board Pack tab to finalize an artifact for official distribution.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasSuperseded && (
+        <Card className="border-red-200 bg-red-50/50">
+          <CardContent className="flex items-center gap-3 pt-6">
+            <ShieldAlert className="h-5 w-5 text-red-600 shrink-0" />
+            <p className="text-sm text-red-800">
+              Some artifacts have been superseded by newer versions. Make sure to select a current artifact when distributing.
             </p>
           </CardContent>
         </Card>
@@ -144,6 +199,23 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
       <Card>
         <CardHeader><CardTitle className="text-sm">Compose Distribution</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          {/* Distribution Purpose Selector */}
+          {isApproved && (
+            <div className="space-y-2">
+              <Label>Distribution Purpose</Label>
+              <Select value={purpose} onValueChange={(v) => setPurpose(v as DistributionPurpose)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="board_review">Board Review (Draft / Pre-Approval)</SelectItem>
+                  <SelectItem value="final_distribution">Official Final Distribution</SelectItem>
+                </SelectContent>
+              </Select>
+              {purpose === 'final_distribution' && finalArtifacts.length === 0 && (
+                <p className="text-xs text-destructive">No finalized artifacts available. Go to Board Pack tab to mark an artifact as Final.</p>
+              )}
+            </div>
+          )}
+
           {/* Recipients */}
           <div className="space-y-2">
             <Label>Recipients</Label>
@@ -185,28 +257,32 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
           {/* Message Body */}
           <div className="space-y-2">
             <Label>Message Body</Label>
-            <Textarea value={messageBody} onChange={e => setMessageBody(e.target.value)} rows={5} placeholder="Dear {{recipient_name}},\n\nPlease find attached the Annual Audit Plan..." />
+            <Textarea value={messageBody} onChange={e => setMessageBody(e.target.value)} rows={5} placeholder="Dear {{recipient_name}},&#10;&#10;Please find attached the Annual Audit Plan for your review..." />
           </div>
 
           {/* Artifact Selection */}
-          {finalArtifacts.length > 0 && (
+          {selectableArtifacts.length > 0 ? (
             <div className="space-y-2">
-              <Label>Attach Final Artifact</Label>
+              <Label>Attach Artifact</Label>
               <Select value={selectedArtifactId} onValueChange={setSelectedArtifactId}>
                 <SelectTrigger><SelectValue placeholder="Select artifact" /></SelectTrigger>
                 <SelectContent>
-                  {finalArtifacts.map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>{a.file_name} (v{a.version_number})</SelectItem>
+                  {selectableArtifacts.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.file_name} (v{a.version_number}) — {a.status}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No artifacts available. Generate one in the Board Pack tab first.</p>
           )}
 
           <div className="flex justify-end">
-            <Button onClick={handleSend} disabled={!canSend || recipients.length === 0 || sending}>
+            <Button onClick={handleSend} disabled={recipients.length === 0 || !selectedArtifactId || sending}>
               {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              Send to {recipients.length} Recipient(s)
+              {isDraftOrSubmitted ? 'Send for Review' : 'Send'} to {recipients.length} Recipient(s)
             </Button>
           </div>
         </CardContent>
