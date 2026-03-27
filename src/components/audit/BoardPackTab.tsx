@@ -31,7 +31,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       // Supersede previous artifacts of same type
       const existing = artifacts.filter((a: any) => a.artifact_type === artifactType && a.status !== 'Superseded');
       for (const art of existing) {
-        await update.mutateAsync({ id: art.id, status: 'Superseded', is_final: false });
+        await update.mutateAsync({ id: (art as any).id, status: 'Superseded', is_final: false });
       }
 
       const version = (plan?.current_version_number || 1);
