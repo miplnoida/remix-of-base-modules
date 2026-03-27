@@ -118,12 +118,26 @@ export default function PlanApproval() {
   };
 
   const handleDecision = async (item: any, decision: string, comments?: string) => {
-    const finalStatus = decision === 'Approved' && item._source === 'annual' ? 'Active' : decision;
+    let finalStatus = decision;
+    
+    // For annual plans, check fiscal year uniqueness on approval
+    if (decision === 'Approved' && item._source === 'annual') {
+      const otherApproved = (annualPlans || []).find(
+        (p: any) => p.id !== item.id && p.fiscal_year === item._fiscalYear && p.status === 'Approved'
+      );
+      if (otherApproved) {
+        // Supersede the old approved plan
+        updateAnnual.mutate({ id: otherApproved.id, status: 'Superseded' });
+        await logApprovalAction('annual_plan', otherApproved.id, 'Superseded', `Superseded by approval of plan ${item.id}`);
+      }
+    }
+
     const payload: any = {
       id: item.id,
       status: finalStatus,
       approval_comments: comments || null,
       approved_date: decision === 'Draft' ? null : new Date().toISOString(),
+      ...(decision === 'Approved' ? { approved_by: userCode || null } : {}),
     };
 
     const entityType = item._source === 'annual' ? 'annual_plan' : 'department_audit';
@@ -136,10 +150,8 @@ export default function PlanApproval() {
 
     await logApprovalAction(entityType, item.id, finalStatus, comments);
 
-    // Send notifications based on decision
     if (decision === 'Approved') {
       await notifyPlanApproved(item.id, item._displayTitle, item.department_id, item.team_member_ids);
-      // If department audit, also set status to Awaiting Dept Acceptance
       if (item._source === 'department' && item.department_id) {
         updateDept.mutate({ id: item.id, status: 'Awaiting Dept Acceptance' });
         await notifyDeptAcceptanceRequired(item.id, item._displayTitle, item.department_id);
