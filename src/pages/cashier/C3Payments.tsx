@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye } from 'lucide-react';
+import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
@@ -53,20 +53,27 @@ const C3Payments: React.FC = () => {
   const payment = usePaymentEntry();
   const receiptActions = useReceiptActions();
   const { userCode } = useUserCode();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navState = (location.state || {}) as Record<string, string>;
 
   // Header state
-  const [payerType, setPayerType] = useState(() => searchParams.get('payerType') || 'ER');
-  const [payerId, setPayerId] = useState(() => searchParams.get('regNo') || '');
+  const [payerType, setPayerType] = useState(() => navState.payerType || 'ER');
+  const [payerId, setPayerId] = useState(() => navState.regNo || '');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [dateReceived, setDateReceived] = useState<Date | undefined>(new Date());
   const [remarks, setRemarks] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(() => searchParams.get('month') || (new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(() => searchParams.get('year') || new Date().getFullYear().toString());
-  const [sequenceNo, setSequenceNo] = useState(() => searchParams.get('schedule') || '');
+  const [selectedMonth, setSelectedMonth] = useState(() => navState.month || (new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(() => navState.year || new Date().getFullYear().toString());
+  const [sequenceNo, setSequenceNo] = useState(() => navState.schedule || '');
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
   const [c3ComponentsLoaded, setC3ComponentsLoaded] = useState(false);
+
+  // Sync status
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'sync_failed' | 'not_configured'>('idle');
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncPaymentId, setSyncPaymentId] = useState<number | null>(null);
+  const [syncReceiptId, setSyncReceiptId] = useState<number | null>(null);
 
   // Components
   const [selectedComponents, setSelectedComponents] = useState<PaymentComponent[]>([]);
@@ -165,10 +172,10 @@ const C3Payments: React.FC = () => {
     setIsValidating(false);
   }, [payerType, payerId, payment, isValidating]);
 
-  // Auto-validate payer when navigated from C3 detail screens with query params
+  // Auto-validate payer when navigated from C3 detail screens with state params
   useEffect(() => {
     if (initialParamsApplied) return;
-    const regNo = searchParams.get('regNo');
+    const regNo = navState.regNo;
     if (regNo && regNo.trim() && !payerInfo) {
       setInitialParamsApplied(true);
       (async () => {
@@ -179,16 +186,16 @@ const C3Payments: React.FC = () => {
         setIsValidating(false);
       })();
     }
-  }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
+  }, [navState, initialParamsApplied, payerType, payment, payerInfo]);
 
   // Auto-load C3 payment components from cn_c3_reported when navigated from C3 detail screens
   useEffect(() => {
     if (c3ComponentsLoaded) return;
-    const regNo = searchParams.get('regNo');
-    const schedule = searchParams.get('schedule');
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
-    const pType = searchParams.get('payerType');
+    const regNo = navState.regNo;
+    const schedule = navState.schedule;
+    const month = navState.month;
+    const year = navState.year;
+    const pType = navState.payerType;
     if (!regNo || !schedule || !month || !year || !pType) return;
     if (!paymentTypesAll.length || ptLoading) return;
 
@@ -237,7 +244,7 @@ const C3Payments: React.FC = () => {
         console.error('Error auto-loading C3 components:', err);
       }
     })();
-  }, [searchParams, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
+  }, [navState, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
 
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
@@ -396,6 +403,9 @@ const C3Payments: React.FC = () => {
 
       toast({ title: 'C3 Payment Processed', description: `Receipt #${res.receipt_id} created. ${res.detail_count} payment line(s) generated.` });
       setTimeout(() => printConfiguredReceipt(res.payment_id as number).catch(e => console.error('Receipt print error:', e)), 300);
+
+      // Trigger async external sync (non-blocking)
+      triggerPaymentSync(res.payment_id as number, res.receipt_id as number);
     } catch (err: any) {
       await logApplicationError(err, { ...logCtx, action: 'handleProcessPayment_catch' });
       toast({ title: 'Error Processing C3 Payment', description: err.message || 'An unexpected error occurred.', variant: 'destructive' });
@@ -403,6 +413,40 @@ const C3Payments: React.FC = () => {
     }
   }, [batchSel.selectedBatch, payerInfo, payerType, payerId, dateReceived, remarks,
     selectedComponents, c3Amount, methods, totalPaymentReceived, period, userCode, receiptActions]);
+
+  /* ── payment sync ─────────────────────── */
+
+  const triggerPaymentSync = useCallback(async (pId: number, rId: number) => {
+    setSyncPaymentId(pId);
+    setSyncReceiptId(rId);
+    setSyncStatus('syncing');
+    setSyncError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-c3-payment', {
+        body: { payment_id: pId, receipt_id: rId },
+      });
+      if (error) throw error;
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      if (result?.not_configured) {
+        setSyncStatus('not_configured');
+      } else if (result?.success) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('sync_failed');
+        setSyncError(result?.error || 'Unknown sync error');
+      }
+    } catch (err: any) {
+      setSyncStatus('sync_failed');
+      setSyncError(err.message || 'Failed to invoke sync function');
+      await logApplicationError(err, { module: 'C3Payments', action: 'triggerPaymentSync', entity_type: 'payment_sync_log' });
+    }
+  }, []);
+
+  const handleRetrySync = useCallback(() => {
+    if (syncPaymentId && syncReceiptId) {
+      triggerPaymentSync(syncPaymentId, syncReceiptId);
+    }
+  }, [syncPaymentId, syncReceiptId, triggerPaymentSync]);
 
   /* ── reprint / cancel / reset ─────────── */
 
@@ -462,8 +506,12 @@ const C3Payments: React.FC = () => {
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
-    setInitialParamsApplied(true); // prevent re-applying URL params after reset
-    setC3ComponentsLoaded(true); // prevent re-loading components after reset
+    setInitialParamsApplied(true);
+    setC3ComponentsLoaded(true);
+    setSyncStatus('idle');
+    setSyncError(null);
+    setSyncPaymentId(null);
+    setSyncReceiptId(null);
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
@@ -534,7 +582,31 @@ const C3Payments: React.FC = () => {
           </Button>
         </div>
 
-        {/* Payment Header (now includes C3 Period and Sequence Number) */}
+        {/* Sync Status Indicator */}
+        {syncStatus !== 'idle' && (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
+            syncStatus === 'syncing' ? 'bg-muted/40 border-border text-muted-foreground' :
+            syncStatus === 'synced' ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-400' :
+            syncStatus === 'sync_failed' ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/20 dark:border-amber-800 dark:text-amber-400' :
+            'bg-muted/30 border-border text-muted-foreground'
+          }`}>
+            {syncStatus === 'syncing' && <Loader2 className="h-4 w-4 animate-spin" />}
+            {syncStatus === 'synced' && <CheckCircle className="h-4 w-4" />}
+            {syncStatus === 'sync_failed' && <AlertTriangle className="h-4 w-4" />}
+            <span>
+              {syncStatus === 'syncing' && 'Syncing payment to external system...'}
+              {syncStatus === 'synced' && 'Payment synced successfully'}
+              {syncStatus === 'sync_failed' && `Sync failed${syncError ? `: ${syncError}` : ''}`}
+              {syncStatus === 'not_configured' && 'External payment sync not configured'}
+            </span>
+            {syncStatus === 'sync_failed' && (
+              <Button variant="outline" size="sm" className="ml-auto h-7" onClick={handleRetrySync}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            )}
+          </div>
+        )}
+
         <PaymentHeaderForm
           payerType={payerType} setPayerType={setPayerType}
           payerId={payerId} setPayerId={setPayerId}

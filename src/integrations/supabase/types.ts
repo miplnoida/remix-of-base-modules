@@ -18097,6 +18097,60 @@ export type Database = {
           },
         ]
       }
+      payment_sync_log: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          external_payment_id: string | null
+          http_status: number | null
+          id: string
+          initiated_by: string | null
+          is_duplicate: boolean | null
+          payment_id: number
+          receipt_id: number
+          receipt_number: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          retry_count: number | null
+          sync_status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          external_payment_id?: string | null
+          http_status?: number | null
+          id?: string
+          initiated_by?: string | null
+          is_duplicate?: boolean | null
+          payment_id: number
+          receipt_id: number
+          receipt_number?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          retry_count?: number | null
+          sync_status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          external_payment_id?: string | null
+          http_status?: number | null
+          id?: string
+          initiated_by?: string | null
+          is_duplicate?: boolean | null
+          payment_id?: number
+          receipt_id?: number
+          receipt_number?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          retry_count?: number | null
+          sync_status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pii_unlock_logs: {
         Row: {
           expires_at: string | null

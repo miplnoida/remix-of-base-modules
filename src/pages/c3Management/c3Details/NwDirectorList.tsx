@@ -104,14 +104,15 @@ const NwDirectorList: React.FC = () => {
   const handlePayment = (record: NwdContributionRecord) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
-    const params = new URLSearchParams({
-      regNo: company.registration_number,
-      month: String(record.month_number),
-      year: record.year,
-      schedule: String(record.schedule),
-      payerType: 'NW',
+    navigate('/cashier/c3-payments', {
+      state: {
+        regNo: company.registration_number,
+        month: String(record.month_number),
+        year: record.year,
+        schedule: String(record.schedule),
+        payerType: 'NW',
+      },
     });
-    navigate(`/cashier/c3-payments?${params.toString()}`);
   };
 
   // "Paid" → open receipt modal

@@ -104,14 +104,15 @@ const SelfEmployedContributionList: React.FC = () => {
   const handlePayment = (record: SeContributionRecord) => {
     const se = seList.find(s => String(s.id) === selectedSeId);
     if (!se) return;
-    const params = new URLSearchParams({
-      regNo: se.social_security_number,
-      month: String(record.month_number),
-      year: record.year,
-      schedule: '0',
-      payerType: 'SE',
+    navigate('/cashier/c3-payments', {
+      state: {
+        regNo: se.social_security_number,
+        month: String(record.month_number),
+        year: record.year,
+        schedule: '0',
+        payerType: 'SE',
+      },
     });
-    navigate(`/cashier/c3-payments?${params.toString()}`);
   };
 
   // "Paid" → open receipt modal
