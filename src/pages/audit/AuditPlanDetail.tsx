@@ -221,7 +221,7 @@ export default function AuditPlanDetail() {
 
         {/* Engagements Tab */}
         <TabsContent value="engagements">
-          <EngagementBuilder planId={id!} planStatus={plan?.status || 'Draft'} />
+          <EngagementBuilder planId={id!} planStatus={plan?.status || 'Draft'} planFiscalYear={plan?.fiscal_year} />
         </TabsContent>
 
         {/* Coverage & Risk Tab */}
