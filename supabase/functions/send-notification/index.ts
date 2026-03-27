@@ -125,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Try sending via Resend if API key is configured
     if (resendApiKey) {
-      const result = await sendViaResend(resendApiKey, recipient_email, subject, body, from_name, from_email);
+      const result = await sendViaResend(resendApiKey, recipient_email, subject, body, from_name, from_email, attachments);
       if (result.success) {
         sendStatus = 'sent';
         resendMessageId = result.id;
