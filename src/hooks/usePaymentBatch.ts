@@ -19,11 +19,50 @@ export interface BatchData {
   batch_date: string | null;
 }
 
-/** Resolve batch number format from config, falling back to legacy */
-function resolveBatchFormat(formatStr: string | null, officeCode: string): string {
+interface Segment {
+  type: 'static' | 'placeholder';
+  value: string;
+  min_length?: number;
+}
+
+/** Resolve a single placeholder for batch number generation */
+function resolvePlaceholder(placeholder: string, officeCode: string, now: Date): string {
+  const map: Record<string, string> = {
+    OFFICE_CODE: officeCode,
+    YYYY: format(now, 'yyyy'),
+    YY: format(now, 'yy'),
+    YYYYMMDD: format(now, 'yyyyMMdd'),
+    YYYYMM: format(now, 'yyyyMM'),
+    DDMMYYYY: format(now, 'ddMMyyyy'),
+    DDMMYYYYHHMM: format(now, 'ddMMyyyyHHmm'),
+    MM: format(now, 'MM'),
+    DD: format(now, 'dd'),
+    HHMMSS: format(now, 'HHmmss'),
+    HHMM: format(now, 'HHmm'),
+    HH: format(now, 'HH'),
+    MI: format(now, 'mm'),
+    SS: format(now, 'ss'),
+  };
+  return map[placeholder] || placeholder;
+}
+
+/** Resolve batch number from segments array */
+function resolveSegments(segments: Segment[], officeCode: string): string {
+  const now = new Date();
+  return segments.map(seg => {
+    if (seg.type === 'static') return seg.value;
+    let val = resolvePlaceholder(seg.value, officeCode, now);
+    if (seg.min_length && seg.min_length > 0) {
+      val = val.padStart(seg.min_length, '0');
+    }
+    return val;
+  }).join('');
+}
+
+/** Resolve batch number from legacy format string (backward compat) */
+function resolveLegacyFormat(formatStr: string | null, officeCode: string): string {
   const now = new Date();
   if (!formatStr) {
-    // Legacy fallback
     const dateStr = format(now, 'yyyyMMdd');
     const timeStr = format(now, 'HHmmss');
     return `${officeCode}-${dateStr}-${timeStr}`;
@@ -59,14 +98,23 @@ export function usePaymentBatch() {
         .eq('config_key', 'batch_number_format')
         .maybeSingle();
 
-      const formatStr = data?.config_value
-        ? (typeof data.config_value === 'object' ? (data.config_value as any).format : null)
-        : null;
+      const configValue = data?.config_value;
 
-      return resolveBatchFormat(formatStr, officeCode);
+      if (configValue && typeof configValue === 'object') {
+        // New segments-based format
+        if ('segments' in (configValue as any) && Array.isArray((configValue as any).segments)) {
+          return resolveSegments((configValue as any).segments as Segment[], officeCode);
+        }
+        // Legacy format string
+        if ('format' in (configValue as any)) {
+          return resolveLegacyFormat((configValue as any).format, officeCode);
+        }
+      }
+
+      // Fallback
+      return resolveLegacyFormat(null, officeCode);
     } catch {
-      // Fallback on error
-      return resolveBatchFormat(null, officeCode);
+      return resolveLegacyFormat(null, officeCode);
     }
   }, []);
 
