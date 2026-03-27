@@ -1,150 +1,82 @@
 
 
-# Payment Module Configuration Enhancement
+# Dynamic Placeholder-Based Number Format Configuration
 
-## Overview
+## Current State
+Three number formats (Invoice, Receipt, Batch) stored as simple `{format, seq_min_length/id_min_length}` objects in `payment_module_config`. Length control is fixed to one placeholder per format (SEQ for invoice, RECEIPT_ID for receipt, none for batch).
 
-Four interconnected changes to the Payment Module Configuration screen:
+## New Design
 
-1. **Cashier Currencies** — Full CRUD on `tb_currencies`
-2. **MOP Detail Settings** — Extend card details to DRD (Debit Card)
-3. **Number Format Configuration** — New tab for configurable invoice/receipt/batch number formats
-4. **Receipt & Invoice Template** — Remove `receipt_id` placeholder
+### Config Structure (JSONB in `payment_module_config`)
+Each format's `config_value` changes from a flat object to a **segments array** with per-placeholder length:
 
----
+```json
+{
+  "segments": [
+    { "type": "static", "value": "INV-" },
+    { "type": "placeholder", "value": "YYYYMM" },
+    { "type": "static", "value": "-" },
+    { "type": "placeholder", "value": "SEQ", "min_length": 3 }
+  ]
+}
+```
 
-## 1. Cashier Currencies — Add/Edit Currency
+Each segment has:
+- `type`: `"static"` (literal text) or `"placeholder"` (resolved at runtime)
+- `value`: the text or placeholder key (e.g. `YYYYMM`, `SEQ`, `OFFICE_CODE`)
+- `min_length` (optional): zero-pad or truncate to this length (applies to any placeholder)
 
-### Current State
-The Currencies tab is read-only (shows table from `tb_currencies`, only toggle enable/disable in `cashier_currency_config`).
+No new database tables needed — same `payment_module_config` keys, new JSONB shape.
 
-### Changes
-- Add "Add Currency" button opening a dialog with fields: `currency_code` (3-char, uppercase), `currency_name`, `symbol`, `exchange_rate`, `is_main_currency`, `sort_order`
-- Validation: unique `currency_code`, required `currency_code` + `currency_name`, `exchange_rate > 0`
-- Add edit icon per row to open same dialog pre-filled, performing `update` on `tb_currencies`
-- If `is_main_currency` toggled on, warn user the existing main currency will be demoted (enforce single-main constraint)
-- All operations via `supabase.from('tb_currencies').insert()` / `.update()` with audit logging
-- Invalidate all currency-related query keys on success
+### Database Migration
+1. **Migrate existing config** — Convert current `{format, seq_min_length}` / `{format, id_min_length}` into segments arrays via an SQL migration that parses the format string
+2. **Update `set_receipt_number()`** — Read segments array, iterate segments, resolve each placeholder with its `min_length`, concatenate result
+3. **Update `create_invoice_with_lines()`** — Same segment-based resolution; SEQ uses advisory lock + prefix extraction
+4. **Remove standalone `receipt_id_min_length` / `invoice_id_min_length` config keys** — lengths now live in segments
 
-### Files Changed
-- `src/pages/cashier/PaymentModuleConfig.tsx` — Add dialog component, edit buttons, insert/update handlers
+### Backend Resolution Logic (PL/pgSQL)
+```text
+FOR each segment in segments array:
+  IF type = 'static' → append value
+  IF type = 'placeholder':
+    resolved = resolve_placeholder(value, context)
+    IF min_length defined → LPAD(resolved, min_length, '0')
+    append resolved
+```
 
----
+For `{SEQ}` specifically: extract prefix from all preceding segments, query max existing sequence from that prefix, increment, then pad to `min_length`.
 
-## 2. MOP Detail Settings — Extend Card to DRD
+### Batch Number (Frontend)
+Update `usePaymentBatch.ts` to read segments array and resolve placeholders client-side with length padding (same logic as current `resolveBatchFormat` but segment-based).
 
-### Current State
-`isCard` check is `mopCode === 'CRD'` only. The "Show Card Details" toggle only applies to CRD.
+### UI Redesign — Number Formats Tab
+Replace the three simple cards with a **unified segment builder** for each format:
 
-### Changes
-Update all card-detection logic to include DRD:
+Each card (Invoice / Receipt / Batch) contains:
+- **Segments list** — ordered rows, each showing: type badge (Static/Placeholder), value, length input (for placeholders), up/down/delete buttons
+- **Add segment controls** — dropdown to pick placeholder type from available list, or text input for static text, with "Add" button
+- **Live preview** — real-time concatenation of resolved segments
+- **Save button** — persists segments array to `payment_module_config`
+- **Validation** — at least one segment required; SEQ placeholder allowed only once per format; min_length must be 1-10
 
-| File | Current | New |
-|------|---------|-----|
-| `PaymentMethodModal.tsx` line 146 | `mopCode === 'CRD'` | `mopCode === 'CRD' \|\| mopCode === 'DRD'` |
-| `PaymentDetailGrid.tsx` lines 28, 33 | `mopCode === 'CRD'` | `mopCode === 'CRD' \|\| mopCode === 'DRD'` |
-| `PaymentDataEntry.tsx` lines 103, 126 | `mop_code === 'CRD'` | `mop_code === 'CRD' \|\| mop_code === 'DRD'` |
-| `PaymentHistoryManagement.tsx` line 644 | `mop_code === 'CRD'` | `mop_code === 'CRD' \|\| mop_code === 'DRD'` |
-| `MOPDetailModal.tsx` line 51 | `mop_code === 'CRD'` | `mop_code === 'CRD' \|\| mop_code === 'DRD'` |
+Remove the separate "Minimum ID Display Length" card (lengths are now inline per segment).
 
-Update the MOP Detail Settings UI description to mention "CRD / DRD" instead of just "CRD".
+Keep the "Available Placeholders" reference card at the bottom.
 
-### Files Changed
-- `PaymentMethodModal.tsx`, `PaymentDetailGrid.tsx`, `PaymentDataEntry.tsx`, `PaymentHistoryManagement.tsx`, `MOPDetailModal.tsx`
-- `PaymentModuleConfig.tsx` — Update label text
-
----
-
-## 3. Number Format Configuration — New Tab
-
-### Database
-Insert config rows into `payment_module_config`:
-
-| config_key | config_value (JSONB) | description |
-|------------|---------------------|-------------|
-| `invoice_number_format` | `{"format": "INV-{YYYYMM}-{SEQ}", "seq_min_length": 3}` | Invoice number format |
-| `receipt_number_format` | `{"format": "{PAYER_ID}/{RECEIPT_ID}/{DDMMYYYYHHMM}", "id_min_length": 1}` | Receipt number format |
-| `batch_number_format` | `{"format": "{OFFICE_CODE}-{YYYYMMDD}-{HHMMSS}"}` | Batch number format |
-| `receipt_id_min_length` | `1` | Minimum digits for receipt_id display |
-| `invoice_id_min_length` | `1` | Minimum digits for invoice_id display |
-
-### Available Placeholders (displayed in UI)
-
-**System Placeholders:**
-- `{YYYY}`, `{YY}`, `{MM}`, `{DD}`, `{YYYYMM}`, `{YYYYMMDD}`, `{DDMMYYYY}` — date parts
-- `{HH}`, `{MI}`, `{SS}`, `{HHMM}`, `{HHMMSS}`, `{DDMMYYYYHHMM}` — time parts
-- `{SEQ}` — auto-increment sequence (with configurable min length via zero-padding)
-- `{OFFICE_CODE}` — current user's office code
-
-**User/Entity Placeholders:**
-- `{PAYER_ID}` — payer identifier
-- `{PAYER_TYPE}` — payer type code
-- `{USER_CODE}` — current cashier's user code
-- `{RECEIPT_ID}` — database-generated receipt identity
-- `{INVOICE_ID}` — database-generated invoice identity
-- `{BATCH_NUMBER}` — parent batch number
-
-**Static Text:** Any text outside `{}` is treated as literal (e.g., `INV-`, `/`, `-`)
-
-### UI (New "Number Formats" tab)
-- Three cards: Invoice Number, Receipt Number, Batch Number
-- Each card has: format pattern input, placeholder reference sidebar, live preview showing example output
-- Minimum ID length inputs for receipt_id and invoice_id (numeric, 1-10)
-- Save button per card persisting to `payment_module_config`
-
-### Backend Updates
-
-**Invoice Number** — Update `create_invoice_with_lines` RPC:
-- Read format from `payment_module_config` where `config_key = 'invoice_number_format'`
-- Parse format string, replace placeholders with runtime values
-- For `{SEQ}`, use advisory lock + max sequence extraction with configured min length padding
-- Fall back to current `INV-YYYYMM-NNN` if no config exists
-
-**Receipt Number** — Update `set_receipt_number()` trigger function:
-- Read format from `payment_module_config` where `config_key = 'receipt_number_format'`
-- Replace placeholders with actual values (`{RECEIPT_ID}` → `NEW.receipt_id`, `{PAYER_ID}` → resolved payer, etc.)
-- Apply `id_min_length` padding to receipt_id
-- Fall back to current format if no config exists
-
-**Batch Number** — Update `src/hooks/usePaymentBatch.ts`:
-- Fetch format config from `payment_module_config`
-- Parse and replace `{OFFICE_CODE}`, date/time placeholders
-- Fall back to current `{office}-{YYYYMMDD}-{HHMMSS}` if no config
+### Backward Compatibility
+- Migration SQL parses existing format strings into segments
+- DB functions check for both old (`format` string) and new (`segments` array) shapes, falling back to legacy parsing if segments not found
+- Existing records remain untouched
 
 ### Files Changed
-- `payment_module_config` — Insert default format rows
-- DB migration — Update `create_invoice_with_lines` and `set_receipt_number()` to read config
-- `src/pages/cashier/PaymentModuleConfig.tsx` — Add "Number Formats" tab
-- `src/hooks/usePaymentBatch.ts` — Read batch format config
-
----
-
-## 4. Receipt & Invoice Template — Remove `receipt_id` Placeholder
-
-### Changes
-- `src/components/cashier/ReceiptTemplateTab.tsx` — Remove `{ key: '{{receipt_id}}', description: 'Numeric receipt ID' }` from the `PLACEHOLDERS` array (line 23)
-- `src/lib/receiptPrinter.ts` — Remove `{{receipt_id}}` replacement from template rendering (if present)
-- The `{RECEIPT_ID}` placeholder remains available in the Number Format Configuration (section 3)
-
-### Files Changed
-- `ReceiptTemplateTab.tsx`
-- `receiptPrinter.ts` (if applicable)
-
----
-
-## Summary of All Files
 
 | File | Change |
 |------|--------|
-| `PaymentModuleConfig.tsx` | Currency CRUD dialog, MOP label update, new Number Formats tab |
-| `PaymentMethodModal.tsx` | Add DRD to card check |
-| `PaymentDetailGrid.tsx` | Add DRD to card check |
-| `PaymentDataEntry.tsx` | Add DRD to card check |
-| `PaymentHistoryManagement.tsx` | Add DRD to card check |
-| `MOPDetailModal.tsx` | Add DRD to card check |
-| `ReceiptTemplateTab.tsx` | Remove receipt_id placeholder |
-| `receiptPrinter.ts` | Remove receipt_id rendering |
-| `usePaymentBatch.ts` | Read batch number format from config |
-| DB migration | Update `create_invoice_with_lines` + `set_receipt_number()` to read format config |
-| Data insert | Insert default format config rows into `payment_module_config` |
+| DB migration SQL | Migrate existing configs to segments; update `set_receipt_number()` and `create_invoice_with_lines()` to iterate segments with per-placeholder length |
+| `PaymentModuleConfig.tsx` | Replace format-pattern inputs with segment builder UI (add/edit/reorder/remove segments with length per placeholder); remove "Min ID Display Length" card |
+| `usePaymentBatch.ts` | Update `resolveBatchFormat` to read segments array with lengths |
+| `usePaymentModuleConfig.ts` | No changes (generic config read/write) |
+
+### Audit
+All config saves already go through `useUpdatePaymentConfig` which logs audit trails — no change needed.
 
