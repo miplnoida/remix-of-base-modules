@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { MultiSelectCheckbox } from "@/components/ui/multi-select-checkbox";
 import { 
   Database, 
   Download, 
@@ -24,108 +26,15 @@ import {
   Minus,
   Plus,
   AlertTriangle,
+  X,
+  Settings2,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
-// ─── Table Categorization (existing logic) ───
-const TABLE_CATEGORY_RULES: Record<string, { description: string; prefixes: string[]; exactMatches?: string[] }> = {
-  Configuration: {
-    description: "Core system configuration",
-    prefixes: ["app_", "module_", "role", "password_", "mfa_", "api_"],
-    exactMatches: ["roles"],
-  },
-  Organization: {
-    description: "Organizational structure",
-    prefixes: ["department", "designation", "office_"],
-    exactMatches: ["departments", "designations"],
-  },
-  Workflows: {
-    description: "Workflow definitions and runtime",
-    prefixes: ["workflow_"],
-  },
-  Security: {
-    description: "Data access and field security",
-    prefixes: ["data_scope_", "field_security_", "data_policy_"],
-  },
-  Notifications: {
-    description: "Notification settings and logs",
-    prefixes: ["notification_", "in_app_notification"],
-  },
-  Users: {
-    description: "User profiles and settings",
-    prefixes: ["user_", "profile"],
-    exactMatches: ["profiles"],
-  },
-  InsuredPersons: {
-    description: "Insured Person Registration",
-    prefixes: ["ip_", "tmp_ip_"],
-  },
-  Employers: {
-    description: "Employer Registration",
-    prefixes: ["er_"],
-  },
-  Legal: {
-    description: "Legal case management",
-    prefixes: ["legal_"],
-  },
-  Compliance: {
-    description: "Compliance and audit data",
-    prefixes: ["compliance_", "bema_", "c3_"],
-  },
-  MasterData: {
-    description: "Master/lookup tables",
-    prefixes: ["tb_"],
-  },
-  Inspectors: {
-    description: "Inspector management",
-    prefixes: ["inspector_"],
-  },
-  Contributions: {
-    description: "Contributions and remittances",
-    prefixes: ["contribution_", "contributor_", "remittance_", "payment_plan_"],
-  },
-  SystemLogs: {
-    description: "System audit and logs",
-    prefixes: ["audit_", "system_"],
-  },
-  SampleData: {
-    description: "Sample application data",
-    prefixes: ["sample_"],
-    exactMatches: ["sample_applications"],
-  },
-};
-
-const categorizeTable = (tableName: string): string => {
-  for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
-    if (rules.exactMatches?.includes(tableName)) return category;
-    for (const prefix of rules.prefixes) {
-      if (tableName.startsWith(prefix)) return category;
-    }
-  }
-  return "Other";
-};
-
-const buildTableCategories = (tables: string[]): Record<string, { description: string; tables: string[] }> => {
-  const categories: Record<string, { description: string; tables: string[] }> = {};
-  for (const [category, rules] of Object.entries(TABLE_CATEGORY_RULES)) {
-    categories[category] = { description: rules.description, tables: [] };
-  }
-  categories["Other"] = { description: "Other tables", tables: [] };
-  for (const table of tables) {
-    const category = categorizeTable(table);
-    categories[category].tables.push(table);
-  }
-  for (const category of Object.keys(categories)) {
-    if (categories[category].tables.length === 0) delete categories[category];
-  }
-  for (const category of Object.keys(categories)) {
-    categories[category].tables.sort();
-  }
-  return categories;
-};
-
+// ─── Table Import Order (for import) ───
 const getTableImportOrder = (tables: string[]): string[] => {
   const priorityPrefixes = [
     "tb_", "roles", "app_", "module_", "role_", "password_", "mfa_", "api_",
@@ -195,6 +104,156 @@ interface SyncResponse {
   results: { tableName: string; recordId: string; success: boolean; action: string; error?: string }[];
 }
 
+interface AnalysisTableRow {
+  id: string;
+  table_name: string;
+  primary_key_field: string;
+  category: string | null;
+}
+
+// ─── Manage Analysis Tables Sub-Component ───
+const ManageAnalysisTables = () => {
+  const { toast } = useToast();
+  const [analysisTables, setAnalysisTables] = useState<AnalysisTableRow[]>([]);
+  const [allPublicTables, setAllPublicTables] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTable, setSelectedTable] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [tablesRes, publicRes] = await Promise.all([
+        supabase.from("migration_analysis_tables" as any).select("*").order("table_name"),
+        supabase.rpc("get_all_public_tables" as any),
+      ]);
+      if (tablesRes.data) setAnalysisTables(tablesRes.data as any[]);
+      if (publicRes.data) setAllPublicTables((publicRes.data as any[]).map((t: any) => t.table_name));
+    } catch (err) {
+      console.error("Failed to load analysis tables:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const existingTableNames = new Set(analysisTables.map(t => t.table_name));
+  const availableTables = allPublicTables
+    .filter(t => !existingTableNames.has(t))
+    .sort()
+    .map(t => ({ value: t, label: t }));
+
+  const handleAdd = async () => {
+    if (!selectedTable) return;
+    setIsAdding(true);
+    try {
+      const { error } = await supabase.from("migration_analysis_tables" as any).insert({
+        table_name: selectedTable,
+        primary_key_field: "id",
+      } as any);
+      if (error) throw error;
+      toast({ title: "Table Added", description: `${selectedTable} added to analysis list` });
+      setSelectedTable("");
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "Failed to add table", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleRemove = async (row: AnalysisTableRow) => {
+    setRemovingId(row.id);
+    try {
+      const { error } = await supabase.from("migration_analysis_tables" as any).delete().eq("id", row.id);
+      if (error) throw error;
+      toast({ title: "Table Removed", description: `${row.table_name} removed from analysis list` });
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "Failed to remove table", description: err.message, variant: "destructive" });
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <Card>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 rounded-t-lg">
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <Settings2 className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">Manage Analysis Tables</h3>
+              <p className="text-xs text-muted-foreground">
+                Add or remove tables from the environment sync analysis list ({analysisTables.length} tables configured)
+              </p>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 space-y-4">
+            {/* Add table */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Add a table to analysis list</label>
+                <SearchableSelect
+                  options={availableTables}
+                  value={selectedTable}
+                  onValueChange={setSelectedTable}
+                  placeholder="Search and select a table..."
+                  searchPlaceholder="Search tables..."
+                  emptyMessage="No more tables available"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button onClick={handleAdd} disabled={!selectedTable || isAdding} size="default">
+                {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                Add
+              </Button>
+            </div>
+
+            {/* Current tables */}
+            {isLoading ? (
+              <div className="text-sm text-muted-foreground text-center py-4">Loading...</div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {analysisTables.map(row => (
+                  <Badge
+                    key={row.id}
+                    variant="outline"
+                    className="text-xs font-mono flex items-center gap-1 pr-1"
+                  >
+                    {row.table_name}
+                    <button
+                      onClick={() => handleRemove(row)}
+                      disabled={removingId === row.id}
+                      className="ml-1 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
+                      title={`Remove ${row.table_name}`}
+                    >
+                      {removingId === row.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                      )}
+                    </button>
+                  </Badge>
+                ))}
+                {analysisTables.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No tables configured. Add tables above to enable analysis.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+};
+
 // ─── Environment Sync Component ───
 const EnvironmentSyncTab = () => {
   const { toast } = useToast();
@@ -202,7 +261,7 @@ const EnvironmentSyncTab = () => {
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
-  const [selectedDiffs, setSelectedDiffs] = useState<Set<string>>(new Set()); // "tableName::recordId"
+  const [selectedDiffs, setSelectedDiffs] = useState<Set<string>>(new Set());
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   const [isSyncing, setIsSyncing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -225,7 +284,6 @@ const EnvironmentSyncTab = () => {
 
       setAnalysisResult(data as AnalysisResponse);
       
-      // Auto-expand tables with diffs
       const tablesWithDiffs = new Set(
         (data as AnalysisResponse).results
           .filter(r => r.diffs.length > 0)
@@ -309,7 +367,6 @@ const EnvironmentSyncTab = () => {
     try {
       if (!analysisResult) throw new Error("No analysis data");
 
-      // Build sync items from selection
       const items: { tableName: string; recordId: string; type: string; testRecord: Record<string, unknown> }[] = [];
 
       for (const table of analysisResult.results) {
@@ -389,6 +446,9 @@ const EnvironmentSyncTab = () => {
 
   return (
     <div className="space-y-4">
+      {/* Manage Analysis Tables */}
+      <ManageAnalysisTables />
+
       {/* Action Bar */}
       <Card>
         <CardContent className="pt-6">
@@ -540,7 +600,7 @@ const EnvironmentSyncTab = () => {
                                 }
                               }}
                               onCheckedChange={(e) => {
-                                e; // prevent propagation
+                                e;
                                 toggleTable(table.tableName, table.diffs);
                               }}
                               onClick={(e) => e.stopPropagation()}
@@ -682,6 +742,9 @@ const EnvironmentSyncTab = () => {
   );
 };
 
+// ─── Config table prefixes for quick filter ───
+const CONFIG_PREFIXES = ["app_", "module_", "role", "password_", "mfa_", "api_", "tb_", "c3_", "workflow_", "security_", "data_scope_", "field_security_"];
+
 // ─── Main DataMigration Component ───
 const DataMigration = () => {
   const { toast } = useToast();
@@ -707,14 +770,20 @@ const DataMigration = () => {
     fetchTables();
   }, []);
   
-  const tableCategories = useMemo(() => buildTableCategories(allTables), [allTables]);
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  // Individual table selection for Export/Import
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
   
+  // Auto-select all on first load
   useEffect(() => {
-    if (Object.keys(tableCategories).length > 0 && selectedCategories.size === 0) {
-      setSelectedCategories(new Set(Object.keys(tableCategories)));
+    if (allTables.length > 0 && selectedTables.length === 0) {
+      setSelectedTables([...allTables]);
     }
-  }, [tableCategories]);
+  }, [allTables]);
+
+  const tableOptions = useMemo(() => 
+    allTables.map(t => ({ value: t, label: t })).sort((a, b) => a.label.localeCompare(b.label)),
+    [allTables]
+  );
   
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -724,34 +793,23 @@ const DataMigration = () => {
   const [exportComplete, setExportComplete] = useState(false);
   const [lastExportCount, setLastExportCount] = useState(0);
 
-  const getSelectedTables = useCallback(() => {
-    const tables: string[] = [];
-    selectedCategories.forEach((category) => {
-      const cat = tableCategories[category];
-      if (cat) tables.push(...cat.tables);
-    });
-    return tables;
-  }, [selectedCategories, tableCategories]);
-
-  const handleCategoryToggle = (category: string) => {
-    setSelectedCategories((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(category)) newSet.delete(category);
-      else newSet.add(category);
-      return newSet;
-    });
+  const handleSelectAll = () => setSelectedTables([...allTables]);
+  const handleSelectNone = () => setSelectedTables([]);
+  const handleSelectConfig = () => {
+    const configTables = allTables.filter(t => 
+      CONFIG_PREFIXES.some(p => t.startsWith(p)) || t === "roles"
+    );
+    setSelectedTables(configTables);
   };
-
-  const handleSelectAll = () => setSelectedCategories(new Set(Object.keys(tableCategories)));
-  const handleSelectNone = () => setSelectedCategories(new Set());
-  const handleSelectConfig = () => setSelectedCategories(new Set(["Configuration", "Organization", "Workflows", "Security", "MasterData"]));
   
   const handleRefreshTables = async () => {
     setIsLoadingTables(true);
     try {
       const { data, error } = await supabase.rpc('get_all_public_tables');
       if (error) throw error;
-      setAllTables((data || []).map((t: { table_name: string }) => t.table_name));
+      const tables = (data || []).map((t: { table_name: string }) => t.table_name);
+      setAllTables(tables);
+      setSelectedTables(tables);
       toast({ title: "Tables Refreshed", description: `Found ${data?.length || 0} tables` });
     } catch (err) {
       console.error('Failed to fetch tables:', err);
@@ -765,7 +823,7 @@ const DataMigration = () => {
     setIsExporting(true);
     setExportComplete(false);
     try {
-      const tables = getSelectedTables();
+      const tables = selectedTables;
       const exportData: Record<string, any> = {
         version: "1.0",
         exportedAt: new Date().toISOString(),
@@ -880,8 +938,6 @@ const DataMigration = () => {
     }
   };
 
-  const totalSelectedTables = getSelectedTables().length;
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -912,9 +968,9 @@ const DataMigration = () => {
                 <div className="space-y-2">
                   <h3 className="font-semibold">How to use</h3>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                    <li><strong>Export:</strong> Select categories and click "Export Data" to download a JSON file</li>
+                    <li><strong>Export:</strong> Select individual tables and click "Export Data" to download a JSON file</li>
                     <li><strong>Import:</strong> Upload a JSON file and click "Start Import"</li>
-                    <li><span className="text-primary font-medium">Configuration data</span> (roles, permissions, workflows) is recommended for migration</li>
+                    <li>Use quick filters to select <span className="text-primary font-medium">Config Only</span> tables for migration</li>
                   </ol>
                 </div>
               </div>
@@ -926,7 +982,7 @@ const DataMigration = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" />Export Data</CardTitle>
-                <CardDescription>Select which data categories to export</CardDescription>
+                <CardDescription>Select individual tables to export</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
@@ -937,28 +993,22 @@ const DataMigration = () => {
                     <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />Refresh
                   </Button>
                 </div>
-                <div className="space-y-3 border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                <div className="border rounded-lg p-3">
                   {isLoadingTables ? (
                     <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
-                  ) : Object.keys(tableCategories).length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No tables found</div>
                   ) : (
-                    Object.entries(tableCategories).map(([category, config]) => (
-                      <div key={category} className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <Checkbox id={category} checked={selectedCategories.has(category)} onCheckedChange={() => handleCategoryToggle(category)} />
-                          <label htmlFor={category} className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                            {category}
-                            <Badge variant="secondary" className="text-xs">{config.tables.length} tables</Badge>
-                          </label>
-                        </div>
-                        <p className="text-xs text-muted-foreground ml-6">{config.tables.join(", ")}</p>
-                      </div>
-                    ))
+                    <MultiSelectCheckbox
+                      options={tableOptions}
+                      selected={selectedTables}
+                      onChange={setSelectedTables}
+                      placeholder="Search and select tables..."
+                    />
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">Selected: <strong>{totalSelectedTables} tables</strong></div>
-                <Button className="w-full" onClick={handleExport} disabled={isExporting || totalSelectedTables === 0}>
+                <div className="text-sm text-muted-foreground">
+                  Selected: <strong>{selectedTables.length} tables</strong> of {allTables.length} total
+                </div>
+                <Button className="w-full" onClick={handleExport} disabled={isExporting || selectedTables.length === 0}>
                   {isExporting ? <>Exporting...</> : <><Download className="mr-2 h-4 w-4" />Export Data</>}
                 </Button>
                 {exportComplete && (

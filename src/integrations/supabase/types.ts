@@ -17262,6 +17262,33 @@ export type Database = {
         }
         Relationships: []
       }
+      migration_analysis_tables: {
+        Row: {
+          added_by: string | null
+          category: string | null
+          created_at: string | null
+          id: string
+          primary_key_field: string
+          table_name: string
+        }
+        Insert: {
+          added_by?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          primary_key_field?: string
+          table_name: string
+        }
+        Update: {
+          added_by?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          primary_key_field?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       module_actions: {
         Row: {
           action_name: string

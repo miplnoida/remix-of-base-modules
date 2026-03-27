@@ -25,47 +25,18 @@ interface TableAnalysis {
   error?: string;
 }
 
-// Tables to analyze - config and master data only
+// Fallback tables if migration_analysis_tables is empty
 const DEFAULT_TABLES = [
-  "app_modules",
-  "roles",
-  "role_permissions",
-  "departments",
-  "designations",
-  "office_management",
-  "workflow_definitions",
-  "workflow_steps",
-  "notification_templates",
-  "tb_payment_type",
-  "tb_country",
-  "tb_parish",
-  "tb_village",
-  "tb_occupation",
-  "tb_industrial_classification",
-  "tb_relation",
-  "tb_sector",
-  "tb_benefit_type",
-  "tb_income_code",
-  "tb_income_category",
-  "c3_config_details",
-  "c3_calculation_config",
-  "c3_bonus_policy_default",
-  "c3_levy_slabs",
-  "sep_contribution_rates",
-  "payment_module_config",
-  "password_policy",
-  "mfa_settings",
-  "api_settings",
-  "api_registry",
-  "api_rate_limit_policies",
-  "data_scope_rules",
-  "field_security_rules",
-  "document_purposes",
-  "fee_configurations",
-  "security_policy_config",
-  "ip_access_rules",
-  "app_lockdown_state",
-  "tb_levy_slab_details",
+  "app_modules", "roles", "role_permissions", "departments", "designations",
+  "office_management", "workflow_definitions", "workflow_steps", "notification_templates",
+  "tb_payment_type", "tb_country", "tb_parish", "tb_village", "tb_occupation",
+  "tb_industrial_classification", "tb_relation", "tb_sector", "tb_benefit_type",
+  "tb_income_code", "tb_income_category", "c3_config_details", "c3_calculation_config",
+  "c3_bonus_policy_default", "c3_levy_slabs", "sep_contribution_rates",
+  "payment_module_config", "password_policy", "mfa_settings", "api_settings",
+  "api_registry", "api_rate_limit_policies", "data_scope_rules", "field_security_rules",
+  "document_purposes", "fee_configurations", "security_policy_config", "ip_access_rules",
+  "app_lockdown_state", "tb_levy_slab_details",
 ];
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -85,7 +56,6 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return true;
 }
 
-// Fields to ignore during comparison (timestamps, auto-generated)
 const IGNORE_FIELDS = new Set([
   "created_at", "updated_at", "modified_on", "created_on",
   "last_published_at", "last_synced_at"
@@ -144,11 +114,9 @@ serve(async (req) => {
   }
 
   try {
-    // Test environment (this Supabase project)
     const testUrl = Deno.env.get("SUPABASE_URL")!;
     const testKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    // Live environment
+    const testServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const liveUrl = Deno.env.get("LIVE_SUPABASE_URL");
     const liveKey = Deno.env.get("LIVE_SUPABASE_ANON_KEY");
 
@@ -160,61 +128,67 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const tables: string[] = body.tables || DEFAULT_TABLES;
-    const primaryKeyField: string = body.primaryKeyField || "id";
+
+    // Fetch table list from migration_analysis_tables
+    const serviceClient = createClient(testUrl, testServiceKey);
+    let tables: { name: string; pkField: string }[] = [];
+
+    try {
+      const { data: configRows, error: configErr } = await serviceClient
+        .from("migration_analysis_tables")
+        .select("table_name, primary_key_field")
+        .order("table_name");
+
+      if (!configErr && configRows && configRows.length > 0) {
+        tables = configRows.map((r: any) => ({ name: r.table_name, pkField: r.primary_key_field || "id" }));
+      }
+    } catch (_) {
+      // table might not exist yet
+    }
+
+    // Fallback
+    if (tables.length === 0) {
+      tables = DEFAULT_TABLES.map(t => ({ name: t, pkField: "id" }));
+    }
+
+    // Allow override from request body
+    if (body.tables && Array.isArray(body.tables) && body.tables.length > 0) {
+      const pkField = body.primaryKeyField || "id";
+      tables = body.tables.map((t: string) => ({ name: t, pkField }));
+    }
 
     const testClient = createClient(testUrl, testKey);
     const liveClient = createClient(liveUrl, liveKey);
 
     const results: TableAnalysis[] = [];
 
-    for (const tableName of tables) {
+    for (const tableConfig of tables) {
+      const tableName = tableConfig.name;
       try {
-        // Fetch data from both environments
         let testData: Record<string, unknown>[];
         let liveData: Record<string, unknown>[];
         
         try {
           testData = await fetchAllRows(testClient, tableName);
         } catch (e: any) {
-          results.push({
-            tableName,
-            testCount: 0,
-            liveCount: 0,
-            missingInLive: 0,
-            missingInTest: 0,
-            mismatches: 0,
-            diffs: [],
-            error: `Test DB error: ${e.message}`,
-          });
+          results.push({ tableName, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Test DB error: ${e.message}` });
           continue;
         }
 
         try {
           liveData = await fetchAllRows(liveClient, tableName);
         } catch (e: any) {
-          results.push({
-            tableName,
-            testCount: testData.length,
-            liveCount: 0,
-            missingInLive: 0,
-            missingInTest: 0,
-            mismatches: 0,
-            diffs: [],
-            error: `Live DB error: ${e.message}`,
-          });
+          results.push({ tableName, testCount: testData.length, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Live DB error: ${e.message}` });
           continue;
         }
 
-        // Determine primary key - check for 'id' first, then try first column
-        let pkField = primaryKeyField;
+        // Use PK from config, with fallback
+        let pkField = tableConfig.pkField;
         if (testData.length > 0 && !(pkField in testData[0])) {
-          // Try common PK names
           const candidates = ["id", "name", "key", "code", "config_key"];
           pkField = candidates.find(c => c in testData[0]) || Object.keys(testData[0])[0];
         }
 
-        // Build lookup maps
         const testMap = new Map<string, Record<string, unknown>>();
         const liveMap = new Map<string, Record<string, unknown>>();
 
@@ -229,38 +203,21 @@ serve(async (req) => {
 
         const diffs: RecordDiff[] = [];
 
-        // Find records missing in live
         for (const [key, testRow] of testMap) {
           const liveRow = liveMap.get(key);
           if (!liveRow) {
-            diffs.push({
-              id: key,
-              type: "missing_in_live",
-              testRecord: testRow,
-            });
+            diffs.push({ id: key, type: "missing_in_live", testRecord: testRow });
           } else {
-            // Compare records
             const changedFields = getRecordDiffs(testRow, liveRow);
             if (changedFields.length > 0) {
-              diffs.push({
-                id: key,
-                type: "mismatch",
-                testRecord: testRow,
-                liveRecord: liveRow,
-                changedFields,
-              });
+              diffs.push({ id: key, type: "mismatch", testRecord: testRow, liveRecord: liveRow, changedFields });
             }
           }
         }
 
-        // Find records in live but not in test
         for (const [key, liveRow] of liveMap) {
           if (!testMap.has(key)) {
-            diffs.push({
-              id: key,
-              type: "missing_in_test",
-              liveRecord: liveRow,
-            });
+            diffs.push({ id: key, type: "missing_in_test", liveRecord: liveRow });
           }
         }
 
@@ -274,20 +231,10 @@ serve(async (req) => {
           diffs,
         });
       } catch (e: any) {
-        results.push({
-          tableName,
-          testCount: 0,
-          liveCount: 0,
-          missingInLive: 0,
-          missingInTest: 0,
-          mismatches: 0,
-          diffs: [],
-          error: e.message,
-        });
+        results.push({ tableName, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: e.message });
       }
     }
 
-    // Summary
     const totalDiffs = results.reduce((sum, r) => sum + r.diffs.length, 0);
     const tablesWithDiffs = results.filter(r => r.diffs.length > 0).length;
     const tablesWithErrors = results.filter(r => r.error).length;
@@ -296,12 +243,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         analyzedAt: new Date().toISOString(),
-        summary: {
-          tablesAnalyzed: results.length,
-          tablesWithDiffs,
-          tablesWithErrors,
-          totalDiffs,
-        },
+        summary: { tablesAnalyzed: results.length, tablesWithDiffs, tablesWithErrors, totalDiffs },
         results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
