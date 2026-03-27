@@ -100,7 +100,7 @@ const PaymentDataEntry = () => {
       if ((detail.mop_code === 'CHQ' || detail.mop_code === 'CHK') && showChequeDetails) {
         setPendingMopLineIndex(newIdx);
         setTimeout(() => setShowChequeModal(true), 100);
-      } else if (detail.mop_code === 'CRD' && showCardDetails) {
+      } else if ((detail.mop_code === 'CRD' || detail.mop_code === 'DRD') && showCardDetails) {
         setPendingMopLineIndex(newIdx);
         setTimeout(() => setShowCardModal(true), 100);
       }
@@ -123,7 +123,7 @@ const PaymentDataEntry = () => {
     setPendingMopLineIndex(index);
     if ((row.mop_code === 'CHQ' || row.mop_code === 'CHK') && showChequeDetails) {
       setShowChequeModal(true);
-    } else if (row.mop_code === 'CRD' && showCardDetails) {
+    } else if ((row.mop_code === 'CRD' || row.mop_code === 'DRD') && showCardDetails) {
       setShowCardModal(true);
     }
   }, [detailLines, showChequeDetails, showCardDetails]);

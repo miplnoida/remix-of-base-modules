@@ -641,7 +641,7 @@ const PaymentHistoryManagement = () => {
                     <div className="space-y-3">
                       {detailLines.map((d, i) => {
                         const isCheque = d.mop_code === 'CHQ' || d.mop_code === 'CHK';
-                        const isCard = d.mop_code === 'CRD';
+                        const isCard = d.mop_code === 'CRD' || d.mop_code === 'DRD';
                         const hasMopInfo = isCheque || isCard;
                         const periodDisplay = d.period
                           ? new Date(d.period).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
