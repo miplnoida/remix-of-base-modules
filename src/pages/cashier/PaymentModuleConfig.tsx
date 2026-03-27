@@ -801,133 +801,41 @@ const PaymentModuleConfig: React.FC = () => {
         {/* ─── NUMBER FORMATS TAB ─── */}
         <TabsContent value="number-formats" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Invoice Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Invoice Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>invoice_number</code> in cn_invoices.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={invoiceFormat} onChange={e => setInvoiceFormat(e.target.value)} placeholder="INV-{YYYYMM}-{SEQ}" className="font-mono text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Sequence Min Length (zero-padded)</Label>
-                  <Input type="number" min={1} max={10} value={invoiceSeqLen} onChange={e => setInvoiceSeqLen(parseInt(e.target.value) || 1)} className="w-20" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(invoiceFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('invoice_number_format', { format: invoiceFormat, seq_min_length: invoiceSeqLen })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Receipt Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Receipt Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>receipt_number</code> in cn_receipt.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={receiptFormat} onChange={e => setReceiptFormat(e.target.value)} placeholder="{PAYER_ID}/{RECEIPT_ID}/{DDMMYYYYHHMM}" className="font-mono text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Receipt ID Min Length (zero-padded)</Label>
-                  <Input type="number" min={1} max={10} value={receiptIdMinLen} onChange={e => setReceiptIdMinLen(parseInt(e.target.value) || 1)} className="w-20" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(receiptFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('receipt_number_format', { format: receiptFormat, id_min_length: receiptIdMinLen })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Batch Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Batch Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>batch_number</code> in cn_batch.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={batchFormat} onChange={e => setBatchFormat(e.target.value)} placeholder="{OFFICE_CODE}-{YYYYMMDD}-{HHMMSS}" className="font-mono text-sm" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(batchFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('batch_number_format', { format: batchFormat })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
+            <NumberFormatSegmentBuilder
+              title="Invoice Number"
+              description="Configure the segment-based format for invoice_number in cn_invoices."
+              configKey="invoice_number_format"
+              segments={invoiceSegments}
+              onChange={setInvoiceSegments}
+              onSave={() => handleSave('invoice_number_format', { segments: invoiceSegments })}
+              saving={updateConfig.isPending}
+            />
+            <NumberFormatSegmentBuilder
+              title="Receipt Number"
+              description="Configure the segment-based format for receipt_number in cn_receipt."
+              configKey="receipt_number_format"
+              segments={receiptSegments}
+              onChange={setReceiptSegments}
+              onSave={() => handleSave('receipt_number_format', { segments: receiptSegments })}
+              saving={updateConfig.isPending}
+            />
+            <NumberFormatSegmentBuilder
+              title="Batch Number"
+              description="Configure the segment-based format for batch_number in cn_batch."
+              configKey="batch_number_format"
+              segments={batchSegments}
+              onChange={setBatchSegments}
+              onSave={() => handleSave('batch_number_format', { segments: batchSegments })}
+              saving={updateConfig.isPending}
+            />
           </div>
-
-          {/* ID Min Length Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Minimum ID Display Length</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Configure zero-padding for receipt_id and invoice_id display values.
-              </p>
-            </CardHeader>
-            <CardContent className="flex gap-6">
-              <div className="space-y-1">
-                <Label className="text-xs">Receipt ID Min Digits</Label>
-                <Input type="number" min={1} max={10} value={receiptIdDisplayMin} onChange={e => setReceiptIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Invoice ID Min Digits</Label>
-                <Input type="number" min={1} max={10} value={invoiceIdDisplayMin} onChange={e => setInvoiceIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
-              </div>
-              <div className="flex items-end">
-                <Button size="sm" onClick={async () => {
-                  await Promise.all([
-                    handleSave('receipt_id_min_length', receiptIdDisplayMin),
-                    handleSave('invoice_id_min_length', invoiceIdDisplayMin),
-                  ]);
-                }} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Placeholder Reference */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Available Placeholders</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Use these placeholders in format patterns. Static text outside <code>{'{}'}</code> is treated as literal.
+                Use these placeholders when adding segments. Each placeholder supports an optional min-length for zero-padding.
               </p>
             </CardHeader>
             <CardContent>
