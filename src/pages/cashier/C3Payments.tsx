@@ -414,6 +414,40 @@ const C3Payments: React.FC = () => {
   }, [batchSel.selectedBatch, payerInfo, payerType, payerId, dateReceived, remarks,
     selectedComponents, c3Amount, methods, totalPaymentReceived, period, userCode, receiptActions]);
 
+  /* ── payment sync ─────────────────────── */
+
+  const triggerPaymentSync = useCallback(async (pId: number, rId: number) => {
+    setSyncPaymentId(pId);
+    setSyncReceiptId(rId);
+    setSyncStatus('syncing');
+    setSyncError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-c3-payment', {
+        body: { payment_id: pId, receipt_id: rId },
+      });
+      if (error) throw error;
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      if (result?.not_configured) {
+        setSyncStatus('not_configured');
+      } else if (result?.success) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('sync_failed');
+        setSyncError(result?.error || 'Unknown sync error');
+      }
+    } catch (err: any) {
+      setSyncStatus('sync_failed');
+      setSyncError(err.message || 'Failed to invoke sync function');
+      await logApplicationError(err, { module: 'C3Payments', action: 'triggerPaymentSync', entity_type: 'payment_sync_log' });
+    }
+  }, []);
+
+  const handleRetrySync = useCallback(() => {
+    if (syncPaymentId && syncReceiptId) {
+      triggerPaymentSync(syncPaymentId, syncReceiptId);
+    }
+  }, [syncPaymentId, syncReceiptId, triggerPaymentSync]);
+
   /* ── reprint / cancel / reset ─────────── */
 
   const handleReprint = useCallback(async () => {
