@@ -255,6 +255,23 @@ const ManageAnalysisTables = () => {
   );
 };
 
+// ─── Helpers to detect missing tables ───
+const isMissingTableError = (error?: string) =>
+  error && error.toLowerCase().includes("does not exist");
+
+const getMissingSide = (error?: string): "test" | "live" | null => {
+  if (!error) return null;
+  if (error.startsWith("Test DB error")) return "test";
+  if (error.startsWith("Live DB error")) return "live";
+  return null;
+};
+
+interface CreateTableStatus {
+  status: "creating" | "success" | "error";
+  message?: string;
+  dataResult?: { inserted: number; failed: number };
+}
+
 // ─── Environment Sync Component ───
 const EnvironmentSyncTab = () => {
   const { toast } = useToast();
@@ -268,6 +285,44 @@ const EnvironmentSyncTab = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResponse | null>(null);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [createTableStatus, setCreateTableStatus] = useState<Record<string, CreateTableStatus>>({});
+
+  const handleCreateMissingTable = async (tableName: string, missingSide: "test" | "live", includeData: boolean) => {
+    // Source = side that HAS the table, target = side that's MISSING it
+    const sourceEnv = missingSide === "live" ? "test" : "live";
+
+    setCreateTableStatus(prev => ({
+      ...prev,
+      [tableName]: { status: "creating", message: `Creating ${includeData ? "with data" : "schema only"} on ${missingSide}...` },
+    }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-missing-table", {
+        body: { tableName, sourceEnv, includeData },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      const msg = data.dataResult
+        ? `Table created on ${missingSide}. ${data.dataResult.inserted} records copied${data.dataResult.failed > 0 ? `, ${data.dataResult.failed} failed` : ""}.`
+        : `Table schema created successfully on ${missingSide}.`;
+
+      setCreateTableStatus(prev => ({
+        ...prev,
+        [tableName]: { status: "success", message: msg, dataResult: data.dataResult },
+      }));
+
+      toast({ title: "Table Created", description: msg });
+    } catch (err: any) {
+      const errMsg = err.message || "Failed to create table";
+      setCreateTableStatus(prev => ({
+        ...prev,
+        [tableName]: { status: "error", message: errMsg },
+      }));
+      toast({ title: "Create Table Failed", description: errMsg, variant: "destructive" });
+    }
+  };
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
