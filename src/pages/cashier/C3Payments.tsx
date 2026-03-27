@@ -172,10 +172,10 @@ const C3Payments: React.FC = () => {
     setIsValidating(false);
   }, [payerType, payerId, payment, isValidating]);
 
-  // Auto-validate payer when navigated from C3 detail screens with query params
+  // Auto-validate payer when navigated from C3 detail screens with state params
   useEffect(() => {
     if (initialParamsApplied) return;
-    const regNo = searchParams.get('regNo');
+    const regNo = navState.regNo;
     if (regNo && regNo.trim() && !payerInfo) {
       setInitialParamsApplied(true);
       (async () => {
@@ -186,16 +186,16 @@ const C3Payments: React.FC = () => {
         setIsValidating(false);
       })();
     }
-  }, [searchParams, initialParamsApplied, payerType, payment, payerInfo]);
+  }, [navState, initialParamsApplied, payerType, payment, payerInfo]);
 
   // Auto-load C3 payment components from cn_c3_reported when navigated from C3 detail screens
   useEffect(() => {
     if (c3ComponentsLoaded) return;
-    const regNo = searchParams.get('regNo');
-    const schedule = searchParams.get('schedule');
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
-    const pType = searchParams.get('payerType');
+    const regNo = navState.regNo;
+    const schedule = navState.schedule;
+    const month = navState.month;
+    const year = navState.year;
+    const pType = navState.payerType;
     if (!regNo || !schedule || !month || !year || !pType) return;
     if (!paymentTypesAll.length || ptLoading) return;
 
@@ -244,7 +244,7 @@ const C3Payments: React.FC = () => {
         console.error('Error auto-loading C3 components:', err);
       }
     })();
-  }, [searchParams, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
+  }, [navState, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
 
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
