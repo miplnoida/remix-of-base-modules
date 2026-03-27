@@ -1072,7 +1072,7 @@ const PaymentModuleConfig: React.FC = () => {
               <Label className="text-xs cursor-pointer">Set as main (system) currency</Label>
             </div>
             {currencyForm.is_main_currency && allCurrencies?.some(c => c.is_main_currency && c.id !== editingCurrencyId) && (
-              <div className="rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 text-xs text-amber-700 dark:text-amber-300">
+              <div className="rounded-md bg-muted border border-border p-2 text-xs text-foreground/70">
                 <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
                 The current main currency ({allCurrencies.find(c => c.is_main_currency)?.currency_code}) will be demoted.
               </div>
