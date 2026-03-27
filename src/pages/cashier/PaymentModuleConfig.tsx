@@ -117,14 +117,10 @@ const PaymentModuleConfig: React.FC = () => {
   const [currencyFormErrors, setCurrencyFormErrors] = useState<Record<string, string>>({});
   const [savingCurrencyForm, setSavingCurrencyForm] = useState(false);
 
-  // Number Format states
-  const [invoiceFormat, setInvoiceFormat] = useState('');
-  const [invoiceSeqLen, setInvoiceSeqLen] = useState(3);
-  const [receiptFormat, setReceiptFormat] = useState('');
-  const [receiptIdMinLen, setReceiptIdMinLen] = useState(1);
-  const [batchFormat, setBatchFormat] = useState('');
-  const [receiptIdDisplayMin, setReceiptIdDisplayMin] = useState(1);
-  const [invoiceIdDisplayMin, setInvoiceIdDisplayMin] = useState(1);
+  // Number Format segment states
+  const [invoiceSegments, setInvoiceSegments] = useState<Segment[]>([]);
+  const [receiptSegments, setReceiptSegments] = useState<Segment[]>([]);
+  const [batchSegments, setBatchSegments] = useState<Segment[]>([]);
 
   // Fetch all payment types from tb_payment_type
   const { data: allPaymentTypes } = useQuery({
