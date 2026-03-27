@@ -24197,6 +24197,10 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_number_segments: {
+        Args: { p_context: Json; p_segments: Json }
+        Returns: string
+      }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
