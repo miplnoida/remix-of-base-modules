@@ -163,7 +163,7 @@ async function fetchReceiptData(paymentId: number) {
     '{{payer_type}}': header.payer_type || '',
     '{{date_received}}': dateReceived,
     '{{receipt_number}}': receipt?.receipt_number || String(receipt?.receipt_id || ''),
-    '{{receipt_id}}': String(receipt?.receipt_id || ''),
+    '{{receipt_id}}': '', // deprecated — no longer used in templates
     '{{receipt_total}}': Number(receiptTotal).toFixed(2),
     '{{payment_id}}': String(paymentId),
     '{{batch_number}}': header.batch_number || '',
