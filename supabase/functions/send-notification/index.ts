@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const RESEND_API = "https://api.resend.com/emails";
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType?: string;
+}
+
 interface SendNotificationRequest {
   notification_log_id?: string;
   recipient_email: string;
@@ -15,6 +21,7 @@ interface SendNotificationRequest {
   body: string;
   from_name?: string;
   from_email?: string;
+  attachments?: EmailAttachment[];
 }
 
 async function logToSystem(
