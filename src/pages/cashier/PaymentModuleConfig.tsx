@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
 import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash } from 'lucide-react';
+import NumberFormatSegmentBuilder, { type Segment } from '@/components/cashier/NumberFormatSegmentBuilder';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
 import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
@@ -24,9 +25,8 @@ import { logAuditTrail } from '@/services/auditService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
 
-/* ─── Number Format Placeholder definitions ─── */
+/* ─── Number Format Placeholder reference (for Available Placeholders card) ─── */
 const SYSTEM_PLACEHOLDERS = [
   { key: '{YYYY}', desc: 'Four-digit year (e.g. 2026)' },
   { key: '{YY}', desc: 'Two-digit year (e.g. 26)' },
@@ -53,35 +53,6 @@ const ENTITY_PLACEHOLDERS = [
   { key: '{INVOICE_ID}', desc: 'DB-generated invoice identity' },
   { key: '{BATCH_NUMBER}', desc: 'Parent batch number' },
 ];
-
-/** Generate a live preview of a format string */
-function previewFormat(fmt: string): string {
-  if (!fmt) return '—';
-  const now = new Date();
-  let r = fmt;
-  r = r.replace('{YYYY}', format(now, 'yyyy'));
-  r = r.replace('{YY}', format(now, 'yy'));
-  r = r.replace('{MM}', format(now, 'MM'));
-  r = r.replace('{DD}', format(now, 'dd'));
-  r = r.replace('{YYYYMM}', format(now, 'yyyyMM'));
-  r = r.replace('{YYYYMMDD}', format(now, 'yyyyMMdd'));
-  r = r.replace('{DDMMYYYY}', format(now, 'ddMMyyyy'));
-  r = r.replace('{HH}', format(now, 'HH'));
-  r = r.replace('{MI}', format(now, 'mm'));
-  r = r.replace('{SS}', format(now, 'ss'));
-  r = r.replace('{HHMM}', format(now, 'HHmm'));
-  r = r.replace('{HHMMSS}', format(now, 'HHmmss'));
-  r = r.replace('{DDMMYYYYHHMM}', format(now, 'ddMMyyyyHHmm'));
-  r = r.replace('{SEQ}', '001');
-  r = r.replace('{OFFICE_CODE}', 'HQ');
-  r = r.replace('{PAYER_ID}', '100234');
-  r = r.replace('{PAYER_TYPE}', 'ER');
-  r = r.replace('{USER_CODE}', 'JD01');
-  r = r.replace('{RECEIPT_ID}', '42');
-  r = r.replace('{INVOICE_ID}', '15');
-  r = r.replace('{BATCH_NUMBER}', 'HQ-20260327-143025');
-  return r;
-}
 
 /* ─── Currency Dialog ─── */
 interface CurrencyFormData {
@@ -143,14 +114,10 @@ const PaymentModuleConfig: React.FC = () => {
   const [currencyFormErrors, setCurrencyFormErrors] = useState<Record<string, string>>({});
   const [savingCurrencyForm, setSavingCurrencyForm] = useState(false);
 
-  // Number Format states
-  const [invoiceFormat, setInvoiceFormat] = useState('');
-  const [invoiceSeqLen, setInvoiceSeqLen] = useState(3);
-  const [receiptFormat, setReceiptFormat] = useState('');
-  const [receiptIdMinLen, setReceiptIdMinLen] = useState(1);
-  const [batchFormat, setBatchFormat] = useState('');
-  const [receiptIdDisplayMin, setReceiptIdDisplayMin] = useState(1);
-  const [invoiceIdDisplayMin, setInvoiceIdDisplayMin] = useState(1);
+  // Number Format segment states
+  const [invoiceSegments, setInvoiceSegments] = useState<Segment[]>([]);
+  const [receiptSegments, setReceiptSegments] = useState<Segment[]>([]);
+  const [batchSegments, setBatchSegments] = useState<Segment[]>([]);
 
   // Fetch all payment types from tb_payment_type
   const { data: allPaymentTypes } = useQuery({
@@ -180,25 +147,19 @@ const PaymentModuleConfig: React.FC = () => {
     const c3pt = getVal('c3_payment_types');
     if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
 
-    // Number formats
+    // Number formats — segments
     const invFmt = getVal('invoice_number_format');
-    if (invFmt && typeof invFmt === 'object') {
-      setInvoiceFormat((invFmt as any).format || '');
-      setInvoiceSeqLen((invFmt as any).seq_min_length || 3);
+    if (invFmt && typeof invFmt === 'object' && Array.isArray((invFmt as any).segments)) {
+      setInvoiceSegments((invFmt as any).segments as Segment[]);
     }
     const rcptFmt = getVal('receipt_number_format');
-    if (rcptFmt && typeof rcptFmt === 'object') {
-      setReceiptFormat((rcptFmt as any).format || '');
-      setReceiptIdMinLen((rcptFmt as any).id_min_length || 1);
+    if (rcptFmt && typeof rcptFmt === 'object' && Array.isArray((rcptFmt as any).segments)) {
+      setReceiptSegments((rcptFmt as any).segments as Segment[]);
     }
     const batchFmt = getVal('batch_number_format');
-    if (batchFmt && typeof batchFmt === 'object') {
-      setBatchFormat((batchFmt as any).format || '');
+    if (batchFmt && typeof batchFmt === 'object' && Array.isArray((batchFmt as any).segments)) {
+      setBatchSegments((batchFmt as any).segments as Segment[]);
     }
-    const ridMin = getVal('receipt_id_min_length');
-    if (ridMin !== undefined) setReceiptIdDisplayMin(typeof ridMin === 'number' ? ridMin : 1);
-    const iidMin = getVal('invoice_id_min_length');
-    if (iidMin !== undefined) setInvoiceIdDisplayMin(typeof iidMin === 'number' ? iidMin : 1);
   }, [configs]);
 
   // Auto-select first currency for denomination management
@@ -837,133 +798,41 @@ const PaymentModuleConfig: React.FC = () => {
         {/* ─── NUMBER FORMATS TAB ─── */}
         <TabsContent value="number-formats" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Invoice Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Invoice Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>invoice_number</code> in cn_invoices.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={invoiceFormat} onChange={e => setInvoiceFormat(e.target.value)} placeholder="INV-{YYYYMM}-{SEQ}" className="font-mono text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Sequence Min Length (zero-padded)</Label>
-                  <Input type="number" min={1} max={10} value={invoiceSeqLen} onChange={e => setInvoiceSeqLen(parseInt(e.target.value) || 1)} className="w-20" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(invoiceFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('invoice_number_format', { format: invoiceFormat, seq_min_length: invoiceSeqLen })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Receipt Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Receipt Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>receipt_number</code> in cn_receipt.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={receiptFormat} onChange={e => setReceiptFormat(e.target.value)} placeholder="{PAYER_ID}/{RECEIPT_ID}/{DDMMYYYYHHMM}" className="font-mono text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Receipt ID Min Length (zero-padded)</Label>
-                  <Input type="number" min={1} max={10} value={receiptIdMinLen} onChange={e => setReceiptIdMinLen(parseInt(e.target.value) || 1)} className="w-20" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(receiptFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('receipt_number_format', { format: receiptFormat, id_min_length: receiptIdMinLen })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Batch Number */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Hash className="h-4 w-4" />
-                  Batch Number
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Configure the format for <code>batch_number</code> in cn_batch.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Format Pattern</Label>
-                  <Input value={batchFormat} onChange={e => setBatchFormat(e.target.value)} placeholder="{OFFICE_CODE}-{YYYYMMDD}-{HHMMSS}" className="font-mono text-sm" />
-                </div>
-                <div className="rounded-md bg-muted p-2">
-                  <Label className="text-xs text-muted-foreground">Preview</Label>
-                  <p className="font-mono text-sm text-foreground">{previewFormat(batchFormat)}</p>
-                </div>
-                <Button size="sm" onClick={() => handleSave('batch_number_format', { format: batchFormat })} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </CardContent>
-            </Card>
+            <NumberFormatSegmentBuilder
+              title="Invoice Number"
+              description="Configure the segment-based format for invoice_number in cn_invoices."
+              configKey="invoice_number_format"
+              segments={invoiceSegments}
+              onChange={setInvoiceSegments}
+              onSave={() => handleSave('invoice_number_format', { segments: invoiceSegments })}
+              saving={updateConfig.isPending}
+            />
+            <NumberFormatSegmentBuilder
+              title="Receipt Number"
+              description="Configure the segment-based format for receipt_number in cn_receipt."
+              configKey="receipt_number_format"
+              segments={receiptSegments}
+              onChange={setReceiptSegments}
+              onSave={() => handleSave('receipt_number_format', { segments: receiptSegments })}
+              saving={updateConfig.isPending}
+            />
+            <NumberFormatSegmentBuilder
+              title="Batch Number"
+              description="Configure the segment-based format for batch_number in cn_batch."
+              configKey="batch_number_format"
+              segments={batchSegments}
+              onChange={setBatchSegments}
+              onSave={() => handleSave('batch_number_format', { segments: batchSegments })}
+              saving={updateConfig.isPending}
+            />
           </div>
-
-          {/* ID Min Length Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Minimum ID Display Length</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Configure zero-padding for receipt_id and invoice_id display values.
-              </p>
-            </CardHeader>
-            <CardContent className="flex gap-6">
-              <div className="space-y-1">
-                <Label className="text-xs">Receipt ID Min Digits</Label>
-                <Input type="number" min={1} max={10} value={receiptIdDisplayMin} onChange={e => setReceiptIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Invoice ID Min Digits</Label>
-                <Input type="number" min={1} max={10} value={invoiceIdDisplayMin} onChange={e => setInvoiceIdDisplayMin(parseInt(e.target.value) || 1)} className="w-20" />
-              </div>
-              <div className="flex items-end">
-                <Button size="sm" onClick={async () => {
-                  await Promise.all([
-                    handleSave('receipt_id_min_length', receiptIdDisplayMin),
-                    handleSave('invoice_id_min_length', invoiceIdDisplayMin),
-                  ]);
-                }} disabled={updateConfig.isPending}>
-                  {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Save
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Placeholder Reference */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Available Placeholders</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Use these placeholders in format patterns. Static text outside <code>{'{}'}</code> is treated as literal.
+                Use these placeholders when adding segments. Each placeholder supports an optional min-length for zero-padding.
               </p>
             </CardHeader>
             <CardContent>
