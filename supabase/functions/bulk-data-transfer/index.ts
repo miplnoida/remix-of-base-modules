@@ -37,7 +37,27 @@ serve(async (req) => {
       );
     }
 
-    const allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies", "ip_depend", "ip_self_employ", "tb_levy_slabs", "tb_levy_slab_details"];
+    // Read allowed tables from migration_analysis_tables
+    const serviceClient = createClient(testUrl, testServiceKey);
+    let allowedTables: string[] = [];
+
+    try {
+      const { data: configRows, error: configErr } = await serviceClient
+        .from("migration_analysis_tables")
+        .select("table_name");
+
+      if (!configErr && configRows && configRows.length > 0) {
+        allowedTables = configRows.map((r: any) => r.table_name);
+      }
+    } catch (_) {
+      // fallback
+    }
+
+    // Fallback to hardcoded list if DB table is empty/missing
+    if (allowedTables.length === 0) {
+      allowedTables = ["er_master", "ip_master", "cn_payer", "tb_bank_code", "tb_currencies", "ip_depend", "ip_self_employ", "tb_levy_slabs", "tb_levy_slab_details"];
+    }
+
     if (!allowedTables.includes(tableName)) {
       return new Response(
         JSON.stringify({ error: `Table '${tableName}' not allowed.` }),
