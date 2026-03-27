@@ -11270,6 +11270,84 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_distribution_recipients: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          designation: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          name: string
+          organization: string | null
+          recipient_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          designation?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization?: string | null
+          recipient_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          designation?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization?: string | null
+          recipient_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ia_distribution_templates: {
+        Row: {
+          body: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          subject: string
+          template_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          subject: string
+          template_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ia_document_templates: {
         Row: {
           approved_at: string | null
