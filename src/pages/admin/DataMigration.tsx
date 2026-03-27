@@ -641,6 +641,9 @@ const EnvironmentSyncTab = () => {
                 const allTableSelected = syncableDiffs.length > 0 && syncableDiffs.every(d => selectedDiffs.has(getDiffKey(table.tableName, d.id)));
                 const someTableSelected = syncableDiffs.some(d => selectedDiffs.has(getDiffKey(table.tableName, d.id)));
                 const isExpanded = expandedTables.has(table.tableName);
+                const missingTable = isMissingTableError(table.error);
+                const missingSide = getMissingSide(table.error);
+                const tableCreateStatus = createTableStatus[table.tableName];
 
                 return (
                   <Card key={table.tableName} className={table.error ? "border-destructive/30" : ""}>
@@ -665,8 +668,19 @@ const EnvironmentSyncTab = () => {
                           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           <span className="font-mono text-sm font-medium">{table.tableName}</span>
                           <div className="flex items-center gap-2 ml-auto">
-                            {table.error && (
+                            {table.error && !missingTable && (
                               <Badge variant="destructive" className="text-xs">{table.error.substring(0, 40)}</Badge>
+                            )}
+                            {missingTable && missingSide && (
+                              <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30 text-xs">
+                                <Database className="h-3 w-3 mr-1" />
+                                Missing in {missingSide === "test" ? "Test" : "Live"}
+                              </Badge>
+                            )}
+                            {tableCreateStatus?.status === "success" && (
+                              <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
+                                <CheckCircle className="h-3 w-3 mr-1" />Created
+                              </Badge>
                             )}
                             {table.missingInLive > 0 && (
                               <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs">
@@ -691,6 +705,77 @@ const EnvironmentSyncTab = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="border-t px-4 pb-4 pt-2 space-y-2">
+                          {/* Missing table: Create Table UI */}
+                          {missingTable && missingSide && (
+                            <div className="p-4 rounded-lg border border-purple-500/30 bg-purple-500/5 space-y-3">
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                <span className="text-sm font-medium">
+                                  Table <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">{table.tableName}</code> does not exist in the <strong>{missingSide === "test" ? "Test" : "Live"}</strong> database.
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                You can create this table on the {missingSide === "test" ? "Test" : "Live"} side using the schema from {missingSide === "test" ? "Live" : "Test"}.
+                              </p>
+
+                              {tableCreateStatus?.status === "creating" ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  {tableCreateStatus.message}
+                                </div>
+                              ) : tableCreateStatus?.status === "success" ? (
+                                <Alert className="border-green-500/30 bg-green-500/5">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <AlertDescription className="text-green-800 dark:text-green-200 text-xs">
+                                    {tableCreateStatus.message}
+                                  </AlertDescription>
+                                </Alert>
+                              ) : tableCreateStatus?.status === "error" ? (
+                                <div className="space-y-2">
+                                  <Alert className="border-destructive/30">
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                    <AlertDescription className="text-destructive text-xs">
+                                      {tableCreateStatus.message}
+                                    </AlertDescription>
+                                  </Alert>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCreateMissingTable(table.tableName, missingSide, false)}
+                                    >
+                                      <Database className="h-3.5 w-3.5 mr-1" />Retry Schema Only
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCreateMissingTable(table.tableName, missingSide, true)}
+                                    >
+                                      <Database className="h-3.5 w-3.5 mr-1" />Retry with Data
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCreateMissingTable(table.tableName, missingSide, false)}
+                                  >
+                                    <Database className="h-3.5 w-3.5 mr-1" />Create Schema Only
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleCreateMissingTable(table.tableName, missingSide, true)}
+                                  >
+                                    <Database className="h-3.5 w-3.5 mr-1" />Create with Data
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Normal diff rows */}
                           {table.diffs.map(diff => {
                             const key = getDiffKey(table.tableName, diff.id);
                             const isSyncable = diff.type !== "missing_in_test";
