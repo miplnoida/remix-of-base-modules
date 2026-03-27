@@ -9203,6 +9203,7 @@ export type Database = {
           approval_note: string | null
           approved_by: string | null
           approved_date: string | null
+          artifact_version_number: number | null
           assigned_auditor: string | null
           audit_scope: string | null
           auto_notify_on_approval: boolean | null
@@ -9214,6 +9215,7 @@ export type Database = {
           committee_minutes_url: string | null
           committee_noted: boolean | null
           conflict_check_result: Json | null
+          content_hash: string | null
           contingency_hours: number | null
           created_at: string | null
           created_by: string | null
@@ -9230,7 +9232,10 @@ export type Database = {
           internally_approved_by: string | null
           internally_approved_date: string | null
           last_conflict_check_at: string | null
+          last_material_change_at: string | null
+          last_material_change_by: string | null
           methodology: string | null
+          methodology_notes: string | null
           minutes_reference: string | null
           objective: string | null
           outsourced_support_notes: string | null
@@ -9246,6 +9251,7 @@ export type Database = {
           revision_count: number | null
           risk_level: string | null
           scope: string | null
+          scope_description: string | null
           skills_constraints: string | null
           status: string | null
           submitted_date: string | null
@@ -9261,6 +9267,7 @@ export type Database = {
           approval_note?: string | null
           approved_by?: string | null
           approved_date?: string | null
+          artifact_version_number?: number | null
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
@@ -9272,6 +9279,7 @@ export type Database = {
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
           conflict_check_result?: Json | null
+          content_hash?: string | null
           contingency_hours?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -9288,7 +9296,10 @@ export type Database = {
           internally_approved_by?: string | null
           internally_approved_date?: string | null
           last_conflict_check_at?: string | null
+          last_material_change_at?: string | null
+          last_material_change_by?: string | null
           methodology?: string | null
+          methodology_notes?: string | null
           minutes_reference?: string | null
           objective?: string | null
           outsourced_support_notes?: string | null
@@ -9304,6 +9315,7 @@ export type Database = {
           revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
+          scope_description?: string | null
           skills_constraints?: string | null
           status?: string | null
           submitted_date?: string | null
@@ -9319,6 +9331,7 @@ export type Database = {
           approval_note?: string | null
           approved_by?: string | null
           approved_date?: string | null
+          artifact_version_number?: number | null
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
@@ -9330,6 +9343,7 @@ export type Database = {
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
           conflict_check_result?: Json | null
+          content_hash?: string | null
           contingency_hours?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -9346,7 +9360,10 @@ export type Database = {
           internally_approved_by?: string | null
           internally_approved_date?: string | null
           last_conflict_check_at?: string | null
+          last_material_change_at?: string | null
+          last_material_change_by?: string | null
           methodology?: string | null
+          methodology_notes?: string | null
           minutes_reference?: string | null
           objective?: string | null
           outsourced_support_notes?: string | null
@@ -9362,6 +9379,7 @@ export type Database = {
           revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
+          scope_description?: string | null
           skills_constraints?: string | null
           status?: string | null
           submitted_date?: string | null
@@ -9578,6 +9596,8 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           approved_plan_version: number | null
+          auditable_area_summary: string | null
+          auditee_contact: string | null
           board_priority_flag: boolean | null
           budgeted_hours: number | null
           closed_by: string | null
@@ -9590,13 +9610,16 @@ export type Database = {
           criteria: string | null
           department_audit_id: string | null
           department_id: string | null
+          dependencies: string | null
           engagement_code: string | null
           engagement_name: string
           engagement_risk_rating: string | null
           engagement_type: string | null
           estimated_budget: number | null
+          estimated_days: number | null
           estimated_hours: number | null
           execution_gate_status: Json | null
+          expected_deliverable: string | null
           function_id: string | null
           id: string
           inclusion_rationale: string | null
@@ -9604,10 +9627,13 @@ export type Database = {
           is_adhoc: boolean | null
           lead_auditor_id: string | null
           methodology: string | null
+          month: string | null
           objectives: string | null
           planned_end_date: string | null
           planned_start_date: string | null
           quarter: string | null
+          reviewer_id: string | null
+          scheduling_notes: string | null
           scope: string | null
           sequence_no: number | null
           status: string | null
@@ -9624,6 +9650,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_plan_version?: number | null
+          auditable_area_summary?: string | null
+          auditee_contact?: string | null
           board_priority_flag?: boolean | null
           budgeted_hours?: number | null
           closed_by?: string | null
@@ -9636,13 +9664,16 @@ export type Database = {
           criteria?: string | null
           department_audit_id?: string | null
           department_id?: string | null
+          dependencies?: string | null
           engagement_code?: string | null
           engagement_name: string
           engagement_risk_rating?: string | null
           engagement_type?: string | null
           estimated_budget?: number | null
+          estimated_days?: number | null
           estimated_hours?: number | null
           execution_gate_status?: Json | null
+          expected_deliverable?: string | null
           function_id?: string | null
           id?: string
           inclusion_rationale?: string | null
@@ -9650,10 +9681,13 @@ export type Database = {
           is_adhoc?: boolean | null
           lead_auditor_id?: string | null
           methodology?: string | null
+          month?: string | null
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           quarter?: string | null
+          reviewer_id?: string | null
+          scheduling_notes?: string | null
           scope?: string | null
           sequence_no?: number | null
           status?: string | null
@@ -9670,6 +9704,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_plan_version?: number | null
+          auditable_area_summary?: string | null
+          auditee_contact?: string | null
           board_priority_flag?: boolean | null
           budgeted_hours?: number | null
           closed_by?: string | null
@@ -9682,13 +9718,16 @@ export type Database = {
           criteria?: string | null
           department_audit_id?: string | null
           department_id?: string | null
+          dependencies?: string | null
           engagement_code?: string | null
           engagement_name?: string
           engagement_risk_rating?: string | null
           engagement_type?: string | null
           estimated_budget?: number | null
+          estimated_days?: number | null
           estimated_hours?: number | null
           execution_gate_status?: Json | null
+          expected_deliverable?: string | null
           function_id?: string | null
           id?: string
           inclusion_rationale?: string | null
@@ -9696,10 +9735,13 @@ export type Database = {
           is_adhoc?: boolean | null
           lead_auditor_id?: string | null
           methodology?: string | null
+          month?: string | null
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           quarter?: string | null
+          reviewer_id?: string | null
+          scheduling_notes?: string | null
           scope?: string | null
           sequence_no?: number | null
           status?: string | null
