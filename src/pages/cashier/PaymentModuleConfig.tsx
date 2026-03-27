@@ -150,25 +150,19 @@ const PaymentModuleConfig: React.FC = () => {
     const c3pt = getVal('c3_payment_types');
     if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
 
-    // Number formats
+    // Number formats — segments
     const invFmt = getVal('invoice_number_format');
-    if (invFmt && typeof invFmt === 'object') {
-      setInvoiceFormat((invFmt as any).format || '');
-      setInvoiceSeqLen((invFmt as any).seq_min_length || 3);
+    if (invFmt && typeof invFmt === 'object' && Array.isArray((invFmt as any).segments)) {
+      setInvoiceSegments((invFmt as any).segments as Segment[]);
     }
     const rcptFmt = getVal('receipt_number_format');
-    if (rcptFmt && typeof rcptFmt === 'object') {
-      setReceiptFormat((rcptFmt as any).format || '');
-      setReceiptIdMinLen((rcptFmt as any).id_min_length || 1);
+    if (rcptFmt && typeof rcptFmt === 'object' && Array.isArray((rcptFmt as any).segments)) {
+      setReceiptSegments((rcptFmt as any).segments as Segment[]);
     }
     const batchFmt = getVal('batch_number_format');
-    if (batchFmt && typeof batchFmt === 'object') {
-      setBatchFormat((batchFmt as any).format || '');
+    if (batchFmt && typeof batchFmt === 'object' && Array.isArray((batchFmt as any).segments)) {
+      setBatchSegments((batchFmt as any).segments as Segment[]);
     }
-    const ridMin = getVal('receipt_id_min_length');
-    if (ridMin !== undefined) setReceiptIdDisplayMin(typeof ridMin === 'number' ? ridMin : 1);
-    const iidMin = getVal('invoice_id_min_length');
-    if (iidMin !== undefined) setInvoiceIdDisplayMin(typeof iidMin === 'number' ? iidMin : 1);
   }, [configs]);
 
   // Auto-select first currency for denomination management
