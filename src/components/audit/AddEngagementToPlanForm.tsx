@@ -133,7 +133,12 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
       supportive_auditor_ids: form.supportive_auditor_ids,
       scope: form.scope,
       status: 'Planned',
-      // Override metadata for audit trail
+      quarter: form.quarter || null,
+      estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
+      inclusion_rationale: form.inclusion_rationale || null,
+      coverage_category: form.coverage_category || null,
+      board_priority_flag: form.board_priority_flag,
+      is_adhoc: form.is_adhoc,
       ...(form.risk_override ? {
         risk_override_reason: form.risk_override_reason,
         derived_risk_rating: form.derived_risk_rating,
