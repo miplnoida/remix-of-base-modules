@@ -506,8 +506,12 @@ const C3Payments: React.FC = () => {
     setFlowState('entry');
     setSavedPaymentId(null);
     receiptActions.setCurrentReceipt(null);
-    setInitialParamsApplied(true); // prevent re-applying URL params after reset
-    setC3ComponentsLoaded(true); // prevent re-loading components after reset
+    setInitialParamsApplied(true);
+    setC3ComponentsLoaded(true);
+    setSyncStatus('idle');
+    setSyncError(null);
+    setSyncPaymentId(null);
+    setSyncReceiptId(null);
   }, [receiptActions]);
 
   /* ── render ────────────────────────────── */
@@ -578,7 +582,31 @@ const C3Payments: React.FC = () => {
           </Button>
         </div>
 
-        {/* Payment Header (now includes C3 Period and Sequence Number) */}
+        {/* Sync Status Indicator */}
+        {syncStatus !== 'idle' && (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
+            syncStatus === 'syncing' ? 'bg-muted/40 border-border text-muted-foreground' :
+            syncStatus === 'synced' ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-400' :
+            syncStatus === 'sync_failed' ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/20 dark:border-amber-800 dark:text-amber-400' :
+            'bg-muted/30 border-border text-muted-foreground'
+          }`}>
+            {syncStatus === 'syncing' && <Loader2 className="h-4 w-4 animate-spin" />}
+            {syncStatus === 'synced' && <CheckCircle className="h-4 w-4" />}
+            {syncStatus === 'sync_failed' && <AlertTriangle className="h-4 w-4" />}
+            <span>
+              {syncStatus === 'syncing' && 'Syncing payment to external system...'}
+              {syncStatus === 'synced' && 'Payment synced successfully'}
+              {syncStatus === 'sync_failed' && `Sync failed${syncError ? `: ${syncError}` : ''}`}
+              {syncStatus === 'not_configured' && 'External payment sync not configured'}
+            </span>
+            {syncStatus === 'sync_failed' && (
+              <Button variant="outline" size="sm" className="ml-auto h-7" onClick={handleRetrySync}>
+                <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            )}
+          </div>
+        )}
+
         <PaymentHeaderForm
           payerType={payerType} setPayerType={setPayerType}
           payerId={payerId} setPayerId={setPayerId}
