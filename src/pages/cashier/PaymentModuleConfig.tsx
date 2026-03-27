@@ -337,7 +337,7 @@ const PaymentModuleConfig: React.FC = () => {
                   <RadioGroupItem value="restriction" id="dup-restriction" />
                   <Label htmlFor="dup-restriction" className="cursor-pointer">
                     <span className="font-medium">Restriction</span>
-                    <p className="text-xs text-muted-foreground">Block batch creation entirely when a duplicate exists.</p>
+                    <p className="text-xs text-muted-foreground">Block batch creation entirely when an OPEN batch already exists.</p>
                   </Label>
                 </div>
               </RadioGroup>
