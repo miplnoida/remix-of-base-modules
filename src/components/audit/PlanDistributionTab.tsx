@@ -97,7 +97,7 @@ export function PlanDistributionTab({ planId, plan }: PlanDistributionTabProps) 
     }
 
     // Check if selected artifact is superseded
-    const selectedArtifact = artifacts.find((a: any) => a.id === selectedArtifactId);
+    const selectedArtifact = (artifacts as any[]).find((a) => a.id === selectedArtifactId);
     if (selectedArtifact?.status === 'Superseded') {
       toast({ title: 'Outdated Artifact', description: 'This artifact has been superseded. Please select a current version.', variant: 'destructive' });
       return;
