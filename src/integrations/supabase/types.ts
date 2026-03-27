@@ -23449,6 +23449,22 @@ export type Database = {
         Returns: Json
       }
       get_filing_config_for_date: { Args: { p_date: string }; Returns: Json }
+      get_filtered_audit_trail: {
+        Args: {
+          p_action_filter?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_entity_type_filter?: string
+          p_limit?: number
+          p_module_filter?: string
+          p_offset?: number
+          p_route_filter?: string
+          p_sort_direction?: string
+          p_sort_key?: string
+          p_user_filter?: string
+        }
+        Returns: Json
+      }
       get_income_code_policy_for_period: {
         Args: {
           p_income_code_id: string

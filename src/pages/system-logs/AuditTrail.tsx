@@ -60,23 +60,29 @@ const AuditTrail: React.FC = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['audit-trail', page, sortKey, sortDirection, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
     queryFn: async () => {
-      let query = supabase
-        .from('system_audit_trail')
-        .select('*', { count: 'exact' })
-        .order(sortKey, { ascending: sortDirection === 'asc', nullsFirst: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data: result, error } = await supabase.rpc('get_filtered_audit_trail', {
+        p_sort_key: sortKey,
+        p_sort_direction: sortDirection,
+        p_offset: page * PAGE_SIZE,
+        p_limit: PAGE_SIZE,
+        p_date_from: dateFrom || null,
+        p_date_to: dateTo || null,
+        p_user_filter: userFilter || null,
+        p_entity_type_filter: entityTypeFilter || null,
+        p_module_filter: moduleFilter || null,
+        p_route_filter: routeFilter || null,
+        p_action_filter: actionFilter || null,
+      });
 
-      if (dateFrom) query = query.gte('timestamp', new Date(dateFrom).toISOString());
-      if (dateTo) query = query.lte('timestamp', new Date(dateTo + 'T23:59:59').toISOString());
-      if (userFilter) query = query.ilike('user_name', `%${userFilter}%`);
-      if (entityTypeFilter) query = query.ilike('entity_type', `%${entityTypeFilter}%`);
-      if (moduleFilter) query = query.ilike('module', `%${moduleFilter}%`);
-      if (routeFilter) query = query.ilike('route', `%${routeFilter}%`);
-      if (actionFilter) query = query.ilike('action', `%${actionFilter}%`);
-
-      const { data, error, count } = await query;
       if (error) throw error;
-      return { entries: data as AuditEntry[], count: count || 0 };
+
+      const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+      if (parsed?.error) throw new Error(parsed.error);
+
+      return {
+        entries: (parsed?.entries || []) as AuditEntry[],
+        count: parsed?.count || 0,
+      };
     }
   });
 
