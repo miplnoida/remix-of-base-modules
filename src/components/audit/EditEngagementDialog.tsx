@@ -145,7 +145,7 @@ export function EditEngagementDialog({
     }
   }, [resolvedRisk, form.risk_override]);
 
-  const mappedAuditors = (auditors || []).filter((a: any) => a.profile_id || a.user_id);
+  const mappedAuditors = (auditors || []).filter((a: any) => a.id && (a.profile_id || a.user_id));
   const unmappedAuditors = (auditors || []).filter((a: any) => !a.profile_id && !a.user_id);
 
   const updateField = (field: string, value: any) => {
@@ -427,10 +427,11 @@ export function EditEngagementDialog({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Lead Auditor *</Label>
-                <Select value={form.lead_auditor_id} onValueChange={v => updateField('lead_auditor_id', v)}>
+                <Select value={form.lead_auditor_id || '__none__'} onValueChange={v => updateField('lead_auditor_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select lead auditor" /></SelectTrigger>
                   <SelectContent>
-                    {mappedAuditors.map((a: any) => (
+                    <SelectItem value="__none__">— Select —</SelectItem>
+                    {mappedAuditors.filter((a: any) => !!a.id).map((a: any) => (
                       <SelectItem key={a.id} value={a.id}>{a.name} — {a.role}</SelectItem>
                     ))}
                     {unmappedAuditors.length > 0 && (
@@ -445,11 +446,11 @@ export function EditEngagementDialog({
               </div>
               <div>
                 <Label>Reviewer</Label>
-                <Select value={form.reviewer_id} onValueChange={v => updateField('reviewer_id', v)}>
+                <Select value={form.reviewer_id || '__none__'} onValueChange={v => updateField('reviewer_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select reviewer" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {mappedAuditors.map((a: any) => (
+                    <SelectItem value="__none__">None</SelectItem>
+                    {mappedAuditors.filter((a: any) => !!a.id).map((a: any) => (
                       <SelectItem key={a.id} value={a.id}>{a.name} — {a.role}</SelectItem>
                     ))}
                   </SelectContent>
