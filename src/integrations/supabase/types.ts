@@ -9200,23 +9200,29 @@ export type Database = {
       ia_annual_plans: {
         Row: {
           approval_comments: string | null
+          approval_note: string | null
           approved_by: string | null
           approved_date: string | null
           assigned_auditor: string | null
           audit_scope: string | null
           auto_notify_on_approval: boolean | null
+          board_committee_name: string | null
+          board_pack_status: string | null
           closed_by: string | null
           closed_date: string | null
           committee_email_proof_url: string | null
           committee_minutes_url: string | null
           committee_noted: boolean | null
           conflict_check_result: Json | null
+          contingency_hours: number | null
           created_at: string | null
           created_by: string | null
           created_date: string | null
           current_version_number: number | null
           department_id: string | null
+          exclusions: string | null
           execution_gate_status: string | null
+          executive_summary: string | null
           fiscal_year: string
           function_id: string | null
           id: string
@@ -9225,17 +9231,26 @@ export type Database = {
           internally_approved_date: string | null
           last_conflict_check_at: string | null
           methodology: string | null
+          minutes_reference: string | null
           objective: string | null
+          outsourced_support_notes: string | null
+          plan_owner: string | null
           planned_end_date: string | null
+          planned_hours: number | null
           planned_start_date: string | null
+          planning_assumptions: string | null
+          prepared_by: string | null
+          resource_constraints: string | null
           reviewed_by: string | null
           reviewed_date: string | null
           revision_count: number | null
           risk_level: string | null
           scope: string | null
+          skills_constraints: string | null
           status: string | null
           submitted_date: string | null
           title: string
+          total_available_hours: number | null
           total_department_audits: number | null
           updated_at: string | null
           updated_by: string | null
@@ -9243,23 +9258,29 @@ export type Database = {
         }
         Insert: {
           approval_comments?: string | null
+          approval_note?: string | null
           approved_by?: string | null
           approved_date?: string | null
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
+          board_committee_name?: string | null
+          board_pack_status?: string | null
           closed_by?: string | null
           closed_date?: string | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
           conflict_check_result?: Json | null
+          contingency_hours?: number | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
           current_version_number?: number | null
           department_id?: string | null
+          exclusions?: string | null
           execution_gate_status?: string | null
+          executive_summary?: string | null
           fiscal_year: string
           function_id?: string | null
           id?: string
@@ -9268,17 +9289,26 @@ export type Database = {
           internally_approved_date?: string | null
           last_conflict_check_at?: string | null
           methodology?: string | null
+          minutes_reference?: string | null
           objective?: string | null
+          outsourced_support_notes?: string | null
+          plan_owner?: string | null
           planned_end_date?: string | null
+          planned_hours?: number | null
           planned_start_date?: string | null
+          planning_assumptions?: string | null
+          prepared_by?: string | null
+          resource_constraints?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
           revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
+          skills_constraints?: string | null
           status?: string | null
           submitted_date?: string | null
           title: string
+          total_available_hours?: number | null
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -9286,23 +9316,29 @@ export type Database = {
         }
         Update: {
           approval_comments?: string | null
+          approval_note?: string | null
           approved_by?: string | null
           approved_date?: string | null
           assigned_auditor?: string | null
           audit_scope?: string | null
           auto_notify_on_approval?: boolean | null
+          board_committee_name?: string | null
+          board_pack_status?: string | null
           closed_by?: string | null
           closed_date?: string | null
           committee_email_proof_url?: string | null
           committee_minutes_url?: string | null
           committee_noted?: boolean | null
           conflict_check_result?: Json | null
+          contingency_hours?: number | null
           created_at?: string | null
           created_by?: string | null
           created_date?: string | null
           current_version_number?: number | null
           department_id?: string | null
+          exclusions?: string | null
           execution_gate_status?: string | null
+          executive_summary?: string | null
           fiscal_year?: string
           function_id?: string | null
           id?: string
@@ -9311,17 +9347,26 @@ export type Database = {
           internally_approved_date?: string | null
           last_conflict_check_at?: string | null
           methodology?: string | null
+          minutes_reference?: string | null
           objective?: string | null
+          outsourced_support_notes?: string | null
+          plan_owner?: string | null
           planned_end_date?: string | null
+          planned_hours?: number | null
           planned_start_date?: string | null
+          planning_assumptions?: string | null
+          prepared_by?: string | null
+          resource_constraints?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
           revision_count?: number | null
           risk_level?: string | null
           scope?: string | null
+          skills_constraints?: string | null
           status?: string | null
           submitted_date?: string | null
           title?: string
+          total_available_hours?: number | null
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -9533,11 +9578,13 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           approved_plan_version: number | null
+          board_priority_flag: boolean | null
           budgeted_hours: number | null
           closed_by: string | null
           closure_date: string | null
           closure_notes: string | null
           conflict_check_result: Json | null
+          coverage_category: string | null
           created_at: string | null
           created_by: string | null
           criteria: string | null
@@ -9552,13 +9599,17 @@ export type Database = {
           execution_gate_status: Json | null
           function_id: string | null
           id: string
+          inclusion_rationale: string | null
           is_active: boolean | null
+          is_adhoc: boolean | null
           lead_auditor_id: string | null
           methodology: string | null
           objectives: string | null
           planned_end_date: string | null
           planned_start_date: string | null
+          quarter: string | null
           scope: string | null
+          sequence_no: number | null
           status: string | null
           supportive_auditor_ids: Json | null
           team_member_ids: Json | null
@@ -9573,11 +9624,13 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_plan_version?: number | null
+          board_priority_flag?: boolean | null
           budgeted_hours?: number | null
           closed_by?: string | null
           closure_date?: string | null
           closure_notes?: string | null
           conflict_check_result?: Json | null
+          coverage_category?: string | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -9592,13 +9645,17 @@ export type Database = {
           execution_gate_status?: Json | null
           function_id?: string | null
           id?: string
+          inclusion_rationale?: string | null
           is_active?: boolean | null
+          is_adhoc?: boolean | null
           lead_auditor_id?: string | null
           methodology?: string | null
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
+          quarter?: string | null
           scope?: string | null
+          sequence_no?: number | null
           status?: string | null
           supportive_auditor_ids?: Json | null
           team_member_ids?: Json | null
@@ -9613,11 +9670,13 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_plan_version?: number | null
+          board_priority_flag?: boolean | null
           budgeted_hours?: number | null
           closed_by?: string | null
           closure_date?: string | null
           closure_notes?: string | null
           conflict_check_result?: Json | null
+          coverage_category?: string | null
           created_at?: string | null
           created_by?: string | null
           criteria?: string | null
@@ -9632,13 +9691,17 @@ export type Database = {
           execution_gate_status?: Json | null
           function_id?: string | null
           id?: string
+          inclusion_rationale?: string | null
           is_active?: boolean | null
+          is_adhoc?: boolean | null
           lead_auditor_id?: string | null
           methodology?: string | null
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
+          quarter?: string | null
           scope?: string | null
+          sequence_no?: number | null
           status?: string | null
           supportive_auditor_ids?: Json | null
           team_member_ids?: Json | null
@@ -12139,6 +12202,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_plan_artifacts: {
+        Row: {
+          artifact_type: string
+          checksum: string | null
+          created_at: string | null
+          file_name: string | null
+          file_path: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          is_final: boolean | null
+          mime_type: string | null
+          plan_id: string
+          status: string
+          updated_at: string | null
+          version_number: number
+        }
+        Insert: {
+          artifact_type: string
+          checksum?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_final?: boolean | null
+          mime_type?: string | null
+          plan_id: string
+          status?: string
+          updated_at?: string | null
+          version_number?: number
+        }
+        Update: {
+          artifact_type?: string
+          checksum?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_final?: boolean | null
+          mime_type?: string | null
+          plan_id?: string
+          status?: string
+          updated_at?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_plan_artifacts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_plan_carry_forward: {
         Row: {
           annual_plan_id: string | null
@@ -12269,6 +12391,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ia_plan_change_log_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ia_annual_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_plan_distribution_logs: {
+        Row: {
+          artifact_id: string | null
+          created_at: string | null
+          id: string
+          message_body: string | null
+          plan_id: string
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_type: string | null
+          send_status: string | null
+          sent_at: string | null
+          sent_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          artifact_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_body?: string | null
+          plan_id: string
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_type?: string | null
+          send_status?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          artifact_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_body?: string | null
+          plan_id?: string
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_type?: string | null
+          send_status?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_plan_distribution_logs_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "ia_plan_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_plan_distribution_logs_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "ia_annual_plans"
