@@ -25,9 +25,8 @@ import { logAuditTrail } from '@/services/auditService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
 
-/* ─── Number Format Placeholder definitions ─── */
+/* ─── Number Format Placeholder reference (for Available Placeholders card) ─── */
 const SYSTEM_PLACEHOLDERS = [
   { key: '{YYYY}', desc: 'Four-digit year (e.g. 2026)' },
   { key: '{YY}', desc: 'Two-digit year (e.g. 26)' },
@@ -54,8 +53,6 @@ const ENTITY_PLACEHOLDERS = [
   { key: '{INVOICE_ID}', desc: 'DB-generated invoice identity' },
   { key: '{BATCH_NUMBER}', desc: 'Parent batch number' },
 ];
-
-/* previewFormat removed — preview now handled by NumberFormatSegmentBuilder */
 
 /* ─── Currency Dialog ─── */
 interface CurrencyFormData {
