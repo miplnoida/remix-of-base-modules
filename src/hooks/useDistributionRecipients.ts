@@ -28,7 +28,7 @@ export function useDistributionRecipients(recipientType?: string) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as DistributionRecipient[];
+      return (data || []) as unknown as DistributionRecipient[];
     },
   });
 }
@@ -114,7 +114,7 @@ export function useDistributionTemplates(templateType?: string) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as DistributionTemplate[];
+      return (data || []) as unknown as DistributionTemplate[];
     },
   });
 }
