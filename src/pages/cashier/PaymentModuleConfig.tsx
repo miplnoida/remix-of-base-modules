@@ -55,34 +55,7 @@ const ENTITY_PLACEHOLDERS = [
   { key: '{BATCH_NUMBER}', desc: 'Parent batch number' },
 ];
 
-/** Generate a live preview of a format string */
-function previewFormat(fmt: string): string {
-  if (!fmt) return '—';
-  const now = new Date();
-  let r = fmt;
-  r = r.replace('{YYYY}', format(now, 'yyyy'));
-  r = r.replace('{YY}', format(now, 'yy'));
-  r = r.replace('{MM}', format(now, 'MM'));
-  r = r.replace('{DD}', format(now, 'dd'));
-  r = r.replace('{YYYYMM}', format(now, 'yyyyMM'));
-  r = r.replace('{YYYYMMDD}', format(now, 'yyyyMMdd'));
-  r = r.replace('{DDMMYYYY}', format(now, 'ddMMyyyy'));
-  r = r.replace('{HH}', format(now, 'HH'));
-  r = r.replace('{MI}', format(now, 'mm'));
-  r = r.replace('{SS}', format(now, 'ss'));
-  r = r.replace('{HHMM}', format(now, 'HHmm'));
-  r = r.replace('{HHMMSS}', format(now, 'HHmmss'));
-  r = r.replace('{DDMMYYYYHHMM}', format(now, 'ddMMyyyyHHmm'));
-  r = r.replace('{SEQ}', '001');
-  r = r.replace('{OFFICE_CODE}', 'HQ');
-  r = r.replace('{PAYER_ID}', '100234');
-  r = r.replace('{PAYER_TYPE}', 'ER');
-  r = r.replace('{USER_CODE}', 'JD01');
-  r = r.replace('{RECEIPT_ID}', '42');
-  r = r.replace('{INVOICE_ID}', '15');
-  r = r.replace('{BATCH_NUMBER}', 'HQ-20260327-143025');
-  return r;
-}
+/* previewFormat removed — preview now handled by NumberFormatSegmentBuilder */
 
 /* ─── Currency Dialog ─── */
 interface CurrencyFormData {
