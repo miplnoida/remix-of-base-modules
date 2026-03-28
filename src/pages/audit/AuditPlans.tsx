@@ -91,38 +91,34 @@ export default function AuditPlans() {
         emptyMessage="No audit plans found."
       />
 
-      {isCreateDialogOpen && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Create New Audit Plan</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)}><X className="h-4 w-4" /></Button>
-          </CardHeader>
-          <CardContent>
-            <AnnualPlanForm
-              onClose={() => setIsCreateDialogOpen(false)}
-              onCreate={(data) => create.mutateAsync(data)}
-              onUpdate={(data) => update.mutateAsync(data)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Create Annual Audit Plan</DialogTitle>
+            <DialogDescription>Set up a new annual plan. You can add engagements after creation.</DialogDescription>
+          </DialogHeader>
+          <AnnualPlanForm
+            onClose={() => setIsCreateDialogOpen(false)}
+            onCreate={(data) => create.mutateAsync(data)}
+            onUpdate={(data) => update.mutateAsync(data)}
+          />
+        </DialogContent>
+      </Dialog>
 
-      {isEditDialogOpen && selectedPlan && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Edit Audit Plan</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)}><X className="h-4 w-4" /></Button>
-          </CardHeader>
-          <CardContent>
-            <AnnualPlanForm
-              plan={selectedPlan}
-              onClose={() => setIsEditDialogOpen(false)}
-              onCreate={(data) => create.mutateAsync(data)}
-              onUpdate={(data) => update.mutateAsync(data)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Dialog open={isEditDialogOpen && !!selectedPlan} onOpenChange={(open) => { if (!open) setIsEditDialogOpen(false); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Edit Annual Audit Plan</DialogTitle>
+            <DialogDescription>Update plan details for {selectedPlan?.fiscal_year}.</DialogDescription>
+          </DialogHeader>
+          <AnnualPlanForm
+            plan={selectedPlan}
+            onClose={() => setIsEditDialogOpen(false)}
+            onCreate={(data) => create.mutateAsync(data)}
+            onUpdate={(data) => update.mutateAsync(data)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={submitPlanId !== null}
