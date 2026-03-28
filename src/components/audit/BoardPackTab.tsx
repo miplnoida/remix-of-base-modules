@@ -226,7 +226,7 @@ function generateDetailedPlanPdf(
     const r = e.engagement_risk_rating as keyof typeof riskDist;
     if (r in riskDist) riskDist[r]++;
   });
-  const totalHours = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_hours) || 0), 0);
+  const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
 
   const coverageData = [
     ['Total Engagements', String(engagements.length)],
@@ -236,7 +236,7 @@ function generateDetailedPlanPdf(
     ['High Risk', String(riskDist.High)],
     ['Medium Risk', String(riskDist.Medium)],
     ['Low Risk', String(riskDist.Low)],
-    ['Total Planned Hours', String(totalHours)],
+    ['Total Planned Days', String(totalDays)],
   ];
   autoTable(doc, { startY: y, body: coverageData, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'striped' });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -248,7 +248,7 @@ function generateDetailedPlanPdf(
 
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Rationale', 'Lead', 'Support', 'Hours', 'Q', 'Start', 'End', 'Priority', 'Status']],
+    head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Rationale', 'Lead', 'Support', 'Days', 'Weeks', 'Q', 'Start', 'End', 'Priority', 'Status']],
     body: engagements.map((e: any, i: number) => {
       const supportNames = (Array.isArray(e.supportive_auditor_ids) ? e.supportive_auditor_ids : [])
         .map((id: string) => lookups.auditorMap.get(id) || '—').join(', ');
@@ -264,6 +264,7 @@ function generateDetailedPlanPdf(
         e.inclusion_rationale || '—',
         lookups.auditorMap.get(e.lead_auditor_id) || '—',
         supportNames || '—',
+        e.estimated_days || '—',
         e.estimated_hours || '—',
         e.quarter || '—',
         e.planned_start_date || '—',
@@ -285,46 +286,46 @@ function generateDetailedPlanPdf(
   y = 52;
 
   const resourceInfo = [
-    ['Total Available Hours', plan?.total_available_hours?.toString() || '—'],
-    ['Total Planned Hours', String(totalHours)],
-    ['Contingency Hours', plan?.contingency_hours?.toString() || '—'],
-    ['Utilization', plan?.total_available_hours ? `${Math.round((totalHours / Number(plan.total_available_hours)) * 100)}%` : '—'],
+    ['Total Available Days', plan?.total_available_hours?.toString() || '—'],
+    ['Total Planned Days', String(totalDays)],
+    ['Contingency Days', plan?.contingency_hours?.toString() || '—'],
+    ['Utilization', plan?.total_available_hours ? `${Math.round((totalDays / Number(plan.total_available_hours)) * 100)}%` : '—'],
   ];
   autoTable(doc, { startY: y, body: resourceInfo, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'plain' });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Hours by Auditor
-  const auditorHours = new Map<string, number>();
+  // Days by Auditor
+  const auditorDays = new Map<string, number>();
   engagements.forEach((e: any) => {
     if (e.lead_auditor_id) {
       const name = lookups.auditorMap.get(e.lead_auditor_id) || 'Unknown';
-      auditorHours.set(name, (auditorHours.get(name) || 0) + (Number(e.estimated_hours) || 0));
+      auditorDays.set(name, (auditorDays.get(name) || 0) + (Number(e.estimated_days) || 0));
     }
   });
-  if (auditorHours.size > 0) {
+  if (auditorDays.size > 0) {
     doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...BRAND_COLOR);
-    doc.text('Hours by Lead Auditor', 14, y); y += 4;
+    doc.text('Days by Lead Auditor', 14, y); y += 4;
     autoTable(doc, {
       startY: y,
-      head: [['Auditor', 'Planned Hours']],
-      body: Array.from(auditorHours.entries()).map(([name, hrs]) => [name, String(hrs)]),
+      head: [['Auditor', 'Planned Days']],
+      body: Array.from(auditorDays.entries()).map(([name, days]) => [name, String(days)]),
       styles: { fontSize: 9 }, headStyles: { fillColor: BRAND_COLOR },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
   }
 
-  // Hours by Quarter
-  const quarterHours = ['Q1','Q2','Q3','Q4'].map(q => [
+  // Days by Quarter
+  const quarterDays = ['Q1','Q2','Q3','Q4'].map(q => [
     q,
     String(engagements.filter((e: any) => e.quarter === q).length),
-    String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_hours) || 0), 0)),
+    String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0)),
   ]);
   doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...BRAND_COLOR);
-  doc.text('Hours by Quarter', 14, y); y += 4;
+  doc.text('Days by Quarter', 14, y); y += 4;
   autoTable(doc, {
     startY: y,
-    head: [['Quarter', 'Engagements', 'Hours']],
-    body: quarterHours,
+    head: [['Quarter', 'Engagements', 'Days']],
+    body: quarterDays,
     styles: { fontSize: 9 }, headStyles: { fillColor: BRAND_COLOR },
   });
   y = (doc as any).lastAutoTable.finalY + 10;
