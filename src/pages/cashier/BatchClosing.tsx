@@ -192,7 +192,7 @@ const BatchClosing: React.FC = () => {
         setCardTransactions([]);
       }
 
-      // ---- System totals for ALL MOPs ----
+      // ---- System totals for ALL MOPs (single source: cn_payment) ----
       const { data: headers } = await supabase
         .from('cn_payment_header')
         .select('payment_id, payer_id, status')
@@ -204,37 +204,41 @@ const BatchClosing: React.FC = () => {
       if (headers && headers.length > 0) {
         const paymentIds = headers.map(h => h.payment_id);
 
-        // Fetch receipts, payments, and c3 methods in parallel
-        const [receiptsRes, paymentsRes, c3MethodsRes] = await Promise.all([
+        // Fetch receipts and payments in parallel
+        const [receiptsRes, paymentsRes] = await Promise.all([
           supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
           supabase.from('cn_payment').select('payment_id, mop_code, payment_amount').in('payment_id', paymentIds),
-          supabase.from('c3_payment_methods').select('payment_id, mop_code, base_amount').in('payment_id', paymentIds),
         ]);
 
         const receiptMap = new Map((receiptsRes.data || []).map(r => [r.payment_id, r]));
 
-        // Build batch payment rows for display
-        const paymentRows: BatchPaymentRow[] = headers.map(h => {
-          const receipt = receiptMap.get(h.payment_id);
-          return {
-            payment_id: h.payment_id,
-            receipt_number: receipt?.receipt_number || '—',
-            payer_id: h.payer_id,
-            receipt_total: Number(receipt?.receipt_total || 0),
-            status: h.status,
-          };
-        });
+        // Only include payment_ids that have an active (non-cancelled) receipt
+        const activePaymentIds = new Set(
+          (receiptsRes.data || [])
+            .filter(r => r.status !== 'C')
+            .map(r => r.payment_id)
+        );
+
+        // Build batch payment rows for display — only active receipt-backed transactions
+        const paymentRows: BatchPaymentRow[] = headers
+          .filter(h => activePaymentIds.has(h.payment_id))
+          .map(h => {
+            const receipt = receiptMap.get(h.payment_id);
+            return {
+              payment_id: h.payment_id,
+              receipt_number: receipt?.receipt_number || '—',
+              payer_id: h.payer_id,
+              receipt_total: Number(receipt?.receipt_total || 0),
+              status: h.status,
+            };
+          });
         setBatchPayments(paymentRows);
 
+        // System totals: only from cn_payment rows with active receipts
         (paymentsRes.data || []).forEach(p => {
+          if (!activePaymentIds.has(p.payment_id)) return;
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
-        });
-
-        // Include C3 payment methods (base_amount is already in base currency)
-        (c3MethodsRes.data || []).forEach(m => {
-          const code = m.mop_code || '';
-          sysTotals[code] = (sysTotals[code] || 0) + Number(m.base_amount || 0);
         });
       } else {
         setBatchPayments([]);
@@ -296,28 +300,17 @@ const BatchClosing: React.FC = () => {
     setMethodModalDetails([]);
 
     try {
-      // Fetch from both cn_payment and c3_payment_methods in parallel
-      const [cnRes, c3Res] = await Promise.all([
-        supabase
-          .from('cn_payment')
-          .select('mop_code, payment_amount')
-          .eq('payment_id', payment.payment_id),
-        supabase
-          .from('c3_payment_methods')
-          .select('mop_code, base_amount')
-          .eq('payment_id', payment.payment_id),
-      ]);
+      // Fetch from cn_payment only (single source of truth)
+      const { data: cnData } = await supabase
+        .from('cn_payment')
+        .select('mop_code, payment_amount')
+        .eq('payment_id', payment.payment_id);
 
       const methodMap: Record<string, number> = {};
 
-      (cnRes.data || []).forEach(p => {
+      (cnData || []).forEach(p => {
         const code = p.mop_code || '';
         methodMap[code] = (methodMap[code] || 0) + Number(p.payment_amount || 0);
-      });
-
-      (c3Res.data || []).forEach(m => {
-        const code = m.mop_code || '';
-        methodMap[code] = (methodMap[code] || 0) + Number(m.base_amount || 0);
       });
 
       const details: PaymentMethodDetail[] = Object.entries(methodMap).map(([code, amount]) => ({
