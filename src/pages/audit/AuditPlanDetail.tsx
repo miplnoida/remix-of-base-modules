@@ -7,6 +7,8 @@ import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, E
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
+import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
+import { PlanningWizard } from '@/components/audit/PlanningWizard';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
 import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
