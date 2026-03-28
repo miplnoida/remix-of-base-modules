@@ -99,8 +99,8 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     ['Plan Title', plan?.title || '—'],
     ['Status', plan?.status || 'Draft'],
     ['Plan Version', `v${version}`],
-    ['Plan Owner', plan?.plan_owner || '—'],
-    ['Prepared By', plan?.prepared_by || '—'],
+    ['Created By', plan?.created_by || plan?.plan_owner || '—'],
+    ['Last Updated By', plan?.updated_by || '—'],
     ['Board Committee', plan?.board_committee_name || '—'],
     ['Approved By', plan?.approved_by || '—'],
     ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : '—'],
@@ -194,8 +194,8 @@ function generateDetailedPlanPdf(
   doc.text(`Plan Version: v${version}`, pw / 2, ph / 2, { align: 'center' });
   doc.text(`Status: ${plan?.status || 'Draft'}`, pw / 2, ph / 2 + 12, { align: 'center' });
   doc.setFontSize(10);
-  doc.text(`Prepared By: ${plan?.prepared_by || 'Internal Audit Department'}`, pw / 2, ph / 2 + 30, { align: 'center' });
-  doc.text(`Plan Owner: ${plan?.plan_owner || '—'}`, pw / 2, ph / 2 + 40, { align: 'center' });
+  doc.text(`Prepared By: ${plan?.created_by || 'Internal Audit Department'}`, pw / 2, ph / 2 + 30, { align: 'center' });
+  doc.text(`Last Updated By: ${plan?.updated_by || '—'}`, pw / 2, ph / 2 + 40, { align: 'center' });
   if (plan?.approved_by) {
     doc.text(`Approved By: ${plan.approved_by} on ${plan.approved_date ? formatDateForDisplay(plan.approved_date) : '—'}`, pw / 2, ph / 2 + 50, { align: 'center' });
   }
