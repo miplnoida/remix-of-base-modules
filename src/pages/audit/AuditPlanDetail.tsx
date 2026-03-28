@@ -270,6 +270,11 @@ export default function AuditPlanDetail() {
           <CapacityCalendarPanel planId={id!} />
         </TabsContent>
 
+        {/* Auto Plan Tab */}
+        <TabsContent value="autoplan">
+          <PlanningWizard planId={id!} planStatus={plan?.status || 'Draft'} fiscalYear={plan?.fiscal_year} />
+        </TabsContent>
+
         {/* Approval & Amendments Tab */}
         <TabsContent value="approval">
           <div className="space-y-4">
