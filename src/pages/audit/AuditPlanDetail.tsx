@@ -57,9 +57,10 @@ export default function AuditPlanDetail() {
     const closed = all.filter((e: any) => ['Closed', 'Completed'].includes(e.status));
     const ongoing = all.filter((e: any) => ['In Progress', 'Fieldwork', 'Fieldwork Complete', 'Observation', 'Reporting', 'Report Issued'].includes(e.status));
     const planned = all.filter((e: any) => ['Planned', 'Draft', 'Ready', 'In Preparation'].includes(e.status));
-    const totalHours = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
+    const totalDays = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_days) || 0), 0);
+    const totalWeeks = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
     const highRisk = all.filter((e: any) => ['High', 'Critical'].includes(e.engagement_risk_rating)).length;
-    return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalHours, highRisk };
+    return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalDays, totalWeeks, highRisk };
   }, [engagements]);
 
   if (plansLoading) {
@@ -103,7 +104,7 @@ export default function AuditPlanDetail() {
         <MetricCard title="In Progress" value={stats.ongoing} icon={AlertTriangle} variant="default" />
         <MetricCard title="Completed" value={stats.completed} icon={CheckCircle} variant="success" />
         <MetricCard title="High/Critical" value={stats.highRisk} icon={ShieldCheck} variant="default" />
-        <MetricCard title="Total Hours" value={stats.totalHours} icon={Clock} variant="info" />
+        <MetricCard title="Total Days" value={`${stats.totalDays}d (${stats.totalWeeks}w)`} icon={Clock} variant="info" />
       </div>
 
       {/* 7-Tab Workspace */}
