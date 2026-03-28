@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -207,18 +208,58 @@ export default function AuditPlanDetail() {
 
               {/* Resource & Governance Summary */}
               <div className="grid gap-4 md:grid-cols-2 mt-4">
-                <Card>
-                  <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
+              <Card>
+                  <CardHeader><CardTitle className="text-sm">Resource Summary (Auto-Computed)</CardTitle></CardHeader>
                   <CardContent>
-                    <DetailRow label="Available Days (Team)" value={plan.total_available_hours || '—'} />
-                    <DetailRow label="Planned Days (Engagements)" value={stats.totalDays || '—'} />
-                    <DetailRow label="Planned Weeks" value={plan.planned_hours || stats.totalWeeks || '—'} />
-                    <DetailRow label="Contingency Days" value={plan.contingency_hours || '—'} />
-                    {plan.total_available_hours && stats.totalDays > 0 && (
-                      <DetailRow label="Utilization" value={`${Math.round((stats.totalDays / Number(plan.total_available_hours)) * 100)}%`} />
-                    )}
+                    <DetailRow label="Total Planned Days" value={stats.totalDays > 0 ? `${stats.totalDays} days` : 'No engagements yet'} />
+                    <DetailRow label="Total Planned Weeks" value={stats.totalWeeks > 0 ? `${stats.totalWeeks} weeks` : '—'} />
+                    <DetailRow label="Unique Resources Assigned" value={(() => {
+                      const resourceSet = new Set<string>();
+                      (engagements || []).forEach((e: any) => {
+                        if (e.lead_auditor) resourceSet.add(e.lead_auditor);
+                        if (e.support_auditors) {
+                          const arr = typeof e.support_auditors === 'string' ? e.support_auditors.split(',') : (Array.isArray(e.support_auditors) ? e.support_auditors : []);
+                          arr.forEach((a: string) => { if (a.trim()) resourceSet.add(a.trim()); });
+                        }
+                      });
+                      return resourceSet.size > 0 ? `${resourceSet.size} auditor(s)` : '—';
+                    })()} />
+                    <DetailRow label="Available Days (Team)" value={(() => {
+                      const resourceSet = new Set<string>();
+                      (engagements || []).forEach((e: any) => {
+                        if (e.lead_auditor) resourceSet.add(e.lead_auditor);
+                      });
+                      const auditorCount = Math.max(resourceSet.size, 1);
+                      const workingDaysPerYear = 240;
+                      return stats.total > 0 ? `~${auditorCount * workingDaysPerYear} days (${auditorCount} × ${workingDaysPerYear})` : 'Add engagements to calculate';
+                    })()} />
+                    <DetailRow label="Contingency (10%)" value={(() => {
+                      const resourceSet = new Set<string>();
+                      (engagements || []).forEach((e: any) => { if (e.lead_auditor) resourceSet.add(e.lead_auditor); });
+                      const available = Math.max(resourceSet.size, 1) * 240;
+                      const contingency = Math.round(available * 0.1);
+                      const netAvailable = available - contingency;
+                      return stats.total > 0 ? `${contingency} days reserved (${netAvailable} net available)` : '—';
+                    })()} />
+                    {stats.total > 0 && (() => {
+                      const resourceSet = new Set<string>();
+                      (engagements || []).forEach((e: any) => { if (e.lead_auditor) resourceSet.add(e.lead_auditor); });
+                      const available = Math.max(resourceSet.size, 1) * 240;
+                      const contingency = Math.round(available * 0.1);
+                      const net = available - contingency;
+                      const utilPct = net > 0 ? Math.round((stats.totalDays / net) * 100) : 0;
+                      return (
+                        <div className="mt-3 space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Utilization ({stats.totalDays}d of {net}d net)</span>
+                            <span className={cn("font-semibold", utilPct > 95 ? "text-destructive" : utilPct > 80 ? "text-warning" : "text-primary")}>{utilPct}%</span>
+                          </div>
+                          <Progress value={Math.min(100, utilPct)} className="h-2" />
+                        </div>
+                      );
+                    })()}
                     {plan.resource_constraints && (
-                      <div className="mt-2">
+                      <div className="mt-3 pt-2 border-t border-border/50">
                         <p className="text-xs text-muted-foreground">Constraints</p>
                         <p className="text-sm mt-1">{plan.resource_constraints}</p>
                       </div>
@@ -226,16 +267,24 @@ export default function AuditPlanDetail() {
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader><CardTitle className="text-sm">Governance</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-sm">Governance & Approval</CardTitle></CardHeader>
                   <CardContent>
                     <DetailRow label="Board / Committee" value={plan.board_committee_name || '—'} />
-                    <DetailRow label="Minutes Reference" value={plan.minutes_reference || '—'} />
+                    <DetailRow label="Plan Status" value={<StatusBadge status={plan.status || 'Draft'} />} />
+                    <DetailRow label="Approved By" value={plan.approved_by || 'Pending'} />
+                    <DetailRow label="Approved Date" value={plan.approved_date ? formatDateForDisplay(plan.approved_date) : 'Pending'} />
+                    <DetailRow label="Minutes Reference" value={plan.minutes_reference || 'To be recorded after approval'} />
                     {plan.approval_note && (
-                      <div className="mt-2">
+                      <div className="mt-3 pt-2 border-t border-border/50">
                         <p className="text-xs text-muted-foreground">Approval Note</p>
                         <p className="text-sm mt-1">{plan.approval_note}</p>
                       </div>
                     )}
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-xs text-primary">
+                        <strong>Note:</strong> Approval details (approver, date, minutes reference) are automatically populated when the plan goes through the approval workflow via the "Approval & Amendments" tab.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

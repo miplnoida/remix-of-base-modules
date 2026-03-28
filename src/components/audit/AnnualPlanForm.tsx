@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Calendar, FileText, Users, Shield, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { Loader2, Calendar, FileText, Users, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { cn } from '@/lib/utils';
@@ -20,8 +20,7 @@ interface AnnualPlanFormProps {
 const STEPS = [
   { id: 'header', label: 'Plan Details', icon: Calendar, description: 'Fiscal year & title' },
   { id: 'narrative', label: 'Planning Narrative', icon: FileText, description: 'Strategy & methodology' },
-  { id: 'resources', label: 'Resources', icon: Users, description: 'Capacity & days' },
-  { id: 'governance', label: 'Governance', icon: Shield, description: 'Board & approval' },
+  { id: 'resources', label: 'Resource Notes', icon: Users, description: 'Constraints & notes' },
 ];
 
 export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }: AnnualPlanFormProps) {
@@ -41,15 +40,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
     methodology: plan?.methodology || '',
     planningAssumptions: plan?.planning_assumptions || '',
     exclusions: plan?.exclusions || '',
-    totalAvailableDays: plan?.total_available_hours || '',
-    plannedWeeks: plan?.planned_hours || '',
-    contingencyDays: plan?.contingency_hours || '',
     resourceConstraints: plan?.resource_constraints || '',
     outsourcedSupportNotes: plan?.outsourced_support_notes || '',
     skillsConstraints: plan?.skills_constraints || '',
     boardCommitteeName: plan?.board_committee_name || '',
-    approvalNote: plan?.approval_note || '',
-    minutesReference: plan?.minutes_reference || '',
   });
 
   const set = (key: string, value: string) => setFormData(prev => ({ ...prev, [key]: value }));
@@ -66,14 +60,9 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       planning_assumptions: formData.planningAssumptions,
       exclusions: formData.exclusions,
       resource_constraints: formData.resourceConstraints,
-      total_available_hours: formData.totalAvailableDays ? Number(formData.totalAvailableDays) : null,
-      planned_hours: formData.plannedWeeks ? Number(formData.plannedWeeks) : null,
-      contingency_hours: formData.contingencyDays ? Number(formData.contingencyDays) : null,
       outsourced_support_notes: formData.outsourcedSupportNotes,
       skills_constraints: formData.skillsConstraints,
       board_committee_name: formData.boardCommitteeName,
-      approval_note: formData.approvalNote,
-      minutes_reference: formData.minutesReference,
       status,
     };
     if (!plan) {
@@ -192,6 +181,11 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
                 <Input value={formData.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Annual Internal Audit Plan 2026-2027" />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Board / Committee Name</Label>
+              <Input value={formData.boardCommitteeName} onChange={e => set('boardCommitteeName', e.target.value)} placeholder="e.g. Audit & Risk Committee" />
+              <p className="text-[10px] text-muted-foreground">Optional — the oversight body this plan will be presented to.</p>
+            </div>
             {plan && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/40 text-xs border border-border/50">
                 <div>
@@ -213,7 +207,7 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
               </div>
             )}
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <p className="text-xs text-primary"><strong>Tip:</strong> You only need the fiscal year and title to create a plan. Add engagements, narratives, and resources from the plan workspace after creation.</p>
+              <p className="text-xs text-primary"><strong>Tip:</strong> You only need the fiscal year and title to create a plan. Resource totals, capacity, and approval details are automatically computed from engagements and the approval workflow.</p>
             </div>
           </div>
         )}
@@ -260,47 +254,23 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
         {currentStep === 2 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">Resource Planning</h3>
-              <p className="text-xs text-muted-foreground mb-4">Estimate team capacity in weeks and days. Detailed resource allocation happens at the engagement level.</p>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Resource Notes & Constraints</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Capacity totals (days, weeks, utilization) are <strong>auto-calculated</strong> from your engagements. 
+                Use this section for qualitative notes only.
+              </p>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Available Days (Team Total)</Label>
-                <Input type="number" value={formData.totalAvailableDays} onChange={e => set('totalAvailableDays', e.target.value)} placeholder="e.g. 250" />
-                <p className="text-[10px] text-muted-foreground">Total working days across all auditors</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Planned Weeks</Label>
-                <Input type="number" value={formData.plannedWeeks} onChange={e => set('plannedWeeks', e.target.value)} placeholder="e.g. 42" />
-                <p className="text-[10px] text-muted-foreground">Total engagement-weeks planned</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Contingency Days</Label>
-                <Input type="number" value={formData.contingencyDays} onChange={e => set('contingencyDays', e.target.value)} placeholder="e.g. 30" />
-                <p className="text-[10px] text-muted-foreground">Reserved for ad-hoc / unplanned work</p>
-              </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-medium text-foreground">How resource capacity works:</p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                <li><strong>Total Planned Days & Weeks</strong> — summed automatically from all engagements in this plan.</li>
+                <li><strong>Available Days</strong> — calculated from the number of auditors in your department × working days in the fiscal year.</li>
+                <li><strong>Contingency</strong> — reserved automatically as a percentage of available capacity (configurable in Audit Settings). Default is 10%.</li>
+                <li><strong>Utilization %</strong> — shown in the plan Overview once engagements are added.</li>
+              </ul>
             </div>
-            {(formData.totalAvailableDays && formData.plannedWeeks) && (() => {
-              const plannedDays = Number(formData.plannedWeeks) * 5;
-              const utilization = Math.round((plannedDays / Number(formData.totalAvailableDays)) * 100);
-              return (
-                <div className="rounded-lg border border-border bg-muted/30 p-3">
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-muted-foreground">Capacity Utilization ({plannedDays} days planned of {formData.totalAvailableDays} available)</span>
-                    <span className="font-semibold text-foreground">{utilization}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        utilization > 90 ? "bg-destructive" : "bg-primary"
-                      )}
-                      style={{ width: `${Math.min(100, utilization)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
+
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Resource Constraints</Label>
@@ -319,53 +289,25 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
             </div>
           </div>
         )}
-
-        {currentStep === 3 && (
-          <div className="space-y-5">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">Governance & Oversight</h3>
-              <p className="text-xs text-muted-foreground mb-4">Identify the oversight committee and any approval references.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Board / Committee Name</Label>
-                <Input value={formData.boardCommitteeName} onChange={e => set('boardCommitteeName', e.target.value)} placeholder="Audit & Risk Committee" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Minutes Reference</Label>
-                <Input value={formData.minutesReference} onChange={e => set('minutesReference', e.target.value)} placeholder="e.g. ARC-2026-03" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Approval Note</Label>
-              <Textarea placeholder="Any notes related to governance approval..." value={formData.approvalNote} onChange={e => set('approvalNote', e.target.value)} rows={3} className="resize-none" />
-            </div>
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <p className="text-xs text-primary"><strong>Note:</strong> Governance details are optional during creation. You can update these when the plan goes through formal approval.</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Footer with navigation */}
-      <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
-        <div>
-          {canGoBack && (
-            <Button variant="ghost" size="sm" onClick={() => setCurrentStep(s => s - 1)}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-          )}
-        </div>
+      {/* Footer */}
+      <div className="border-t border-border pt-4 mt-auto flex items-center justify-between gap-2">
+        <Button variant="ghost" onClick={onClose} disabled={isSaving}>Cancel</Button>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving}>Cancel</Button>
-          {canGoNext && (
-            <Button variant="secondary" size="sm" onClick={() => setCurrentStep(s => s + 1)}>
-              Next <ChevronRight className="h-4 w-4 ml-1" />
+          {canGoBack && (
+            <Button variant="outline" onClick={() => setCurrentStep(s => s - 1)}>
+              <ChevronLeft className="h-4 w-4 mr-1" />Back
             </Button>
           )}
-          <Button size="sm" onClick={handleSaveDraft} disabled={isSaving}>
-            {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {plan ? 'Update Plan' : 'Create Plan'}
+          {canGoNext && (
+            <Button variant="outline" onClick={() => setCurrentStep(s => s + 1)}>
+              Next<ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+          <Button onClick={handleSaveDraft} disabled={isSaving}>
+            {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {plan ? 'Update Plan' : 'Save Draft'}
           </Button>
         </div>
       </div>
