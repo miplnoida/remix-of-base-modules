@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // kept for potential use
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, Send } from 'lucide-react';
+import { Plus, Eye, Edit, Send, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
@@ -60,7 +60,38 @@ export default function AuditPlans() {
       actions={
         <div className="flex items-center gap-2">
           <ExportDropdown data={filteredPlans} columns={exportColumns} fileName={AUDIT_PLANS_SCHEMA.exportFileName} title={AUDIT_PLANS_SCHEMA.exportTitle} />
-          {hasPermission('create_audit_plans') && <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}><Plus className="w-4 h-4 mr-2" />Create Plan</Button>}
+          {hasPermission('create_audit_plans') && (
+            <>
+              <Button variant="outline" onClick={() => {
+                // Create a new draft plan and navigate to its Auto Plan tab
+                const handleAutoGenerate = async () => {
+                  const currentYear = new Date().getFullYear();
+                  try {
+                    const result = await create.mutateAsync({
+                      fiscal_year: `${currentYear}-${currentYear + 1}`,
+                      title: `Auto-Generated Plan ${currentYear}-${currentYear + 1}`,
+                      status: 'Draft',
+                      created_by: 'system',
+                      plan_owner: 'system',
+                      prepared_by: 'system',
+                      updated_by: 'system',
+                    });
+                    if (result?.id) {
+                      navigate(`/audit/audit-plans/${result.id}?tab=autoplan`);
+                    }
+                  } catch {
+                    toast({ title: 'Error', description: 'Failed to create auto-plan draft.', variant: 'destructive' });
+                  }
+                };
+                handleAutoGenerate();
+              }}>
+                <Zap className="w-4 h-4 mr-2" />Auto Generate Plan
+              </Button>
+              <Button onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}>
+                <Plus className="w-4 h-4 mr-2" />Create Plan
+              </Button>
+            </>
+          )}
         </div>
       }
     >
