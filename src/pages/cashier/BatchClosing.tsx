@@ -91,6 +91,8 @@ const BatchClosing: React.FC = () => {
     fetchMops();
   }, []);
 
+  const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
+
   const fetchTotals = useCallback(async (batchNumber: string) => {
     setLoading(true);
     try {
@@ -236,6 +238,12 @@ const BatchClosing: React.FC = () => {
         });
       } else {
         setBatchPayments([]);
+      }
+
+      // Add opening balance (offset_amount) to CSH system total so physical cash count matches
+      const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
+      if (openingBalance !== 0) {
+        sysTotals['CSH'] = (sysTotals['CSH'] || 0) + openingBalance;
       }
 
       setSystem(sysTotals);
