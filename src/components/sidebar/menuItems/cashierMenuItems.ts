@@ -171,12 +171,6 @@ export const cashierMenuItems = [
         url: "/cashier/payment-module-config",
         icon: Settings,
         requiresPermission: "admin"
-      },
-      {
-        title: "Card Payment Machines",
-        url: "/cashier/card-machines",
-        icon: CreditCard,
-        requiresPermission: "admin"
       }
     ]
   },
