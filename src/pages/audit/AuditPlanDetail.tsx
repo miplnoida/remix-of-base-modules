@@ -208,12 +208,12 @@ export default function AuditPlanDetail() {
                 <Card>
                   <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
                   <CardContent>
-                    <DetailRow label="Available Days (Team)" value={plan.total_available_days || '—'} />
+                    <DetailRow label="Available Days (Team)" value={plan.total_available_hours || '—'} />
                     <DetailRow label="Planned Days (Engagements)" value={stats.totalDays || '—'} />
-                    <DetailRow label="Planned Weeks" value={plan.planned_weeks || stats.totalWeeks || '—'} />
-                    <DetailRow label="Contingency Days" value={plan.contingency_days || '—'} />
-                    {plan.total_available_days && stats.totalDays > 0 && (
-                      <DetailRow label="Utilization" value={`${Math.round((stats.totalDays / Number(plan.total_available_days)) * 100)}%`} />
+                    <DetailRow label="Planned Weeks" value={plan.planned_hours || stats.totalWeeks || '—'} />
+                    <DetailRow label="Contingency Days" value={plan.contingency_hours || '—'} />
+                    {plan.total_available_hours && stats.totalDays > 0 && (
+                      <DetailRow label="Utilization" value={`${Math.round((stats.totalDays / Number(plan.total_available_hours)) * 100)}%`} />
                     )}
                     {plan.resource_constraints && (
                       <div className="mt-2">
