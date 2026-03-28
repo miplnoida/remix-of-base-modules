@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Zap, Check, X, Info, Loader2, RefreshCw, Calendar, ArrowRight } from 'lucide-react';
+import { Zap, Check, X, Info, Loader2, RefreshCw, Calendar, ArrowRight, Users, Clock } from 'lucide-react';
 import { useAutoPlanCandidates, useGenerateAutoPlan, useManualOverride, usePlanningWeights, useFrequencyPolicies, useCapacitySchedule, useConvertCandidates } from '@/hooks/useAutoPlanEngine';
 import { DataTable, StatusBadge } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { CandidateDetailPanel } from './CandidateDetailPanel';
+import { useIAActiveAuditors } from '@/hooks/useAuditData';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
@@ -34,6 +35,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const { data: candidates = [], isLoading } = useAutoPlanCandidates(planId);
   const { data: weights = [] } = usePlanningWeights();
   const { data: policies = [] } = useFrequencyPolicies();
+  const { data: auditors = [] } = useIAActiveAuditors();
   const generatePlan = useGenerateAutoPlan(planId);
   const manualOverride = useManualOverride(planId);
   const capacitySchedule = useCapacitySchedule(planId);
@@ -44,6 +46,11 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const [detailCandidate, setDetailCandidate] = useState<any>(null);
 
   const canEdit = ['Draft', 'Revision'].includes(planStatus);
+
+  const getAuditorName = (id: string) => {
+    const a = (auditors || []).find((a: any) => a.id === id);
+    return a ? (a.name || a.employee_no || 'Auditor') : null;
+  };
 
   const handleAccept = (candidateId: string) => {
     manualOverride.mutate({
@@ -73,6 +80,13 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
     return 'Low';
   };
 
+  // Compute totals for accepted candidates
+  const accepted = candidates.filter((c: any) => c.status === 'Accepted');
+  const suggested = candidates.filter((c: any) => c.status === 'Suggested');
+  const rejected = candidates.filter((c: any) => c.status === 'Rejected');
+  const totalAcceptedDays = accepted.reduce((sum: number, c: any) => sum + (Number(c.suggested_days) || 0), 0);
+  const totalAcceptedWeeks = Math.ceil(totalAcceptedDays / 5);
+
   const columns: DataTableColumn<any>[] = [
     { key: 'rank_position', header: '#', render: (r) => (
       <span className="font-mono text-xs font-bold text-muted-foreground">{r.rank_position}</span>
@@ -81,7 +95,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
       <div>
         <p className="text-sm font-medium">{r.entity_name}</p>
         <div className="flex gap-1 mt-1 flex-wrap">
-          {(r.reason_codes || []).map((code: string, i: number) => (
+          {(r.reason_codes || []).slice(0, 3).map((code: string, i: number) => (
             <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0">
               {REASON_LABELS[code] || code}
             </Badge>
@@ -109,22 +123,48 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
         </Tooltip>
       </TooltipProvider>
     )},
+    { key: 'suggested_quarter', header: 'Quarter', render: (r) => (
+      <Badge variant="outline" className="text-xs">{r.suggested_quarter || '—'}</Badge>
+    )},
+    { key: 'suggested_days', header: 'Est. Days', render: (r) => (
+      <div className="text-xs">
+        <span className="font-semibold">{r.suggested_days || '—'}d</span>
+        {r.suggested_days && <span className="text-muted-foreground ml-1">({Math.ceil((r.suggested_days || 0) / 5)}w)</span>}
+      </div>
+    )},
+    { key: 'suggested_start_date', header: 'Suggested Dates', render: (r) => (
+      <div className="text-xs">
+        {r.suggested_start_date ? (
+          <>
+            <span>{formatDateForDisplay(r.suggested_start_date)}</span>
+            {r.suggested_end_date && (
+              <span className="text-muted-foreground"> → {formatDateForDisplay(r.suggested_end_date)}</span>
+            )}
+          </>
+        ) : <span className="text-muted-foreground">Not scheduled</span>}
+      </div>
+    )},
+    { key: 'suggested_lead_auditor_id', header: 'Lead Auditor', render: (r) => {
+      const name = r.suggested_lead_auditor_id ? getAuditorName(r.suggested_lead_auditor_id) : null;
+      return (
+        <div className="text-xs">
+          {name ? (
+            <Badge variant="secondary" className="text-[10px]">
+              <Users className="h-3 w-3 mr-1" />{name}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground italic">Unassigned</span>
+          )}
+        </div>
+      );
+    }},
     { key: 'last_audit_date', header: 'Last Audit', render: (r) => (
       <div className="text-xs">
         {r.last_audit_date ? formatDateForDisplay(r.last_audit_date) : <span className="text-destructive font-medium">Never</span>}
       </div>
     )},
-    { key: 'is_overdue', header: 'Overdue', render: (r) => r.is_overdue ? (
-      <Badge variant="destructive" className="text-[10px]">Overdue</Badge>
-    ) : (
-      <Badge variant="secondary" className="text-[10px]">On Track</Badge>
-    )},
     { key: 'status', header: 'Decision', render: (r) => <StatusBadge status={r.status || 'Suggested'} /> },
   ];
-
-  const suggested = candidates.filter((c: any) => c.status === 'Suggested');
-  const accepted = candidates.filter((c: any) => c.status === 'Accepted');
-  const rejected = candidates.filter((c: any) => c.status === 'Rejected');
 
   return (
     <>
@@ -136,13 +176,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
               Auto-Plan Suggestions
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              System-generated engagement candidates ranked by multi-factor priority scoring
-              (Risk {((weights.find((w: any) => w.factor_key === 'risk')?.weight || 0.35) * 100).toFixed(0)}%
-              + Recency {((weights.find((w: any) => w.factor_key === 'recency')?.weight || 0.20) * 100).toFixed(0)}%
-              + Findings {((weights.find((w: any) => w.factor_key === 'findings')?.weight || 0.15) * 100).toFixed(0)}%
-              + Follow-up {((weights.find((w: any) => w.factor_key === 'followup')?.weight || 0.10) * 100).toFixed(0)}%
-              + Compliance {((weights.find((w: any) => w.factor_key === 'compliance')?.weight || 0.10) * 100).toFixed(0)}%
-              + Change {((weights.find((w: any) => w.factor_key === 'change')?.weight || 0.10) * 100).toFixed(0)}%)
+              Risk-based engagement candidates with auto-populated dates, resources, and estimated effort
             </p>
           </div>
           {canEdit && (
@@ -185,17 +219,43 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
             <div className="text-center py-8 text-muted-foreground">
               <Zap className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No auto-plan candidates generated yet.</p>
-              <p className="text-xs mt-1">Click "Generate Suggestions" to build a risk-based engagement proposal.</p>
+              <p className="text-xs mt-1">Click "Generate Suggestions" to build a risk-based engagement proposal with auto-populated dates, resources, and effort estimates.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Summary bar */}
               {candidates.length > 0 && (
-                <div className="flex gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
                   <Badge variant="secondary">{suggested.length} Suggested</Badge>
                   <Badge variant="default" className="bg-green-600">{accepted.length} Accepted</Badge>
                   <Badge variant="destructive">{rejected.length} Rejected</Badge>
+                  {accepted.length > 0 && (
+                    <>
+                      <div className="h-4 w-px bg-border" />
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Accepted: <strong className="text-foreground">{totalAcceptedDays} days ({totalAcceptedWeeks} weeks)</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Resources: <strong className="text-foreground">{new Set(accepted.map((c: any) => c.suggested_lead_auditor_id).filter(Boolean)).size} auditor(s)</strong></span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* Info box about what gets auto-populated */}
+              {candidates.length > 0 && accepted.length === 0 && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs text-primary">
+                    <strong>What gets auto-populated when you create engagements:</strong> Engagement name, department & function, risk rating, 
+                    quarter & month, estimated days/weeks, start & end dates, lead auditor, scope, objectives, inclusion rationale, 
+                    coverage category, expected deliverable, auditee contact, and sequence number. You can edit all fields after creation.
+                  </p>
+                </div>
+              )}
+
               <DataTable
                 columns={columns}
                 data={candidates}

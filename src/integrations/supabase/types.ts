@@ -10438,6 +10438,7 @@ export type Database = {
           change_score: number | null
           compliance_score: number | null
           composite_score: number | null
+          coverage_category: string | null
           created_at: string | null
           department_id: string | null
           entity_name: string | null
@@ -10455,9 +10456,15 @@ export type Database = {
           rejection_reason: string | null
           risk_score: number | null
           status: string | null
+          suggested_days: number | null
           suggested_end_date: string | null
           suggested_hours: number | null
           suggested_lead_auditor_id: string | null
+          suggested_month: string | null
+          suggested_objectives: string | null
+          suggested_quarter: string | null
+          suggested_reviewer_id: string | null
+          suggested_scope: string | null
           suggested_start_date: string | null
         }
         Insert: {
@@ -10465,6 +10472,7 @@ export type Database = {
           change_score?: number | null
           compliance_score?: number | null
           composite_score?: number | null
+          coverage_category?: string | null
           created_at?: string | null
           department_id?: string | null
           entity_name?: string | null
@@ -10482,9 +10490,15 @@ export type Database = {
           rejection_reason?: string | null
           risk_score?: number | null
           status?: string | null
+          suggested_days?: number | null
           suggested_end_date?: string | null
           suggested_hours?: number | null
           suggested_lead_auditor_id?: string | null
+          suggested_month?: string | null
+          suggested_objectives?: string | null
+          suggested_quarter?: string | null
+          suggested_reviewer_id?: string | null
+          suggested_scope?: string | null
           suggested_start_date?: string | null
         }
         Update: {
@@ -10492,6 +10506,7 @@ export type Database = {
           change_score?: number | null
           compliance_score?: number | null
           composite_score?: number | null
+          coverage_category?: string | null
           created_at?: string | null
           department_id?: string | null
           entity_name?: string | null
@@ -10509,9 +10524,15 @@ export type Database = {
           rejection_reason?: string | null
           risk_score?: number | null
           status?: string | null
+          suggested_days?: number | null
           suggested_end_date?: string | null
           suggested_hours?: number | null
           suggested_lead_auditor_id?: string | null
+          suggested_month?: string | null
+          suggested_objectives?: string | null
+          suggested_quarter?: string | null
+          suggested_reviewer_id?: string | null
+          suggested_scope?: string | null
           suggested_start_date?: string | null
         }
         Relationships: []
