@@ -85,42 +85,18 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportPDF = () => {
     try {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.setTextColor(0, 155, 76);
-      doc.text(title || fileName, 14, 18);
-      doc.setFontSize(9);
-      doc.setTextColor(128);
-      doc.text(`Generated: ${new Date().toLocaleDateString()} | Records: ${data.length}`, 14, 26);
-
-      const headers = columns.map(c => c.header);
-      const body = data.map(row => columns.map(c => {
-        const v = row[c.key];
-        if (v === null || v === undefined) return '-';
-        if (typeof v === 'number') return v.toLocaleString();
-        return String(v);
-      }));
-
-      autoTable(doc, {
-        head: [headers],
-        body,
-        startY: 32,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [0, 155, 76], textColor: [255, 255, 255], fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        margin: { top: 10, bottom: 15 },
-      });
-
-      const pages = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pages; i++) {
-        doc.setPage(i);
-        doc.setFontSize(7);
-        doc.setTextColor(150);
-        doc.text(`Page ${i} of ${pages}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
-      }
-
-      doc.save(`${fileName}.pdf`);
+      generateSSBReport(
+        {
+          title: title || fileName,
+          subtitle: `Total Records: ${data.length}`,
+          additionalInfo: [
+            { label: 'Generated', value: new Date().toLocaleDateString() },
+          ],
+        },
+        columns.map(c => ({ header: c.header, key: c.key })),
+        data,
+        fileName
+      );
       toast({ title: 'Export Successful', description: `Exported ${data.length} records to PDF` });
     } catch {
       toast({ title: 'Export Failed', description: 'Failed to export to PDF', variant: 'destructive' });
