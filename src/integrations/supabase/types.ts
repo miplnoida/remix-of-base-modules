@@ -5495,6 +5495,44 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_batch_card_transaction: {
+        Row: {
+          amount: number
+          batch_number: string
+          card_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          machine_id: string
+        }
+        Insert: {
+          amount: number
+          batch_number: string
+          card_type: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          machine_id: string
+        }
+        Update: {
+          amount?: number
+          batch_number?: string
+          card_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          machine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cn_batch_card_transaction_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "cn_card_machine"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cn_batch_cheque: {
         Row: {
           amount: number
@@ -5624,6 +5662,54 @@ export type Database = {
           total_wages?: number | null
           updated_at?: string
           verified_by?: string | null
+        }
+        Relationships: []
+      }
+      cn_card_machine: {
+        Row: {
+          bank_code: string | null
+          card_type_support: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          machine_code: string
+          machine_name: string
+          modified_at: string | null
+          modified_by: string | null
+          notes: string | null
+          settlement_account_name: string | null
+          settlement_account_no: string | null
+        }
+        Insert: {
+          bank_code?: string | null
+          card_type_support?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          machine_code: string
+          machine_name: string
+          modified_at?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          settlement_account_name?: string | null
+          settlement_account_no?: string | null
+        }
+        Update: {
+          bank_code?: string | null
+          card_type_support?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          machine_code?: string
+          machine_name?: string
+          modified_at?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          settlement_account_name?: string | null
+          settlement_account_no?: string | null
         }
         Relationships: []
       }
@@ -24530,6 +24616,14 @@ export type Database = {
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
+      }
+      save_batch_card_transactions: {
+        Args: {
+          p_batch_number: string
+          p_transactions: Json
+          p_user_code: string
+        }
+        Returns: Json
       }
       schedule_meeting: {
         Args: {
