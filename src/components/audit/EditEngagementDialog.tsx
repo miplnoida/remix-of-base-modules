@@ -42,7 +42,7 @@ export function EditEngagementDialog({
   const { toast } = useToast();
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAActiveAuditors();
-  const isEditMode = !!engagement;
+  const isEditMode = !!engagement?.id;
 
   const [dirty, setDirty] = useState(false);
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
