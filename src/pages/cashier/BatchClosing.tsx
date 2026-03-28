@@ -252,7 +252,7 @@ const BatchClosing: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openingBalance]);
 
   useEffect(() => {
     if (batchSel.selectedBatch?.batch_number) {
