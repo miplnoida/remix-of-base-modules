@@ -5569,6 +5569,63 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_batch_cheque_verification: {
+        Row: {
+          batch_number: string
+          created_at: string | null
+          edit_reason: string | null
+          edited_at: string | null
+          edited_by: string | null
+          id: string
+          is_verified: boolean | null
+          override_amount: number | null
+          override_bank_code: string | null
+          override_cheque_date: string | null
+          override_cheque_number: string | null
+          source_payment_id: number | null
+          source_record_id: string
+          source_table: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          batch_number: string
+          created_at?: string | null
+          edit_reason?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
+          id?: string
+          is_verified?: boolean | null
+          override_amount?: number | null
+          override_bank_code?: string | null
+          override_cheque_date?: string | null
+          override_cheque_number?: string | null
+          source_payment_id?: number | null
+          source_record_id: string
+          source_table: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          batch_number?: string
+          created_at?: string | null
+          edit_reason?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
+          id?: string
+          is_verified?: boolean | null
+          override_amount?: number | null
+          override_bank_code?: string | null
+          override_cheque_date?: string | null
+          override_cheque_number?: string | null
+          source_payment_id?: number | null
+          source_record_id?: string
+          source_table?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       cn_c3_reported: {
         Row: {
           created_at: string
@@ -23820,6 +23877,21 @@ export type Database = {
         }
         Returns: string
       }
+      edit_and_verify_batch_cheque: {
+        Args: {
+          p_batch_number: string
+          p_edit_reason?: string
+          p_override_amount?: number
+          p_override_bank_code?: string
+          p_override_cheque_date?: string
+          p_override_cheque_number?: string
+          p_source_payment_id: number
+          p_source_record_id: string
+          p_source_table: string
+          p_user_code?: string
+        }
+        Returns: undefined
+      }
       evaluate_levy_amounts: {
         Args: {
           p_amounts: number[]
@@ -23871,6 +23943,29 @@ export type Database = {
         }[]
       }
       get_app_security_state: { Args: never; Returns: Json }
+      get_batch_cheques_for_verification: {
+        Args: { p_batch_number: string }
+        Returns: {
+          amount: number
+          bank_code: string
+          bank_name: string
+          cheque_date: string
+          cheque_number: string
+          currency_code: string
+          edit_reason: string
+          is_verified: boolean
+          override_amount: number
+          override_bank_code: string
+          override_cheque_date: string
+          override_cheque_number: string
+          payer_id: string
+          payer_type: string
+          payment_id: number
+          source_record_id: string
+          source_table: string
+          verification_id: string
+        }[]
+      }
       get_biweekly_enabled_weeks: {
         Args: { p_month: number; p_year: number }
         Returns: boolean[]
@@ -24813,6 +24908,17 @@ export type Database = {
           office_end: string
           office_start: string
         }[]
+      }
+      verify_batch_cheque: {
+        Args: {
+          p_batch_number: string
+          p_is_verified: boolean
+          p_source_payment_id: number
+          p_source_record_id: string
+          p_source_table: string
+          p_user_code: string
+        }
+        Returns: undefined
       }
       verify_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
