@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
-import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash } from 'lucide-react';
+import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash, CreditCard } from 'lucide-react';
+import CardMachineTab from '@/components/payments/CardMachineTab';
 import NumberFormatSegmentBuilder, { type Segment } from '@/components/cashier/NumberFormatSegmentBuilder';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
 import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
@@ -435,6 +436,10 @@ const PaymentModuleConfig: React.FC = () => {
           <TabsTrigger value="denominations">Denominations</TabsTrigger>
           <TabsTrigger value="number-formats">Number Formats</TabsTrigger>
           <TabsTrigger value="receipt">Receipt & Invoice</TabsTrigger>
+          <TabsTrigger value="card-machines">
+            <CreditCard className="h-3.5 w-3.5 mr-1" />
+            Card Machines
+          </TabsTrigger>
         </TabsList>
 
         {/* ─── ROLES TAB ─── */}
@@ -884,6 +889,11 @@ const PaymentModuleConfig: React.FC = () => {
               <InvoiceTemplateTab />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* ─── CARD MACHINES TAB ─── */}
+        <TabsContent value="card-machines" className="space-y-6">
+          <CardMachineTab />
         </TabsContent>
       </Tabs>
 
