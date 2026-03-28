@@ -393,7 +393,7 @@ const BatchClosing: React.FC = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {match ? (
-                              <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                              <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
                             ) : (
                               <XCircle className="h-5 w-5 text-destructive mx-auto" />
                             )}
@@ -410,7 +410,7 @@ const BatchClosing: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-center">
                         {allMatch ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                          <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
                         ) : (
                           <XCircle className="h-5 w-5 text-destructive mx-auto" />
                         )}
@@ -589,8 +589,8 @@ const BatchClosing: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center space-y-4">
-                    <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
-                    <p className="font-semibold text-green-600">All Physical Totals Match — Ready to Close</p>
+                    <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
+                    <p className="font-semibold text-primary">All Physical Totals Match — Ready to Close</p>
                     <Button size="lg" onClick={() => setConfirmOpen(true)} disabled={closing}>
                       {closing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Close & Post Batch
