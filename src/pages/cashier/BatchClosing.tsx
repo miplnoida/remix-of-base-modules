@@ -499,15 +499,15 @@ const BatchClosing: React.FC = () => {
                         <TableBody>
                           {batchPayments.map(p => (
                             <TableRow key={p.payment_id}>
-                              <TableCell className="font-mono text-xs">{p.receipt_number || '—'}</TableCell>
-                              <TableCell className="text-sm">{p.payer_name || '—'}</TableCell>
-                              <TableCell className="text-right font-mono">{formatCurrency(Number(p.total_amount || 0))}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
+                              <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
                             </TableRow>
                           ))}
                           <TableRow className="border-t-2 font-semibold">
                             <TableCell colSpan={2}>Grand Total</TableCell>
                             <TableCell className="text-right font-mono">
-                              {formatCurrency(batchPayments.reduce((s, p) => s + Number(p.total_amount || 0), 0))}
+                              {formatCurrency(batchPayments.reduce((s, p) => s + p.receipt_total, 0))}
                             </TableCell>
                           </TableRow>
                         </TableBody>
