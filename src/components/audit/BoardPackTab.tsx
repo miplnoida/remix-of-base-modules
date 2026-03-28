@@ -31,20 +31,18 @@ function buildLookups(departments: any[], functions: any[], auditors: any[]) {
 }
 
 // ===== PDF HELPERS (SSB BRANDED) =====
-function getThemeColors(config: ReportConfig) {
-  const theme = THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
-  return theme;
+function getTheme(config: ReportConfig) {
+  return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
 function addHeader(doc: jsPDF, title: string, subtitle: string, fiscalYear: string, config: ReportConfig) {
   const pw = doc.internal.pageSize.getWidth();
-  const theme = getThemeColors(config);
+  const theme = getTheme(config);
 
   // Green header bar
   doc.setFillColor(...theme.primary);
   doc.rect(0, 0, pw, 42, 'F');
-
-  // Gold accent stripe at bottom of header
+  // Gold accent stripe
   doc.setFillColor(...theme.accent);
   doc.rect(0, 42, pw, 2, 'F');
 
@@ -62,7 +60,7 @@ function addHeader(doc: jsPDF, title: string, subtitle: string, fiscalYear: stri
 
 function addFooter(doc: jsPDF, planId: string, version: number, artifactVersion: number, status: string, config: ReportConfig) {
   const pageCount = doc.getNumberOfPages();
-  const theme = getThemeColors(config);
+  const theme = getTheme(config);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     const pw = doc.internal.pageSize.getWidth();
@@ -72,7 +70,7 @@ function addFooter(doc: jsPDF, planId: string, version: number, artifactVersion:
     doc.rect(0, ph - 14, pw, 14, 'F');
     doc.setFontSize(7);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${config.confidentialityLabel || 'CONFIDENTIAL'} — Plan v${version} • Artifact v${artifactVersion} • Generated: ${new Date().toLocaleDateString()} • Page ${i} of ${pageCount}`, pw / 2, ph - 6, { align: 'center' });
+    doc.text(`${config.confidentialityLabel} — Plan v${version} • Artifact v${artifactVersion} • Generated: ${new Date().toLocaleDateString()} • Page ${i} of ${pageCount}`, pw / 2, ph - 6, { align: 'center' });
     if (status !== 'Approved' && config.showDraftWatermark) {
       doc.setTextColor(200, 230, 200);
       doc.setFontSize(60);
@@ -84,7 +82,7 @@ function addFooter(doc: jsPDF, planId: string, version: number, artifactVersion:
 function addSection(doc: jsPDF, y: number, title: string, content: string | null | undefined, pw: number, config: ReportConfig): number {
   if (!content) return y;
   if (y > 250) { doc.addPage(); y = 20; }
-  const theme = getThemeColors(config);
+  const theme = getTheme(config);
   doc.setFontSize(12);
   doc.setFont(undefined as any, 'bold');
   doc.setTextColor(...theme.primary);
@@ -100,17 +98,16 @@ function addSection(doc: jsPDF, y: number, title: string, content: string | null
 }
 
 // ===== BOARD SUMMARY PDF =====
-function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>): jsPDF {
-  const doc = new jsPDF();
+function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>, config: ReportConfig): jsPDF {
+  const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
+  const theme = getTheme(config);
 
-  // Cover/Header
-  addHeader(doc, 'Board Summary — Annual Audit Plan', `Version ${version}`, plan?.fiscal_year || 'N/A');
+  addHeader(doc, 'Board Summary — Annual Audit Plan', `Version ${version}`, plan?.fiscal_year || 'N/A', config);
 
-  let y = 52;
-  // Plan Info
+  let y = 54;
   const planInfo = [
     ['Plan Title', plan?.title || '—'],
     ['Status', plan?.status || 'Draft'],
@@ -127,259 +124,286 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
   autoTable(doc, { startY: y, body: planInfo, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, theme: 'plain' });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  y = addSection(doc, y, 'Executive Summary', plan?.executive_summary, pw);
-  y = addSection(doc, y, 'Planning Methodology', plan?.methodology || plan?.methodology_notes, pw);
+  if (config.includeExecutiveSummary) {
+    y = addSection(doc, y, 'Executive Summary', plan?.executive_summary, pw, config);
+    y = addSection(doc, y, 'Planning Methodology', plan?.methodology || plan?.methodology_notes, pw, config);
+  }
 
-  // Risk Coverage Summary
-  if (y > 220) { doc.addPage(); y = 20; }
-  doc.setFontSize(12);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(...BRAND_COLOR);
-  doc.text('Risk Coverage Summary', 14, y);
-  y += 4;
-  const riskDist = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-  engagements.forEach((e: any) => {
-    const r = e.engagement_risk_rating as keyof typeof riskDist;
-    if (r in riskDist) riskDist[r]++;
-  });
-  autoTable(doc, {
-    startY: y,
-    head: [['Risk Level', 'Count', '% of Plan']],
-    body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: BRAND_COLOR },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  if (config.includeRiskCoverage) {
+    if (y > 220) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.setFont(undefined as any, 'bold');
+    doc.setTextColor(...theme.primary);
+    doc.text('Risk Coverage Summary', 14, y);
+    y += 4;
+    const riskDist = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+    engagements.forEach((e: any) => {
+      const r = e.engagement_risk_rating as keyof typeof riskDist;
+      if (r in riskDist) riskDist[r]++;
+    });
+    autoTable(doc, {
+      startY: y,
+      head: [['Risk Level', 'Count', '% of Plan']],
+      body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: theme.primary },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
 
-  // Engagement Schedule by Quarter
-  if (y > 200) { doc.addPage(); y = 20; }
-  doc.setFontSize(12);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(...BRAND_COLOR);
-  doc.text('Annual Engagement Schedule', 14, y);
-  y += 4;
+  if (config.includeEngagementSchedule) {
+    if (y > 200) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.setFont(undefined as any, 'bold');
+    doc.setTextColor(...theme.primary);
+    doc.text('Annual Engagement Schedule', 14, y);
+    y += 4;
 
-  autoTable(doc, {
-    startY: y,
-    head: [['#', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Weeks', 'Priority']],
-    body: engagements.map((e: any, i: number) => [
-      e.sequence_no || i + 1,
-      e.engagement_name || '—',
-      lookups.deptMap.get(e.department_id) || '—',
-      lookups.funcMap.get(e.function_id) || '—',
-      e.engagement_risk_rating || '—',
-      lookups.auditorMap.get(e.lead_auditor_id) || '—',
-      e.quarter || '—',
-      e.estimated_days || '—',
-      e.estimated_hours || '—',
-      e.board_priority_flag ? '★ Yes' : 'No',
-    ]),
-    styles: { fontSize: 7, cellPadding: 2 },
-    headStyles: { fillColor: BRAND_COLOR },
-    alternateRowStyles: { fillColor: ALT_ROW },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Weeks', 'Priority']],
+      body: engagements.map((e: any, i: number) => [
+        e.sequence_no || i + 1,
+        e.engagement_name || '—',
+        lookups.deptMap.get(e.department_id) || '—',
+        lookups.funcMap.get(e.function_id) || '—',
+        e.engagement_risk_rating || '—',
+        lookups.auditorMap.get(e.lead_auditor_id) || '—',
+        e.quarter || '—',
+        e.estimated_days || '—',
+        e.estimated_hours || '—',
+        e.board_priority_flag ? '★ Yes' : 'No',
+      ]),
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: theme.primary },
+      alternateRowStyles: { fillColor: theme.altRow },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
 
-  // Resource Summary
-  if (y > 230) { doc.addPage(); y = 20; }
-  y = addSection(doc, y, 'Resource Summary',
-    `Available Days: ${plan?.total_available_hours || '—'}\nPlanned Weeks: ${plan?.planned_hours || '—'}\nContingency Days: ${plan?.contingency_hours || '—'}`, pw);
+  if (config.includeResourceSummary) {
+    if (y > 230) { doc.addPage(); y = 20; }
+    y = addSection(doc, y, 'Resource Summary',
+      `Available Days: ${plan?.total_available_hours || '—'}\nPlanned Weeks: ${plan?.planned_hours || '—'}\nContingency Days: ${plan?.contingency_hours || '—'}`, pw, config);
+  }
 
-  addFooter(doc, plan?.id, version, artVersion, plan?.status);
+  addFooter(doc, plan?.id, version, artVersion, plan?.status, config);
   return doc;
 }
 
 // ===== DETAILED PLAN PDF =====
 function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
-  gapFunctions: any[]
+  gapFunctions: any[], config: ReportConfig
 ): jsPDF {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
+  const theme = getTheme(config);
 
   // ===== A. COVER PAGE =====
-  const ph = doc.internal.pageSize.getHeight();
-  doc.setFillColor(...BRAND_COLOR);
-  doc.rect(0, 0, pw, ph, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text('Annual Internal Audit Plan', pw / 2, ph / 2 - 40, { align: 'center' });
-  doc.setFontSize(16);
-  doc.text(`Fiscal Year ${plan?.fiscal_year || 'N/A'}`, pw / 2, ph / 2 - 20, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text(`Plan Version: v${version}`, pw / 2, ph / 2, { align: 'center' });
-  doc.text(`Status: ${plan?.status || 'Draft'}`, pw / 2, ph / 2 + 12, { align: 'center' });
-  doc.setFontSize(10);
-  doc.text(`Prepared By: ${plan?.created_by || 'Internal Audit Department'}`, pw / 2, ph / 2 + 30, { align: 'center' });
-  doc.text(`Last Updated By: ${plan?.updated_by || '—'}`, pw / 2, ph / 2 + 40, { align: 'center' });
-  if (plan?.approved_by) {
-    doc.text(`Approved By: ${plan.approved_by} on ${plan.approved_date ? formatDateForDisplay(plan.approved_date) : '—'}`, pw / 2, ph / 2 + 50, { align: 'center' });
+  if (config.includeCoverPage) {
+    const ph = doc.internal.pageSize.getHeight();
+    doc.setFillColor(...theme.primary);
+    doc.rect(0, 0, pw, ph, 'F');
+    // Gold accent stripe at 1/3
+    doc.setFillColor(...theme.accent);
+    doc.rect(0, ph * 0.33, pw, 3, 'F');
+    doc.rect(0, ph * 0.33 + 6, pw, 1, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.text('Annual Internal Audit Plan', pw / 2, ph / 2 - 40, { align: 'center' });
+    doc.setFontSize(16);
+    doc.text(`Fiscal Year ${plan?.fiscal_year || 'N/A'}`, pw / 2, ph / 2 - 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(`Plan Version: v${version}`, pw / 2, ph / 2, { align: 'center' });
+    doc.text(`Status: ${plan?.status || 'Draft'}`, pw / 2, ph / 2 + 12, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(config.headerTitle || 'Social Security Board', pw / 2, ph / 2 + 30, { align: 'center' });
+    doc.text(`${config.headerSubtitle || 'Internal Audit Department'}`, pw / 2, ph / 2 + 40, { align: 'center' });
+    doc.text(`Prepared By: ${plan?.created_by || 'Internal Audit Department'}`, pw / 2, ph / 2 + 55, { align: 'center' });
+    if (plan?.approved_by) {
+      doc.text(`Approved By: ${plan.approved_by} on ${plan.approved_date ? formatDateForDisplay(plan.approved_date) : '—'}`, pw / 2, ph / 2 + 65, { align: 'center' });
+    }
+    doc.setTextColor(200, 230, 210);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 30, { align: 'center' });
   }
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph / 2 + 65, { align: 'center' });
 
   // ===== B. EXECUTIVE SUMMARY =====
-  doc.addPage();
-  addHeader(doc, 'Executive Summary', `v${version}`, plan?.fiscal_year || '');
-  let y = 52;
-  y = addSection(doc, y, 'Annual Audit Strategy', plan?.executive_summary, pw);
-  y = addSection(doc, y, 'Planning Basis & Methodology', plan?.methodology || plan?.methodology_notes, pw);
-  y = addSection(doc, y, 'Major Assumptions', plan?.planning_assumptions, pw);
-  y = addSection(doc, y, 'Exclusions / Out-of-Scope', plan?.exclusions, pw);
-  y = addSection(doc, y, 'Resource Constraints', plan?.resource_constraints, pw);
-  y = addSection(doc, y, 'Objective', plan?.objective, pw);
+  if (config.includeExecutiveSummary) {
+    doc.addPage();
+    addHeader(doc, 'Executive Summary', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
+    y = addSection(doc, y, 'Annual Audit Strategy', plan?.executive_summary, pw, config);
+    y = addSection(doc, y, 'Planning Basis & Methodology', plan?.methodology || plan?.methodology_notes, pw, config);
+    y = addSection(doc, y, 'Major Assumptions', plan?.planning_assumptions, pw, config);
+    y = addSection(doc, y, 'Exclusions / Out-of-Scope', plan?.exclusions, pw, config);
+    y = addSection(doc, y, 'Resource Constraints', plan?.resource_constraints, pw, config);
+    y = addSection(doc, y, 'Objective', plan?.objective, pw, config);
+  }
 
   // ===== C. COVERAGE SUMMARY =====
-  doc.addPage();
-  addHeader(doc, 'Annual Coverage Summary', `v${version}`, plan?.fiscal_year || '');
-  y = 52;
+  if (config.includeRiskCoverage) {
+    doc.addPage();
+    addHeader(doc, 'Annual Coverage Summary', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
 
-  const coveredDepts = new Set(engagements.map((e: any) => e.department_id).filter(Boolean));
-  const coveredFuncs = new Set(engagements.map((e: any) => e.function_id).filter(Boolean));
-  const riskDist = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-  engagements.forEach((e: any) => {
-    const r = e.engagement_risk_rating as keyof typeof riskDist;
-    if (r in riskDist) riskDist[r]++;
-  });
-  const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
-
-  const coverageData = [
-    ['Total Engagements', String(engagements.length)],
-    ['Departments Covered', String(coveredDepts.size)],
-    ['Functions Covered', String(coveredFuncs.size)],
-    ['Critical Risk', String(riskDist.Critical)],
-    ['High Risk', String(riskDist.High)],
-    ['Medium Risk', String(riskDist.Medium)],
-    ['Low Risk', String(riskDist.Low)],
-    ['Total Planned Days', String(totalDays)],
-  ];
-  autoTable(doc, { startY: y, body: coverageData, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'striped' });
-  y = (doc as any).lastAutoTable.finalY + 10;
-
-  // ===== D. ENGAGEMENT SCHEDULE TABLE =====
-  doc.addPage();
-  addHeader(doc, 'Engagement Schedule — Detailed', `v${version}`, plan?.fiscal_year || '');
-  y = 52;
-
-  autoTable(doc, {
-    startY: y,
-    head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Rationale', 'Lead', 'Support', 'Days', 'Weeks', 'Q', 'Start', 'End', 'Priority', 'Status']],
-    body: engagements.map((e: any, i: number) => {
-      const supportNames = (Array.isArray(e.supportive_auditor_ids) ? e.supportive_auditor_ids : [])
-        .map((id: string) => lookups.auditorMap.get(id) || '—').join(', ');
-      return [
-        e.sequence_no || i + 1,
-        e.engagement_code || '—',
-        e.engagement_name || '—',
-        lookups.deptMap.get(e.department_id) || '—',
-        lookups.funcMap.get(e.function_id) || '—',
-        e.engagement_risk_rating || '—',
-        e.objectives || '—',
-        e.scope || '—',
-        e.inclusion_rationale || '—',
-        lookups.auditorMap.get(e.lead_auditor_id) || '—',
-        supportNames || '—',
-        e.estimated_days || '—',
-        e.estimated_hours || '—',
-        e.quarter || '—',
-        e.planned_start_date || '—',
-        e.planned_end_date || '—',
-        e.board_priority_flag ? '★' : '',
-        e.status || 'Planned',
-      ];
-    }),
-    styles: { fontSize: 5.5, cellPadding: 1.5 },
-    headStyles: { fillColor: BRAND_COLOR, fontSize: 5.5 },
-    alternateRowStyles: { fillColor: ALT_ROW },
-    margin: { left: 8, right: 8 },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
-
-  // ===== E. RESOURCE PLAN =====
-  doc.addPage();
-  addHeader(doc, 'Resource Plan', `v${version}`, plan?.fiscal_year || '');
-  y = 52;
-
-  const resourceInfo = [
-    ['Total Available Days', plan?.total_available_hours?.toString() || '—'],
-    ['Total Planned Days', String(totalDays)],
-    ['Contingency Days', plan?.contingency_hours?.toString() || '—'],
-    ['Utilization', plan?.total_available_hours ? `${Math.round((totalDays / Number(plan.total_available_hours)) * 100)}%` : '—'],
-  ];
-  autoTable(doc, { startY: y, body: resourceInfo, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'plain' });
-  y = (doc as any).lastAutoTable.finalY + 10;
-
-  // Days by Auditor
-  const auditorDays = new Map<string, number>();
-  engagements.forEach((e: any) => {
-    if (e.lead_auditor_id) {
-      const name = lookups.auditorMap.get(e.lead_auditor_id) || 'Unknown';
-      auditorDays.set(name, (auditorDays.get(name) || 0) + (Number(e.estimated_days) || 0));
-    }
-  });
-  if (auditorDays.size > 0) {
-    doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...BRAND_COLOR);
-    doc.text('Days by Lead Auditor', 14, y); y += 4;
-    autoTable(doc, {
-      startY: y,
-      head: [['Auditor', 'Planned Days']],
-      body: Array.from(auditorDays.entries()).map(([name, days]) => [name, String(days)]),
-      styles: { fontSize: 9 }, headStyles: { fillColor: BRAND_COLOR },
+    const coveredDepts = new Set(engagements.map((e: any) => e.department_id).filter(Boolean));
+    const coveredFuncs = new Set(engagements.map((e: any) => e.function_id).filter(Boolean));
+    const riskDist = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+    engagements.forEach((e: any) => {
+      const r = e.engagement_risk_rating as keyof typeof riskDist;
+      if (r in riskDist) riskDist[r]++;
     });
+    const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
+
+    const coverageData = [
+      ['Total Engagements', String(engagements.length)],
+      ['Departments Covered', String(coveredDepts.size)],
+      ['Functions Covered', String(coveredFuncs.size)],
+      ['Critical Risk', String(riskDist.Critical)],
+      ['High Risk', String(riskDist.High)],
+      ['Medium Risk', String(riskDist.Medium)],
+      ['Low Risk', String(riskDist.Low)],
+      ['Total Planned Days', String(totalDays)],
+    ];
+    autoTable(doc, { startY: y, body: coverageData, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'striped' });
     y = (doc as any).lastAutoTable.finalY + 10;
   }
 
-  // Days by Quarter
-  const quarterDays = ['Q1','Q2','Q3','Q4'].map(q => [
-    q,
-    String(engagements.filter((e: any) => e.quarter === q).length),
-    String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0)),
-  ]);
-  doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...BRAND_COLOR);
-  doc.text('Days by Quarter', 14, y); y += 4;
-  autoTable(doc, {
-    startY: y,
-    head: [['Quarter', 'Engagements', 'Days']],
-    body: quarterDays,
-    styles: { fontSize: 9 }, headStyles: { fillColor: BRAND_COLOR },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  // ===== D. ENGAGEMENT SCHEDULE TABLE =====
+  if (config.includeEngagementSchedule) {
+    doc.addPage();
+    addHeader(doc, 'Engagement Schedule — Detailed', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
 
-  y = addSection(doc, y, 'Outsourced Support', plan?.outsourced_support_notes, pw);
-  y = addSection(doc, y, 'Skills Constraints', plan?.skills_constraints, pw);
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Rationale', 'Lead', 'Support', 'Days', 'Weeks', 'Q', 'Start', 'End', 'Priority', 'Status']],
+      body: engagements.map((e: any, i: number) => {
+        const supportNames = (Array.isArray(e.supportive_auditor_ids) ? e.supportive_auditor_ids : [])
+          .map((id: string) => lookups.auditorMap.get(id) || '—').join(', ');
+        return [
+          e.sequence_no || i + 1,
+          e.engagement_code || '—',
+          e.engagement_name || '—',
+          lookups.deptMap.get(e.department_id) || '—',
+          lookups.funcMap.get(e.function_id) || '—',
+          e.engagement_risk_rating || '—',
+          e.objectives || '—',
+          e.scope || '—',
+          e.inclusion_rationale || '—',
+          lookups.auditorMap.get(e.lead_auditor_id) || '—',
+          supportNames || '—',
+          e.estimated_days || '—',
+          e.estimated_hours || '—',
+          e.quarter || '—',
+          e.planned_start_date || '—',
+          e.planned_end_date || '—',
+          e.board_priority_flag ? '★' : '',
+          e.status || 'Planned',
+        ];
+      }),
+      styles: { fontSize: 5.5, cellPadding: 1.5 },
+      headStyles: { fillColor: theme.primary, fontSize: 5.5 },
+      alternateRowStyles: { fillColor: theme.altRow },
+      margin: { left: 8, right: 8 },
+    });
+  }
+
+  // ===== E. RESOURCE PLAN =====
+  if (config.includeResourceSummary) {
+    doc.addPage();
+    addHeader(doc, 'Resource Plan', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
+    const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
+
+    const resourceInfo = [
+      ['Total Available Days', plan?.total_available_hours?.toString() || '—'],
+      ['Total Planned Days', String(totalDays)],
+      ['Contingency Days', plan?.contingency_hours?.toString() || '—'],
+      ['Utilization', plan?.total_available_hours ? `${Math.round((totalDays / Number(plan.total_available_hours)) * 100)}%` : '—'],
+    ];
+    autoTable(doc, { startY: y, body: resourceInfo, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } }, theme: 'plain' });
+    y = (doc as any).lastAutoTable.finalY + 10;
+
+    if (config.includeAuditorBreakdown) {
+      const auditorDays = new Map<string, number>();
+      engagements.forEach((e: any) => {
+        if (e.lead_auditor_id) {
+          const name = lookups.auditorMap.get(e.lead_auditor_id) || 'Unknown';
+          auditorDays.set(name, (auditorDays.get(name) || 0) + (Number(e.estimated_days) || 0));
+        }
+      });
+      if (auditorDays.size > 0) {
+        doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...theme.primary);
+        doc.text('Days by Lead Auditor', 14, y); y += 4;
+        autoTable(doc, {
+          startY: y,
+          head: [['Auditor', 'Planned Days']],
+          body: Array.from(auditorDays.entries()).map(([name, days]) => [name, String(days)]),
+          styles: { fontSize: 9 }, headStyles: { fillColor: theme.primary },
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      }
+    }
+
+    if (config.includeQuarterBreakdown) {
+      const quarterDays = ['Q1','Q2','Q3','Q4'].map(q => [
+        q,
+        String(engagements.filter((e: any) => e.quarter === q).length),
+        String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0)),
+      ]);
+      doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...theme.primary);
+      doc.text('Days by Quarter', 14, y); y += 4;
+      autoTable(doc, {
+        startY: y,
+        head: [['Quarter', 'Engagements', 'Days']],
+        body: quarterDays,
+        styles: { fontSize: 9 }, headStyles: { fillColor: theme.primary },
+      });
+      y = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    y = addSection(doc, y, 'Outsourced Support', plan?.outsourced_support_notes, pw, config);
+    y = addSection(doc, y, 'Skills Constraints', plan?.skills_constraints, pw, config);
+  }
 
   // ===== F. GAP ANALYSIS =====
-  if (gapFunctions.length > 0) {
+  if (config.includeGapAnalysis && gapFunctions.length > 0) {
     doc.addPage();
-    addHeader(doc, 'Risk Coverage / Gap Analysis', `v${version}`, plan?.fiscal_year || '');
-    y = 52;
-    doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...BRAND_COLOR);
+    addHeader(doc, 'Risk Coverage / Gap Analysis', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
+    doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...theme.primary);
     doc.text('High-Risk Functions NOT Covered in Plan', 14, y); y += 4;
     autoTable(doc, {
       startY: y,
       head: [['Function', 'Department', 'Risk Level', 'Status']],
       body: gapFunctions.map((g: any) => [g.functionName, g.departmentName, g.riskLevel, 'Not Covered']),
-      styles: { fontSize: 8 }, headStyles: { fillColor: [180, 40, 40] },
+      styles: { fontSize: 8 }, headStyles: { fillColor: [214, 40, 40] as [number, number, number] },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
-    y = addSection(doc, y, 'Recommendation', 'These high-risk functions should be considered for inclusion in the next planning cycle or addressed through a supplementary audit.', pw);
+    y = addSection(doc, y, 'Recommendation', 'These high-risk functions should be considered for inclusion in the next planning cycle or addressed through a supplementary audit.', pw, config);
   }
 
   // ===== G. GOVERNANCE =====
-  doc.addPage();
-  addHeader(doc, 'Approval & Governance', `v${version}`, plan?.fiscal_year || '');
-  y = 52;
-  const govData = [
-    ['Board Committee', plan?.board_committee_name || '—'],
-    ['Minutes Reference', plan?.minutes_reference || '—'],
-    ['Approval Note', plan?.approval_note || '—'],
-    ['Approved By', plan?.approved_by || '—'],
-    ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : '—'],
-  ];
-  autoTable(doc, { startY: y, body: govData, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, theme: 'plain' });
+  if (config.includeGovernance) {
+    doc.addPage();
+    addHeader(doc, 'Approval & Governance', `v${version}`, plan?.fiscal_year || '', config);
+    let y = 54;
+    const govData = [
+      ['Board Committee', plan?.board_committee_name || '—'],
+      ['Minutes Reference', plan?.minutes_reference || '—'],
+      ['Approval Note', plan?.approval_note || '—'],
+      ['Approved By', plan?.approved_by || '—'],
+      ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : '—'],
+    ];
+    autoTable(doc, { startY: y, body: govData, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, theme: 'plain' });
+  }
 
-  addFooter(doc, plan?.id, version, artVersion, plan?.status);
+  addFooter(doc, plan?.id, version, artVersion, plan?.status, config);
   return doc;
 }
 
@@ -394,6 +418,9 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const { data: auditors = [] } = useIAActiveAuditors();
   const { data: assessments = [] } = useIARiskAssessments();
   const [generating, setGenerating] = useState<string | null>(null);
+  const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
+  const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
+  const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
@@ -419,7 +446,13 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       };
     });
 
-  const handleGenerate = async (artifactType: string) => {
+  const openCustomize = (artifactType: string) => {
+    setPendingArtifactType(artifactType);
+    setCustomizeDialogOpen(true);
+  };
+
+  const handleGenerate = async (artifactType: string, config?: ReportConfig) => {
+    const cfg = config || reportConfig;
     setGenerating(artifactType);
     try {
       const existing = artifacts.filter((a: any) => a.artifact_type === artifactType && a.status !== 'Superseded');
@@ -439,8 +472,8 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
 
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
-          ? generateBoardSummaryPdf(plan, engagements, lookups)
-          : generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions);
+          ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
+          : generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
 
         const pdfBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -461,7 +494,8 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           { header: 'Quarter', key: 'quarter', width: 8 },
           { header: 'Start', key: 'start', width: 12 },
           { header: 'End', key: 'end', width: 12 },
-          { header: 'Hours', key: 'hours', width: 8 },
+          { header: 'Days', key: 'days', width: 8 },
+          { header: 'Weeks', key: 'weeks', width: 8 },
           { header: 'Objective', key: 'objective', width: 40 },
           { header: 'Scope', key: 'scope', width: 40 },
           { header: 'Rationale', key: 'rationale', width: 30 },
@@ -483,7 +517,8 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
             quarter: e.quarter || '—',
             start: e.planned_start_date || '—',
             end: e.planned_end_date || '—',
-            hours: e.estimated_hours || '—',
+            days: e.estimated_days || '—',
+            weeks: e.estimated_hours || '—',
             objective: e.objectives || '—',
             scope: e.scope || '—',
             rationale: e.inclusion_rationale || '—',
@@ -491,8 +526,10 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
             status: e.status || 'Planned',
           });
         });
-        // Style header
-        sheet.getRow(1).font = { bold: true };
+        // Style header row with SSB green
+        const headerRow = sheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E5F3A' } };
         const buffer = await workbook.xlsx.writeBuffer();
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, new Blob([buffer]), {
           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', upsert: true,
@@ -513,7 +550,6 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
         is_final: false,
       });
 
-      // Update plan artifact version
       await supabase.from('ia_annual_plans' as any).update({
         artifact_version_number: artVersion,
         updated_by: userCode || 'system',
@@ -567,24 +603,24 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   return (
     <div className="space-y-4">
       {isDraft && (
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="flex items-center gap-3 pt-6">
-            <Info className="h-5 w-5 text-blue-600 shrink-0" />
-            <div className="text-sm text-blue-800">
+            <Info className="h-5 w-5 text-warning shrink-0" />
+            <div className="text-sm">
               <p className="font-medium">Pre-Approval Board Pack</p>
-              <p>Artifacts generated now will be marked as <strong>Draft</strong> with a watermark.</p>
+              <p className="text-muted-foreground">Artifacts generated now will be marked as <strong>Draft</strong> with a watermark.</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {isApproved && !hasFinal && (
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-success/30 bg-success/5">
           <CardContent className="flex items-center gap-3 pt-6">
-            <Info className="h-5 w-5 text-green-600 shrink-0" />
-            <div className="text-sm text-green-800">
+            <Info className="h-5 w-5 text-success shrink-0" />
+            <div className="text-sm">
               <p className="font-medium">Plan Approved — Ready to Finalize</p>
-              <p>Generate final artifacts and mark them as <strong>Final</strong> for official distribution.</p>
+              <p className="text-muted-foreground">Generate final artifacts and mark them as <strong>Final</strong> for official distribution.</p>
             </div>
           </CardContent>
         </Card>
@@ -592,25 +628,41 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Generate Board Pack Artifacts</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Generate Board Pack Artifacts
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button variant="outline" className="justify-start gap-2" onClick={() => handleGenerate('board_summary_pdf')} disabled={!!generating}>
-              {generating === 'board_summary_pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              Board Summary PDF
-            </Button>
-            <Button variant="outline" className="justify-start gap-2" onClick={() => handleGenerate('detailed_plan_pdf')} disabled={!!generating}>
-              {generating === 'detailed_plan_pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              Detailed Plan PDF
-            </Button>
+            {/* Board Summary - with customize option */}
+            <div className="flex gap-1">
+              <Button variant="outline" className="justify-start gap-2 flex-1" onClick={() => handleGenerate('board_summary_pdf')} disabled={!!generating}>
+                {generating === 'board_summary_pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 text-primary" />}
+                Board Summary PDF
+              </Button>
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => openCustomize('board_summary_pdf')} disabled={!!generating}>
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Detailed Plan - with customize option */}
+            <div className="flex gap-1">
+              <Button variant="outline" className="justify-start gap-2 flex-1" onClick={() => handleGenerate('detailed_plan_pdf')} disabled={!!generating}>
+                {generating === 'detailed_plan_pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 text-primary" />}
+                Detailed Plan PDF
+              </Button>
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => openCustomize('detailed_plan_pdf')} disabled={!!generating}>
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Excel - no customize needed */}
             <Button variant="outline" className="justify-start gap-2" onClick={() => handleGenerate('excel_annex')} disabled={!!generating}>
-              {generating === 'excel_annex' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {generating === 'excel_annex' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-primary" />}
               Excel Annex
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            PDFs now include: cover page, executive summary, department/function coverage, risk analysis, detailed engagement schedule with lead auditor and team, resource plan, gap analysis, and governance section.
+            Click the <Settings2 className="inline h-3 w-3" /> icon to customize report format, sections, and color theme before generating. PDFs use SSB official branding.
           </p>
         </CardContent>
       </Card>
@@ -646,6 +698,17 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Customization Dialog */}
+      <ReportCustomizationDialog
+        open={customizeDialogOpen}
+        onOpenChange={setCustomizeDialogOpen}
+        config={reportConfig}
+        onConfigChange={setReportConfig}
+        onGenerate={(cfg) => handleGenerate(pendingArtifactType, cfg)}
+        reportType={pendingArtifactType}
+        generating={!!generating}
+      />
     </div>
   );
 }
