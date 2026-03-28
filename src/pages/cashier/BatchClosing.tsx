@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, CreditCard, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, CreditCard, FileText, Landmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -90,6 +90,8 @@ const BatchClosing: React.FC = () => {
     };
     fetchMops();
   }, []);
+
+  const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
 
   const fetchTotals = useCallback(async (batchNumber: string) => {
     setLoading(true);
@@ -238,13 +240,19 @@ const BatchClosing: React.FC = () => {
         setBatchPayments([]);
       }
 
+      // Add opening balance (offset_amount) to CSH system total so physical cash count matches
+      const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
+      if (openingBalance !== 0) {
+        sysTotals['CSH'] = (sysTotals['CSH'] || 0) + openingBalance;
+      }
+
       setSystem(sysTotals);
     } catch (err) {
       console.error('Failed to fetch totals:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openingBalance]);
 
   useEffect(() => {
     if (batchSel.selectedBatch?.batch_number) {
@@ -425,6 +433,21 @@ const BatchClosing: React.FC = () => {
                   >
                     Go to Cash Details
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Opening Balance Info */}
+            {openingBalance > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Landmark className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Opening Balance: {formatCurrency(openingBalance)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      The opening cash balance is included in the CSH system total for reconciliation.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
