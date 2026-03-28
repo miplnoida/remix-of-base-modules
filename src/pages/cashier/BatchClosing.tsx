@@ -77,26 +77,29 @@ const BatchClosing: React.FC = () => {
         }
       }
 
-      // ---- Physical CHQ ----
-      const { data: chqRows } = await supabase
-        .from('cn_batch_cheque')
-        .select('amount, currency_code')
-        .eq('batch_number', batchNumber);
-
+      // ---- Physical CHQ from verified cheques ----
       let physChq = 0;
-      if (chqRows && chqRows.length > 0) {
-        const chqCurrCodes = [...new Set(chqRows.map(r => r.currency_code).filter(Boolean))];
-        const { data: chqCurrData } = await supabase
-          .from('tb_currencies')
-          .select('currency_code, is_main_currency, exchange_rate')
-          .in('currency_code', chqCurrCodes)
-          .eq('is_active', true);
-        const chqCurrMap = new Map((chqCurrData || []).map(c => [c.currency_code, { isMain: c.is_main_currency, rate: c.exchange_rate }]));
+      const { data: chqData } = await supabase.rpc('get_batch_cheques_for_verification' as any, {
+        p_batch_number: batchNumber,
+      });
+      if (chqData && Array.isArray(chqData)) {
+        const verifiedCheques = (chqData as any[]).filter((c: any) => c.is_verified);
+        // Fetch currency rates for conversion
+        const chqCurrCodes = [...new Set(verifiedCheques.map((c: any) => c.currency_code).filter(Boolean))];
+        if (chqCurrCodes.length > 0) {
+          const { data: chqCurrData } = await supabase
+            .from('tb_currencies')
+            .select('currency_code, is_main_currency, exchange_rate')
+            .in('currency_code', chqCurrCodes)
+            .eq('is_active', true);
+          const chqCurrMap = new Map((chqCurrData || []).map(c => [c.currency_code, { isMain: c.is_main_currency, rate: c.exchange_rate }]));
 
-        for (const row of chqRows) {
-          const info = chqCurrMap.get(row.currency_code);
-          const rate = info?.isMain ? 1 : (info?.rate || 1);
-          physChq += Number(row.amount) * rate;
+          for (const chq of verifiedCheques) {
+            const amt = chq.override_amount ?? chq.amount;
+            const info = chqCurrMap.get(chq.currency_code);
+            const rate = info?.isMain ? 1 : (info?.rate || 1);
+            physChq += Number(amt) * rate;
+          }
         }
       }
 
