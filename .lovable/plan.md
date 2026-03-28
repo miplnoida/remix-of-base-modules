@@ -1,35 +1,39 @@
 
 
-# Fix: Cheque Verification List Includes Cancelled Receipt Cheques
+# Fix: Cheque Duplication and Opening Balance Integration
 
-## Problem
+## Root Cause
 
-The `get_batch_cheques_for_verification` RPC (used by the Cash Details Entry screen) does **not** filter out cheques belonging to cancelled receipts (`cn_receipt.status = 'C'`) or cancelled payment headers. This means:
+**Cheque Duplication**: The `get_batch_cheques_for_verification` RPC uses `UNION ALL` across `cn_payment` and `c3_payment_methods`. For C3 payments, both tables contain the same cheque (same payment_id, same amount, same cheque number). Live data confirms this: payment_id 11 returns two identical $200 BON cheques — one from each table.
 
-- A cashier sees cheques from cancelled transactions in the verification list
-- They can verify cheques that should no longer exist in the batch
-- The `close_batch` RPC correctly excludes these cancelled-receipt cheques, so the physical CHQ total computed at close time will differ from what the cashier verified on screen
+Since `cn_payment` is already the single source of truth for system totals (established in prior fixes), the `c3_payment_methods` branch should be removed from the cheque verification RPC. Every C3 cheque already has a corresponding `cn_payment` row.
 
-This is the same cancelled-receipt bug we just fixed in Batch Closing and Batch Transactions, but it was missed in the cheque verification RPC.
+**Opening Balance**: Already correctly included in `BatchClosing.tsx` (CSH system total) and `close_batch` RPC. The current implementation is sound. The UI info card is present. No changes needed here.
 
-## Fix
+## Plan
 
-### Update `get_batch_cheques_for_verification` RPC (migration)
+### 1. Fix `get_batch_cheques_for_verification` RPC (migration)
 
-Add a `JOIN cn_receipt` filter to both UNION branches, matching the pattern already used in `close_batch`:
+Remove the `UNION ALL` with `c3_payment_methods`. Keep only the `cn_payment` branch. This eliminates the duplicate cheque entries.
 
-- **cn_payment branch**: Add `JOIN cn_receipt r ON r.payment_id = ch.payment_id AND r.status != 'C'` and `AND COALESCE(ch.status, 'active') != 'cancelled'`
-- **c3_payment_methods branch**: Same join and filter
+The `close_batch` RPC also has the same `UNION ALL` pattern for cheque verification — it must be updated identically.
 
-No UI changes needed — the `ChequeVerificationList.tsx` component simply renders whatever the RPC returns.
+### 2. Fix `close_batch` RPC cheque sections (same migration)
+
+Update the physical CHQ calculation and unverified cheque count sections to remove the `c3_payment_methods` branches, matching the corrected cheque verification RPC.
+
+### 3. Update ChequeVerificationList source labels
+
+Remove the `c3_payment_methods` entry from `SOURCE_LABELS` since that source will no longer appear.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| New migration SQL | Redefine `get_batch_cheques_for_verification` with receipt-status filter |
+| New migration SQL | Redefine `get_batch_cheques_for_verification` (remove c3 branch) and `close_batch` (remove c3 cheque branches) |
+| `src/components/payments/ChequeVerificationList.tsx` | Remove `c3_payment_methods` from `SOURCE_LABELS` |
 
-## Expected Result
+## Verification
 
-After this fix, the Cash Details cheque list will only show cheques from active, non-cancelled receipts — matching exactly the set that `close_batch` validates against.
+After the fix, the sample batch `STK-20260314-224943` should return exactly 1 cheque (not 2) from the RPC. The `close_batch` RPC will validate against the same single-source cheque set.
 
