@@ -1,269 +1,144 @@
 
 
-# Internal Audit Module — Annual Plan Refactor
+# Card Payment Machine Management & Machine-Based Transaction Entry
 
 ## Overview
 
-Refactor the Internal Audit planning flow from a fragmented department/function-linked model to a board-ready annual-plan-centric portfolio. The annual plan becomes the single official planning package containing planned engagements as children, with proper approval lifecycle, board pack generation, and controlled distribution.
-
-## Current State
-
-- `ia_annual_plans` has `department_id`, `function_id`, `assigned_auditor` — treating each plan row like a single audit rather than a portfolio
-- `ia_audit_engagements` already has `annual_plan_id` FK and child engagement data
-- `AuditPlansNew.tsx` lists plans as function-linked operational records
-- `AuditPlanDetail.tsx` has tabs: Wizard, Auto Plan, Capacity, Engagements, Functions, Team, Versions, Changelog, Closure
-- `AnnualPlanForm.tsx` captures basic header fields only
-- `PlanApproval.tsx` handles both annual plan and department audit approvals
-- Existing engagement builder, revision dialog, version history, approval actions all functional
-- Email via `send-notification` edge function (Resend-based, no attachment support)
+Replace the current free-text Credit Card / Debit Card amount inputs in Cash Details Entry with a structured, machine-based card transaction entry system. Admin users manage card payment machines (with bank linkages), and cashiers record individual card transactions against those machines during Cash Details Entry.
 
 ---
 
-## Database Changes (Migration)
+## Database Schema (3 new tables)
 
-### 1. Extend `ia_annual_plans` with new columns
+### 1. `cn_card_machine` — Master table for card payment machines
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | Default `gen_random_uuid()` |
+| machine_code | VARCHAR(20) UNIQUE NOT NULL | Short identifier (e.g., "POS-01") |
+| machine_name | VARCHAR(100) NOT NULL | Display name |
+| card_type_support | VARCHAR(10) NOT NULL | `CRD`, `DRD`, or `BOTH` |
+| is_active | BOOLEAN DEFAULT true | Active flag |
+| bank_code | VARCHAR(3) | FK to `tb_bank_code.bank_code` |
+| settlement_account_no | VARCHAR(50) | Bank settlement account number |
+| settlement_account_name | VARCHAR(100) | Account holder name |
+| notes | TEXT | Optional notes |
+| created_by | VARCHAR(50) | UserCode |
+| created_at | TIMESTAMPTZ DEFAULT now() | |
+| modified_by | VARCHAR(50) | |
+| modified_at | TIMESTAMPTZ | |
 
-```sql
--- Planning narrative
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS executive_summary TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS planning_assumptions TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS exclusions TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS resource_constraints TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS plan_owner TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS prepared_by TEXT;
+### 2. `cn_batch_card_transaction` — Individual card transaction rows per batch
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | Default `gen_random_uuid()` |
+| batch_number | VARCHAR NOT NULL | Parent batch |
+| machine_id | UUID NOT NULL | FK to `cn_card_machine.id` |
+| card_type | VARCHAR(3) NOT NULL | `CRD` or `DRD` — explicit per row |
+| amount | NUMERIC(12,2) NOT NULL | Must be > 0 |
+| created_by | VARCHAR(50) | UserCode |
+| created_at | TIMESTAMPTZ DEFAULT now() | |
 
--- Resource summary
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS total_available_hours NUMERIC;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS planned_hours NUMERIC;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS contingency_hours NUMERIC;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS outsourced_support_notes TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS skills_constraints TEXT;
+- Validation trigger: amount > 0, card_type IN ('CRD', 'DRD')
 
--- Governance
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS board_committee_name TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS approval_note TEXT;
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS minutes_reference TEXT;
+### 3. Update to `cn_batch_card_total`
+The existing `cn_batch_card_total` table will continue to store the aggregated CRD/DRD totals per batch. A new **RPC** will calculate these totals server-side from `cn_batch_card_transaction` rows and upsert into `cn_batch_card_total`, ensuring the `close_batch` RPC continues to work without modification.
 
--- Board pack tracking
-ALTER TABLE ia_annual_plans ADD COLUMN IF NOT EXISTS board_pack_status TEXT DEFAULT 'None';
-```
-
-### 2. Extend `ia_audit_engagements` with portfolio fields
-
-```sql
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS quarter TEXT;
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS sequence_no INTEGER;
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS inclusion_rationale TEXT;
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS coverage_category TEXT;
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS board_priority_flag BOOLEAN DEFAULT FALSE;
-ALTER TABLE ia_audit_engagements ADD COLUMN IF NOT EXISTS is_adhoc BOOLEAN DEFAULT FALSE;
-```
-
-### 3. Create `ia_plan_artifacts` table
-
-Stores generated PDF/Excel artifacts with versioning.
-
-| Column | Type |
-|--------|------|
-| id | UUID PK |
-| plan_id | UUID FK → ia_annual_plans |
-| version_number | INT |
-| artifact_type | TEXT (board_summary_pdf, detailed_plan_pdf, excel_annex) |
-| status | TEXT (Draft, Generated, Final, Superseded) |
-| file_name | TEXT |
-| file_path | TEXT |
-| mime_type | TEXT |
-| checksum | TEXT |
-| generated_at | TIMESTAMPTZ |
-| generated_by | TEXT |
-| is_final | BOOLEAN DEFAULT FALSE |
-| created_at / updated_at | TIMESTAMPTZ |
-
-### 4. Create `ia_plan_distribution_logs` table
-
-Tracks every email distribution attempt.
-
-| Column | Type |
-|--------|------|
-| id | UUID PK |
-| plan_id | UUID FK → ia_annual_plans |
-| artifact_id | UUID FK → ia_plan_artifacts |
-| recipient_name | TEXT |
-| recipient_email | TEXT |
-| recipient_type | TEXT (internal, external, board) |
-| subject | TEXT |
-| message_body | TEXT |
-| send_status | TEXT (Pending, Sent, Failed, Cancelled) |
-| provider_message_id | TEXT |
-| sent_at | TIMESTAMPTZ |
-| sent_by | TEXT |
-| created_at | TIMESTAMPTZ |
-
-### 5. Partial unique index for one approved plan per fiscal year
-
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS uq_ia_annual_plans_approved_fiscal_year
-  ON ia_annual_plans (fiscal_year)
-  WHERE status = 'Approved';
-```
+### Audit triggers
+- Attach `audit_table_changes` trigger to both `cn_card_machine` and `cn_batch_card_transaction`.
 
 ---
 
-## Frontend Changes
+## Server-Side Logic (RPC)
 
-### File 1: `src/components/audit/AnnualPlanForm.tsx` — Full Rewrite
+### `save_batch_card_transactions`
+**Parameters:** `p_batch_number`, `p_transactions JSONB[]` (array of {machine_id, card_type, amount}), `p_user_code`
 
-Expand from 5 basic fields to a multi-section form:
+**Logic:**
+1. Validate batch is Open
+2. For each transaction row: validate machine exists, is active, has bank_code set, card_type is compatible with machine's `card_type_support`, amount > 0
+3. Delete existing `cn_batch_card_transaction` rows for this batch
+4. Insert new rows
+5. Calculate SUM by card_type and upsert into `cn_batch_card_total` (CRD total, DRD total)
+6. Return the calculated totals
 
-**A. Plan Header** — title, fiscal_year, plan_owner, prepared_by, status display
-**B. Planning Narrative** — executive_summary, objectives, scope, methodology, planning_assumptions, exclusions, resource_constraints
-**C. Resource Summary** — total_available_hours, planned_hours, contingency_hours, outsourced_support_notes, skills_constraints
-**D. Governance** — board_committee_name, approval_note, minutes_reference
-
-Remove `department_id`, `function_id`, `assigned_auditor` from this form (those are engagement-level). Use accordion or card sections. Keep existing save-as-draft pattern.
-
-### File 2: `src/pages/audit/AuditPlansNew.tsx` — Refactor List
-
-**Columns**: Plan Title, Fiscal Year, Version, Status, Engagements Count, High Risk Count, Planned Hours, Board Pack Status, Last Updated, Approved By/Date
-
-**Actions per row**: View Workspace, Edit Draft, Submit for Approval, Revise, Duplicate Prior Year, Preview Board Pack, Download Final PDF, Send Final
-
-**Metrics cards**: Total Plans, Approved This Year, Drafts/Revisions Pending, Planned Engagements, High Risk Coverage %, Board Packs Generated
-
-**Filters**: Fiscal Year, Status (new status list), Version, Board Pack Status
-
-Remove department/function columns and filters from the list (those are engagement-level data).
-
-### File 3: `src/pages/audit/AuditPlanDetail.tsx` — Workspace Redesign
-
-Replace current 9-tab layout with 7 focused tabs:
-
-1. **Overview** — Plan header, methodology, assumptions, status ribbon, summary metrics
-2. **Planned Engagements** — Reuse existing `EngagementBuilder` with enhanced columns (quarter, hours, priority flag, coverage category). Add inline totals. Add "Duplicate Prior Year Engagements" button.
-3. **Coverage & Risk** — Department coverage summary, function coverage summary, risk level distribution, gaps/deferred items. Computed from engagement data cross-referenced with `ia_departments` and `ia_risk_assessments`.
-4. **Capacity & Schedule** — Quarterly distribution chart, planned hours by auditor, team availability warnings. Reuse existing `CapacityCalendarPanel` and availability check hooks.
-5. **Approval & Amendments** — Reuse `ApprovalHistoryPanel`, `PlanAmendmentHistory`, `PlanVersionHistory`. Add revision reason capture. Show amendment timeline.
-6. **Board Pack** — Preview annual plan content. Generate Board Summary PDF and Detailed Plan PDF buttons. Show artifact history from `ia_plan_artifacts`. Lock final artifact after approval. Re-generate if revised.
-7. **Distribution** — Recipient management (add internal/external recipients). Subject/body editor with merge field support. Attach final artifact. Send button. Distribution history from `ia_plan_distribution_logs`. Delivery status.
-
-### File 4: `src/components/audit/AddEngagementToPlanForm.tsx` — Extend
-
-Add fields: `quarter`, `inclusion_rationale`, `coverage_category`, `board_priority_flag`, `sequence_no`, `is_adhoc`, `estimated_hours` (ensure captured). Keep existing risk auto-derivation, department/function cascading, multi-auditor selection.
-
-### File 5: `src/pages/audit/PlanApproval.tsx` — Update Status Handling
-
-- Update to handle new status model (Draft, Submitted, Under Review, Approved, Superseded, Amendment Pending, Archived, Rejected)
-- Add "Under Review" intermediate state
-- On approve: check partial unique index constraint for one approved per fiscal year. If another approved plan exists for same fiscal year, block with clear message.
-- Keep existing department audit approval flow unchanged
-
-### File 6: New `src/components/audit/BoardPackTab.tsx`
-
-Board Pack tab component:
-- Renders plan data in a print-friendly preview (cover page, executive summary, engagement table by quarter, risk coverage, resource summary, approval block)
-- "Generate Board Summary PDF" button — uses browser print or a PDF generation library to create the artifact
-- "Generate Detailed Plan PDF" button — full version with all metadata
-- Saves artifact metadata to `ia_plan_artifacts` and file to Supabase Storage (`ia-artifacts` bucket)
-- Shows artifact history table
-- Only allows "Mark as Final" on approved plans
-- Supersedes previous artifacts when regenerated
-
-### File 7: New `src/components/audit/PlanDistributionTab.tsx`
-
-Distribution tab component:
-- Recipient list with name, email, type (internal/external/board) — add/remove
-- Subject line with merge field buttons ({{plan_title}}, {{fiscal_year}}, {{version_number}}, etc.)
-- Message body textarea with merge fields
-- Attachment selector showing only Final artifacts from `ia_plan_artifacts`
-- "Send" button — invokes `send-notification` edge function per recipient with the PDF download link (since current edge function doesn't support attachments, include a signed Supabase Storage URL in the email body)
-- Logs each send to `ia_plan_distribution_logs`
-- Shows distribution history with status badges
-- Warns if artifact is superseded
-
-### File 8: New `src/components/audit/CoverageRiskTab.tsx`
-
-Coverage & Risk analysis tab:
-- Queries engagements under this plan grouped by department and function
-- Cross-references with `ia_risk_assessments` to show which high/critical risk functions are covered vs uncovered
-- Displays risk distribution chart (Critical/High/Medium/Low counts)
-- Shows department coverage percentage
-- Lists gaps: functions rated High/Critical with no planned engagement
-
-### File 9: `src/hooks/useAuditData.ts` — Extend
-
-- Add `useIAPlanArtifacts(planId)` hook for `ia_plan_artifacts` queries
-- Add `useIAPlanDistributionLogs(planId)` hook for `ia_plan_distribution_logs` queries
-- Add mutations for artifacts and distribution logs
-- Add `useDuplicatePriorYearPlan()` mutation — copies plan header + engagements from prior fiscal year
-
-### File 10: `src/hooks/useAuditPlanChangeLog.ts` — Extend
-
-- Update `useIAPlanEngagements` to include new fields (quarter, sequence_no, board_priority_flag, etc.)
-
-### File 11: `src/services/auditNotificationService.ts` — Extend
-
-- Add `notifyPlanDistributed()` function for logging distribution emails
-- Add merge field resolution helper for plan distribution templates
+This ensures `close_batch` continues reading from `cn_batch_card_total` with zero changes.
 
 ---
 
-## Validation Rules (Implemented in UI + mutations)
+## Admin UI — Card Machine Management
 
-1. **Submission gate**: Plan cannot be submitted without: title, fiscal_year, executive_summary or objective, at least 1 active engagement, each engagement must have department, scope, timeline, lead_auditor, estimated_hours
-2. **Approval gate**: Before setting status to Approved, query `ia_annual_plans` for another Approved row with same fiscal_year (excluding current ID). Block if found.
-3. **Board Pack gate**: Final PDF can only be generated from Approved plans
-4. **Distribution gate**: Email send blocked unless plan is Approved AND a Final artifact exists
-5. **Date alignment**: Engagement planned dates must fall within fiscal year range
+### New page: `/cashier/card-machines`
+- Add to "Sage Integrations Settings" menu group with `admin` permission
+- Full CRUD: list all machines in a table, Create/Edit via dialog, Deactivate toggle
+- Fields: Machine Code, Machine Name, Card Type Support (CRD/DRD/Both), Bank (dropdown from `tb_bank_code`), Settlement Account No, Settlement Account Name, Active status, Notes
+- Deactivation uses soft-delete (is_active = false), not hard delete
 
----
-
-## Status Model Implementation
-
-Update `StatusBadge` mappings (if needed) for new statuses. All status transitions enforced in mutation handlers:
-
-- Draft → Submitted (requires validation pass)
-- Submitted → Under Review → Approved / Rejected
-- Approved → Amendment Pending → Submitted (re-approval)
-- Approved → Superseded (when new version approved for same fiscal year)
-- Any → Archived
+### Route addition
+- Add route in `AppRoutes.tsx`
+- Add menu item in `cashierMenuItems.ts`
 
 ---
 
-## Backward Compatibility
+## Cashier UI — Cash Details Entry Update
 
-- Existing `department_id` and `function_id` on `ia_annual_plans` are left nullable and unused by new UI but not dropped
-- Existing records mapped: plans without engagements show "0 engagements" in new UI
-- All existing engagement data preserved — `annual_plan_id` already links them
-- New columns all nullable with defaults — no migration failures
-- Old `AuditPlans.tsx` route still exists but `AuditPlansNew.tsx` is the active route
+### Replace "Card Machine Totals" section (lines 611-651 of `CashDetails.tsx`)
+
+**Current:** Two free-text inputs for CRD and DRD amounts.
+
+**New:** A structured card transaction entry table:
+
+1. **"Add Card Transaction" button** opens an inline row or modal with:
+   - Machine dropdown (only active machines)
+   - Card Type dropdown (filtered by selected machine's `card_type_support` — if machine supports `BOTH`, show CRD and DRD options; if CRD-only, auto-select CRD)
+   - Amount input (number, > 0)
+
+2. **Transaction grid** showing all rows: Machine Code, Machine Name, Card Type, Amount, with Edit/Remove actions
+
+3. **Auto-calculated footer** showing:
+   - Total CRD: sum of all rows where card_type = 'CRD'
+   - Total DRD: sum of all rows where card_type = 'DRD'
+   - These are read-only display values
+
+4. **Summary cards** (CRD and DRD) at the top remain but now show the calculated totals from transaction rows instead of manual input
+
+### Save flow update
+- On "Save All", call `save_batch_card_transactions` RPC with the transaction rows
+- The RPC returns server-calculated CRD and DRD totals, which update the summary cards
+- The existing cash count and cheque save logic remain unchanged
+- Physical count formula: `cashTotal + chequeTotal + serverCRDTotal + serverDRDTotal`
+
+### Load flow update
+- On batch selection, fetch `cn_batch_card_transaction` rows (joined with `cn_card_machine` for display names) instead of reading flat `cn_batch_card_total`
+- CRD/DRD summary totals are derived client-side from loaded rows for display, but authoritative totals come from the server on save
 
 ---
 
-## Non-Impact Guarantee
-
-- No changes to any file outside `src/pages/audit/`, `src/components/audit/`, `src/hooks/useAudit*`, `src/services/audit*`, `src/config/auditRouteConfig.ts`
-- No changes to PageShell, DataTable, StandardModal, StatusBadge, MetricCard
-- No changes to send-notification edge function (use download links for attachments)
-- No changes to RBAC, profiles, tb_office, or any non-audit table
-- No changes to findings, working papers, evidence, action tracking, quality review screens
-- Supabase Storage bucket `ia-artifacts` created via migration for PDF storage
-
----
-
-## Summary of All Files
+## Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| DB migration | Add columns to ia_annual_plans + ia_audit_engagements, create ia_plan_artifacts + ia_plan_distribution_logs, create unique index, create storage bucket |
-| `AnnualPlanForm.tsx` | Rewrite with expanded sections (narrative, resources, governance) |
-| `AuditPlansNew.tsx` | Refactor list to portfolio-centric view with new columns, metrics, actions |
-| `AuditPlanDetail.tsx` | Redesign to 7-tab workspace (Overview, Engagements, Coverage, Capacity, Approval, Board Pack, Distribution) |
-| `AddEngagementToPlanForm.tsx` | Add quarter, inclusion_rationale, coverage_category, board_priority_flag fields |
-| `PlanApproval.tsx` | Update status model, add fiscal year uniqueness check on approve |
-| `BoardPackTab.tsx` | New — PDF preview/generation, artifact management |
-| `PlanDistributionTab.tsx` | New — Email distribution with recipient management, merge fields, logging |
-| `CoverageRiskTab.tsx` | New — Risk coverage analysis and gap identification |
-| `useAuditData.ts` | Add artifact + distribution hooks, duplicate plan mutation |
-| `useAuditPlanChangeLog.ts` | Include new engagement fields in query |
-| `auditNotificationService.ts` | Add distribution notification helpers |
+| Migration SQL | CREATE tables, RPC, triggers |
+| `src/pages/cashier/CardMachineManagement.tsx` | New admin page |
+| `src/pages/cashier/CashDetails.tsx` | Replace card totals section |
+| `src/components/payments/CardTransactionEntry.tsx` | New component for transaction row entry |
+| `src/components/sidebar/menuItems/cashierMenuItems.ts` | Add menu item |
+| `src/components/routing/AppRoutes.tsx` | Add route |
+
+---
+
+## Reconciliation & Reporting Compatibility
+
+- `close_batch` RPC reads from `cn_batch_card_total` — no changes needed since the new RPC keeps this table in sync
+- `BatchClosing.tsx` reads from `cn_batch_card_total` — no changes needed
+- Future reporting can query `cn_batch_card_transaction` for machine-level, bank-level, card-type, and date-based breakdowns
+
+---
+
+## Technical Details
+
+- No RLS per project rules; authenticated access policies only
+- All validation is server-side in the RPC; client validates for UX only
+- `tb_bank_code` is the existing bank master table (PK: `bank_code` VARCHAR(3))
+- Audit triggers follow existing `audit_table_changes` pattern
+- UserCode tracking follows project standards for `created_by`/`modified_by`
 
