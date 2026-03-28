@@ -114,6 +114,7 @@ export default function AuditPlanDetail() {
           <TabsTrigger value="engagements">Engagements ({stats.total})</TabsTrigger>
           <TabsTrigger value="coverage">Coverage & Risk</TabsTrigger>
           <TabsTrigger value="capacity">Capacity & Schedule</TabsTrigger>
+          <TabsTrigger value="autoplan">Auto Plan</TabsTrigger>
           <TabsTrigger value="approval">Approval & Amendments</TabsTrigger>
           <TabsTrigger value="boardpack">Board Pack</TabsTrigger>
           <TabsTrigger value="distribution">Distribution</TabsTrigger>
@@ -207,11 +208,12 @@ export default function AuditPlanDetail() {
                 <Card>
                   <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
                   <CardContent>
-                    <DetailRow label="Available Hours" value={plan.total_available_hours || '—'} />
-                    <DetailRow label="Planned Hours (Engagements)" value={stats.totalHours || '—'} />
-                    <DetailRow label="Contingency Hours" value={plan.contingency_hours || '—'} />
-                    {plan.total_available_hours && stats.totalHours > 0 && (
-                      <DetailRow label="Utilization" value={`${Math.round((stats.totalHours / Number(plan.total_available_hours)) * 100)}%`} />
+                    <DetailRow label="Available Days (Team)" value={plan.total_available_days || '—'} />
+                    <DetailRow label="Planned Days (Engagements)" value={stats.totalDays || '—'} />
+                    <DetailRow label="Planned Weeks" value={plan.planned_weeks || stats.totalWeeks || '—'} />
+                    <DetailRow label="Contingency Days" value={plan.contingency_days || '—'} />
+                    {plan.total_available_days && stats.totalDays > 0 && (
+                      <DetailRow label="Utilization" value={`${Math.round((stats.totalDays / Number(plan.total_available_days)) * 100)}%`} />
                     )}
                     {plan.resource_constraints && (
                       <div className="mt-2">
