@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, CheckCircle2, XCircle, Lock, Info, AlertTriangle, ChevronDown, CreditCard, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, CreditCard, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -44,6 +45,12 @@ interface ChequeInfo {
   unverified: number;
 }
 
+interface PaymentMethodDetail {
+  mop_code: string;
+  mop_label: string;
+  amount: number;
+}
+
 const BatchClosing: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -64,6 +71,12 @@ const BatchClosing: React.FC = () => {
   const [batchPayments, setBatchPayments] = useState<BatchPaymentRow[]>([]);
   const [cardSectionOpen, setCardSectionOpen] = useState(false);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
+
+  // Payment method detail modal
+  const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [methodModalPayment, setMethodModalPayment] = useState<BatchPaymentRow | null>(null);
+  const [methodModalDetails, setMethodModalDetails] = useState<PaymentMethodDetail[]>([]);
+  const [methodModalLoading, setMethodModalLoading] = useState(false);
 
   useEffect(() => {
     const fetchMops = async () => {
@@ -189,7 +202,7 @@ const BatchClosing: React.FC = () => {
       if (headers && headers.length > 0) {
         const paymentIds = headers.map(h => h.payment_id);
 
-        // Fetch receipts and payments in parallel
+        // Fetch receipts, payments, and c3 methods in parallel
         const [receiptsRes, paymentsRes, c3MethodsRes] = await Promise.all([
           supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
           supabase.from('cn_payment').select('payment_id, mop_code, payment_amount').in('payment_id', paymentIds),
@@ -267,18 +280,74 @@ const BatchClosing: React.FC = () => {
     }
   };
 
-  // Derive lists
-  const physicalMops = allMops.filter(m => PHYSICAL_MOP_CODES.includes(m.mop_code));
-  const systemOnlyMops = allMops.filter(m => !PHYSICAL_MOP_CODES.includes(m.mop_code) && (system[m.mop_code] || 0) > 0);
+  // Handle clicking a batch transaction row to view payment method breakdown
+  const handlePaymentRowClick = async (payment: BatchPaymentRow) => {
+    setMethodModalPayment(payment);
+    setMethodModalOpen(true);
+    setMethodModalLoading(true);
+    setMethodModalDetails([]);
+
+    try {
+      // Fetch from both cn_payment and c3_payment_methods in parallel
+      const [cnRes, c3Res] = await Promise.all([
+        supabase
+          .from('cn_payment')
+          .select('mop_code, payment_amount')
+          .eq('payment_id', payment.payment_id),
+        supabase
+          .from('c3_payment_methods')
+          .select('mop_code, base_amount')
+          .eq('payment_id', payment.payment_id),
+      ]);
+
+      const methodMap: Record<string, number> = {};
+
+      (cnRes.data || []).forEach(p => {
+        const code = p.mop_code || '';
+        methodMap[code] = (methodMap[code] || 0) + Number(p.payment_amount || 0);
+      });
+
+      (c3Res.data || []).forEach(m => {
+        const code = m.mop_code || '';
+        methodMap[code] = (methodMap[code] || 0) + Number(m.base_amount || 0);
+      });
+
+      const details: PaymentMethodDetail[] = Object.entries(methodMap).map(([code, amount]) => ({
+        mop_code: code,
+        mop_label: allMops.find(m => m.mop_code === code)?.short_description || code,
+        amount,
+      }));
+
+      setMethodModalDetails(details);
+    } catch (err) {
+      console.error('Failed to fetch payment methods:', err);
+    } finally {
+      setMethodModalLoading(false);
+    }
+  };
+
+  // Build unified MOP rows for reconciliation table
+  // All MOPs with either physical or system amounts
+  const allMopCodes = new Set([
+    ...PHYSICAL_MOP_CODES,
+    ...Object.keys(system),
+  ]);
+  const reconMops = allMops.filter(m => allMopCodes.has(m.mop_code));
   const mopLabel = (code: string) => allMops.find(m => m.mop_code === code)?.short_description || code;
 
-  const physicalTotal = PHYSICAL_MOP_CODES.reduce((s, k) => s + (physical[k] || 0), 0);
-  const systemPhysicalTotal = PHYSICAL_MOP_CODES.reduce((s, k) => s + (system[k] || 0), 0);
-  const systemOnlyTotal = systemOnlyMops.reduce((s, m) => s + (system[m.mop_code] || 0), 0);
+  const grandPhysicalTotal = reconMops.reduce((s, m) => s + (physical[m.mop_code] || 0), 0);
+  const grandSystemTotal = reconMops.reduce((s, m) => s + (system[m.mop_code] || 0), 0);
 
-  const allMatch = PHYSICAL_MOP_CODES.every(k =>
-    Math.round((physical[k] || 0) * 100) === Math.round((system[k] || 0) * 100)
-  );
+  // Validation: physical MOPs must match system; system-only MOPs always pass (physical=0 matches expected 0)
+  const allMatch = reconMops.every(m => {
+    const phys = physical[m.mop_code] || 0;
+    const sys = system[m.mop_code] || 0;
+    if (PHYSICAL_MOP_CODES.includes(m.mop_code)) {
+      return Math.round(phys * 100) === Math.round(sys * 100);
+    }
+    // System-only MOPs: no physical count needed, always valid
+    return true;
+  });
 
   const renderMopExtra = (mopCode: string) => {
     if (mopCode === 'CHQ' && chequeInfo.total > 0) {
@@ -360,10 +429,10 @@ const BatchClosing: React.FC = () => {
               </Card>
             )}
 
-            {/* Physical vs System Reconciliation */}
+            {/* Unified MOP Reconciliation */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">MOP Reconciliation — Physical Count</CardTitle>
+                <CardTitle className="text-base">MOP Reconciliation</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -377,26 +446,35 @@ const BatchClosing: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {physicalMops.map(mop => {
+                    {reconMops.map(mop => {
+                      const isPhysical = PHYSICAL_MOP_CODES.includes(mop.mop_code);
                       const phys = physical[mop.mop_code] || 0;
                       const sys = system[mop.mop_code] || 0;
                       const variance = phys - sys;
-                      const match = Math.round(phys * 100) === Math.round(sys * 100);
+                      const match = isPhysical
+                        ? Math.round(phys * 100) === Math.round(sys * 100)
+                        : true; // system-only MOPs always pass
                       return (
-                        <TableRow key={mop.mop_code}>
+                        <TableRow key={mop.mop_code} className={!isPhysical ? 'bg-muted/30' : ''}>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="font-mono text-xs">{mop.mop_code}</Badge>
+                              <Badge variant={isPhysical ? 'outline' : 'secondary'} className="font-mono text-xs">{mop.mop_code}</Badge>
                               <div>
                                 <span className="text-sm">{mop.short_description}</span>
                                 {renderMopExtra(mop.mop_code)}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(phys)}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {isPhysical ? formatCurrency(phys) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
                           <TableCell className="text-right font-mono">{formatCurrency(sys)}</TableCell>
                           <TableCell className={`text-right font-mono ${!match ? 'text-destructive font-semibold' : ''}`}>
-                            {variance >= 0 ? '+' : ''}{formatCurrency(variance)}
+                            {isPhysical ? (
+                              <>{variance >= 0 ? '+' : ''}{formatCurrency(variance)}</>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             {match ? (
@@ -409,11 +487,11 @@ const BatchClosing: React.FC = () => {
                       );
                     })}
                     <TableRow className="border-t-2 font-semibold">
-                      <TableCell>Total (Physical MOPs)</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(physicalTotal)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(systemPhysicalTotal)}</TableCell>
-                      <TableCell className={`text-right font-mono ${physicalTotal !== systemPhysicalTotal ? 'text-destructive' : ''}`}>
-                        {physicalTotal - systemPhysicalTotal >= 0 ? '+' : ''}{formatCurrency(physicalTotal - systemPhysicalTotal)}
+                      <TableCell>Grand Total</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(grandPhysicalTotal)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(grandSystemTotal)}</TableCell>
+                      <TableCell className={`text-right font-mono ${grandPhysicalTotal !== grandSystemTotal ? 'text-destructive' : ''}`}>
+                        {grandPhysicalTotal - grandSystemTotal >= 0 ? '+' : ''}{formatCurrency(grandPhysicalTotal - grandSystemTotal)}
                       </TableCell>
                       <TableCell className="text-center">
                         {allMatch ? (
@@ -505,7 +583,11 @@ const BatchClosing: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                           {batchPayments.map(p => (
-                            <TableRow key={p.payment_id}>
+                            <TableRow
+                              key={p.payment_id}
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handlePaymentRowClick(p)}
+                            >
                               <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
                               <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
                               <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
@@ -523,50 +605,6 @@ const BatchClosing: React.FC = () => {
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
-            )}
-
-            {/* System-only MOPs */}
-            {systemOnlyMops.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                    System Summary — Other Payment Methods
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    These payment methods do not require physical verification and are shown for informational purposes only.
-                  </p>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Payment Method</TableHead>
-                        <TableHead className="text-right">System Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {systemOnlyMops.map(mop => (
-                        <TableRow key={mop.mop_code}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="font-mono text-xs">{mop.mop_code}</Badge>
-                              <span className="text-sm">{mop.short_description}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(system[mop.mop_code] || 0)}</TableCell>
-                        </TableRow>
-                      ))}
-                      {systemOnlyMops.length > 1 && (
-                        <TableRow className="border-t-2 font-semibold">
-                          <TableCell>Total (Other MOPs)</TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(systemOnlyTotal)}</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
             )}
 
             {/* Status & Action */}
@@ -618,6 +656,62 @@ const BatchClosing: React.FC = () => {
           onConfirm={handleCloseBatch}
           isLoading={closing}
         />
+
+        {/* Payment Methods Detail Modal */}
+        <Dialog open={methodModalOpen} onOpenChange={setMethodModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                Payment Methods
+                {methodModalPayment && (
+                  <Badge variant="outline" className="font-mono text-xs ml-2">
+                    Receipt: {methodModalPayment.receipt_number}
+                  </Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            {methodModalLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : methodModalDetails.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No payment method details found.</p>
+            ) : (
+              <div className="space-y-1">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Method</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {methodModalDetails.map(d => (
+                      <TableRow key={d.mop_code}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono text-xs">{d.mop_code}</Badge>
+                            <span className="text-sm">{d.mop_label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(d.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {methodModalDetails.length > 1 && (
+                      <TableRow className="border-t-2 font-semibold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(methodModalDetails.reduce((s, d) => s + d.amount, 0))}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </BatchSelectionGuard>
   );
