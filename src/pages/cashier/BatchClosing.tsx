@@ -190,9 +190,10 @@ const BatchClosing: React.FC = () => {
         const paymentIds = headers.map(h => h.payment_id);
 
         // Fetch receipts and payments in parallel
-        const [receiptsRes, paymentsRes] = await Promise.all([
+        const [receiptsRes, paymentsRes, c3MethodsRes] = await Promise.all([
           supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
           supabase.from('cn_payment').select('payment_id, mop_code, payment_amount').in('payment_id', paymentIds),
+          supabase.from('c3_payment_methods').select('payment_id, mop_code, base_amount').in('payment_id', paymentIds),
         ]);
 
         const receiptMap = new Map((receiptsRes.data || []).map(r => [r.payment_id, r]));
@@ -213,6 +214,12 @@ const BatchClosing: React.FC = () => {
         (paymentsRes.data || []).forEach(p => {
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
+        });
+
+        // Include C3 payment methods (base_amount is already in base currency)
+        (c3MethodsRes.data || []).forEach(m => {
+          const code = m.mop_code || '';
+          sysTotals[code] = (sysTotals[code] || 0) + Number(m.base_amount || 0);
         });
       } else {
         setBatchPayments([]);
