@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, User, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit } from 'lucide-react';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
@@ -14,6 +14,7 @@ import { PlanAmendmentHistory } from '@/components/audit/PlanAmendmentHistory';
 import { BoardPackTab } from '@/components/audit/BoardPackTab';
 import { PlanDistributionTab } from '@/components/audit/PlanDistributionTab';
 import { CoverageRiskTab } from '@/components/audit/CoverageRiskTab';
+import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge } from '@/components/common';
@@ -22,8 +23,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { notifyPlanClosed } from '@/services/auditNotificationService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -48,12 +48,9 @@ export default function AuditPlanDetail() {
   const { data: auditors = [] } = useIAAuditors();
   const { update: updatePlan } = useIAAnnualPlanMutations();
 
-  const [isClosing, setIsClosing] = useState(false);
+  const [isEditingHeader, setIsEditingHeader] = useState(false);
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
-
-  const getDeptName = (deptId: string) => (departments || []).find((d: any) => d.id === deptId)?.name || '—';
-  const getAuditorName = (aid: string) => (auditors || []).find((a: any) => a.id === aid)?.name || '—';
 
   const stats = useMemo(() => {
     const all = engagements || [];
@@ -85,6 +82,7 @@ export default function AuditPlanDetail() {
   }
 
   const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const canEditHeader = ['Draft', 'Revision'].includes(plan.status);
 
   return (
     <PageShell
@@ -122,101 +120,134 @@ export default function AuditPlanDetail() {
 
         {/* Overview Tab */}
         <TabsContent value="overview">
-          <div className="grid gap-4 md:grid-cols-2">
+          {isEditingHeader ? (
             <Card>
-              <CardHeader><CardTitle className="text-sm">Plan Information</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Edit Plan Header & Narrative</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setIsEditingHeader(false)}><X className="h-4 w-4" /></Button>
+              </CardHeader>
               <CardContent>
-                <DetailRow label="Plan Title" value={plan.title} />
-                <DetailRow label="Fiscal Year" value={plan.fiscal_year} />
-                <DetailRow label="Plan Owner" value={plan.plan_owner || '—'} />
-                <DetailRow label="Prepared By" value={plan.prepared_by || '—'} />
-                <DetailRow label="Status" value={<StatusBadge status={plan.status || 'Draft'} />} />
-                <DetailRow label="Board Pack" value={<StatusBadge status={plan.board_pack_status || 'None'} />} />
-                <DetailRow label="Version" value={`v${plan.current_version_number || 1}`} />
-                <DetailRow label="Approved By" value={plan.approved_by || '—'} />
-                <DetailRow label="Created" value={plan.created_at ? formatDateForDisplay(plan.created_at) : '—'} />
+                <AnnualPlanForm
+                  plan={plan}
+                  onClose={() => setIsEditingHeader(false)}
+                  onCreate={async (data) => {}}
+                  onUpdate={async (data) => { await updatePlan.mutateAsync(data); }}
+                />
               </CardContent>
             </Card>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm">Plan Information</CardTitle>
+                    {canEditHeader && hasPermission('edit_audit_plans') && (
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditingHeader(true)}>
+                        <Edit className="h-3.5 w-3.5 mr-1" />Edit
+                      </Button>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <DetailRow label="Plan Title" value={plan.title} />
+                    <DetailRow label="Fiscal Year" value={plan.fiscal_year} />
+                    <DetailRow label="Status" value={<StatusBadge status={plan.status || 'Draft'} />} />
+                    <DetailRow label="Board Pack" value={<StatusBadge status={plan.board_pack_status || 'None'} />} />
+                    <DetailRow label="Version" value={`v${plan.current_version_number || 1}`} />
+                    <DetailRow label="Created By" value={plan.created_by || plan.plan_owner || '—'} />
+                    <DetailRow label="Last Updated By" value={plan.updated_by || '—'} />
+                    <DetailRow label="Approved By" value={plan.approved_by || '—'} />
+                    <DetailRow label="Created" value={plan.created_at ? formatDateForDisplay(plan.created_at) : '—'} />
+                    <DetailRow label="Last Updated" value={plan.updated_at ? formatDateForDisplay(plan.updated_at) : '—'} />
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Planning Narrative</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {plan.executive_summary && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Executive Summary</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{plan.executive_summary}</p>
-                  </div>
-                )}
-                {plan.objective && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Objective</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{plan.objective}</p>
-                  </div>
-                )}
-                {plan.methodology && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Methodology</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{plan.methodology}</p>
-                  </div>
-                )}
-                {plan.planning_assumptions && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Planning Assumptions</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{plan.planning_assumptions}</p>
-                  </div>
-                )}
-                {plan.exclusions && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Exclusions</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{plan.exclusions}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Resource & Governance Summary */}
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
-              <CardContent>
-                <DetailRow label="Available Hours" value={plan.total_available_hours || '—'} />
-                <DetailRow label="Planned Hours" value={plan.planned_hours || '—'} />
-                <DetailRow label="Contingency Hours" value={plan.contingency_hours || '—'} />
-                {plan.resource_constraints && (
-                  <div className="mt-2">
-                    <p className="text-xs text-muted-foreground">Constraints</p>
-                    <p className="text-sm mt-1">{plan.resource_constraints}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Governance</CardTitle></CardHeader>
-              <CardContent>
-                <DetailRow label="Board / Committee" value={plan.board_committee_name || '—'} />
-                <DetailRow label="Minutes Reference" value={plan.minutes_reference || '—'} />
-                {plan.approval_note && (
-                  <div className="mt-2">
-                    <p className="text-xs text-muted-foreground">Approval Note</p>
-                    <p className="text-sm mt-1">{plan.approval_note}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Progress */}
-          <Card className="mt-4">
-            <CardHeader><CardTitle className="text-sm">Engagement Progress</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Overall Completion</span>
-                <span className="font-semibold">{progressPercent}%</span>
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Planning Narrative</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {plan.executive_summary && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Executive Summary</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{plan.executive_summary}</p>
+                      </div>
+                    )}
+                    {plan.objective && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Objective</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{plan.objective}</p>
+                      </div>
+                    )}
+                    {plan.methodology && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Methodology</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{plan.methodology}</p>
+                      </div>
+                    )}
+                    {plan.planning_assumptions && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Planning Assumptions</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{plan.planning_assumptions}</p>
+                      </div>
+                    )}
+                    {plan.exclusions && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Exclusions</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{plan.exclusions}</p>
+                      </div>
+                    )}
+                    {!plan.executive_summary && !plan.objective && !plan.methodology && (
+                      <p className="text-sm text-muted-foreground italic">No planning narrative entered yet. Click Edit to add details.</p>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-              <Progress value={progressPercent} className="h-3" />
-            </CardContent>
-          </Card>
+
+              {/* Resource & Governance Summary */}
+              <div className="grid gap-4 md:grid-cols-2 mt-4">
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
+                  <CardContent>
+                    <DetailRow label="Available Hours" value={plan.total_available_hours || '—'} />
+                    <DetailRow label="Planned Hours (Engagements)" value={stats.totalHours || '—'} />
+                    <DetailRow label="Contingency Hours" value={plan.contingency_hours || '—'} />
+                    {plan.total_available_hours && stats.totalHours > 0 && (
+                      <DetailRow label="Utilization" value={`${Math.round((stats.totalHours / Number(plan.total_available_hours)) * 100)}%`} />
+                    )}
+                    {plan.resource_constraints && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground">Constraints</p>
+                        <p className="text-sm mt-1">{plan.resource_constraints}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Governance</CardTitle></CardHeader>
+                  <CardContent>
+                    <DetailRow label="Board / Committee" value={plan.board_committee_name || '—'} />
+                    <DetailRow label="Minutes Reference" value={plan.minutes_reference || '—'} />
+                    {plan.approval_note && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground">Approval Note</p>
+                        <p className="text-sm mt-1">{plan.approval_note}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Progress */}
+              <Card className="mt-4">
+                <CardHeader><CardTitle className="text-sm">Engagement Progress</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Overall Completion</span>
+                    <span className="font-semibold">{progressPercent}%</span>
+                  </div>
+                  <Progress value={progressPercent} className="h-3" />
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         {/* Engagements Tab */}
