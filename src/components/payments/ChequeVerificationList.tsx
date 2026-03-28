@@ -40,7 +40,6 @@ interface ChequeVerificationListProps {
 
 const SOURCE_LABELS: Record<string, string> = {
   cn_payment: 'Payment Entry',
-  c3_payment_methods: 'C3 Payment',
 };
 
 export function ChequeVerificationList({ batchNumber, onTotalChange }: ChequeVerificationListProps) {
