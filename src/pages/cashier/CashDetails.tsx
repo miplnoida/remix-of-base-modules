@@ -16,6 +16,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useQuery } from '@tanstack/react-query';
 import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
+import { CardTransactionEntry, CardTransaction } from '@/components/payments/CardTransactionEntry';
 import { formatDateForDisplay } from '@/lib/format-config';
 
 const CashDetails: React.FC = () => {
@@ -34,9 +35,8 @@ const CashDetails: React.FC = () => {
   const [editingChequeIndex, setEditingChequeIndex] = useState<number | null>(null);
   const addChequeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Card totals
-  const [creditCardTotal, setCreditCardTotal] = useState<number>(0);
-  const [debitCardTotal, setDebitCardTotal] = useState<number>(0);
+  // Card transactions (machine-based)
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
   const [loadingCards, setLoadingCards] = useState(false);
 
   // Bank codes lookup
@@ -146,24 +146,29 @@ const CashDetails: React.FC = () => {
     loadCheques();
   }, [batchSel.selectedBatch?.batch_number]);
 
-  // Load card totals from DB
+  // Load card transactions from DB
   useEffect(() => {
     const loadCards = async () => {
       const batchNumber = batchSel.selectedBatch?.batch_number;
-      if (!batchNumber) { setCreditCardTotal(0); setDebitCardTotal(0); return; }
+      if (!batchNumber) { setCardTransactions([]); return; }
       setLoadingCards(true);
       try {
         const { data, error } = await supabase
-          .from('cn_batch_card_total')
-          .select('mop_code, amount')
-          .eq('batch_number', batchNumber);
+          .from('cn_batch_card_transaction')
+          .select('id, batch_number, machine_id, card_type, amount, cn_card_machine(machine_code, machine_name)')
+          .eq('batch_number', batchNumber)
+          .order('created_at');
         if (error) throw error;
-        (data || []).forEach((r: any) => {
-          if (r.mop_code === 'CRD') setCreditCardTotal(Number(r.amount));
-          if (r.mop_code === 'DRD') setDebitCardTotal(Number(r.amount));
-        });
+        setCardTransactions((data || []).map((r: any) => ({
+          id: r.id,
+          machine_id: r.machine_id,
+          card_type: r.card_type,
+          amount: Number(r.amount),
+          machine_code: r.cn_card_machine?.machine_code,
+          machine_name: r.cn_card_machine?.machine_name,
+        })));
       } catch (err) {
-        console.error('Failed to load card totals:', err);
+        console.error('Failed to load card transactions:', err);
       } finally {
         setLoadingCards(false);
       }
@@ -224,6 +229,8 @@ const CashDetails: React.FC = () => {
     [cheques, getBaseAmount]
   );
 
+  const creditCardTotal = useMemo(() => cardTransactions.filter(t => t.card_type === 'CRD').reduce((s, t) => s + t.amount, 0), [cardTransactions]);
+  const debitCardTotal = useMemo(() => cardTransactions.filter(t => t.card_type === 'DRD').reduce((s, t) => s + t.amount, 0), [cardTransactions]);
   const physicalCountInMain = cashPhysicalTotal + chequesTotal + creditCardTotal + debitCardTotal;
 
   const getDenominationLabel = (d: DenominationConfig) => {
@@ -338,14 +345,17 @@ const CashDetails: React.FC = () => {
         if (insChqErr) throw insChqErr;
       }
 
-      // 3. Save card totals via upsert
-      const cardRows = [
-        { batch_number: batchNumber, mop_code: 'CRD', amount: creditCardTotal, updated_by: userCode || null, updated_at: new Date().toISOString() },
-        { batch_number: batchNumber, mop_code: 'DRD', amount: debitCardTotal, updated_by: userCode || null, updated_at: new Date().toISOString() },
-      ];
-      const { error: cardErr } = await supabase
-        .from('cn_batch_card_total')
-        .upsert(cardRows, { onConflict: 'batch_number,mop_code' });
+      // 3. Save card transactions via RPC (server-side validation & total calculation)
+      const txnPayload = cardTransactions.map(t => ({
+        machine_id: t.machine_id,
+        card_type: t.card_type,
+        amount: t.amount,
+      }));
+      const { data: cardResult, error: cardErr } = await supabase.rpc('save_batch_card_transactions', {
+        p_batch_number: batchNumber,
+        p_transactions: txnPayload,
+        p_user_code: userCode || 'SYSTEM',
+      });
       if (cardErr) throw cardErr;
 
       toast({
@@ -608,47 +618,13 @@ const CashDetails: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card Totals Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Card Machine Totals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingCards ? (
-              <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="crdTotal">Credit Card Machine Total (CRD)</Label>
-                  <Input
-                    id="crdTotal"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={creditCardTotal || ''}
-                    onChange={e => setCreditCardTotal(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="drdTotal">Debit Card Machine Total (DRD)</Label>
-                  <Input
-                    id="drdTotal"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={debitCardTotal || ''}
-                    onChange={e => setDebitCardTotal(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Card Machine Transactions Section */}
+        <CardTransactionEntry
+          batchNumber={batchSel.selectedBatch?.batch_number || null}
+          transactions={cardTransactions}
+          onChange={setCardTransactions}
+          loading={loadingCards}
+        />
 
         {/* Cheque Entry Modal */}
         <ChequeEntryModal

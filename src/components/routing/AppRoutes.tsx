@@ -540,6 +540,7 @@ import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
 import BatchClosing from '@/pages/cashier/BatchClosing';
 import CashierBatchManagement from '@/pages/cashier/BatchManagement';
 import PaymentModuleConfig from '@/pages/cashier/PaymentModuleConfig';
+import CardMachineManagement from '@/pages/cashier/CardMachineManagement';
 import DailyInvoiceReport from '@/pages/cashier/DailyInvoiceReport';
 import ChartAccountsMapping from '@/pages/cashier/ChartAccountsMapping';
 import PaymentTypesMapping from '@/pages/cashier/PaymentTypesMapping';
@@ -1316,6 +1317,7 @@ export const AppRoutes = () => {
       <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
       <Route path="/cashier/batch-management" element={<ProtectedLayout><CashierBatchManagement /></ProtectedLayout>} />
       <Route path="/cashier/payment-module-config" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
+      <Route path="/cashier/card-machines" element={<ProtectedLayout><CardMachineManagement /></ProtectedLayout>} />
       <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
