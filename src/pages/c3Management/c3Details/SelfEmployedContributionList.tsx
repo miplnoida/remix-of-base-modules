@@ -196,7 +196,7 @@ const SelfEmployedContributionList: React.FC = () => {
               {selectedSeId ? 'No contributions found.' : 'Select a Self Employee and click Search.'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto c3-panels">
               <Table>
                 <TableHeader>
                   <TableRow>

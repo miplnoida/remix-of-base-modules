@@ -196,7 +196,7 @@ const NwDirectorList: React.FC = () => {
               {selectedCompanyId ? 'No contributions found.' : 'Select a Non Working Director and click Search.'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto c3-panels">
               <Table>
                 <TableHeader>
                   <TableRow>

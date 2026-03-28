@@ -506,7 +506,7 @@ export default function WizPaymentDetails() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border overflow-auto">
+              <div className="rounded-md border overflow-auto c3-panels">
                 <Table>
                   <TableHeader>
                     <TableRow>
