@@ -167,18 +167,20 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
       ) : '—';
     }},
     { key: 'quarter', header: 'Quarter', render: (r) => r.quarter || '—' },
-    { key: 'estimated_hours', header: 'Hours', render: (r) => r.estimated_hours || '—' },
+    { key: 'estimated_days', header: 'Days', render: (r) => r.estimated_days || '—' },
+    { key: 'estimated_hours', header: 'Weeks', render: (r) => r.estimated_hours || '—' },
     { key: 'planned_start_date', header: 'Start', render: (r) => r.planned_start_date ? formatDateForDisplay(r.planned_start_date) : '—' },
     { key: 'planned_end_date', header: 'End', render: (r) => r.planned_end_date ? formatDateForDisplay(r.planned_end_date) : '—' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Planned'} /> },
   ];
 
   // Summary stats
-  const totalHours = engagements.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
+  const totalDays = engagements.reduce((sum: number, e: any) => sum + (Number(e.estimated_days) || 0), 0);
+  const totalWeeks = engagements.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
   const byQuarter = ['Q1','Q2','Q3','Q4'].map(q => ({
     quarter: q,
     count: engagements.filter((e: any) => e.quarter === q).length,
-    hours: engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_hours) || 0), 0),
+    days: engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0),
   }));
 
   return (
@@ -188,7 +190,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
           <div>
             <CardTitle className="text-sm">Engagement Portfolio</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              {engagements.length} engagements • {totalHours} hours planned
+              {engagements.length} engagements • {totalDays} days ({totalWeeks} weeks) planned
               {byQuarter.filter(q => q.count > 0).map(q => ` • ${q.quarter}: ${q.count}`).join('')}
             </p>
           </div>
