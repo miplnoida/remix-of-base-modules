@@ -1,115 +1,120 @@
 
 
-# Card Payment Machine Management & Machine-Based Transaction Entry
+# Cheque Verification from Payment Sources — Implementation Plan
 
-## Overview
+## Summary
 
-Replace the current free-text Credit Card / Debit Card amount inputs in Cash Details Entry with a structured, machine-based card transaction entry system. Admin users manage card payment machines (with bank linkages), and cashiers record individual card transactions against those machines during Cash Details Entry.
-
----
-
-## Database Schema (3 new tables)
-
-### 1. `cn_card_machine` — Master table for card payment machines
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | Default `gen_random_uuid()` |
-| machine_code | VARCHAR(20) UNIQUE NOT NULL | Short identifier (e.g., "POS-01") |
-| machine_name | VARCHAR(100) NOT NULL | Display name |
-| card_type_support | VARCHAR(10) NOT NULL | `CRD`, `DRD`, or `BOTH` |
-| is_active | BOOLEAN DEFAULT true | Active flag |
-| bank_code | VARCHAR(3) | FK to `tb_bank_code.bank_code` |
-| settlement_account_no | VARCHAR(50) | Bank settlement account number |
-| settlement_account_name | VARCHAR(100) | Account holder name |
-| notes | TEXT | Optional notes |
-| created_by | VARCHAR(50) | UserCode |
-| created_at | TIMESTAMPTZ DEFAULT now() | |
-| modified_by | VARCHAR(50) | |
-| modified_at | TIMESTAMPTZ | |
-
-### 2. `cn_batch_card_transaction` — Individual card transaction rows per batch
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | Default `gen_random_uuid()` |
-| batch_number | VARCHAR NOT NULL | Parent batch |
-| machine_id | UUID NOT NULL | FK to `cn_card_machine.id` |
-| card_type | VARCHAR(3) NOT NULL | `CRD` or `DRD` — explicit per row |
-| amount | NUMERIC(12,2) NOT NULL | Must be > 0 |
-| created_by | VARCHAR(50) | UserCode |
-| created_at | TIMESTAMPTZ DEFAULT now() | |
-
-- Validation trigger: amount > 0, card_type IN ('CRD', 'DRD')
-
-### 3. Update to `cn_batch_card_total`
-The existing `cn_batch_card_total` table will continue to store the aggregated CRD/DRD totals per batch. A new **RPC** will calculate these totals server-side from `cn_batch_card_transaction` rows and upsert into `cn_batch_card_total`, ensuring the `close_batch` RPC continues to work without modification.
-
-### Audit triggers
-- Attach `audit_table_changes` trigger to both `cn_card_machine` and `cn_batch_card_transaction`.
+Replace the manual cheque entry section in Cash Details with an auto-populated, verification-driven view. Cheques flow in from three payment screens and are displayed for physical verification by the cashier. No manual add/delete. Edits propagate back to source records.
 
 ---
 
-## Server-Side Logic (RPC)
+## Data Sources
 
-### `save_batch_card_transactions`
-**Parameters:** `p_batch_number`, `p_transactions JSONB[]` (array of {machine_id, card_type, amount}), `p_user_code`
+Cheques already exist in the database from payment flows:
 
-**Logic:**
-1. Validate batch is Open
-2. For each transaction row: validate machine exists, is active, has bank_code set, card_type is compatible with machine's `card_type_support`, amount > 0
-3. Delete existing `cn_batch_card_transaction` rows for this batch
-4. Insert new rows
-5. Calculate SUM by card_type and upsert into `cn_batch_card_total` (CRD total, DRD total)
-6. Return the calculated totals
+| Source | Table | Key Fields |
+|--------|-------|------------|
+| Payment Data Entry | `cn_payment` (mop_code='CHQ') | `mop_number`, `bank_code`, `cheque_date`, `payment_amount`, `payment_id` |
+| Search & Pay Invoices | `cn_payment` (mop_code='CHQ') | Same as above |
+| C3 Payments | `c3_payment_methods` (mop_code='CHQ') | `mop_number`, `bank_code`, `cheque_date`, `original_amount`, `payment_id` |
 
-This ensures `close_batch` continues reading from `cn_batch_card_total` with zero changes.
+Both link to `cn_payment_header` via `payment_id` to get `batch_number` and payer info.
 
 ---
 
-## Admin UI — Card Machine Management
+## Database Changes
 
-### New page: `/cashier/card-machines`
-- Add to "Sage Integrations Settings" menu group with `admin` permission
-- Full CRUD: list all machines in a table, Create/Edit via dialog, Deactivate toggle
-- Fields: Machine Code, Machine Name, Card Type Support (CRD/DRD/Both), Bank (dropdown from `tb_bank_code`), Settlement Account No, Settlement Account Name, Active status, Notes
-- Deactivation uses soft-delete (is_active = false), not hard delete
+### 1. New table: `cn_batch_cheque_verification`
 
-### Route addition
-- Add route in `AppRoutes.tsx`
-- Add menu item in `cashierMenuItems.ts`
+Tracks verification status and edits per cheque. Does NOT duplicate cheque data — references source records.
+
+```
+cn_batch_cheque_verification (
+  id UUID PK,
+  batch_number VARCHAR NOT NULL,
+  source_table VARCHAR(30) NOT NULL,        -- 'cn_payment' or 'c3_payment_methods'
+  source_record_id TEXT NOT NULL,           -- payment_sequence_no or c3_payment_methods.id
+  source_payment_id INTEGER NOT NULL,       -- payment_id for joining
+  is_verified BOOLEAN DEFAULT false,
+  verified_by VARCHAR(50),
+  verified_at TIMESTAMPTZ,
+  -- Override fields (NULL = no edit, use source value)
+  override_cheque_number VARCHAR(30),
+  override_bank_code VARCHAR(3),
+  override_amount NUMERIC(10,2),
+  override_cheque_date DATE,
+  edit_reason TEXT,
+  edited_by VARCHAR(50),
+  edited_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+```
+
+### 2. New RPC: `get_batch_cheques_for_verification`
+
+Aggregates cheques from both `cn_payment` and `c3_payment_methods` for a given batch. Returns a unified structure:
+
+- Joins `cn_payment` WHERE `mop_code = 'CHQ'` via `cn_payment_header.batch_number`
+- Joins `c3_payment_methods` WHERE `mop_code = 'CHQ'` via `cn_payment_header.batch_number`  
+- LEFT JOINs `cn_batch_cheque_verification` to overlay verification status and any overrides
+- Returns: cheque_number, bank_code, bank_name, amount, currency_code, cheque_date, payer_id, payer_type, source_table, source_record_id, payment_id, is_verified, override fields
+
+### 3. New RPC: `verify_batch_cheque`
+
+Sets `is_verified = true` for a cheque row. Creates verification record if not exists.
+
+### 4. New RPC: `edit_and_verify_batch_cheque`
+
+- Saves override fields to `cn_batch_cheque_verification`
+- Also updates the **source record** (`cn_payment` or `c3_payment_methods`) to propagate the corrected cheque data
+- Logs audit trail with before/after values
+- Server-side validation: amount > 0, cheque_number not empty
+
+### 5. Update `close_batch` RPC
+
+Change the physical CHQ calculation from reading `cn_batch_cheque` to:
+- Query the same aggregation as `get_batch_cheques_for_verification`
+- Sum only rows WHERE `is_verified = true`
+- Use override amounts where present, else source amounts
+- Convert to base currency using `tb_currencies`
+
+### 6. Drop legacy usage
+
+The `cn_batch_cheque` table remains (backward compat) but is no longer written to from Cash Details. The save flow in `CashDetails.tsx` will stop inserting into it.
 
 ---
 
-## Cashier UI — Cash Details Entry Update
+## UI Changes
 
-### Replace "Card Machine Totals" section (lines 611-651 of `CashDetails.tsx`)
+### `CashDetails.tsx` — Cheque Entries Section
 
-**Current:** Two free-text inputs for CRD and DRD amounts.
+**Remove:**
+- "Add Cheque" button
+- Delete/remove cheque capability
+- `ChequeEntryModal` for adding new cheques
+- All `cn_batch_cheque` insert/delete logic in `saveAll`
 
-**New:** A structured card transaction entry table:
+**Replace with:**
+- Auto-fetched cheque list from `get_batch_cheques_for_verification` RPC
+- Checkbox column for physical verification (checked = verified)
+- Visual distinction: verified rows get green left border + checkmark icon; unverified rows get amber/warning styling
+- "Edit" button per row — opens a modal to correct cheque details (cheque number, bank, amount, date) with a mandatory "Reason for Edit" field
+- Read-only "Source" column showing origin (Payment Entry / C3 Payment / Invoice Payment)
+- Payer column showing payer ID
+- Summary footer: "Verified Total" and "Unverified Count"
+- Bulk verify checkbox in header to verify all at once
 
-1. **"Add Card Transaction" button** opens an inline row or modal with:
-   - Machine dropdown (only active machines)
-   - Card Type dropdown (filtered by selected machine's `card_type_support` — if machine supports `BOTH`, show CRD and DRD options; if CRD-only, auto-select CRD)
-   - Amount input (number, > 0)
+### `ChequeEntryModal.tsx` — Repurpose as `ChequeEditModal`
 
-2. **Transaction grid** showing all rows: Machine Code, Machine Name, Card Type, Amount, with Edit/Remove actions
+- Same fields but with an added "Reason for Edit" text field
+- On save, calls `edit_and_verify_batch_cheque` RPC
+- Shows original vs. edited values side by side
 
-3. **Auto-calculated footer** showing:
-   - Total CRD: sum of all rows where card_type = 'CRD'
-   - Total DRD: sum of all rows where card_type = 'DRD'
-   - These are read-only display values
+### `BatchClosing.tsx` — Update physical CHQ calculation
 
-4. **Summary cards** (CRD and DRD) at the top remain but now show the calculated totals from transaction rows instead of manual input
-
-### Save flow update
-- On "Save All", call `save_batch_card_transactions` RPC with the transaction rows
-- The RPC returns server-calculated CRD and DRD totals, which update the summary cards
-- The existing cash count and cheque save logic remain unchanged
-- Physical count formula: `cashTotal + chequeTotal + serverCRDTotal + serverDRDTotal`
-
-### Load flow update
-- On batch selection, fetch `cn_batch_card_transaction` rows (joined with `cn_card_machine` for display names) instead of reading flat `cn_batch_card_total`
-- CRD/DRD summary totals are derived client-side from loaded rows for display, but authoritative totals come from the server on save
+- Replace the `cn_batch_cheque` query (lines 81-101) with the new verification-aware query
+- Only sum verified cheques
+- Show unverified count as a warning if > 0
 
 ---
 
@@ -117,28 +122,27 @@ This ensures `close_batch` continues reading from `cn_batch_card_total` with zer
 
 | File | Action |
 |------|--------|
-| Migration SQL | CREATE tables, RPC, triggers |
-| `src/pages/cashier/CardMachineManagement.tsx` | New admin page |
-| `src/pages/cashier/CashDetails.tsx` | Replace card totals section |
-| `src/components/payments/CardTransactionEntry.tsx` | New component for transaction row entry |
-| `src/components/sidebar/menuItems/cashierMenuItems.ts` | Add menu item |
-| `src/components/routing/AppRoutes.tsx` | Add route |
+| Migration SQL | New table, 3 RPCs, updated `close_batch` |
+| `src/components/payments/ChequeVerificationList.tsx` | New component — verification table with checkboxes |
+| `src/components/payments/ChequeEditModal.tsx` | New component — edit modal with reason field |
+| `src/pages/cashier/CashDetails.tsx` | Replace cheque section, remove manual add/delete |
+| `src/pages/cashier/BatchClosing.tsx` | Update CHQ physical total query |
+| `src/components/payments/ChequeEntryModal.tsx` | Deprecated (can keep for reference) |
 
 ---
 
-## Reconciliation & Reporting Compatibility
+## Audit Logging
 
-- `close_batch` RPC reads from `cn_batch_card_total` — no changes needed since the new RPC keeps this table in sync
-- `BatchClosing.tsx` reads from `cn_batch_card_total` — no changes needed
-- Future reporting can query `cn_batch_card_transaction` for machine-level, bank-level, card-type, and date-based breakdowns
+- Cheque verification: logs user, timestamp, cheque details
+- Cheque edit: logs before_value (original source data), after_value (overrides), edit_reason, user
+- All via `system_audit_trail` using existing `audit_table_changes` trigger on `cn_batch_cheque_verification`
 
 ---
 
-## Technical Details
+## Batch Closing Integrity
 
-- No RLS per project rules; authenticated access policies only
-- All validation is server-side in the RPC; client validates for UX only
-- `tb_bank_code` is the existing bank master table (PK: `bank_code` VARCHAR(3))
-- Audit triggers follow existing `audit_table_changes` pattern
-- UserCode tracking follows project standards for `created_by`/`modified_by`
+- `close_batch` RPC: physical CHQ = SUM of verified cheques only (with currency conversion)
+- System CHQ (from `cn_payment` WHERE mop_code='CHQ') remains unchanged
+- If unverified cheques exist, the mismatch will naturally prevent closing (physical < system), which is correct business behavior
+- BatchClosing UI will show a warning badge: "X cheques pending verification"
 
