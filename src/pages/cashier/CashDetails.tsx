@@ -496,9 +496,7 @@ const CashDetails: React.FC = () => {
                                   </Label>
                                   <div className="flex gap-2">
                                     <Input type="number" min="0" value={count || ''} onChange={e => setCount(currency.id, d.id, e.target.value)} placeholder="Count" className="flex-1" />
-                                    <div className="w-28 flex items-center justify-end bg-muted rounded px-2 text-sm font-medium">
-                                      {currency.symbol} {amount.toFixed(2)}
-                                    </div>
+                                    <Badge variant="secondary" className="text-[10px] px-1">{currency.symbol} {amount.toFixed(2)}</Badge>
                                   </div>
                                 </div>
                               );

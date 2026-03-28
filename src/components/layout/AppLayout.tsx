@@ -30,7 +30,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
           <Header />
           <main className="flex-1 p-0 overflow-x-hidden">
-            <div className="mx-auto w-full max-w-[1440px] p-3 sm:p-4 md:p-6">
+            <div className="mx-auto w-full max-w-[100%] p-3 sm:p-4 md:p-6">
               {children}
             </div>
           </main>

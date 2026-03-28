@@ -215,7 +215,7 @@ const C3ContributionList: React.FC = () => {
               {selectedCompanyId ? 'No contributions found. Try different filters.' : 'Select an employer and click Search.'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto c3-panels">
               <Table>
                 <TableHeader>
                   <TableRow>
