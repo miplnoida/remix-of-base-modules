@@ -83,7 +83,7 @@ export function ChequeEditModal({ open, onClose, onSave, cheque, batchNumber }: 
 
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('edit_and_verify_batch_cheque', {
+      const { error } = await supabase.rpc('edit_and_verify_batch_cheque' as any, {
         p_batch_number: batchNumber,
         p_source_table: cheque.source_table,
         p_source_record_id: cheque.source_record_id,

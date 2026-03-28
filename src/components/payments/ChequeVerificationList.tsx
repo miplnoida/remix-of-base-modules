@@ -55,11 +55,11 @@ export function ChequeVerificationList({ batchNumber, onTotalChange }: ChequeVer
     if (!batchNumber) { setCheques([]); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_batch_cheques_for_verification', {
+      const { data, error } = await supabase.rpc('get_batch_cheques_for_verification' as any, {
         p_batch_number: batchNumber,
       });
       if (error) throw error;
-      setCheques((data || []) as VerificationCheque[]);
+      setCheques((data || []) as unknown as VerificationCheque[]);
     } catch (err: any) {
       console.error('Failed to fetch cheques for verification:', err);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -83,7 +83,7 @@ export function ChequeVerificationList({ batchNumber, onTotalChange }: ChequeVer
     const key = `${cheque.source_table}-${cheque.source_record_id}`;
     setVerifying(key);
     try {
-      const { error } = await supabase.rpc('verify_batch_cheque', {
+      const { error } = await supabase.rpc('verify_batch_cheque' as any, {
         p_batch_number: batchNumber,
         p_source_table: cheque.source_table,
         p_source_record_id: cheque.source_record_id,
@@ -111,7 +111,7 @@ export function ChequeVerificationList({ batchNumber, onTotalChange }: ChequeVer
     setVerifying('bulk');
     try {
       for (const cheque of unverified) {
-        const { error } = await supabase.rpc('verify_batch_cheque', {
+        const { error } = await supabase.rpc('verify_batch_cheque' as any, {
           p_batch_number: batchNumber,
           p_source_table: cheque.source_table,
           p_source_record_id: cheque.source_record_id,
