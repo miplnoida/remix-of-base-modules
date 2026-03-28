@@ -12,8 +12,7 @@ import { Download, FileSpreadsheet, FileText, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generateSSBReport } from '@/lib/reportTemplate';
 
 export interface ExportColumn {
   key: string;
