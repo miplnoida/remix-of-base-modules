@@ -30,12 +30,11 @@ interface CardTransaction {
   machine_name?: string;
 }
 
-interface BatchPaymentHeader {
+interface BatchPaymentRow {
   payment_id: number;
-  receipt_number: string | null;
-  payer_name: string | null;
-  total_amount: number | null;
-  payment_date: string | null;
+  receipt_number: string;
+  payer_id: string;
+  receipt_total: number;
   status: string | null;
 }
 
