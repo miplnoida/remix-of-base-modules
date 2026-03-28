@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Lock, Loader2, AlertTriangle, Info } from 'lucide-react';
+import { FileText, Download, Lock, Loader2, AlertTriangle, Info, Settings2 } from 'lucide-react';
 import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useIAPlanArtifacts, useIAPlanArtifactMutations } from '@/hooks/useAuditPlanArtifacts';
@@ -13,6 +13,8 @@ import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from 
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ReportCustomizationDialog, DEFAULT_REPORT_CONFIG, THEME_COLORS } from './ReportCustomizationDialog';
+import type { ReportConfig } from './ReportCustomizationDialog';
 
 interface BoardPackTabProps {
   planId: string;
@@ -28,50 +30,64 @@ function buildLookups(departments: any[], functions: any[], auditors: any[]) {
   return { deptMap, funcMap, auditorMap };
 }
 
-// ===== PDF HELPERS =====
-const BRAND_COLOR: [number, number, number] = [26, 54, 93];
-const ALT_ROW: [number, number, number] = [245, 247, 250];
+// ===== PDF HELPERS (SSB BRANDED) =====
+function getThemeColors(config: ReportConfig) {
+  const theme = THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
+  return theme;
+}
 
-function addHeader(doc: jsPDF, title: string, subtitle: string, fiscalYear: string) {
+function addHeader(doc: jsPDF, title: string, subtitle: string, fiscalYear: string, config: ReportConfig) {
   const pw = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...BRAND_COLOR);
+  const theme = getThemeColors(config);
+
+  // Green header bar
+  doc.setFillColor(...theme.primary);
   doc.rect(0, 0, pw, 42, 'F');
+
+  // Gold accent stripe at bottom of header
+  doc.setFillColor(...theme.accent);
+  doc.rect(0, 42, pw, 2, 'F');
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
-  doc.text('Social Security Board', 14, 16);
+  doc.text(config.headerTitle || 'Social Security Board', 14, 16);
   doc.setFontSize(11);
-  doc.text('Internal Audit Department', 14, 24);
+  doc.text(config.headerSubtitle || 'Internal Audit Department', 14, 24);
   doc.setFontSize(10);
   doc.text(title, 14, 32);
   doc.text(`Fiscal Year: ${fiscalYear}`, 14, 39);
-  doc.setTextColor(200, 200, 200);
+  doc.setTextColor(200, 230, 210);
   doc.text(subtitle, pw - 14, 39, { align: 'right' });
 }
 
-function addFooter(doc: jsPDF, planId: string, version: number, artifactVersion: number, status: string) {
+function addFooter(doc: jsPDF, planId: string, version: number, artifactVersion: number, status: string, config: ReportConfig) {
   const pageCount = doc.getNumberOfPages();
+  const theme = getThemeColors(config);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
+    // Green footer bar
+    doc.setFillColor(...theme.primary);
+    doc.rect(0, ph - 14, pw, 14, 'F');
     doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text(`CONFIDENTIAL — Plan v${version} • Artifact v${artifactVersion} • Generated: ${new Date().toLocaleDateString()} • Page ${i} of ${pageCount}`, pw / 2, ph - 8, { align: 'center' });
-    if (status !== 'Approved') {
-      // DRAFT watermark
-      doc.setTextColor(220, 220, 220);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${config.confidentialityLabel || 'CONFIDENTIAL'} — Plan v${version} • Artifact v${artifactVersion} • Generated: ${new Date().toLocaleDateString()} • Page ${i} of ${pageCount}`, pw / 2, ph - 6, { align: 'center' });
+    if (status !== 'Approved' && config.showDraftWatermark) {
+      doc.setTextColor(200, 230, 200);
       doc.setFontSize(60);
       doc.text('DRAFT', pw / 2, ph / 2, { align: 'center', angle: 45 });
     }
   }
 }
 
-function addSection(doc: jsPDF, y: number, title: string, content: string | null | undefined, pw: number): number {
+function addSection(doc: jsPDF, y: number, title: string, content: string | null | undefined, pw: number, config: ReportConfig): number {
   if (!content) return y;
   if (y > 250) { doc.addPage(); y = 20; }
+  const theme = getThemeColors(config);
   doc.setFontSize(12);
   doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(26, 54, 93);
+  doc.setTextColor(...theme.primary);
   doc.text(title, 14, y);
   y += 7;
   doc.setFont(undefined as any, 'normal');
