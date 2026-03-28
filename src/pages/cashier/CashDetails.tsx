@@ -16,6 +16,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useQuery } from '@tanstack/react-query';
 import { ChequeEntryModal, ChequeEntry } from '@/components/payments/ChequeEntryModal';
+import { CardTransactionEntry, CardTransaction } from '@/components/payments/CardTransactionEntry';
 import { formatDateForDisplay } from '@/lib/format-config';
 
 const CashDetails: React.FC = () => {
@@ -34,9 +35,8 @@ const CashDetails: React.FC = () => {
   const [editingChequeIndex, setEditingChequeIndex] = useState<number | null>(null);
   const addChequeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Card totals
-  const [creditCardTotal, setCreditCardTotal] = useState<number>(0);
-  const [debitCardTotal, setDebitCardTotal] = useState<number>(0);
+  // Card transactions (machine-based)
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
   const [loadingCards, setLoadingCards] = useState(false);
 
   // Bank codes lookup
@@ -146,24 +146,29 @@ const CashDetails: React.FC = () => {
     loadCheques();
   }, [batchSel.selectedBatch?.batch_number]);
 
-  // Load card totals from DB
+  // Load card transactions from DB
   useEffect(() => {
     const loadCards = async () => {
       const batchNumber = batchSel.selectedBatch?.batch_number;
-      if (!batchNumber) { setCreditCardTotal(0); setDebitCardTotal(0); return; }
+      if (!batchNumber) { setCardTransactions([]); return; }
       setLoadingCards(true);
       try {
         const { data, error } = await supabase
-          .from('cn_batch_card_total')
-          .select('mop_code, amount')
-          .eq('batch_number', batchNumber);
+          .from('cn_batch_card_transaction')
+          .select('id, batch_number, machine_id, card_type, amount, cn_card_machine(machine_code, machine_name)')
+          .eq('batch_number', batchNumber)
+          .order('created_at');
         if (error) throw error;
-        (data || []).forEach((r: any) => {
-          if (r.mop_code === 'CRD') setCreditCardTotal(Number(r.amount));
-          if (r.mop_code === 'DRD') setDebitCardTotal(Number(r.amount));
-        });
+        setCardTransactions((data || []).map((r: any) => ({
+          id: r.id,
+          machine_id: r.machine_id,
+          card_type: r.card_type,
+          amount: Number(r.amount),
+          machine_code: r.cn_card_machine?.machine_code,
+          machine_name: r.cn_card_machine?.machine_name,
+        })));
       } catch (err) {
-        console.error('Failed to load card totals:', err);
+        console.error('Failed to load card transactions:', err);
       } finally {
         setLoadingCards(false);
       }
