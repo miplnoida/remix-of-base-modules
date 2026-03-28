@@ -49,7 +49,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
 
   const getAuditorName = (id: string) => {
     const a = (auditors || []).find((a: any) => a.id === id);
-    return a ? (a.full_name || a.name || a.user_code || 'Auditor') : null;
+    return a ? (a.name || a.employee_no || 'Auditor') : null;
   };
 
   const handleAccept = (candidateId: string) => {
