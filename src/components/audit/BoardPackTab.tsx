@@ -105,7 +105,8 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     ['Approved By', plan?.approved_by || '—'],
     ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : '—'],
     ['Total Engagements', String(engagements.length)],
-    ['Total Planned Hours', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_hours) || 0), 0))],
+    ['Total Planned Days', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0))],
+    ['Total Planned Weeks', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_hours) || 0), 0))],
   ];
   autoTable(doc, { startY: y, body: planInfo, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, theme: 'plain' });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -144,7 +145,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Quarter', 'Hours', 'Priority']],
+    head: [['#', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Weeks', 'Priority']],
     body: engagements.map((e: any, i: number) => [
       e.sequence_no || i + 1,
       e.engagement_name || '—',
@@ -153,6 +154,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
       e.engagement_risk_rating || '—',
       lookups.auditorMap.get(e.lead_auditor_id) || '—',
       e.quarter || '—',
+      e.estimated_days || '—',
       e.estimated_hours || '—',
       e.board_priority_flag ? '★ Yes' : 'No',
     ]),
@@ -165,7 +167,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
   // Resource Summary
   if (y > 230) { doc.addPage(); y = 20; }
   y = addSection(doc, y, 'Resource Summary',
-    `Available Hours: ${plan?.total_available_hours || '—'}\nPlanned Hours: ${plan?.planned_hours || '—'}\nContingency Hours: ${plan?.contingency_hours || '—'}`, pw);
+    `Available Days: ${plan?.total_available_hours || '—'}\nPlanned Weeks: ${plan?.planned_hours || '—'}\nContingency Days: ${plan?.contingency_hours || '—'}`, pw);
 
   addFooter(doc, plan?.id, version, artVersion, plan?.status);
   return doc;
