@@ -141,11 +141,11 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
   });
 
   const duplicateEngagement = (eng: any) => {
+    // Create a clone without identity fields — dialog treats null id as "add mode"
     const { id, engagement_code, created_at, updated_at, ...rest } = eng;
-    setEditTarget(null);
+    setEditTarget({ ...rest, engagement_name: `${eng.engagement_name} (Copy)`, id: undefined });
     setShowDialog(true);
-    // Pre-fill will be handled by opening add mode, user copies from existing
-    toast({ title: 'Duplicate', description: 'A new engagement form has been opened. Fill in the details.' });
+    toast({ title: 'Duplicating', description: 'Pre-filled from existing engagement. Modify and save as new.' });
   };
 
   const columns: DataTableColumn<any>[] = [
@@ -207,6 +207,9 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditTarget(row); setShowDialog(true); }} title="Edit">
                   <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateEngagement(row)} title="Duplicate">
+                  <Copy className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setRemoveTarget({ id: row.id, name: row.engagement_name || 'Engagement' })} title="Remove">
                   <Trash2 className="h-4 w-4" />

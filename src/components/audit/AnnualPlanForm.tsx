@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useUserCode } from '@/hooks/useUserCode';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface AnnualPlanFormProps {
@@ -19,27 +19,26 @@ interface AnnualPlanFormProps {
 
 export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }: AnnualPlanFormProps) {
   const { toast } = useToast();
+  const { userCode } = useUserCode();
   const currentYear = new Date().getFullYear();
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     fiscalYear: plan?.fiscal_year || `${currentYear}-${currentYear + 1}`,
     title: plan?.title || `Annual Internal Audit Plan ${currentYear}-${currentYear + 1}`,
+    // Planning narrative
+    executiveSummary: plan?.executive_summary || '',
     objective: plan?.objective || '',
     scope: plan?.scope || '',
     auditScope: plan?.audit_scope || '',
     methodology: plan?.methodology || '',
-    // Planning narrative
-    executiveSummary: plan?.executive_summary || '',
     planningAssumptions: plan?.planning_assumptions || '',
     exclusions: plan?.exclusions || '',
-    resourceConstraints: plan?.resource_constraints || '',
-    planOwner: plan?.plan_owner || '',
-    preparedBy: plan?.prepared_by || '',
     // Resource summary
     totalAvailableHours: plan?.total_available_hours || '',
     plannedHours: plan?.planned_hours || '',
     contingencyHours: plan?.contingency_hours || '',
+    resourceConstraints: plan?.resource_constraints || '',
     outsourcedSupportNotes: plan?.outsourced_support_notes || '',
     skillsConstraints: plan?.skills_constraints || '',
     // Governance
@@ -62,8 +61,6 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       planning_assumptions: formData.planningAssumptions,
       exclusions: formData.exclusions,
       resource_constraints: formData.resourceConstraints,
-      plan_owner: formData.planOwner,
-      prepared_by: formData.preparedBy,
       total_available_hours: formData.totalAvailableHours ? Number(formData.totalAvailableHours) : null,
       planned_hours: formData.plannedHours ? Number(formData.plannedHours) : null,
       contingency_hours: formData.contingencyHours ? Number(formData.contingencyHours) : null,
@@ -74,6 +71,13 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       minutes_reference: formData.minutesReference,
       status,
     };
+    // Auto-fill ownership from logged-in user
+    if (!plan) {
+      payload.created_by = userCode || 'system';
+      payload.plan_owner = userCode || 'system';
+      payload.prepared_by = userCode || 'system';
+    }
+    payload.updated_by = userCode || 'system';
     if (status === 'Submitted') {
       payload.submitted_date = new Date().toISOString();
     }
@@ -83,6 +87,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
   const handleSaveDraft = async () => {
     if (!formData.title.trim()) {
       toast({ title: 'Validation Error', description: 'Plan title is required.', variant: 'destructive' });
+      return;
+    }
+    if (!formData.fiscalYear.trim()) {
+      toast({ title: 'Validation Error', description: 'Fiscal year is required.', variant: 'destructive' });
       return;
     }
     setIsSaving(true);
@@ -109,7 +117,7 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
   return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
       <Accordion type="multiple" defaultValue={['header', 'narrative']} className="space-y-2">
-        {/* A. Plan Header */}
+        {/* A. Plan Header — Simplified */}
         <AccordionItem value="header" className="border rounded-lg">
           <AccordionTrigger className="px-4 text-sm font-semibold">Plan Header</AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
@@ -130,16 +138,26 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
                 <Input value={formData.title} onChange={e => set('title', e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Plan Owner</Label>
-                <Input value={formData.planOwner} onChange={e => set('planOwner', e.target.value)} placeholder="Chief Audit Executive" />
+            {plan && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md bg-muted/30 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block">Created By</span>
+                  <span className="font-medium">{plan.created_by || plan.plan_owner || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block">Last Updated By</span>
+                  <span className="font-medium">{plan.updated_by || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block">Created On</span>
+                  <span className="font-medium">{plan.created_at ? new Date(plan.created_at).toLocaleDateString() : '—'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block">Last Updated</span>
+                  <span className="font-medium">{plan.updated_at ? new Date(plan.updated_at).toLocaleDateString() : '—'}</span>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Prepared By</Label>
-                <Input value={formData.preparedBy} onChange={e => set('preparedBy', e.target.value)} placeholder="Audit Manager" />
-              </div>
-            </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 
