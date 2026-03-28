@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Shield, Target, Upload } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Shield, Target, Upload, ChevronDown, ChevronRight, Building2, Printer } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { FUNCTION_SCHEMA, toBulkUploadFields, toExportColumns } from '@/config/moduleFieldSchemas';
 import { useProfiles } from '@/components/c3/ReceivedBySelect';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { generateSSBReport } from '@/lib/reportTemplate';
 
 const bulkUploadFields = toBulkUploadFields(FUNCTION_SCHEMA);
 const exportColumns = toExportColumns(FUNCTION_SCHEMA);
@@ -21,7 +24,7 @@ export default function FunctionMaster() {
   const { profiles } = useProfiles();
   const { data: departments = [], isLoading: deptsLoading } = useIADepartments();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({ department: 'all' });
+  const [filters, setFilters] = useState<Record<string, string>>({ department: 'all', view: 'grouped' });
   const deptId = filters.department === 'all' ? undefined : filters.department;
   const { data: allFunctions = [], isLoading: funcsLoading } = useIADepartmentFunctions(deptId);
   const { create: createFn, update: updateFn } = useIADepartmentFunctionMutations();
@@ -30,6 +33,7 @@ export default function FunctionMaster() {
   const [viewFunc, setViewFunc] = useState<any>(null);
   const [formData, setFormData] = useState({ departmentId: '', functionName: '', description: '', likelihood: 'Medium', impact: 'Medium', controlEffectiveness: 'Effective', responsiblePerson: '', notes: '' });
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({});
 
   // Dynamically set allowed department names on the bulk upload field
   const dynamicBulkFields = bulkUploadFields.map(f =>
@@ -51,7 +55,34 @@ export default function FunctionMaster() {
     }
   };
 
-  const filteredFunctions = allFunctions.filter((f: any) => (f.function_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (f.description || '').toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredFunctions = allFunctions.filter((f: any) =>
+    (f.function_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (f.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Group functions by department
+  const groupedByDept = useMemo(() => {
+    const groups: Record<string, { dept: any; functions: any[] }> = {};
+    departments.forEach(d => {
+      groups[d.id] = { dept: d, functions: [] };
+    });
+    filteredFunctions.forEach((f: any) => {
+      if (groups[f.department_id]) {
+        groups[f.department_id].functions.push(f);
+      }
+    });
+    // Only return groups that have functions (or all if no filter)
+    return Object.values(groups).filter(g => g.functions.length > 0);
+  }, [departments, filteredFunctions]);
+
+  // Initialize all depts as expanded
+  useMemo(() => {
+    if (Object.keys(expandedDepts).length === 0 && departments.length > 0) {
+      const initial: Record<string, boolean> = {};
+      departments.forEach(d => { initial[d.id] = true; });
+      setExpandedDepts(initial);
+    }
+  }, [departments]);
 
   const calculateInherentRisk = (l: string, i: string) => {
     const score: Record<string, number> = { Low: 1, Medium: 2, High: 3 };
@@ -95,10 +126,55 @@ export default function FunctionMaster() {
     department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
   }));
 
+  // SSB branded PDF export (grouped by department)
+  const handlePrintPDF = () => {
+    try {
+      generateSSBReport(
+        {
+          title: 'Business Functions Register',
+          subtitle: 'Grouped by Department — Internal Audit Division',
+          additionalInfo: [
+            { label: 'Total Departments', value: String(groupedByDept.length) },
+            { label: 'Total Functions', value: String(filteredFunctions.length) },
+            { label: 'Report Date', value: new Date().toLocaleDateString() },
+          ],
+        },
+        [
+          { header: 'Department', key: 'department_name' },
+          { header: 'Function Name', key: 'function_name' },
+          { header: 'Description', key: 'description' },
+          { header: 'Likelihood', key: 'likelihood' },
+          { header: 'Impact', key: 'impact' },
+          { header: 'Risk Rating', key: 'risk_rating' },
+          { header: 'Control Effectiveness', key: 'control_effectiveness' },
+          { header: 'Responsible Person', key: 'responsible_person' },
+        ],
+        // Sort by department name so grouped in PDF
+        [...exportData].sort((a, b) => (a.department_name || '').localeCompare(b.department_name || '')),
+        'ssb-business-functions'
+      );
+      toast({ title: 'PDF Generated', description: 'SSB branded Business Functions report exported.' });
+    } catch {
+      toast({ title: 'Export Failed', description: 'Failed to generate PDF.', variant: 'destructive' });
+    }
+  };
+
+  const toggleDept = (deptId: string) => {
+    setExpandedDepts(prev => ({ ...prev, [deptId]: !prev[deptId] }));
+  };
+
+  const toggleAll = (expand: boolean) => {
+    const next: Record<string, boolean> = {};
+    departments.forEach(d => { next[d.id] = expand; });
+    setExpandedDepts(next);
+  };
+
+  const isGroupedView = filters.view === 'grouped';
+
   const formFields = (
     <div className="space-y-4">
-      <div><Label>Department *</Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
-      <div><Label>Function Name *</Label><Input value={formData.functionName} onChange={e => setFormData(f => ({ ...f, functionName: e.target.value }))} placeholder="e.g., Claims Processing" /></div>
+      <div><Label>Department <span className="text-destructive">*</span></Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
+      <div><Label>Function Name <span className="text-destructive">*</span></Label><Input value={formData.functionName} onChange={e => setFormData(f => ({ ...f, functionName: e.target.value }))} placeholder="e.g., Claims Processing" /></div>
       <div><Label>Description</Label><Textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="Describe the function" rows={3} /></div>
       <div className="grid grid-cols-2 gap-4">
         <div><Label>Likelihood</Label><Select value={formData.likelihood} onValueChange={v => setFormData(f => ({ ...f, likelihood: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
@@ -121,6 +197,9 @@ export default function FunctionMaster() {
       isLoading={deptsLoading || funcsLoading}
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrintPDF}>
+            <Printer className="w-4 h-4 mr-2" />Print PDF
+          </Button>
           <ExportDropdown data={exportData} columns={exportColumns} fileName={FUNCTION_SCHEMA.exportFileName} title={FUNCTION_SCHEMA.exportTitle} />
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />Bulk Upload
@@ -140,23 +219,104 @@ export default function FunctionMaster() {
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search functions..."
-        filters={[{ key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] }] as StandardFilterField[]}
+        filters={[
+          { key: 'department', label: 'Department', type: 'select', options: [{ value: 'all', label: 'All Departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))] },
+          { key: 'view', label: 'View', type: 'select', options: [{ value: 'grouped', label: 'Grouped by Department' }, { value: 'flat', label: 'Flat List' }] },
+        ] as StandardFilterField[]}
         filterValues={filters}
         onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))}
-        onReset={() => setFilters({ department: 'all' })}
+        onReset={() => setFilters({ department: 'all', view: 'grouped' })}
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={filteredFunctions}
-            onView={(row) => setViewFunc(row)}
-            onEdit={(row) => openEdit(row)}
-            emptyMessage="No functions found."
-          />
-        </CardContent>
-      </Card>
+      {isGroupedView ? (
+        /* ──── Grouped View ──── */
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={() => toggleAll(true)}>Expand All</Button>
+            <Button variant="ghost" size="sm" onClick={() => toggleAll(false)}>Collapse All</Button>
+          </div>
+          {groupedByDept.length === 0 && (
+            <Card><CardContent className="py-8 text-center text-muted-foreground">No functions found.</CardContent></Card>
+          )}
+          {groupedByDept.map(({ dept, functions }) => {
+            const isOpen = expandedDepts[dept.id] !== false;
+            const highCount = functions.filter((f: any) => f.risk_rating === 'High').length;
+            return (
+              <Card key={dept.id}>
+                <Collapsible open={isOpen} onOpenChange={() => toggleDept(dept.id)}>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <Building2 className="h-5 w-5 text-primary" />
+                          <div>
+                            <CardTitle className="text-sm font-semibold">{dept.name}</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {functions.length} function{functions.length !== 1 ? 's' : ''}
+                              {highCount > 0 && <span className="text-destructive ml-2">• {highCount} high risk</span>}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={highCount > 0 ? 'High' : 'Medium'} />
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Function Name</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Risk Rating</TableHead>
+                            <TableHead>Likelihood</TableHead>
+                            <TableHead>Impact</TableHead>
+                            <TableHead>Control Effectiveness</TableHead>
+                            <TableHead>Responsible</TableHead>
+                            <TableHead className="w-[80px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {functions.map((func: any) => (
+                            <TableRow key={func.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setViewFunc(func)}>
+                              <TableCell className="font-medium">{func.function_name}</TableCell>
+                              <TableCell className="max-w-xs truncate text-muted-foreground text-sm">{func.description || '-'}</TableCell>
+                              <TableCell><StatusBadge status={func.risk_rating || 'Medium'} /></TableCell>
+                              <TableCell><StatusBadge status={func.likelihood || 'Medium'} /></TableCell>
+                              <TableCell><StatusBadge status={func.impact || 'Medium'} /></TableCell>
+                              <TableCell><StatusBadge status={func.control_effectiveness || 'Effective'} /></TableCell>
+                              <TableCell className="text-sm">{func.responsible_person || '-'}</TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(func); }}>Edit</Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        /* ──── Flat List View ──── */
+        <Card>
+          <CardContent className="pt-6">
+            <DataTable
+              columns={columns}
+              data={filteredFunctions}
+              onView={(row) => setViewFunc(row)}
+              onEdit={(row) => openEdit(row)}
+              emptyMessage="No functions found."
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Risk Matrix */}
       <Card>
