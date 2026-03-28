@@ -61,7 +61,7 @@ const BatchClosing: React.FC = () => {
   // Enhanced data
   const [chequeInfo, setChequeInfo] = useState<ChequeInfo>({ total: 0, verified: 0, unverified: 0 });
   const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
-  const [batchPayments, setBatchPayments] = useState<BatchPaymentHeader[]>([]);
+  const [batchPayments, setBatchPayments] = useState<BatchPaymentRow[]>([]);
   const [cardSectionOpen, setCardSectionOpen] = useState(false);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
 
@@ -180,21 +180,37 @@ const BatchClosing: React.FC = () => {
       // ---- System totals for ALL MOPs ----
       const { data: headers } = await supabase
         .from('cn_payment_header')
-        .select('payment_id, receipt_number, payer_name, total_amount, payment_date, status')
+        .select('payment_id, payer_id, status')
         .eq('batch_number', batchNumber)
         .or('status.is.null,status.eq.active');
 
       const sysTotals: Record<string, number> = {};
 
       if (headers && headers.length > 0) {
-        setBatchPayments(headers as BatchPaymentHeader[]);
         const paymentIds = headers.map(h => h.payment_id);
-        const { data: payments } = await supabase
-          .from('cn_payment')
-          .select('mop_code, payment_amount')
-          .in('payment_id', paymentIds);
 
-        (payments || []).forEach(p => {
+        // Fetch receipts and payments in parallel
+        const [receiptsRes, paymentsRes] = await Promise.all([
+          supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
+          supabase.from('cn_payment').select('payment_id, mop_code, payment_amount').in('payment_id', paymentIds),
+        ]);
+
+        const receiptMap = new Map((receiptsRes.data || []).map(r => [r.payment_id, r]));
+
+        // Build batch payment rows for display
+        const paymentRows: BatchPaymentRow[] = headers.map(h => {
+          const receipt = receiptMap.get(h.payment_id);
+          return {
+            payment_id: h.payment_id,
+            receipt_number: receipt?.receipt_number || '—',
+            payer_id: h.payer_id,
+            receipt_total: Number(receipt?.receipt_total || 0),
+            status: h.status,
+          };
+        });
+        setBatchPayments(paymentRows);
+
+        (paymentsRes.data || []).forEach(p => {
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
         });
