@@ -215,6 +215,12 @@ const BatchClosing: React.FC = () => {
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
         });
+
+        // Include C3 payment methods (base_amount is already in base currency)
+        (c3MethodsRes.data || []).forEach(m => {
+          const code = m.mop_code || '';
+          sysTotals[code] = (sysTotals[code] || 0) + Number(m.base_amount || 0);
+        });
       } else {
         setBatchPayments([]);
       }
