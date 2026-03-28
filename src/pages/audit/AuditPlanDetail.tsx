@@ -7,6 +7,8 @@ import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, E
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
+import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
+import { PlanningWizard } from '@/components/audit/PlanningWizard';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
 import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
@@ -57,9 +59,10 @@ export default function AuditPlanDetail() {
     const closed = all.filter((e: any) => ['Closed', 'Completed'].includes(e.status));
     const ongoing = all.filter((e: any) => ['In Progress', 'Fieldwork', 'Fieldwork Complete', 'Observation', 'Reporting', 'Report Issued'].includes(e.status));
     const planned = all.filter((e: any) => ['Planned', 'Draft', 'Ready', 'In Preparation'].includes(e.status));
-    const totalHours = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
+    const totalDays = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_days) || 0), 0);
+    const totalWeeks = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
     const highRisk = all.filter((e: any) => ['High', 'Critical'].includes(e.engagement_risk_rating)).length;
-    return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalHours, highRisk };
+    return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalDays, totalWeeks, highRisk };
   }, [engagements]);
 
   if (plansLoading) {
@@ -103,7 +106,7 @@ export default function AuditPlanDetail() {
         <MetricCard title="In Progress" value={stats.ongoing} icon={AlertTriangle} variant="default" />
         <MetricCard title="Completed" value={stats.completed} icon={CheckCircle} variant="success" />
         <MetricCard title="High/Critical" value={stats.highRisk} icon={ShieldCheck} variant="default" />
-        <MetricCard title="Total Hours" value={stats.totalHours} icon={Clock} variant="info" />
+        <MetricCard title="Total Days" value={`${stats.totalDays}d (${stats.totalWeeks}w)`} icon={Clock} variant="info" />
       </div>
 
       {/* 7-Tab Workspace */}
@@ -113,6 +116,7 @@ export default function AuditPlanDetail() {
           <TabsTrigger value="engagements">Engagements ({stats.total})</TabsTrigger>
           <TabsTrigger value="coverage">Coverage & Risk</TabsTrigger>
           <TabsTrigger value="capacity">Capacity & Schedule</TabsTrigger>
+          <TabsTrigger value="autoplan">Auto Plan</TabsTrigger>
           <TabsTrigger value="approval">Approval & Amendments</TabsTrigger>
           <TabsTrigger value="boardpack">Board Pack</TabsTrigger>
           <TabsTrigger value="distribution">Distribution</TabsTrigger>
@@ -206,11 +210,12 @@ export default function AuditPlanDetail() {
                 <Card>
                   <CardHeader><CardTitle className="text-sm">Resource Summary</CardTitle></CardHeader>
                   <CardContent>
-                    <DetailRow label="Available Hours" value={plan.total_available_hours || '—'} />
-                    <DetailRow label="Planned Hours (Engagements)" value={stats.totalHours || '—'} />
-                    <DetailRow label="Contingency Hours" value={plan.contingency_hours || '—'} />
-                    {plan.total_available_hours && stats.totalHours > 0 && (
-                      <DetailRow label="Utilization" value={`${Math.round((stats.totalHours / Number(plan.total_available_hours)) * 100)}%`} />
+                    <DetailRow label="Available Days (Team)" value={plan.total_available_hours || '—'} />
+                    <DetailRow label="Planned Days (Engagements)" value={stats.totalDays || '—'} />
+                    <DetailRow label="Planned Weeks" value={plan.planned_hours || stats.totalWeeks || '—'} />
+                    <DetailRow label="Contingency Days" value={plan.contingency_hours || '—'} />
+                    {plan.total_available_hours && stats.totalDays > 0 && (
+                      <DetailRow label="Utilization" value={`${Math.round((stats.totalDays / Number(plan.total_available_hours)) * 100)}%`} />
                     )}
                     {plan.resource_constraints && (
                       <div className="mt-2">
@@ -263,6 +268,11 @@ export default function AuditPlanDetail() {
         {/* Capacity & Schedule Tab */}
         <TabsContent value="capacity">
           <CapacityCalendarPanel planId={id!} />
+        </TabsContent>
+
+        {/* Auto Plan Tab */}
+        <TabsContent value="autoplan">
+          <PlanningWizard planId={id!} planStatus={plan?.status || 'Draft'} fiscalYear={plan?.fiscal_year} />
         </TabsContent>
 
         {/* Approval & Amendments Tab */}

@@ -177,7 +177,7 @@ export function EditEngagementDialog({
     if (!form.function_id) errors.push('Business function is required');
     if (!form.lead_auditor_id) errors.push('Lead auditor is required');
     if (!form.quarter) errors.push('Quarter is required');
-    if (!form.estimated_hours) errors.push('Estimated hours is required');
+    if (!form.estimated_days) errors.push('Estimated days is required');
     if (form.planned_start_date && form.planned_end_date && form.planned_start_date > form.planned_end_date) {
       errors.push('Planned start date must be before end date');
     }
@@ -506,8 +506,9 @@ export function EditEngagementDialog({
                 </Select>
               </div>
               <div>
-                <Label>Estimated Hours *</Label>
-                <Input type="number" value={form.estimated_hours} onChange={e => updateField('estimated_hours', e.target.value)} placeholder="e.g. 120" />
+                <Label>Estimated Weeks</Label>
+                <Input type="number" value={form.estimated_hours} onChange={e => updateField('estimated_hours', e.target.value)} placeholder="e.g. 3" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">Duration in weeks</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -520,8 +521,9 @@ export function EditEngagementDialog({
                 <Input type="date" value={form.planned_end_date} onChange={e => updateField('planned_end_date', e.target.value)} />
               </div>
               <div>
-                <Label>Estimated Days</Label>
+                <Label>Estimated Days *</Label>
                 <Input type="number" value={form.estimated_days} onChange={e => updateField('estimated_days', e.target.value)} placeholder="e.g. 15" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total working days for the audit</p>
               </div>
             </div>
             <div>

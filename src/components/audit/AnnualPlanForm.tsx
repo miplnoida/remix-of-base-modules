@@ -20,7 +20,7 @@ interface AnnualPlanFormProps {
 const STEPS = [
   { id: 'header', label: 'Plan Details', icon: Calendar, description: 'Fiscal year & title' },
   { id: 'narrative', label: 'Planning Narrative', icon: FileText, description: 'Strategy & methodology' },
-  { id: 'resources', label: 'Resources', icon: Users, description: 'Hours & capacity' },
+  { id: 'resources', label: 'Resources', icon: Users, description: 'Capacity & days' },
   { id: 'governance', label: 'Governance', icon: Shield, description: 'Board & approval' },
 ];
 
@@ -41,9 +41,9 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
     methodology: plan?.methodology || '',
     planningAssumptions: plan?.planning_assumptions || '',
     exclusions: plan?.exclusions || '',
-    totalAvailableHours: plan?.total_available_hours || '',
-    plannedHours: plan?.planned_hours || '',
-    contingencyHours: plan?.contingency_hours || '',
+    totalAvailableDays: plan?.total_available_hours || '',
+    plannedWeeks: plan?.planned_hours || '',
+    contingencyDays: plan?.contingency_hours || '',
     resourceConstraints: plan?.resource_constraints || '',
     outsourcedSupportNotes: plan?.outsourced_support_notes || '',
     skillsConstraints: plan?.skills_constraints || '',
@@ -66,9 +66,9 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       planning_assumptions: formData.planningAssumptions,
       exclusions: formData.exclusions,
       resource_constraints: formData.resourceConstraints,
-      total_available_hours: formData.totalAvailableHours ? Number(formData.totalAvailableHours) : null,
-      planned_hours: formData.plannedHours ? Number(formData.plannedHours) : null,
-      contingency_hours: formData.contingencyHours ? Number(formData.contingencyHours) : null,
+      total_available_hours: formData.totalAvailableDays ? Number(formData.totalAvailableDays) : null,
+      planned_hours: formData.plannedWeeks ? Number(formData.plannedWeeks) : null,
+      contingency_hours: formData.contingencyDays ? Number(formData.contingencyDays) : null,
       outsourced_support_notes: formData.outsourcedSupportNotes,
       skills_constraints: formData.skillsConstraints,
       board_committee_name: formData.boardCommitteeName,
@@ -261,43 +261,46 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
           <div className="space-y-5">
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-1">Resource Planning</h3>
-              <p className="text-xs text-muted-foreground mb-4">Estimate available capacity and document resource constraints.</p>
+              <p className="text-xs text-muted-foreground mb-4">Estimate team capacity in weeks and days. Detailed resource allocation happens at the engagement level.</p>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Available Hours</Label>
-                <Input type="number" value={formData.totalAvailableHours} onChange={e => set('totalAvailableHours', e.target.value)} placeholder="5000" />
+                <Label className="text-xs">Available Days (Team Total)</Label>
+                <Input type="number" value={formData.totalAvailableDays} onChange={e => set('totalAvailableDays', e.target.value)} placeholder="e.g. 250" />
+                <p className="text-[10px] text-muted-foreground">Total working days across all auditors</p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Planned Hours</Label>
-                <Input type="number" value={formData.plannedHours} onChange={e => set('plannedHours', e.target.value)} placeholder="4200" />
+                <Label className="text-xs">Planned Weeks</Label>
+                <Input type="number" value={formData.plannedWeeks} onChange={e => set('plannedWeeks', e.target.value)} placeholder="e.g. 42" />
+                <p className="text-[10px] text-muted-foreground">Total engagement-weeks planned</p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Contingency Hours</Label>
-                <Input type="number" value={formData.contingencyHours} onChange={e => set('contingencyHours', e.target.value)} placeholder="800" />
+                <Label className="text-xs">Contingency Days</Label>
+                <Input type="number" value={formData.contingencyDays} onChange={e => set('contingencyDays', e.target.value)} placeholder="e.g. 30" />
+                <p className="text-[10px] text-muted-foreground">Reserved for ad-hoc / unplanned work</p>
               </div>
             </div>
-            {(formData.totalAvailableHours && formData.plannedHours) && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="text-muted-foreground">Capacity Utilization</span>
-                  <span className="font-semibold text-foreground">
-                    {Math.round((Number(formData.plannedHours) / Number(formData.totalAvailableHours)) * 100)}%
-                  </span>
+            {(formData.totalAvailableDays && formData.plannedWeeks) && (() => {
+              const plannedDays = Number(formData.plannedWeeks) * 5;
+              const utilization = Math.round((plannedDays / Number(formData.totalAvailableDays)) * 100);
+              return (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-muted-foreground">Capacity Utilization ({plannedDays} days planned of {formData.totalAvailableDays} available)</span>
+                    <span className="font-semibold text-foreground">{utilization}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        utilization > 90 ? "bg-destructive" : "bg-primary"
+                      )}
+                      style={{ width: `${Math.min(100, utilization)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      (Number(formData.plannedHours) / Number(formData.totalAvailableHours)) > 0.9
-                        ? "bg-destructive"
-                        : "bg-primary"
-                    )}
-                    style={{ width: `${Math.min(100, Math.round((Number(formData.plannedHours) / Number(formData.totalAvailableHours)) * 100))}%` }}
-                  />
-                </div>
-              </div>
-            )}
+              );
+            })()}
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Resource Constraints</Label>
