@@ -123,6 +123,7 @@ const DB_TRIGGER_TABLES = new Set([
   'system_settings', 'security_policy_config', 'ip_access_rules',
   'c3_calculation_config', 'payment_module_config',
   'tb_levy_slabs', 'tb_levy_slab_details',
+  'levy_slabs', 'levy_slab_details', // aliases used in mutationKeys
 ]);
 
 /**

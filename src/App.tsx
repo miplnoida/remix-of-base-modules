@@ -53,6 +53,19 @@ const queryClient = new QueryClient({
         ? parsed.action
         : classifyActionFromVariables(variables, data);
 
+      // Extract beforeValue from variables if present; strip internal fields from afterValue
+      const rawVars = variables && typeof variables === 'object' ? variables as Record<string, any> : {};
+      const beforeValue = rawVars.oldValues || rawVars.beforeValue || null;
+
+      const INTERNAL_FIELDS = new Set([
+        'oldValues', 'beforeValue', 'userCode', 'userName', 'user_code', 'user_name',
+        'slabId', 'slab_id', 'oldValue', 'newValue', 'id',
+      ]);
+      const cleanAfter: Record<string, any> = {};
+      for (const [k, v] of Object.entries(rawVars)) {
+        if (!INTERNAL_FIELDS.has(k)) cleanAfter[k] = v;
+      }
+
       // Fire-and-forget audit log — never blocks the UI
       logAuditEntry({
         action,
@@ -60,7 +73,8 @@ const queryClient = new QueryClient({
         entityId,
         module: parsed.module || routeCtx?.module,
         route,
-        afterValue: variables && typeof variables === 'object' ? variables as Record<string, any> : undefined,
+        beforeValue,
+        afterValue: Object.keys(cleanAfter).length > 0 ? cleanAfter : undefined,
         metadata: {
           source: 'MutationCache_global',
           mutationKey: mutation.options.mutationKey?.map(String),
