@@ -420,8 +420,8 @@ export function EditEngagementDialog({
       inclusion_reason_notes: form.inclusion_reason_notes || null,
       expected_deliverable_codes: form.expected_deliverable_codes,
       expected_deliverable_notes: form.expected_deliverable_notes || null,
-      primary_auditee_contact_id: form.primary_auditee_contact_id && form.primary_auditee_contact_id !== '__manual__' ? form.primary_auditee_contact_id : null,
-      secondary_auditee_contact_ids: form.secondary_auditee_contact_ids,
+      primary_auditee_contact_id: form.primary_auditee_contact_id && form.primary_auditee_contact_id !== '__manual__' && !form.primary_auditee_contact_id.startsWith('name::') ? form.primary_auditee_contact_id : null,
+      secondary_auditee_contact_ids: (form.secondary_auditee_contact_ids || []).filter(id => !id.startsWith('name::')),
     };
 
     if (isEditMode) {
