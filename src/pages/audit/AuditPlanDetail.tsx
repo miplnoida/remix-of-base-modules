@@ -61,6 +61,8 @@ export default function AuditPlanDetail() {
 
   const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
 
+  const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
+
   // Auto-open submission readiness dialog when navigated with ?action=submit
   useEffect(() => {
     if (searchParams.get('action') === 'submit' && plan && !plansLoading) {
@@ -73,8 +75,6 @@ export default function AuditPlanDetail() {
       }
     }
   }, [searchParams, plan, plansLoading]);
-
-  const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
 
   const stats = useMemo(() => {
     const all = engagements || [];
