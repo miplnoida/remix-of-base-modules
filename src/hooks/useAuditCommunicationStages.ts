@@ -58,6 +58,7 @@ export function useRecordCommunicationStage() {
       notes?: string;
       createdBy?: string;
       acknowledgmentRequired?: boolean;
+      mode?: 'send' | 'resend' | 'reminder';
     }) => {
       const { data, error } = await supabase.rpc('ia_record_communication_stage' as any, {
         p_engagement_id: params.engagementId,
@@ -68,6 +69,7 @@ export function useRecordCommunicationStage() {
         p_notes: params.notes || null,
         p_created_by: params.createdBy || null,
         p_acknowledgment_required: params.acknowledgmentRequired || false,
+        p_mode: params.mode || 'send',
       });
       if (error) throw error;
       const result = data as any;
@@ -76,7 +78,8 @@ export function useRecordCommunicationStage() {
     },
     onSuccess: (result, params) => {
       queryClient.invalidateQueries({ queryKey: ['ia_communication_timeline', params.engagementId] });
-      toast({ title: 'Communication Sent', description: `Stage ${formatStageCode(params.stageCode)} recorded successfully.` });
+      const modeLabel = params.mode === 'reminder' ? 'Reminder Sent' : params.mode === 'resend' ? 'Communication Resent' : 'Communication Sent';
+      toast({ title: modeLabel, description: `Stage ${formatStageCode(params.stageCode)} recorded successfully.` });
     },
     onError: (e: any) => {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
