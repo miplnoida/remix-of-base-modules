@@ -723,6 +723,38 @@ import IncomeCategoryManagement from '@/pages/admin/IncomeCategoryManagement';
 import SepContribRateManagement from '@/pages/admin/SepContribRateManagement';
 import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 
+// Master Data CRUD Pages
+import ActivityManagement from '@/pages/admin/master-data/ActivityManagement';
+import BankCodeManagement from '@/pages/admin/master-data/BankCodeManagement';
+import BatchStatusManagement from '@/pages/admin/master-data/BatchStatusManagement';
+import C3StatusManagement from '@/pages/admin/master-data/C3StatusManagement';
+import CountryManagement from '@/pages/admin/master-data/CountryManagement';
+import DependentRelationManagement from '@/pages/admin/master-data/DependentRelationManagement';
+import DistrictManagement from '@/pages/admin/master-data/DistrictManagement';
+import EyeColorManagement from '@/pages/admin/master-data/EyeColorManagement';
+import IndustryManagement from '@/pages/admin/master-data/IndustryManagement';
+import InspectorMDManagement from '@/pages/admin/master-data/InspectorManagement';
+import InvoiceStatusMDManagement from '@/pages/admin/master-data/InvoiceStatusManagement';
+import InvoiceTypesMDManagement from '@/pages/admin/master-data/InvoiceTypesManagement';
+import LegalStatusManagement from '@/pages/admin/master-data/LegalStatusManagement';
+import MaritalStatusManagement from '@/pages/admin/master-data/MaritalStatusManagement';
+import MerchantManagement from '@/pages/admin/master-data/MerchantManagement';
+import MethodOfPaymentManagement from '@/pages/admin/master-data/MethodOfPaymentManagement';
+import OccupationManagement from '@/pages/admin/master-data/OccupationManagement';
+import PayerTypeManagement from '@/pages/admin/master-data/PayerTypeManagement';
+import PaymentSourcesManagement from '@/pages/admin/master-data/PaymentSourcesManagement';
+import PaymentTypeMDManagement from '@/pages/admin/master-data/PaymentTypeManagement';
+import PenaltyMDManagement from '@/pages/admin/master-data/PenaltyManagement';
+import PostalDistrictManagement from '@/pages/admin/master-data/PostalDistrictManagement';
+import ReceiptStatusManagement from '@/pages/admin/master-data/ReceiptStatusManagement';
+import RelationManagement from '@/pages/admin/master-data/RelationManagement';
+import SectorManagement from '@/pages/admin/master-data/SectorManagement';
+import SscRatesManagement from '@/pages/admin/master-data/SscRatesManagement';
+import VcContribRateManagement from '@/pages/admin/master-data/VcContribRateManagement';
+import VcEligibilityConfigManagement from '@/pages/admin/master-data/VcEligibilityConfigManagement';
+import VerifyManagement from '@/pages/admin/master-data/VerifyManagement';
+import VillagesManagement from '@/pages/admin/master-data/VillagesManagement';
+
 // Contribution Payments Module
 import PaymentDataEntry from '@/pages/cashier/PaymentDataEntry';
 import PaymentHistoricalEntry from '@/pages/cashier/PaymentHistoricalEntry';
@@ -1037,6 +1069,37 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/sep-contrib-rates" element={<Navigate to="/admin/c3-configuration" replace />} />
       <Route path="/admin/master-data/income-codes" element={<ProtectedLayout><IncomeCodeManagement /></ProtectedLayout>} />
+      {/* Master Data CRUD Routes */}
+      <Route path="/admin/master-data/activity-types" element={<ProtectedLayout><ActivityManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/bank-codes" element={<ProtectedLayout><BankCodeManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/batch-status" element={<ProtectedLayout><BatchStatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/c3-status" element={<ProtectedLayout><C3StatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/countries" element={<ProtectedLayout><CountryManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/dependent-relations" element={<ProtectedLayout><DependentRelationManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/districts" element={<ProtectedLayout><DistrictManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/eye-colors" element={<ProtectedLayout><EyeColorManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/industries" element={<ProtectedLayout><IndustryManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/inspectors" element={<ProtectedLayout><InspectorMDManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/invoice-status" element={<ProtectedLayout><InvoiceStatusMDManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/invoice-types" element={<ProtectedLayout><InvoiceTypesMDManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/legal-status" element={<ProtectedLayout><LegalStatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/marital-status" element={<ProtectedLayout><MaritalStatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/merchants" element={<ProtectedLayout><MerchantManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/methods-of-payment" element={<ProtectedLayout><MethodOfPaymentManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/occupations" element={<ProtectedLayout><OccupationManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/payer-types" element={<ProtectedLayout><PayerTypeManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/payment-sources" element={<ProtectedLayout><PaymentSourcesManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/payment-types" element={<ProtectedLayout><PaymentTypeMDManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/penalty-rates" element={<ProtectedLayout><PenaltyMDManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/postal-districts" element={<ProtectedLayout><PostalDistrictManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/receipt-status" element={<ProtectedLayout><ReceiptStatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/relations" element={<ProtectedLayout><RelationManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/sectors" element={<ProtectedLayout><SectorManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/ssc-rates" element={<ProtectedLayout><SscRatesManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/vc-contrib-rates" element={<ProtectedLayout><VcContribRateManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/vc-eligibility-config" element={<ProtectedLayout><VcEligibilityConfigManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/verification-types" element={<ProtectedLayout><VerifyManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/villages" element={<ProtectedLayout><VillagesManagement /></ProtectedLayout>} />
       <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
       <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
