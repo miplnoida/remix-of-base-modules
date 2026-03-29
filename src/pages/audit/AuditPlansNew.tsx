@@ -101,8 +101,9 @@ export default function AuditPlansNew() {
     }
   };
 
-  const canEditPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && hasPermission('edit_audit_plans');
-  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && hasPermission('edit_audit_plans');
+  const canManageAuditPlans = hasPermission('edit_audit_plans') || hasPermission('create_audit_plans') || hasPermission('admin') || hasPermission('system_administration');
+  const canEditPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && canManageAuditPlans;
+  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && canManageAuditPlans;
 
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Plan Title', render: (row) => <span className="font-medium">{row.title}</span> },
