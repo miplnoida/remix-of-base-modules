@@ -28,7 +28,14 @@ import {
   AuditActionsTab,
   AuditReportTab,
   AuditTimelineTab,
+  AuditControlTestsTab,
+  AuditFollowUpsTab,
 } from '@/components/audit/execution';
+import {
+  useEngagementEvidence,
+  useEngagementWorkingPapers,
+  useEngagementActivities,
+} from '@/hooks/useEngagementData';
 
 // ===== Smart Alerts =====
 function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions }: {
