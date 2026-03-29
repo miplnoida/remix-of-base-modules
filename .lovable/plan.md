@@ -1,66 +1,81 @@
 
 
-# Fix Levy Slabs Audit Trail — Before Values & DB Trigger Coverage
+# Fix Levy Slabs Audit Log Accuracy
 
-## Problem Analysis
+## Root Cause
 
-From the screenshots:
-1. **App interceptor entry (image-223)**: Shows field-level changes but ALL "Before" values are "—". This happens because `LevySlabDetailForm.tsx` calls `useUpdateLevySlabDetail` without passing `oldValues` — the `detail` prop contains the original record but is never forwarded.
-2. **DB trigger entry (image-224)**: Shows no before/after values at all. Root cause: `tb_levy_slabs` and `tb_levy_slab_details` are NOT in the DB trigger list — the migration only covers 18 tables and these two are missing.
+The screenshot shows a **MutationCache_global** entry where:
+- **All "Before" values are "—"** because the global interceptor never sets `beforeValue`
+- **"After" values are raw mutation variables** (including internal fields like `oldValues`, `userCode`, `slabId`) because line 63 of `App.tsx` blindly dumps `variables` as `afterValue`
+- **`supplementary: false`** despite DB triggers being active — because the mutationKey uses `levy_slabs` but `DB_TRIGGER_TABLES` contains `tb_levy_slabs` (prefix mismatch)
 
-## Implementation Steps
+So the audit trail shows misleading data: internal mutation parameters appear as "changed values."
 
-### Step 1: Add DB Triggers for Levy Slab Tables
+## Fix Strategy
 
-Create a migration to attach `fn_audit_row_change()` to both `tb_levy_slabs` and `tb_levy_slab_details`. Also add them to `DB_TRIGGER_TABLES` set in `globalAuditInterceptor.ts`.
+### 1. Fix Global Interceptor in `App.tsx` (lines 56-68)
 
-### Step 2: Fix Before-Value Passing in LevySlabDetailForm
+Extract `oldValues`/`beforeValue` from variables and strip internal/meta fields before logging:
 
-In `LevySlabDetailForm.tsx`, when calling `updateMutation.mutateAsync`, pass the `detail` prop as `oldValues`:
 ```typescript
-oldValues: {
-  pay_period: detail.pay_period,
-  over_amt: detail.over_amt,
-  base_amt: detail.base_amt,
-  tax_rate: detail.tax_rate,
-  order_no: detail.order_no,
-  is_active: detail.is_active
+// Extract beforeValue if variables contain oldValues
+const rawVars = variables && typeof variables === 'object' ? variables as Record<string, any> : {};
+const beforeValue = rawVars.oldValues || rawVars.beforeValue || null;
+
+// Strip internal fields from afterValue
+const INTERNAL_FIELDS = new Set([
+  'oldValues', 'beforeValue', 'userCode', 'userName', 'user_code', 'user_name',
+  'slabId', 'slab_id', 'oldValue', 'newValue'
+]);
+const cleanAfter: Record<string, any> = {};
+for (const [k, v] of Object.entries(rawVars)) {
+  if (!INTERNAL_FIELDS.has(k)) cleanAfter[k] = v;
 }
+
+logAuditEntry({
+  ...
+  beforeValue,
+  afterValue: Object.keys(cleanAfter).length > 0 ? cleanAfter : undefined,
+  ...
+});
 ```
 
-### Step 3: Fix Before-Value Capture in useLevySlabsManagement Hook
+### 2. Fix `DB_TRIGGER_TABLES` Name Mismatch in `globalAuditInterceptor.ts`
 
-The `useUpdateLevySlabDetail` hook already accepts `oldValues` but the form never passes it. Additionally, the `useUpdateLevySlab` hook accepts `oldValues` — need to verify callers pass it too.
+Add non-prefixed aliases so the supplementary flag works correctly:
 
-Search for all callers of `useUpdateLevySlab` to ensure they also pass `oldValues`.
-
-### Step 4: Enhance the Audit Logging in the Hooks
-
-In both `useUpdateLevySlab` and `useUpdateLevySlabDetail`, add a **pre-mutation fetch** as a fallback when `oldValues` is not provided:
 ```typescript
-// If oldValues not provided, fetch current record before updating
-if (!oldValues) {
-  const { data: current } = await supabase
-    .from('tb_levy_slab_details')
-    .select('*')
-    .eq('id', id)
-    .single();
-  oldValues = current;
-}
+const DB_TRIGGER_TABLES = new Set([
+  // ... existing entries ...
+  'tb_levy_slabs', 'tb_levy_slab_details',
+  'levy_slabs', 'levy_slab_details',  // aliases from mutationKey
+]);
 ```
 
-This ensures before-values are always captured even if a caller forgets to pass them.
+### 3. Skip Global Interceptor for Supplementary Entries
 
-### Step 5: Add No-Change Detection
+Currently supplementary entries are still written (just flagged). Change to **skip writing entirely** when the table has DB triggers, since the DB trigger already captures accurate before/after:
 
-Before executing the update, compare `oldValues` with `newValues`. If identical, skip the update and show a toast: "No changes detected."
+In `globalAuditInterceptor.ts` `logAuditEntry()`:
+```typescript
+// If DB trigger handles this table, skip app-level logging entirely
+if (isDbTriggered && source !== 'db_trigger') return;
+```
+
+### 4. Verify Hook-Level `logC3ConfigChange` Accuracy
+
+The hooks in `useLevySlabsManagement.ts` already call `logC3ConfigChange()` with correct `oldValue`/`newValue`. This writes to the C3 audit log via RPC (separate from `system_audit_trail`). The DB trigger on `tb_levy_slab_details` will write accurate field-level diffs to `system_audit_trail` automatically — so the global interceptor entry is pure noise.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| **New migration SQL** | Add audit triggers to `tb_levy_slabs` and `tb_levy_slab_details` |
-| `src/services/globalAuditInterceptor.ts` | Add both tables to `DB_TRIGGER_TABLES` set |
-| `src/components/admin/levy-slabs/LevySlabDetailForm.tsx` | Pass `oldValues` from `detail` prop when calling update |
-| `src/hooks/useLevySlabsManagement.ts` | Add pre-mutation fetch fallback for `oldValues` in both update hooks; add no-change detection |
+| `src/App.tsx` | Extract `oldValues` from variables as `beforeValue`, strip internal fields from `afterValue` |
+| `src/services/globalAuditInterceptor.ts` | Add alias names to `DB_TRIGGER_TABLES`; skip writing supplementary entries entirely |
+
+## Technical Detail
+
+- The DB trigger `fn_audit_row_change()` on `tb_levy_slab_details` already captures the true PostgreSQL `OLD` and `NEW` row with field-level diff. This is the authoritative audit entry.
+- The global MutationCache interceptor was creating a second, inaccurate entry. After this fix, tables with DB triggers will only have one clean entry from the trigger.
+- For tables without DB triggers, the global interceptor will now correctly extract `beforeValue` from mutation variables (if passed) and strip internal fields.
 
