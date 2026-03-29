@@ -265,16 +265,21 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     autoTable(doc, {
       startY: y,
       head: [['#', 'Engagement Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
-      body: engagements.map((e: any, i: number) => [
-        e.sequence_no || i + 1,
-        dv(e.engagement_name, 'Untitled'),
-        dv(lookups.deptMap.get(e.department_id)),
-        dv(e.engagement_risk_rating),
-        dv(lookups.auditorMap.get(e.lead_auditor_id)),
-        dv(e.quarter),
-        dv(e.estimated_days),
-        dv(e.status, 'Planned'),
-      ]),
+      body: engagements.map((e: any, i: number) => {
+        const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+        const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
+        const days = ef(e, 'estimated_days', 'budgeted_hours');
+        return [
+          e.sequence_no || i + 1,
+          dv(e.engagement_name || e.title, 'Untitled'),
+          dv(lookups.deptMap.get(e.department_id)),
+          dv(e.engagement_risk_rating),
+          dv(lookups.auditorMap.get(e.lead_auditor_id)),
+          dv(quarter),
+          dv(days),
+          dv(e.status, 'Planned'),
+        ];
+      }),
       styles: { fontSize: 8.5, cellPadding: 3 },
       headStyles: { fillColor: theme.primary, fontSize: 8.5, cellPadding: 3 },
       alternateRowStyles: { fillColor: theme.altRow },
