@@ -24015,20 +24015,35 @@ export type Database = {
         }
         Returns: Json
       }
-      create_c3_payment_with_receipt: {
-        Args: {
-          p_batch_number: string
-          p_components?: Json
-          p_date_received: string
-          p_methods?: Json
-          p_payer_id: string
-          p_payer_type: string
-          p_receipt_total?: number
-          p_remarks?: string
-          p_user_code?: string
-        }
-        Returns: Json
-      }
+      create_c3_payment_with_receipt:
+        | {
+            Args: {
+              p_batch_number: string
+              p_components?: Json
+              p_date_received: string
+              p_methods?: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total?: number
+              p_remarks?: string
+              p_user_code?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_batch_number: string
+              p_components: Json
+              p_date_received: string
+              p_methods: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total: number
+              p_remarks: string
+              p_user_code: string
+            }
+            Returns: Json
+          }
       create_invoice_with_lines:
         | {
             Args: {
