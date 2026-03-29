@@ -35,9 +35,15 @@ export default function PlanApproval() {
   const [rejectComment, setRejectComment] = useState('');
 
   const { data: annualPlans = [], isLoading } = useIAAnnualPlans();
+  const { data: departments = [] } = useIADepartments();
+  const { data: auditors = [] } = useIAAuditors();
   const { approvePlan, rejectPlan, sendBackForChanges } = useAuditPlanWorkflow();
 
   const access = usePlanWorkflowAccess();
+
+  // Build lookup maps for resolving IDs to names
+  const deptMap = useMemo(() => new Map((departments as any[]).map((d: any) => [d.id, d.name])), [departments]);
+  const auditorMap = useMemo(() => new Map((auditors as any[]).map((a: any) => [a.id, a.name])), [auditors]);
 
   // Fetch engagements for current viewed item
   const { data: viewEngagements = [] } = useIAPlanEngagements(viewItem?.id);
