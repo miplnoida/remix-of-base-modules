@@ -37,16 +37,16 @@ const AppLogoUploadSection: React.FC = () => {
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const filePath = `logos/app-logo-${Date.now()}.${ext}`;
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('folder', 'logos');
 
-      const { error: uploadErr } = await supabase.storage
-        .from('app-assets')
-        .upload(filePath, file, { upsert: true });
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from('app-assets').getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl;
+      const { data: uploadData, error: invokeErr } = await supabase.functions.invoke('upload-app-asset', {
+        body: uploadFormData,
+      });
+      if (invokeErr) throw invokeErr;
+      if (!uploadData?.publicUrl) throw new Error('Upload did not return a public URL');
+      const publicUrl = uploadData.publicUrl;
 
       // Update system_settings directly (this key is not editable via normal form, so we use direct update)
       const { error: updateErr } = await supabase
