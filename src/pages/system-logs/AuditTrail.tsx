@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2, RefreshCw, Download, History, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, RefreshCw, Download, History, ChevronLeft, ChevronRight, Globe, Database, Monitor, UserCheck } from 'lucide-react';
 import { formatAuditDateTime } from '@/lib/dateFormat';
 import { Label } from '@/components/ui/label';
 import ApiLogsTab from '@/components/admin/ApiLogsTab';
@@ -35,6 +36,93 @@ interface AuditEntry {
 
 const PAGE_SIZE = 20;
 
+const ACTION_OPTIONS = [
+  { value: '', label: 'All Actions' },
+  { value: 'create', label: 'Create' },
+  { value: 'update', label: 'Update' },
+  { value: 'delete', label: 'Delete' },
+  { value: 'status_change', label: 'Status Change' },
+  { value: 'approve', label: 'Approve' },
+  { value: 'reject', label: 'Reject' },
+  { value: 'enable', label: 'Enable' },
+  { value: 'disable', label: 'Disable' },
+  { value: 'login', label: 'Login' },
+  { value: 'logout', label: 'Logout' },
+  { value: 'page_view', label: 'Page View' },
+  { value: 'export', label: 'Export' },
+  { value: 'mutation', label: 'Mutation (Legacy)' },
+];
+
+/** Compute field-level diffs for the detail dialog */
+function computeVisualDiff(
+  before: Record<string, any> | null,
+  after: Record<string, any> | null,
+  action: string | null
+): Array<{ field: string; oldValue: any; newValue: any; changeType: 'added' | 'removed' | 'changed' }> {
+  const skipFields = new Set([
+    'updated_at', 'modified_date', 'updated_by', 'modified_by',
+    'created_at', 'created_by', 'correlation_id', 'session_id',
+    'device_info', 'timestamp',
+  ]);
+
+  const diffs: Array<{ field: string; oldValue: any; newValue: any; changeType: 'added' | 'removed' | 'changed' }> = [];
+
+  if (!before && !after) return diffs;
+
+  const a = action?.toLowerCase() || '';
+
+  if (a === 'create' || a === 'insert' || (!before && after)) {
+    for (const [key, val] of Object.entries(after || {})) {
+      if (skipFields.has(key) || val === null || val === undefined) continue;
+      diffs.push({ field: key, oldValue: null, newValue: val, changeType: 'added' });
+    }
+    return diffs;
+  }
+
+  if (a === 'delete' || (before && !after)) {
+    for (const [key, val] of Object.entries(before || {})) {
+      if (skipFields.has(key) || val === null || val === undefined) continue;
+      diffs.push({ field: key, oldValue: val, newValue: null, changeType: 'removed' });
+    }
+    return diffs;
+  }
+
+  // Update / general: compare field by field
+  const allKeys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+  for (const key of allKeys) {
+    if (skipFields.has(key)) continue;
+    const oldVal = before?.[key];
+    const newVal = after?.[key];
+
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      if (oldVal === null || oldVal === undefined) {
+        diffs.push({ field: key, oldValue: null, newValue: newVal, changeType: 'added' });
+      } else if (newVal === null || newVal === undefined) {
+        diffs.push({ field: key, oldValue: oldVal, newValue: null, changeType: 'removed' });
+      } else {
+        diffs.push({ field: key, oldValue: oldVal, newValue: newVal, changeType: 'changed' });
+      }
+    }
+  }
+
+  return diffs;
+}
+
+function formatFieldValue(value: any): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
+function getSourceBadge(payloadJson: any) {
+  const source = payloadJson?.source;
+  if (source === 'db_trigger') return <Badge variant="outline" className="text-xs gap-1"><Database className="h-3 w-3" />DB</Badge>;
+  if (source === 'MutationCache_global' || source === 'app_interceptor') return <Badge variant="outline" className="text-xs gap-1"><Monitor className="h-3 w-3" />App</Badge>;
+  if (source === 'useAuditedMutation') return <Badge variant="outline" className="text-xs gap-1"><UserCheck className="h-3 w-3" />Audited</Badge>;
+  if (source) return <Badge variant="outline" className="text-xs">{source}</Badge>;
+  return null;
+}
+
 const AuditTrail: React.FC = () => {
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState('timestamp');
@@ -57,6 +145,7 @@ const AuditTrail: React.FC = () => {
     }
     setPage(0);
   };
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['audit-trail', page, sortKey, sortDirection, dateFrom, dateTo, userFilter, entityTypeFilter, moduleFilter, routeFilter, actionFilter],
     queryFn: async () => {
@@ -93,6 +182,7 @@ const AuditTrail: React.FC = () => {
       case 'create': case 'insert': return <Badge className="bg-primary text-primary-foreground">Create</Badge>;
       case 'update': return <Badge className="bg-secondary text-secondary-foreground">Update</Badge>;
       case 'delete': return <Badge variant="destructive">Delete</Badge>;
+      case 'status_change': return <Badge className="bg-amber-500/20 text-amber-700 border-amber-300">Status Change</Badge>;
       case 'enable': return <Badge className="bg-primary text-primary-foreground">Enable</Badge>;
       case 'disable': return <Badge className="bg-accent/30 text-accent-foreground">Disable</Badge>;
       case 'approve': return <Badge className="bg-primary text-primary-foreground">Approve</Badge>;
@@ -107,6 +197,14 @@ const AuditTrail: React.FC = () => {
       default: return <Badge variant="secondary">{action || 'Unknown'}</Badge>;
     }
   };
+
+  // Compute diffs for selected entry
+  const visualDiff = useMemo(() => {
+    if (!selectedEntry) return [];
+    return computeVisualDiff(selectedEntry.before_value, selectedEntry.after_value, selectedEntry.action);
+  }, [selectedEntry]);
+
+  const hasFieldDiff = visualDiff.length > 0;
 
   return (
     <div className="p-6 space-y-6">
@@ -163,7 +261,18 @@ const AuditTrail: React.FC = () => {
                   </div>
                   <div>
                     <Label>Action</Label>
-                    <Input placeholder="Action type..." value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} />
+                    <Select value={actionFilter} onValueChange={(val) => { setActionFilter(val); setPage(0); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Actions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACTION_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value || '__all'} value={opt.value || ' '}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label>Module</Label>
@@ -176,6 +285,13 @@ const AuditTrail: React.FC = () => {
                   <div>
                     <Label>Route / Screen</Label>
                     <Input placeholder="/cashier/..." value={routeFilter} onChange={(e) => setRouteFilter(e.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      setDateFrom(''); setDateTo(''); setUserFilter('');
+                      setEntityTypeFilter(''); setModuleFilter('');
+                      setRouteFilter(''); setActionFilter(''); setPage(0);
+                    }}>Clear Filters</Button>
                   </div>
                 </div>
               </CardContent>
@@ -208,7 +324,12 @@ const AuditTrail: React.FC = () => {
                               {formatAuditDateTime(entry.timestamp, true)}
                             </TableCell>
                             <TableCell>{entry.user_name || entry.user_id?.slice(0, 8) || '-'}</TableCell>
-                            <TableCell>{getActionBadge(entry.action)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                {getActionBadge(entry.action)}
+                                {getSourceBadge(entry.payload_json)}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {entry.module ? (
                                 <Badge variant="outline">{entry.module}</Badge>
@@ -253,14 +374,19 @@ const AuditTrail: React.FC = () => {
         </TabsContent>
       </Tabs>
 
+      {/* ─── Detail Dialog with Field-Level Diff ─── */}
       <Dialog open={!!selectedEntry} onOpenChange={() => setSelectedEntry(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Audit Entry Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Audit Entry Details
+              {selectedEntry && getSourceBadge(selectedEntry.payload_json)}
+            </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-[60vh]">
             {selectedEntry && (
               <div className="space-y-6">
+                {/* Metadata grid */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div><strong>Timestamp:</strong> {formatAuditDateTime(selectedEntry.timestamp, true)}</div>
                   <div><strong>User:</strong> {selectedEntry.user_name || '-'}</div>
@@ -283,7 +409,63 @@ const AuditTrail: React.FC = () => {
                     <div className="col-span-2"><strong>Description:</strong> {selectedEntry.payload_json.description}</div>
                   )}
                 </div>
-                
+
+                {/* ─── Field-Level Diff Table ─── */}
+                {hasFieldDiff ? (
+                  <div>
+                    <h4 className="font-semibold mb-2">Field-Level Changes</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableCell className="font-semibold w-[200px]">Field</TableCell>
+                            <TableCell className="font-semibold">Before</TableCell>
+                            <TableCell className="font-semibold">After</TableCell>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visualDiff.map((diff, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-mono text-xs font-medium">{diff.field}</TableCell>
+                              <TableCell className={`text-xs whitespace-pre-wrap break-all ${
+                                diff.changeType === 'removed' ? 'bg-destructive/10 text-destructive' :
+                                diff.changeType === 'changed' ? 'bg-destructive/5' : ''
+                              }`}>
+                                {formatFieldValue(diff.oldValue)}
+                              </TableCell>
+                              <TableCell className={`text-xs whitespace-pre-wrap break-all ${
+                                diff.changeType === 'added' ? 'bg-primary/10 text-primary' :
+                                diff.changeType === 'changed' ? 'bg-primary/5' : ''
+                              }`}>
+                                {formatFieldValue(diff.newValue)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ) : (
+                  /* Fallback: raw JSON if no diff could be computed */
+                  (selectedEntry.before_value || selectedEntry.after_value) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold mb-2 text-destructive">Before Value</h4>
+                        <pre className="bg-destructive/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
+                          {selectedEntry.before_value ? JSON.stringify(selectedEntry.before_value, null, 2) : 'N/A'}
+                        </pre>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2 text-primary">After Value</h4>
+                        <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
+                          {selectedEntry.after_value ? JSON.stringify(selectedEntry.after_value, null, 2) : 'N/A'}
+                        </pre>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {/* Metadata section */}
                 {selectedEntry.payload_json && (
                   <div>
                     <h4 className="font-semibold mb-2">Metadata</h4>
@@ -292,21 +474,6 @@ const AuditTrail: React.FC = () => {
                     </pre>
                   </div>
                 )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold mb-2 text-destructive">Before Value</h4>
-                    <pre className="bg-destructive/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
-                      {selectedEntry.before_value ? JSON.stringify(selectedEntry.before_value, null, 2) : 'N/A'}
-                    </pre>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2 text-primary">After Value</h4>
-                    <pre className="bg-primary/10 p-4 rounded-lg overflow-auto text-xs max-h-[300px]">
-                      {selectedEntry.after_value ? JSON.stringify(selectedEntry.after_value, null, 2) : 'N/A'}
-                    </pre>
-                  </div>
-                </div>
               </div>
             )}
           </ScrollArea>
