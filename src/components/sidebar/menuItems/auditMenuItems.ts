@@ -114,11 +114,18 @@ export const auditMenuItems = [
         isGroupLabel: true,
       },
       {
-        title: "Reports",
+        title: "Report Center",
         url: "/audit/audit-reports",
         icon: BarChart3,
         requiresPermission: "generate_reports",
-        description: "Audit reports and analytics"
+        description: "Create and manage audit reports"
+      },
+      {
+        title: "Report Builder",
+        url: "/audit/report-builder",
+        icon: FileText,
+        requiresPermission: "generate_reports",
+        description: "Build professional audit reports"
       }
     ]
   }
