@@ -412,7 +412,7 @@ export function EditEngagementDialog({
       expected_deliverable: deliverableText || null,
       dependencies: form.dependencies || null,
       scheduling_notes: form.scheduling_notes || null,
-      auditee_contact: form.auditee_contact || null,
+      auditee_contact: form.primary_auditee_contact_id?.startsWith('name::') ? form.primary_auditee_contact_id.replace('name::', '') : (form.auditee_contact || null),
       auditable_area_summary: form.auditable_area_summary || null,
       sequence_no: form.sequence_no ? Number(form.sequence_no) : null,
       // New structured fields
