@@ -15,6 +15,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReportCustomizationDialog, DEFAULT_REPORT_CONFIG, THEME_COLORS } from './ReportCustomizationDialog';
 import type { ReportConfig } from './ReportCustomizationDialog';
+import ssbLogoPng from '@/assets/ssb-logo.png';
 
 interface BoardPackTabProps {
   planId: string;
@@ -35,10 +36,42 @@ function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
+/** Load logo image as base64 for jsPDF embedding */
+let _logoBase64: string | null = null;
+let _logoLoaded = false;
+async function getLogoBase64(): Promise<string | null> {
+  if (_logoLoaded) return _logoBase64;
+  try {
+    const resp = await fetch(ssbLogoPng);
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        _logoBase64 = reader.result as string;
+        _logoLoaded = true;
+        resolve(_logoBase64);
+      };
+      reader.onerror = () => { _logoLoaded = true; resolve(null); };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    _logoLoaded = true;
+    return null;
+  }
+}
+
 /** Clean display value — no ugly dashes for empty data */
 function dv(val: any, fallback = ''): string {
   if (val === null || val === undefined || val === '' || val === '—') return fallback;
   return String(val);
+}
+
+/** Resolve engagement field with fallbacks */
+function ef(e: any, ...keys: string[]): any {
+  for (const k of keys) {
+    if (e[k] !== null && e[k] !== undefined && e[k] !== '') return e[k];
+  }
+  return null;
 }
 
 /** Get rationale display from structured or legacy fields */
@@ -113,12 +146,15 @@ function addFooter(doc: jsPDF, version: number, artifactVersion: number, status:
     doc.text(`Plan v${version}  •  Artifact v${artifactVersion}  •  Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 12, { align: 'center' });
     doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 12, { align: 'right' });
 
-    // Draft watermark — subtle diagonal
+    // Draft watermark — visible diagonal watermark
     if (status !== 'Approved' && config.showDraftWatermark) {
-      doc.setTextColor(220, 240, 225);
-      doc.setFontSize(72);
+      doc.saveGraphicsState();
+      (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(80);
       doc.setFont(undefined as any, 'bold');
       doc.text('DRAFT', pw / 2, ph / 2, { align: 'center', angle: 40 });
+      doc.restoreGraphicsState();
     }
   }
 }
@@ -229,16 +265,21 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     autoTable(doc, {
       startY: y,
       head: [['#', 'Engagement Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
-      body: engagements.map((e: any, i: number) => [
-        e.sequence_no || i + 1,
-        dv(e.engagement_name, 'Untitled'),
-        dv(lookups.deptMap.get(e.department_id)),
-        dv(e.engagement_risk_rating),
-        dv(lookups.auditorMap.get(e.lead_auditor_id)),
-        dv(e.quarter),
-        dv(e.estimated_days),
-        dv(e.status, 'Planned'),
-      ]),
+      body: engagements.map((e: any, i: number) => {
+        const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+        const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
+        const days = ef(e, 'estimated_days', 'budgeted_hours');
+        return [
+          e.sequence_no || i + 1,
+          dv(e.engagement_name || e.title, 'Untitled'),
+          dv(lookups.deptMap.get(e.department_id)),
+          dv(e.engagement_risk_rating),
+          dv(lookups.auditorMap.get(e.lead_auditor_id)),
+          dv(quarter),
+          dv(days),
+          dv(e.status, 'Planned'),
+        ];
+      }),
       styles: { fontSize: 8.5, cellPadding: 3 },
       headStyles: { fillColor: theme.primary, fontSize: 8.5, cellPadding: 3 },
       alternateRowStyles: { fillColor: theme.altRow },
@@ -259,16 +300,17 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 }
 
 // ===== DETAILED PLAN PDF (REDESIGNED) =====
-function generateDetailedPlanPdf(
+async function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
   gapFunctions: any[], config: ReportConfig
-): jsPDF {
+): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
   const theme = getTheme(config);
+  const logoData = await getLogoBase64();
 
   // ===== A. COVER PAGE =====
   if (config.includeCoverPage) {
@@ -276,13 +318,17 @@ function generateDetailedPlanPdf(
     doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.rect(0, 0, pw, ph, 'F');
 
-    // Logo placeholder area — white circle at top
-    doc.setFillColor(255, 255, 255);
-    doc.circle(pw / 2, 55, 18, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-    doc.setFont(undefined as any, 'bold');
-    doc.text('SSB', pw / 2, 58, { align: 'center' });
+    // Logo — real SSB logo or fallback text
+    if (logoData) {
+      doc.addImage(logoData, 'PNG', pw / 2 - 20, 25, 40, 40);
+    } else {
+      doc.setFillColor(255, 255, 255);
+      doc.circle(pw / 2, 45, 18, 'F');
+      doc.setFontSize(14);
+      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+      doc.setFont(undefined as any, 'bold');
+      doc.text('SSB', pw / 2, 48, { align: 'center' });
+    }
 
     // Gold accent lines
     doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
@@ -408,20 +454,26 @@ function generateDetailedPlanPdf(
     autoTable(doc, {
       startY: y,
       head: [['#', 'Code', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
-      body: engagements.map((e: any, i: number) => [
-        e.sequence_no || i + 1,
-        dv(e.engagement_code),
-        dv(e.engagement_name, 'Untitled'),
-        dv(lookups.deptMap.get(e.department_id)),
-        dv(lookups.funcMap.get(e.function_id)),
-        dv(e.engagement_risk_rating),
-        dv(lookups.auditorMap.get(e.lead_auditor_id)),
-        dv(e.quarter),
-        e.planned_start_date ? formatDateForDisplay(e.planned_start_date) : '',
-        e.planned_end_date ? formatDateForDisplay(e.planned_end_date) : '',
-        dv(e.estimated_days),
-        dv(e.status, 'Planned'),
-      ]),
+      body: engagements.map((e: any, i: number) => {
+        const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+        const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
+        const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
+        const days = ef(e, 'estimated_days', 'budgeted_hours');
+        return [
+          e.sequence_no || i + 1,
+          dv(e.engagement_code),
+          dv(e.engagement_name || e.title, 'Untitled'),
+          dv(lookups.deptMap.get(e.department_id)),
+          dv(lookups.funcMap.get(e.function_id)),
+          dv(e.engagement_risk_rating),
+          dv(lookups.auditorMap.get(e.lead_auditor_id)),
+          dv(quarter),
+          startDate ? formatDateForDisplay(startDate) : '',
+          endDate ? formatDateForDisplay(endDate) : '',
+          dv(days),
+          dv(e.status, 'Planned'),
+        ];
+      }),
       styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
       headStyles: { fillColor: theme.primary, fontSize: 7.5, cellPadding: 2.5 },
       alternateRowStyles: { fillColor: theme.altRow },
@@ -479,10 +531,14 @@ function generateDetailedPlanPdf(
       if (lead) detailPairs.push(['Lead Auditor', lead]);
       const support = getSupportNames(e, lookups.auditorMap);
       if (support) detailPairs.push(['Support Team', support]);
-      if (e.quarter) detailPairs.push(['Quarter', e.quarter]);
-      if (e.planned_start_date) detailPairs.push(['Start Date', formatDateForDisplay(e.planned_start_date)]);
-      if (e.planned_end_date) detailPairs.push(['End Date', formatDateForDisplay(e.planned_end_date)]);
-      if (e.estimated_days) detailPairs.push(['Estimated Days', String(e.estimated_days)]);
+      const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+      const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
+      const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : null);
+      const days = ef(e, 'estimated_days', 'budgeted_hours');
+      if (quarter) detailPairs.push(['Quarter', String(quarter)]);
+      if (startDate) detailPairs.push(['Start Date', formatDateForDisplay(startDate)]);
+      if (endDate) detailPairs.push(['End Date', formatDateForDisplay(endDate)]);
+      if (days) detailPairs.push(['Estimated Days', String(days)]);
 
       // Render detail pairs inline
       doc.setFontSize(8.5);
@@ -763,7 +819,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
-          : generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
+          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
 
         const pdfBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
