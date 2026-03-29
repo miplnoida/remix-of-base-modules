@@ -202,7 +202,7 @@ export default function AuditEngagements() {
       <div className="flex flex-col">
         <span className="text-sm font-medium truncate max-w-[180px]" title={r._plan_name}>{r._plan_name}</span>
         <span className="text-xs text-muted-foreground">
-          <StatusBadge status={r._plan_status} size="sm" /> · {r._fiscal_year}
+          <span className="text-xs"><StatusBadge status={r._plan_status} /></span> · {r._fiscal_year}
         </span>
       </div>
     )},
