@@ -18,11 +18,12 @@ import { Badge } from '@/components/ui/badge';
 export interface SubMenuItem {
   title: string;
   url?: string;
-  icon: React.ElementType;
+  icon?: React.ElementType;
   requiresPermission?: string;
   description?: string;
   notificationCount?: number;
   subItems?: SubMenuItem[];
+  isGroupLabel?: boolean;
 }
 
 interface SidebarGroupMenuProps {
