@@ -1,138 +1,225 @@
 
 
-# Refactor: Internal Audit Engagement Planning Experience
+# Payment Module Enhancements — Implementation Plan
 
-## Summary
-
-Upgrade the engagement editor dialog (`EditEngagementDialog.tsx`) from a manual form-driven experience to a guided, intelligent planning tool. Four specific areas are fixed: Inclusion Rationale, Expected Deliverables, Auditee Contact, and Schedule & Resources.
-
----
-
-## Database Changes (1 migration)
-
-Add 6 new columns to `ia_audit_engagements` for structured data, preserving existing free-text columns as fallback:
-
-```sql
-ALTER TABLE ia_audit_engagements
-  ADD COLUMN IF NOT EXISTS inclusion_reason_codes JSONB DEFAULT '[]',
-  ADD COLUMN IF NOT EXISTS inclusion_reason_notes TEXT,
-  ADD COLUMN IF NOT EXISTS expected_deliverable_codes JSONB DEFAULT '[]',
-  ADD COLUMN IF NOT EXISTS expected_deliverable_notes TEXT,
-  ADD COLUMN IF NOT EXISTS primary_auditee_contact_id UUID,
-  ADD COLUMN IF NOT EXISTS secondary_auditee_contact_ids JSONB DEFAULT '[]';
-```
-
-No columns are dropped. Old `inclusion_rationale`, `expected_deliverable`, and `auditee_contact` remain for backward compatibility and legacy data display.
+## Overview
+This plan introduces Head Cashier management, batch behavior configuration, default opening balances, office location overrides, and C3 payment component locking across the Payment module.
 
 ---
 
-## Fix 1: Inclusion Rationale (Identity & Coverage tab)
+## 1. Database Schema Changes (Migrations)
 
-**Current**: Single free-text `<Input>` field.
+### New Tables
 
-**New**:
-- **Primary Inclusion Reason** — multi-select (max 2) from 13 predefined options: High Risk Area, Regulatory/Compliance Requirement, Management Request, Previous Audit Findings, High Transaction Volume, Process Criticality, System/Process Change, Fraud Risk/Sensitive Area, Follow-up Audit, Board/Audit Committee Request, Rotational Coverage, Thematic Review, Other.
-- **Additional Inclusion Notes** — optional `<Textarea>`, required if "Other" is selected.
-- Stored in `inclusion_reason_codes` (JSONB array) and `inclusion_reason_notes` (text).
-- On load for legacy records: if `inclusion_rationale` exists but `inclusion_reason_codes` is empty, display old text in the notes field.
-- Validation: at least 1 reason required; if "Other" selected, notes required.
+**`cn_head_cashier_assignment`** — Daily Head Cashier assignment
+- `id` UUID PK default gen_random_uuid()
+- `assignment_date` DATE NOT NULL (unique constraint)
+- `user_id` UUID NOT NULL (references profiles)
+- `user_code` VARCHAR(50) NOT NULL
+- `assigned_by` VARCHAR(50) NOT NULL
+- `assigned_at` TIMESTAMPTZ DEFAULT now()
+- `is_active` BOOLEAN DEFAULT true
+- UNIQUE(assignment_date) — only one Head Cashier per date
 
----
+**`cn_cashier_office_override`** — Daily office location override by Head Cashier
+- `id` UUID PK default gen_random_uuid()
+- `override_date` DATE NOT NULL
+- `cashier_user_id` UUID NOT NULL
+- `cashier_user_code` VARCHAR(50) NOT NULL
+- `office_code` VARCHAR(3) NOT NULL
+- `assigned_by` VARCHAR(50) NOT NULL
+- `assigned_at` TIMESTAMPTZ DEFAULT now()
+- UNIQUE(override_date, cashier_user_id)
 
-## Fix 2: Expected Deliverables (Planning Narrative tab)
+### New Config Keys in `payment_module_config`
 
-**Current**: Single free-text `<Input>` labeled "Expected Deliverable".
+Insert these rows:
+- `allow_new_batch_with_previous_open` — JSONB `{ "enabled": false }` — Whether a cashier can create a new-date batch while a previous-date batch is still open
+- `allow_current_date_payment_in_old_batch` — JSONB `{ "enabled": false }` — Whether current-date payments can be recorded in a previous-date batch
+- `default_opening_balance` — JSONB `{ "head_cashier": 0, "cashier": 0 }` — Default opening balances by role type
 
-**New**:
-- **Expected Deliverables** — multi-select (required, at least 1) from 13 options: Audit Report, Detailed Findings Report, Management Action Plan, Process Improvement Recommendations, Control Gap Assessment, Compliance Assessment, Root Cause Analysis, Data Analytics Report, Risk Assessment Update, Follow-up Tracker, Executive Summary Memo, Board/Committee Summary, Other.
-- **Additional Deliverables Notes** — optional `<Textarea>`, required if "Other" selected.
-- Stored in `expected_deliverable_codes` (JSONB) and `expected_deliverable_notes` (text).
-- Legacy: old `expected_deliverable` text mapped to notes on load.
-
----
-
-## Fix 3: Auditee Contact (Team & Ownership tab)
-
-**Current**: Single free-text `<Input>` for auditee contact.
-
-**New**:
-- When department is selected, query `ia_departments` for `head`, `head_profile_id` and query `ia_department_functions` for `responsible_person` to build a suggestion list.
-- Also query `profiles` table for names/emails of suggested contacts.
-- **Primary Auditee Contact** — `SearchableSelect` showing suggested contacts (with "Suggested from Department/Function" helper text), plus an "Other (manual entry)" option.
-- **Secondary Auditee Contacts** — optional multi-select checkboxes from the same pool.
-- **Manual fallback** — if "Other" selected or no suggestions exist, show a text input.
-- Stored in `primary_auditee_contact_id` (UUID) and `secondary_auditee_contact_ids` (JSONB).
-- Legacy: old `auditee_contact` text shown as fallback display if no structured contact exists.
+### Role Addition
+Insert `Head-Cashier` into the `roles` table as a system role. This role will be dynamically assigned/revoked via `user_roles` based on `cn_head_cashier_assignment`.
 
 ---
 
-## Fix 4: Schedule & Resources (Schedule tab)
+## 2. Backend RPC Functions
 
-**Current**: Manual entry for Quarter, Month, Estimated Weeks, Start Date, End Date, Estimated Days, Scheduling Notes. All independent.
+### `assign_head_cashier(p_user_id UUID, p_date TEXT, p_assigned_by TEXT)`
+- Validates date is today or future
+- Deactivates any existing assignment for that date
+- Inserts new assignment into `cn_head_cashier_assignment`
+- Removes `Head-Cashier` role from previous assignee's `user_roles`
+- Adds `Head-Cashier` role to new assignee's `user_roles`
+- Logs to `system_audit_trail`
 
-**New smart derivation logic**:
-- **Planned Start Date** + **Planned End Date**: primary inputs.
-- **Estimated Days**: if start and end dates entered, auto-calculate working days (excludes weekends). User can override.
-- **Estimated Hours**: derived as `estimated_days * 8` (standard 8hr day). Editable.
-- **Quarter**: auto-derived from start date (read-only badge, editable via override toggle only if needed).
-- **Month**: auto-derived from start date (read-only, editable via override).
-- **Estimated Weeks**: removed as separate input — shown as derived read-only display (`Math.ceil(days / 5)`).
-- If only Estimated Days entered without end date, system suggests end date.
-- Validation: start <= end; dates within fiscal year (warning, not hard block); lead auditor required.
+### `get_active_head_cashier(p_date TEXT)`
+- Returns the active Head Cashier for the given date
+- Returns NULL if no assignment exists or the date has passed without assignment
 
-**Resource Intelligence Panel** (new sub-section):
-- When Lead Auditor is selected, show:
-  - Count of other engagements assigned to them in this plan.
-  - Total planned days already assigned in the same quarter.
-  - Overlap warning if date ranges intersect with other engagements.
-- Data sourced from the same `useIAPlanEngagements` hook already loaded in `EngagementBuilder`.
-- Displayed as a compact info card within the schedule tab.
+### `revoke_expired_head_cashier()`
+- Called on each batch-creation or login: checks if today's date has no active assignment and revokes any stale `Head-Cashier` role from `user_roles` where the assignment_date < today
+- Runtime validation approach (no cron needed)
 
----
+### `validate_batch_creation(p_cashier_user_code TEXT, p_batch_date TEXT)`
+- Checks `allow_new_batch_with_previous_open` config
+- If disabled: queries `cn_batch` for any open batch with `batch_date < p_batch_date` for this cashier → returns error if found
+- Returns validation result with message
 
-## UI Components
+### `get_cashier_office_for_date(p_cashier_user_id UUID, p_date TEXT)`
+- Checks `cn_cashier_office_override` for the date
+- Falls back to `profiles.office_code`
+- Returns resolved office_code and office_description
 
-**New shared helper**: `src/components/audit/engagement/MultiSelectChips.tsx`
-- Reusable multi-select component with chip display for both Inclusion Rationale and Expected Deliverables.
-- Renders as a bordered container with checkboxes and selected chips at top.
-
-**New helper**: `src/components/audit/engagement/AuditeeContactSelector.tsx`
-- Encapsulates the department-driven contact suggestion logic.
-
-**New helper**: `src/components/audit/engagement/ScheduleIntelligence.tsx`
-- Compact panel showing auditor workload hints and date derivations.
+### `assign_cashier_office_override(p_cashier_user_id UUID, p_date TEXT, p_office_code TEXT, p_assigned_by TEXT)`
+- Validates caller is today's Head Cashier
+- Validates date is today or future
+- Upserts `cn_cashier_office_override`
+- Audit logged
 
 ---
 
-## Files Modified
+## 3. UI Changes — Payment Module Config
 
-| File | Change |
-|------|--------|
-| `src/components/audit/EditEngagementDialog.tsx` | Major refactor of all 4 tabs with new structured inputs, derivation logic, updated form state, validation, and payload |
-| `src/components/audit/EngagementBuilder.tsx` | Pass engagements data to dialog for resource intelligence; update column display for new fields |
-| `src/components/audit/BoardPackTab.tsx` | Update PDF to render structured rationale codes, deliverable codes, and resolved contact names |
-| New migration SQL | Add 6 columns to `ia_audit_engagements` |
+### Roles & Permissions Tab Enhancements (`PaymentModuleConfig.tsx`)
 
-## New Files
+**New Section: Head Cashier Assignment**
+- Date picker (default today, past dates disabled)
+- List of eligible cashier users (from `useCashierUsers`)
+- Current assignment shown with badge
+- "Assign" button to call `assign_head_cashier` RPC
+- Past-date rows shown as read-only with lock icon
+- Audit-logged on every assignment
 
-| File | Purpose |
-|------|---------|
-| `src/components/audit/engagement/MultiSelectChips.tsx` | Reusable multi-select with chips |
-| `src/components/audit/engagement/AuditeeContactSelector.tsx` | Department-driven contact suggestions |
-| `src/components/audit/engagement/ScheduleIntelligence.tsx` | Auditor workload and date intelligence panel |
+**New Section: Batch Behavior Configuration**
+- Toggle: "Allow new batch when previous-date batch is still open" — saves to `allow_new_batch_with_previous_open`
+- Toggle: "Allow current-date payments in previous-date batches" — saves to `allow_current_date_payment_in_old_batch`
+- Each toggle with description and Save button
+
+### New Tab: Default Opening Balances
+- Two numeric inputs: Head Cashier balance, Regular Cashier balance
+- Read from/save to `default_opening_balance` config key
+- Description explaining how these are applied during batch creation
 
 ---
 
-## Backward Compatibility
+## 4. New Screen — Cashier Office Assignment
 
-- No columns deleted; old text fields remain.
-- Legacy records with only `inclusion_rationale` text: shown in notes field, codes array empty.
-- Legacy records with only `expected_deliverable` text: shown in notes field.
-- Legacy records with only `auditee_contact` text: shown as manual fallback display.
-- All new columns are nullable with defaults, so existing records and RPCs are unaffected.
-- `ia_persist_plan_engagements` RPC will pass through new JSONB fields naturally.
+### Route: `/cashier/head-cashier-office-assignment`
 
-## Non-Impact Confirmation
+- Only accessible if current user is today's Head Cashier
+- Shows date (today, read-only)
+- Lists all cashier users with:
+  - Name, User Code
+  - Default Office (from profile)
+  - Today's Override (from `cn_cashier_office_override`)
+  - Action: Assign/Change office via dropdown of `tb_office`
+- Editable only for current/future dates
+- Audit-logged
 
-Only audit-specific files are touched. No changes to: PageShell, DataTable, StandardModal, StatusBadge, MetricCard, global workflow engine, RBAC, non-audit routes, or any cashier/payment/registration modules.
+---
+
+## 5. Batch Management Changes (`BatchManagement.tsx`)
+
+### Open New Batch Dialog Updates
+
+1. **Office Location**: Call `get_cashier_office_for_date` RPC → auto-populate and make read-only. Shows "(Override by Head Cashier)" label if overridden.
+
+2. **Opening Balance**: Read `default_opening_balance` config. Check if selected cashier is Head Cashier for today → use head_cashier or cashier amount. Field becomes read-only (non-editable).
+
+3. **Previous-open-batch validation**: Before creation, call `validate_batch_creation` RPC. If config blocks it, show destructive toast with message like "Cannot create batch: you have an open batch from [date]. Please close it first." and prevent creation.
+
+4. **Head Cashier role cleanup**: On dialog open, trigger `revoke_expired_head_cashier` to ensure stale roles are cleaned up.
+
+---
+
+## 6. Batch Selection Changes (`useBatchSelection.ts`)
+
+### Date-restricted batch filtering
+- Read `allow_current_date_payment_in_old_batch` config
+- If disabled: filter `openBatches` to only include batches where `batch_date` matches today
+- **Exception**: When called from routes `/cashier/cash-details` or `/cashier/batch-closing`, skip this filter (use a route parameter or a flag)
+
+### Implementation
+- Add an optional `skipDateFilter` parameter to `useBatchSelection()`
+- In `CashDetails.tsx` and `BatchClosing.tsx`, pass `{ skipDateFilter: true }`
+- All other screens (PaymentDataEntry, C3Payments, SearchPayInvoices, VCPaymentUpdate) use default filtering
+
+---
+
+## 7. C3 Payments Changes (`C3Payments.tsx`)
+
+### Component Locking for Preloaded Data
+When navigated from C3 detail screens (navState has regNo, schedule, month, year, payerType):
+
+1. **Track preloaded state**: Add `isPreloaded` flag set when components auto-load from `get_c3_payment_components`
+2. **Store max amounts**: Keep a `maxAmounts` map: `Record<string, number>` populated from the RPC response
+3. **Lock components**: When `isPreloaded`:
+   - Hide "Remove" button on preloaded components
+   - Disable "Add Component" for codes already loaded
+   - Prevent adding duplicate payment codes
+4. **Cap amounts**: In `updateComponentAmount`, clamp value to `maxAmounts[code]`. Show inline warning if user attempts to exceed.
+5. **Reload on parameter change**: If user changes payerType, payerId, period, or sequence, reset `c3ComponentsLoaded` to false and clear `selectedComponents` → triggers re-fetch with new params. Add a `useEffect` watching these fields.
+
+### Receipt Status
+In `handleProcessPayment`, after the RPC returns, the receipt is already created by `create_c3_payment_with_receipt`. Update the RPC to set `cn_receipt.status = 'A'` (Verified) instead of `'O'` (Original). This is a single-line change in the existing RPC function.
+
+---
+
+## 8. Hooks — New & Updated
+
+### `useHeadCashier(date?: string)` — New hook
+- Queries `cn_head_cashier_assignment` for given date
+- Returns `{ headCashier, isCurrentUserHeadCashier, isLoading }`
+
+### `useDefaultOpeningBalance()` — New hook  
+- Reads `default_opening_balance` from `payment_module_config`
+- Returns `{ headCashierBalance: number, cashierBalance: number, isLoading }`
+
+### `useBatchBehaviorConfig()` — New hook
+- Reads `allow_new_batch_with_previous_open` and `allow_current_date_payment_in_old_batch`
+- Returns `{ allowNewBatchWithPreviousOpen, allowCurrentDatePaymentInOldBatch, isLoading }`
+
+---
+
+## 9. Sidebar Navigation Update
+
+Add new menu item under Cashier:
+- "Head Cashier Office Assignment" → `/cashier/head-cashier-office-assignment`
+
+---
+
+## 10. Files to Create/Modify
+
+### New Files
+- `src/hooks/useHeadCashier.ts`
+- `src/hooks/useBatchBehaviorConfig.ts`
+- `src/pages/cashier/HeadCashierOfficeAssignment.tsx`
+- `src/components/payments/HeadCashierAssignmentSection.tsx`
+- `src/components/payments/BatchBehaviorConfigSection.tsx`
+- `src/components/payments/DefaultOpeningBalanceTab.tsx`
+- Migration SQL for tables, RPCs, and config inserts
+
+### Modified Files
+- `src/pages/cashier/PaymentModuleConfig.tsx` — Add new sections to Roles tab + new Opening Balances tab
+- `src/pages/cashier/BatchManagement.tsx` — Enforce office override, opening balance, and previous-batch validation
+- `src/pages/cashier/C3Payments.tsx` — Component locking, amount capping, reload on param change
+- `src/hooks/useBatchSelection.ts` — Add date-based batch filtering with skip option
+- `src/components/routing/AppRoutes.tsx` — Register new route
+- `src/components/sidebar/menuItems/cashierMenuItems.ts` — Add new menu item
+- Migration for `create_c3_payment_with_receipt` RPC to set receipt status = 'A'
+
+---
+
+## 11. Validation & Audit Summary
+
+| Feature | Backend Validation | Audit Log |
+|---|---|---|
+| Head Cashier assignment | Date ≥ today, one per date | Yes |
+| Office override | Caller = Head Cashier, date ≥ today | Yes |
+| Batch creation block | RPC checks previous open batches | Yes |
+| Batch date restriction | Config-driven filter in batch selection | N/A (filter) |
+| Opening balance | Config-driven, read-only on UI | Logged with batch |
+| C3 component locking | Amount ≤ max from C3 record | Part of payment log |
+| Receipt status = 'A' | Set in RPC atomically | Part of receipt creation |
 
