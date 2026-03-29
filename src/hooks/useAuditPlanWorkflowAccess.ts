@@ -286,7 +286,9 @@ export function usePlanWorkflowAccess(planStatus?: string, readiness?: PlanReadi
   const hasPermission = context.hasPermission;
 
   if (context.isLoading) {
-    const loadingState = { visible: true, enabled: false, reason: 'Checking your audit plan permissions…' };
+    // While permissions are loading, keep buttons enabled (optimistic) so users don't see a flash of disabled state.
+    // The readiness dialog still runs its own validation before actual submission.
+    const loadingState = { visible: true, enabled: true, reason: undefined };
     return {
       submit: loadingState,
       edit: loadingState,
