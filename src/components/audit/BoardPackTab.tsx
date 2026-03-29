@@ -146,12 +146,15 @@ function addFooter(doc: jsPDF, version: number, artifactVersion: number, status:
     doc.text(`Plan v${version}  •  Artifact v${artifactVersion}  •  Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 12, { align: 'center' });
     doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 12, { align: 'right' });
 
-    // Draft watermark — subtle diagonal
+    // Draft watermark — visible diagonal watermark
     if (status !== 'Approved' && config.showDraftWatermark) {
-      doc.setTextColor(220, 240, 225);
-      doc.setFontSize(72);
+      doc.saveGraphicsState();
+      (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(80);
       doc.setFont(undefined as any, 'bold');
       doc.text('DRAFT', pw / 2, ph / 2, { align: 'center', angle: 40 });
+      doc.restoreGraphicsState();
     }
   }
 }
