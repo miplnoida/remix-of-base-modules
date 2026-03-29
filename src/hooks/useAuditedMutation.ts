@@ -78,6 +78,11 @@ export function useAuditedMutation<
         }
       }
 
+      // Skip app-level audit for tables with DB triggers — the trigger is authoritative
+      if (audit.entityType && DB_TRIGGER_TABLES.has(audit.entityType)) {
+        return result;
+      }
+
       // Resolve module from route if not explicitly provided
       const routeCtx = resolveRouteContext(location.pathname);
 
