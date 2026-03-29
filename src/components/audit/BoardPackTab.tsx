@@ -295,16 +295,17 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 }
 
 // ===== DETAILED PLAN PDF (REDESIGNED) =====
-function generateDetailedPlanPdf(
+async function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
   gapFunctions: any[], config: ReportConfig
-): jsPDF {
+): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
   const theme = getTheme(config);
+  const logoData = await getLogoBase64();
 
   // ===== A. COVER PAGE =====
   if (config.includeCoverPage) {
@@ -312,13 +313,17 @@ function generateDetailedPlanPdf(
     doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.rect(0, 0, pw, ph, 'F');
 
-    // Logo placeholder area — white circle at top
-    doc.setFillColor(255, 255, 255);
-    doc.circle(pw / 2, 55, 18, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-    doc.setFont(undefined as any, 'bold');
-    doc.text('SSB', pw / 2, 58, { align: 'center' });
+    // Logo — real SSB logo or fallback text
+    if (logoData) {
+      doc.addImage(logoData, 'PNG', pw / 2 - 20, 25, 40, 40);
+    } else {
+      doc.setFillColor(255, 255, 255);
+      doc.circle(pw / 2, 45, 18, 'F');
+      doc.setFontSize(14);
+      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+      doc.setFont(undefined as any, 'bold');
+      doc.text('SSB', pw / 2, 48, { align: 'center' });
+    }
 
     // Gold accent lines
     doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
