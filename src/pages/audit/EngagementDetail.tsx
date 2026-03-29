@@ -954,7 +954,7 @@ export default function EngagementDetail() {
 
         {/* ===== COMMUNICATIONS ===== */}
         <TabsContent value="communications" className="space-y-4">
-          <CommunicationTimeline engagementId={id!} engagementName={audit.engagement_name} />
+          <CommunicationTimeline engagementId={id!} engagementName={audit.engagement_name} engagementContext={engagementContext} />
           <NotificationLogViewer engagementId={id!} />
         </TabsContent>
 
