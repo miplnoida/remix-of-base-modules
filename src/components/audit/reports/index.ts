@@ -3,3 +3,8 @@ export { AuditReportBuilderStudio } from './AuditReportBuilderStudio';
 export { AuditReportPreview } from './AuditReportPreview';
 export { AuditFindingCard } from './AuditFindingCard';
 export { AuditReportVersionTimeline } from './AuditReportVersionTimeline';
+export { AuditReportTemplateSelector, REPORT_TEMPLATES } from './AuditReportTemplateSelector';
+export type { ReportTemplate } from './AuditReportTemplateSelector';
+export { AuditReportWorkflowBar } from './AuditReportWorkflowBar';
+export { AuditPortfolioSection } from './sections/AuditPortfolioSection';
+export { AuditExecutiveDashboardSection } from './sections/AuditExecutiveDashboardSection';

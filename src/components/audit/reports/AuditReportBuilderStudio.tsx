@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import {
-  Save, Eye, Download, Send, ArrowLeft, FileText, Briefcase,
+  Save, Eye, Download, ArrowLeft, FileText, Briefcase,
   Users, Shield, Target, ClipboardList, MessageSquare, CheckCircle2,
-  AlertTriangle, BookOpen, Lock, Unlock, Clock, Printer, Mail,
-  Settings2, History, ChevronRight, Layers, PenTool
+  AlertTriangle, BookOpen, Lock, Clock, Printer, Mail,
+  Settings2, History, Layers, PenTool, BarChart3, Hash
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIAAuditReports, useIAAuditReportMutations } from '@/hooks/useAuditReports';
@@ -26,15 +27,11 @@ import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from './AuditReportPreview';
 import { AuditFindingCard } from './AuditFindingCard';
 import { AuditReportVersionTimeline } from './AuditReportVersionTimeline';
-
-const REPORT_TEMPLATES = [
-  { id: 'engagement', label: 'Engagement Report', icon: FileText },
-  { id: 'executive', label: 'Executive Summary', icon: Briefcase },
-  { id: 'committee', label: 'Committee / Board Pack', icon: Users },
-  { id: 'findings', label: 'Findings & Actions', icon: AlertTriangle },
-  { id: 'portfolio', label: 'Portfolio Performance', icon: Target },
-  { id: 'followup', label: 'Follow-up Validation', icon: CheckCircle2 },
-];
+import { AuditReportWorkflowBar } from './AuditReportWorkflowBar';
+import { AuditReportTemplateSelector, REPORT_TEMPLATES } from './AuditReportTemplateSelector';
+import type { ReportTemplate } from './AuditReportTemplateSelector';
+import { AuditPortfolioSection } from './sections/AuditPortfolioSection';
+import { AuditExecutiveDashboardSection } from './sections/AuditExecutiveDashboardSection';
 
 interface BuilderSection {
   id: string;
@@ -44,7 +41,7 @@ interface BuilderSection {
   required?: boolean;
 }
 
-const DEFAULT_SECTIONS: BuilderSection[] = [
+const ALL_SECTIONS: BuilderSection[] = [
   { id: 'metadata', label: 'Metadata', icon: Settings2, enabled: true, required: true },
   { id: 'executive_summary', label: 'Executive Summary', icon: BookOpen, enabled: true },
   { id: 'background', label: 'Audit Context', icon: Layers, enabled: true },
@@ -52,6 +49,8 @@ const DEFAULT_SECTIONS: BuilderSection[] = [
   { id: 'scope', label: 'Scope', icon: Shield, enabled: true },
   { id: 'methodology', label: 'Methodology', icon: ClipboardList, enabled: true },
   { id: 'risk_overview', label: 'Risk Overview', icon: AlertTriangle, enabled: true },
+  { id: 'portfolio', label: 'Portfolio Progress', icon: BarChart3, enabled: false },
+  { id: 'executive_dashboard', label: 'Executive Dashboard', icon: Briefcase, enabled: false },
   { id: 'findings', label: 'Findings', icon: AlertTriangle, enabled: true },
   { id: 'responses', label: 'Management Responses', icon: MessageSquare, enabled: true },
   { id: 'actions', label: 'Agreed Actions', icon: CheckCircle2, enabled: true },
@@ -60,6 +59,8 @@ const DEFAULT_SECTIONS: BuilderSection[] = [
   { id: 'approval', label: 'Approval & Sign-off', icon: PenTool, enabled: true },
 ];
 
+const OPINION_OPTIONS = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory', 'Critical'];
+
 export function AuditReportBuilderStudio() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -67,7 +68,7 @@ export function AuditReportBuilderStudio() {
   const { userCode } = useUserCode();
 
   const reportId = searchParams.get('id');
-  const templateParam = searchParams.get('template') || 'engagement';
+  const templateParam = searchParams.get('template') || '';
 
   const { data: reports = [] } = useIAAuditReports();
   const { data: engagements = [] } = useIAEngagements();
@@ -80,7 +81,8 @@ export function AuditReportBuilderStudio() {
   const [activeSection, setActiveSection] = useState('metadata');
   const [showPreview, setShowPreview] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
-  const [sections, setSections] = useState<BuilderSection[]>(DEFAULT_SECTIONS);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [sections, setSections] = useState<BuilderSection[]>(ALL_SECTIONS);
 
   const [reportData, setReportData] = useState({
     title: '',
@@ -88,12 +90,12 @@ export function AuditReportBuilderStudio() {
     engagement_id: '',
     department_id: '',
     executive_summary: '',
+    overall_assessment: '',
     background: '',
     audit_objective: '',
     audit_scope: '',
     methodology: '',
     risk_rating: '',
-    overall_assessment: '',
     recommendations: '',
     follow_up_actions: '',
     conclusion: '',
@@ -107,6 +109,7 @@ export function AuditReportBuilderStudio() {
 
   const existingReport = useMemo(() => reports.find((r: any) => r.id === reportId), [reports, reportId]);
 
+  // Load existing report
   useEffect(() => {
     if (existingReport) {
       setReportData({
@@ -115,12 +118,12 @@ export function AuditReportBuilderStudio() {
         engagement_id: existingReport.engagement_id || '',
         department_id: existingReport.department_id || '',
         executive_summary: existingReport.executive_summary || '',
+        overall_assessment: existingReport.overall_assessment || '',
         background: existingReport.background || '',
         audit_objective: existingReport.audit_objective || '',
         audit_scope: existingReport.audit_scope || '',
         methodology: existingReport.methodology || '',
         risk_rating: existingReport.risk_rating || '',
-        overall_assessment: existingReport.overall_assessment || '',
         recommendations: existingReport.recommendations || '',
         follow_up_actions: existingReport.follow_up_actions || '',
         conclusion: existingReport.conclusion || '',
@@ -133,6 +136,27 @@ export function AuditReportBuilderStudio() {
       });
     }
   }, [existingReport, userCode]);
+
+  // Apply template from URL param (only for new reports)
+  useEffect(() => {
+    if (templateParam && !reportId) {
+      const template = REPORT_TEMPLATES.find((t) => t.id === templateParam);
+      if (template) applyTemplate(template);
+      else setShowTemplateSelector(true);
+    } else if (!reportId && !templateParam) {
+      setShowTemplateSelector(true);
+    }
+  }, [templateParam, reportId]);
+
+  const applyTemplate = (template: ReportTemplate) => {
+    setSections(
+      ALL_SECTIONS.map((s) => ({
+        ...s,
+        enabled: s.required || template.sections.includes(s.id),
+      }))
+    );
+    setReportData((prev) => ({ ...prev, report_type: template.reportType }));
+  };
 
   const selectedEngagement = useMemo(
     () => engagements.find((e: any) => e.id === reportData.engagement_id),
@@ -155,6 +179,26 @@ export function AuditReportBuilderStudio() {
   );
 
   const isLocked = reportData.status === 'Final' || reportData.status === 'Submitted';
+  const enabledSections = sections.filter((s) => s.enabled);
+
+  // Content completeness
+  const completeness = useMemo(() => {
+    const fields = [
+      reportData.title, reportData.executive_summary, reportData.audit_objective,
+      reportData.audit_scope, reportData.methodology, reportData.conclusion,
+    ];
+    const filled = fields.filter((f) => f && f.trim().length > 10).length;
+    return Math.round((filled / fields.length) * 100);
+  }, [reportData]);
+
+  const wordCount = useMemo(() => {
+    const text = [
+      reportData.executive_summary, reportData.background, reportData.audit_objective,
+      reportData.audit_scope, reportData.methodology, reportData.risk_rating,
+      reportData.conclusion, reportData.follow_up_actions, reportData.distribution_list,
+    ].join(' ');
+    return text.split(/\s+/).filter(Boolean).length;
+  }, [reportData]);
 
   const updateField = (key: string, value: string) => {
     setReportData((prev) => ({ ...prev, [key]: value }));
@@ -199,6 +243,8 @@ export function AuditReportBuilderStudio() {
         { id: reportId, status: newStatus, ...(newStatus === 'Final' ? { issued_at: new Date().toISOString(), issued_by: userCode } : {}) } as any,
         { onSuccess: () => { toast({ title: `Report status: ${newStatus}` }); setReportData((p) => ({ ...p, status: newStatus })); } }
       );
+    } else {
+      setReportData((p) => ({ ...p, status: newStatus }));
     }
   };
 
@@ -225,6 +271,11 @@ export function AuditReportBuilderStudio() {
     toast({ title: 'Auto-populated from engagement data' });
   };
 
+  const handleTemplateSelect = (template: ReportTemplate) => {
+    setShowTemplateSelector(false);
+    applyTemplate(template);
+  };
+
   if (showPreview) {
     return (
       <AuditReportPreview
@@ -243,20 +294,31 @@ export function AuditReportBuilderStudio() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Action Bar */}
-      <div className="flex items-center justify-between border-b bg-background px-4 py-2.5 shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between border-b bg-background px-4 py-2 shrink-0 gap-2 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
           <Button variant="ghost" size="sm" onClick={() => navigate('/audit/audit-reports')}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <div>
-            <h1 className="text-sm font-semibold">{reportData.title || 'New Report'}</h1>
-            <p className="text-xs text-muted-foreground">{reportData.report_type}</p>
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold truncate">{reportData.title || 'New Report'}</h1>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{reportData.report_type}</span>
+              {wordCount > 0 && (
+                <>
+                  <span>·</span>
+                  <span>{wordCount} words</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={reportData.status} />
-          {isLocked && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
+        <div className="flex items-center gap-2 flex-wrap">
+          <AuditReportWorkflowBar
+            currentStatus={reportData.status}
+            onStatusChange={handleStatusChange}
+            disabled={!reportId}
+          />
           <Separator orientation="vertical" className="h-6" />
           <Button variant="outline" size="sm" onClick={() => setShowVersions(!showVersions)}>
             <History className="h-4 w-4 mr-1" /> Versions
@@ -267,16 +329,6 @@ export function AuditReportBuilderStudio() {
           <Button variant="outline" size="sm" onClick={handleSave} disabled={isLocked}>
             <Save className="h-4 w-4 mr-1" /> Save
           </Button>
-          {reportData.status === 'Draft' && (
-            <Button size="sm" onClick={() => handleStatusChange('In Review')}>
-              <Send className="h-4 w-4 mr-1" /> Submit
-            </Button>
-          )}
-          {reportData.status === 'In Review' && (
-            <Button size="sm" onClick={() => handleStatusChange('Final')} className="bg-emerald-600 hover:bg-emerald-700">
-              <CheckCircle2 className="h-4 w-4 mr-1" /> Issue
-            </Button>
-          )}
         </div>
       </div>
 
@@ -287,7 +339,7 @@ export function AuditReportBuilderStudio() {
           <ScrollArea className="h-full">
             <div className="p-3 space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">Sections</p>
-              {sections.filter((s) => s.enabled).map((section) => (
+              {enabledSections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
@@ -333,7 +385,7 @@ export function AuditReportBuilderStudio() {
                       <Select value={reportData.report_type} onValueChange={(v) => updateField('report_type', v)} disabled={isLocked}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {REPORT_TEMPLATES.map((t) => <SelectItem key={t.id} value={t.label}>{t.label}</SelectItem>)}
+                          {REPORT_TEMPLATES.map((t) => <SelectItem key={t.id} value={t.reportType}>{t.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -373,14 +425,37 @@ export function AuditReportBuilderStudio() {
 
             {activeSection === 'executive_summary' && (
               <SectionCard title="Executive Summary" icon={BookOpen}>
-                <Textarea
-                  rows={8}
-                  value={reportData.executive_summary}
-                  onChange={(e) => updateField('executive_summary', e.target.value)}
-                  disabled={isLocked}
-                  placeholder="Provide a high-level summary of audit results, key findings, and overall assessment..."
-                  className="leading-relaxed"
-                />
+                <div className="space-y-4">
+                  <div>
+                    <Label>Overall Assessment / Opinion</Label>
+                    <Select value={reportData.overall_assessment} onValueChange={(v) => updateField('overall_assessment', v)} disabled={isLocked}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select overall assessment..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OPINION_OPTIONS.map((o) => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {reportData.overall_assessment && (
+                      <div className="mt-2">
+                        <OpinionBadge opinion={reportData.overall_assessment} />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Summary Narrative</Label>
+                    <Textarea
+                      rows={8}
+                      value={reportData.executive_summary}
+                      onChange={(e) => updateField('executive_summary', e.target.value)}
+                      disabled={isLocked}
+                      placeholder="Provide a high-level summary of audit results, key findings, and overall assessment..."
+                      className="leading-relaxed text-sm"
+                    />
+                  </div>
+                </div>
               </SectionCard>
             )}
 
@@ -392,7 +467,7 @@ export function AuditReportBuilderStudio() {
                   onChange={(e) => updateField('background', e.target.value)}
                   disabled={isLocked}
                   placeholder="Describe the background context for this audit engagement..."
-                  className="leading-relaxed"
+                  className="leading-relaxed text-sm"
                 />
               </SectionCard>
             )}
@@ -405,7 +480,7 @@ export function AuditReportBuilderStudio() {
                   onChange={(e) => updateField('audit_objective', e.target.value)}
                   disabled={isLocked}
                   placeholder="State the objective(s) of this audit engagement..."
-                  className="leading-relaxed"
+                  className="leading-relaxed text-sm"
                 />
               </SectionCard>
             )}
@@ -418,7 +493,7 @@ export function AuditReportBuilderStudio() {
                   onChange={(e) => updateField('audit_scope', e.target.value)}
                   disabled={isLocked}
                   placeholder="Define the scope of the audit, including period, processes, and areas covered..."
-                  className="leading-relaxed"
+                  className="leading-relaxed text-sm"
                 />
               </SectionCard>
             )}
@@ -431,35 +506,52 @@ export function AuditReportBuilderStudio() {
                   onChange={(e) => updateField('methodology', e.target.value)}
                   disabled={isLocked}
                   placeholder="Describe the audit methodology, techniques, and approach used..."
-                  className="leading-relaxed"
+                  className="leading-relaxed text-sm"
                 />
               </SectionCard>
             )}
 
             {activeSection === 'risk_overview' && (
               <SectionCard title="Risk Overview" icon={AlertTriangle}>
-                <Textarea
-                  rows={4}
-                  value={reportData.risk_rating}
-                  onChange={(e) => updateField('risk_rating', e.target.value)}
-                  disabled={isLocked}
-                  placeholder="Summarize risk distribution and severity snapshot..."
-                  className="leading-relaxed"
-                />
-                {engagementFindings.length > 0 && (
-                  <div className="mt-4 grid grid-cols-4 gap-3">
-                    {['Critical', 'High', 'Medium', 'Low'].map((level) => {
-                      const count = engagementFindings.filter((f: any) => f.risk_rating === level).length;
-                      const colors: Record<string, string> = { Critical: 'bg-red-100 text-red-800 border-red-200', High: 'bg-orange-100 text-orange-800 border-orange-200', Medium: 'bg-amber-100 text-amber-800 border-amber-200', Low: 'bg-green-100 text-green-800 border-green-200' };
-                      return (
-                        <div key={level} className={`rounded-lg border p-3 text-center ${colors[level] || ''}`}>
-                          <p className="text-2xl font-bold">{count}</p>
-                          <p className="text-xs font-medium">{level}</p>
-                        </div>
-                      );
-                    })}
+                <div className="space-y-4">
+                  {engagementFindings.length > 0 && (
+                    <div className="grid grid-cols-4 gap-3">
+                      {['Critical', 'High', 'Medium', 'Low'].map((level) => {
+                        const count = engagementFindings.filter((f: any) => f.risk_rating === level).length;
+                        const colors: Record<string, string> = { Critical: 'bg-red-100 text-red-800 border-red-200', High: 'bg-orange-100 text-orange-800 border-orange-200', Medium: 'bg-amber-100 text-amber-800 border-amber-200', Low: 'bg-green-100 text-green-800 border-green-200' };
+                        return (
+                          <div key={level} className={`rounded-lg border p-3 text-center ${colors[level] || ''}`}>
+                            <p className="text-2xl font-bold">{count}</p>
+                            <p className="text-xs font-medium">{level}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div>
+                    <Label>Risk Narrative</Label>
+                    <Textarea
+                      rows={4}
+                      value={reportData.risk_rating}
+                      onChange={(e) => updateField('risk_rating', e.target.value)}
+                      disabled={isLocked}
+                      placeholder="Summarize risk distribution and severity snapshot..."
+                      className="leading-relaxed text-sm"
+                    />
                   </div>
-                )}
+                </div>
+              </SectionCard>
+            )}
+
+            {activeSection === 'portfolio' && (
+              <SectionCard title="Portfolio Progress" icon={BarChart3}>
+                <AuditPortfolioSection engagements={engagements} departments={departments} />
+              </SectionCard>
+            )}
+
+            {activeSection === 'executive_dashboard' && (
+              <SectionCard title="Executive Dashboard" icon={Briefcase}>
+                <AuditExecutiveDashboardSection findings={findings} actions={actions} />
               </SectionCard>
             )}
 
@@ -469,9 +561,34 @@ export function AuditReportBuilderStudio() {
                   <div className="text-center py-8 text-muted-foreground">
                     <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">No findings linked to this engagement</p>
+                    <p className="text-xs mt-1">Select an engagement in Metadata to load findings</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Findings Summary Table */}
+                    <div className="rounded-lg border overflow-hidden mb-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 text-xs text-muted-foreground">
+                            <th className="text-left p-2.5 font-medium w-8">#</th>
+                            <th className="text-left p-2.5 font-medium">Finding</th>
+                            <th className="text-left p-2.5 font-medium w-20">Risk</th>
+                            <th className="text-left p-2.5 font-medium w-20">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {engagementFindings.map((f: any, i: number) => (
+                            <tr key={f.id} className="border-t">
+                              <td className="p-2.5 font-medium">{i + 1}</td>
+                              <td className="p-2.5">{f.title || 'Untitled'}</td>
+                              <td className="p-2.5"><Badge variant="outline" className="text-xs">{f.risk_rating || '—'}</Badge></td>
+                              <td className="p-2.5"><StatusBadge status={f.status || 'Open'} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Separator />
                     {engagementFindings.map((f: any, i: number) => (
                       <AuditFindingCard key={f.id} finding={f} index={i + 1} responses={engagementResponses} actions={engagementActions} />
                     ))}
@@ -546,24 +663,26 @@ export function AuditReportBuilderStudio() {
 
             {activeSection === 'conclusion' && (
               <SectionCard title="Conclusion" icon={FileText}>
-                <Textarea
-                  rows={5}
-                  value={reportData.conclusion}
-                  onChange={(e) => updateField('conclusion', e.target.value)}
-                  disabled={isLocked}
-                  placeholder="State the overall conclusion and follow-up expectations..."
-                  className="leading-relaxed"
-                />
-                <div className="mt-4">
-                  <Label>Follow-up Actions</Label>
+                <div className="space-y-4">
                   <Textarea
-                    rows={3}
-                    value={reportData.follow_up_actions}
-                    onChange={(e) => updateField('follow_up_actions', e.target.value)}
+                    rows={5}
+                    value={reportData.conclusion}
+                    onChange={(e) => updateField('conclusion', e.target.value)}
                     disabled={isLocked}
-                    placeholder="Define expected follow-up actions and timelines..."
-                    className="leading-relaxed mt-1"
+                    placeholder="State the overall conclusion and follow-up expectations..."
+                    className="leading-relaxed text-sm"
                   />
+                  <div>
+                    <Label>Follow-up Expectations</Label>
+                    <Textarea
+                      rows={3}
+                      value={reportData.follow_up_actions}
+                      onChange={(e) => updateField('follow_up_actions', e.target.value)}
+                      disabled={isLocked}
+                      placeholder="Define expected follow-up actions and timelines..."
+                      className="leading-relaxed text-sm mt-1"
+                    />
+                  </div>
                 </div>
               </SectionCard>
             )}
@@ -575,8 +694,8 @@ export function AuditReportBuilderStudio() {
                   value={reportData.distribution_list}
                   onChange={(e) => updateField('distribution_list', e.target.value)}
                   disabled={isLocked}
-                  placeholder="List the recipients for this report..."
-                  className="leading-relaxed"
+                  placeholder="List the recipients for this report (Name — Title — Copy Type)..."
+                  className="leading-relaxed text-sm"
                 />
               </SectionCard>
             )}
@@ -598,31 +717,6 @@ export function AuditReportBuilderStudio() {
                       <Input value={reportData.approved_by} onChange={(e) => updateField('approved_by', e.target.value)} disabled={isLocked} />
                     </div>
                   </div>
-
-                  <Separator />
-
-                  <div>
-                    <Label className="mb-2 block">Report Workflow</Label>
-                    <div className="flex items-center gap-2">
-                      {['Draft', 'In Review', 'Submitted', 'Approved', 'Final'].map((status, idx) => {
-                        const isCurrent = reportData.status === status;
-                        const isPast = ['Draft', 'In Review', 'Submitted', 'Approved', 'Final'].indexOf(reportData.status) >= idx;
-                        return (
-                          <React.Fragment key={status}>
-                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                              isCurrent ? 'bg-primary text-primary-foreground border-primary' :
-                              isPast ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800' :
-                              'bg-muted text-muted-foreground border-border'
-                            }`}>
-                              {isPast && !isCurrent && <CheckCircle2 className="h-3 w-3" />}
-                              {status}
-                            </div>
-                            {idx < 4 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </SectionCard>
             )}
@@ -632,12 +726,22 @@ export function AuditReportBuilderStudio() {
         {/* Right Sidebar - Metadata/Settings */}
         <div className="w-64 border-l bg-muted/10 shrink-0 overflow-y-auto">
           <div className="p-4 space-y-5">
+            {/* Completeness */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Completeness</p>
+              <Progress value={completeness} className="h-2 mb-1" />
+              <p className="text-[10px] text-muted-foreground">{completeness}% of key sections filled</p>
+            </div>
+
+            <Separator />
+
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Report Info</p>
               <div className="space-y-2.5">
                 <InfoRow label="Status"><StatusBadge status={reportData.status} /></InfoRow>
                 <InfoRow label="Type"><Badge variant="outline" className="text-xs">{reportData.report_type}</Badge></InfoRow>
                 <InfoRow label="Fiscal Year">{reportData.fiscal_year}</InfoRow>
+                <InfoRow label="Words"><span className="text-xs tabular-nums">{wordCount}</span></InfoRow>
                 {existingReport?.report_number && <InfoRow label="Report #">{existingReport.report_number}</InfoRow>}
                 {existingReport?.generated_on && <InfoRow label="Created">{formatDateForDisplay(existingReport.generated_on)}</InfoRow>}
                 {existingReport?.issued_at && <InfoRow label="Issued">{formatDateForDisplay(existingReport.issued_at)}</InfoRow>}
@@ -681,6 +785,13 @@ export function AuditReportBuilderStudio() {
           </div>
         </div>
       </div>
+
+      {/* Template Selector */}
+      <AuditReportTemplateSelector
+        open={showTemplateSelector}
+        onOpenChange={setShowTemplateSelector}
+        onSelect={handleTemplateSelect}
+      />
     </div>
   );
 }
@@ -705,5 +816,19 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="text-xs font-medium">{children}</span>
     </div>
+  );
+}
+
+function OpinionBadge({ opinion }: { opinion: string }) {
+  const styles: Record<string, string> = {
+    Satisfactory: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400',
+    'Needs Improvement': 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400',
+    Unsatisfactory: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/30 dark:text-orange-400',
+    Critical: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/30 dark:text-red-400',
+  };
+  return (
+    <Badge className={`${styles[opinion] || 'bg-muted'} border text-xs font-semibold`}>
+      Overall Assessment: {opinion}
+    </Badge>
   );
 }
