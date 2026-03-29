@@ -9364,6 +9364,7 @@ export type Database = {
           created_by: string | null
           created_date: string | null
           current_version_number: number | null
+          current_workflow_step: string | null
           department_id: string | null
           exclusions: string | null
           execution_gate_status: string | null
@@ -9374,6 +9375,7 @@ export type Database = {
           internally_approved: boolean | null
           internally_approved_by: string | null
           internally_approved_date: string | null
+          is_locked: boolean | null
           last_conflict_check_at: string | null
           last_material_change_at: string | null
           last_material_change_by: string | null
@@ -9388,6 +9390,8 @@ export type Database = {
           planned_start_date: string | null
           planning_assumptions: string | null
           prepared_by: string | null
+          rejected_at: string | null
+          rejected_by: string | null
           resource_constraints: string | null
           reviewed_by: string | null
           reviewed_date: string | null
@@ -9397,6 +9401,7 @@ export type Database = {
           scope_description: string | null
           skills_constraints: string | null
           status: string | null
+          submitted_by: string | null
           submitted_date: string | null
           title: string
           total_available_hours: number | null
@@ -9428,6 +9433,7 @@ export type Database = {
           created_by?: string | null
           created_date?: string | null
           current_version_number?: number | null
+          current_workflow_step?: string | null
           department_id?: string | null
           exclusions?: string | null
           execution_gate_status?: string | null
@@ -9438,6 +9444,7 @@ export type Database = {
           internally_approved?: boolean | null
           internally_approved_by?: string | null
           internally_approved_date?: string | null
+          is_locked?: boolean | null
           last_conflict_check_at?: string | null
           last_material_change_at?: string | null
           last_material_change_by?: string | null
@@ -9452,6 +9459,8 @@ export type Database = {
           planned_start_date?: string | null
           planning_assumptions?: string | null
           prepared_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
           resource_constraints?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
@@ -9461,6 +9470,7 @@ export type Database = {
           scope_description?: string | null
           skills_constraints?: string | null
           status?: string | null
+          submitted_by?: string | null
           submitted_date?: string | null
           title: string
           total_available_hours?: number | null
@@ -9492,6 +9502,7 @@ export type Database = {
           created_by?: string | null
           created_date?: string | null
           current_version_number?: number | null
+          current_workflow_step?: string | null
           department_id?: string | null
           exclusions?: string | null
           execution_gate_status?: string | null
@@ -9502,6 +9513,7 @@ export type Database = {
           internally_approved?: boolean | null
           internally_approved_by?: string | null
           internally_approved_date?: string | null
+          is_locked?: boolean | null
           last_conflict_check_at?: string | null
           last_material_change_at?: string | null
           last_material_change_by?: string | null
@@ -9516,6 +9528,8 @@ export type Database = {
           planned_start_date?: string | null
           planning_assumptions?: string | null
           prepared_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
           resource_constraints?: string | null
           reviewed_by?: string | null
           reviewed_date?: string | null
@@ -9525,6 +9539,7 @@ export type Database = {
           scope_description?: string | null
           skills_constraints?: string | null
           status?: string | null
+          submitted_by?: string | null
           submitted_date?: string | null
           title?: string
           total_available_hours?: number | null
