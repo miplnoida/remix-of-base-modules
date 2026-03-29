@@ -61,7 +61,6 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
           if (error || !data) {
             toast.error('Batch not found. Please select a batch.');
             setResolved(true);
-            // Will fall through to auto-select / popup logic
           } else {
             setSelectedBatch(data as BatchRow);
             setResolved(true);
@@ -69,33 +68,6 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
         });
     }
   }, [batchParam, selectedBatch, resolved]);
-
-  // Auto-select or show popup once batches are loaded and no URL param
-  useEffect(() => {
-    if (resolved || batchParam || batchesLoading || permLoading || !openBatches) return;
-
-    if (openBatches.length === 1) {
-      // Auto-select the single batch
-      setSelectedBatch(openBatches[0]);
-      setResolved(true);
-    } else if (openBatches.length > 1) {
-      setShowPopup(true);
-      setResolved(true);
-    } else {
-      // No batches available
-      setResolved(true);
-    }
-  }, [openBatches, batchesLoading, permLoading, batchParam, resolved]);
-
-  const selectBatch = useCallback((batch: BatchRow) => {
-    setSelectedBatch(batch);
-    setShowPopup(false);
-  }, []);
-
-  const changeBatch = useCallback(() => {
-    setSelectedBatch(null);
-    setShowPopup(true);
-  }, []);
 
   const { allowCurrentDatePaymentInOldBatch, isLoading: behaviorLoading } = useBatchBehaviorConfig();
 
@@ -110,6 +82,34 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
       return batchDateStr === todayStr;
     });
   }, [openBatches, skipDateFilter, allowCurrentDatePaymentInOldBatch]);
+
+  // Auto-select or show popup once batches are loaded and no URL param.
+  // Uses filteredOpenBatches (date-filtered) so the guard correctly shows
+  // "no batch for today" instead of an empty popup when date filtering removes all batches.
+  useEffect(() => {
+    if (resolved || batchParam || batchesLoading || permLoading || behaviorLoading || !openBatches) return;
+
+    if (filteredOpenBatches.length === 1) {
+      setSelectedBatch(filteredOpenBatches[0]);
+      setResolved(true);
+    } else if (filteredOpenBatches.length > 1) {
+      setShowPopup(true);
+      setResolved(true);
+    } else {
+      // No batches available (or none for today after date filtering)
+      setResolved(true);
+    }
+  }, [openBatches, filteredOpenBatches, batchesLoading, permLoading, behaviorLoading, batchParam, resolved]);
+
+  const selectBatch = useCallback((batch: BatchRow) => {
+    setSelectedBatch(batch);
+    setShowPopup(false);
+  }, []);
+
+  const changeBatch = useCallback(() => {
+    setSelectedBatch(null);
+    setShowPopup(true);
+  }, []);
 
   const isLoading = permLoading || batchesLoading || behaviorLoading || (!resolved && !!batchParam);
   const noBatchesAvailable = resolved && !selectedBatch && !showPopup && (filteredOpenBatches.length === 0);
