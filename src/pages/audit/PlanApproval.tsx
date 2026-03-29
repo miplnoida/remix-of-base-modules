@@ -10,7 +10,7 @@ import { CheckCircle, XCircle, Eye, MessageSquare, Clock, UserCheck, Send, Exter
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-import { useIAAnnualPlans } from '@/hooks/useAuditData';
+import { useIAAnnualPlans, useIADepartments, useIAAuditors } from '@/hooks/useAuditData';
 import { useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { useAuditPlanWorkflow, useIAPlanApprovalHistory } from '@/hooks/useAuditPlanApproval';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
