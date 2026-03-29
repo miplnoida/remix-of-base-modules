@@ -61,7 +61,6 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
           if (error || !data) {
             toast.error('Batch not found. Please select a batch.');
             setResolved(true);
-            // Will fall through to auto-select / popup logic
           } else {
             setSelectedBatch(data as BatchRow);
             setResolved(true);
@@ -70,8 +69,21 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
     }
   }, [batchParam, selectedBatch, resolved]);
 
-  // Auto-select or show popup once batches are loaded and no URL param
-  // Auto-select or show popup once batches are loaded and no URL param
+  const { allowCurrentDatePaymentInOldBatch, isLoading: behaviorLoading } = useBatchBehaviorConfig();
+
+  // Date-filtered batches: if config disallows current-date payments in old batches, only show today's batches
+  const filteredOpenBatches = useMemo(() => {
+    if (!openBatches) return [];
+    if (skipDateFilter || allowCurrentDatePaymentInOldBatch) return openBatches;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return openBatches.filter(b => {
+      if (!b.batch_date) return false;
+      const batchDateStr = b.batch_date.substring(0, 10);
+      return batchDateStr === todayStr;
+    });
+  }, [openBatches, skipDateFilter, allowCurrentDatePaymentInOldBatch]);
+
+  // Auto-select or show popup once batches are loaded and no URL param.
   // Uses filteredOpenBatches (date-filtered) so the guard correctly shows
   // "no batch for today" instead of an empty popup when date filtering removes all batches.
   useEffect(() => {
@@ -98,20 +110,6 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
     setSelectedBatch(null);
     setShowPopup(true);
   }, []);
-
-  const { allowCurrentDatePaymentInOldBatch, isLoading: behaviorLoading } = useBatchBehaviorConfig();
-
-  // Date-filtered batches: if config disallows current-date payments in old batches, only show today's batches
-  const filteredOpenBatches = useMemo(() => {
-    if (!openBatches) return [];
-    if (skipDateFilter || allowCurrentDatePaymentInOldBatch) return openBatches;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    return openBatches.filter(b => {
-      if (!b.batch_date) return false;
-      const batchDateStr = b.batch_date.substring(0, 10);
-      return batchDateStr === todayStr;
-    });
-  }, [openBatches, skipDateFilter, allowCurrentDatePaymentInOldBatch]);
 
   const isLoading = permLoading || batchesLoading || behaviorLoading || (!resolved && !!batchParam);
   const noBatchesAvailable = resolved && !selectedBatch && !showPopup && (filteredOpenBatches.length === 0);
