@@ -320,8 +320,23 @@ function OpenBatchDialog({
     try {
       const batchDateStr = format(batchDate, 'yyyy-MM-dd');
 
-      // Server-side duplicate check via DB function
+      // Validate batch creation against previous-open-batch config
       if (!force) {
+        const { data: valResult, error: valErr } = await supabase
+          .rpc('validate_batch_creation' as any, {
+            p_cashier_user_code: selectedCashier.user_code,
+            p_batch_date: batchDateStr,
+          });
+        if (!valErr) {
+          const valRes = typeof valResult === 'string' ? JSON.parse(valResult) : valResult;
+          if (valRes && !valRes.allowed) {
+            toast({ title: 'Batch Creation Blocked', description: valRes.message, variant: 'destructive' });
+            setIsCreating(false);
+            return;
+          }
+        }
+
+        // Server-side duplicate check via DB function
         const { data: dupResult, error: dupErr } = await supabase
           .rpc('check_duplicate_open_batch', {
             p_cashier_user_code: selectedCashier.user_code,
@@ -350,6 +365,9 @@ function OpenBatchDialog({
         }
       }
 
+      // Revoke expired head cashier roles
+      await supabase.rpc('revoke_expired_head_cashier' as any);
+
       // Get balance forward from last batch
       const { data: lastBatch } = await supabase
         .from('cn_batch')
@@ -361,7 +379,7 @@ function OpenBatchDialog({
         : 0;
 
       const now = new Date();
-      const officeCode = selectedCashier.office_code || 'HQ';
+      const officeCode = resolvedOffice?.code || selectedCashier.office_code || 'HQ';
       const batchNumber = `${officeCode}-${format(now, 'yyyyMMdd')}-${format(now, 'HHmmss')}`;
 
       const { error } = await supabase.from('cn_batch').insert({
@@ -370,7 +388,7 @@ function OpenBatchDialog({
         balance_status: 'N',
         entered_by: selectedCashier.user_code,
         date_entered: now.toISOString(),
-        offset_amount: parseFloat(openingBalance) || 0,
+        offset_amount: computedOpeningBalance,
         balance_forward: balanceForward,
         office_code: officeCode,
         batch_date: batchDate.toISOString(),
@@ -444,9 +462,12 @@ function OpenBatchDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Office Location</Label>
             <Input
-              value={selectedCashier?.office_description || selectedCashier?.office_code || '—'}
+              value={officeLoading ? 'Loading...' : (resolvedOffice ? `${resolvedOffice.description} (${resolvedOffice.code})` : selectedCashier?.office_description || selectedCashier?.office_code || '—')}
               disabled
             />
+            {resolvedOffice?.isOverride && (
+              <p className="text-xs text-primary">(Override by Head Cashier)</p>
+            )}
           </div>
 
           {/* Batch Date */}
@@ -460,11 +481,12 @@ function OpenBatchDialog({
             <Label className="text-xs">Opening Balance</Label>
             <Input
               type="number"
-              step="0.01"
-              value={openingBalance}
-              onChange={e => setOpeningBalance(e.target.value)}
-              disabled={notCashierError}
+              value={computedOpeningBalance.toFixed(2)}
+              disabled
             />
+            <p className="text-xs text-muted-foreground">
+              {isSelectedHeadCashier ? 'Head Cashier rate' : 'Regular Cashier rate'} — configured in Opening Balances tab.
+            </p>
           </div>
 
           {/* Duplicate warning */}
