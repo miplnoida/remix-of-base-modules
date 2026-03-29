@@ -101,7 +101,7 @@ export default function AuditPlansNew() {
     }
   };
 
-  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected'].includes(plan._status) && hasPermission('create_audit_plans');
+  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && (hasPermission('create_audit_plans') || hasPermission('edit_audit_plans'));
 
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Plan Title', render: (row) => <span className="font-medium">{row.title}</span> },
