@@ -434,33 +434,45 @@ const AuditTrail: React.FC = () => {
                 </div>
 
                 {/* ─── Field-Level Diff Table ─── */}
-                {hasFieldDiff ? (
+                {hasFieldData ? (
                   <div>
-                    <h4 className="font-semibold mb-2">Field-Level Changes</h4>
+                    <h4 className="font-semibold mb-2">
+                      {changedCount > 0 
+                        ? `Complete Record — ${changedCount} field${changedCount > 1 ? 's' : ''} changed (highlighted)`
+                        : 'Record Details'}
+                    </h4>
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/50">
+                            <TableCell className="font-semibold w-[30px]"></TableCell>
                             <TableCell className="font-semibold w-[200px]">Field</TableCell>
                             <TableCell className="font-semibold">Before</TableCell>
                             <TableCell className="font-semibold">After</TableCell>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {visualDiff.map((diff, idx) => (
-                            <TableRow key={idx}>
-                              <TableCell className="font-mono text-xs font-medium">{diff.field}</TableCell>
-                              <TableCell className={`text-xs whitespace-pre-wrap break-all ${
-                                diff.changeType === 'removed' ? 'bg-destructive/10 text-destructive' :
-                                diff.changeType === 'changed' ? 'bg-destructive/5' : ''
-                              }`}>
-                                {formatFieldValue(diff.oldValue)}
+                          {fullRowData.map((row, idx) => (
+                            <TableRow key={idx} className={row.isChanged ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
+                              <TableCell className="w-[30px] text-center">
+                                {row.isChanged && (
+                                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500" title="Changed" />
+                                )}
+                              </TableCell>
+                              <TableCell className={`font-mono text-xs ${row.isChanged ? 'font-bold' : 'text-muted-foreground'}`}>
+                                {row.field}
                               </TableCell>
                               <TableCell className={`text-xs whitespace-pre-wrap break-all ${
-                                diff.changeType === 'added' ? 'bg-primary/10 text-primary' :
-                                diff.changeType === 'changed' ? 'bg-primary/5' : ''
+                                row.changeType === 'removed' ? 'bg-destructive/10 text-destructive' :
+                                row.changeType === 'changed' ? 'bg-destructive/5' : ''
                               }`}>
-                                {formatFieldValue(diff.newValue)}
+                                {formatFieldValue(row.oldValue)}
+                              </TableCell>
+                              <TableCell className={`text-xs whitespace-pre-wrap break-all ${
+                                row.changeType === 'added' ? 'bg-primary/10 text-primary' :
+                                row.changeType === 'changed' ? 'bg-primary/5' : ''
+                              }`}>
+                                {formatFieldValue(row.newValue)}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -469,7 +481,7 @@ const AuditTrail: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Fallback: raw JSON if no diff could be computed */
+                  /* Fallback: raw JSON if no data could be computed */
                   (selectedEntry.before_value || selectedEntry.after_value) && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
