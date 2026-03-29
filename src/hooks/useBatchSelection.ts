@@ -71,21 +71,23 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
   }, [batchParam, selectedBatch, resolved]);
 
   // Auto-select or show popup once batches are loaded and no URL param
+  // Auto-select or show popup once batches are loaded and no URL param
+  // Uses filteredOpenBatches (date-filtered) so the guard correctly shows
+  // "no batch for today" instead of an empty popup when date filtering removes all batches.
   useEffect(() => {
-    if (resolved || batchParam || batchesLoading || permLoading || !openBatches) return;
+    if (resolved || batchParam || batchesLoading || permLoading || behaviorLoading || !openBatches) return;
 
-    if (openBatches.length === 1) {
-      // Auto-select the single batch
-      setSelectedBatch(openBatches[0]);
+    if (filteredOpenBatches.length === 1) {
+      setSelectedBatch(filteredOpenBatches[0]);
       setResolved(true);
-    } else if (openBatches.length > 1) {
+    } else if (filteredOpenBatches.length > 1) {
       setShowPopup(true);
       setResolved(true);
     } else {
-      // No batches available
+      // No batches available (or none for today after date filtering)
       setResolved(true);
     }
-  }, [openBatches, batchesLoading, permLoading, batchParam, resolved]);
+  }, [openBatches, filteredOpenBatches, batchesLoading, permLoading, behaviorLoading, batchParam, resolved]);
 
   const selectBatch = useCallback((batch: BatchRow) => {
     setSelectedBatch(batch);
