@@ -61,6 +61,19 @@ export default function AuditPlanDetail() {
 
   const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
 
+  // Auto-open submission readiness dialog when navigated with ?action=submit
+  useEffect(() => {
+    if (searchParams.get('action') === 'submit' && plan && !plansLoading) {
+      const planStatus = plan.status || 'Draft';
+      const canSubmitFromUrl = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
+      if (canSubmitFromUrl) {
+        setShowReadiness(true);
+        searchParams.delete('action');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, plan, plansLoading]);
+
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
 
   const stats = useMemo(() => {
