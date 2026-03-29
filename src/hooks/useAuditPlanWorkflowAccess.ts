@@ -122,6 +122,7 @@ export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionConte
       switch (permission) {
         case 'create_audit_plans':
         case 'edit_audit_plans':
+        case 'view_audit_plans':
           return canManagePlans;
         case 'approve_audit_plans':
           return canApprovePlans;
