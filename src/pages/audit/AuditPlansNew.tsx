@@ -20,6 +20,8 @@ import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
 import { PlanRevisionDialog } from '@/components/audit/PlanRevisionDialog';
 import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getSubmitEligibility, getEditEligibility, getReviseEligibility, getApproveEligibility } from '@/hooks/useAuditPlanWorkflowAccess';
 
 export default function AuditPlansNew() {
   const navigate = useNavigate();
@@ -101,10 +103,6 @@ export default function AuditPlansNew() {
     }
   };
 
-  const canManageAuditPlans = hasPermission('edit_audit_plans') || hasPermission('create_audit_plans') || hasPermission('admin') || hasPermission('system_administration');
-  const canEditPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && canManageAuditPlans;
-  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && canManageAuditPlans;
-
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Plan Title', render: (row) => <span className="font-medium">{row.title}</span> },
     { key: 'fiscal_year', header: 'Fiscal Year' },
@@ -184,32 +182,79 @@ export default function AuditPlansNew() {
             columns={columns}
             data={filteredPlans}
             emptyMessage="No annual audit plans found."
-            renderActions={(row) => (
-              <div className="flex items-center justify-end gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)} title="History">
-                  <History className={`h-4 w-4 ${row.id === selectedPlanId ? 'text-primary' : ''}`} />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)} title="View Workspace">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                {canEditPlan(row) && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)} title="Edit">
-                    <Edit className="h-4 w-4" />
+            renderActions={(row) => {
+              const submitEl = getSubmitEligibility(hasPermission, row._status);
+              const editEl = getEditEligibility(hasPermission, row._status);
+              const reviseEl = getReviseEligibility(hasPermission, row._status);
+              const approveEl = getApproveEligibility(hasPermission, row._status);
+
+              return (
+                <div className="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)} title="History">
+                    <History className={`h-4 w-4 ${row.id === selectedPlanId ? 'text-primary' : ''}`} />
                   </Button>
-                )}
-                {['Approved'].includes(row._status) && canManageAuditPlans && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" onClick={() => setRevisionPlan(row)} title="Revise Plan">
-                    <FileEdit className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)} title="View Workspace">
+                    <Eye className="h-4 w-4" />
                   </Button>
-                )}
-                {canSubmitPlan(row) && (
-                  <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setSubmitPlanId(row.id)} title="Submit for Approval" type="button">
-                    <Send className="mr-1 h-4 w-4" />
-                    Submit
-                  </Button>
-                )}
-              </div>
-            )}
+
+                  {/* Edit button */}
+                  {editEl.visible && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)} title="Edit">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+
+                  {/* Revise button (for Approved plans) */}
+                  {reviseEl.visible && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" onClick={() => setRevisionPlan(row)} title="Revise Plan">
+                      <FileEdit className="h-4 w-4" />
+                    </Button>
+                  )}
+
+                  {/* Submit button — always visible, disabled with tooltip when not eligible */}
+                  {submitEl.visible && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => submitEl.enabled ? setSubmitPlanId(row.id) : undefined}
+                              disabled={!submitEl.enabled}
+                              type="button"
+                            >
+                              <Send className="mr-1 h-4 w-4" />
+                              Submit
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!submitEl.enabled && submitEl.reason && (
+                          <TooltipContent side="left" className="max-w-[250px]">
+                            <p className="text-xs">{submitEl.reason}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
+                  {/* Approve shortcut for approvers on pending plans */}
+                  {approveEl.visible && approveEl.enabled && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-green-700 border-green-300"
+                      onClick={() => navigate(`/audit/plan-approval`)}
+                      title="Go to Approval screen"
+                      type="button"
+                    >
+                      Review
+                    </Button>
+                  )}
+                </div>
+              );
+            }}
           />
         </CardContent>
       </Card>

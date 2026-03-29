@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Eye, MessageSquare, Clock, UserCheck, Send, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, MessageSquare, Clock, UserCheck, Send, ExternalLink, ShieldAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,6 +16,7 @@ import { useAuditPlanWorkflow, useIAPlanApprovalHistory } from '@/hooks/useAudit
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, EntityModal, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { usePlanWorkflowAccess } from '@/hooks/useAuditPlanWorkflowAccess';
 
 export default function PlanApproval() {
   const navigate = useNavigate();
@@ -35,6 +36,9 @@ export default function PlanApproval() {
 
   const { data: annualPlans = [], isLoading } = useIAAnnualPlans();
   const { approvePlan, rejectPlan, sendBackForChanges } = useAuditPlanWorkflow();
+
+  // Use unified access check — no plan-specific status needed for page-level check
+  const access = usePlanWorkflowAccess();
 
   // Fetch engagements for current viewed item
   const { data: viewEngagements = [] } = useIAPlanEngagements(viewItem?.id);
@@ -66,6 +70,30 @@ export default function PlanApproval() {
       (item.fiscal_year || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
+
+  // Gate: only approvers can see this page
+  if (!access.isApprover) {
+    return (
+      <PageShell
+        title="Plan Approval"
+        subtitle="Review, approve, or return annual audit plans"
+        breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Approval' }]}
+      >
+        <Card>
+          <CardContent className="py-12 text-center">
+            <ShieldAlert className="h-10 w-10 mx-auto text-destructive mb-3" />
+            <p className="font-medium text-foreground">Access Denied</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              You do not have the <strong>approve_audit_plans</strong> permission required to access this page.
+            </p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate('/audit/audit-plans')}>
+              Back to Plans
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
+    );
+  }
 
   const baseColumns: DataTableColumn<any>[] = [
     { key: 'fiscal_year', header: 'Fiscal Year' },

@@ -30,6 +30,10 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, X } from 'lucide-react';
 import { validatePlanReadiness, useAuditPlanWorkflow, isPlanEditable, isPlanLocked } from '@/hooks/useAuditPlanApproval';
+import { useStartPlanApproval, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
+import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePlanWorkflowAccess } from '@/hooks/useAuditPlanWorkflowAccess';
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -58,23 +62,29 @@ export default function AuditPlanDetail() {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [conflictResult, setConflictResult] = useState<any>(null);
 
-  const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
+  // Use the SAME workflow RPC as the list page
+  const startApproval = useStartPlanApproval();
+  const checkAvailability = useTeamAvailabilityCheck();
+  const { withdrawSubmission } = useAuditPlanWorkflow();
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
+  const planStatus = plan?.status || 'Draft';
+
+  // Unified RBAC access
+  const access = usePlanWorkflowAccess(planStatus);
 
   // Auto-open submission readiness dialog when navigated with ?action=submit
   useEffect(() => {
     if (searchParams.get('action') === 'submit' && plan && !plansLoading) {
-      const planStatus = plan.status || 'Draft';
-      const canSubmitFromUrl = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
-      if (canSubmitFromUrl) {
+      if (access.submit.enabled) {
         setShowReadiness(true);
-        searchParams.delete('action');
-        setSearchParams(searchParams, { replace: true });
       }
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, plan, plansLoading]);
+  }, [searchParams, plan, plansLoading, access.submit.enabled]);
 
   const stats = useMemo(() => {
     const all = engagements || [];
@@ -86,6 +96,33 @@ export default function AuditPlanDetail() {
     const highRisk = all.filter((e: any) => ['High', 'Critical'].includes(e.engagement_risk_rating)).length;
     return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalDays, totalWeeks, highRisk };
   }, [engagements]);
+
+  // Shared submit handler — same as list page
+  const handleSubmitForApproval = async () => {
+    if (!id || !plan) return;
+    try {
+      const conflicts = await checkAvailability.mutateAsync({ planId: id });
+      setConflictResult(conflicts);
+      if (conflicts.has_blocking) {
+        toast({ title: 'Blocking Conflicts Detected', description: `${conflicts.total_conflicts} conflict(s) found.`, variant: 'destructive' });
+        notifyTeamConflict(id, {
+          plan_title: plan?.title || 'Audit Plan', conflict_type: 'multiple',
+          auditor_name: 'Team', conflict_dates: 'See details', severity: 'blocking',
+        });
+        return;
+      }
+
+      await startApproval.mutateAsync({ planId: id, submittedBy: userCode || 'SYSTEM', isRevision: false });
+      notifyPlanSubmitted(id, {
+        plan_title: plan?.title || 'Audit Plan', fiscal_year: plan?.fiscal_year || '',
+        submitted_by: userCode || 'SYSTEM', plan_id: id,
+        department_name: '', risk_level: '',
+      });
+      setShowReadiness(false);
+    } catch (err: any) {
+      toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
+    }
+  };
 
   if (plansLoading) {
     return (
@@ -107,11 +144,8 @@ export default function AuditPlanDetail() {
   }
 
   const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-  const planStatus = plan.status || 'Draft';
   const canEditHeader = isPlanEditable(planStatus);
   const locked = isPlanLocked(planStatus);
-  const canSubmit = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
-  const canWithdraw = planStatus === 'Submitted';
   const readinessChecks = validatePlanReadiness(plan, engagements || []);
 
   return (
@@ -122,16 +156,36 @@ export default function AuditPlanDetail() {
       isLoading={engLoading}
       actions={
         <div className="flex items-center gap-2">
-          {canSubmit && hasPermission('edit_audit_plans') && (
-            <Button onClick={() => setShowReadiness(true)}>
-              <Send className="h-4 w-4 mr-2" />Submit for Approval
-            </Button>
+          {/* Submit button — visible with tooltip when disabled */}
+          {access.submit.visible && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      onClick={() => access.submit.enabled ? setShowReadiness(true) : undefined}
+                      disabled={!access.submit.enabled}
+                    >
+                      <Send className="h-4 w-4 mr-2" />Submit for Approval
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!access.submit.enabled && access.submit.reason && (
+                  <TooltipContent className="max-w-[300px]">
+                    <p className="text-xs">{access.submit.reason}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
-          {canWithdraw && hasPermission('edit_audit_plans') && (
+
+          {/* Withdraw */}
+          {access.withdraw.visible && access.withdraw.enabled && (
             <Button variant="outline" onClick={() => setShowWithdraw(true)}>
               <Undo2 className="h-4 w-4 mr-2" />Withdraw
             </Button>
           )}
+
           <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
             <ArrowLeft className="h-4 w-4 mr-2" />Back
           </Button>
@@ -186,7 +240,7 @@ export default function AuditPlanDetail() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm">Plan Information</CardTitle>
-                    {canEditHeader && hasPermission('edit_audit_plans') && (
+                    {canEditHeader && access.edit.enabled && (
                       <Button variant="ghost" size="sm" onClick={() => setIsEditingHeader(true)}>
                         <Edit className="h-3.5 w-3.5 mr-1" />Edit
                       </Button>
@@ -314,44 +368,27 @@ export default function AuditPlanDetail() {
                     <DetailRow label="Approved By" value={plan.approved_by || 'Pending'} />
                     <DetailRow label="Approved Date" value={plan.approved_date ? formatDateForDisplay(plan.approved_date) : 'Pending'} />
                     <DetailRow label="Minutes Reference" value={plan.minutes_reference || 'To be recorded after approval'} />
-                    {plan.approval_note && (
+                    {plan.approval_comments && (
                       <div className="mt-3 pt-2 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground">Approval Note</p>
-                        <p className="text-sm mt-1">{plan.approval_note}</p>
+                        <p className="text-xs text-muted-foreground">Last Review Comments</p>
+                        <p className="text-sm mt-1 italic">{plan.approval_comments}</p>
                       </div>
                     )}
-                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                      <p className="text-xs text-primary">
-                        <strong>Note:</strong> Approval details (approver, date, minutes reference) are automatically populated when the plan goes through the approval workflow via the "Approval & Amendments" tab.
-                      </p>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Progress */}
-              <Card className="mt-4">
-                <CardHeader><CardTitle className="text-sm">Engagement Progress</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Overall Completion</span>
-                    <span className="font-semibold">{progressPercent}%</span>
-                  </div>
-                  <Progress value={progressPercent} className="h-3" />
-                </CardContent>
-              </Card>
             </>
           )}
         </TabsContent>
 
         {/* Engagements Tab */}
         <TabsContent value="engagements">
-          <EngagementBuilder planId={id!} planStatus={plan?.status || 'Draft'} planFiscalYear={plan?.fiscal_year} />
+          <EngagementBuilder planId={id!} locked={locked} />
         </TabsContent>
 
         {/* Coverage & Risk Tab */}
         <TabsContent value="coverage">
-          <CoverageRiskTab planId={id!} engagements={engagements || []} />
+          <CoverageRiskTab planId={id!} />
         </TabsContent>
 
         {/* Capacity & Schedule Tab */}
@@ -361,40 +398,21 @@ export default function AuditPlanDetail() {
 
         {/* Auto Plan Tab */}
         <TabsContent value="autoplan">
-          <PlanningWizard planId={id!} planStatus={plan?.status || 'Draft'} fiscalYear={plan?.fiscal_year} />
+          <AutoPlanSuggestions planId={id!} locked={locked} />
         </TabsContent>
 
         {/* Approval & Amendments Tab */}
         <TabsContent value="approval">
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <PlanApprovalHistoryTimeline planId={id!} />
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Version History</CardTitle></CardHeader>
-              <CardContent>
-                <PlanVersionHistory planId={id!} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Change Log</CardTitle></CardHeader>
-              <CardContent>
-                <DataTable
-                  columns={[
-                    { key: 'change_type', header: 'Type', render: (r: any) => <StatusBadge status={r.change_type} /> },
-                    { key: 'description', header: 'Description' },
-                    { key: 'changed_by', header: 'By' },
-                    { key: 'change_date', header: 'Date', render: (r: any) => r.change_date ? formatDateForDisplay(r.change_date) : '—' },
-                  ]}
-                  data={changeLog || []}
-                  emptyMessage="No changes recorded."
-                />
-              </CardContent>
-            </Card>
+            <PlanAmendmentHistory planId={id!} />
           </div>
+          <PlanVersionHistory planId={id!} />
         </TabsContent>
 
         {/* Board Pack Tab */}
         <TabsContent value="boardpack">
-          <BoardPackTab planId={id!} plan={plan} engagements={engagements || []} />
+          <BoardPackTab planId={id!} plan={plan} />
         </TabsContent>
 
         {/* Distribution Tab */}
@@ -403,25 +421,22 @@ export default function AuditPlanDetail() {
         </TabsContent>
       </Tabs>
 
-      {/* Submission Readiness Dialog */}
+      {/* Submission Readiness Dialog — uses same startApproval RPC */}
       <PlanSubmissionReadiness
         open={showReadiness}
         onOpenChange={setShowReadiness}
         checks={readinessChecks}
         engagementCount={(engagements || []).length}
-        onSubmit={() => {
-          submitForApproval.mutate({ planId: id! });
-          setShowReadiness(false);
-        }}
-        isSubmitting={submitForApproval.isPending}
+        onSubmit={handleSubmitForApproval}
+        isSubmitting={startApproval.isPending || checkAvailability.isPending}
       />
 
-      {/* Withdraw Confirmation */}
+      {/* Withdraw Dialog */}
       <ConfirmDialog
         open={showWithdraw}
-        onOpenChange={() => setShowWithdraw(false)}
+        onOpenChange={setShowWithdraw}
         title="Withdraw Submission"
-        description="Are you sure you want to withdraw this plan from approval? It will return to Draft status and can be edited again."
+        description="This will move the plan back to Draft and unlock it for editing."
         onConfirm={() => {
           withdrawSubmission.mutate({ planId: id! });
           setShowWithdraw(false);
