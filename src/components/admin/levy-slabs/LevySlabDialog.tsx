@@ -54,7 +54,12 @@ export const LevySlabDialog: React.FC<LevySlabDialogProps> = ({
         startDate,
         endDate,
         isActive,
-        userCode: userCode || undefined
+        userCode: userCode || undefined,
+        oldValues: {
+          start_date: slab.start_date,
+          end_date: slab.end_date,
+          is_active: slab.is_active
+        }
       });
     } else {
       await createMutation.mutateAsync({

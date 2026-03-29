@@ -160,7 +160,29 @@ export function useUpdateLevySlab() {
       userCode?: string;
       oldValues?: { start_date: string; end_date: string; is_active: boolean };
     }) => {
+      // Pre-mutation fetch fallback: if oldValues not provided, fetch current record
+      let resolvedOldValues = oldValues;
+      if (!resolvedOldValues) {
+        const { data: current } = await supabase
+          .from('tb_levy_slabs')
+          .select('start_date, end_date, is_active')
+          .eq('id', id)
+          .single();
+        if (current) {
+          resolvedOldValues = { start_date: current.start_date, end_date: current.end_date, is_active: current.is_active };
+        }
+      }
+
       const newValues = { start_date: startDate, end_date: endDate, is_active: isActive };
+
+      // No-change detection
+      if (resolvedOldValues &&
+          resolvedOldValues.start_date === newValues.start_date &&
+          resolvedOldValues.end_date === newValues.end_date &&
+          resolvedOldValues.is_active === newValues.is_active) {
+        toast.info('No changes detected.');
+        return { success: true, id, noChange: true };
+      }
       
       const { error } = await supabase
         .from('tb_levy_slabs')
@@ -175,13 +197,13 @@ export function useUpdateLevySlab() {
 
       if (error) throw error;
 
-      // Log audit
+      // Log audit with resolved before values
       await logC3ConfigChange({
         configType: 'levy_slab',
         recordId: id,
         action: 'UPDATE',
         entityName: `Levy Slab (${formatAuditDate(startDate)} - ${formatAuditDate(endDate)})`,
-        oldValue: oldValues,
+        oldValue: resolvedOldValues,
         newValue: newValues,
         changedBy: userCode
       });
@@ -341,9 +363,34 @@ export function useUpdateLevySlabDetail() {
       orderNo: number;
       isActive: boolean;
       userCode?: string;
-      oldValues?: any;
+      oldValues?: { pay_period: string | null; over_amt: number | null; base_amt: number | null; tax_rate: number | null; order_no: number | null; is_active: boolean | null };
     }) => {
-      const newValues = { pay_period: payPeriod, over_amt: overAmt, base_amt: baseAmt, tax_rate: taxRate, is_active: isActive };
+      // Pre-mutation fetch fallback: if oldValues not provided, fetch current record
+      let resolvedOldValues = oldValues;
+      if (!resolvedOldValues) {
+        const { data: current } = await supabase
+          .from('tb_levy_slab_details')
+          .select('pay_period, over_amt, base_amt, tax_rate, order_no, is_active')
+          .eq('id', id)
+          .single();
+        if (current) {
+          resolvedOldValues = current;
+        }
+      }
+
+      const newValues = { pay_period: payPeriod, over_amt: overAmt, base_amt: baseAmt, tax_rate: taxRate, order_no: orderNo, is_active: isActive };
+
+      // No-change detection
+      if (resolvedOldValues &&
+          resolvedOldValues.pay_period === newValues.pay_period &&
+          resolvedOldValues.over_amt === newValues.over_amt &&
+          resolvedOldValues.base_amt === newValues.base_amt &&
+          resolvedOldValues.tax_rate === newValues.tax_rate &&
+          resolvedOldValues.order_no === newValues.order_no &&
+          resolvedOldValues.is_active === newValues.is_active) {
+        toast.info('No changes detected.');
+        return { success: true, noChange: true };
+      }
       
       const { error } = await supabase
         .from('tb_levy_slab_details')
@@ -361,13 +408,13 @@ export function useUpdateLevySlabDetail() {
 
       if (error) throw error;
 
-      // Log audit
+      // Log audit with resolved before values
       await logC3ConfigChange({
         configType: 'levy_slab_detail',
         recordId: id,
         action: 'UPDATE',
         entityName: `${payPeriod} Bracket (Over: ${overAmt})`,
-        oldValue: oldValues,
+        oldValue: resolvedOldValues,
         newValue: newValues,
         changedBy: userCode,
         metadata: { slab_id: slabId }
