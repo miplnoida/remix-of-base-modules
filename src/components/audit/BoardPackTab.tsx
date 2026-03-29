@@ -804,7 +804,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
-          : generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
+          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
 
         const pdfBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
