@@ -111,7 +111,7 @@ export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionConte
     const isAdmin = normalizedRoles.some((role) => role === 'admin' || role === 'application admin');
     const permissionSet = new Set(permissionRows.map((entry) => `${entry.module_name}:${entry.action_name}`));
     const moduleViews = Array.from(new Set(permissionRows.filter((entry) => entry.action_name === 'view').map((entry) => entry.module_name).filter(Boolean)));
-    const canManagePlans = isAdmin || permissionSet.has('audit_plans:create') || permissionSet.has('audit_plans:edit');
+    const canManagePlans = isAdmin || permissionSet.has('audit_plans:create') || permissionSet.has('audit_plans:edit') || permissionSet.has('audit_plans:view') || moduleViews.includes('audit_plans');
     const canApprovePlans = isAdmin || permissionSet.has('plan_approval:approve');
     const canViewPlans = isAdmin || moduleViews.includes('audit_plans') || canManagePlans || canApprovePlans;
     const isLoading = authLoading || permissionsLoading;
