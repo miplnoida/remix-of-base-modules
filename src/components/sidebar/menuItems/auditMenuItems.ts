@@ -18,6 +18,11 @@ export const auditMenuItems = [
     title: "Internal Audit",
     icon: Shield,
     subItems: [
+      // ── Governance ──
+      {
+        title: "Governance",
+        isGroupLabel: true,
+      },
       {
         title: "Dashboard",
         url: "/audit/dashboard",
@@ -53,6 +58,11 @@ export const auditMenuItems = [
         requiresPermission: "view_audit_assignments",
         description: "5×5 Impact vs Likelihood matrix"
       },
+      // ── Planning ──
+      {
+        title: "Planning",
+        isGroupLabel: true,
+      },
       {
         title: "Audit Plans",
         url: "/audit/audit-plans",
@@ -67,12 +77,22 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
       },
+      // ── Execution ──
+      {
+        title: "Execution",
+        isGroupLabel: true,
+      },
       {
         title: "Audits",
         url: "/audit/audits",
         icon: Briefcase,
         requiresPermission: "create_audit_plans",
         description: "Execute audits with checklists"
+      },
+      // ── Issues & Follow-up ──
+      {
+        title: "Issues & Follow-up",
+        isGroupLabel: true,
       },
       {
         title: "Findings",
@@ -87,6 +107,11 @@ export const auditMenuItems = [
         icon: CheckSquare,
         requiresPermission: "manage_audit_followups",
         description: "Track corrective actions"
+      },
+      // ── Reporting ──
+      {
+        title: "Reporting",
+        isGroupLabel: true,
       },
       {
         title: "Reports",

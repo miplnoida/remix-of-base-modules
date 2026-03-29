@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Building2, Shield, User, Calendar, Briefcase, Loader2,
   Plus, Trash2, CheckCircle, XCircle, MinusCircle, ClipboardCheck, Lock,
-  Upload, FileText, Download, Send, AlertTriangle, MessageSquare, Eye, Mail, Rocket
+  Upload, FileText, Download, Send, AlertTriangle, MessageSquare, Eye, Mail, Rocket,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
-import { PageHeader } from '@/components/common/PageHeader';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions, useIAFindings, useIAFindingMutations, useIAActionTracking, useIAActionTrackingMutations, useIAManagementResponses, useIAManagementResponseMutations } from '@/hooks/useAuditData';
 import { useIAAuditQueries, useIAAuditQueryMutations } from '@/hooks/useAuditQueries';
@@ -35,29 +35,21 @@ import { LaunchReadinessPanel } from '@/components/audit/LaunchReadinessPanel';
 import { ExecutionAuditTrail } from '@/components/audit/ExecutionAuditTrail';
 import { DocumentRequestsTab } from '@/components/audit/DocumentRequestsTab';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
+import { AuditWorkspaceShell } from '@/components/audit/workspace/AuditWorkspaceShell';
+import { AuditNextActionsPanel, deriveNextActions } from '@/components/audit/workspace/AuditNextActionsPanel';
+import { AuditReadinessPanel } from '@/components/audit/workspace/AuditReadinessPanel';
+import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
+import { TraceChain } from '@/components/audit/workspace/AuditTraceabilityChip';
+import { Progress } from '@/components/ui/progress';
 
 const ALLOWED_FILE_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/png', 'image/jpeg'];
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-function SummaryCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
+function DetailRow({ label, value, highlight }: { label: string; value: any; highlight?: boolean }) {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-sm font-semibold truncate">{value || '—'}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+    <div className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0 group">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-right max-w-[60%] truncate">{value ?? '—'}</span>
+      <span className={`text-sm font-medium text-right max-w-[60%] truncate ${highlight ? 'text-primary font-semibold' : ''}`}>{value ?? '—'}</span>
     </div>
   );
 }
@@ -103,28 +95,41 @@ function ChecklistTab({ auditId }: { auditId: string }) {
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
+  const totalAssessed = items.filter((i: any) => i.response !== 'Not Assessed').length;
+  const progress = items.length > 0 ? Math.round((totalAssessed / items.length) * 100) : 0;
+
   return (
     <div className="space-y-4">
+      {/* Progress bar */}
+      <div className="flex items-center gap-3">
+        <Progress value={progress} className="h-2 flex-1" />
+        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{progress}% assessed</span>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-border/50"><CardContent className="pt-4 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total</p><p className="text-xl font-bold">{items.length}</p></CardContent></Card>
+        <Card className="border-primary/30"><CardContent className="pt-4 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Compliant</p><p className="text-xl font-bold text-primary">{items.filter((i: any) => i.response === 'Compliant').length}</p></CardContent></Card>
+        <Card className="border-destructive/30"><CardContent className="pt-4 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Non-Compliant</p><p className="text-xl font-bold text-destructive">{items.filter((i: any) => i.response === 'Non-Compliant').length}</p></CardContent></Card>
+        <Card className="border-border/50"><CardContent className="pt-4 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Pending</p><p className="text-xl font-bold text-muted-foreground">{items.filter((i: any) => i.response === 'Not Assessed').length}</p></CardContent></Card>
+      </div>
+
+      {/* Add question */}
       <Card>
-        <CardHeader><CardTitle className="text-sm">Add Checklist Question</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-sm">Add Checklist Question</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div><Label>Question</Label><Input value={newQuestion} onChange={e => setNewQuestion(e.target.value)} placeholder="Enter audit checklist question" /></div>
           <div><Label>Description (optional)</Label><Textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Additional details" className="min-h-[60px]" /></div>
           <Button onClick={handleAdd} disabled={!newQuestion.trim() || create.isPending} size="sm"><Plus className="h-4 w-4 mr-1" />Add Question</Button>
         </CardContent>
       </Card>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold">{items.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">Compliant</p><p className="text-xl font-bold text-primary">{items.filter((i: any) => i.response === 'Compliant').length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">Non-Compliant</p><p className="text-xl font-bold text-destructive">{items.filter((i: any) => i.response === 'Non-Compliant').length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">Not Assessed</p><p className="text-xl font-bold text-muted-foreground">{items.filter((i: any) => i.response === 'Not Assessed').length}</p></CardContent></Card>
-      </div>
+
       {items.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No checklist items yet.</CardContent></Card>
+        <AuditEmptyState icon={ClipboardCheck} title="No checklist items yet" description="Add questions to evaluate audit compliance" actionLabel="Add First Question" />
       ) : (
         <div className="space-y-2">
           {items.map((item: any, idx: number) => (
-            <Card key={item.id}>
+            <Card key={item.id} className="hover:shadow-sm transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-1">{responseIcon(item.response)}</div>
@@ -200,7 +205,7 @@ function FindingsTab({ auditId, auditFindings, auditResponses, departmentId }: {
         <Button size="sm" onClick={() => setShowForm(!showForm)}><Plus className="h-4 w-4 mr-1" />New Finding</Button>
       </div>
       {showForm && (
-        <Card>
+        <Card className="border-primary/20">
           <CardContent className="p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
@@ -223,9 +228,13 @@ function FindingsTab({ auditId, auditFindings, auditResponses, departmentId }: {
           </CardContent>
         </Card>
       )}
-      <Card><CardContent className="pt-4">
-        <DataTable columns={columns} data={auditFindings} emptyMessage="No findings for this audit yet." />
-      </CardContent></Card>
+      {auditFindings.length === 0 ? (
+        <AuditEmptyState icon={AlertTriangle} title="No findings documented" description="Document audit issues found during fieldwork" actionLabel="Add Finding" onAction={() => setShowForm(true)} />
+      ) : (
+        <Card><CardContent className="pt-4">
+          <DataTable columns={columns} data={auditFindings} emptyMessage="No findings for this audit yet." />
+        </CardContent></Card>
+      )}
     </div>
   );
 }
@@ -311,7 +320,7 @@ function ResponsesTab({ auditId, auditFindings, auditResponses, departmentId, le
         )}
       </div>
       {showForm && (
-        <Card>
+        <Card className="border-primary/20">
           <CardContent className="p-4 space-y-3">
             <div><Label>Finding *</Label>
               <Select value={form.finding_id} onValueChange={v => setForm(f => ({ ...f, finding_id: v }))}>
@@ -341,20 +350,24 @@ function ResponsesTab({ auditId, auditFindings, auditResponses, departmentId, le
           </CardContent>
         </Card>
       )}
-      <Card><CardContent className="pt-4">
-        <DataTable columns={columns} data={auditResponses} emptyMessage="No management responses submitted yet."
-          renderActions={(row) => (
-            <div className="flex gap-1">
-              {row.status === 'Submitted' && (
-                <>
-                  <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(row.id, 'Accepted')}>Accept</Button>
-                  <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(row.id, 'Rejected')}>Reject</Button>
-                </>
-              )}
-            </div>
-          )}
-        />
-      </CardContent></Card>
+      {auditResponses.length === 0 && !showForm ? (
+        <AuditEmptyState icon={MessageSquare} title="No management responses yet" description="Responses will appear here once submitted by auditees" />
+      ) : (
+        <Card><CardContent className="pt-4">
+          <DataTable columns={columns} data={auditResponses} emptyMessage="No management responses submitted yet."
+            renderActions={(row) => (
+              <div className="flex gap-1">
+                {row.status === 'Submitted' && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(row.id, 'Accepted')}>Accept</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(row.id, 'Rejected')}>Reject</Button>
+                  </>
+                )}
+              </div>
+            )}
+          />
+        </CardContent></Card>
+      )}
     </div>
   );
 }
@@ -417,7 +430,7 @@ function ActionsTab({ auditId, auditFindings, auditActions }: { auditId: string;
         <Button size="sm" onClick={() => setShowForm(!showForm)}><Plus className="h-4 w-4 mr-1" />New Action</Button>
       </div>
       {showForm && (
-        <Card>
+        <Card className="border-primary/20">
           <CardContent className="p-4 space-y-3">
             <div><Label>Finding *</Label>
               <Select value={form.finding_id} onValueChange={v => setForm(f => ({ ...f, finding_id: v }))}>
@@ -439,11 +452,15 @@ function ActionsTab({ auditId, auditFindings, auditActions }: { auditId: string;
           </CardContent>
         </Card>
       )}
-      <Card><CardContent className="pt-4">
-        <DataTable columns={columns} data={auditActions} emptyMessage="No corrective actions assigned yet."
-          rowClassName={(row) => isOverdue(row) ? 'bg-destructive/5 border-l-2 border-l-destructive' : ''}
-        />
-      </CardContent></Card>
+      {auditActions.length === 0 && !showForm ? (
+        <AuditEmptyState icon={CheckCircle} title="No corrective actions yet" description="Actions will be created from audit findings" actionLabel="Create Action" onAction={() => setShowForm(true)} />
+      ) : (
+        <Card><CardContent className="pt-4">
+          <DataTable columns={columns} data={auditActions} emptyMessage="No corrective actions assigned yet."
+            rowClassName={(row) => isOverdue(row) ? 'bg-destructive/5 border-l-2 border-l-destructive' : ''}
+          />
+        </CardContent></Card>
+      )}
     </div>
   );
 }
@@ -511,7 +528,7 @@ function QueriesTab({ auditId, departmentId }: { auditId: string; departmentId?:
         <Button size="sm" onClick={() => setShowCreateForm(!showCreateForm)}><Plus className="h-4 w-4 mr-1" />New Query</Button>
       </div>
       {showCreateForm && (
-        <Card>
+        <Card className="border-primary/20">
           <CardContent className="p-4 space-y-3">
             <div><Label>Question *</Label><Textarea value={form.question} onChange={e => setForm(f => ({ ...f, question: e.target.value }))} placeholder="Enter your question..." rows={3} /></div>
             <div><Label>Requested Document</Label><Input value={form.requested_document} onChange={e => setForm(f => ({ ...f, requested_document: e.target.value }))} placeholder="e.g. Policy manual" /></div>
@@ -632,7 +649,7 @@ function ReportsTab({ auditId, audit, auditFindings, auditResponses, auditAction
         </Button>
       </div>
       {previewContent && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[
             { title: '1. Executive Summary', content: previewContent.executive_summary },
             { title: '2. Audit Objective', content: previewContent.audit_objective },
@@ -645,8 +662,8 @@ function ReportsTab({ auditId, audit, auditFindings, auditResponses, auditAction
             { title: '9. Corrective Actions', content: previewContent.corrective_actions },
           ].map((section) => (
             <Card key={section.title}>
-              <CardHeader><CardTitle className="text-sm">{section.title}</CardTitle></CardHeader>
-              <CardContent><p className="text-sm whitespace-pre-wrap">{section.content}</p></CardContent>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">{section.title}</CardTitle></CardHeader>
+              <CardContent><p className="text-sm whitespace-pre-wrap leading-relaxed">{section.content}</p></CardContent>
             </Card>
           ))}
         </div>
@@ -672,19 +689,12 @@ function ClosureTab({ audit, findingsCount, openFindingsCount, actionsCount, res
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Closure Checklist</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          {checks.map((check, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              {check.ok ? <CheckCircle className="h-4 w-4 text-primary" /> : <XCircle className="h-4 w-4 text-destructive" />}
-              <span className={`text-sm ${check.ok ? 'text-foreground' : 'text-destructive'}`}>{check.label}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <AuditReadinessPanel
+        title="Closure Readiness"
+        checks={checks.map(c => ({ label: c.label, passed: c.ok, required: true }))}
+      />
       {isClosed ? (
-        <Card>
+        <Card className="border-primary/30">
           <CardContent className="pt-6 space-y-2">
             <div className="flex items-center gap-2 text-primary"><Lock className="h-4 w-4" /><span className="font-medium">Audit Closed</span></div>
             {audit.closure_date && <p className="text-sm text-muted-foreground">Closed on: {formatDateForDisplay(audit.closure_date)}</p>}
@@ -697,7 +707,7 @@ function ClosureTab({ audit, findingsCount, openFindingsCount, actionsCount, res
           <CardContent className="pt-6 space-y-3">
             <div><Label>Closure Notes</Label><Textarea value={closureNotes} onChange={e => setClosureNotes(e.target.value)} placeholder="Final remarks..." /></div>
             <Button onClick={() => onClose()} disabled={!canClose}>
-              {canClose ? 'Close Audit' : 'Cannot close — resolve open findings first'}
+              {canClose ? <><Lock className="h-4 w-4 mr-1" />Close Audit</> : 'Cannot close — resolve open findings first'}
             </Button>
           </CardContent>
         </Card>
@@ -713,7 +723,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
   const alerts: { type: 'warning' | 'info' | 'error'; message: string }[] = [];
   const execStatus = audit.execution_status || 'Planned';
 
-  // Near start date but not launched
   if ((execStatus === 'Planned' || execStatus === 'Ready for Launch') && audit.planned_start_date) {
     const daysUntilStart = Math.ceil((new Date(audit.planned_start_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysUntilStart <= 7 && daysUntilStart > 0) {
@@ -723,7 +732,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     }
   }
 
-  // Overdue management responses
   const pendingResponses = auditFindings.filter(f =>
     !auditResponses.find(r => r.finding_id === f.id) && f.status !== 'Closed'
   );
@@ -731,7 +739,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'warning', message: `${pendingResponses.length} finding(s) awaiting management response.` });
   }
 
-  // Overdue actions
   const overdueActions = auditActions.filter(a =>
     a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()
   );
@@ -744,10 +751,10 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
   return (
     <div className="space-y-2">
       {alerts.map((alert, idx) => (
-        <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium ${
-          alert.type === 'error' ? 'bg-destructive/10 text-destructive' :
-          alert.type === 'warning' ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' :
-          'bg-primary/10 text-primary'
+        <div key={idx} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium ${
+          alert.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' :
+          alert.type === 'warning' ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
+          'bg-primary/10 text-primary border border-primary/20'
         }`}>
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           {alert.message}
@@ -783,6 +790,8 @@ export default function EngagementDetail() {
   }, [allResponses, auditFindings, id]);
 
   const openFindings = auditFindings.filter((f: any) => !['Closed', 'Resolved'].includes(f.status || ''));
+  const overdueActionsCount = auditActions.filter((a: any) => a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()).length;
+  const pendingResponsesCount = auditFindings.filter((f: any) => !auditResponses.find((r: any) => r.finding_id === f.id) && f.status !== 'Closed').length;
 
   const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
   const getDeptObj = (did: string) => departments?.find((d: any) => d.id === did);
@@ -790,7 +799,6 @@ export default function EngagementDetail() {
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
   const getPlanTitle = (pid: string) => plans?.find((p: any) => p.id === pid)?.title || '—';
 
-  // Build engagement context for communication dialog
   const engagementContext = useMemo(() => {
     if (!audit) return undefined;
     const dept = getDeptObj(audit.department_id);
@@ -819,188 +827,207 @@ export default function EngagementDetail() {
     transitionMutation.mutate({ engagementId: id, newStatus });
   };
 
-  if (isLoading) return <div className="flex items-center justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
-  if (!audit) return (
-    <div className="p-6 space-y-4">
-      <Button variant="ghost" onClick={() => navigate('/audit/audits')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-      <p className="text-muted-foreground">Audit not found.</p>
-    </div>
-  );
+  if (!audit && !isLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="ghost" onClick={() => navigate('/audit/audits')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
+        <AuditEmptyState icon={Briefcase} title="Audit not found" description="The requested audit engagement could not be found." />
+      </div>
+    );
+  }
 
-  const execStatus = audit.execution_status || 'Planned';
+  const execStatus = audit?.execution_status || 'Planned';
   const isPreLaunch = execStatus === 'Planned' || execStatus === 'Ready for Launch';
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/audit/audits')}><ArrowLeft className="h-5 w-5" /></Button>
-          <PageHeader
-            title={audit.engagement_name || 'Untitled Audit'}
-            breadcrumbs={[
-              { label: 'Internal Audit', href: '/audit/dashboard' },
-              { label: 'Engagements', href: '/audit/audits' },
-              { label: audit.engagement_code || 'Detail' },
-            ]}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={audit.status} />
-          <StatusBadge status={execStatus} />
-        </div>
-      </div>
+    <div className="p-6">
+      <AuditWorkspaceShell
+        title={audit?.engagement_name || 'Untitled Audit'}
+        code={audit?.engagement_code}
+        subtitle={audit?.department_id ? `${getDeptName(audit.department_id)}${audit.function_id ? ' › ' + getFunctionName(audit.function_id) : ''}` : undefined}
+        backTo="/audit/audits"
+        breadcrumbs={[
+          { label: 'Internal Audit', href: '/audit/dashboard' },
+          { label: 'Engagements', href: '/audit/audits' },
+          { label: audit?.engagement_code || 'Detail' },
+        ]}
+        status={audit?.status}
+        executionStatus={execStatus}
+        isLoading={isLoading}
+        summaryProps={{
+          department: audit?.department_id ? getDeptName(audit.department_id) : undefined,
+          leadAuditor: audit?.lead_auditor_id ? getAuditorName(audit.lead_auditor_id) : undefined,
+          startDate: audit?.planned_start_date,
+          endDate: audit?.planned_end_date,
+          riskRating: audit?.engagement_risk_rating,
+          findingsCount: auditFindings.length,
+          openFindingsCount: openFindings.length,
+          overdueActions: overdueActionsCount,
+          pendingResponses: pendingResponsesCount,
+        }}
+        alerts={audit ? <SmartAlertsBanner audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} /> : undefined}
+      >
+        {/* Execution detail stepper */}
+        <Card className="border-border/50">
+          <CardContent className="py-3 px-4">
+            <ExecutionLifecycleStepper
+              currentStatus={execStatus}
+              onTransition={handleStatusTransition}
+              isTransitioning={transitionMutation.isPending}
+            />
+          </CardContent>
+        </Card>
 
-      {/* Execution Lifecycle Stepper */}
-      <Card>
-        <CardContent className="py-3 px-4">
-          <ExecutionLifecycleStepper
-            currentStatus={execStatus}
-            onTransition={handleStatusTransition}
-            isTransitioning={transitionMutation.isPending}
-          />
-        </CardContent>
-      </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="overview">
+          <TabsList className="flex-wrap bg-transparent">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="communications">
+              <Mail className="h-3.5 w-3.5 mr-1.5" />Communications
+            </TabsTrigger>
+            <TabsTrigger value="requests">
+              <FileText className="h-3.5 w-3.5 mr-1.5" />Documents
+            </TabsTrigger>
+            <TabsTrigger value="fieldwork">
+              <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" />Fieldwork
+            </TabsTrigger>
+            <TabsTrigger value="findings">
+              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Findings
+              {auditFindings.length > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-muted px-1.5 text-[10px] font-bold leading-5">{auditFindings.length}</span>}
+            </TabsTrigger>
+            <TabsTrigger value="responses">
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />Responses
+              {auditResponses.length > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-muted px-1.5 text-[10px] font-bold leading-5">{auditResponses.length}</span>}
+            </TabsTrigger>
+            <TabsTrigger value="reports">
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />Report
+            </TabsTrigger>
+            <TabsTrigger value="followup">
+              <CheckCircle className="h-3.5 w-3.5 mr-1.5" />Follow-up
+              {overdueActionsCount > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-destructive/10 text-destructive px-1.5 text-[10px] font-bold leading-5">{overdueActionsCount}</span>}
+            </TabsTrigger>
+            <TabsTrigger value="audit-trail">Audit Trail</TabsTrigger>
+          </TabsList>
 
-      {/* Smart Alerts */}
-      <SmartAlertsBanner audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <SummaryCard icon={Building2} label="Department" value={audit.department_id ? getDeptName(audit.department_id) : '—'} />
-        <SummaryCard icon={Briefcase} label="Function" value={audit.function_id ? getFunctionName(audit.function_id) : '—'} />
-        <SummaryCard icon={User} label="Lead Auditor" value={audit.lead_auditor_id ? getAuditorName(audit.lead_auditor_id) : '—'} />
-        <SummaryCard icon={Calendar} label="Start Date" value={audit.planned_start_date ? formatDateForDisplay(audit.planned_start_date) : '—'} />
-        <SummaryCard icon={Calendar} label="End Date" value={audit.planned_end_date ? formatDateForDisplay(audit.planned_end_date) : '—'} />
-        <SummaryCard icon={Shield} label="Findings" value={`${auditFindings.length} (${openFindings.length} open)`} />
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="overview">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="communications">Notifications & Communications</TabsTrigger>
-          <TabsTrigger value="requests">Requests & Documents</TabsTrigger>
-          <TabsTrigger value="fieldwork">Fieldwork</TabsTrigger>
-          <TabsTrigger value="findings">Findings ({auditFindings.length})</TabsTrigger>
-          <TabsTrigger value="responses">Mgmt Responses ({auditResponses.length})</TabsTrigger>
-          <TabsTrigger value="reports">Final Report</TabsTrigger>
-          <TabsTrigger value="followup">Follow-up / Actions ({auditActions.length})</TabsTrigger>
-          <TabsTrigger value="audit-trail">Audit Trail</TabsTrigger>
-        </TabsList>
-
-        {/* ===== OVERVIEW ===== */}
-        <TabsContent value="overview">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-2 space-y-4">
-              <Card>
-                <CardHeader><CardTitle className="text-sm">Engagement Information</CardTitle></CardHeader>
-                <CardContent>
-                  <DetailRow label="Title" value={audit.engagement_name} />
-                  <DetailRow label="Code" value={audit.engagement_code} />
-                  <DetailRow label="Type" value={audit.engagement_type || 'Planned Audit'} />
-                  <DetailRow label="Status" value={audit.status} />
-                  <DetailRow label="Execution Status" value={execStatus} />
-                  <DetailRow label="Risk Rating" value={audit.engagement_risk_rating} />
-                  <DetailRow label="Annual Plan" value={audit.annual_plan_id ? getPlanTitle(audit.annual_plan_id) : 'Ad-hoc'} />
-                  <DetailRow label="Launched" value={audit.launched_at ? `${formatDateForDisplay(audit.launched_at)} by ${audit.launched_by || '—'}` : 'Not yet'} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-sm">Assignment & Team</CardTitle></CardHeader>
-                <CardContent>
-                  <DetailRow label="Department" value={audit.department_id ? getDeptName(audit.department_id) : '—'} />
-                  <DetailRow label="Function" value={audit.function_id ? getFunctionName(audit.function_id) : '—'} />
-                  <DetailRow label="Lead Auditor" value={audit.lead_auditor_id ? getAuditorName(audit.lead_auditor_id) : '—'} />
-                  <DetailRow label="Reviewer" value={audit.reviewer_id ? getAuditorName(audit.reviewer_id) : '—'} />
-                  <DetailRow label="Auditee Contact" value={audit.auditee_contact || (audit.primary_auditee_contact_id ? 'Assigned' : '—')} />
-                  <DetailRow label="Planned Start" value={audit.planned_start_date ? formatDateForDisplay(audit.planned_start_date) : '—'} />
-                  <DetailRow label="Planned End" value={audit.planned_end_date ? formatDateForDisplay(audit.planned_end_date) : '—'} />
-                  <DetailRow label="Actual Start" value={audit.actual_start_date ? formatDateForDisplay(audit.actual_start_date) : '—'} />
-                  <DetailRow label="Estimated Days" value={audit.estimated_days || '—'} />
-                </CardContent>
-              </Card>
-              {(audit.scope || audit.objectives || audit.methodology) && (
+          {/* ===== OVERVIEW ===== */}
+          <TabsContent value="overview">
+            <div className="grid gap-5 md:grid-cols-3">
+              <div className="md:col-span-2 space-y-4">
                 <Card>
-                  <CardHeader><CardTitle className="text-sm">Scope & Objectives</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {audit.objectives && <div><Label className="text-muted-foreground text-xs">Objectives</Label><p className="text-sm whitespace-pre-wrap">{audit.objectives}</p></div>}
-                    {audit.scope && <div><Label className="text-muted-foreground text-xs">Scope</Label><p className="text-sm whitespace-pre-wrap">{audit.scope}</p></div>}
-                    {audit.methodology && <div><Label className="text-muted-foreground text-xs">Methodology</Label><p className="text-sm whitespace-pre-wrap">{audit.methodology}</p></div>}
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Engagement Information</CardTitle></CardHeader>
+                  <CardContent>
+                    <DetailRow label="Title" value={audit?.engagement_name} highlight />
+                    <DetailRow label="Code" value={audit?.engagement_code} />
+                    <DetailRow label="Type" value={audit?.engagement_type || 'Planned Audit'} />
+                    <DetailRow label="Status" value={audit?.status} />
+                    <DetailRow label="Execution Status" value={execStatus} />
+                    <DetailRow label="Risk Rating" value={audit?.engagement_risk_rating} />
+                    <DetailRow label="Annual Plan" value={audit?.annual_plan_id ? getPlanTitle(audit.annual_plan_id) : 'Ad-hoc'} />
+                    <DetailRow label="Launched" value={audit?.launched_at ? `${formatDateForDisplay(audit.launched_at)} by ${audit.launched_by || '—'}` : 'Not yet'} />
                   </CardContent>
                 </Card>
-              )}
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />Assignment & Team</CardTitle></CardHeader>
+                  <CardContent>
+                    <DetailRow label="Department" value={audit?.department_id ? getDeptName(audit.department_id) : '—'} />
+                    <DetailRow label="Function" value={audit?.function_id ? getFunctionName(audit.function_id) : '—'} />
+                    <DetailRow label="Lead Auditor" value={audit?.lead_auditor_id ? getAuditorName(audit.lead_auditor_id) : '—'} />
+                    <DetailRow label="Reviewer" value={audit?.reviewer_id ? getAuditorName(audit.reviewer_id) : '—'} />
+                    <DetailRow label="Auditee Contact" value={audit?.auditee_contact || (audit?.primary_auditee_contact_id ? 'Assigned' : '—')} />
+                    <DetailRow label="Planned Start" value={audit?.planned_start_date ? formatDateForDisplay(audit.planned_start_date) : '—'} />
+                    <DetailRow label="Planned End" value={audit?.planned_end_date ? formatDateForDisplay(audit.planned_end_date) : '—'} />
+                    <DetailRow label="Actual Start" value={audit?.actual_start_date ? formatDateForDisplay(audit.actual_start_date) : '—'} />
+                    <DetailRow label="Estimated Days" value={audit?.estimated_days || '—'} />
+                  </CardContent>
+                </Card>
+                {(audit?.scope || audit?.objectives || audit?.methodology) && (
+                  <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />Scope & Objectives</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      {audit?.objectives && <div><Label className="text-muted-foreground text-xs">Objectives</Label><p className="text-sm whitespace-pre-wrap leading-relaxed">{audit.objectives}</p></div>}
+                      {audit?.scope && <div><Label className="text-muted-foreground text-xs">Scope</Label><p className="text-sm whitespace-pre-wrap leading-relaxed">{audit.scope}</p></div>}
+                      {audit?.methodology && <div><Label className="text-muted-foreground text-xs">Methodology</Label><p className="text-sm whitespace-pre-wrap leading-relaxed">{audit.methodology}</p></div>}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              {/* Right sidebar: Readiness + Next Actions + Summary */}
+              <div className="space-y-4">
+                <LaunchReadinessPanel
+                  engagementId={id!}
+                  currentExecutionStatus={execStatus}
+                />
+                <AuditNextActionsPanel
+                  actions={deriveNextActions(audit, {
+                    findings: auditFindings.length,
+                    openFindings: openFindings.length,
+                    responses: auditResponses.length,
+                    actions: auditActions.length,
+                    overdueActions: overdueActionsCount,
+                  })}
+                />
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Execution Summary</CardTitle></CardHeader>
+                  <CardContent className="space-y-1">
+                    <DetailRow label="Findings" value={auditFindings.length} />
+                    <DetailRow label="Open Findings" value={openFindings.length} />
+                    <DetailRow label="Responses" value={auditResponses.length} />
+                    <DetailRow label="Actions" value={auditActions.length} />
+                    <DetailRow label="Overdue Actions" value={overdueActionsCount} />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            {/* Sidebar: Launch Readiness */}
-            <div className="space-y-4">
-              <LaunchReadinessPanel
-                engagementId={id!}
-                currentExecutionStatus={execStatus}
-              />
-              {/* Quick stats */}
-              <Card>
-                <CardHeader><CardTitle className="text-sm">Execution Summary</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  <DetailRow label="Findings" value={auditFindings.length} />
-                  <DetailRow label="Open Findings" value={openFindings.length} />
-                  <DetailRow label="Responses" value={auditResponses.length} />
-                  <DetailRow label="Actions" value={auditActions.length} />
-                  <DetailRow label="Overdue Actions" value={auditActions.filter(a => a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()).length} />
-                </CardContent>
-              </Card>
+          </TabsContent>
+
+          {/* ===== COMMUNICATIONS ===== */}
+          <TabsContent value="communications" className="space-y-4">
+            <CommunicationTimeline engagementId={id!} engagementName={audit?.engagement_name} engagementContext={engagementContext} />
+            <NotificationLogViewer engagementId={id!} />
+          </TabsContent>
+
+          {/* ===== REQUESTS & DOCUMENTS ===== */}
+          <TabsContent value="requests">
+            <div className="space-y-6">
+              <DocumentRequestsTab engagementId={id!} />
+              <QueriesTab auditId={id!} departmentId={audit?.department_id} />
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* ===== COMMUNICATIONS ===== */}
-        <TabsContent value="communications" className="space-y-4">
-          <CommunicationTimeline engagementId={id!} engagementName={audit.engagement_name} engagementContext={engagementContext} />
-          <NotificationLogViewer engagementId={id!} />
-        </TabsContent>
-
-        {/* ===== REQUESTS & DOCUMENTS ===== */}
-        <TabsContent value="requests">
-          <div className="space-y-6">
-            <DocumentRequestsTab engagementId={id!} />
-            <QueriesTab auditId={id!} departmentId={audit.department_id} />
-          </div>
-        </TabsContent>
-
-        {/* ===== FIELDWORK ===== */}
-        <TabsContent value="fieldwork">
-          <div className="space-y-4">
+          {/* ===== FIELDWORK ===== */}
+          <TabsContent value="fieldwork">
             <ChecklistTab auditId={id!} />
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* ===== FINDINGS ===== */}
-        <TabsContent value="findings">
-          <FindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} departmentId={audit.department_id} />
-        </TabsContent>
+          {/* ===== FINDINGS ===== */}
+          <TabsContent value="findings">
+            <FindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} departmentId={audit?.department_id} />
+          </TabsContent>
 
-        {/* ===== MANAGEMENT RESPONSES ===== */}
-        <TabsContent value="responses">
-          <ResponsesTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} departmentId={audit.department_id} leadAuditorId={audit.lead_auditor_id} />
-        </TabsContent>
+          {/* ===== MANAGEMENT RESPONSES ===== */}
+          <TabsContent value="responses">
+            <ResponsesTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} departmentId={audit?.department_id} leadAuditorId={audit?.lead_auditor_id} />
+          </TabsContent>
 
-        {/* ===== FINAL REPORT ===== */}
-        <TabsContent value="reports">
-          <ReportsTab auditId={id!} audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} getDeptName={getDeptName} getAuditorName={getAuditorName} />
-        </TabsContent>
+          {/* ===== FINAL REPORT ===== */}
+          <TabsContent value="reports">
+            <ReportsTab auditId={id!} audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} getDeptName={getDeptName} getAuditorName={getAuditorName} />
+          </TabsContent>
 
-        {/* ===== FOLLOW-UP / ACTIONS ===== */}
-        <TabsContent value="followup">
-          <div className="space-y-6">
-            <ActionsTab auditId={id!} auditFindings={auditFindings} auditActions={auditActions} />
-            <ClosureTab audit={audit} findingsCount={auditFindings.length} openFindingsCount={openFindings.length} actionsCount={auditActions.length} responsesCount={auditResponses.length} onClose={handleCloseAudit} />
-          </div>
-        </TabsContent>
+          {/* ===== FOLLOW-UP / ACTIONS ===== */}
+          <TabsContent value="followup">
+            <div className="space-y-6">
+              <ActionsTab auditId={id!} auditFindings={auditFindings} auditActions={auditActions} />
+              <ClosureTab audit={audit} findingsCount={auditFindings.length} openFindingsCount={openFindings.length} actionsCount={auditActions.length} responsesCount={auditResponses.length} onClose={handleCloseAudit} />
+            </div>
+          </TabsContent>
 
-        {/* ===== AUDIT TRAIL ===== */}
-        <TabsContent value="audit-trail">
-          <ExecutionAuditTrail engagementId={id!} />
-        </TabsContent>
-      </Tabs>
+          {/* ===== AUDIT TRAIL ===== */}
+          <TabsContent value="audit-trail">
+            <ExecutionAuditTrail engagementId={id!} />
+          </TabsContent>
+        </Tabs>
+      </AuditWorkspaceShell>
     </div>
   );
 }

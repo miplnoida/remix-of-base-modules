@@ -18,11 +18,12 @@ import { Badge } from '@/components/ui/badge';
 export interface SubMenuItem {
   title: string;
   url?: string;
-  icon: React.ElementType;
+  icon?: React.ElementType;
   requiresPermission?: string;
   description?: string;
   notificationCount?: number;
   subItems?: SubMenuItem[];
+  isGroupLabel?: boolean;
 }
 
 interface SidebarGroupMenuProps {
@@ -193,7 +194,11 @@ const SidebarGroupMenu: React.FC<SidebarGroupMenuProps> = ({
         <CollapsibleContent className="overflow-hidden transition-all duration-200 ease-in-out">
           <SidebarMenuSub className="mx-2 border-l-2 border-white/20 px-3 py-2 space-y-1">
             {visibleSubItems.map((subItem) =>
-              subItem.subItems && subItem.subItems.length > 0 ? (
+              subItem.isGroupLabel ? (
+                <li key={subItem.title} className="pt-3 pb-1 px-1 first:pt-0">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-white/40">{subItem.title}</span>
+                </li>
+              ) : subItem.subItems && subItem.subItems.length > 0 ? (
                 <NestedGroup
                   key={subItem.title}
                   item={subItem}
