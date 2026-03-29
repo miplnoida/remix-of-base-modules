@@ -466,7 +466,7 @@ export function EditEngagementDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             {isEditMode ? 'Edit Engagement' : 'Add Engagement to Plan'}
             {isApprovedPlan && isEditMode && (
               <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Amendment Required</span>
@@ -474,16 +474,16 @@ export function EditEngagementDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="identity" className="mt-2">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="identity">Identity & Coverage</TabsTrigger>
-            <TabsTrigger value="planning">Planning Narrative</TabsTrigger>
-            <TabsTrigger value="team">Team & Ownership</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule & Resources</TabsTrigger>
+        <Tabs defaultValue="identity" className="mt-3">
+          <TabsList className="flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="identity" className="text-sm font-medium px-4 py-2">Identity & Coverage</TabsTrigger>
+            <TabsTrigger value="planning" className="text-sm font-medium px-4 py-2">Planning Narrative</TabsTrigger>
+            <TabsTrigger value="team" className="text-sm font-medium px-4 py-2">Team & Ownership</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-sm font-medium px-4 py-2">Schedule & Resources</TabsTrigger>
           </TabsList>
 
           {/* ===== Identity & Coverage ===== */}
-          <TabsContent value="identity" className="space-y-4 mt-3">
+          <TabsContent value="identity" className="space-y-5 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Engagement Title <span className="text-destructive">*</span></Label>
@@ -615,18 +615,18 @@ export function EditEngagementDialog({
           </TabsContent>
 
           {/* ===== Planning Narrative ===== */}
-          <TabsContent value="planning" className="space-y-4 mt-3">
-            <div>
-              <Label>Objective</Label>
-              <Textarea value={form.objectives} onChange={e => updateField('objectives', e.target.value)} placeholder="What this engagement aims to achieve..." rows={3} />
+          <TabsContent value="planning" className="space-y-5 mt-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Objective</Label>
+              <Textarea value={form.objectives} onChange={e => updateField('objectives', e.target.value)} placeholder="What this engagement aims to achieve..." rows={4} className="text-sm leading-relaxed min-h-[100px] p-3" />
             </div>
-            <div>
-              <Label>Scope</Label>
-              <Textarea value={form.scope} onChange={e => updateField('scope', e.target.value)} placeholder="What areas/processes will be reviewed..." rows={3} />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Scope</Label>
+              <Textarea value={form.scope} onChange={e => updateField('scope', e.target.value)} placeholder="What areas/processes will be reviewed..." rows={4} className="text-sm leading-relaxed min-h-[100px] p-3" />
             </div>
-            <div>
-              <Label>Auditable Area Summary</Label>
-              <Textarea value={form.auditable_area_summary} onChange={e => updateField('auditable_area_summary', e.target.value)} placeholder="Key areas to be audited..." rows={2} />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Auditable Area Summary</Label>
+              <Textarea value={form.auditable_area_summary} onChange={e => updateField('auditable_area_summary', e.target.value)} placeholder="Key areas to be audited..." rows={3} className="text-sm leading-relaxed min-h-[80px] p-3" />
             </div>
 
             {/* Structured Expected Deliverables */}
@@ -653,14 +653,14 @@ export function EditEngagementDialog({
               </div>
             )}
 
-            <div>
-              <Label>Dependencies / Preconditions</Label>
-              <Textarea value={form.dependencies} onChange={e => updateField('dependencies', e.target.value)} placeholder="Any prerequisites or dependencies..." rows={2} />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Dependencies / Preconditions</Label>
+              <Textarea value={form.dependencies} onChange={e => updateField('dependencies', e.target.value)} placeholder="Any prerequisites or dependencies..." rows={3} className="text-sm leading-relaxed min-h-[80px] p-3" />
             </div>
           </TabsContent>
 
           {/* ===== Team & Ownership ===== */}
-          <TabsContent value="team" className="space-y-4 mt-3">
+          <TabsContent value="team" className="space-y-5 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Lead Auditor <span className="text-destructive">*</span></Label>
@@ -726,7 +726,7 @@ export function EditEngagementDialog({
           </TabsContent>
 
           {/* ===== Schedule & Resources ===== */}
-          <TabsContent value="schedule" className="space-y-4 mt-3">
+          <TabsContent value="schedule" className="space-y-5 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Planned Start Date</Label>
@@ -837,9 +837,9 @@ export function EditEngagementDialog({
               quarter={form.quarter}
             />
 
-            <div>
-              <Label>Scheduling Notes</Label>
-              <Textarea value={form.scheduling_notes} onChange={e => updateField('scheduling_notes', e.target.value)} placeholder="Any scheduling considerations..." rows={2} />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">Scheduling Notes</Label>
+              <Textarea value={form.scheduling_notes} onChange={e => updateField('scheduling_notes', e.target.value)} placeholder="Any scheduling considerations..." rows={3} className="text-sm leading-relaxed min-h-[80px] p-3" />
             </div>
           </TabsContent>
         </Tabs>
