@@ -268,7 +268,7 @@ export default function PlanApproval() {
                         <StatusBadge status={eng.engagement_risk_rating || 'Medium'} />
                       </div>
                       <div className="text-muted-foreground">
-                        {eng.department_name || '—'} • {eng.lead_auditor || 'No lead'} • {eng.estimated_days || 0} days
+                        {(eng.department_id ? deptMap.get(eng.department_id) : null) || '—'} • {(eng.lead_auditor_id ? auditorMap.get(eng.lead_auditor_id) : null) || 'No lead'} • {eng.estimated_days || 0} days
                       </div>
                     </div>
                   ))}
