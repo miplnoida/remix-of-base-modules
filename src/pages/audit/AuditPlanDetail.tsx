@@ -383,12 +383,12 @@ export default function AuditPlanDetail() {
 
         {/* Engagements Tab */}
         <TabsContent value="engagements">
-          <EngagementBuilder planId={id!} locked={locked} />
+          <EngagementBuilder planId={id!} planStatus={planStatus} planFiscalYear={plan.fiscal_year} />
         </TabsContent>
 
         {/* Coverage & Risk Tab */}
         <TabsContent value="coverage">
-          <CoverageRiskTab planId={id!} />
+          <CoverageRiskTab planId={id!} engagements={engagements || []} />
         </TabsContent>
 
         {/* Capacity & Schedule Tab */}
@@ -398,21 +398,21 @@ export default function AuditPlanDetail() {
 
         {/* Auto Plan Tab */}
         <TabsContent value="autoplan">
-          <AutoPlanSuggestions planId={id!} locked={locked} />
+          <AutoPlanSuggestions planId={id!} planStatus={planStatus} />
         </TabsContent>
 
         {/* Approval & Amendments Tab */}
         <TabsContent value="approval">
           <div className="grid gap-4 md:grid-cols-2">
             <PlanApprovalHistoryTimeline planId={id!} />
-            <PlanAmendmentHistory planId={id!} />
+            <PlanAmendmentHistory planId={id!} planType="annual" />
           </div>
           <PlanVersionHistory planId={id!} />
         </TabsContent>
 
         {/* Board Pack Tab */}
         <TabsContent value="boardpack">
-          <BoardPackTab planId={id!} plan={plan} />
+          <BoardPackTab planId={id!} plan={plan} engagements={engagements || []} />
         </TabsContent>
 
         {/* Distribution Tab */}
