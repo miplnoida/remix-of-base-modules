@@ -180,6 +180,7 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
         recipientEmail,
         notes: stageNotes,
         acknowledgmentRequired: ackRequired,
+        mode,
       }, {
         onSuccess: () => {
           toast({
