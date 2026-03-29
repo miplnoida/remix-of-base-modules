@@ -276,9 +276,10 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
       if (!entityType) entityType = ctx.entityType;
     }
 
-    // Determine if this table has DB triggers — mark as supplementary
+    // If this table has DB triggers, skip app-level logging entirely — the trigger writes accurate before/after
     const isDbTriggered = entityType ? DB_TRIGGER_TABLES.has(entityType) : false;
     const source = entry.metadata?.source || 'app_interceptor';
+    if (isDbTriggered && source !== 'db_trigger') return;
 
     const descParts: string[] = [];
     if (entry.description) descParts.push(entry.description);
