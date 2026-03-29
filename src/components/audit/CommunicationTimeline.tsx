@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, Clock, Send, MessageSquare, AlertTriangle, Loader2 } from 'lucide-react';
 import { useCommunicationTimeline, STAGE_LABELS, type CommunicationStage } from '@/hooks/useAuditCommunicationStages';
-import { CommunicationStageDialog } from './CommunicationStageDialog';
+import { CommunicationStageDialog, type EngagementContext } from './CommunicationStageDialog';
 
 interface CommunicationTimelineProps {
   engagementId: string;
   engagementName?: string;
   readOnly?: boolean;
+  engagementContext?: EngagementContext;
 }
 
 function StageStatusIcon({ stage }: { stage: CommunicationStage }) {
@@ -26,7 +27,7 @@ function StageStatusBadge({ stage }: { stage: CommunicationStage }) {
   return <Badge variant="outline" className="text-[10px]">Optional</Badge>;
 }
 
-export function CommunicationTimeline({ engagementId, engagementName, readOnly }: CommunicationTimelineProps) {
+export function CommunicationTimeline({ engagementId, engagementName, readOnly, engagementContext }: CommunicationTimelineProps) {
   const { data: stages = [], isLoading } = useCommunicationTimeline(engagementId);
   const [sendStage, setSendStage] = useState<string | null>(null);
 
@@ -66,9 +67,7 @@ export function CommunicationTimeline({ engagementId, engagementName, readOnly }
         </CardHeader>
         <CardContent>
           <div className="relative">
-            {/* Vertical line */}
             <div className="absolute left-[18px] top-3 bottom-3 w-px bg-border" />
-
             <div className="space-y-1">
               {stages.map((stage, idx) => (
                 <div key={stage.stage_code + idx} className="relative flex items-start gap-3 pl-1 py-2">
@@ -94,8 +93,6 @@ export function CommunicationTimeline({ engagementId, engagementName, readOnly }
                         </Button>
                       )}
                     </div>
-
-                    {/* Show entries */}
                     {stage.entries.length > 0 && (
                       <div className="mt-1 space-y-1">
                         {stage.entries.map((entry) => (
@@ -124,6 +121,7 @@ export function CommunicationTimeline({ engagementId, engagementName, readOnly }
           stageCode={sendStage}
           open={!!sendStage}
           onClose={() => setSendStage(null)}
+          engagementContext={engagementContext}
         />
       )}
     </>
