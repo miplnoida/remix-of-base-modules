@@ -2,9 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, Clock, Send, MessageSquare, AlertTriangle, Loader2 } from 'lucide-react';
-import { useCommunicationTimeline, STAGE_LABELS, type CommunicationStage } from '@/hooks/useAuditCommunicationStages';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  CheckCircle2, Circle, Clock, Send, MessageSquare, AlertTriangle,
+  Loader2, RefreshCw, Bell, Mail, XCircle, CheckCheck
+} from 'lucide-react';
+import { useCommunicationTimeline, STAGE_LABELS, type CommunicationStage, type CommunicationStageEntry } from '@/hooks/useAuditCommunicationStages';
 import { CommunicationStageDialog, type EngagementContext } from './CommunicationStageDialog';
+import { useDeliveryStatus } from '@/hooks/useAuditCommunicationDelivery';
 
 interface CommunicationTimelineProps {
   engagementId: string;
@@ -27,9 +32,72 @@ function StageStatusBadge({ stage }: { stage: CommunicationStage }) {
   return <Badge variant="outline" className="text-[10px]">Optional</Badge>;
 }
 
+function DeliveryStatusBadge({ recipientEmail }: { recipientEmail?: string }) {
+  const { data: deliveryInfo, isLoading } = useDeliveryStatus(recipientEmail);
+
+  if (!recipientEmail || isLoading) return null;
+
+  if (!deliveryInfo) {
+    return (
+      <Badge variant="outline" className="text-[9px] h-4 gap-0.5">
+        <Mail className="h-2.5 w-2.5" /> No log
+      </Badge>
+    );
+  }
+
+  if (deliveryInfo.status === 'sent') {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge className="bg-green-100 text-green-800 border-green-300 text-[9px] h-4 gap-0.5">
+              <CheckCheck className="h-2.5 w-2.5" /> Delivered
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs">
+            <p>Sent via email provider</p>
+            {deliveryInfo.resend_message_id && <p className="text-muted-foreground">ID: {deliveryInfo.resend_message_id.slice(0, 8)}...</p>}
+            {deliveryInfo.sent_at && <p className="text-muted-foreground">{new Date(deliveryInfo.sent_at).toLocaleString()}</p>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  if (deliveryInfo.status === 'failed') {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge className="bg-red-100 text-red-800 border-red-300 text-[9px] h-4 gap-0.5">
+              <XCircle className="h-2.5 w-2.5" /> Failed
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs max-w-[250px]">
+            <p className="font-medium text-destructive">Email delivery failed</p>
+            {deliveryInfo.failure_reason && <p className="text-muted-foreground">{deliveryInfo.failure_reason}</p>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <Badge variant="outline" className="text-[9px] h-4 gap-0.5">
+      <Clock className="h-2.5 w-2.5" /> {deliveryInfo.status}
+    </Badge>
+  );
+}
+
 export function CommunicationTimeline({ engagementId, engagementName, readOnly, engagementContext }: CommunicationTimelineProps) {
   const { data: stages = [], isLoading } = useCommunicationTimeline(engagementId);
   const [sendStage, setSendStage] = useState<string | null>(null);
+  const [sendMode, setSendMode] = useState<'send' | 'resend' | 'reminder'>('send');
+
+  const handleOpenDialog = (stageCode: string, mode: 'send' | 'resend' | 'reminder') => {
+    setSendMode(mode);
+    setSendStage(stageCode);
+  };
 
   if (isLoading) {
     return (
@@ -82,26 +150,60 @@ export function CommunicationTimeline({ engagementId, engagementName, readOnly, 
                         </span>
                         <StageStatusBadge stage={stage} />
                       </div>
-                      {!readOnly && !stage.completed && stage.stage_code !== 'QUERY_CYCLE' && (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setSendStage(stage.stage_code)}>
-                          <Send className="h-3 w-3 mr-1" /> Send
-                        </Button>
-                      )}
-                      {!readOnly && stage.stage_code === 'QUERY_CYCLE' && (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => setSendStage(stage.stage_code)}>
-                          <Send className="h-3 w-3 mr-1" /> New Query
-                        </Button>
-                      )}
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Not yet sent - show Send */}
+                        {!readOnly && !stage.completed && stage.stage_code !== 'QUERY_CYCLE' && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleOpenDialog(stage.stage_code, 'send')}>
+                            <Send className="h-3 w-3 mr-1" /> Send
+                          </Button>
+                        )}
+                        {/* Query cycle always shows New Query */}
+                        {!readOnly && stage.stage_code === 'QUERY_CYCLE' && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleOpenDialog(stage.stage_code, 'send')}>
+                            <Send className="h-3 w-3 mr-1" /> New Query
+                          </Button>
+                        )}
+                        {/* Already sent - show Resend & Reminder */}
+                        {!readOnly && stage.completed && stage.stage_code !== 'QUERY_CYCLE' && (
+                          <>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => handleOpenDialog(stage.stage_code, 'resend')}>
+                                    <RefreshCw className="h-3 w-3" /> Resend
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Resend the same communication</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700" onClick={() => handleOpenDialog(stage.stage_code, 'reminder')}>
+                                    <Bell className="h-3 w-3" /> Reminder
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Send a follow-up reminder</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Show entries with delivery status */}
                     {stage.entries.length > 0 && (
                       <div className="mt-1 space-y-1">
                         {stage.entries.map((entry) => (
-                          <div key={entry.id} className="text-xs text-muted-foreground flex items-center gap-2 pl-1">
+                          <div key={entry.id} className="text-xs text-muted-foreground flex items-center gap-2 pl-1 flex-wrap">
                             <Clock className="h-3 w-3 shrink-0" />
                             <span>{entry.sent_at ? new Date(entry.sent_at).toLocaleDateString() : '-'}</span>
                             <span>→</span>
-                            <span className="truncate">{entry.recipient_name || entry.recipient_email || '-'}</span>
+                            <span className="truncate max-w-[150px]">{entry.recipient_name || entry.recipient_email || '-'}</span>
                             {entry.template_name && <Badge variant="outline" className="text-[9px] h-4">{entry.template_name}</Badge>}
+                            <DeliveryStatusBadge recipientEmail={entry.recipient_email || undefined} />
                           </div>
                         ))}
                       </div>
@@ -120,8 +222,9 @@ export function CommunicationTimeline({ engagementId, engagementName, readOnly, 
           engagementName={engagementName}
           stageCode={sendStage}
           open={!!sendStage}
-          onClose={() => setSendStage(null)}
+          onClose={() => { setSendStage(null); setSendMode('send'); }}
           engagementContext={engagementContext}
+          mode={sendMode}
         />
       )}
     </>
