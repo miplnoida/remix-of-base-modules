@@ -33,6 +33,12 @@ export interface AnnualPlanPermissionContext {
   hasPermission: (permission: string) => boolean;
 }
 
+type PermissionRow = {
+  module_name: string;
+  action_name: string;
+  is_granted?: boolean;
+};
+
 // ── Constants ────────────────────────────────────────────────────────
 
 export const PLAN_STATUSES = [
@@ -88,20 +94,13 @@ export function isLockedPlanStatus(planStatus?: string): boolean {
 export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionContext {
   const { user, roles, isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
 
-  const { data: moduleViews = [], isLoading: permissionsLoading } = useQuery({
+  const { data: permissionRows = [], isLoading: permissionsLoading } = useQuery({
     queryKey: ['audit-annual-plan-runtime-access', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [] as string[];
+      if (!user?.id) return [] as PermissionRow[];
       const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
       if (error) throw error;
-      return Array.from(
-        new Set(
-          ((data as Array<{ module_name: string; action_name: string; is_granted?: boolean }>) || [])
-            .filter((entry) => entry.action_name === 'view' && entry.is_granted !== false)
-            .map((entry) => entry.module_name)
-            .filter(Boolean),
-        ),
-      );
+      return ((data as PermissionRow[]) || []).filter((entry) => entry.is_granted !== false);
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
@@ -110,8 +109,10 @@ export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionConte
   return useMemo(() => {
     const normalizedRoles = (roles || []).map((role) => role.toLowerCase());
     const isAdmin = normalizedRoles.some((role) => role === 'admin' || role === 'application admin');
-    const canApprovePlans = isAdmin || moduleViews.includes('plan_approval') || normalizedRoles.includes('audit manager');
-    const canManagePlans = isAdmin || normalizedRoles.includes('audit manager');
+    const permissionSet = new Set(permissionRows.map((entry) => `${entry.module_name}:${entry.action_name}`));
+    const moduleViews = Array.from(new Set(permissionRows.filter((entry) => entry.action_name === 'view').map((entry) => entry.module_name).filter(Boolean)));
+    const canManagePlans = isAdmin || permissionSet.has('audit_plans:create') || permissionSet.has('audit_plans:edit');
+    const canApprovePlans = isAdmin || permissionSet.has('plan_approval:approve');
     const canViewPlans = isAdmin || moduleViews.includes('audit_plans') || canManagePlans || canApprovePlans;
     const isLoading = authLoading || permissionsLoading;
 
@@ -143,7 +144,7 @@ export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionConte
       moduleViews,
       hasPermission,
     };
-  }, [authLoading, isAuthenticated, moduleViews, permissionsLoading, roles]);
+  }, [authLoading, isAuthenticated, permissionRows, permissionsLoading, roles]);
 }
 
 function getMissingAuthReason(): string {
