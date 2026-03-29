@@ -211,7 +211,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
             columns={columns}
             data={engagements}
             emptyMessage="No engagements added to this plan yet. Click 'Add Engagement' to build the audit portfolio."
-            renderActions={canModify ? (row) => (
+            renderActions={(canModify && !isLocked) ? (row) => (
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditTarget(row); setShowDialog(true); }} title="Edit">
                   <Edit className="h-4 w-4" />
