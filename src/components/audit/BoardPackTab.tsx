@@ -71,10 +71,10 @@ function addHeader(doc: jsPDF, sectionTitle: string, fiscalYear: string, version
   const theme = getTheme(config);
 
   // Green header bar — taller for presence
-  doc.setFillColor(...theme.primary);
+  doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
   doc.rect(0, 0, pw, 36, 'F');
   // Gold accent stripe
-  doc.setFillColor(...theme.accent);
+  doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
   doc.rect(0, 36, pw, 2.5, 'F');
 
   // Organization name
@@ -103,7 +103,7 @@ function addFooter(doc: jsPDF, version: number, artifactVersion: number, status:
     const ph = doc.internal.pageSize.getHeight();
 
     // Thin gold line above footer
-    doc.setDrawColor(...theme.accent);
+    doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
     doc.setLineWidth(0.5);
     doc.line(14, ph - 18, pw - 14, ph - 18);
 
@@ -128,10 +128,10 @@ function drawSectionTitle(doc: jsPDF, y: number, title: string, theme: any): num
   const pw = doc.internal.pageSize.getWidth();
   doc.setFontSize(14);
   doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(...theme.primary);
+  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
   doc.text(title, 14, y);
   // Thin accent line under title
-  doc.setDrawColor(...theme.accent);
+  doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
   doc.setLineWidth(0.8);
   doc.line(14, y + 2, pw / 3, y + 2);
   return y + 10;
@@ -144,7 +144,7 @@ function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string
   // Section label
   doc.setFontSize(11);
   doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(...theme.primary);
+  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
   doc.text(title, 14, y);
   y += 6;
   // Content
@@ -273,19 +273,19 @@ function generateDetailedPlanPdf(
   // ===== A. COVER PAGE =====
   if (config.includeCoverPage) {
     // Full green background
-    doc.setFillColor(...theme.primary);
+    doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.rect(0, 0, pw, ph, 'F');
 
     // Logo placeholder area — white circle at top
     doc.setFillColor(255, 255, 255);
     doc.circle(pw / 2, 55, 18, 'F');
     doc.setFontSize(10);
-    doc.setTextColor(...theme.primary);
+    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.setFont(undefined as any, 'bold');
     doc.text('SSB', pw / 2, 58, { align: 'center' });
 
     // Gold accent lines
-    doc.setFillColor(...theme.accent);
+    doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
     doc.rect(pw * 0.2, 85, pw * 0.6, 2.5, 'F');
     doc.rect(pw * 0.25, 90, pw * 0.5, 0.8, 'F');
 
@@ -383,7 +383,7 @@ function generateDetailedPlanPdf(
     y += 4;
     doc.setFontSize(11);
     doc.setFont(undefined as any, 'bold');
-    doc.setTextColor(...theme.primary);
+    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.text('Risk Distribution', 14, y);
     y += 6;
     autoTable(doc, {
@@ -454,7 +454,7 @@ function generateDetailedPlanPdf(
       doc.roundedRect(12, y - 4, pw - 24, 10, 2, 2, 'F');
       doc.setFontSize(11);
       doc.setFont(undefined as any, 'bold');
-      doc.setTextColor(...theme.primary);
+      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
       const titleText = `${e.sequence_no || i + 1}. ${dv(e.engagement_name, 'Untitled Engagement')}`;
       doc.text(titleText, 16, y + 3);
 
@@ -567,7 +567,7 @@ function generateDetailedPlanPdf(
         }
       });
       if (auditorDays.size > 0) {
-        doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...theme.primary);
+        doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
         doc.text('Days by Lead Auditor', 14, y); y += 6;
         autoTable(doc, {
           startY: y,
@@ -587,7 +587,7 @@ function generateDetailedPlanPdf(
         String(engagements.filter((e: any) => e.quarter === q).length),
         String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0)),
       ]);
-      doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(...theme.primary);
+      doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
       doc.text('Days by Quarter', 14, y); y += 6;
       autoTable(doc, {
         startY: y,
@@ -632,12 +632,12 @@ function generateDetailedPlanPdf(
     // Recommendation box
     doc.setFillColor(255, 248, 235);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'F');
-    doc.setDrawColor(...theme.accent);
+    doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
     doc.setLineWidth(0.5);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'S');
     doc.setFontSize(9);
     doc.setFont(undefined as any, 'bold');
-    doc.setTextColor(...theme.primary);
+    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
     doc.text('Recommendation', 20, y + 8);
     doc.setFont(undefined as any, 'normal');
     doc.setTextColor(60, 60, 60);
