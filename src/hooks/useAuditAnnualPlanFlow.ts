@@ -151,7 +151,7 @@ export function useAuditAnnualPlanReadinessMap(plans: any[] = []) {
       if (error) throw error;
 
       const grouped = new Map<string, any[]>();
-      ((data || []) as AnnualPlanEngagementRecord[])
+      (((data || []) as unknown) as AnnualPlanEngagementRecord[])
         .filter((engagement: any) => engagement.is_active !== false)
         .forEach((engagement: any) => {
           const key = engagement.annual_plan_id;
@@ -236,13 +236,18 @@ export async function submitAnnualPlanWorkflow(params: {
     throw new Error((result as any)?.error || 'Failed to start the annual plan approval workflow.');
   }
 
-  const { data: refreshedPlan, error: refreshedPlanError } = await supabase
+  const { data: refreshedPlanData, error: refreshedPlanError } = await supabase
     .from('ia_annual_plans' as any)
     .select('workflow_instance_id, current_version_number')
     .eq('id', params.planId)
     .single();
 
   if (refreshedPlanError) throw refreshedPlanError;
+
+  const refreshedPlan = (refreshedPlanData || {}) as {
+    workflow_instance_id?: string | null;
+    current_version_number?: number | null;
+  };
 
   const { error: engagementUpdateError } = await supabase
     .from('ia_audit_engagements' as any)
