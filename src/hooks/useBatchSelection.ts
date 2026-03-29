@@ -115,6 +115,10 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
   const noBatchesAvailable = resolved && !selectedBatch && !showPopup && (filteredOpenBatches.length === 0);
   const isReady = !!selectedBatch;
 
+  // True when open batches exist but none match today's date (date filtering is active)
+  const hasOpenBatchesButNotForToday = !skipDateFilter && !allowCurrentDatePaymentInOldBatch
+    && (openBatches?.length ?? 0) > 0 && filteredOpenBatches.length === 0;
+
   return {
     selectedBatch,
     openBatches: filteredOpenBatches,
@@ -125,6 +129,7 @@ export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
     isLoading,
     isReady,
     noBatchesAvailable,
+    hasOpenBatchesButNotForToday,
     canManageAllBatches,
   };
 }

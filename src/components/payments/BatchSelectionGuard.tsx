@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Search, AlertTriangle, ArrowRightLeft } from 'lucide-react';
+import { Loader2, Search, AlertTriangle, ArrowRightLeft, CalendarX2, FolderOpen } from 'lucide-react';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import type { BatchRow } from '@/hooks/useBatchSelection';
 
@@ -19,6 +20,7 @@ interface BatchSelectionGuardProps {
   onSelectBatch: (batch: BatchRow) => void;
   onChangeBatch: () => void;
   children: React.ReactNode;
+  hasOpenBatchesButNotForToday?: boolean;
 }
 
 export function BatchSelectionGuard({
@@ -32,8 +34,11 @@ export function BatchSelectionGuard({
   onSelectBatch,
   onChangeBatch,
   children,
+  hasOpenBatchesButNotForToday = false,
 }: BatchSelectionGuardProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const filteredBatches = useMemo(() => {
     if (!searchTerm) return openBatches;
@@ -45,6 +50,11 @@ export function BatchSelectionGuard({
         b.office_code?.toLowerCase().includes(t)
     );
   }, [openBatches, searchTerm]);
+
+  const handleGoToBatchManagement = () => {
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    navigate(`/cashier/batch-management?returnTo=${returnTo}`);
+  };
 
   if (isLoading) {
     return (
@@ -59,12 +69,32 @@ export function BatchSelectionGuard({
     return (
       <div className="flex items-center justify-center p-16">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-3">
-            <AlertTriangle className="h-10 w-10 text-warning mx-auto" />
-            <h2 className="text-lg font-semibold">No Open Batches Available</h2>
-            <p className="text-sm text-muted-foreground">
-              There are no open batches assigned to you. Please create a new batch from Batch Management before proceeding.
-            </p>
+          <CardContent className="p-8 text-center space-y-4">
+            {hasOpenBatchesButNotForToday ? (
+              <>
+                <CalendarX2 className="h-10 w-10 text-warning mx-auto" />
+                <h2 className="text-lg font-semibold">No Batch Available for Today's Date</h2>
+                <p className="text-sm text-muted-foreground">
+                  There are open batches in the system, but none are for today's date. A new batch must be created for the current date before you can proceed with this operation.
+                </p>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-10 w-10 text-warning mx-auto" />
+                <h2 className="text-lg font-semibold">No Open Batches Available</h2>
+                <p className="text-sm text-muted-foreground">
+                  There are no open batches assigned to you. Please create a new batch from Batch Management before proceeding.
+                </p>
+              </>
+            )}
+            <Button
+              variant="default"
+              className="gap-2"
+              onClick={handleGoToBatchManagement}
+            >
+              <FolderOpen className="h-4 w-4" />
+              Go to Batch Management
+            </Button>
           </CardContent>
         </Card>
       </div>
