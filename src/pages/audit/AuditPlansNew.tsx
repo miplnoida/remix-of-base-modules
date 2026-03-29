@@ -197,7 +197,7 @@ export default function AuditPlansNew() {
                     <Edit className="h-4 w-4" />
                   </Button>
                 )}
-                {['Approved'].includes(row._status) && hasPermission('edit_audit_plans') && (
+                {['Approved'].includes(row._status) && canManageAuditPlans && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" onClick={() => setRevisionPlan(row)} title="Revise Plan">
                     <FileEdit className="h-4 w-4" />
                   </Button>
