@@ -34,8 +34,9 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const manualOverride = useManualOverride(planId);
 
-  const canEdit = ['Draft', 'Revision'].includes(planStatus);
+  const canEdit = ['Draft', 'Revision', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
   const isApproved = planStatus === 'Approved';
+  const isLocked = ['Submitted', 'Under Review'].includes(planStatus);
   // Allow editing even on approved plans (triggers amendment)
   const canModify = canEdit || isApproved;
 
