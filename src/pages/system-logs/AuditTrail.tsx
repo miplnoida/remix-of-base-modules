@@ -219,13 +219,15 @@ const AuditTrail: React.FC = () => {
     }
   };
 
-  // Compute diffs for selected entry
-  const visualDiff = useMemo(() => {
+  // Compute full row with highlights for selected entry
+  const fullRowData = useMemo(() => {
     if (!selectedEntry) return [];
-    return computeVisualDiff(selectedEntry.before_value, selectedEntry.after_value, selectedEntry.action);
+    const changedFields = selectedEntry.payload_json?.changed_fields as string[] | undefined;
+    return computeFullRowWithHighlights(selectedEntry.before_value, selectedEntry.after_value, selectedEntry.action, changedFields);
   }, [selectedEntry]);
 
-  const hasFieldDiff = visualDiff.length > 0;
+  const hasFieldData = fullRowData.length > 0;
+  const changedCount = fullRowData.filter(r => r.isChanged).length;
 
   return (
     <div className="p-6 space-y-6">
