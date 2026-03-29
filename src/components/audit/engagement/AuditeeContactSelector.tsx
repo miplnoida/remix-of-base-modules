@@ -46,7 +46,8 @@ export function AuditeeContactSelector({
     if (departmentId) {
       const dept = departments.find((d: any) => d.id === departmentId);
       if (dept?.head && !seen.has(dept.head.toLowerCase())) {
-        const id = dept.head_profile_id || `dept-head-${dept.id}`;
+        // Use a name-based key prefixed to distinguish from UUIDs; actual UUID stored only if profile exists
+        const id = dept.head_profile_id || `name::${dept.head}`;
         list.push({ id, name: dept.head, source: 'Department Head' });
         seen.add(dept.head.toLowerCase());
       }
@@ -59,7 +60,7 @@ export function AuditeeContactSelector({
 
     funcs.forEach((fn: any) => {
       if (fn.responsible_person && !seen.has(fn.responsible_person.toLowerCase())) {
-        const id = `func-owner-${fn.id}`;
+        const id = `name::${fn.responsible_person}`;
         list.push({ id, name: fn.responsible_person, source: `Function: ${fn.function_name}` });
         seen.add(fn.responsible_person.toLowerCase());
       }
