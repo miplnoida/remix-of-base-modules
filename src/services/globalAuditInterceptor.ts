@@ -115,7 +115,7 @@ export function resolveRouteContext(pathname: string): { module: string; screen:
  * Tables with DB-level audit triggers — the app interceptor marks its entries
  * as supplementary for these to avoid double-counting.
  */
-const DB_TRIGGER_TABLES = new Set([
+export const DB_TRIGGER_TABLES = new Set([
   'cn_receipt', 'cn_batch', 'er_master', 'profiles',
   'bema_c3_submissions', 'bema_registrations', 'bema_audit_cases',
   'bema_payment_plans', 'bema_waivers',
@@ -124,6 +124,8 @@ const DB_TRIGGER_TABLES = new Set([
   'c3_calculation_config', 'payment_module_config',
   'tb_levy_slabs', 'tb_levy_slab_details',
   'levy_slabs', 'levy_slab_details', // aliases used in mutationKeys
+  'tb_currencies', 'currencies', // currency config
+  'c3_config_management', 'c3_config_periods', 'c3_config_details', // C3 config mutation keys
 ]);
 
 /**
@@ -281,13 +283,10 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
     const source = entry.metadata?.source || 'app_interceptor';
     if (isDbTriggered && source !== 'db_trigger') return;
 
-    // Skip empty update entries — these are noise from hooks that don't pass meaningful data
-    const actionLower = entry.action?.toLowerCase() || '';
-    if (actionLower === 'update' || actionLower === 'mutation') {
-      const hasBefore = entry.beforeValue && Object.keys(entry.beforeValue).length > 0;
-      const hasAfter = entry.afterValue && Object.keys(entry.afterValue).length > 0;
-      if (!hasBefore && !hasAfter) return;
-    }
+    // Skip ANY entry where both before and after values are empty — these are noise
+    const hasBefore = entry.beforeValue && Object.keys(entry.beforeValue).length > 0;
+    const hasAfter = entry.afterValue && Object.keys(entry.afterValue).length > 0;
+    if (!hasBefore && !hasAfter) return;
 
     const descParts: string[] = [];
     if (entry.description) descParts.push(entry.description);

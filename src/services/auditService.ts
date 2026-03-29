@@ -12,6 +12,7 @@ import {
   getSessionId,
   getDeviceInfo,
 } from '@/services/correlationIdService';
+import { DB_TRIGGER_TABLES } from '@/services/globalAuditInterceptor';
 
 export interface AuditTrailEntry {
   action: string;
