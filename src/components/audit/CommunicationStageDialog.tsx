@@ -7,11 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Loader2, AlertTriangle, Building2, User, FileText, Edit3 } from 'lucide-react';
+import { Send, Loader2, AlertTriangle, Building2, User, FileText, Edit3, RefreshCw, Bell } from 'lucide-react';
 import { useRecordCommunicationStage, useValidateTemplatePolicy, STAGE_LABELS } from '@/hooks/useAuditCommunicationStages';
 import { useIADocumentTemplates } from '@/hooks/useAuditData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Map stage codes to required template categories from the policy matrix
 const STAGE_TO_CATEGORY: Record<string, string> = {
   PLAN_INTIMATION: 'Audit Notification',
   TEAM_AND_SCOPE_NOTICE: 'Team Disclosure',
@@ -44,16 +45,20 @@ interface CommunicationStageDialogProps {
   open: boolean;
   onClose: () => void;
   engagementContext?: EngagementContext;
+  mode?: 'send' | 'resend' | 'reminder';
 }
 
 function renderTemplate(content: string, data: Record<string, string>): string {
   return content.replace(/\{\{(\w+)\}\}/g, (match, key) => data[key] || match);
 }
 
-export function CommunicationStageDialog({ engagementId, engagementName, stageCode, open, onClose, engagementContext }: CommunicationStageDialogProps) {
+const REMINDER_PREFIX = `REMINDER: This is a follow-up to our earlier communication regarding the below. We kindly request your prompt attention to this matter.\n\n---\n\n`;
+
+export function CommunicationStageDialog({ engagementId, engagementName, stageCode, open, onClose, engagementContext, mode = 'send' }: CommunicationStageDialogProps) {
   const { data: templates = [] } = useIADocumentTemplates();
   const recordStage = useRecordCommunicationStage();
   const validatePolicy = useValidateTemplatePolicy();
+  const { toast } = useToast();
 
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -63,18 +68,16 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [policyValid, setPolicyValid] = useState<boolean | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  // Find the matching template for this stage's required category
   const matchingTemplate = useMemo(() => {
     const requiredCategory = STAGE_TO_CATEGORY[stageCode];
     if (!requiredCategory) return null;
     const activeTemplates = (templates as any[]).filter(t => t.is_active && t.category === requiredCategory);
-    // Pick highest version
     if (activeTemplates.length === 0) return null;
     return activeTemplates.sort((a, b) => (b.version_number || 0) - (a.version_number || 0))[0];
   }, [templates, stageCode]);
 
-  // Build merge data from engagement context
   const mergeData = useMemo(() => {
     const ctx = engagementContext || {};
     return {
@@ -90,67 +93,146 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
     };
   }, [engagementContext, engagementName]);
 
-  // Auto-fill when dialog opens or context changes
   useEffect(() => {
     if (!open) return;
 
-    // Auto-fill recipient from engagement context
     const ctx = engagementContext || {};
     setRecipientName(ctx.department_head || '');
     setRecipientEmail(ctx.department_email || '');
     setIsEditing(false);
     setNotes('');
-    setAckRequired(false);
+    setAckRequired(mode === 'reminder');
 
-    // Auto-select and render template
     if (matchingTemplate) {
       setSelectedTemplateId(matchingTemplate.id);
-      const rendered = renderTemplate(matchingTemplate.content || '', mergeData);
+      let rendered = renderTemplate(matchingTemplate.content || '', mergeData);
+
+      if (mode === 'reminder') {
+        rendered = REMINDER_PREFIX + rendered;
+      }
+
       setMessageContent(rendered);
 
-      // Validate policy
       validatePolicy.mutateAsync({ stageCode, templateId: matchingTemplate.id }).then(result => {
         setPolicyValid(result?.valid ?? true);
       }).catch(() => setPolicyValid(null));
     } else {
       setSelectedTemplateId('');
-      setMessageContent('');
+      setMessageContent(mode === 'reminder' ? REMINDER_PREFIX : '');
       setPolicyValid(null);
     }
-  }, [open, stageCode, matchingTemplate?.id, mergeData]);
+  }, [open, stageCode, matchingTemplate?.id, mergeData, mode]);
 
-  const handleSend = () => {
+  const sendActualEmail = async (subject: string, htmlBody: string, toEmail: string) => {
+    try {
+      setIsSendingEmail(true);
+      const { data, error } = await supabase.functions.invoke('send-notification', {
+        body: {
+          recipient_email: toEmail,
+          subject,
+          body: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap; line-height: 1.6;">${htmlBody.replace(/\n/g, '<br/>')}</div>`,
+          from_name: 'SSBM Internal Audit',
+          from_email: 'Audit@secureserve.biz',
+        },
+      });
+      if (error) throw error;
+      return data;
+    } catch (err: any) {
+      console.error('Email send error:', err);
+      throw err;
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleSend = async () => {
     if (!recipientEmail) return;
-    recordStage.mutate({
-      engagementId,
-      stageCode,
-      templateId: selectedTemplateId || undefined,
-      recipientName,
-      recipientEmail,
-      notes: notes || messageContent,
-      acknowledgmentRequired: ackRequired,
-    }, {
-      onSuccess: () => {
-        onClose();
-      },
-    });
+
+    const stageLabel = STAGE_LABELS[stageCode] || stageCode;
+    const subjectPrefix = mode === 'reminder' ? 'REMINDER: ' : mode === 'resend' ? 'Re: ' : '';
+    const subject = `${subjectPrefix}${stageLabel} — ${engagementContext?.engagement_name || engagementName || 'Audit Engagement'}`;
+
+    try {
+      // Send actual email
+      const emailResult = await sendActualEmail(subject, messageContent, recipientEmail);
+
+      if (emailResult?.success === false) {
+        toast({
+          title: 'Email Delivery Failed',
+          description: emailResult?.message || 'The email could not be sent. Please verify the recipient email and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Record in communication stages
+      const stageNotes = mode === 'reminder'
+        ? `[REMINDER] ${notes || 'Follow-up reminder sent.'}`
+        : mode === 'resend'
+        ? `[RESENT] ${notes || 'Communication resent.'}`
+        : notes || messageContent;
+
+      recordStage.mutate({
+        engagementId,
+        stageCode,
+        templateId: selectedTemplateId || undefined,
+        recipientName,
+        recipientEmail,
+        notes: stageNotes,
+        acknowledgmentRequired: ackRequired,
+      }, {
+        onSuccess: () => {
+          toast({
+            title: mode === 'reminder' ? 'Reminder Sent' : mode === 'resend' ? 'Communication Resent' : 'Communication Sent',
+            description: `Email sent to ${recipientEmail} successfully.`,
+          });
+          onClose();
+        },
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Send Failed',
+        description: err.message || 'Failed to send communication.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const stageLabel = STAGE_LABELS[stageCode] || stageCode;
   const requiredCategory = STAGE_TO_CATEGORY[stageCode];
+  const isPending = recordStage.isPending || isSendingEmail;
+
+  const modeConfig = {
+    send: { icon: Send, title: `Send: ${stageLabel}`, btnLabel: 'Send Communication', btnIcon: Send },
+    resend: { icon: RefreshCw, title: `Resend: ${stageLabel}`, btnLabel: 'Resend Communication', btnIcon: RefreshCw },
+    reminder: { icon: Bell, title: `Send Reminder: ${stageLabel}`, btnLabel: 'Send Reminder', btnIcon: Bell },
+  }[mode];
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Send className="h-4 w-4" />
-            Send: {stageLabel}
+            <modeConfig.icon className="h-4 w-4" />
+            {modeConfig.title}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Engagement Info Bar */}
+          {/* Mode indicator */}
+          {mode !== 'send' && (
+            <div className={`flex items-center gap-2 p-2 rounded-md text-xs ${
+              mode === 'reminder' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'
+            }`}>
+              {mode === 'reminder' ? (
+                <><Bell className="h-3.5 w-3.5" /> This will send a follow-up reminder. The original communication content is included below for reference.</>
+              ) : (
+                <><RefreshCw className="h-3.5 w-3.5" /> This will resend the communication. A new entry will be recorded in the audit trail.</>
+              )}
+            </div>
+          )}
+
+          {/* Engagement Info */}
           {engagementContext && (
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-3">
@@ -184,7 +266,7 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
           <div className="space-y-1">
             <Label className="text-xs">Template</Label>
             {matchingTemplate ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
                   ✓ {matchingTemplate.name} (v{matchingTemplate.version_number || 1})
                 </Badge>
@@ -196,12 +278,12 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
             ) : (
               <div className="flex items-center gap-1 text-xs text-destructive">
                 <AlertTriangle className="h-3 w-3" />
-                No active template found for category "{requiredCategory}". Please create one in Template Management.
+                No active template found for category &quot;{requiredCategory}&quot;.
               </div>
             )}
           </div>
 
-          {/* Recipient - Auto-filled, editable */}
+          {/* Recipient */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Recipient Name</Label>
@@ -213,7 +295,7 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
             </div>
           </div>
 
-          {/* Communication Content - Pre-filled from template with merge fields resolved */}
+          {/* Communication Content */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Communication Content</Label>
@@ -223,12 +305,7 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
               </Button>
             </div>
             {isEditing ? (
-              <Textarea
-                value={messageContent}
-                onChange={e => setMessageContent(e.target.value)}
-                rows={12}
-                className="font-mono text-xs"
-              />
+              <Textarea value={messageContent} onChange={e => setMessageContent(e.target.value)} rows={12} className="font-mono text-xs" />
             ) : (
               <div className="border rounded-md p-3 bg-muted/30 max-h-[250px] overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-xs font-sans leading-relaxed text-foreground">
@@ -252,9 +329,9 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} size="sm">Cancel</Button>
-          <Button onClick={handleSend} disabled={!recipientEmail || recordStage.isPending || policyValid === false} size="sm">
-            {recordStage.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-            Send Communication
+          <Button onClick={handleSend} disabled={!recipientEmail || isPending || policyValid === false} size="sm">
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <modeConfig.btnIcon className="h-4 w-4 mr-1" />}
+            {modeConfig.btnLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
