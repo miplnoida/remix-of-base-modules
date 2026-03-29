@@ -10,7 +10,28 @@
  * Used by: AuditPlansNew (list), AuditPlanDetail (workspace), PlanApproval (approver screen).
  */
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+
+export interface PlanReadinessSummary {
+  ready: boolean;
+  reason?: string;
+  failedChecks?: string[];
+}
+
+export interface AnnualPlanPermissionContext {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isAdmin: boolean;
+  canManagePlans: boolean;
+  canApprovePlans: boolean;
+  canViewPlans: boolean;
+  roles: string[];
+  moduleViews: string[];
+  hasPermission: (permission: string) => boolean;
+}
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -56,6 +77,94 @@ function isAdminUser(checker: (p: string) => boolean): boolean {
   return hasAnyPermission(checker, ADMIN_PERMISSIONS);
 }
 
+export function isEditablePlanStatus(planStatus?: string): boolean {
+  return !!planStatus && EDITABLE_STATUSES.includes(planStatus as PlanStatus);
+}
+
+export function isLockedPlanStatus(planStatus?: string): boolean {
+  return !!planStatus && ['Submitted', 'Under Review', 'Approved', 'Superseded', 'Archived'].includes(planStatus);
+}
+
+export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionContext {
+  const { user, roles, isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
+
+  const { data: moduleViews = [], isLoading: permissionsLoading } = useQuery({
+    queryKey: ['audit-annual-plan-runtime-access', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [] as string[];
+      const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
+      if (error) throw error;
+      return Array.from(
+        new Set(
+          ((data as Array<{ module_name: string; action_name: string; is_granted?: boolean }>) || [])
+            .filter((entry) => entry.action_name === 'view' && entry.is_granted !== false)
+            .map((entry) => entry.module_name)
+            .filter(Boolean),
+        ),
+      );
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return useMemo(() => {
+    const normalizedRoles = (roles || []).map((role) => role.toLowerCase());
+    const isAdmin = normalizedRoles.some((role) => role === 'admin' || role === 'application admin');
+    const canApprovePlans = isAdmin || moduleViews.includes('plan_approval') || normalizedRoles.includes('audit manager');
+    const canManagePlans = isAdmin || normalizedRoles.includes('audit manager');
+    const canViewPlans = isAdmin || moduleViews.includes('audit_plans') || canManagePlans || canApprovePlans;
+    const isLoading = authLoading || permissionsLoading;
+
+    const hasPermission = (permission: string) => {
+      if (isLoading || !isAuthenticated) return false;
+
+      switch (permission) {
+        case 'create_audit_plans':
+        case 'edit_audit_plans':
+          return canManagePlans;
+        case 'approve_audit_plans':
+          return canApprovePlans;
+        case 'admin':
+        case 'system_administration':
+          return isAdmin;
+        default:
+          return false;
+      }
+    };
+
+    return {
+      isAuthenticated,
+      isLoading,
+      isAdmin,
+      canManagePlans,
+      canApprovePlans,
+      canViewPlans,
+      roles,
+      moduleViews,
+      hasPermission,
+    };
+  }, [authLoading, isAuthenticated, moduleViews, permissionsLoading, roles]);
+}
+
+function getMissingAuthReason(): string {
+  return 'You must be signed in with a real application account to perform this action.';
+}
+
+function getLockedReason(planStatus?: string): string {
+  switch (planStatus) {
+    case 'Submitted':
+    case 'Under Review':
+      return `Plan is in "${planStatus}" status and is waiting for approval.`;
+    case 'Approved':
+      return 'Approved plans are locked. Use the revision/amendment flow instead of normal editing or submission.';
+    case 'Superseded':
+    case 'Archived':
+      return `Plan is in "${planStatus}" status and is locked.`;
+    default:
+      return `Plan is in "${planStatus || 'unknown'}" status and is locked.`;
+  }
+}
+
 // ── Submit eligibility ──────────────────────────────────────────────
 
 export interface ActionEligibility {
@@ -70,18 +179,25 @@ export interface ActionEligibility {
 export function getSubmitEligibility(
   hasPermission: (p: string) => boolean,
   planStatus?: string,
+  readiness?: PlanReadinessSummary,
 ): ActionEligibility {
   const admin = isAdminUser(hasPermission);
   const hasMakerPerm = admin || hasAnyPermission(hasPermission, SUBMIT_PERMISSIONS);
 
-  // Always show the button to users who have maker permissions or are admins
   if (!hasMakerPerm) {
-    return { visible: true, enabled: false, reason: 'You do not have permission to submit plans. Required: create or edit audit plans.' };
+    return { visible: true, enabled: false, reason: 'Missing submission permission. Only annual plan makers/preparers can submit this plan.' };
   }
 
   if (!planStatus || !SUBMITTABLE_STATUSES.includes(planStatus as PlanStatus)) {
-    const statusLabel = planStatus || 'unknown';
-    return { visible: true, enabled: false, reason: `Plan cannot be submitted in "${statusLabel}" status. Submittable statuses: ${SUBMITTABLE_STATUSES.join(', ')}.` };
+    return { visible: true, enabled: false, reason: getLockedReason(planStatus) };
+  }
+
+  if (readiness && !readiness.ready) {
+    return {
+      visible: true,
+      enabled: false,
+      reason: readiness.reason || 'Readiness checks failed. Complete required plan and engagement details before submitting.',
+    };
   }
 
   return { visible: true, enabled: true };
@@ -95,11 +211,11 @@ export function getEditEligibility(
   const hasPerm = admin || hasAnyPermission(hasPermission, SUBMIT_PERMISSIONS);
 
   if (!hasPerm) {
-    return { visible: false, enabled: false, reason: 'No edit permission.' };
+    return { visible: true, enabled: false, reason: 'Missing edit permission for annual plans.' };
   }
 
   if (!planStatus || !EDITABLE_STATUSES.includes(planStatus as PlanStatus)) {
-    return { visible: false, enabled: false, reason: `Plan is locked in "${planStatus}" status.` };
+    return { visible: true, enabled: false, reason: getLockedReason(planStatus) };
   }
 
   return { visible: true, enabled: true };
@@ -163,18 +279,49 @@ export function getApproveEligibility(
 
 // ── React hook convenience wrapper ──────────────────────────────────
 
-export function usePlanWorkflowAccess(planStatus?: string) {
-  const { hasPermission } = useAuth();
+export function usePlanWorkflowAccess(planStatus?: string, readiness?: PlanReadinessSummary) {
+  const context = useAuditAnnualPlanPermissionContext();
+  const hasPermission = context.hasPermission;
+
+  if (context.isLoading) {
+    const loadingState = { visible: true, enabled: false, reason: 'Checking your audit plan permissions…' };
+    return {
+      submit: loadingState,
+      edit: loadingState,
+      withdraw: { visible: false, enabled: false } as ActionEligibility,
+      revise: { visible: false, enabled: false } as ActionEligibility,
+      approve: { visible: false, enabled: false } as ActionEligibility,
+      isApprover: false,
+      isMaker: false,
+      isLoading: true,
+      permissionContext: context,
+    };
+  }
+
+  if (!context.isAuthenticated) {
+    const authBlocked = { visible: true, enabled: false, reason: getMissingAuthReason() };
+    return {
+      submit: authBlocked,
+      edit: authBlocked,
+      withdraw: { visible: false, enabled: false } as ActionEligibility,
+      revise: { visible: false, enabled: false } as ActionEligibility,
+      approve: { visible: false, enabled: false, reason: getMissingAuthReason() } as ActionEligibility,
+      isApprover: false,
+      isMaker: false,
+      isLoading: false,
+      permissionContext: context,
+    };
+  }
 
   return {
-    submit: getSubmitEligibility(hasPermission, planStatus),
+    submit: getSubmitEligibility(hasPermission, planStatus, readiness),
     edit: getEditEligibility(hasPermission, planStatus),
     withdraw: getWithdrawEligibility(hasPermission, planStatus),
     revise: getReviseEligibility(hasPermission, planStatus),
     approve: getApproveEligibility(hasPermission, planStatus),
-    /** Whether the user has approver-level access */
-    isApprover: isAdminUser(hasPermission) || hasAnyPermission(hasPermission, APPROVE_PERMISSIONS),
-    /** Whether the user has maker-level access */
-    isMaker: isAdminUser(hasPermission) || hasAnyPermission(hasPermission, SUBMIT_PERMISSIONS),
+    isApprover: context.canApprovePlans,
+    isMaker: context.canManagePlans,
+    isLoading: false,
+    permissionContext: context,
   };
 }

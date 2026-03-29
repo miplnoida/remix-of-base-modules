@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { CandidateDetailPanel } from './CandidateDetailPanel';
 import { useIAActiveAuditors } from '@/hooks/useAuditData';
+import { isEditablePlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
@@ -45,7 +46,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const [rejectReason, setRejectReason] = useState('');
   const [detailCandidate, setDetailCandidate] = useState<any>(null);
 
-  const canEdit = ['Draft', 'Revision'].includes(planStatus);
+  const canEdit = isEditablePlanStatus(planStatus);
 
   const getAuditorName = (id: string) => {
     const a = (auditors || []).find((a: any) => a.id === id);
