@@ -186,6 +186,11 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
 
   return (
     <>
+      {isLocked && (
+        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
+          <span className="font-medium">🔒 Plan is under review.</span> Editing is disabled until the approval process completes.
+        </div>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -195,7 +200,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
               {byQuarter.filter(q => q.count > 0).map(q => ` • ${q.quarter}: ${q.count}`).join('')}
             </p>
           </div>
-          {canModify && (
+          {canModify && !isLocked && (
             <Button size="sm" onClick={() => { setEditTarget(null); setShowDialog(true); }}>
               <Plus className="h-4 w-4 mr-1" />Add Engagement
             </Button>
