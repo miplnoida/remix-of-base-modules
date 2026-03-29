@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,6 +43,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export default function AuditPlanDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasPermission } = useAuth();
   const { userCode } = useUserCode();
   const { toast } = useToast();
@@ -61,6 +62,19 @@ export default function AuditPlanDetail() {
   const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
+
+  // Auto-open submission readiness dialog when navigated with ?action=submit
+  useEffect(() => {
+    if (searchParams.get('action') === 'submit' && plan && !plansLoading) {
+      const planStatus = plan.status || 'Draft';
+      const canSubmitFromUrl = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
+      if (canSubmitFromUrl) {
+        setShowReadiness(true);
+        searchParams.delete('action');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, plan, plansLoading]);
 
   const stats = useMemo(() => {
     const all = engagements || [];

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Edit, Send, Zap } from 'lucide-react';
+import { Plus, Eye, Edit, Send, Zap, ClipboardCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
@@ -23,7 +23,7 @@ export default function AuditPlans() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [submitPlanId, setSubmitPlanId] = useState<string | null>(null);
+  
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
   const { create, update } = useIAAnnualPlanMutations();
@@ -108,17 +108,24 @@ export default function AuditPlans() {
       <DataTable
         columns={columns}
         data={filteredPlans}
-        renderActions={(row) => (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
-            {hasPermission('edit_audit_plans') && row.status === 'Draft' && (
-              <>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPlan(row)}><Edit className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSubmitPlanId(row.id)}><Send className="h-4 w-4" /></Button>
-              </>
-            )}
-          </div>
-        )}
+        renderActions={(row) => {
+          const canSubmitRow = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(row.status);
+          const canEditRow = ['Draft', 'Changes Requested', 'Rejected'].includes(row.status);
+          return (
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" title="Open Plan" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
+              {hasPermission('edit_audit_plans') && canEditRow && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit Plan" onClick={() => handleEditPlan(row)}><Edit className="h-4 w-4" /></Button>
+              )}
+              {hasPermission('edit_audit_plans') && canSubmitRow && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Submit for Approval" onClick={() => navigate(`/audit/audit-plans/${row.id}?action=submit`)}><Send className="h-4 w-4" /></Button>
+              )}
+              {hasPermission('approve_audit_plans') && row.status === 'Submitted' && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" title="Review & Approve" onClick={() => navigate(`/audit/plan-approval?planId=${row.id}`)}><ClipboardCheck className="h-4 w-4" /></Button>
+              )}
+            </div>
+          );
+        }}
         emptyMessage="No audit plans found."
       />
 
@@ -151,13 +158,6 @@ export default function AuditPlans() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={submitPlanId !== null}
-        onOpenChange={() => setSubmitPlanId(null)}
-        title="Submit Plan for Approval"
-        description="Are you sure you want to submit this plan? It will be sent for approval."
-        onConfirm={() => { if (submitPlanId) { update.mutate({ id: submitPlanId, status: 'Submitted', submitted_date: new Date().toISOString() }); setSubmitPlanId(null); } }}
-      />
     </PageShell>
   );
 }
