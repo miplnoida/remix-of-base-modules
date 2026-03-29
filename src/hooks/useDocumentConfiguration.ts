@@ -185,6 +185,7 @@ export function useCategoryMutations(moduleId: string | null) {
   };
 
   const createCategory = useMutation({
+    mutationKey: ['Admin', 'document_config', 'create'],
     mutationFn: async (payload: { category_name: string; description?: string; sort_order?: number }) => {
       if (!moduleId) throw new Error('Module not selected');
       const { data, error } = await supabase
@@ -210,6 +211,7 @@ export function useCategoryMutations(moduleId: string | null) {
   });
 
   const updateCategory = useMutation({
+    mutationKey: ['Admin', 'document_config', 'delete'],
     mutationFn: async (payload: { id: string; category_name?: string; description?: string; sort_order?: number; is_active?: boolean }) => {
       const { id, ...rest } = payload;
       const { data, error } = await supabase
@@ -229,6 +231,7 @@ export function useCategoryMutations(moduleId: string | null) {
   });
 
   const deleteCategory = useMutation({
+    mutationKey: ['Admin', 'document_config', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('module_doc_categories').delete().eq('id', id);
       if (error) throw error;
@@ -251,6 +254,7 @@ export function useDocConfigMutations(moduleId: string | null) {
   };
 
   const createDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'create'],
     mutationFn: async (payload: Omit<DocConfig, 'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'>) => {
       const { data, error } = await supabase
         .from('module_doc_configs')
@@ -272,6 +276,7 @@ export function useDocConfigMutations(moduleId: string | null) {
   });
 
   const updateDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'delete'],
     mutationFn: async (payload: Partial<DocConfig> & { id: string }) => {
       const { id, ...rest } = payload;
       const { data, error } = await supabase
@@ -291,6 +296,7 @@ export function useDocConfigMutations(moduleId: string | null) {
   });
 
   const deleteDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'delete'],
     mutationFn: async (params: { id: string; category_id: string }) => {
       const { error } = await supabase.from('module_doc_configs').delete().eq('id', params.id);
       if (error) throw error;
@@ -313,6 +319,7 @@ export function useChildDocMutations(moduleId: string | null) {
   };
 
   const createChildDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'create'],
     mutationFn: async (payload: Omit<ChildDoc, 'id' | 'created_at' | 'created_by' | 'updated_at' | 'updated_by'>) => {
       const { data, error } = await supabase
         .from('module_doc_child_docs')
@@ -331,6 +338,7 @@ export function useChildDocMutations(moduleId: string | null) {
   });
 
   const updateChildDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'create'],
     mutationFn: async (payload: Partial<ChildDoc> & { id: string; parent_config_id: string }) => {
       const { id, parent_config_id, ...rest } = payload;
       const { data, error } = await supabase
@@ -347,6 +355,7 @@ export function useChildDocMutations(moduleId: string | null) {
   });
 
   const deleteChildDoc = useMutation({
+    mutationKey: ['Admin', 'document_config', 'update'],
     mutationFn: async (params: { id: string; parent_config_id: string }) => {
       const { error } = await supabase.from('module_doc_child_docs').delete().eq('id', params.id);
       if (error) throw error;

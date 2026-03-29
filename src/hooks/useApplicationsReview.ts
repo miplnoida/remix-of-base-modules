@@ -180,6 +180,7 @@ export function useProcessReviewAction() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'applications', 'mutation'],
     mutationFn: async ({ 
       taskId, 
       actionId,

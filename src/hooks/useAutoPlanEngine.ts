@@ -36,6 +36,7 @@ export function usePlanningWeights() {
   });
 
   const updateWeight = useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'update'],
     mutationFn: async (params: { id: string; weight: number; change_reason?: string; updated_by?: string }) => {
       const { error } = await supabase
         .from('ia_planning_scoring_weights' as any)
@@ -78,6 +79,7 @@ export function useFrequencyPolicies() {
   });
 
   const updatePolicy = useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'update'],
     mutationFn: async (params: { id: string; max_months_between_audits: number; change_reason?: string; updated_by?: string }) => {
       const { error } = await supabase
         .from('ia_risk_band_frequency_policy' as any)
@@ -120,6 +122,7 @@ export function usePlanningParameters() {
   });
 
   const updateParam = useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'update'],
     mutationFn: async (params: { id: string; value_json: any; change_reason: string; updated_by: string }) => {
       // Get current version
       const { data: current } = await supabase
@@ -195,6 +198,7 @@ export function useGenerateResourceRecommendations(planId?: string) {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async (candidateId?: string) => {
       const { data, error } = await supabase.rpc('ia_generate_resource_recommendations' as any, {
         p_plan_id: planId,
@@ -218,6 +222,7 @@ export function useGenerateResourceRecommendations(planId?: string) {
 
 export function useCheckDataReadiness() {
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async (planId?: string) => {
       const { data, error } = await supabase.rpc('ia_check_data_readiness' as any, {
         p_plan_id: planId || null,
@@ -248,6 +253,7 @@ export function useWizardState(planId?: string) {
   });
 
   const upsertState = useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'update'],
     mutationFn: async (params: { plan_id: string; current_step: number; step_data?: any; data_readiness?: any; parameter_profile?: string; is_complete?: boolean; updated_by?: string }) => {
       const { data: existing } = await supabase
         .from('ia_planning_wizard_state' as any)
@@ -297,6 +303,7 @@ export function useGenerateAutoPlan(planId?: string) {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('ia_generate_auto_plan_candidates' as any, {
         p_plan_id: planId,
@@ -324,6 +331,7 @@ export function useManualOverride(planId?: string) {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async (params: {
       override_type: string;
       engagement_id?: string;
@@ -361,6 +369,7 @@ export function useCapacitySchedule(planId?: string) {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('ia_capacity_schedule_candidates' as any, {
         p_plan_id: planId,
@@ -386,6 +395,7 @@ export function useConvertCandidates(planId?: string) {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_auto_plan', 'mutation'],
     mutationFn: async (createdBy: string) => {
       const { data, error } = await supabase.rpc('ia_convert_candidates_to_engagements' as any, {
         p_plan_id: planId,

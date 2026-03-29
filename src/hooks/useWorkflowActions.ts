@@ -440,6 +440,7 @@ export function useExecuteWorkflowAction() {
   const { user: supabaseUser } = useSupabaseAuth();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_actions', 'mutation'],
     mutationFn: async ({
       taskId,
       actionId,

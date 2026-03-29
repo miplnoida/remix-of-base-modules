@@ -37,6 +37,7 @@ export const useCreatePaymentPlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_payment_plans', 'create'],
     mutationFn: async ({ caseId, plan, terms }: { caseId: string; plan: PaymentPlan; terms: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -70,6 +71,7 @@ export const useUpdatePaymentPlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_payment_plans', 'update'],
     mutationFn: async ({ id, caseId, updates }: { id: string; caseId: string; updates: any }) => {
       const { data, error } = await supabase
         .from('legal_settlements')

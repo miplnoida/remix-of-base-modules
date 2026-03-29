@@ -20,6 +20,7 @@ export function useIncomeCodes(activeOnly = false) {
 export function useCreateIncomeCode() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'create'],
     mutationFn: async ({ code, description, userCode }: { code: string; description: string; userCode?: string }) => {
       const { error } = await (supabase as any).from('tb_income_codes').insert({
         code: code.trim().toUpperCase(),
@@ -40,6 +41,7 @@ export function useCreateIncomeCode() {
 export function useUpdateIncomeCode() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'update'],
     mutationFn: async ({ id, code, description, is_active, userCode }: { id: string; code: string; description: string; is_active: boolean; userCode?: string }) => {
       const { error } = await (supabase as any).from('tb_income_codes').update({
         code: code.trim().toUpperCase(),
@@ -61,6 +63,7 @@ export function useUpdateIncomeCode() {
 export function useDeleteIncomeCode() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'delete'],
     mutationFn: async (id: string) => {
       // Hard delete – consistent with existing master data pattern (IncomeCategoryManagement)
       const { error } = await (supabase as any).from('tb_income_codes').delete().eq('id', id);
@@ -92,6 +95,7 @@ export function useIncomeCodePolicyDefaults(incomeCodeId?: string) {
 export function useCreateIncomeCodePolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'create'],
     mutationFn: async ({ policy, userCode }: { policy: Omit<IncomeCodePolicyDefault, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_default').insert({
         ...policy,
@@ -111,6 +115,7 @@ export function useCreateIncomeCodePolicyDefault() {
 export function useUpdateIncomeCodePolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<IncomeCodePolicyDefault>; userCode?: string }) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_default').update({
         ...updates,
@@ -130,6 +135,7 @@ export function useUpdateIncomeCodePolicyDefault() {
 export function useDeleteIncomeCodePolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_default').delete().eq('id', id);
       if (error) throw error;
@@ -160,6 +166,7 @@ export function useIncomeCodePolicyExceptions(incomeCodeId?: string) {
 export function useCreateIncomeCodePolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'create'],
     mutationFn: async ({ exception, userCode }: { exception: Omit<IncomeCodePolicyException, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_exceptions').insert({
         ...exception,
@@ -179,6 +186,7 @@ export function useCreateIncomeCodePolicyException() {
 export function useUpdateIncomeCodePolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<IncomeCodePolicyException>; userCode?: string }) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_exceptions').update({
         ...updates,
@@ -198,6 +206,7 @@ export function useUpdateIncomeCodePolicyException() {
 export function useDeleteIncomeCodePolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'income_code_policy', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from('c3_income_code_policy_exceptions').delete().eq('id', id);
       if (error) throw error;

@@ -37,6 +37,7 @@ export function useDesignations() {
 export function useCreateDesignation() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'designations', 'create'],
     mutationFn: async (data: { name: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('designations')
@@ -57,6 +58,7 @@ export function useCreateDesignation() {
 export function useUpdateDesignation() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'designations', 'update'],
     mutationFn: async ({ id, ...data }: Partial<Designation> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('designations')
@@ -78,6 +80,7 @@ export function useUpdateDesignation() {
 export function useDeleteDesignation() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'designations', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('designations')
@@ -115,6 +118,7 @@ export function useDesignationHierarchy() {
 export function useUpsertDesignationHierarchy() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'designations', 'delete'],
     mutationFn: async (data: { designation_id: string; parent_designation_id: string | null; level: number }) => {
       const { data: result, error } = await supabase
         .from('designation_hierarchy')
@@ -135,6 +139,7 @@ export function useUpsertDesignationHierarchy() {
 export function useDeleteDesignationHierarchy() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'designations', 'delete'],
     mutationFn: async (designationId: string) => {
       const { error } = await supabase
         .from('designation_hierarchy')

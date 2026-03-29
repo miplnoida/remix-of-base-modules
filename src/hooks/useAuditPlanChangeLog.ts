@@ -21,6 +21,7 @@ export function useIAPlanChangeLogMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_plan_change_log', 'create'],
     mutationFn: async (entry: { plan_id: string; change_type: string; description: string; changed_by: string }) => {
       const { data, error } = await supabase.from('ia_plan_change_log' as any).insert(entry as any).select().single();
       if (error) throw error;

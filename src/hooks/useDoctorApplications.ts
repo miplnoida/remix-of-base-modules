@@ -313,6 +313,7 @@ export function useApproveDoctorApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'doctor_applications', 'approve'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/${applicationId}/approve`;
       return await callProxyApi('doctor-applications', endpoint, 'POST', { remarks });
@@ -334,6 +335,7 @@ export function useRejectDoctorApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'doctor_applications', 'reject'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/${applicationId}/reject`;
       return await callProxyApi('doctor-applications', endpoint, 'POST', { remarks });

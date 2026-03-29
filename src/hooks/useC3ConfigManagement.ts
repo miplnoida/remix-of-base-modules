@@ -131,6 +131,7 @@ export function useUpdateC3ConfigDetails() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_management', 'update'],
     mutationFn: async ({
       configPeriodId,
       details,
@@ -195,6 +196,7 @@ export function useCloneC3Config() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_management', 'mutation'],
     mutationFn: async ({
       sourceId,
       newStartDate,
@@ -246,6 +248,7 @@ export function useToggleC3ConfigActive() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_management', 'status_change'],
     mutationFn: async ({
       periodId,
       isActive,

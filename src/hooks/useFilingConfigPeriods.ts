@@ -22,6 +22,7 @@ export function useFilingConfigPeriods() {
 
 export function useAnalyzeFilingConfigChange() {
   return useMutation({
+    mutationKey: ['C3Config', 'filing_config_periods', 'mutation'],
     mutationFn: async (params: {
       id?: string;
       date_from: string;
@@ -53,6 +54,7 @@ export function useUpsertFilingConfigPeriod() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['C3Config', 'filing_config_periods', 'mutation'],
     mutationFn: async (params: {
       id?: string;
       date_from: string;
@@ -106,6 +108,7 @@ export function useDeactivateFilingConfigPeriod() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['C3Config', 'filing_config_periods', 'update'],
     mutationFn: async ({ id, user_code }: { id: string; user_code?: string }) => {
       const { error } = await supabase
         .from('c3_filing_config_periods')

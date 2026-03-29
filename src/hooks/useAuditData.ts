@@ -48,6 +48,7 @@ export function useIADepartmentMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (dept: {
       name: string; head: string; email?: string; phone?: string; location?: string;
       risk_rating?: string; created_by?: string;
@@ -65,6 +66,7 @@ export function useIADepartmentMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_departments').update(updates).eq('id', id).select().single();
       if (error) throw error;
@@ -78,6 +80,7 @@ export function useIADepartmentMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_departments').update({ is_active: false }).eq('id', id);
       if (error) throw error;
@@ -111,6 +114,7 @@ export function useIADepartmentFunctionMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (fn: any) => {
       const { data, error } = await supabase.from('ia_department_functions').insert(fn).select().single();
       if (error) throw error;
@@ -124,6 +128,7 @@ export function useIADepartmentFunctionMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_department_functions').update(updates).eq('id', id).select().single();
       if (error) throw error;
@@ -137,6 +142,7 @@ export function useIADepartmentFunctionMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_department_functions').update({ is_active: false }).eq('id', id);
       if (error) throw error;
@@ -170,6 +176,7 @@ export function useIAHolidayMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (holiday: any) => {
       const { data, error } = await supabase.from('ia_holidays').insert(holiday).select().single();
       if (error) throw error;
@@ -183,6 +190,7 @@ export function useIAHolidayMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_holidays').update(updates).eq('id', id).select().single();
       if (error) throw error;
@@ -196,6 +204,7 @@ export function useIAHolidayMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_holidays').update({ is_active: false }).eq('id', id);
       if (error) throw error;
@@ -247,6 +256,7 @@ export function useIAAuditorMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (auditor: any) => {
       const { data, error } = await supabase.from('ia_auditors').insert(auditor).select().single();
       if (error) throw error;
@@ -260,6 +270,7 @@ export function useIAAuditorMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_auditors').update(updates).eq('id', id).select().single();
       if (error) throw error;
@@ -295,6 +306,7 @@ export function useIALeaveRequestMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (request: any) => {
       const { data, error } = await supabase.from('ia_leave_requests').insert(request).select().single();
       if (error) throw error;
@@ -308,6 +320,7 @@ export function useIALeaveRequestMutations() {
   });
 
   const updateStatus = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, status, decision_note }: { id: string; status: string; decision_note?: string }) => {
       const { data, error } = await supabase
         .from('ia_leave_requests')
@@ -348,6 +361,7 @@ export function useIAAnnualPlanMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
     mutationFn: async (plan: any) => {
       const { data, error } = await supabase.from('ia_annual_plans').insert(plan).select().single();
       if (error) throw error;
@@ -361,6 +375,7 @@ export function useIAAnnualPlanMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_annual_plans').update(updates).eq('id', id).select().single();
       if (error) throw error;

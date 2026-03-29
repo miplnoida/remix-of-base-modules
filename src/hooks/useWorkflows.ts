@@ -204,6 +204,7 @@ export function useCreateWorkflow() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'create'],
     mutationFn: async (data: Partial<WorkflowDefinition>) => {
       const { data: user } = await supabase.auth.getUser();
       
@@ -241,6 +242,7 @@ export function useUpdateWorkflow() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'update'],
     mutationFn: async ({ id, ...data }: Partial<WorkflowDefinition> & { id: string }) => {
       const { data: workflow, error } = await supabase
         .from('workflow_definitions')
@@ -277,6 +279,7 @@ export function useDeleteWorkflow() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'delete'],
     mutationFn: async (id: string) => {
       // Check if any instances exist
       const { data: instances } = await supabase
@@ -311,6 +314,7 @@ export function useToggleWorkflowStatus() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'status_change'],
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase
         .from('workflow_definitions')
@@ -334,6 +338,7 @@ export function useCloneWorkflow() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'mutation'],
     mutationFn: async ({ sourceWorkflowId, newName }: { sourceWorkflowId: string; newName?: string }) => {
       const { data, error } = await supabase
         .rpc('clone_workflow', {
@@ -359,6 +364,7 @@ export function useSaveWorkflowSteps() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'delete'],
     mutationFn: async ({ workflowId, steps }: { 
       workflowId: string; 
       steps: Array<Omit<WorkflowStep, 'id' | 'workflow_id' | 'created_at' | 'updated_at'> & { 
@@ -650,6 +656,7 @@ export function useSaveWorkflowTrigger() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'mutation'],
     mutationFn: async (data: Partial<WorkflowTrigger>) => {
       const { data: user } = await supabase.auth.getUser();
       
@@ -680,6 +687,7 @@ export function useDeleteWorkflowTrigger() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('workflow_triggers')
@@ -726,6 +734,7 @@ export function useProcessWorkflowTask() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'mutation'],
     mutationFn: async ({ 
       taskId, 
       action, 
@@ -1049,6 +1058,7 @@ export function useStartWorkflow() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflows', 'mutation'],
     mutationFn: async ({
       workflowId,
       sourceModule,

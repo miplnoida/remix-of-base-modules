@@ -191,6 +191,7 @@ export function useApproveApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'online_applications', 'approve'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/applications/${applicationId}/approve`;
       return await callProxyApi('insured-person-applications', endpoint, 'POST', { remarks });
@@ -212,6 +213,7 @@ export function useRejectApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'online_applications', 'reject'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/applications/${applicationId}/reject`;
       return await callProxyApi('insured-person-applications', endpoint, 'POST', { remarks });

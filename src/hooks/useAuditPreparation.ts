@@ -23,6 +23,7 @@ export function usePreparationChecklistMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_preparation', 'update'],
     mutationFn: async (item: any) => {
       const { data, error } = await supabase.from('ia_preparation_checklists' as any).insert(item).select().single();
       if (error) throw error;
@@ -35,6 +36,7 @@ export function usePreparationChecklistMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_preparation', 'delete'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase.from('ia_preparation_checklists' as any).update(updates).eq('id', id).select().single();
       if (error) throw error;
@@ -47,6 +49,7 @@ export function usePreparationChecklistMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_preparation', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_preparation_checklists' as any).delete().eq('id', id);
       if (error) throw error;
@@ -82,6 +85,7 @@ export function usePreparationDocumentMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_preparation', 'delete'],
     mutationFn: async (doc: any) => {
       const { data, error } = await supabase.from('ia_preparation_documents' as any).insert(doc).select().single();
       if (error) throw error;
@@ -95,6 +99,7 @@ export function usePreparationDocumentMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_preparation', 'create'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_preparation_documents' as any).delete().eq('id', id);
       if (error) throw error;

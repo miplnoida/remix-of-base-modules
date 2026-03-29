@@ -184,6 +184,7 @@ export function useTbOffices() {
 export function useCreateOfficeLocation() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async (data: { branch_name: string; address?: string; city?: string; state?: string; country?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('office_locations')
@@ -204,6 +205,7 @@ export function useCreateOfficeLocation() {
 export function useUpdateOfficeLocation() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<OfficeLocation> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('office_locations')
@@ -240,6 +242,7 @@ export function useDepartments(officeCode?: string | null) {
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async (data: { office_code: string; name: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('tb_office_departments')
@@ -261,6 +264,7 @@ export function useCreateDepartment() {
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('tb_office_departments')
@@ -283,6 +287,7 @@ export function useUpdateDepartment() {
 export function useDeleteDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('tb_office_departments')
@@ -320,6 +325,7 @@ export function useAppModules() {
 export function useCreateAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async (data: { name: string; display_name: string; description?: string; icon?: string; route?: string; parent_id?: string | null; sort_order?: number; is_enabled?: boolean }) => {
       // Create the module
       const { data: result, error } = await supabase
@@ -359,6 +365,7 @@ export function useCreateAppModule() {
 export function useUpdateAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<AppModule> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('app_modules')
@@ -380,6 +387,7 @@ export function useUpdateAppModule() {
 export function useDeleteAppModule() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('app_modules')
@@ -399,6 +407,7 @@ export function useDeleteAppModule() {
 export function useCreateModuleAction() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async (data: { module_id: string; action_name: string; display_name: string; description?: string; is_enabled?: boolean }) => {
       const { data: result, error } = await supabase
         .from('module_actions')
@@ -419,6 +428,7 @@ export function useCreateModuleAction() {
 export function useUpdateModuleAction() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<ModuleAction> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('module_actions')
@@ -440,6 +450,7 @@ export function useUpdateModuleAction() {
 export function useDeleteModuleAction() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('module_actions')
@@ -525,6 +536,7 @@ export function useUserProfile(userId: string) {
 export function useUpdateUserProfile() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<UserProfile> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('profiles')
@@ -561,6 +573,7 @@ export function useUserRoles(userId: string) {
 export function useAssignRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       const { data, error } = await supabase
         .from('user_roles')
@@ -581,6 +594,7 @@ export function useAssignRole() {
 export function useRemoveRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'delete'],
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       const { error } = await supabase
         .from('user_roles')
@@ -638,6 +652,7 @@ export function useNotificationTemplates() {
 export function useCreateNotificationTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'create'],
     mutationFn: async (data: { name: string; channel: 'email' | 'sms' | 'push' | 'in_app'; body: string; subject?: string; title?: string; is_enabled?: boolean; module_id?: string | null }) => {
       const { data: result, error } = await supabase
         .from('notification_templates')
@@ -658,6 +673,7 @@ export function useCreateNotificationTemplate() {
 export function useUpdateNotificationTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<NotificationTemplate> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('notification_templates')
@@ -679,6 +695,7 @@ export function useUpdateNotificationTemplate() {
 export function useDeleteNotificationTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('notification_templates')
@@ -718,6 +735,7 @@ export function useNotificationLogs(filters?: { channel?: 'email' | 'sms' | 'pus
 export function useResendNotification() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async (notificationId: string) => {
       const { data, error } = await supabase
         .from('notification_logs')
@@ -739,6 +757,7 @@ export function useResendNotification() {
 export function useCancelNotification() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async (notificationId: string) => {
       const { data, error } = await supabase
         .from('notification_logs')
@@ -777,6 +796,7 @@ export function usePasswordPolicy() {
 export function useUpdatePasswordPolicy() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async ({ id, ...data }: Partial<PasswordPolicy> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('password_policies')
@@ -814,6 +834,7 @@ export function useInAppNotifications() {
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'admin_data', 'update'],
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('in_app_notifications')

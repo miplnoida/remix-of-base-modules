@@ -68,6 +68,7 @@ export function useSaveActionFieldUpdates() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_field_updates', 'update'],
     mutationFn: async ({ 
       actionId, 
       fieldUpdates 

@@ -36,6 +36,7 @@ export function useOfficeDepartments(officeCode?: string) {
 export function useCreateOfficeDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'office_departments', 'create'],
     mutationFn: async (data: { office_code: string; name: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('tb_office_departments')
@@ -56,6 +57,7 @@ export function useCreateOfficeDepartment() {
 export function useUpdateOfficeDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'office_departments', 'update'],
     mutationFn: async ({ id, ...data }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
         .from('tb_office_departments')
@@ -77,6 +79,7 @@ export function useUpdateOfficeDepartment() {
 export function useDeleteOfficeDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'office_departments', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('tb_office_departments')

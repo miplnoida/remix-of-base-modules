@@ -22,6 +22,7 @@ export function useHolidayPayPolicyDefaults() {
 export function useCreateHolidayPayPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'create'],
     mutationFn: async ({ policy, userCode }: { policy: Omit<HolidayPayPolicyDefault, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_default')
@@ -44,6 +45,7 @@ export function useCreateHolidayPayPolicyDefault() {
 export function useUpdateHolidayPayPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<HolidayPayPolicyDefault>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_default')
@@ -67,6 +69,7 @@ export function useUpdateHolidayPayPolicyDefault() {
 export function useDeleteHolidayPayPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'delete'],
     mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_default')
@@ -105,6 +108,7 @@ export function useHolidayPayPolicyExceptions() {
 export function useCreateHolidayPayPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'create'],
     mutationFn: async ({ exception, userCode }: { exception: Omit<HolidayPayPolicyException, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_exceptions')
@@ -127,6 +131,7 @@ export function useCreateHolidayPayPolicyException() {
 export function useUpdateHolidayPayPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<HolidayPayPolicyException>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_exceptions')
@@ -150,6 +155,7 @@ export function useUpdateHolidayPayPolicyException() {
 export function useDeleteHolidayPayPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'holiday_pay_policy', 'delete'],
     mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_holiday_pay_policy_exceptions')

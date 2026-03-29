@@ -152,6 +152,7 @@ export function useAuditPlanWorkflow() {
   };
 
   const submitForApproval = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'update'],
     mutationFn: async ({ planId }: { planId: string }) => {
       const { data, error } = await supabase
         .from('ia_annual_plans' as any)
@@ -177,6 +178,7 @@ export function useAuditPlanWorkflow() {
   });
 
   const approvePlan = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'approve'],
     mutationFn: async ({ planId, comments, committeeName, minutesRef }: { planId: string; comments?: string; committeeName?: string; minutesRef?: string }) => {
       // Supersede any previously approved plan for same fiscal year
       const { data: currentPlan } = await supabase
@@ -239,6 +241,7 @@ export function useAuditPlanWorkflow() {
   });
 
   const rejectPlan = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'approve'],
     mutationFn: async ({ planId, comments }: { planId: string; comments: string }) => {
       const { data, error } = await supabase
         .from('ia_annual_plans' as any)
@@ -271,6 +274,7 @@ export function useAuditPlanWorkflow() {
   });
 
   const sendBackForChanges = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'reject'],
     mutationFn: async ({ planId, comments }: { planId: string; comments: string }) => {
       const { data, error } = await supabase
         .from('ia_annual_plans' as any)
@@ -301,6 +305,7 @@ export function useAuditPlanWorkflow() {
   });
 
   const withdrawSubmission = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'update'],
     mutationFn: async ({ planId }: { planId: string }) => {
       const { data, error } = await supabase
         .from('ia_annual_plans' as any)
@@ -330,6 +335,7 @@ export function useAuditPlanWorkflow() {
   });
 
   const markAmendmentPending = useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'update'],
     mutationFn: async ({ planId, reason }: { planId: string; reason?: string }) => {
       const { data, error } = await supabase
         .from('ia_annual_plans' as any)

@@ -116,6 +116,7 @@ export function usePublishSEWages() {
   const { userCode } = useUserCode();
 
   return useMutation({
+    mutationKey: ['Admin', 'se_wages', 'create'],
     mutationFn: async (ssn: string) => {
       const { payload, payloadHash, recordsCount } = await buildSEWagesPayload(ssn);
 

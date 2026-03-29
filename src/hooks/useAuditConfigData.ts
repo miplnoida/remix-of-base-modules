@@ -21,6 +21,7 @@ export function useIAAuditSettingMutations() {
   const { toast } = useToast();
 
   const upsert = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (settings: { setting_category: string; setting_key: string; setting_value: string; setting_type?: string; updated_by?: string }[]) => {
       const promises = settings.map(async (s) => {
         const { data, error } = await supabase
@@ -61,16 +62,19 @@ export function useIARiskCriteriaMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'delete'],
     mutationFn: async (c: any) => { const { data, error } = await supabase.from('ia_risk_criteria').insert(c).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] }); toast({ title: 'Risk Criteria Added' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_risk_criteria').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] }); toast({ title: 'Risk Criteria Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (id: string) => { const { error } = await supabase.from('ia_risk_criteria').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_risk_criteria'] }); toast({ title: 'Risk Criteria Removed' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -94,11 +98,13 @@ export function useIAActivityTypeMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (t: any) => { const { data, error } = await supabase.from('ia_activity_types').insert(t).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activity_types'] }); toast({ title: 'Activity Type Added' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_activity_types').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activity_types'] }); toast({ title: 'Activity Type Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -127,6 +133,7 @@ export function useIARiskScoringModelMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
       const { data, error } = await supabase.from('ia_risk_scoring_models' as any).update(u as any).eq('id', id).select().single();
       if (error) throw error;
@@ -160,6 +167,7 @@ export function useIARiskCriteriaWeightMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (c: any) => {
       const { data, error } = await supabase.from('ia_risk_criteria_weights' as any).insert(c as any).select().single();
       if (error) throw error;
@@ -169,6 +177,7 @@ export function useIARiskCriteriaWeightMutations() {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
       const { data, error } = await supabase.from('ia_risk_criteria_weights' as any).update(u as any).eq('id', id).select().single();
       if (error) throw error;
@@ -178,6 +187,7 @@ export function useIARiskCriteriaWeightMutations() {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_risk_criteria_weights' as any).update({ is_active: false } as any).eq('id', id);
       if (error) throw error;
@@ -221,6 +231,7 @@ function useIAConfigCrud<T extends Record<string, any>>(table: string, queryKey:
   });
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (record: Partial<T>) => {
       const { data, error } = await supabase.from(table as any).insert(record as any).select().single();
       if (error) throw error;
@@ -231,6 +242,7 @@ function useIAConfigCrud<T extends Record<string, any>>(table: string, queryKey:
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
       const { data, error } = await supabase.from(table as any).update(u as any).eq('id', id).select().single();
       if (error) throw error;
@@ -241,6 +253,7 @@ function useIAConfigCrud<T extends Record<string, any>>(table: string, queryKey:
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_config', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from(table as any).update({ is_active: false } as any).eq('id', id);
       if (error) throw error;

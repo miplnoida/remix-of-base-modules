@@ -25,6 +25,7 @@ export function useEngagementClosureMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const upsert = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_closure', 'create'],
     mutationFn: async (record: any) => {
       // Check if closure record exists
       const { data: existing } = await supabase
@@ -71,6 +72,7 @@ export function useEngagementLifecycle() {
   const { getUpdateFields } = useAuditFields();
 
   const transition = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_closure', 'update'],
     mutationFn: async ({ engagementId, status }: { engagementId: string; status: string }) => {
       const { data, error } = await supabase
         .from('ia_audit_engagements' as any)

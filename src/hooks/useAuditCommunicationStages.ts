@@ -49,6 +49,7 @@ export function useRecordCommunicationStage() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_communication_stages', 'mutation'],
     mutationFn: async (params: {
       engagementId: string;
       stageCode: string;
@@ -94,6 +95,7 @@ export function useAcknowledgeStage() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_communication_stages', 'update'],
     mutationFn: async (params: { stageId: string; engagementId: string }) => {
       const { error } = await supabase
         .from('ia_communication_stages' as any)
@@ -115,6 +117,7 @@ export function useAcknowledgeStage() {
 
 export function useValidateTemplatePolicy() {
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_communication_stages', 'mutation'],
     mutationFn: async (params: { stageCode: string; templateId: string }) => {
       const { data, error } = await supabase.rpc('ia_validate_template_policy' as any, {
         p_stage_code: params.stageCode,
@@ -163,6 +166,7 @@ export function useBuildCarryForward() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_communication_stages', 'mutation'],
     mutationFn: async (params: { sourceYear: string; targetYear: string; carriedBy?: string }) => {
       const { data, error } = await supabase.rpc('ia_build_followup_carry_forward' as any, {
         p_source_fiscal_year: params.sourceYear,
@@ -209,6 +213,7 @@ export function useCheckOverdueActions() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_communication_stages', 'mutation'],
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('ia_check_overdue_actions' as any);
       if (error) throw error;

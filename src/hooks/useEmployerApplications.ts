@@ -307,6 +307,7 @@ export function useApproveEmployerApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'er_master', 'approve'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/${applicationId}/approve`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });
@@ -328,6 +329,7 @@ export function useRejectEmployerApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'er_master', 'reject'],
     mutationFn: async ({ applicationId, remarks }: { applicationId: string; remarks: string }) => {
       const endpoint = `/${applicationId}/reject`;
       return await callProxyApi('employer-applications', endpoint, 'POST', { remarks });

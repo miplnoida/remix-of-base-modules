@@ -18,7 +18,7 @@ import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
 import { IPAccessGate } from '@/components/security/IPAccessGate';
-import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext } from '@/services/globalAuditInterceptor';
+import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext, classifyActionFromVariables } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
 import './App.css';
 
@@ -33,7 +33,7 @@ supabase.auth.onAuthStateChange(() => {
 // Create QueryClient with global error logging AND automatic audit trail for all mutations
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
-    onSuccess: (_data, variables, _context, mutation) => {
+    onSuccess: (data, variables, _context, mutation) => {
       // Skip logging for audit-internal or system_audit_trail writes to avoid loops
       const keyStr = mutation.options.mutationKey?.map(String).join('/') || '';
       if (keyStr.includes('audit') || keyStr.includes('system_log')) return;
@@ -48,9 +48,14 @@ const queryClient = new QueryClient({
         || inferEntityTypeFromVariables(variables)
         || routeCtx?.entityType;
 
+      // Smart action classification when mutationKey is missing
+      const action = parsed.action !== 'mutation'
+        ? parsed.action
+        : classifyActionFromVariables(variables, data);
+
       // Fire-and-forget audit log — never blocks the UI
       logAuditEntry({
-        action: parsed.action,
+        action,
         entityType,
         entityId,
         module: parsed.module || routeCtx?.module,
@@ -78,8 +83,12 @@ const queryClient = new QueryClient({
         || inferEntityTypeFromVariables(variables)
         || errRouteCtx?.entityType;
 
+      const errAction = parsed.action !== 'mutation'
+        ? `${parsed.action}_failed`
+        : `${classifyActionFromVariables(variables, undefined)}_failed`;
+
       logAuditEntry({
-        action: `${parsed.action}_failed`,
+        action: errAction,
         entityType: errEntityType,
         entityId,
         module: parsed.module || errRouteCtx?.module,

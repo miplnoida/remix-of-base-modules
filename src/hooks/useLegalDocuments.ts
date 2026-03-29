@@ -81,6 +81,7 @@ export const useCreateDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'create'],
     mutationFn: async (document: any) => {
       const { data, error } = await supabase
         .from('legal_documents')
@@ -105,6 +106,7 @@ export const useCreateDocumentVersion = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'create'],
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       // First get current version
       const { data: current } = await supabase
@@ -136,6 +138,7 @@ export const useShareDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'create'],
     mutationFn: async ({ documentId, share }: { documentId: string; share: DocumentShare }) => {
       const accessToken = crypto.randomUUID();
       const expiresAt = new Date();
@@ -172,6 +175,7 @@ export const useUpdateDocumentESign = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'update'],
     mutationFn: async ({ id, eSignData }: { id: string; eSignData: any }) => {
       const { data, error } = await supabase
         .from('legal_documents')
@@ -201,6 +205,7 @@ export const useToggleEvidence = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'update'],
     mutationFn: async ({ id, marked }: { id: string; marked: boolean }) => {
       const { data, error } = await supabase
         .from('legal_documents')
@@ -228,6 +233,7 @@ export const useBulkUpdateDocuments = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'update'],
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: any }) => {
       const { data, error } = await supabase
         .from('legal_documents')
@@ -266,6 +272,7 @@ export const useSaveSearch = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_documents', 'create'],
     mutationFn: async ({ name, filters, isDefault }: { name: string; filters: DocumentFilters; isDefault?: boolean }) => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Not authenticated');

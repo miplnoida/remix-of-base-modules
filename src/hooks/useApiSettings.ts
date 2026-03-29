@@ -64,6 +64,7 @@ export function useCreateApiSetting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'api_settings', 'create'],
     mutationFn: async (inputData: Omit<ApiSetting, 'id' | 'created_at' | 'updated_at'>) => {
       const { data: result, error } = await supabase
         .from('api_settings' as any)
@@ -91,6 +92,7 @@ export function useUpdateApiSetting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'api_settings', 'update'],
     mutationFn: async ({ id, ...inputData }: Partial<ApiSetting> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('api_settings' as any)
@@ -122,6 +124,7 @@ export function useDeleteApiSetting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'api_settings', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('api_settings' as any)

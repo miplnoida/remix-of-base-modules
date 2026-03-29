@@ -79,6 +79,7 @@ export function useTeamAvailabilityCheck() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_execution_gates', 'mutation'],
     mutationFn: async (params: {
       planId?: string;
       engagementId?: string;
@@ -156,6 +157,7 @@ export function useCheckEngagementCompleteness() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_execution_gates', 'mutation'],
     mutationFn: async (engagementId: string): Promise<CompletenessResult> => {
       const { data, error } = await supabase.rpc('ia_check_engagement_completeness', {
         p_engagement_id: engagementId,
@@ -204,6 +206,7 @@ export function useStartPlanApproval() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_execution_gates', 'mutation'],
     mutationFn: async (params: {
       planId: string;
       submittedBy: string;
@@ -244,6 +247,7 @@ export function useApplyPlanRevision() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_execution_gates', 'mutation'],
     mutationFn: async (params: {
       planId: string;
       changes: Record<string, any>;

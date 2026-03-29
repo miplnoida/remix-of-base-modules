@@ -85,6 +85,7 @@ export const useUpdateSystemSetting = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'system_settings', 'update'],
     mutationFn: async ({ 
       settingKey, 
       settingValue, 

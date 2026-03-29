@@ -81,6 +81,7 @@ export function useScheduleMeeting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async (formData: ScheduleMeetingFormData) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -118,6 +119,7 @@ export function useProcessMeetingOutcome() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async (formData: ProcessOutcomeFormData) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -151,6 +153,7 @@ export function useTriggerMeetingApi() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async ({ meetingId, apiConfigId }: { meetingId: string; apiConfigId: string }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -179,6 +182,7 @@ export function useStartMeeting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'status_change'],
     mutationFn: async ({ meetingId }: { meetingId: string }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -223,6 +227,7 @@ export function useCancelMeeting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async ({ meetingId, remarks }: { meetingId: string; remarks: string }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
@@ -258,6 +263,7 @@ export function useRescheduleMeeting() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async ({ 
       meetingId, 
       newDate, 
@@ -331,6 +337,7 @@ export function useCloseMeetingWithApproval() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'approve'],
     mutationFn: async ({ 
       meetingId, 
       applicationData, 
@@ -375,6 +382,7 @@ export function useCloseMeetingWithRejection() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Workflow', 'meetings', 'reject'],
     mutationFn: async ({ 
       meetingId, 
       remarks 

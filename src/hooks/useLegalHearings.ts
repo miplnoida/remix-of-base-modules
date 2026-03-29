@@ -67,6 +67,7 @@ export const useCreateHearing = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_hearings', 'create'],
     mutationFn: async (hearingData: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -97,6 +98,7 @@ export const useUpdateHearing = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_hearings', 'update'],
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const { data, error } = await supabase
         .from('legal_hearings')
@@ -122,6 +124,7 @@ export const useRecordAttendance = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_hearings', 'update'],
     mutationFn: async ({ id, attendance }: { id: string; attendance: any }) => {
       const { data, error } = await supabase
         .from('legal_hearings')

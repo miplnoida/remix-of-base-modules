@@ -13,6 +13,7 @@ export function useCreateBemaRegistration() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Compliance', 'bema_registrations', 'create'],
     mutationFn: bemaService.createRegistration,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bema-registrations'] });
@@ -35,6 +36,7 @@ export function useCreateBemaC3Submission() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Compliance', 'bema_registrations', 'create'],
     mutationFn: bemaService.createC3Submission,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bema-c3-submissions'] });
@@ -64,6 +66,7 @@ export function useCreateBemaPaymentPlan() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Compliance', 'bema_registrations', 'create'],
     mutationFn: bemaService.createPaymentPlan,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bema-payment-plans'] });
@@ -86,6 +89,7 @@ export function useCreateBemaAuditCase() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Compliance', 'bema_registrations', 'create'],
     mutationFn: bemaService.createAuditCase,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bema-audit-cases'] });
@@ -115,6 +119,7 @@ export function useCreateBemaWaiver() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Compliance', 'bema_registrations', 'create'],
     mutationFn: bemaService.createWaiver,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bema-waivers'] });

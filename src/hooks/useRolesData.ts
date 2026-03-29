@@ -60,6 +60,7 @@ export function useDbRoles() {
 export function useCreateDbRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'user_roles', 'create'],
     mutationFn: async (data: { role_name: string; description: string; is_system_role?: boolean; mfa_required?: boolean }) => {
       const { data: result, error } = await supabase
         .from('roles')
@@ -87,6 +88,7 @@ export function useCreateDbRole() {
 export function useUpdateDbRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'user_roles', 'update'],
     mutationFn: async ({ id, ...data }: Partial<DbRole> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('roles')
@@ -109,6 +111,7 @@ export function useUpdateDbRole() {
 export function useDeleteDbRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'user_roles', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('roles')
@@ -171,6 +174,7 @@ export function useSaveRolePermissions() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'user_roles', 'delete'],
     mutationFn: async ({ roleId, permissions }: { roleId: string; permissions: { module_id: string; action_id?: string | null; is_granted: boolean }[] }) => {
       if (!roleId) throw new Error('Role ID is required');
       

@@ -168,6 +168,7 @@ export function useConvertApplicationToIP() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'ip_master', 'approve'],
     mutationFn: async ({ applicationDetail, approvedBy, sourceRoute }: ConversionParams): Promise<ConversionResult> => {
       const params = buildRpcParams(applicationDetail, approvedBy, sourceRoute);
 

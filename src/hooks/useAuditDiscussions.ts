@@ -50,6 +50,7 @@ export function useAuditDiscussions(entityType: string, entityId: string) {
   }, [threadId, queryClient]);
 
   const createThread = useMutation({
+    mutationKey: ['InternalAudit', 'ia_discussions', 'delete'],
     mutationFn: async (data: { entity_type: string; entity_id: string; created_by?: string }) => {
       const { data: result, error } = await (supabase.from('ia_discussion_threads' as any).insert(data as any).select().single() as any);
       if (error) throw error;
@@ -62,6 +63,7 @@ export function useAuditDiscussions(entityType: string, entityId: string) {
   });
 
   const addComment = useMutation({
+    mutationKey: ['InternalAudit', 'ia_discussions', 'create'],
     mutationFn: async (data: { thread_id: string; author_name: string; content: string; mentioned_users?: string[] }) => {
       const { data: result, error } = await (supabase.from('ia_discussion_comments' as any).insert(data as any).select().single() as any);
       if (error) throw error;

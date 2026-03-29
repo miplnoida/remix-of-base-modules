@@ -22,6 +22,7 @@ export function useAuditChecklists(auditId?: string) {
   });
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_checklists', 'create'],
     mutationFn: async (record: any) => {
       const { data, error } = await supabase
         .from('ia_audit_checklists' as any)
@@ -39,6 +40,7 @@ export function useAuditChecklists(auditId?: string) {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_checklists', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_audit_checklists' as any)
@@ -57,6 +59,7 @@ export function useAuditChecklists(auditId?: string) {
   });
 
   const archive = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_checklists', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('ia_audit_checklists' as any)
