@@ -43,6 +43,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export default function AuditPlanDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasPermission } = useAuth();
   const { userCode } = useUserCode();
   const { toast } = useToast();
