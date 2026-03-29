@@ -527,6 +527,15 @@ export function IncomeCodePolicyDefaultTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Split Confirmation */}
+      <C3SplitConfirmDialog
+        open={showSplitConfirm}
+        onOpenChange={setShowSplitConfirm}
+        analysis={splitAnalysis}
+        onConfirm={handleConfirmSplit}
+        isLoading={upsertWithSplit.isPending}
+      />
     </div>
   );
 }

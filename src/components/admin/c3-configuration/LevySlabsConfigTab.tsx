@@ -7,9 +7,11 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
  import { Plus, Edit, Trash2, Copy, Eye, Layers } from 'lucide-react';
  import { format } from 'date-fns';
  import { useLevySlabs, useDeleteLevySlab, LevySlab } from '@/hooks/useLevySlabsManagement';
+ import { useAnalyzeC3ConfigChange } from '@/hooks/useC3ConfigLifecycle';
  import { LevySlabDialog } from '@/components/admin/levy-slabs/LevySlabDialog';
  import { LevySlabCloneDialog } from '@/components/admin/levy-slabs/LevySlabCloneDialog';
  import { LevySlabDetailsDialog } from '@/components/admin/levy-slabs/LevySlabDetailsDialog';
+ import { toast } from 'sonner';
  import {
    AlertDialog,
    AlertDialogAction,
