@@ -196,6 +196,7 @@ const VCPaymentUpdate = () => {
       selectedBatch={batchSel.selectedBatch}
       onSelectBatch={batchSel.selectBatch}
       onChangeBatch={batchSel.changeBatch}
+      hasOpenBatchesButNotForToday={batchSel.hasOpenBatchesButNotForToday}
     >
       <div className="space-y-4 p-6">
         <div>
