@@ -281,6 +281,14 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
     const source = entry.metadata?.source || 'app_interceptor';
     if (isDbTriggered && source !== 'db_trigger') return;
 
+    // Skip empty update entries — these are noise from hooks that don't pass meaningful data
+    const actionLower = entry.action?.toLowerCase() || '';
+    if (actionLower === 'update' || actionLower === 'mutation') {
+      const hasBefore = entry.beforeValue && Object.keys(entry.beforeValue).length > 0;
+      const hasAfter = entry.afterValue && Object.keys(entry.afterValue).length > 0;
+      if (!hasBefore && !hasAfter) return;
+    }
+
     const descParts: string[] = [];
     if (entry.description) descParts.push(entry.description);
     if (entry.tabName) descParts.push(`Tab: ${entry.tabName}`);
