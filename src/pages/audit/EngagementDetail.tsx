@@ -787,7 +787,7 @@ export default function EngagementDetail() {
   const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
-  const getPlanTitle = (pid: string) => plans?.find((p: any) => p.id === pid)?.plan_title || '—';
+  const getPlanTitle = (pid: string) => plans?.find((p: any) => p.id === pid)?.title || '—';
 
   const handleCloseAudit = () => {
     if (!id) return;
