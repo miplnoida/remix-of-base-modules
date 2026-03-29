@@ -121,7 +121,7 @@ export default function AuditPlans() {
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Submit for Approval" onClick={() => navigate(`/audit/audit-plans/${row.id}?action=submit`)}><Send className="h-4 w-4" /></Button>
               )}
               {hasPermission('approve_audit_plans') && row.status === 'Submitted' && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" title="Review & Approve" onClick={() => navigate(`/audit/plan-approval?planId=${row.id}`)}><ClipboardCheck className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" title="Review & Approve" onClick={() => navigate(`/audit/plan-approval?planId=${row.id}`)}><ClipboardCheck className="h-4 w-4" /></Button>
               )}
             </div>
           );
