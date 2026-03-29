@@ -119,6 +119,12 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_operations"
       },
       {
+        title: "Head Cashier Office Assignment",
+        url: "/cashier/head-cashier-office-assignment",
+        icon: Building,
+        requiresPermission: "cashier_operations"
+      },
+      {
         title: "Cashier Batch Closing",
         url: "/cashier/batch-closing",
         icon: CheckSquare,

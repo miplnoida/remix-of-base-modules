@@ -54,7 +54,7 @@ interface PaymentMethodDetail {
 const BatchClosing: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const batchSel = useBatchSelection();
+  const batchSel = useBatchSelection({ skipDateFilter: true });
   const { userCode } = useUserCode();
 
   const [allMops, setAllMops] = useState<MopMaster[]>([]);

@@ -5806,6 +5806,66 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_cashier_office_override: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string
+          cashier_user_code: string
+          cashier_user_id: string
+          id: string
+          office_code: string
+          override_date: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by: string
+          cashier_user_code: string
+          cashier_user_id: string
+          id?: string
+          office_code: string
+          override_date: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string
+          cashier_user_code?: string
+          cashier_user_id?: string
+          id?: string
+          office_code?: string
+          override_date?: string
+        }
+        Relationships: []
+      }
+      cn_head_cashier_assignment: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string
+          assignment_date: string
+          id: string
+          is_active: boolean | null
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by: string
+          assignment_date: string
+          id?: string
+          is_active?: boolean | null
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string
+          assignment_date?: string
+          id?: string
+          is_active?: boolean | null
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cn_invoice_lines: {
         Row: {
           amount: number
@@ -23647,6 +23707,19 @@ export type Database = {
         }
         Returns: Json
       }
+      assign_cashier_office_override: {
+        Args: {
+          p_assigned_by: string
+          p_cashier_user_id: string
+          p_date: string
+          p_office_code: string
+        }
+        Returns: Json
+      }
+      assign_head_cashier: {
+        Args: { p_assigned_by: string; p_date: string; p_user_id: string }
+        Returns: Json
+      }
       calculate_c3_contributions: {
         Args: {
           p_employee_data: Json
@@ -23942,20 +24015,35 @@ export type Database = {
         }
         Returns: Json
       }
-      create_c3_payment_with_receipt: {
-        Args: {
-          p_batch_number: string
-          p_components?: Json
-          p_date_received: string
-          p_methods?: Json
-          p_payer_id: string
-          p_payer_type: string
-          p_receipt_total?: number
-          p_remarks?: string
-          p_user_code?: string
-        }
-        Returns: Json
-      }
+      create_c3_payment_with_receipt:
+        | {
+            Args: {
+              p_batch_number: string
+              p_components?: Json
+              p_date_received: string
+              p_methods?: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total?: number
+              p_remarks?: string
+              p_user_code?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_batch_number: string
+              p_components: Json
+              p_date_received: string
+              p_methods: Json
+              p_payer_id: string
+              p_payer_type: string
+              p_receipt_total: number
+              p_remarks: string
+              p_user_code: string
+            }
+            Returns: Json
+          }
       create_invoice_with_lines:
         | {
             Args: {
@@ -24099,6 +24187,7 @@ export type Database = {
         Args: { p_first_name: string; p_last_name: string }
         Returns: string
       }
+      get_active_head_cashier: { Args: { p_date: string }; Returns: Json }
       get_all_public_tables: {
         Args: never
         Returns: {
@@ -24206,6 +24295,10 @@ export type Database = {
           p_status?: string
           p_verified_by?: string
         }
+        Returns: Json
+      }
+      get_cashier_office_for_date: {
+        Args: { p_cashier_user_id: string; p_date: string }
         Returns: Json
       }
       get_filing_config_for_date: { Args: { p_date: string }; Returns: Json }
@@ -24907,6 +25000,7 @@ export type Database = {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
+      revoke_expired_head_cashier: { Args: never; Returns: undefined }
       save_batch_card_transactions: {
         Args: {
           p_batch_number: string
@@ -25075,6 +25169,10 @@ export type Database = {
           p_title?: string
           p_witness_name?: string
         }
+        Returns: Json
+      }
+      validate_batch_creation: {
+        Args: { p_batch_date: string; p_cashier_user_code: string }
         Returns: Json
       }
       validate_biweekly_week: {

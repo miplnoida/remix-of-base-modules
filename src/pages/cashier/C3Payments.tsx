@@ -68,6 +68,8 @@ const C3Payments: React.FC = () => {
   const [sequenceNo, setSequenceNo] = useState(() => navState.schedule || '');
   const [initialParamsApplied, setInitialParamsApplied] = useState(false);
   const [c3ComponentsLoaded, setC3ComponentsLoaded] = useState(false);
+  const [isPreloaded, setIsPreloaded] = useState(false);
+  const [maxAmounts, setMaxAmounts] = useState<Record<string, number>>({});
 
   // Sync status
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'sync_failed' | 'not_configured'>('idle');
@@ -238,6 +240,10 @@ const C3Payments: React.FC = () => {
 
         if (components.length > 0) {
           setSelectedComponents(components);
+          setIsPreloaded(true);
+          const maxMap: Record<string, number> = {};
+          components.forEach(c => { maxMap[c.payment_code] = c.amount; });
+          setMaxAmounts(maxMap);
           toast({ title: 'Components Loaded', description: `${components.length} payment component(s) auto-populated from C3 record.` });
         }
       } catch (err: any) {
@@ -264,14 +270,20 @@ const C3Payments: React.FC = () => {
   }, [c3PaymentTypeDetails]);
 
   const removeComponent = useCallback((code: string) => {
+    if (isPreloaded && maxAmounts[code] !== undefined) return; // prevent removing preloaded
     setSelectedComponents(prev => prev.filter(c => c.payment_code !== code));
-  }, []);
+  }, [isPreloaded, maxAmounts]);
 
   const updateComponentAmount = useCallback((code: string, amount: number) => {
+    const max = maxAmounts[code];
+    const capped = (isPreloaded && max !== undefined && amount > max) ? max : amount;
+    if (isPreloaded && max !== undefined && amount > max) {
+      toast({ title: 'Amount Capped', description: `Maximum allowed for ${code} is ${max.toFixed(2)}.`, variant: 'destructive' });
+    }
     setSelectedComponents(prev => prev.map(c =>
-      c.payment_code === code ? { ...c, amount } : c
+      c.payment_code === code ? { ...c, amount: capped } : c
     ));
-  }, []);
+  }, [maxAmounts, isPreloaded]);
 
   const addMethodRow = useCallback(() => {
     setEditingMethod(null);
@@ -696,7 +708,7 @@ const C3Payments: React.FC = () => {
                         disabled={!isEntry}
                       />
                     </div>
-                    {isEntry && (
+                    {isEntry && !(isPreloaded && maxAmounts[comp.payment_code] !== undefined) && (
                       <Button
                         variant="ghost"
                         size="sm"
