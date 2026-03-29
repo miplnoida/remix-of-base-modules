@@ -526,10 +526,14 @@ async function generateDetailedPlanPdf(
       if (lead) detailPairs.push(['Lead Auditor', lead]);
       const support = getSupportNames(e, lookups.auditorMap);
       if (support) detailPairs.push(['Support Team', support]);
-      if (e.quarter) detailPairs.push(['Quarter', e.quarter]);
-      if (e.planned_start_date) detailPairs.push(['Start Date', formatDateForDisplay(e.planned_start_date)]);
-      if (e.planned_end_date) detailPairs.push(['End Date', formatDateForDisplay(e.planned_end_date)]);
-      if (e.estimated_days) detailPairs.push(['Estimated Days', String(e.estimated_days)]);
+      const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+      const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
+      const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : null);
+      const days = ef(e, 'estimated_days', 'budgeted_hours');
+      if (quarter) detailPairs.push(['Quarter', String(quarter)]);
+      if (startDate) detailPairs.push(['Start Date', formatDateForDisplay(startDate)]);
+      if (endDate) detailPairs.push(['End Date', formatDateForDisplay(endDate)]);
+      if (days) detailPairs.push(['Estimated Days', String(days)]);
 
       // Render detail pairs inline
       doc.setFontSize(8.5);
