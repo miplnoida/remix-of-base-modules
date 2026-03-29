@@ -32,7 +32,6 @@ export default function AuditPlansNew() {
   const { data: plans = [], isLoading } = useIAAnnualPlans();
   const { create, update } = useIAAnnualPlanMutations();
   const permissionContext = useAuditAnnualPlanPermissionContext();
-  const { readinessMap } = useAuditAnnualPlanReadinessMap(enrichedPlans);
   const submitPlan = useSubmitAnnualPlanWorkflow();
 
   // Get all fiscal years for filter
@@ -48,6 +47,8 @@ export default function AuditPlansNew() {
       _boardPackStatus: plan.board_pack_status || 'None',
     }));
   }, [plans]);
+
+  const { readinessMap } = useAuditAnnualPlanReadinessMap(enrichedPlans);
 
   const filteredPlans = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();

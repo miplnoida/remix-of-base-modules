@@ -78,7 +78,9 @@ export default function PlanApproval() {
         subtitle="Review, approve, or return annual audit plans"
         breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Approval' }]}
         isLoading
-      />
+      >
+        <div />
+      </PageShell>
     );
   }
 

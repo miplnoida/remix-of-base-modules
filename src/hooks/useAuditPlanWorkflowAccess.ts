@@ -279,7 +279,7 @@ export function getApproveEligibility(
 
 // ── React hook convenience wrapper ──────────────────────────────────
 
-export function usePlanWorkflowAccess(planStatus?: string) {
+export function usePlanWorkflowAccess(planStatus?: string, readiness?: PlanReadinessSummary) {
   const context = useAuditAnnualPlanPermissionContext();
   const hasPermission = context.hasPermission;
 
@@ -314,7 +314,7 @@ export function usePlanWorkflowAccess(planStatus?: string) {
   }
 
   return {
-    submit: getSubmitEligibility(hasPermission, planStatus),
+    submit: getSubmitEligibility(hasPermission, planStatus, readiness),
     edit: getEditEligibility(hasPermission, planStatus),
     withdraw: getWithdrawEligibility(hasPermission, planStatus),
     revise: getReviseEligibility(hasPermission, planStatus),
