@@ -151,11 +151,12 @@ export function useAuditPlanWorkflow() {
         .eq('id', planId)
         .single();
 
-      if (currentPlan?.fiscal_year) {
+      const fy = (currentPlan as any)?.fiscal_year;
+      if (fy) {
         const { data: existing } = await supabase
           .from('ia_annual_plans' as any)
           .select('id')
-          .eq('fiscal_year', currentPlan.fiscal_year)
+          .eq('fiscal_year', fy)
           .eq('status', 'Approved')
           .neq('id', planId);
         if (existing && existing.length > 0) {
