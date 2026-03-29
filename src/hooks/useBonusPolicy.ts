@@ -38,6 +38,7 @@ export function useBonusPolicyDefault() {
 export function useCreateBonusPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'create'],
     mutationFn: async ({ policy, userCode }: { policy: Omit<BonusPolicyDefault, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_default')
@@ -61,6 +62,7 @@ export function useCreateBonusPolicyDefault() {
 export function useUpdateBonusPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<BonusPolicyDefault>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_default')
@@ -85,6 +87,7 @@ export function useUpdateBonusPolicyDefault() {
 export function useDeleteBonusPolicyDefault() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'delete'],
     mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_default')
@@ -124,6 +127,7 @@ export function useBonusPolicyExceptions() {
 export function useCreateBonusPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'create'],
     mutationFn: async ({ exception, userCode }: { exception: Omit<BonusPolicyException, 'id' | 'created_on' | 'modified_on'>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_exceptions')
@@ -146,6 +150,7 @@ export function useCreateBonusPolicyException() {
 export function useUpdateBonusPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'update'],
     mutationFn: async ({ id, updates, userCode }: { id: string; updates: Partial<BonusPolicyException>; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_exceptions')
@@ -169,6 +174,7 @@ export function useUpdateBonusPolicyException() {
 export function useDeleteBonusPolicyException() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'bonus_policy', 'delete'],
     mutationFn: async ({ id, userCode }: { id: string; userCode?: string }) => {
       const { error } = await supabase
         .from('c3_bonus_policy_exceptions')

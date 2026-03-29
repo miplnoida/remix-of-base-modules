@@ -41,6 +41,7 @@ export function useUpdatePaymentConfig() {
   const { profile, user } = useSupabaseAuth();
 
   return useMutation({
+    mutationKey: ['Admin', 'payment_module_config', 'update'],
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
       // Fetch current value before update for audit
       const { data: existing } = await supabase

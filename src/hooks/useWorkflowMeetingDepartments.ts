@@ -43,6 +43,7 @@ export function useWorkflowMeetingDepartments(workflowId?: string, stepId?: stri
 export function useAddWorkflowMeetingDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Workflow', 'meeting_departments', 'create'],
     mutationFn: async (data: {
       workflow_id: string;
       step_id: string;
@@ -76,6 +77,7 @@ export function useAddWorkflowMeetingDepartment() {
 export function useRemoveWorkflowMeetingDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Workflow', 'meeting_departments', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any)
         .from('workflow_meeting_departments')
@@ -181,6 +183,7 @@ export function useUserMeetingsForDateRange(userId?: string, startDate?: string,
 // Hook to check meeting overlap
 export function useCheckMeetingOverlap() {
   return useMutation({
+    mutationKey: ['Workflow', 'meeting_departments', 'mutation'],
     mutationFn: async (params: {
       assigned_user_id: string;
       meeting_date: string;
@@ -204,6 +207,7 @@ export function useCheckMeetingOverlap() {
 // Hook to validate office hours
 export function useValidateOfficeHours() {
   return useMutation({
+    mutationKey: ['Workflow', 'meeting_departments', 'mutation'],
     mutationFn: async (params: {
       office_code: string;
       meeting_time: string;
@@ -224,6 +228,7 @@ export function useValidateOfficeHours() {
 export function useUpdateMeetingNotifyConfig() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Workflow', 'meeting_departments', 'update'],
     mutationFn: async ({ configId, notify }: { configId: string; notify: boolean }) => {
       const { data, error } = await (supabase as any)
         .from('workflow_action_configurations')

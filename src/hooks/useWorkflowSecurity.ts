@@ -142,6 +142,7 @@ export function useLogWorkflowSecurityEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_security', 'mutation'],
     mutationFn: async ({
       workflowInstanceId,
       action,
@@ -189,6 +190,7 @@ export function useValidateWorkflowAction() {
   const logEvent = useLogWorkflowSecurityEvent();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_security', 'approve'],
     mutationFn: async ({
       workflowInstanceId,
       action
@@ -237,6 +239,7 @@ export function useValidateWorkflowAction() {
  */
 export function useTestWorkflowPolicy() {
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_security', 'mutation'],
     mutationFn: async ({
       userId,
       workflowId,
@@ -308,6 +311,7 @@ export function useUpdateWorkflowSecurity() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_security', 'update'],
     mutationFn: async ({
       workflowId,
       securedModuleId,

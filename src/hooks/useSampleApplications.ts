@@ -61,6 +61,7 @@ export function useCreateSampleApplication() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'sample_applications', 'create'],
     mutationFn: async (data: { title: string; description: string; amount: number; applicant_comments?: string }) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
@@ -105,6 +106,7 @@ export function useUpdateSampleApplication() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'sample_applications', 'update'],
     mutationFn: async ({ id, ...data }: { id: string; title?: string; description?: string; amount?: number; applicant_comments?: string }) => {
       const { data: application, error } = await supabase
         .from('sample_applications')
@@ -137,6 +139,7 @@ export function useSubmitSampleApplication() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'sample_applications', 'update'],
     mutationFn: async (id: string) => {
       // Get the application
       const { data: application, error: appError } = await supabase
@@ -310,6 +313,7 @@ export function useDeleteSampleApplication() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Registration', 'sample_applications', 'delete'],
     mutationFn: async (id: string) => {
       // IMPORTANT: PostgREST can return 204 even when 0 rows were deleted (e.g., RLS blocked).
       // Request the deleted row back and verify we actually deleted something.

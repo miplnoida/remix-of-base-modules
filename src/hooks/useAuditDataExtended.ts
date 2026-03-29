@@ -19,6 +19,7 @@ export function useIADepartmentAuditMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
     mutationFn: async (audit: any) => {
       const { data, error } = await supabase.from('ia_department_audits').insert(audit).select().single();
       if (error) throw error;
@@ -28,6 +29,7 @@ export function useIADepartmentAuditMutations() {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
       const { data, error } = await supabase.from('ia_department_audits').update(u).eq('id', id).select().single();
       if (error) throw error;
@@ -59,11 +61,13 @@ export function useIAActivityMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
     mutationFn: async (a: any) => { const { data, error } = await supabase.from('ia_activities').insert(a).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activities'] }); toast({ title: 'Activity Created' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_activities').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activities'] }); toast({ title: 'Activity Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -88,16 +92,19 @@ export function useIAEvidenceMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'delete'],
     mutationFn: async (ev: any) => { const { data, error } = await supabase.from('ia_evidence').insert(ev).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Added' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_evidence').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
     mutationFn: async (id: string) => { const { error } = await supabase.from('ia_evidence').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Deleted' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -122,16 +129,19 @@ export function useIAWorkingPaperMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'delete'],
     mutationFn: async (wp: any) => { const { data, error } = await supabase.from('ia_working_papers').insert(wp).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Created' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_working_papers').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
     mutationFn: async (id: string) => { const { error } = await supabase.from('ia_working_papers').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Deleted' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),

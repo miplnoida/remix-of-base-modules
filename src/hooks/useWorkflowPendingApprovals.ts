@@ -235,6 +235,7 @@ export function useMarkApprovalNotificationRead() {
   const { user } = useAuth();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_approvals', 'update'],
     mutationFn: async (taskId: string) => {
       if (!user?.id) return;
 

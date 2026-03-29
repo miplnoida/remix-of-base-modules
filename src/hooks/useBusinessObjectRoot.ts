@@ -34,6 +34,7 @@ export function useUpdateModuleBusinessObjectRoot() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Admin', 'business_objects', 'update'],
     mutationFn: async (data: {
       id: string;
       primary_table?: string | null;

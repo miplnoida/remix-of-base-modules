@@ -337,6 +337,7 @@ export function usePublishToC3Wizard() {
   const { userCode } = useUserCode();
 
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_publish', 'create'],
     mutationFn: async () => {
       const { payload, payloadHash, counts } = await buildSyncPayload();
 

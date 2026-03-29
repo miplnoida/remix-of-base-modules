@@ -23,6 +23,7 @@ export function useIAAuditClosureMutations() {
   const { toast } = useToast();
 
   const upsert = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_closure', 'approve'],
     mutationFn: async (record: {
       engagement_id: string;
       closure_summary?: string;

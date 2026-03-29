@@ -153,6 +153,7 @@ export function useLoggedMutation<
   ]);
 
   return useMutation({
+    mutationKey: ['System', 'logged_mutation', 'mutation'],
     ...mutationOptions,
     mutationFn: wrappedMutationFn,
     onSuccess,

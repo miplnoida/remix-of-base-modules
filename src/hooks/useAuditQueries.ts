@@ -23,6 +23,7 @@ export function useIAAuditQueryMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_queries', 'create'],
     mutationFn: async (record: {
       engagement_id: string;
       department_id?: string;
@@ -47,6 +48,7 @@ export function useIAAuditQueryMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_queries', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_audit_queries' as any)

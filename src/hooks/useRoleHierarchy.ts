@@ -43,6 +43,7 @@ export function useRoleHierarchy() {
 export function useUpsertRoleHierarchy() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'role_hierarchy', 'delete'],
     mutationFn: async (data: { role_id: string; parent_role_id: string | null; level: number }) => {
       const { data: result, error } = await supabase
         .from('role_hierarchy')
@@ -63,6 +64,7 @@ export function useUpsertRoleHierarchy() {
 export function useDeleteRoleHierarchy() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'role_hierarchy', 'delete'],
     mutationFn: async (roleId: string) => {
       const { error } = await supabase
         .from('role_hierarchy')
@@ -82,6 +84,7 @@ export function useDeleteRoleHierarchy() {
 export function useCloneRole() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ['Admin', 'role_hierarchy', 'create'],
     mutationFn: async ({ sourceRoleId, newRoleName }: { sourceRoleId: string; newRoleName: string }) => {
       // 1. Get source role details
       const { data: sourceRole, error: roleError } = await supabase

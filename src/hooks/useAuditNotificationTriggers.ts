@@ -65,6 +65,7 @@ export function useUpdateNotificationTrigger() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_notification_triggers', 'update'],
     mutationFn: async (params: { id: string; updates: Partial<NotificationTrigger> }) => {
       const { error } = await supabase
         .from('ia_notification_triggers' as any)
@@ -108,6 +109,7 @@ export function useFireNotification() {
   const { toast } = useToast();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_notification_triggers', 'mutation'],
     mutationFn: async (params: {
       eventCode: string;
       engagementId?: string;

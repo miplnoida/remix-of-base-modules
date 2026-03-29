@@ -72,6 +72,7 @@ export const useCreateCase = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_cases', 'create'],
     mutationFn: async (caseData: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -122,6 +123,7 @@ export const useUpdateCase = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_cases', 'update'],
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const { data, error } = await supabase
         .from('legal_cases')

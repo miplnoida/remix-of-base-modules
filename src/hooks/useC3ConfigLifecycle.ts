@@ -27,6 +27,7 @@ interface UpsertWithSplitParams {
 
 export function useAnalyzeC3ConfigChange() {
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_lifecycle', 'mutation'],
     mutationFn: async (params: AnalyzeParams): Promise<SplitAnalysis> => {
       const { data, error } = await supabase.rpc('analyze_c3_config_change', {
         p_table_name: params.tableName,
@@ -44,6 +45,7 @@ export function useAnalyzeC3ConfigChange() {
 
 export function useUpsertC3ConfigWithSplit() {
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_lifecycle', 'mutation'],
     mutationFn: async (params: UpsertWithSplitParams) => {
       const { data, error } = await supabase.rpc('upsert_c3_config_with_split', {
         p_table_name: params.tableName,
@@ -66,6 +68,7 @@ export function useUpsertC3ConfigWithSplit() {
 
 export function useCreateC3ConfigPeriod() {
   return useMutation({
+    mutationKey: ['C3Config', 'c3_config_lifecycle', 'create'],
     mutationFn: async (params: {
       startDate: string;
       endDate?: string | null;

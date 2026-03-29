@@ -24,6 +24,7 @@ export function useIAPlanArtifactMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_plan_artifacts', 'create'],
     mutationFn: async (artifact: any) => {
       const { data, error } = await supabase
         .from('ia_plan_artifacts' as any)
@@ -40,6 +41,7 @@ export function useIAPlanArtifactMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_plan_artifacts', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_plan_artifacts' as any)
@@ -81,6 +83,7 @@ export function useIAPlanDistributionLogMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_plan_artifacts', 'create'],
     mutationFn: async (log: any) => {
       const { data, error } = await supabase
         .from('ia_plan_distribution_logs' as any)

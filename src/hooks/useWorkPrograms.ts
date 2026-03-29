@@ -24,6 +24,7 @@ export function useWorkProgramMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async (record: any) => {
       const { data, error } = await supabase.from('ia_work_programs' as any)
         .insert({ ...record, ...getCreateFields() }).select().single();
@@ -38,6 +39,7 @@ export function useWorkProgramMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string;[k: string]: any }) => {
       const { data, error } = await supabase.from('ia_work_programs' as any)
         .update({ ...updates, ...getUpdateFields() }).eq('id', id).select().single();
@@ -52,6 +54,7 @@ export function useWorkProgramMutations() {
   });
 
   const archive = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_work_programs' as any).update({ is_active: false } as any).eq('id', id);
       if (error) throw error;
@@ -87,6 +90,7 @@ export function useWorkProgramStepMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async (record: any) => {
       const { data, error } = await supabase.from('ia_work_program_steps' as any)
         .insert({ ...record, ...getCreateFields() }).select().single();
@@ -101,6 +105,7 @@ export function useWorkProgramStepMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string;[k: string]: any }) => {
       const { data, error } = await supabase.from('ia_work_program_steps' as any)
         .update({ ...updates, ...getUpdateFields() }).eq('id', id).select().single();
@@ -115,6 +120,7 @@ export function useWorkProgramStepMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_work_program_steps' as any).update({ is_active: false } as any).eq('id', id);
       if (error) throw error;
@@ -150,6 +156,7 @@ export function useTestingProcedureMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async (record: any) => {
       const { data, error } = await supabase.from('ia_testing_procedures' as any)
         .insert({ ...record, ...getCreateFields() }).select().single();
@@ -164,6 +171,7 @@ export function useTestingProcedureMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_work_programs', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string;[k: string]: any }) => {
       const { data, error } = await supabase.from('ia_testing_procedures' as any)
         .update({ ...updates, ...getUpdateFields() }).eq('id', id).select().single();

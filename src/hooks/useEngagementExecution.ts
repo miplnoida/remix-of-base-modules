@@ -66,6 +66,7 @@ export function useLaunchEngagement() {
   const { userCode } = useUserCode();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_engagements', 'create'],
     mutationFn: async (engagementId: string) => {
       const { data, error } = await supabase.rpc('ia_launch_engagement' as any, {
         p_engagement_id: engagementId,
@@ -96,6 +97,7 @@ export function useTransitionExecutionStatus() {
   const { userCode } = useUserCode();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_engagements', 'status_change'],
     mutationFn: async (params: { engagementId: string; newStatus: string; notes?: string }) => {
       const { data, error } = await supabase.rpc('ia_transition_execution_status' as any, {
         p_engagement_id: params.engagementId,
@@ -162,6 +164,7 @@ export function useDocumentRequestMutations() {
   const { userCode } = useUserCode();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_engagements', 'create'],
     mutationFn: async (record: any) => {
       const { data, error } = await supabase
         .from('ia_document_requests' as any)
@@ -179,6 +182,7 @@ export function useDocumentRequestMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_engagements', 'create'],
     mutationFn: async ({ id, ...updates }: any) => {
       const { data, error } = await supabase
         .from('ia_document_requests' as any)

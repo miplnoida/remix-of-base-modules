@@ -67,6 +67,7 @@ export const useRecordPayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_debt', 'mutation'],
     mutationFn: async ({ penaltyId, caseId, payment }: { 
       penaltyId: string; 
       caseId: string;

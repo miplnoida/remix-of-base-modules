@@ -63,6 +63,7 @@ export function useConfigChangeRequestMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['Admin', 'config_change_requests', 'update'],
     mutationFn: async (data: { config_type: string; field_changed: string; old_value?: string; new_value: string; requested_by?: string; reason?: string }) => {
       const { data: result, error } = await (supabase.from('ia_config_change_requests' as any).insert(data as any).select().single() as any);
       if (error) throw error;
@@ -76,6 +77,7 @@ export function useConfigChangeRequestMutations() {
   });
 
   const review = useMutation({
+    mutationKey: ['Admin', 'config_change_requests', 'update'],
     mutationFn: async (data: { id: string; status: 'Approved' | 'Rejected'; approved_by: string }) => {
       const { data: request, error: fetchError } = await (supabase.from('ia_config_change_requests' as any)
         .select('*').eq('id', data.id).single() as any);

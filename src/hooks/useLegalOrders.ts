@@ -94,6 +94,7 @@ export const useCreateOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_orders', 'create'],
     mutationFn: async (orderData: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -129,6 +130,7 @@ export const useUpdateOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_orders', 'update'],
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const { data, error } = await supabase
         .from('legal_orders')
@@ -154,6 +156,7 @@ export const usePublishOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_orders', 'update'],
     mutationFn: async (orderId: string) => {
       // Generate order number
       const { data: existingOrders } = await supabase
@@ -195,6 +198,7 @@ export const useApproveOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Legal', 'legal_orders', 'approve'],
     mutationFn: async (orderId: string) => {
       const { data, error } = await supabase
         .from('legal_orders')

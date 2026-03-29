@@ -38,6 +38,7 @@ export function useDistributionRecipientMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_distribution_recipients', 'create'],
     mutationFn: async (recipient: Omit<DistributionRecipient, 'id' | 'is_active' | 'created_at'>) => {
       const { data, error } = await supabase
         .from('ia_distribution_recipients' as any)
@@ -55,6 +56,7 @@ export function useDistributionRecipientMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_distribution_recipients', 'create'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_distribution_recipients' as any)
@@ -72,6 +74,7 @@ export function useDistributionRecipientMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_distribution_recipients', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('ia_distribution_recipients' as any)

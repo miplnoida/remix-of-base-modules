@@ -92,6 +92,7 @@ export function useCreateLevySlab() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'create'],
     mutationFn: async ({
       startDate,
       endDate,
@@ -143,6 +144,7 @@ export function useUpdateLevySlab() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'update'],
     mutationFn: async ({
       id,
       startDate,
@@ -202,6 +204,7 @@ export function useDeleteLevySlab() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'delete'],
     mutationFn: async ({ id, slabInfo, userCode }: { 
       id: string; 
       slabInfo?: { start_date: string; end_date: string };
@@ -252,6 +255,7 @@ export function useCreateLevySlabDetail() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'create'],
     mutationFn: async ({
       slabId,
       payPeriod,
@@ -315,6 +319,7 @@ export function useUpdateLevySlabDetail() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'update'],
     mutationFn: async ({
       id,
       slabId,
@@ -385,6 +390,7 @@ export function useDeleteLevySlabDetail() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'delete'],
     mutationFn: async ({ id, slabId, detailInfo, userCode }: { 
       id: string; 
       slabId: string;
@@ -428,6 +434,7 @@ export function useCloneLevySlab() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Admin', 'levy_slabs', 'create'],
     mutationFn: async ({
       sourceSlabId,
       newStartDate,

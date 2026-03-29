@@ -21,6 +21,7 @@ export function useIAAuditReportMutations() {
   const { toast } = useToast();
 
   const create = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_reports', 'update'],
     mutationFn: async (report: any) => {
       const { data, error } = await supabase.from('ia_audit_reports').insert(report).select().single();
       if (error) throw error;
@@ -34,6 +35,7 @@ export function useIAAuditReportMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_reports', 'create'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => {
       const { data, error } = await supabase.from('ia_audit_reports').update(u).eq('id', id).select().single();
       if (error) throw error;
@@ -47,6 +49,7 @@ export function useIAAuditReportMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['InternalAudit', 'ia_audit_reports', 'update'],
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ia_audit_reports').delete().eq('id', id);
       if (error) throw error;

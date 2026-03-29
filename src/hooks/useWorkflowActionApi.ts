@@ -139,6 +139,7 @@ export function useSaveWorkflowActionApiConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_action_api', 'mutation'],
     mutationFn: async ({
       config,
       bodyMappings,
@@ -235,6 +236,7 @@ export function useDeleteWorkflowActionApiConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_action_api', 'delete'],
     mutationFn: async (configId: string) => {
       const { error } = await supabase
         .from('workflow_step_action_api')
@@ -261,6 +263,7 @@ export function useRetryWorkflowApiExecution() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Workflow', 'workflow_action_api', 'mutation'],
     mutationFn: async (executionLogId: string) => {
       const { data, error } = await supabase.functions.invoke('workflow-action-api', {
         body: {

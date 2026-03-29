@@ -286,6 +286,7 @@ export function useSubmitAnnualPlanWorkflow() {
   const { userCode, fullName } = useUserCode();
 
   return useMutation({
+    mutationKey: ['InternalAudit', 'ia_annual_plans', 'mutation'],
     mutationFn: async (params: {
       planId: string;
       plan?: any;

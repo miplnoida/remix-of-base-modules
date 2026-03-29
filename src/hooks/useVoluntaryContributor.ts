@@ -96,6 +96,7 @@ export function useRegisterVC() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'voluntary_contributors', 'mutation'],
     mutationFn: async (params: {
       ssn: string;
       dateRegistered: string;
@@ -139,6 +140,7 @@ export function useCeaseVC() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['Registration', 'voluntary_contributors', 'status_change'],
     mutationFn: async (params: { ssn: string; reason?: string }) => {
       const { data, error } = await supabase.rpc('cease_voluntary_contributor', {
         p_ssn: params.ssn,

@@ -60,6 +60,7 @@ export function useUpdateC3Config() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ['C3Config', 'c3_calculation_config', 'update'],
     mutationFn: async ({ 
       id, 
       config_key,

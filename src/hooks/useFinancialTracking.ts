@@ -116,6 +116,7 @@ export const useCreateDetailedDebt = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Finance', 'financial_tracking', 'create'],
     mutationFn: async ({ 
       caseId, 
       payerInfo,
@@ -187,6 +188,7 @@ export const useUpdateWagePeriod = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['Finance', 'financial_tracking', 'update'],
     mutationFn: async ({ 
       debtId, 
       caseId,
