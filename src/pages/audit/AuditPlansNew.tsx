@@ -101,7 +101,8 @@ export default function AuditPlansNew() {
     }
   };
 
-  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && (hasPermission('create_audit_plans') || hasPermission('edit_audit_plans'));
+  const canEditPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && hasPermission('edit_audit_plans');
+  const canSubmitPlan = (plan: any) => ['Draft', 'Rejected', 'Changes Requested', 'Amendment Pending'].includes(plan._status) && hasPermission('edit_audit_plans');
 
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Plan Title', render: (row) => <span className="font-medium">{row.title}</span> },
@@ -183,26 +184,27 @@ export default function AuditPlansNew() {
             data={filteredPlans}
             emptyMessage="No annual audit plans found."
             renderActions={(row) => (
-              <div className="flex gap-1">
+              <div className="flex items-center justify-end gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedPlanId(row.id === selectedPlanId ? null : row.id)} title="History">
                   <History className={`h-4 w-4 ${row.id === selectedPlanId ? 'text-primary' : ''}`} />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/audit/audit-plans/${row.id}`)} title="View Workspace">
                   <Eye className="h-4 w-4" />
                 </Button>
-                {!['Approved', 'Superseded', 'Archived', 'Submitted', 'Under Review'].includes(row._status) && (
+                {canEditPlan(row) && (
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)} title="Edit">
                     <Edit className="h-4 w-4" />
                   </Button>
                 )}
-                {['Approved'].includes(row._status) && hasPermission('create_audit_plans') && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => setRevisionPlan(row)} title="Revise Plan">
+                {['Approved'].includes(row._status) && hasPermission('edit_audit_plans') && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" onClick={() => setRevisionPlan(row)} title="Revise Plan">
                     <FileEdit className="h-4 w-4" />
                   </Button>
                 )}
                 {canSubmitPlan(row) && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setSubmitPlanId(row.id)} title="Submit for Approval">
-                    <Send className="h-4 w-4" />
+                  <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setSubmitPlanId(row.id)} title="Submit for Approval" type="button">
+                    <Send className="mr-1 h-4 w-4" />
+                    Submit
                   </Button>
                 )}
               </div>
