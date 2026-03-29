@@ -2,10 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Briefcase, Loader2, AlertTriangle, ClipboardCheck,
-  FileText, MessageSquare, CheckCircle, BarChart3, Clock
+  FileText, MessageSquare, CheckCircle, BarChart3, Clock, Shield, ListChecks
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
@@ -15,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
 import { AuditWorkspaceShell } from '@/components/audit/workspace/AuditWorkspaceShell';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
-import { ExecutionLifecycleStepper } from '@/components/audit/ExecutionLifecycleStepper';
 
 import {
   AuditOverviewTab,
@@ -31,11 +29,6 @@ import {
   AuditControlTestsTab,
   AuditFollowUpsTab,
 } from '@/components/audit/execution';
-import {
-  useEngagementEvidence,
-  useEngagementWorkingPapers,
-  useEngagementActivities,
-} from '@/hooks/useEngagementData';
 
 // ===== Smart Alerts =====
 function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions }: {
@@ -159,7 +152,6 @@ export default function EngagementDetail() {
 
   const execStatus = audit?.execution_status || 'Planned';
 
-  // Source label
   const sourceLabel = audit?.engagement_type === 'Ad Hoc' ? 'Ad Hoc' :
     audit?.engagement_type === 'Supplementary' ? 'Supplementary Plan' :
     audit?.annual_plan_id ? 'Annual Plan' : 'Ad Hoc';
@@ -204,19 +196,8 @@ export default function EngagementDetail() {
         }
         alerts={audit ? <SmartAlertsBanner audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} /> : undefined}
       >
-        {/* Execution Lifecycle Stepper */}
-        <Card className="border-border/50">
-          <CardContent className="py-3 px-4">
-            <ExecutionLifecycleStepper
-              currentStatus={execStatus}
-              onTransition={handleStatusTransition}
-              isTransitioning={transitionMutation.isPending}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Tabs */}
-        <Tabs defaultValue="overview">
+        {/* All Audit Workspace Tabs */}
+        <Tabs defaultValue="overview" className="mt-2">
           <TabsList className="flex-wrap bg-transparent">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="preparation">Preparation</TabsTrigger>
@@ -233,6 +214,9 @@ export default function EngagementDetail() {
               <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Findings
               {auditFindings.length > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-muted px-1.5 text-[10px] font-bold leading-5">{auditFindings.length}</span>}
             </TabsTrigger>
+            <TabsTrigger value="control-tests">
+              <Shield className="h-3.5 w-3.5 mr-1.5" />Control Tests
+            </TabsTrigger>
             <TabsTrigger value="responses">
               <MessageSquare className="h-3.5 w-3.5 mr-1.5" />Responses
               {pendingResponsesCount > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 text-[10px] font-bold leading-5">{pendingResponsesCount}</span>}
@@ -243,6 +227,9 @@ export default function EngagementDetail() {
             </TabsTrigger>
             <TabsTrigger value="report">
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />Report
+            </TabsTrigger>
+            <TabsTrigger value="follow-ups">
+              <ListChecks className="h-3.5 w-3.5 mr-1.5" />Follow-ups
             </TabsTrigger>
             <TabsTrigger value="timeline">
               <Clock className="h-3.5 w-3.5 mr-1.5" />Timeline
@@ -278,6 +265,10 @@ export default function EngagementDetail() {
             <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} departmentId={audit?.department_id} />
           </TabsContent>
 
+          <TabsContent value="control-tests">
+            <AuditControlTestsTab auditId={id!} />
+          </TabsContent>
+
           <TabsContent value="responses">
             <AuditResponsesTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} departmentId={audit?.department_id} leadAuditorId={audit?.lead_auditor_id} />
           </TabsContent>
@@ -288,6 +279,10 @@ export default function EngagementDetail() {
 
           <TabsContent value="report">
             <AuditReportTab auditId={id!} audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} getDeptName={getDeptName} getAuditorName={getAuditorName} />
+          </TabsContent>
+
+          <TabsContent value="follow-ups">
+            <AuditFollowUpsTab auditId={id!} />
           </TabsContent>
 
           <TabsContent value="timeline">
