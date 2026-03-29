@@ -20,7 +20,7 @@ export function useDeliveryStatus(recipientEmail?: string) {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as DeliveryInfo | null;
+      return (data as unknown as DeliveryInfo) || null;
     },
     enabled: !!recipientEmail,
     staleTime: 30000,
