@@ -23672,6 +23672,16 @@ export type Database = {
         Returns: Json
       }
       admin_execute_ddl: { Args: { p_sql: string }; Returns: Json }
+      analyze_c3_config_change: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_id?: string
+          p_scope_filter?: Json
+          p_table_name: string
+        }
+        Returns: Json
+      }
       analyze_filing_config_change: {
         Args: {
           p_date_from?: string
@@ -24012,6 +24022,16 @@ export type Database = {
           p_witness_date?: string
           p_witness_name?: string
           p_work_permit_expiry?: string
+        }
+        Returns: Json
+      }
+      create_c3_config_period: {
+        Args: {
+          p_description?: string
+          p_details_json?: Json
+          p_end_date?: string
+          p_start_date: string
+          p_user_code?: string
         }
         Returns: Json
       }
@@ -25060,6 +25080,18 @@ export type Database = {
           p_user_code?: string
         }
         Returns: boolean
+      }
+      upsert_c3_config_with_split: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_force_split?: boolean
+          p_id?: string
+          p_table_name: string
+          p_user_code?: string
+          p_values_json?: Json
+        }
+        Returns: Json
       }
       upsert_cn_payer: {
         Args: {
