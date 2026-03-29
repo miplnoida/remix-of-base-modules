@@ -449,20 +449,26 @@ async function generateDetailedPlanPdf(
     autoTable(doc, {
       startY: y,
       head: [['#', 'Code', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
-      body: engagements.map((e: any, i: number) => [
-        e.sequence_no || i + 1,
-        dv(e.engagement_code),
-        dv(e.engagement_name, 'Untitled'),
-        dv(lookups.deptMap.get(e.department_id)),
-        dv(lookups.funcMap.get(e.function_id)),
-        dv(e.engagement_risk_rating),
-        dv(lookups.auditorMap.get(e.lead_auditor_id)),
-        dv(e.quarter),
-        e.planned_start_date ? formatDateForDisplay(e.planned_start_date) : '',
-        e.planned_end_date ? formatDateForDisplay(e.planned_end_date) : '',
-        dv(e.estimated_days),
-        dv(e.status, 'Planned'),
-      ]),
+      body: engagements.map((e: any, i: number) => {
+        const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
+        const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
+        const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
+        const days = ef(e, 'estimated_days', 'budgeted_hours');
+        return [
+          e.sequence_no || i + 1,
+          dv(e.engagement_code),
+          dv(e.engagement_name || e.title, 'Untitled'),
+          dv(lookups.deptMap.get(e.department_id)),
+          dv(lookups.funcMap.get(e.function_id)),
+          dv(e.engagement_risk_rating),
+          dv(lookups.auditorMap.get(e.lead_auditor_id)),
+          dv(quarter),
+          startDate ? formatDateForDisplay(startDate) : '',
+          endDate ? formatDateForDisplay(endDate) : '',
+          dv(days),
+          dv(e.status, 'Planned'),
+        ];
+      }),
       styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
       headStyles: { fillColor: theme.primary, fontSize: 7.5, cellPadding: 2.5 },
       alternateRowStyles: { fillColor: theme.altRow },
