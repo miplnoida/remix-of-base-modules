@@ -33,8 +33,6 @@ interface AuditInterceptorEntry {
 }
 
 // ─── Route → Module/Screen/Entity mapping ────────────────────────────────────
-// Maps URL path prefixes to human-readable module, screen, and default entity.
-// The FIRST matching prefix wins, so order from most-specific to least.
 const ROUTE_MODULE_MAP: Array<{
   prefix: string;
   module: string;
@@ -72,10 +70,10 @@ const ROUTE_MODULE_MAP: Array<{
   { prefix: '/benefits', module: 'Benefits', screen: 'Benefits' },
 
   // Internal Audit
-  { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace', entityType: 'ia_engagements' },
+  { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace', entityType: 'ia_audit_engagements' },
   { prefix: '/audit/universe', module: 'Internal Audit', screen: 'Audit Universe', entityType: 'ia_audit_universe' },
   { prefix: '/audit/risk', module: 'Internal Audit', screen: 'Risk Assessment', entityType: 'ia_risk_assessments' },
-  { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan', entityType: 'ia_audit_plans' },
+  { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan', entityType: 'ia_annual_plans' },
   { prefix: '/audit', module: 'Internal Audit', screen: 'Internal Audit' },
 
   // Admin / Configuration
@@ -114,18 +112,29 @@ export function resolveRouteContext(pathname: string): { module: string; screen:
 }
 
 /**
+ * Tables with DB-level audit triggers — the app interceptor marks its entries
+ * as supplementary for these to avoid double-counting.
+ */
+const DB_TRIGGER_TABLES = new Set([
+  'cn_receipt', 'cn_batch', 'er_master', 'profiles',
+  'bema_c3_submissions', 'bema_registrations', 'bema_audit_cases',
+  'bema_payment_plans', 'bema_waivers',
+  'ia_findings', 'ia_audit_engagements', 'ia_risk_assessments', 'ia_audit_reports',
+  'system_settings', 'security_policy_config', 'ip_access_rules',
+  'c3_calculation_config', 'payment_module_config',
+]);
+
+/**
  * Infer entity type from mutation variables by checking for known table-identifier keys.
  */
 export function inferEntityTypeFromVariables(variables: unknown): string | undefined {
   if (!variables || typeof variables !== 'object') return undefined;
   const v = variables as Record<string, any>;
 
-  // If the variable itself has a table_name or entity_type hint
   if (v.table_name) return String(v.table_name);
   if (v.entityType) return String(v.entityType);
   if (v.entity_type) return String(v.entity_type);
 
-  // Infer from key patterns in the payload
   if (v.batch_number || v.batchNumber) return 'cn_batch';
   if (v.receipt_id || v.receiptId) return 'cn_receipt';
   if (v.registration_id || v.registrationId || v.registration_number) return 'bema_registrations';
@@ -133,11 +142,16 @@ export function inferEntityTypeFromVariables(variables: unknown): string | undef
   if (v.ssn && !v.employer_id) return 'ip_master';
   if (v.config_type || v.configType) return 'c3_calculation_config';
   if (v.periodId || v.period_id) return 'c3_calculation_config';
-  if (v.engagement_id || v.engagementId) return 'ia_engagements';
-  if (v.plan_id || v.planId) return 'ia_audit_plans';
+  if (v.engagement_id || v.engagementId) return 'ia_audit_engagements';
+  if (v.plan_id || v.planId) return 'ia_annual_plans';
   if (v.waiver_number || v.waiverId) return 'bema_waivers';
   if (v.setting_key || v.settingKey) return 'system_settings';
   if (v.policy_name || v.policyName) return 'security_policy_config';
+  if (v.finding_id || v.findingId) return 'ia_findings';
+  if (v.hearing_id || v.hearingId) return 'legal_hearings';
+  if (v.case_id || v.caseId) return 'legal_cases';
+  if (v.designation_id || v.designationId) return 'designations';
+  if (v.workflow_id || v.workflowId) return 'workflows';
 
   return undefined;
 }
@@ -146,7 +160,7 @@ export function inferEntityTypeFromVariables(variables: unknown): string | undef
 let cachedUserId: string | null = null;
 let cachedUserCode: string | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 60_000; // 1 minute
+const CACHE_TTL = 60_000;
 
 async function resolveUserIdentity(): Promise<{ userId: string | null; userCode: string | null }> {
   const now = Date.now();
@@ -165,7 +179,6 @@ async function resolveUserIdentity(): Promise<{ userId: string | null; userCode:
       .eq('id', user.id)
       .single();
 
-    // Prefer user_code over full_name to avoid "System Admin" leaking in
     cachedUserCode = profile?.user_code || null;
     cacheTimestamp = now;
 
@@ -190,22 +203,19 @@ export function computeChangedFields(
   before: Record<string, any> | null | undefined,
   after: Record<string, any> | null | undefined
 ): { before: Record<string, any>; after: Record<string, any> } | null {
-  if (!before || !after) return null; // Not an update scenario
+  if (!before || !after) return null;
 
   const changedBefore: Record<string, any> = {};
   const changedAfter: Record<string, any> = {};
   let hasChanges = false;
 
-  // Check all keys in after
   const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
   for (const key of allKeys) {
-    // Skip internal/meta fields that change on every save
     if (['updated_at', 'modified_date', 'updated_by', 'modified_by'].includes(key)) continue;
 
     const oldVal = before[key];
     const newVal = after[key];
 
-    // Deep-compare using JSON serialization
     if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
       changedBefore[key] = oldVal ?? null;
       changedAfter[key] = newVal ?? null;
@@ -217,6 +227,34 @@ export function computeChangedFields(
 }
 
 /**
+ * Classify the action from mutation variables when mutationKey is missing.
+ * Infers create/update/delete from variable shape.
+ */
+export function classifyActionFromVariables(variables: unknown, result: unknown): string {
+  if (!variables || typeof variables !== 'object') return 'mutation';
+  const v = variables as Record<string, any>;
+
+  // Status change patterns
+  if (v.status !== undefined && v.id) return 'status_change';
+  if (v.is_active !== undefined && v.id) return v.is_active ? 'enable' : 'disable';
+  if (v.is_approved !== undefined) return v.is_approved ? 'approve' : 'reject';
+  if (v.approved !== undefined) return v.approved ? 'approve' : 'reject';
+
+  // CRUD patterns
+  const hasId = !!(v.id || v.entity_id || v.entityId || v.receipt_id || v.batch_number);
+  const fieldCount = Object.keys(v).length;
+
+  if (hasId && fieldCount === 1) return 'delete';
+  if (hasId && fieldCount > 1) return 'update';
+  if (!hasId && fieldCount > 0) return 'create';
+
+  // Check result
+  if (result === undefined || result === null) return 'delete';
+
+  return 'mutation';
+}
+
+/**
  * Write an audit entry to system_audit_trail.
  * Non-blocking — never throws.
  */
@@ -224,13 +262,11 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
   try {
     const { userId, userCode } = await resolveUserIdentity();
 
-    // Resolve module/screen from route if not provided
     const route = entry.route || (typeof window !== 'undefined' ? window.location.pathname : undefined);
     let module = entry.module;
     let screenName = entry.screenName;
     let entityType = entry.entityType;
 
-    // Auto-resolve module, screen, and entity type from route when not provided
     if (route) {
       const ctx = resolveRouteContext(route);
       if (!module) module = ctx.module;
@@ -238,7 +274,10 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
       if (!entityType) entityType = ctx.entityType;
     }
 
-    // Build description with context
+    // Determine if this table has DB triggers — mark as supplementary
+    const isDbTriggered = entityType ? DB_TRIGGER_TABLES.has(entityType) : false;
+    const source = entry.metadata?.source || 'app_interceptor';
+
     const descParts: string[] = [];
     if (entry.description) descParts.push(entry.description);
     if (entry.tabName) descParts.push(`Tab: ${entry.tabName}`);
@@ -260,6 +299,8 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
       after_value: entry.afterValue || null,
       payload_json: {
         ...(entry.metadata || {}),
+        source,
+        supplementary: isDbTriggered && source !== 'db_trigger',
         screen: screenName || undefined,
         tab: entry.tabName || undefined,
         section: entry.sectionName || undefined,
@@ -275,7 +316,6 @@ export async function logAuditEntry(entry: AuditInterceptorEntry): Promise<void>
 /**
  * Parse a mutation key into structured audit metadata.
  * Convention: mutationKey = ['module', 'entity', 'action']
- * Falls back to joining the key as a description.
  */
 export function parseMutationKey(
   mutationKey: readonly unknown[] | undefined
@@ -306,7 +346,6 @@ export function parseMutationKey(
 
 /**
  * Extract a likely entity ID from mutation variables.
- * Checks common patterns: id, entityId, batchNumber, etc.
  */
 export function extractEntityId(variables: unknown): string | undefined {
   if (!variables || typeof variables !== 'object') return undefined;

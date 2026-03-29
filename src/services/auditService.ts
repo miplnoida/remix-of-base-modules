@@ -4,10 +4,6 @@
  * All create, update, delete, approve, reject, verify, cancel, enable, disable,
  * and configuration change actions MUST use this service to write audit entries
  * to the `system_audit_trail` table.
- * 
- * Usage:
- *   import { logAuditTrail } from '@/services/auditService';
- *   await logAuditTrail({ action: 'update', entityType: 'system_setting', ... });
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -18,34 +14,73 @@ import {
 } from '@/services/correlationIdService';
 
 export interface AuditTrailEntry {
-  /** The action performed: create, update, delete, approve, reject, verify, cancel, enable, disable, etc. */
   action: string;
-  /** The type of entity affected, e.g. 'system_setting', 'cloudflare', 'applicant' */
   entityType: string;
-  /** A unique identifier for the affected record */
   entityId?: string;
-  /** The module or source screen, e.g. 'Global Settings', 'Registration' */
   module?: string;
-  /** JSON snapshot of the value before the change */
   beforeValue?: Record<string, any> | null;
-  /** JSON snapshot of the value after the change */
   afterValue?: Record<string, any> | null;
-  /** The user_code of the logged-in user performing the action */
   userCode?: string;
-  /** The auth user UUID */
   userId?: string;
-  /** Additional context as JSON */
   metadata?: Record<string, any>;
 }
 
 /**
+ * Compute field-level diff between two records.
+ * Returns an array of { field, oldValue, newValue } for changed fields only.
+ * Skips meta fields (updated_at, modified_by, etc.)
+ */
+export function computeFieldDiff(
+  before: Record<string, any> | null | undefined,
+  after: Record<string, any> | null | undefined
+): Array<{ field: string; oldValue: any; newValue: any }> | null {
+  if (!before && !after) return null;
+
+  const diffs: Array<{ field: string; oldValue: any; newValue: any }> = [];
+  const skipFields = new Set([
+    'updated_at', 'modified_date', 'updated_by', 'modified_by',
+    'created_at', 'created_by',
+  ]);
+
+  if (!before && after) {
+    // CREATE: show all non-null after fields
+    for (const [key, val] of Object.entries(after)) {
+      if (skipFields.has(key) || val === null || val === undefined) continue;
+      diffs.push({ field: key, oldValue: null, newValue: val });
+    }
+    return diffs.length > 0 ? diffs : null;
+  }
+
+  if (before && !after) {
+    // DELETE: show all non-null before fields
+    for (const [key, val] of Object.entries(before)) {
+      if (skipFields.has(key) || val === null || val === undefined) continue;
+      diffs.push({ field: key, oldValue: val, newValue: null });
+    }
+    return diffs.length > 0 ? diffs : null;
+  }
+
+  // UPDATE: compare field by field
+  const allKeys = new Set([...Object.keys(before!), ...Object.keys(after!)]);
+  for (const key of allKeys) {
+    if (skipFields.has(key)) continue;
+    const oldVal = before![key];
+    const newVal = after![key];
+
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      diffs.push({ field: key, oldValue: oldVal ?? null, newValue: newVal ?? null });
+    }
+  }
+
+  return diffs.length > 0 ? diffs : null;
+}
+
+/**
  * Write an audit trail entry to system_audit_trail.
- * This is the ONLY approved way to create audit records.
  * Returns the inserted row id or null on failure.
  */
 export async function logAuditTrail(entry: AuditTrailEntry): Promise<string | null> {
   try {
-    // Try to get the current user if userId not provided
     let userId = entry.userId;
     if (!userId) {
       const { data: { user } } = await supabase.auth.getUser();
