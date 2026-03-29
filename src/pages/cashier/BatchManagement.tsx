@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Eye, Loader2, AlertTriangle, Search, Lock, Coins } from 'lucide-react';
+import { useHeadCashier } from '@/hooks/useHeadCashier';
+import { useDefaultOpeningBalance } from '@/hooks/useBatchBehaviorConfig';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
