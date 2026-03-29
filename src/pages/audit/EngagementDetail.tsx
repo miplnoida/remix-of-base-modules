@@ -785,9 +785,28 @@ export default function EngagementDetail() {
   const openFindings = auditFindings.filter((f: any) => !['Closed', 'Resolved'].includes(f.status || ''));
 
   const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
+  const getDeptObj = (did: string) => departments?.find((d: any) => d.id === did);
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
   const getPlanTitle = (pid: string) => plans?.find((p: any) => p.id === pid)?.title || '—';
+
+  // Build engagement context for communication dialog
+  const engagementContext = useMemo(() => {
+    if (!audit) return undefined;
+    const dept = getDeptObj(audit.department_id);
+    return {
+      engagement_name: audit.engagement_name || '',
+      department_name: dept?.name || '',
+      department_head: dept?.head || '',
+      department_email: dept?.email || '',
+      lead_auditor_name: getAuditorName(audit.lead_auditor_id),
+      planned_start_date: audit.planned_start_date || '',
+      planned_end_date: audit.planned_end_date || '',
+      objectives: audit.objectives || '',
+      scope: audit.scope || '',
+      function_name: getFunctionName(audit.function_id),
+    };
+  }, [audit, departments, auditors, deptFunctions]);
 
   const handleCloseAudit = () => {
     if (!id) return;
