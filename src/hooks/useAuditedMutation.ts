@@ -12,7 +12,7 @@
 import { useMutation, UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { logAuditEntry, computeChangedFields, resolveRouteContext } from '@/services/globalAuditInterceptor';
+import { logAuditEntry, computeChangedFields, resolveRouteContext, DB_TRIGGER_TABLES } from '@/services/globalAuditInterceptor';
 import { useUserCode } from '@/hooks/useUserCode';
 
 interface AuditedMutationConfig {
@@ -76,6 +76,11 @@ export function useAuditedMutation<
           // No actual changes — skip audit log
           return result;
         }
+      }
+
+      // Skip app-level audit for tables with DB triggers — the trigger is authoritative
+      if (audit.entityType && DB_TRIGGER_TABLES.has(audit.entityType)) {
+        return result;
       }
 
       // Resolve module from route if not explicitly provided
