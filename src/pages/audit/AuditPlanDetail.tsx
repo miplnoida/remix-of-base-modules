@@ -353,12 +353,7 @@ export default function AuditPlanDetail() {
         {/* Approval & Amendments Tab */}
         <TabsContent value="approval">
           <div className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Approval History</CardTitle></CardHeader>
-              <CardContent>
-                <ApprovalHistoryPanel entityId={id!} entityType="plan" />
-              </CardContent>
-            </Card>
+            <PlanApprovalHistoryTimeline planId={id!} />
             <Card>
               <CardHeader><CardTitle className="text-sm">Version History</CardTitle></CardHeader>
               <CardContent>
@@ -393,6 +388,31 @@ export default function AuditPlanDetail() {
           <PlanDistributionTab planId={id!} plan={plan} />
         </TabsContent>
       </Tabs>
+
+      {/* Submission Readiness Dialog */}
+      <PlanSubmissionReadiness
+        open={showReadiness}
+        onOpenChange={setShowReadiness}
+        checks={readinessChecks}
+        engagementCount={(engagements || []).length}
+        onSubmit={() => {
+          submitForApproval.mutate({ planId: id! });
+          setShowReadiness(false);
+        }}
+        isSubmitting={submitForApproval.isPending}
+      />
+
+      {/* Withdraw Confirmation */}
+      <ConfirmDialog
+        open={showWithdraw}
+        onOpenChange={() => setShowWithdraw(false)}
+        title="Withdraw Submission"
+        description="Are you sure you want to withdraw this plan from approval? It will return to Draft status and can be edited again."
+        onConfirm={() => {
+          withdrawSubmission.mutate({ planId: id! });
+          setShowWithdraw(false);
+        }}
+      />
     </PageShell>
   );
 }
