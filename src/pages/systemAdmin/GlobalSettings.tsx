@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, Save, RefreshCw, Clock, User, Info, Calendar, Eye, Globe } from 'lucide-react';
+import { Settings, Save, RefreshCw, Clock, User, Info, Calendar, Eye, Globe, ImageIcon, Bell, Shield } from 'lucide-react';
 import { useSystemSettings, useUpdateSystemSetting, SystemSetting } from '@/hooks/useSystemSettings';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDisplayDate } from '@/lib/dateFormat';
@@ -223,113 +223,123 @@ const GlobalSettings = () => {
           </Button>
         </div>
         
-        {/* Application UI Settings */}
-        <AppLogoUploadSection />
-        <ToastConfigSection />
-
-        {/* Cloudflare Human Verification Section - always shown */}
-        <CloudflareSettingsSection />
-
-        {categories.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No Other Settings Configured</h3>
-              <p className="text-muted-foreground">Additional system settings will appear here once configured.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Tabs defaultValue={categories[0] || 'General'} className="w-full">
-            <TabsList className="w-full justify-start flex-wrap h-auto gap-1 p-1">
-              {categories.map(category => (
-                <TabsTrigger key={category} value={category} className="px-4">
-                  {category}
-                  <Badge variant="secondary" className="ml-2">
-                    {groupedSettings[category].length}
-                  </Badge>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            
+        <Tabs defaultValue="app-ui" className="w-full">
+          <TabsList className="w-full justify-start flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="app-ui" className="px-4">
+              <ImageIcon className="h-3.5 w-3.5 mr-1" />
+              Application UI
+            </TabsTrigger>
+            <TabsTrigger value="toast-config" className="px-4">
+              <Bell className="h-3.5 w-3.5 mr-1" />
+              Toast Messages
+            </TabsTrigger>
+            <TabsTrigger value="cloudflare" className="px-4">
+              <Shield className="h-3.5 w-3.5 mr-1" />
+              Cloudflare Verification
+            </TabsTrigger>
             {categories.map(category => (
-              <TabsContent key={category} value={category} className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{category} Settings</CardTitle>
-                    <CardDescription>
-                      Configure {category.toLowerCase()} related settings for the application
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[300px]">Setting</TableHead>
-                          <TableHead>Current Value</TableHead>
-                          <TableHead className="w-[150px]">Last Updated</TableHead>
-                          <TableHead className="w-[120px]">Updated By</TableHead>
-                          <TableHead className="w-[100px] text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {groupedSettings[category].map(setting => (
-                          <TableRow key={setting.id}>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-medium">{setting.display_name}</div>
-                                {setting.description && (
-                                  <div className="text-xs text-muted-foreground flex items-start gap-1">
-                                    <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                    <span className="line-clamp-2">{setting.description}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {setting.setting_key === 'display_date_format' && (
-                                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                                )}
-                                <span className="font-mono text-sm">
-                                  {renderSettingValue(setting)}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Clock className="h-3 w-3" />
-                                {formatDisplayDate(setting.updated_at)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                {setting.updated_by || 'System'}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {setting.is_editable ? (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleEdit(setting)}
-                                >
-                                  Edit
-                                </Button>
-                              ) : (
-                                <Badge variant="secondary">Locked</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+              <TabsTrigger key={category} value={category} className="px-4">
+                {category}
+                <Badge variant="secondary" className="ml-2">
+                  {groupedSettings[category].length}
+                </Badge>
+              </TabsTrigger>
             ))}
-          </Tabs>
-        )}
+          </TabsList>
+
+          {/* ─── Application UI Tab ─── */}
+          <TabsContent value="app-ui" className="mt-4 space-y-6">
+            <AppLogoUploadSection />
+          </TabsContent>
+
+          {/* ─── Toast Messages Tab ─── */}
+          <TabsContent value="toast-config" className="mt-4 space-y-6">
+            <ToastConfigSection />
+          </TabsContent>
+
+          {/* ─── Cloudflare Verification Tab ─── */}
+          <TabsContent value="cloudflare" className="mt-4 space-y-6">
+            <CloudflareSettingsSection />
+          </TabsContent>
+          
+          {categories.map(category => (
+            <TabsContent key={category} value={category} className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{category} Settings</CardTitle>
+                  <CardDescription>
+                    Configure {category.toLowerCase()} related settings for the application
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[300px]">Setting</TableHead>
+                        <TableHead>Current Value</TableHead>
+                        <TableHead className="w-[150px]">Last Updated</TableHead>
+                        <TableHead className="w-[120px]">Updated By</TableHead>
+                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {groupedSettings[category].map(setting => (
+                        <TableRow key={setting.id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium">{setting.display_name}</div>
+                              {setting.description && (
+                                <div className="text-xs text-muted-foreground flex items-start gap-1">
+                                  <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span className="line-clamp-2">{setting.description}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {setting.setting_key === 'display_date_format' && (
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="font-mono text-sm">
+                                {renderSettingValue(setting)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatDisplayDate(setting.updated_at)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                              {setting.updated_by || 'System'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {setting.is_editable ? (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEdit(setting)}
+                              >
+                                Edit
+                              </Button>
+                            ) : (
+                              <Badge variant="secondary">Locked</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
         
         {/* Edit Dialog */}
         <Dialog open={!!editingSetting} onOpenChange={() => setEditingSetting(null)}>
