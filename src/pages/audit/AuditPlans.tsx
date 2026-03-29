@@ -158,13 +158,6 @@ export default function AuditPlans() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={submitPlanId !== null}
-        onOpenChange={() => setSubmitPlanId(null)}
-        title="Submit Plan for Approval"
-        description="Are you sure you want to submit this plan? It will be sent for approval."
-        onConfirm={() => { if (submitPlanId) { update.mutate({ id: submitPlanId, status: 'Submitted', submitted_date: new Date().toISOString() }); setSubmitPlanId(null); } }}
-      />
     </PageShell>
   );
 }
