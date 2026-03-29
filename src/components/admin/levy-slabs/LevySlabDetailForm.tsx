@@ -89,7 +89,15 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
         taxRate: taxRateDecimal,
         orderNo: parseInt(orderNo),
         isActive,
-        userCode: userCode || undefined
+        userCode: userCode || undefined,
+        oldValues: {
+          pay_period: detail.pay_period,
+          over_amt: detail.over_amt,
+          base_amt: detail.base_amt,
+          tax_rate: detail.tax_rate,
+          order_no: detail.order_no,
+          is_active: detail.is_active
+        }
       });
     } else {
       await createMutation.mutateAsync({

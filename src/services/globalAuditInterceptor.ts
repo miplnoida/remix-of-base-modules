@@ -122,6 +122,7 @@ const DB_TRIGGER_TABLES = new Set([
   'ia_findings', 'ia_audit_engagements', 'ia_risk_assessments', 'ia_audit_reports',
   'system_settings', 'security_policy_config', 'ip_access_rules',
   'c3_calculation_config', 'payment_module_config',
+  'tb_levy_slabs', 'tb_levy_slab_details',
 ]);
 
 /**
