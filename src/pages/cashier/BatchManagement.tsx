@@ -252,9 +252,12 @@ function OpenBatchDialog({
   const [selectedCashierId, setSelectedCashierId] = useState<string>('');
   const batchDate = useMemo(() => new Date(), []);
   const batchDateDisplay = format(batchDate, 'dd/MM/yyyy');
-  const [openingBalance, setOpeningBalance] = useState<string>('0.00');
   const [isCreating, setIsCreating] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
+  // Head cashier & opening balance hooks
+  const { headCashier, isLoading: hcLoading } = useHeadCashier();
+  const { headCashierBalance, cashierBalance, isLoading: obLoading } = useDefaultOpeningBalance();
 
   // Determine current user's cashier record
   const currentUserCashier = useMemo(
@@ -272,14 +275,39 @@ function OpenBatchDialog({
     [cashierUsers, effectiveCashierId]
   );
 
+  // Is selected cashier the head cashier for today?
+  const isSelectedHeadCashier = !!headCashier && !!selectedCashier && headCashier.user_code === selectedCashier.user_code;
+  const computedOpeningBalance = isSelectedHeadCashier ? headCashierBalance : cashierBalance;
+
+  // Office resolution state
+  const [resolvedOffice, setResolvedOffice] = useState<{ code: string; description: string; isOverride: boolean } | null>(null);
+  const [officeLoading, setOfficeLoading] = useState(false);
+
+  // Resolve office when cashier changes
+  React.useEffect(() => {
+    if (!effectiveCashierId) { setResolvedOffice(null); return; }
+    setOfficeLoading(true);
+    const dateStr = format(batchDate, 'yyyy-MM-dd');
+    supabase.rpc('get_cashier_office_for_date' as any, {
+      p_cashier_user_id: effectiveCashierId,
+      p_date: dateStr,
+    }).then(({ data, error }) => {
+      if (!error && data) {
+        const res = typeof data === 'string' ? JSON.parse(data) : data;
+        setResolvedOffice({ code: res.office_code, description: res.office_description, isOverride: res.is_override });
+      }
+      setOfficeLoading(false);
+    });
+  }, [effectiveCashierId, batchDate]);
+
   // Validation
   const notCashierError = !canManageAll && !isCashier;
   const canCreate = !!selectedCashier && !notCashierError;
 
   const resetForm = () => {
     setSelectedCashierId('');
-    setOpeningBalance('0.00');
     setDuplicateWarning(null);
+    setResolvedOffice(null);
   };
 
   const handleCreate = async (force = false) => {
