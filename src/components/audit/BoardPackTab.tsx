@@ -36,10 +36,42 @@ function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
+/** Load logo image as base64 for jsPDF embedding */
+let _logoBase64: string | null = null;
+let _logoLoaded = false;
+async function getLogoBase64(): Promise<string | null> {
+  if (_logoLoaded) return _logoBase64;
+  try {
+    const resp = await fetch(ssbLogoPng);
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        _logoBase64 = reader.result as string;
+        _logoLoaded = true;
+        resolve(_logoBase64);
+      };
+      reader.onerror = () => { _logoLoaded = true; resolve(null); };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    _logoLoaded = true;
+    return null;
+  }
+}
+
 /** Clean display value — no ugly dashes for empty data */
 function dv(val: any, fallback = ''): string {
   if (val === null || val === undefined || val === '' || val === '—') return fallback;
   return String(val);
+}
+
+/** Resolve engagement field with fallbacks */
+function ef(e: any, ...keys: string[]): any {
+  for (const k of keys) {
+    if (e[k] !== null && e[k] !== undefined && e[k] !== '') return e[k];
+  }
+  return null;
 }
 
 /** Get rationale display from structured or legacy fields */
