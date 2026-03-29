@@ -152,7 +152,22 @@ async function fetchReceiptData(paymentId: number) {
     ? format(new Date(paymentLines[0].period), 'MM/yyyy')
     : '';
 
+  // Fetch receipt/invoice logo URL from config
+  let logoUrl = '/images/ssb-logo.png';
+  try {
+    const { data: logoCfg } = await supabase
+      .from('payment_module_config')
+      .select('config_value')
+      .eq('config_key', 'receipt_invoice_logo_url')
+      .single();
+    if (logoCfg?.config_value) {
+      const val = logoCfg.config_value;
+      logoUrl = typeof val === 'string' ? val : '/images/ssb-logo.png';
+    }
+  } catch { /* use default */ }
+
   return {
+    '{{logo_url}}': logoUrl,
     '{{org_name}}': 'Social Security Board\nSt. Kitts and Nevis',
     '{{status}}': receiptStatus,
     '{{cashier_name}}': cashierName,

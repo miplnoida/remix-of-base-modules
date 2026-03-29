@@ -1,4 +1,5 @@
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useSystemSettingsContext } from "@/contexts/SystemSettingsContext";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +14,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, profile } = useSupabaseAuth();
+  const { getSetting } = useSystemSettingsContext();
+  const appLogoUrl = getSetting('app_logo_url', '/images/ssb-logo.png');
 
   return (
     <Sidebar 
@@ -26,9 +29,10 @@ export function AppSidebar() {
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex-shrink-0">
                 <img 
-                  src="/images/ssb-logo.png" 
+                  src={appLogoUrl} 
                   alt="SSB Logo" 
                   className="h-10 w-10 object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/images/ssb-logo.png'; }}
                 />
               </div>
               {!collapsed && (

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import CloudflareSettingsSection from '@/components/admin/CloudflareSettingsSection';
+import AppLogoUploadSection from '@/components/admin/AppLogoUploadSection';
+import ToastConfigSection from '@/components/admin/ToastConfigSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -221,6 +223,10 @@ const GlobalSettings = () => {
           </Button>
         </div>
         
+        {/* Application UI Settings */}
+        <AppLogoUploadSection />
+        <ToastConfigSection />
+
         {/* Cloudflare Human Verification Section - always shown */}
         <CloudflareSettingsSection />
 

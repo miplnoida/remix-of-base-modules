@@ -12,6 +12,7 @@ import HeadCashierAssignmentSection from '@/components/payments/HeadCashierAssig
 import BatchBehaviorConfigSection from '@/components/payments/BatchBehaviorConfigSection';
 import DefaultOpeningBalanceTab from '@/components/payments/DefaultOpeningBalanceTab';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
+import ReceiptInvoiceLogoUpload from '@/components/payments/ReceiptInvoiceLogoUpload';
 import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { useAllCurrencies, useAllCashierCurrencyConfigs, useDenominationsForCurrency } from '@/hooks/useCashierCurrencyConfig';
@@ -884,6 +885,7 @@ const PaymentModuleConfig: React.FC = () => {
 
         {/* ─── RECEIPT & INVOICE TAB ─── */}
         <TabsContent value="receipt" className="space-y-6">
+          <ReceiptInvoiceLogoUpload />
           <Tabs defaultValue="receipt-tpl" className="space-y-4">
             <TabsList>
               <TabsTrigger value="receipt-tpl">

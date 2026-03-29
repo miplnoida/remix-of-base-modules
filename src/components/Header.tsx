@@ -3,6 +3,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Settings, User, LogOut, CalendarDays } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useSystemSettingsContext } from "@/contexts/SystemSettingsContext";
 import { InAppNotificationBell } from "@/components/notifications/InAppNotificationBell";
 import { MeetingCalendarModal } from "@/components/meetings/MeetingCalendarModal";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
@@ -20,9 +21,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Header = () => {
   const { user, profile, logout } = useSupabaseAuth();
+  const { getSetting } = useSystemSettingsContext();
   const navigate = useNavigate();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const todayMeetingCount = useTodayMeetingCount();
+  const appLogoUrl = getSetting('app_logo_url', '/images/ssb-logo.png');
 
   const handleLogout = async () => {
     await logout();
@@ -38,9 +41,10 @@ export const Header = () => {
         <SidebarTrigger className="text-muted-foreground hover:text-primary" />
         <div className="flex items-center gap-3">
           <img 
-            src="/images/ssb-logo.png" 
+            src={appLogoUrl} 
             alt="SSB Logo" 
-            className="h-8 w-8"
+            className="h-8 w-8 object-contain"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/images/ssb-logo.png'; }}
           />
           <div className="flex flex-col">
             <h1 className="text-lg font-semibold tracking-tight text-foreground">
