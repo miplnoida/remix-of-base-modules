@@ -1,15 +1,27 @@
 import type { ComponentProps } from "react";
 import { Toaster as Sonner } from "sonner";
+import { useSystemSettingsContext } from "@/contexts/SystemSettingsContext";
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 
-// NOTE: This project uses a custom ThemeContext (not next-themes).
-// We keep Sonner in "system" mode so toast styling follows our CSS tokens.
+type SonnerPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+
+/**
+ * Dynamic Sonner Toaster that reads position from system settings.
+ * Uses the "success" position as the global Sonner position (Sonner only supports one position).
+ * Duration is applied per-toast via the global toast wrapper.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { getSetting } = useSystemSettingsContext();
+  const position = (getSetting('toast_position_success', 'top-right') as SonnerPosition) || 'top-right';
+  const defaultDuration = parseInt(getSetting('toast_duration_success', '4'), 10) * 1000 || 4000;
+
   return (
     <Sonner
+      position={position}
       theme={"system"}
       className="toaster group"
+      duration={defaultDuration}
       toastOptions={{
         classNames: {
           toast:
