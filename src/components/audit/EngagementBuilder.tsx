@@ -168,7 +168,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
     }},
     { key: 'quarter', header: 'Quarter', render: (r) => r.quarter || '—' },
     { key: 'estimated_days', header: 'Days', render: (r) => r.estimated_days || '—' },
-    { key: 'estimated_hours', header: 'Weeks', render: (r) => r.estimated_hours || '—' },
+    { key: 'estimated_hours', header: 'Hours', render: (r) => r.estimated_hours || '—' },
     { key: 'planned_start_date', header: 'Start', render: (r) => r.planned_start_date ? formatDateForDisplay(r.planned_start_date) : '—' },
     { key: 'planned_end_date', header: 'End', render: (r) => r.planned_end_date ? formatDateForDisplay(r.planned_end_date) : '—' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Planned'} /> },
@@ -231,6 +231,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
         onSave={(payload) => saveEngagement.mutate(payload)}
         isSaving={saveEngagement.isPending}
         isApprovedPlan={isApproved}
+        allEngagements={engagements}
       />
 
       <OverrideReasonModal

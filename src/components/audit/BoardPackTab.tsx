@@ -281,10 +281,20 @@ function generateDetailedPlanPdf(
 
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Rationale', 'Lead', 'Support', 'Days', 'Weeks', 'Q', 'Start', 'End', 'Priority', 'Status']],
+      head: [['#', 'Code', 'Title', 'Department', 'Function', 'Risk', 'Objective', 'Scope', 'Inclusion Rationale', 'Expected Deliverables', 'Lead', 'Support', 'Days', 'Hours', 'Q', 'Start', 'End', 'Priority', 'Status']],
       body: engagements.map((e: any, i: number) => {
         const supportNames = (Array.isArray(e.supportive_auditor_ids) ? e.supportive_auditor_ids : [])
           .map((id: string) => lookups.auditorMap.get(id) || '—').join(', ');
+        // Structured rationale
+        const reasonCodes = Array.isArray(e.inclusion_reason_codes) ? e.inclusion_reason_codes : [];
+        const rationaleDisplay = reasonCodes.length > 0
+          ? reasonCodes.join('; ') + (e.inclusion_reason_notes ? ` — ${e.inclusion_reason_notes}` : '')
+          : (e.inclusion_rationale || '—');
+        // Structured deliverables
+        const delCodes = Array.isArray(e.expected_deliverable_codes) ? e.expected_deliverable_codes : [];
+        const delDisplay = delCodes.length > 0
+          ? delCodes.join('; ') + (e.expected_deliverable_notes ? ` — ${e.expected_deliverable_notes}` : '')
+          : (e.expected_deliverable || '—');
         return [
           e.sequence_no || i + 1,
           e.engagement_code || '—',
@@ -294,7 +304,8 @@ function generateDetailedPlanPdf(
           e.engagement_risk_rating || '—',
           e.objectives || '—',
           e.scope || '—',
-          e.inclusion_rationale || '—',
+          rationaleDisplay,
+          delDisplay,
           lookups.auditorMap.get(e.lead_auditor_id) || '—',
           supportNames || '—',
           e.estimated_days || '—',
@@ -306,10 +317,10 @@ function generateDetailedPlanPdf(
           e.status || 'Planned',
         ];
       }),
-      styles: { fontSize: 5.5, cellPadding: 1.5 },
-      headStyles: { fillColor: theme.primary, fontSize: 5.5 },
+      styles: { fontSize: 5, cellPadding: 1.5 },
+      headStyles: { fillColor: theme.primary, fontSize: 5 },
       alternateRowStyles: { fillColor: theme.altRow },
-      margin: { left: 8, right: 8 },
+      margin: { left: 6, right: 6 },
     });
   }
 
@@ -498,13 +509,22 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           { header: 'Weeks', key: 'weeks', width: 8 },
           { header: 'Objective', key: 'objective', width: 40 },
           { header: 'Scope', key: 'scope', width: 40 },
-          { header: 'Rationale', key: 'rationale', width: 30 },
+          { header: 'Inclusion Rationale', key: 'rationale', width: 30 },
+          { header: 'Expected Deliverables', key: 'deliverables', width: 30 },
           { header: 'Priority', key: 'priority', width: 10 },
           { header: 'Status', key: 'status', width: 12 },
         ];
         engagements.forEach((e: any, i: number) => {
           const supportNames = (Array.isArray(e.supportive_auditor_ids) ? e.supportive_auditor_ids : [])
             .map((id: string) => lookups.auditorMap.get(id) || '—').join(', ');
+          const reasonCodes = Array.isArray(e.inclusion_reason_codes) ? e.inclusion_reason_codes : [];
+          const rationaleDisplay = reasonCodes.length > 0
+            ? reasonCodes.join('; ') + (e.inclusion_reason_notes ? ` — ${e.inclusion_reason_notes}` : '')
+            : (e.inclusion_rationale || '—');
+          const delCodes = Array.isArray(e.expected_deliverable_codes) ? e.expected_deliverable_codes : [];
+          const delDisplay = delCodes.length > 0
+            ? delCodes.join('; ') + (e.expected_deliverable_notes ? ` — ${e.expected_deliverable_notes}` : '')
+            : (e.expected_deliverable || '—');
           sheet.addRow({
             seq: e.sequence_no || i + 1,
             code: e.engagement_code || '—',
@@ -521,7 +541,8 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
             weeks: e.estimated_hours || '—',
             objective: e.objectives || '—',
             scope: e.scope || '—',
-            rationale: e.inclusion_rationale || '—',
+            rationale: rationaleDisplay,
+            deliverables: delDisplay,
             priority: e.board_priority_flag ? 'High' : 'Normal',
             status: e.status || 'Planned',
           });

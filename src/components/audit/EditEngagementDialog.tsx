@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,16 +7,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, ShieldCheck, Info, Save } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, Info, Save, Calendar } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useResolvedEngagementRisk } from '@/hooks/useEngagementRisk';
 import { StatusBadge } from '@/components/common';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { MultiSelectChips } from './engagement/MultiSelectChips';
+import { AuditeeContactSelector } from './engagement/AuditeeContactSelector';
+import { ScheduleIntelligence } from './engagement/ScheduleIntelligence';
 
 const ENGAGEMENT_TYPES = ['Planned Audit', 'Ad-hoc Audit', 'Management Requested Audit', 'Special Investigation', 'Follow-up Audit'];
 const RISK_RATINGS = ['Critical', 'High', 'Medium', 'Low'];
 const COVERAGE_CATEGORIES = ['Compliance', 'Financial', 'Operational', 'IT', 'Governance', 'Special'];
 const ENGAGEMENT_STATUSES = ['Draft', 'Planned', 'Ready', 'In Preparation', 'In Progress', 'Completed', 'Closed', 'Cancelled'];
+
+const INCLUSION_REASONS = [
+  'High Risk Area',
+  'Regulatory / Compliance Requirement',
+  'Management Request',
+  'Previous Audit Findings',
+  'High Transaction Volume',
+  'Process Criticality',
+  'System / Process Change',
+  'Fraud Risk / Sensitive Area',
+  'Follow-up Audit',
+  'Board / Audit Committee Request',
+  'Rotational Coverage',
+  'Thematic Review',
+  'Other',
+];
+
+const DELIVERABLE_OPTIONS = [
+  'Audit Report',
+  'Detailed Findings Report',
+  'Management Action Plan',
+  'Process Improvement Recommendations',
+  'Control Gap Assessment',
+  'Compliance Assessment',
+  'Root Cause Analysis',
+  'Data Analytics Report',
+  'Risk Assessment Update',
+  'Follow-up Tracker',
+  'Executive Summary Memo',
+  'Board / Committee Summary',
+  'Other',
+];
 
 const RISK_SOURCE_LABELS: Record<string, string> = {
   risk_assessment_function: 'Function Risk Assessment',
@@ -25,19 +61,65 @@ const RISK_SOURCE_LABELS: Record<string, string> = {
   default: 'Default (no risk data available)',
 };
 
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function getQuarterFromDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const month = new Date(dateStr).getMonth(); // 0-indexed
+  if (month < 3) return 'Q1';
+  if (month < 6) return 'Q2';
+  if (month < 9) return 'Q3';
+  return 'Q4';
+}
+
+function getMonthFromDate(dateStr: string): string {
+  if (!dateStr) return '';
+  return MONTHS[new Date(dateStr).getMonth()] || '';
+}
+
+/** Calculate working days between two dates (excludes weekends) */
+function calcWorkingDays(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (s > e) return 0;
+  let count = 0;
+  const cur = new Date(s);
+  while (cur <= e) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+/** Add working days to a date, returns ISO date string */
+function addWorkingDays(start: string, days: number): string {
+  if (!start || days <= 0) return '';
+  const d = new Date(start);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return d.toISOString().split('T')[0];
+}
+
 interface EditEngagementDialogProps {
   open: boolean;
   onClose: () => void;
-  engagement: any | null; // null = add mode
+  engagement: any | null;
   planId: string;
   planFiscalYear?: string;
   onSave: (payload: any) => void;
   isSaving?: boolean;
   isApprovedPlan?: boolean;
+  allEngagements?: any[];
 }
 
 export function EditEngagementDialog({
-  open, onClose, engagement, planId, planFiscalYear, onSave, isSaving, isApprovedPlan
+  open, onClose, engagement, planId, planFiscalYear, onSave, isSaving, isApprovedPlan, allEngagements = []
 }: EditEngagementDialogProps) {
   const { toast } = useToast();
   const { data: departments = [] } = useIADepartments();
@@ -47,6 +129,8 @@ export function EditEngagementDialog({
   const [dirty, setDirty] = useState(false);
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
+  const [quarterOverride, setQuarterOverride] = useState(false);
+  const [monthOverride, setMonthOverride] = useState(false);
 
   const [form, setForm] = useState({
     engagement_name: '',
@@ -79,11 +163,21 @@ export function EditEngagementDialog({
     auditee_contact: '',
     auditable_area_summary: '',
     sequence_no: '',
+    // New structured fields
+    inclusion_reason_codes: [] as string[],
+    inclusion_reason_notes: '',
+    expected_deliverable_codes: [] as string[],
+    expected_deliverable_notes: '',
+    primary_auditee_contact_id: '',
+    secondary_auditee_contact_ids: [] as string[],
   });
 
-  // Load engagement data when editing
   useEffect(() => {
     if (engagement && open) {
+      const reasonCodes = Array.isArray(engagement.inclusion_reason_codes) ? engagement.inclusion_reason_codes : [];
+      const deliverableCodes = Array.isArray(engagement.expected_deliverable_codes) ? engagement.expected_deliverable_codes : [];
+      const secondaryIds = Array.isArray(engagement.secondary_auditee_contact_ids) ? engagement.secondary_auditee_contact_ids : [];
+
       setForm({
         engagement_name: engagement.engagement_name || '',
         department_id: engagement.department_id || '',
@@ -115,10 +209,18 @@ export function EditEngagementDialog({
         auditee_contact: engagement.auditee_contact || '',
         auditable_area_summary: engagement.auditable_area_summary || '',
         sequence_no: engagement.sequence_no?.toString() || '',
+        // Structured fields with legacy fallback
+        inclusion_reason_codes: reasonCodes,
+        inclusion_reason_notes: engagement.inclusion_reason_notes || (reasonCodes.length === 0 ? (engagement.inclusion_rationale || '') : ''),
+        expected_deliverable_codes: deliverableCodes,
+        expected_deliverable_notes: engagement.expected_deliverable_notes || (deliverableCodes.length === 0 ? (engagement.expected_deliverable || '') : ''),
+        primary_auditee_contact_id: engagement.primary_auditee_contact_id || '',
+        secondary_auditee_contact_ids: secondaryIds,
       });
       setDirty(false);
+      setQuarterOverride(false);
+      setMonthOverride(false);
     } else if (!engagement && open) {
-      // Reset for add mode
       setForm({
         engagement_name: '', department_id: '', function_id: '', engagement_type: 'Planned Audit',
         engagement_risk_rating: 'Medium', risk_override: false, risk_override_reason: '', derived_risk_rating: '',
@@ -127,8 +229,13 @@ export function EditEngagementDialog({
         inclusion_rationale: '', coverage_category: '', board_priority_flag: false, is_adhoc: false, status: 'Planned',
         expected_deliverable: '', dependencies: '', scheduling_notes: '', auditee_contact: '',
         auditable_area_summary: '', sequence_no: '',
+        inclusion_reason_codes: [], inclusion_reason_notes: '',
+        expected_deliverable_codes: [], expected_deliverable_notes: '',
+        primary_auditee_contact_id: '', secondary_auditee_contact_ids: [],
       });
       setDirty(false);
+      setQuarterOverride(false);
+      setMonthOverride(false);
     }
   }, [engagement, open]);
 
@@ -144,6 +251,32 @@ export function EditEngagementDialog({
       updateField('derived_risk_rating', resolvedRisk.risk_rating);
     }
   }, [resolvedRisk, form.risk_override]);
+
+  // Auto-derive quarter and month from start date
+  useEffect(() => {
+    if (form.planned_start_date && !quarterOverride) {
+      const q = getQuarterFromDate(form.planned_start_date);
+      if (q && q !== form.quarter) {
+        setForm(f => ({ ...f, quarter: q }));
+      }
+    }
+    if (form.planned_start_date && !monthOverride) {
+      const m = getMonthFromDate(form.planned_start_date);
+      if (m && m !== form.month) {
+        setForm(f => ({ ...f, month: m }));
+      }
+    }
+  }, [form.planned_start_date, quarterOverride, monthOverride]);
+
+  // Auto-calculate estimated days from date range
+  useEffect(() => {
+    if (form.planned_start_date && form.planned_end_date) {
+      const days = calcWorkingDays(form.planned_start_date, form.planned_end_date);
+      if (days > 0 && days.toString() !== form.estimated_days) {
+        setForm(f => ({ ...f, estimated_days: days.toString(), estimated_hours: (days * 8).toString() }));
+      }
+    }
+  }, [form.planned_start_date, form.planned_end_date]);
 
   const mappedAuditors = (auditors || []).filter((a: any) => a.id && (a.profile_id || a.user_id));
   const unmappedAuditors = (auditors || []).filter((a: any) => !a.profile_id && !a.user_id);
@@ -163,6 +296,33 @@ export function EditEngagementDialog({
     setDirty(true);
   };
 
+  // Smart date handlers
+  const handleStartDateChange = (val: string) => {
+    updateField('planned_start_date', val);
+    // If we have estimated days but no end date, suggest end date
+    if (val && form.estimated_days && !form.planned_end_date) {
+      const suggestedEnd = addWorkingDays(val, Number(form.estimated_days));
+      if (suggestedEnd) updateField('planned_end_date', suggestedEnd);
+    }
+  };
+
+  const handleEndDateChange = (val: string) => {
+    updateField('planned_end_date', val);
+  };
+
+  const handleEstimatedDaysChange = (val: string) => {
+    updateField('estimated_days', val);
+    const days = Number(val);
+    if (days > 0) {
+      updateField('estimated_hours', (days * 8).toString());
+      // Suggest end date if start exists but end doesn't
+      if (form.planned_start_date && !form.planned_end_date) {
+        const suggestedEnd = addWorkingDays(form.planned_start_date, days);
+        if (suggestedEnd) updateField('planned_end_date', suggestedEnd);
+      }
+    }
+  };
+
   const handleClose = () => {
     if (dirty) {
       if (!confirm('You have unsaved changes. Discard?')) return;
@@ -176,10 +336,18 @@ export function EditEngagementDialog({
     if (!form.department_id) errors.push('Department is required');
     if (!form.function_id) errors.push('Business function is required');
     if (!form.lead_auditor_id) errors.push('Lead auditor is required');
-    if (!form.quarter) errors.push('Quarter is required');
     if (!form.estimated_days) errors.push('Estimated days is required');
     if (form.planned_start_date && form.planned_end_date && form.planned_start_date > form.planned_end_date) {
       errors.push('Planned start date must be before end date');
+    }
+    // New validations
+    if (form.inclusion_reason_codes.length === 0) errors.push('At least one inclusion reason is required');
+    if (form.inclusion_reason_codes.includes('Other') && !form.inclusion_reason_notes.trim()) {
+      errors.push('Inclusion notes are required when "Other" is selected');
+    }
+    if (form.expected_deliverable_codes.length === 0) errors.push('At least one expected deliverable is required');
+    if (form.expected_deliverable_codes.includes('Other') && !form.expected_deliverable_notes.trim()) {
+      errors.push('Deliverable notes are required when "Other" is selected');
     }
     return errors;
   };
@@ -190,12 +358,33 @@ export function EditEngagementDialog({
     return `ENG-${dateStr}-${String(Math.floor(1000 + Math.random() * 9000))}`;
   };
 
+  // Derived values for display
+  const derivedWeeks = form.estimated_days ? Math.ceil(Number(form.estimated_days) / 5) : null;
+  const derivedQuarter = form.planned_start_date ? getQuarterFromDate(form.planned_start_date) : null;
+  const derivedMonth = form.planned_start_date ? getMonthFromDate(form.planned_start_date) : null;
+  const leadAuditorName = mappedAuditors.find((a: any) => a.id === form.lead_auditor_id)?.name || '';
+
+  // Fiscal year warning
+  const fiscalYearWarning = useMemo(() => {
+    if (!planFiscalYear || !form.planned_start_date) return '';
+    const year = new Date(form.planned_start_date).getFullYear().toString();
+    if (!planFiscalYear.includes(year)) {
+      return `Start date (${year}) may fall outside fiscal year ${planFiscalYear}`;
+    }
+    return '';
+  }, [planFiscalYear, form.planned_start_date]);
+
   const handleSubmit = () => {
     const errors = validate();
     if (errors.length > 0) {
       toast({ title: 'Validation Errors', description: errors[0], variant: 'destructive' });
       return;
     }
+
+    // Build inclusion_rationale text from codes for backward compat
+    const inclusionText = form.inclusion_reason_codes.join('; ') + (form.inclusion_reason_notes ? ` — ${form.inclusion_reason_notes}` : '');
+    // Build expected_deliverable text from codes for backward compat
+    const deliverableText = form.expected_deliverable_codes.join('; ') + (form.expected_deliverable_notes ? ` — ${form.expected_deliverable_notes}` : '');
 
     const payload: any = {
       engagement_name: form.engagement_name,
@@ -216,16 +405,23 @@ export function EditEngagementDialog({
       month: form.month || null,
       estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
       estimated_days: form.estimated_days ? Number(form.estimated_days) : null,
-      inclusion_rationale: form.inclusion_rationale || null,
+      inclusion_rationale: inclusionText || null,
       coverage_category: form.coverage_category || null,
       board_priority_flag: form.board_priority_flag,
       is_adhoc: form.is_adhoc,
-      expected_deliverable: form.expected_deliverable || null,
+      expected_deliverable: deliverableText || null,
       dependencies: form.dependencies || null,
       scheduling_notes: form.scheduling_notes || null,
       auditee_contact: form.auditee_contact || null,
       auditable_area_summary: form.auditable_area_summary || null,
       sequence_no: form.sequence_no ? Number(form.sequence_no) : null,
+      // New structured fields
+      inclusion_reason_codes: form.inclusion_reason_codes,
+      inclusion_reason_notes: form.inclusion_reason_notes || null,
+      expected_deliverable_codes: form.expected_deliverable_codes,
+      expected_deliverable_notes: form.expected_deliverable_notes || null,
+      primary_auditee_contact_id: form.primary_auditee_contact_id && form.primary_auditee_contact_id !== '__manual__' ? form.primary_auditee_contact_id : null,
+      secondary_auditee_contact_ids: form.secondary_auditee_contact_ids,
     };
 
     if (isEditMode) {
@@ -286,11 +482,11 @@ export function EditEngagementDialog({
             <TabsTrigger value="schedule">Schedule & Resources</TabsTrigger>
           </TabsList>
 
-          {/* Identity & Coverage */}
+          {/* ===== Identity & Coverage ===== */}
           <TabsContent value="identity" className="space-y-4 mt-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Engagement Title *</Label>
+                <Label>Engagement Title <span className="text-destructive">*</span></Label>
                 <Input value={form.engagement_name} onChange={e => updateField('engagement_name', e.target.value)} placeholder="e.g. IT Security Audit" />
               </div>
               <div>
@@ -303,14 +499,14 @@ export function EditEngagementDialog({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Department *</Label>
-                <Select value={form.department_id} onValueChange={v => { updateField('department_id', v); updateField('function_id', ''); }}>
+                <Label>Department <span className="text-destructive">*</span></Label>
+                <Select value={form.department_id} onValueChange={v => { updateField('department_id', v); updateField('function_id', ''); updateField('primary_auditee_contact_id', ''); updateField('secondary_auditee_contact_ids', []); }}>
                   <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                   <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Business Function *</Label>
+                <Label>Business Function <span className="text-destructive">*</span></Label>
                 <Select value={form.function_id} onValueChange={v => updateField('function_id', v)} disabled={!form.department_id}>
                   <SelectTrigger><SelectValue placeholder={form.department_id ? 'Select function' : 'Select department first'} /></SelectTrigger>
                   <SelectContent>{deptFunctions.map((fn: any) => <SelectItem key={fn.id} value={fn.id}>{fn.function_name}</SelectItem>)}</SelectContent>
@@ -375,30 +571,50 @@ export function EditEngagementDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Structured Inclusion Rationale */}
+            <MultiSelectChips
+              label="Inclusion Rationale"
+              required
+              options={INCLUSION_REASONS}
+              selected={form.inclusion_reason_codes}
+              onChange={v => { updateField('inclusion_reason_codes', v); setDirty(true); }}
+              maxSelections={2}
+              helperText="Why is this audit included in the annual plan?"
+            />
+            {(form.inclusion_reason_codes.includes('Other') || form.inclusion_reason_notes) && (
               <div>
-                <Label>Inclusion Rationale</Label>
-                <Input value={form.inclusion_rationale} onChange={e => updateField('inclusion_rationale', e.target.value)} placeholder="Why this audit is included in the plan" />
+                <Label>
+                  Additional Inclusion Notes
+                  {form.inclusion_reason_codes.includes('Other') && <span className="text-destructive"> *</span>}
+                </Label>
+                <Textarea
+                  value={form.inclusion_reason_notes}
+                  onChange={e => updateField('inclusion_reason_notes', e.target.value)}
+                  placeholder="Provide additional context for the inclusion rationale..."
+                  rows={2}
+                />
               </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Sequence No.</Label>
                 <Input type="number" value={form.sequence_no} onChange={e => updateField('sequence_no', e.target.value)} placeholder="e.g. 1" />
               </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.board_priority_flag} onCheckedChange={(c) => { updateField('board_priority_flag', !!c); }} />
-                Board Priority
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.is_adhoc} onCheckedChange={(c) => { updateField('is_adhoc', !!c); }} />
-                Ad-hoc Audit
-              </label>
+              <div className="flex items-end gap-4 pb-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={form.board_priority_flag} onCheckedChange={(c) => { updateField('board_priority_flag', !!c); }} />
+                  Board Priority
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={form.is_adhoc} onCheckedChange={(c) => { updateField('is_adhoc', !!c); }} />
+                  Ad-hoc Audit
+                </label>
+              </div>
             </div>
           </TabsContent>
 
-          {/* Planning Narrative */}
+          {/* ===== Planning Narrative ===== */}
           <TabsContent value="planning" className="space-y-4 mt-3">
             <div>
               <Label>Objective</Label>
@@ -412,21 +628,42 @@ export function EditEngagementDialog({
               <Label>Auditable Area Summary</Label>
               <Textarea value={form.auditable_area_summary} onChange={e => updateField('auditable_area_summary', e.target.value)} placeholder="Key areas to be audited..." rows={2} />
             </div>
-            <div>
-              <Label>Expected Deliverable</Label>
-              <Input value={form.expected_deliverable} onChange={e => updateField('expected_deliverable', e.target.value)} placeholder="e.g. Audit Report, Management Letter" />
-            </div>
+
+            {/* Structured Expected Deliverables */}
+            <MultiSelectChips
+              label="Expected Deliverables"
+              required
+              options={DELIVERABLE_OPTIONS}
+              selected={form.expected_deliverable_codes}
+              onChange={v => { updateField('expected_deliverable_codes', v); setDirty(true); }}
+              helperText="What outputs will this engagement produce?"
+            />
+            {(form.expected_deliverable_codes.includes('Other') || form.expected_deliverable_notes) && (
+              <div>
+                <Label>
+                  Additional Deliverables Notes
+                  {form.expected_deliverable_codes.includes('Other') && <span className="text-destructive"> *</span>}
+                </Label>
+                <Textarea
+                  value={form.expected_deliverable_notes}
+                  onChange={e => updateField('expected_deliverable_notes', e.target.value)}
+                  placeholder="Describe any additional or custom deliverables..."
+                  rows={2}
+                />
+              </div>
+            )}
+
             <div>
               <Label>Dependencies / Preconditions</Label>
               <Textarea value={form.dependencies} onChange={e => updateField('dependencies', e.target.value)} placeholder="Any prerequisites or dependencies..." rows={2} />
             </div>
           </TabsContent>
 
-          {/* Team & Ownership */}
+          {/* ===== Team & Ownership ===== */}
           <TabsContent value="team" className="space-y-4 mt-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Lead Auditor *</Label>
+                <Label>Lead Auditor <span className="text-destructive">*</span></Label>
                 <Select value={form.lead_auditor_id || '__none__'} onValueChange={v => updateField('lead_auditor_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select lead auditor" /></SelectTrigger>
                   <SelectContent>
@@ -473,59 +710,133 @@ export function EditEngagementDialog({
               </div>
             </div>
 
-            <div>
-              <Label>Auditee Contact</Label>
-              <Input value={form.auditee_contact} onChange={e => updateField('auditee_contact', e.target.value)} placeholder="Name of the auditee contact" />
-            </div>
+            {/* Auditee Contact Selector */}
+            <AuditeeContactSelector
+              departmentId={form.department_id}
+              functionId={form.function_id}
+              departments={departments}
+              deptFunctions={deptFunctions}
+              primaryContactId={form.primary_auditee_contact_id}
+              onPrimaryChange={v => { updateField('primary_auditee_contact_id', v); setDirty(true); }}
+              secondaryContactIds={form.secondary_auditee_contact_ids}
+              onSecondaryChange={v => { updateField('secondary_auditee_contact_ids', v); setDirty(true); }}
+              manualContact={form.auditee_contact}
+              onManualContactChange={v => { updateField('auditee_contact', v); setDirty(true); }}
+            />
           </TabsContent>
 
-          {/* Schedule & Resources */}
+          {/* ===== Schedule & Resources ===== */}
           <TabsContent value="schedule" className="space-y-4 mt-3">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Quarter *</Label>
-                <Select value={form.quarter} onValueChange={v => updateField('quarter', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select quarter" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Q1">Q1</SelectItem>
-                    <SelectItem value="Q2">Q2</SelectItem>
-                    <SelectItem value="Q3">Q3</SelectItem>
-                    <SelectItem value="Q4">Q4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Month</Label>
-                <Select value={form.month} onValueChange={v => updateField('month', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select month" /></SelectTrigger>
-                  <SelectContent>
-                    {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Estimated Weeks</Label>
-                <Input type="number" value={form.estimated_hours} onChange={e => updateField('estimated_hours', e.target.value)} placeholder="e.g. 3" />
-                <p className="text-[10px] text-muted-foreground mt-0.5">Duration in weeks</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Planned Start Date</Label>
-                <Input type="date" value={form.planned_start_date} onChange={e => updateField('planned_start_date', e.target.value)} />
+                <Input type="date" value={form.planned_start_date} onChange={e => handleStartDateChange(e.target.value)} />
               </div>
               <div>
                 <Label>Planned End Date</Label>
-                <Input type="date" value={form.planned_end_date} onChange={e => updateField('planned_end_date', e.target.value)} />
-              </div>
-              <div>
-                <Label>Estimated Days *</Label>
-                <Input type="number" value={form.estimated_days} onChange={e => updateField('estimated_days', e.target.value)} placeholder="e.g. 15" />
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total working days for the audit</p>
+                <Input type="date" value={form.planned_end_date} onChange={e => handleEndDateChange(e.target.value)} />
               </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Estimated Days <span className="text-destructive">*</span></Label>
+                <Input type="number" value={form.estimated_days} onChange={e => handleEstimatedDaysChange(e.target.value)} placeholder="e.g. 15" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {form.planned_start_date && form.planned_end_date ? 'Auto-calculated from date range (editable)' : 'Total working days'}
+                </p>
+              </div>
+              <div>
+                <Label>Estimated Hours</Label>
+                <Input type="number" value={form.estimated_hours} onChange={e => updateField('estimated_hours', e.target.value)} placeholder="e.g. 120" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {form.estimated_days ? `Derived: ${Number(form.estimated_days) * 8}h (8h/day)` : 'Based on days × 8'}
+                </p>
+              </div>
+              <div>
+                <Label>Estimated Weeks</Label>
+                <div className="flex items-center h-10 px-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">
+                  {derivedWeeks ? `${derivedWeeks} week${derivedWeeks !== 1 ? 's' : ''}` : '—'}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Auto-derived from days</p>
+              </div>
+            </div>
+
+            {/* Quarter & Month derived */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Quarter</Label>
+                  {derivedQuarter && !quarterOverride && (
+                    <button type="button" className="text-[10px] text-primary underline" onClick={() => setQuarterOverride(true)}>Override</button>
+                  )}
+                  {quarterOverride && (
+                    <button type="button" className="text-[10px] text-primary underline" onClick={() => { setQuarterOverride(false); if (derivedQuarter) updateField('quarter', derivedQuarter); }}>Reset to Auto</button>
+                  )}
+                </div>
+                {quarterOverride ? (
+                  <Select value={form.quarter} onValueChange={v => updateField('quarter', v)}>
+                    <SelectTrigger><SelectValue placeholder="Select quarter" /></SelectTrigger>
+                    <SelectContent>
+                      {['Q1','Q2','Q3','Q4'].map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center h-10 px-3 border rounded-md bg-muted/50 text-sm">
+                    {form.quarter ? (
+                      <Badge variant="secondary">{form.quarter}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Set start date to auto-fill</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Month</Label>
+                  {derivedMonth && !monthOverride && (
+                    <button type="button" className="text-[10px] text-primary underline" onClick={() => setMonthOverride(true)}>Override</button>
+                  )}
+                  {monthOverride && (
+                    <button type="button" className="text-[10px] text-primary underline" onClick={() => { setMonthOverride(false); if (derivedMonth) updateField('month', derivedMonth); }}>Reset to Auto</button>
+                  )}
+                </div>
+                {monthOverride ? (
+                  <Select value={form.month} onValueChange={v => updateField('month', v)}>
+                    <SelectTrigger><SelectValue placeholder="Select month" /></SelectTrigger>
+                    <SelectContent>{MONTHS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center h-10 px-3 border rounded-md bg-muted/50 text-sm">
+                    {form.month ? (
+                      <Badge variant="secondary">{form.month}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Set start date to auto-fill</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fiscal year warning */}
+            {fiscalYearWarning && (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">{fiscalYearWarning}</p>
+              </div>
+            )}
+
+            {/* Resource Intelligence */}
+            <ScheduleIntelligence
+              leadAuditorId={form.lead_auditor_id}
+              leadAuditorName={leadAuditorName}
+              currentEngagementId={engagement?.id}
+              allEngagements={allEngagements}
+              plannedStartDate={form.planned_start_date}
+              plannedEndDate={form.planned_end_date}
+              quarter={form.quarter}
+            />
+
             <div>
               <Label>Scheduling Notes</Label>
               <Textarea value={form.scheduling_notes} onChange={e => updateField('scheduling_notes', e.target.value)} placeholder="Any scheduling considerations..." rows={2} />
