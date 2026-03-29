@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit, Send, Undo2 } from 'lucide-react';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
@@ -12,21 +12,24 @@ import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
 import { PlanningWizard } from '@/components/audit/PlanningWizard';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
-import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
+import { PlanApprovalHistoryTimeline } from '@/components/audit/PlanApprovalHistoryTimeline';
 import { PlanAmendmentHistory } from '@/components/audit/PlanAmendmentHistory';
+import { PlanApprovalBanner } from '@/components/audit/PlanApprovalBanner';
+import { PlanSubmissionReadiness } from '@/components/audit/PlanSubmissionReadiness';
 import { BoardPackTab } from '@/components/audit/BoardPackTab';
 import { PlanDistributionTab } from '@/components/audit/PlanDistributionTab';
 import { CoverageRiskTab } from '@/components/audit/CoverageRiskTab';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
-import { PageShell, DataTable, StatusBadge } from '@/components/common';
+import { PageShell, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, X } from 'lucide-react';
+import { validatePlanReadiness, useAuditPlanWorkflow, isPlanEditable, isPlanLocked } from '@/hooks/useAuditPlanApproval';
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -52,6 +55,10 @@ export default function AuditPlanDetail() {
   const { update: updatePlan } = useIAAnnualPlanMutations();
 
   const [isEditingHeader, setIsEditingHeader] = useState(false);
+  const [showReadiness, setShowReadiness] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+
+  const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
 
