@@ -12,7 +12,7 @@
 import { useMutation, UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { logAuditEntry, computeChangedFields, resolveRouteContext } from '@/services/globalAuditInterceptor';
+import { logAuditEntry, computeChangedFields, resolveRouteContext, DB_TRIGGER_TABLES } from '@/services/globalAuditInterceptor';
 import { useUserCode } from '@/hooks/useUserCode';
 
 interface AuditedMutationConfig {

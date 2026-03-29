@@ -115,17 +115,34 @@ export function resolveRouteContext(pathname: string): { module: string; screen:
  * Tables with DB-level audit triggers — the app interceptor marks its entries
  * as supplementary for these to avoid double-counting.
  */
+/**
+ * Complete set of tables with DB-level audit triggers (fn_audit_row_change).
+ * All three app-level audit paths check this set and skip writing — the DB trigger
+ * is the single authoritative source. Add new tables here when attaching the trigger.
+ * Includes both actual table names and mutation-key aliases.
+ */
 export const DB_TRIGGER_TABLES = new Set([
-  'cn_receipt', 'cn_batch', 'er_master', 'profiles',
+  // Cashier
+  'cn_receipt', 'cn_batch', 'cn_cash_count', 'cn_card_machine',
+  'cn_batch_card_transaction', 'cn_batch_cheque_verification',
+  // Registration
+  'er_master', 'ip_master', 'ip_self_employ', 'profiles',
+  // Compliance / BEMA
   'bema_c3_submissions', 'bema_registrations', 'bema_audit_cases',
   'bema_payment_plans', 'bema_waivers',
+  // Internal Audit
   'ia_findings', 'ia_audit_engagements', 'ia_risk_assessments', 'ia_audit_reports',
+  // Configuration & Settings
   'system_settings', 'security_policy_config', 'ip_access_rules',
   'c3_calculation_config', 'payment_module_config',
   'tb_levy_slabs', 'tb_levy_slab_details',
-  'levy_slabs', 'levy_slab_details', // aliases used in mutationKeys
-  'tb_currencies', 'currencies', // currency config
-  'c3_config_management', 'c3_config_periods', 'c3_config_details', // C3 config mutation keys
+  'tb_currencies', 'tb_self_emp_contrib_rate',
+  // API & Workflow
+  'api_settings', 'api_registry', 'workflow_instances',
+  // Mutation-key aliases (used in mutationKey arrays, map to real tables above)
+  'levy_slabs', 'levy_slab_details',
+  'currencies',
+  'c3_config_management', 'c3_config_periods', 'c3_config_details',
 ]);
 
 /**

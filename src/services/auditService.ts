@@ -88,6 +88,14 @@ export async function logAuditTrail(entry: AuditTrailEntry): Promise<string | nu
       return null;
     }
 
+    // Skip any entry where both before and after values are empty — these are noise
+    const hasBefore = entry.beforeValue && Object.keys(entry.beforeValue).length > 0;
+    const hasAfter = entry.afterValue && Object.keys(entry.afterValue).length > 0;
+    if (!hasBefore && !hasAfter) {
+      console.debug('[AuditService] Skipping empty audit entry for:', entry.entityType, entry.action);
+      return null;
+    }
+
     let userId = entry.userId;
     if (!userId) {
       const { data: { user } } = await supabase.auth.getUser();
