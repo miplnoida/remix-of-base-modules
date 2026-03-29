@@ -53,59 +53,80 @@ const ACTION_OPTIONS = [
   { value: 'mutation', label: 'Mutation (Legacy)' },
 ];
 
-/** Compute field-level diffs for the detail dialog */
-function computeVisualDiff(
+/** 
+ * Compute full-row display with changed fields highlighted.
+ * If payload_json.changed_fields is available (from DB trigger), use it to mark which fields changed.
+ * Otherwise, fall back to diffing before/after values.
+ */
+function computeFullRowWithHighlights(
   before: Record<string, any> | null,
   after: Record<string, any> | null,
-  action: string | null
-): Array<{ field: string; oldValue: any; newValue: any; changeType: 'added' | 'removed' | 'changed' }> {
+  action: string | null,
+  changedFieldsList?: string[]
+): Array<{ field: string; oldValue: any; newValue: any; isChanged: boolean; changeType: 'added' | 'removed' | 'changed' | 'unchanged' }> {
   const skipFields = new Set([
     'updated_at', 'modified_date', 'updated_by', 'modified_by',
     'created_at', 'created_by', 'correlation_id', 'session_id',
     'device_info', 'timestamp',
   ]);
 
-  const diffs: Array<{ field: string; oldValue: any; newValue: any; changeType: 'added' | 'removed' | 'changed' }> = [];
+  const rows: Array<{ field: string; oldValue: any; newValue: any; isChanged: boolean; changeType: 'added' | 'removed' | 'changed' | 'unchanged' }> = [];
 
-  if (!before && !after) return diffs;
+  if (!before && !after) return rows;
 
   const a = action?.toLowerCase() || '';
 
   if (a === 'create' || a === 'insert' || (!before && after)) {
     for (const [key, val] of Object.entries(after || {})) {
-      if (skipFields.has(key) || val === null || val === undefined) continue;
-      diffs.push({ field: key, oldValue: null, newValue: val, changeType: 'added' });
+      if (skipFields.has(key)) continue;
+      rows.push({ field: key, oldValue: null, newValue: val, isChanged: true, changeType: 'added' });
     }
-    return diffs;
+    return rows;
   }
 
   if (a === 'delete' || (before && !after)) {
     for (const [key, val] of Object.entries(before || {})) {
-      if (skipFields.has(key) || val === null || val === undefined) continue;
-      diffs.push({ field: key, oldValue: val, newValue: null, changeType: 'removed' });
+      if (skipFields.has(key)) continue;
+      rows.push({ field: key, oldValue: val, newValue: null, isChanged: true, changeType: 'removed' });
     }
-    return diffs;
+    return rows;
   }
 
-  // Update / general: compare field by field
+  // UPDATE: show ALL fields from both rows
+  const changedSet = changedFieldsList ? new Set(changedFieldsList) : null;
   const allKeys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
-  for (const key of allKeys) {
-    if (skipFields.has(key)) continue;
+  
+  // Sort: changed fields first, then unchanged
+  const sortedKeys = Array.from(allKeys).filter(k => !skipFields.has(k));
+  sortedKeys.sort((a, b) => {
+    const aChanged = changedSet ? changedSet.has(a) : JSON.stringify(before?.[a]) !== JSON.stringify(after?.[a]);
+    const bChanged = changedSet ? changedSet.has(b) : JSON.stringify(before?.[b]) !== JSON.stringify(after?.[b]);
+    if (aChanged && !bChanged) return -1;
+    if (!aChanged && bChanged) return 1;
+    return a.localeCompare(b);
+  });
+
+  for (const key of sortedKeys) {
     const oldVal = before?.[key];
     const newVal = after?.[key];
+    const isChanged = changedSet 
+      ? changedSet.has(key) 
+      : JSON.stringify(oldVal) !== JSON.stringify(newVal);
 
-    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+    if (isChanged) {
       if (oldVal === null || oldVal === undefined) {
-        diffs.push({ field: key, oldValue: null, newValue: newVal, changeType: 'added' });
+        rows.push({ field: key, oldValue: null, newValue: newVal, isChanged: true, changeType: 'added' });
       } else if (newVal === null || newVal === undefined) {
-        diffs.push({ field: key, oldValue: oldVal, newValue: null, changeType: 'removed' });
+        rows.push({ field: key, oldValue: oldVal, newValue: null, isChanged: true, changeType: 'removed' });
       } else {
-        diffs.push({ field: key, oldValue: oldVal, newValue: newVal, changeType: 'changed' });
+        rows.push({ field: key, oldValue: oldVal, newValue: newVal, isChanged: true, changeType: 'changed' });
       }
+    } else {
+      rows.push({ field: key, oldValue: oldVal, newValue: newVal, isChanged: false, changeType: 'unchanged' });
     }
   }
 
-  return diffs;
+  return rows;
 }
 
 function formatFieldValue(value: any): string {
