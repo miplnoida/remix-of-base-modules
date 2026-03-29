@@ -9777,6 +9777,8 @@ export type Database = {
           estimated_days: number | null
           estimated_hours: number | null
           execution_gate_status: Json | null
+          execution_notes: string | null
+          execution_status: string | null
           expected_deliverable: string | null
           expected_deliverable_codes: Json | null
           expected_deliverable_notes: string | null
@@ -9787,6 +9789,8 @@ export type Database = {
           inclusion_reason_notes: string | null
           is_active: boolean | null
           is_adhoc: boolean | null
+          launched_at: string | null
+          launched_by: string | null
           lead_auditor_id: string | null
           methodology: string | null
           month: string | null
@@ -9837,6 +9841,8 @@ export type Database = {
           estimated_days?: number | null
           estimated_hours?: number | null
           execution_gate_status?: Json | null
+          execution_notes?: string | null
+          execution_status?: string | null
           expected_deliverable?: string | null
           expected_deliverable_codes?: Json | null
           expected_deliverable_notes?: string | null
@@ -9847,6 +9853,8 @@ export type Database = {
           inclusion_reason_notes?: string | null
           is_active?: boolean | null
           is_adhoc?: boolean | null
+          launched_at?: string | null
+          launched_by?: string | null
           lead_auditor_id?: string | null
           methodology?: string | null
           month?: string | null
@@ -9897,6 +9905,8 @@ export type Database = {
           estimated_days?: number | null
           estimated_hours?: number | null
           execution_gate_status?: Json | null
+          execution_notes?: string | null
+          execution_status?: string | null
           expected_deliverable?: string | null
           expected_deliverable_codes?: Json | null
           expected_deliverable_notes?: string | null
@@ -9907,6 +9917,8 @@ export type Database = {
           inclusion_reason_notes?: string | null
           is_active?: boolean | null
           is_adhoc?: boolean | null
+          launched_at?: string | null
+          launched_by?: string | null
           lead_auditor_id?: string | null
           methodology?: string | null
           month?: string | null
@@ -11587,6 +11599,77 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_document_requests: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_title: string
+          due_date: string | null
+          engagement_id: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          priority: string | null
+          received_date: string | null
+          received_file_path: string | null
+          requested_by: string | null
+          requested_from: string | null
+          requested_from_email: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_title: string
+          due_date?: string | null
+          engagement_id: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          priority?: string | null
+          received_date?: string | null
+          received_file_path?: string | null
+          requested_by?: string | null
+          requested_from?: string | null
+          requested_from_email?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_title?: string
+          due_date?: string | null
+          engagement_id?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          priority?: string | null
+          received_date?: string | null
+          received_file_path?: string | null
+          requested_by?: string | null
+          requested_from?: string | null
+          requested_from_email?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_document_requests_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_document_templates: {
         Row: {
           approved_at: string | null
@@ -11645,6 +11728,53 @@ export type Database = {
             columns: ["parent_template_id"]
             isOneToOne: false
             referencedRelation: "ia_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_engagement_execution_log: {
+        Row: {
+          created_at: string | null
+          engagement_id: string
+          event_description: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          performed_at: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          engagement_id: string
+          event_description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          engagement_id?: string
+          event_description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_engagement_execution_log_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_engagements"
             referencedColumns: ["id"]
           },
         ]
@@ -24305,6 +24435,10 @@ export type Database = {
         Args: { p_engagement_id: string }
         Returns: Json
       }
+      ia_check_launch_readiness: {
+        Args: { p_engagement_id: string }
+        Returns: Json
+      }
       ia_check_overdue_actions: { Args: never; Returns: Json }
       ia_compute_engagement_priority_score: {
         Args: {
@@ -24369,6 +24503,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ia_launch_engagement: {
+        Args: { p_engagement_id: string; p_launched_by?: string }
+        Returns: Json
+      }
       ia_persist_plan_engagements: {
         Args: { p_created_by?: string; p_engagements: Json; p_plan_id: string }
         Returns: Json
@@ -24421,6 +24559,15 @@ export type Database = {
           p_is_revision?: boolean
           p_plan_id: string
           p_submitted_by: string
+        }
+        Returns: Json
+      }
+      ia_transition_execution_status: {
+        Args: {
+          p_engagement_id: string
+          p_new_status: string
+          p_notes?: string
+          p_performed_by?: string
         }
         Returns: Json
       }
