@@ -93,20 +93,39 @@ export default function AuditPlanDetail() {
   }
 
   const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-  const canEditHeader = ['Draft', 'Revision'].includes(plan.status);
+  const planStatus = plan.status || 'Draft';
+  const canEditHeader = isPlanEditable(planStatus);
+  const locked = isPlanLocked(planStatus);
+  const canSubmit = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
+  const canWithdraw = planStatus === 'Submitted';
+  const readinessChecks = validatePlanReadiness(plan, engagements || []);
 
   return (
     <PageShell
       title={plan.title || 'Plan Workspace'}
-      subtitle={`Fiscal Year: ${plan.fiscal_year || '—'} • Version: v${plan.current_version_number || 1} • Status: ${plan.status || 'Draft'}`}
+      subtitle={`Fiscal Year: ${plan.fiscal_year || '—'} • Version: v${plan.current_version_number || 1} • Status: ${planStatus}`}
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Annual Plans', href: '/audit/audit-plans' }, { label: plan.title || 'Workspace' }]}
       isLoading={engLoading}
       actions={
-        <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />Back
-        </Button>
+        <div className="flex items-center gap-2">
+          {canSubmit && hasPermission('edit_audit_plans') && (
+            <Button onClick={() => setShowReadiness(true)}>
+              <Send className="h-4 w-4 mr-2" />Submit for Approval
+            </Button>
+          )}
+          {canWithdraw && hasPermission('edit_audit_plans') && (
+            <Button variant="outline" onClick={() => setShowWithdraw(true)}>
+              <Undo2 className="h-4 w-4 mr-2" />Withdraw
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />Back
+          </Button>
+        </div>
       }
     >
+      {/* Approval Status Banner */}
+      <PlanApprovalBanner plan={plan} />
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <MetricCard title="Engagements" value={stats.total} icon={Briefcase} variant="info" />
