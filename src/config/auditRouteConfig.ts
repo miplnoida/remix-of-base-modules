@@ -31,7 +31,7 @@ export const AUDIT_FEATURE_FLAGS = {
   FEATURE_AUDIT_WORKLOAD_CAPACITY: false,
   FEATURE_AUDIT_LEAVE_MANAGEMENT: false,
   FEATURE_AUDIT_HOLIDAY_MANAGEMENT: false,
-  FEATURE_AUDIT_PLAN_APPROVAL: false,
+  FEATURE_AUDIT_PLAN_APPROVAL: true,
   FEATURE_AUDIT_ACTIVITY_CALENDAR: false,
   FEATURE_AUDIT_ACTIVITY_WORKBENCH: false,
   FEATURE_AUDIT_EVIDENCE_MANAGEMENT: false,
@@ -82,6 +82,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
 
   // ===== Planning =====
   { moduleKey: 'plans', label: 'Audit Plans', path: '/audit/audit-plans', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLANS, category: 'planning', component: 'AuditPlansNew' },
+  { moduleKey: 'plan-approval', label: 'Plan Approval', path: '/audit/plan-approval', permission: 'approve_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLAN_APPROVAL, category: 'planning', component: 'PlanApproval' },
 
   // ===== Execution =====
   { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },

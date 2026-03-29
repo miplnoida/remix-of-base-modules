@@ -9,7 +9,8 @@ import {
   Briefcase,
   AlertCircle,
   CheckSquare,
-  BarChart3
+  BarChart3,
+  ClipboardCheck
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -58,6 +59,13 @@ export const auditMenuItems = [
         icon: FileText,
         requiresPermission: "create_audit_plans",
         description: "Risk-driven audit planning"
+      },
+      {
+        title: "Plan Approval",
+        url: "/audit/plan-approval",
+        icon: ClipboardCheck,
+        requiresPermission: "approve_audit_plans",
+        description: "Review and approve submitted plans"
       },
       {
         title: "Audits",
