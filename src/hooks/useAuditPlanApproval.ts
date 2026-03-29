@@ -3,6 +3,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 
+async function syncAnnualPlanEngagementApprovalState(params: {
+  planId: string;
+  status: 'Approved' | 'Rejected' | 'Changes Requested' | 'Draft' | 'Superseded';
+  userCode: string;
+  approvedAt?: string | null;
+  approvedVersion?: number | null;
+  workflowInstanceId?: string | null;
+}) {
+  const baseUpdate: Record<string, any> = {
+    workflow_instance_id: params.workflowInstanceId ?? null,
+    updated_by: params.userCode,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (params.status === 'Approved') {
+    baseUpdate.approved_by = params.userCode;
+    baseUpdate.approved_at = params.approvedAt ?? new Date().toISOString();
+    baseUpdate.approved_plan_version = params.approvedVersion ?? null;
+  } else {
+    baseUpdate.approved_by = null;
+    baseUpdate.approved_at = null;
+    baseUpdate.approved_plan_version = null;
+  }
+
+  const { error } = await supabase
+    .from('ia_audit_engagements' as any)
+    .update(baseUpdate as any)
+    .eq('annual_plan_id', params.planId)
+    .eq('is_active', true);
+
+  if (error) throw error;
+}
+
 // ── Submission readiness checks ──────────────────────────────────────
 
 export interface ReadinessCheck {
@@ -115,6 +148,7 @@ export function useAuditPlanWorkflow() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['ia_annual_plans'] });
     queryClient.invalidateQueries({ queryKey: ['ia_plan_approval_history'] });
+    queryClient.invalidateQueries({ queryKey: ['ia_plan_engagements'] });
   };
 
   const submitForApproval = useMutation({
@@ -186,6 +220,14 @@ export function useAuditPlanWorkflow() {
         .select()
         .single();
       if (error) throw error;
+      await syncAnnualPlanEngagementApprovalState({
+        planId,
+        status: 'Approved',
+        userCode: userCode || 'system',
+        approvedAt: (data as any)?.approved_date || new Date().toISOString(),
+        approvedVersion: (data as any)?.current_version_number || null,
+        workflowInstanceId: (data as any)?.workflow_instance_id || null,
+      });
       await logAction(planId, 'Approved', comments || 'Plan approved');
       return data;
     },
@@ -212,6 +254,12 @@ export function useAuditPlanWorkflow() {
         .select()
         .single();
       if (error) throw error;
+      await syncAnnualPlanEngagementApprovalState({
+        planId,
+        status: 'Rejected',
+        userCode: userCode || 'system',
+        workflowInstanceId: (data as any)?.workflow_instance_id || null,
+      });
       await logAction(planId, 'Rejected', comments);
       return data;
     },
@@ -236,6 +284,12 @@ export function useAuditPlanWorkflow() {
         .select()
         .single();
       if (error) throw error;
+      await syncAnnualPlanEngagementApprovalState({
+        planId,
+        status: 'Changes Requested',
+        userCode: userCode || 'system',
+        workflowInstanceId: (data as any)?.workflow_instance_id || null,
+      });
       await logAction(planId, 'Changes Requested', comments);
       return data;
     },
@@ -259,6 +313,12 @@ export function useAuditPlanWorkflow() {
         .select()
         .single();
       if (error) throw error;
+      await syncAnnualPlanEngagementApprovalState({
+        planId,
+        status: 'Draft',
+        userCode: userCode || 'system',
+        workflowInstanceId: null,
+      });
       await logAction(planId, 'Withdrawn', 'Submission withdrawn by maker');
       return data;
     },
