@@ -10,11 +10,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, Info, Save, Check, Plus, Edit, Trash2, X, AlertTriangle } from 'lucide-react';
 import { useBonusPolicyDefaults, useCreateBonusPolicyDefault, useUpdateBonusPolicyDefault, useDeleteBonusPolicyDefault, checkDateOverlap } from '@/hooks/useBonusPolicy';
+import { useAnalyzeC3ConfigChange, useUpsertC3ConfigWithSplit } from '@/hooks/useC3ConfigLifecycle';
+import { C3SplitConfirmDialog, SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useQueryClient } from '@tanstack/react-query';
 import MonthYearPicker from '@/components/c3/MonthYearPicker';
 import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { BonusPolicyDefault, BonusDistribution, CalculationMethod } from '@/types/bonusPolicy';
 import { DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
+import { toast } from 'sonner';
 
 const EMPTY_POLICY: Omit<BonusPolicyDefault, 'id' | 'created_on' | 'modified_on'> = {
   date_from: formatDateForStorage(new Date()),
@@ -42,7 +46,10 @@ export function BonusPolicyDefaultTab() {
   const createMutation = useCreateBonusPolicyDefault();
   const updateMutation = useUpdateBonusPolicyDefault();
   const deleteMutation = useDeleteBonusPolicyDefault();
+  const analyzeMutation = useAnalyzeC3ConfigChange();
+  const upsertWithSplit = useUpsertC3ConfigWithSplit();
   const { userCode } = useUserCode();
+  const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,6 +57,9 @@ export function BonusPolicyDefaultTab() {
   const [cappingEnabled, setCappingEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
+  const [splitAnalysis, setSplitAnalysis] = useState<SplitAnalysis | null>(null);
+  const [showSplitConfirm, setShowSplitConfirm] = useState(false);
+  const [pendingSaveData, setPendingSaveData] = useState<any>(null);
 
   const openCreate = () => {
     setEditingId(null);
@@ -88,7 +98,7 @@ export function BonusPolicyDefaultTab() {
     setField('distribution', newDist);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.date_from) {
       setOverlapWarning('Date From is required.');
       return;
@@ -97,6 +107,8 @@ export function BonusPolicyDefaultTab() {
       setOverlapWarning('Date To cannot be earlier than Date From.');
       return;
     }
+
+    // Client-side pre-check
     const existing = (policies ?? []).map(p => ({ id: p.id, date_from: p.date_from, date_to: p.date_to }));
     const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined);
     if (overlap.overlaps) {
@@ -113,10 +125,60 @@ export function BonusPolicyDefaultTab() {
       updates.max_bonus_amount = null;
     }
 
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
-    } else {
-      createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+    try {
+      // Backend validation
+      const analysis = await analyzeMutation.mutateAsync({
+        tableName: 'c3_bonus_policy_default',
+        id: editingId,
+        dateFrom: form.date_from,
+        dateTo: form.date_to,
+      });
+
+      if (analysis.action === 'error') {
+        setOverlapWarning(analysis.message || 'Validation failed');
+        return;
+      }
+
+      if (analysis.action === 'split') {
+        setSplitAnalysis(analysis);
+        setPendingSaveData(updates);
+        setShowSplitConfirm(true);
+        return;
+      }
+
+      // Normal save
+      if (editingId) {
+        updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      } else {
+        createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      }
+    } catch (err: any) {
+      setOverlapWarning(err.message || 'Validation failed');
+    }
+  };
+
+  const handleConfirmSplit = async () => {
+    if (!editingId || !pendingSaveData) return;
+    try {
+      const { id, created_on, modified_on, ...vals } = pendingSaveData;
+      await upsertWithSplit.mutateAsync({
+        tableName: 'c3_bonus_policy_default',
+        id: editingId,
+        dateFrom: pendingSaveData.date_from,
+        dateTo: pendingSaveData.date_to,
+        valuesJson: vals,
+        userCode: userCode || undefined,
+        forceSplit: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['bonus-policy-defaults'] });
+      queryClient.invalidateQueries({ queryKey: ['bonus-policy-default'] });
+      toast.success('Configuration split successfully. Historical data preserved.');
+      setShowSplitConfirm(false);
+      setSplitAnalysis(null);
+      setPendingSaveData(null);
+      setShowForm(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Split failed');
     }
   };
 
@@ -329,6 +391,15 @@ export function BonusPolicyDefaultTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Split Confirmation */}
+      <C3SplitConfirmDialog
+        open={showSplitConfirm}
+        onOpenChange={setShowSplitConfirm}
+        analysis={splitAnalysis}
+        onConfirm={handleConfirmSplit}
+        isLoading={upsertWithSplit.isPending}
+      />
     </div>
   );
 }

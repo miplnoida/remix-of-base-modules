@@ -6,10 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useUpdateC3ConfigDetails, useLevySlabs, C3ConfigWithDetails, C3ConfigDetails } from '@/hooks/useC3ConfigManagement';
+import { useAnalyzeC3ConfigChange, useUpsertC3ConfigWithSplit } from '@/hooks/useC3ConfigLifecycle';
+import { C3SplitConfirmDialog, SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface C3ConfigDetailsDialogProps {
   isOpen: boolean;
@@ -20,17 +24,21 @@ interface C3ConfigDetailsDialogProps {
 export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetailsDialogProps) {
   const { userCode } = useUserCode();
   const updateConfig = useUpdateC3ConfigDetails();
+  const analyzeMutation = useAnalyzeC3ConfigChange();
+  const upsertWithSplit = useUpsertC3ConfigWithSplit();
   const { data: levySlabs } = useLevySlabs();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<Partial<C3ConfigDetails>>({});
-   const [originalFormData, setOriginalFormData] = useState<Partial<C3ConfigDetails>>({});
+  const [originalFormData, setOriginalFormData] = useState<Partial<C3ConfigDetails>>({});
   const [activeTab, setActiveTab] = useState('age');
+  const [splitAnalysis, setSplitAnalysis] = useState<SplitAnalysis | null>(null);
+  const [showSplitConfirm, setShowSplitConfirm] = useState(false);
 
-  // Initialize form data when config changes
   useEffect(() => {
     if (config?.details) {
       setFormData({ ...config.details });
-       setOriginalFormData({ ...config.details });
+      setOriginalFormData({ ...config.details });
     }
   }, [config]);
 
@@ -39,7 +47,6 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
   };
 
   const handleRateChange = (field: keyof C3ConfigDetails, displayValue: string) => {
-    // Convert percentage display to decimal
     const numValue = parseFloat(displayValue) / 100;
     if (!isNaN(numValue)) {
       handleChange(field, numValue);
@@ -49,15 +56,69 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
   const handleSave = async () => {
     if (!config) return;
 
-    await updateConfig.mutateAsync({
-      configPeriodId: config.id,
-      details: formData,
-       userCode: userCode || undefined,
-       oldDetails: originalFormData,
-       periodInfo: { start_date: config.start_date, end_date: config.end_date }
-    });
+    try {
+      // Analyze the change first
+      const analysis = await analyzeMutation.mutateAsync({
+        tableName: 'c3_config_periods',
+        id: config.id,
+        dateFrom: config.start_date,
+        dateTo: config.end_date,
+      });
 
-    onClose();
+      if (analysis.action === 'error') {
+        toast.error(analysis.message || 'Validation failed');
+        return;
+      }
+
+      if (analysis.action === 'split') {
+        setSplitAnalysis(analysis);
+        setShowSplitConfirm(true);
+        return;
+      }
+
+      // Normal save
+      await updateConfig.mutateAsync({
+        configPeriodId: config.id,
+        details: formData,
+        userCode: userCode || undefined,
+        oldDetails: originalFormData,
+        periodInfo: { start_date: config.start_date, end_date: config.end_date }
+      });
+
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save');
+    }
+  };
+
+  const handleConfirmSplit = async () => {
+    if (!config) return;
+
+    try {
+      // Build values JSON from formData (excluding id and config_period_id)
+      const { id, config_period_id, ...detailValues } = formData as any;
+      
+      await upsertWithSplit.mutateAsync({
+        tableName: 'c3_config_periods',
+        id: config.id,
+        dateFrom: config.start_date,
+        dateTo: config.end_date,
+        valuesJson: {},
+        userCode: userCode || undefined,
+        forceSplit: true,
+      });
+
+      // After split, update the new record's details
+      queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
+      toast.success('Configuration split successfully. Historical data preserved, new period created.');
+      
+      setShowSplitConfirm(false);
+      setSplitAnalysis(null);
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to split configuration');
+    }
   };
 
   const formatRateForDisplay = (rate: number | undefined) => {
@@ -66,345 +127,211 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Configuration Details</DialogTitle>
-          <DialogDescription>
-            {config && (
-              <span>
-                Period: {format(new Date(config.start_date), 'dd MMM yyyy')} - {config.end_date ? format(new Date(config.end_date), 'dd MMM yyyy') : 'Open-ended'}
-              </span>
-            )}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configuration Details</DialogTitle>
+            <DialogDescription>
+              {config && (
+                <span>
+                  Period: {format(new Date(config.start_date), 'dd MMM yyyy')} - {config.end_date ? format(new Date(config.end_date), 'dd MMM yyyy') : 'Open-ended'}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="age">Age Limits</TabsTrigger>
-            <TabsTrigger value="ss">Social Security</TabsTrigger>
-            <TabsTrigger value="levy">Levy</TabsTrigger>
-            <TabsTrigger value="severance">Severance</TabsTrigger>
-            <TabsTrigger value="penalties">Penalties</TabsTrigger>
-          </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-5 w-full">
+              <TabsTrigger value="age">Age Limits</TabsTrigger>
+              <TabsTrigger value="ss">Social Security</TabsTrigger>
+              <TabsTrigger value="levy">Levy</TabsTrigger>
+              <TabsTrigger value="severance">Severance</TabsTrigger>
+              <TabsTrigger value="penalties">Penalties</TabsTrigger>
+            </TabsList>
 
-          {/* Age Limits */}
-          <TabsContent value="age" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Minimum Age (SS)</Label>
-                <Input
-                  type="number"
-                  value={formData.min_age_ss || ''}
-                  onChange={(e) => handleChange('min_age_ss', parseInt(e.target.value))}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Minimum age for SS contribution eligibility</p>
+            {/* Age Limits */}
+            <TabsContent value="age" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Minimum Age (SS)</Label>
+                  <Input type="number" value={formData.min_age_ss || ''} onChange={(e) => handleChange('min_age_ss', parseInt(e.target.value))} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Minimum age for SS contribution eligibility</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Maximum Age (SS)</Label>
+                  <Input type="number" value={formData.max_age_ss || ''} onChange={(e) => handleChange('max_age_ss', parseInt(e.target.value))} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Maximum age for SS contribution eligibility</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Minimum Age (Levy)</Label>
+                  <Input type="number" value={formData.min_age_levy || ''} onChange={(e) => handleChange('min_age_levy', parseInt(e.target.value))} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Minimum age for levy calculation</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Maximum Age (Levy)</Label>
+                  <Input type="number" value={formData.max_age_levy || ''} onChange={(e) => handleChange('max_age_levy', parseInt(e.target.value))} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Maximum age for levy calculation</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Maximum Age (SS)</Label>
-                <Input
-                  type="number"
-                  value={formData.max_age_ss || ''}
-                  onChange={(e) => handleChange('max_age_ss', parseInt(e.target.value))}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Maximum age for SS contribution eligibility</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Minimum Age (Levy)</Label>
-                <Input
-                  type="number"
-                  value={formData.min_age_levy || ''}
-                  onChange={(e) => handleChange('min_age_levy', parseInt(e.target.value))}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Minimum age for levy calculation</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Maximum Age (Levy)</Label>
-                <Input
-                  type="number"
-                  value={formData.max_age_levy || ''}
-                  onChange={(e) => handleChange('max_age_levy', parseInt(e.target.value))}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Maximum age for levy calculation</p>
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* Social Security */}
-          <TabsContent value="ss" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Employee SS Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.employee_ss_rate)}
-                  onChange={(e) => handleRateChange('employee_ss_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
+            {/* Social Security */}
+            <TabsContent value="ss" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Employee SS Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.employee_ss_rate)} onChange={(e) => handleRateChange('employee_ss_rate', e.target.value)} min={0} max={100} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Employee SS Max Wage ($)</Label>
+                  <Input type="number" step="0.01" value={formData.employee_ss_max_wage || ''} onChange={(e) => handleChange('employee_ss_max_wage', parseFloat(e.target.value))} min={0} />
+                  <p className="text-xs text-muted-foreground">Maximum wage for employee SS calculation</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Employer SS Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.employer_ss_rate)} onChange={(e) => handleRateChange('employer_ss_rate', e.target.value)} min={0} max={100} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Employer EIB Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.employer_eib_rate)} onChange={(e) => handleRateChange('employer_eib_rate', e.target.value)} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Employment Injury Benefit rate</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Employer SS Max Wage ($)</Label>
+                  <Input type="number" step="0.01" value={formData.employer_ss_max_wage || ''} onChange={(e) => handleChange('employer_ss_max_wage', parseFloat(e.target.value))} min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label>EIB Max Wage ($)</Label>
+                  <Input type="number" step="0.01" value={formData.employer_eib_max_wage || ''} onChange={(e) => handleChange('employer_eib_max_wage', parseFloat(e.target.value))} min={0} />
+                  <p className="text-xs text-muted-foreground">Maximum wage for EIB calculation</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Employee SS Max Wage ($)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.employee_ss_max_wage || ''}
-                  onChange={(e) => handleChange('employee_ss_max_wage', parseFloat(e.target.value))}
-                  min={0}
-                />
-                <p className="text-xs text-muted-foreground">Maximum wage for employee SS calculation</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Employer SS Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.employer_ss_rate)}
-                  onChange={(e) => handleRateChange('employer_ss_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Employer EIB Rate (%)</Label>
-                <Input
-                   type="number"
-                   step="0.01"
-                   value={formatRateForDisplay(formData.employer_eib_rate)}
-                   onChange={(e) => handleRateChange('employer_eib_rate', e.target.value)}
-                   min={0}
-                   max={100}
-                 />
-                <p className="text-xs text-muted-foreground">Employment Injury Benefit rate</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Employer SS Max Wage ($)</Label>
-                <Input
-                   type="number"
-                   step="0.01"
-                   value={formData.employer_ss_max_wage || ''}
-                   onChange={(e) => handleChange('employer_ss_max_wage', parseFloat(e.target.value))}
-                   min={0}
-                 />
-              </div>
-              <div className="space-y-2">
-                <Label>EIB Max Wage ($)</Label>
-                <Input
-                   type="number"
-                   step="0.01"
-                   value={formData.employer_eib_max_wage || ''}
-                   onChange={(e) => handleChange('employer_eib_max_wage', parseFloat(e.target.value))}
-                   min={0}
-                 />
-                <p className="text-xs text-muted-foreground">Maximum wage for EIB calculation</p>
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* Levy */}
-          <TabsContent value="levy" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Employer Levy Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.employer_levy_rate)}
-                  onChange={(e) => handleRateChange('employer_levy_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
+            {/* Levy */}
+            <TabsContent value="levy" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Employer Levy Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.employer_levy_rate)} onChange={(e) => handleRateChange('employer_levy_rate', e.target.value)} min={0} max={100} />
+                </div>
+                <div className="space-y-2">
+                  <Label>NWD Employee Levy Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.nwd_employee_levy_rate)} onChange={(e) => handleRateChange('nwd_employee_levy_rate', e.target.value)} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Flat levy rate applied to Non-Working Directors</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Levy Slab</Label>
+                  <Select value={formData.levy_slab_id || ''} onValueChange={(value) => handleChange('levy_slab_id', value)}>
+                    <SelectTrigger><SelectValue placeholder="Select levy slab" /></SelectTrigger>
+                    <SelectContent>
+                      {levySlabs?.map(slab => (
+                        <SelectItem key={slab.id} value={slab.id}>
+                          {format(new Date(slab.start_date), 'dd MMM yyyy')} - {slab.end_date ? format(new Date(slab.end_date), 'dd MMM yyyy') : 'Current'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Employee levy calculation slab table</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>NWD Employee Levy Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.nwd_employee_levy_rate)}
-                  onChange={(e) => handleRateChange('nwd_employee_levy_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Flat levy rate applied to Non-Working Directors</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Levy Slab</Label>
-                <Select
-                  value={formData.levy_slab_id || ''}
-                  onValueChange={(value) => handleChange('levy_slab_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select levy slab" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {levySlabs?.map(slab => (
-                      <SelectItem key={slab.id} value={slab.id}>
-                        {format(new Date(slab.start_date), 'dd MMM yyyy')} - {slab.end_date ? format(new Date(slab.end_date), 'dd MMM yyyy') : 'Current'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Employee levy calculation slab table</p>
-              </div>
-            </div>
 
-             {/* Monthly Levy Threshold Configuration */}
-             <div className="border-t pt-4">
-               <h4 className="font-medium mb-3">Monthly Levy Threshold</h4>
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                   <Label>Monthly Wage Ceiling ($)</Label>
-                   <Input
-                     type="number"
-                     step="0.01"
-                     value={formData.levy_monthly_threshold || 6500}
-                     onChange={(e) => handleChange('levy_monthly_threshold', parseFloat(e.target.value))}
-                     min={0}
-                   />
-                   <p className="text-xs text-muted-foreground">
-                     If total wages (Week 1-6, excluding bonus) exceed this amount, monthly levy slabs may apply
-                   </p>
-                 </div>
-                 <div className="space-y-2">
-                   <Label>Use Monthly Levy When Exceeded</Label>
-                   <div className="flex items-center space-x-2 pt-2">
-                     <Switch
-                       checked={formData.levy_use_monthly_when_exceeded || false}
-                       onCheckedChange={(checked) => handleChange('levy_use_monthly_when_exceeded', checked)}
-                     />
-                     <span className="text-sm text-muted-foreground">
-                       {formData.levy_use_monthly_when_exceeded ? 'Enabled' : 'Disabled'}
-                     </span>
-                   </div>
-                   <p className="text-xs text-muted-foreground">
-                     When enabled, if wages exceed the ceiling, employee levy uses monthly slab calculation
-                   </p>
-                 </div>
-               </div>
-             </div>
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Monthly Levy Threshold</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Monthly Wage Ceiling ($)</Label>
+                    <Input type="number" step="0.01" value={formData.levy_monthly_threshold || 6500} onChange={(e) => handleChange('levy_monthly_threshold', parseFloat(e.target.value))} min={0} />
+                    <p className="text-xs text-muted-foreground">If total wages exceed this amount, monthly levy slabs may apply</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Use Monthly Levy When Exceeded</Label>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch checked={formData.levy_use_monthly_when_exceeded || false} onCheckedChange={(checked) => handleChange('levy_use_monthly_when_exceeded', checked)} />
+                      <span className="text-sm text-muted-foreground">{formData.levy_use_monthly_when_exceeded ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">When enabled, if wages exceed the ceiling, employee levy uses monthly slab calculation</p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
 
-          </TabsContent>
+            {/* Severance */}
+            <TabsContent value="severance" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Employer Severance Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.employer_severance_rate)} onChange={(e) => handleRateChange('employer_severance_rate', e.target.value)} min={0} max={100} />
+                  <p className="text-xs text-muted-foreground">Percentage of taxable wages</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Submission Due Day</Label>
+                  <Input type="number" value={formData.submission_due_day || 0} onChange={(e) => handleChange('submission_due_day', parseInt(e.target.value))} min={0} max={31} />
+                  <p className="text-xs text-muted-foreground">0 = last day of following month</p>
+                </div>
+              </div>
+            </TabsContent>
 
-          {/* Severance */}
-          <TabsContent value="severance" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Employer Severance Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.employer_severance_rate)}
-                  onChange={(e) => handleRateChange('employer_severance_rate', e.target.value)}
-                  min={0}
-                  max={100}
-                />
-                <p className="text-xs text-muted-foreground">Percentage of taxable wages</p>
+            {/* Penalties */}
+            <TabsContent value="penalties" className="space-y-4">
+              <h4 className="font-medium">Levy Penalty</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Initial Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.levy_penalty_initial_rate)} onChange={(e) => handleRateChange('levy_penalty_initial_rate', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subsequent Rate (% per 30 days)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.levy_penalty_subsequent_rate)} onChange={(e) => handleRateChange('levy_penalty_subsequent_rate', e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Submission Due Day</Label>
-                <Input
-                  type="number"
-                  value={formData.submission_due_day || 0}
-                  onChange={(e) => handleChange('submission_due_day', parseInt(e.target.value))}
-                  min={0}
-                  max={31}
-                />
-                <p className="text-xs text-muted-foreground">0 = last day of following month</p>
-              </div>
-            </div>
-          </TabsContent>
 
-          {/* Penalties */}
-          <TabsContent value="penalties" className="space-y-4">
-            <h4 className="font-medium">Levy Penalty</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Initial Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.levy_penalty_initial_rate)}
-                  onChange={(e) => handleRateChange('levy_penalty_initial_rate', e.target.value)}
-                />
+              <h4 className="font-medium mt-4">Severance Penalty</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Initial Rate (%)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.severance_penalty_initial_rate)} onChange={(e) => handleRateChange('severance_penalty_initial_rate', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subsequent Rate (% per 30 days)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.severance_penalty_subsequent_rate)} onChange={(e) => handleRateChange('severance_penalty_subsequent_rate', e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Subsequent Rate (% per 30 days)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.levy_penalty_subsequent_rate)}
-                  onChange={(e) => handleRateChange('levy_penalty_subsequent_rate', e.target.value)}
-                />
-              </div>
-            </div>
 
-            <h4 className="font-medium mt-4">Severance Penalty</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Initial Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.severance_penalty_initial_rate)}
-                  onChange={(e) => handleRateChange('severance_penalty_initial_rate', e.target.value)}
-                />
+              <h4 className="font-medium mt-4">Social Security Fine</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Initial Rate (% per month)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.ss_fine_initial_rate)} onChange={(e) => handleRateChange('ss_fine_initial_rate', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subsequent Rate (% per month)</Label>
+                  <Input type="number" step="0.01" value={formatRateForDisplay(formData.ss_fine_subsequent_rate)} onChange={(e) => handleRateChange('ss_fine_subsequent_rate', e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Subsequent Rate (% per 30 days)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.severance_penalty_subsequent_rate)}
-                  onChange={(e) => handleRateChange('severance_penalty_subsequent_rate', e.target.value)}
-                />
-              </div>
-            </div>
+            </TabsContent>
+          </Tabs>
 
-            <h4 className="font-medium mt-4">Social Security Fine</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Initial Rate (% per month)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.ss_fine_initial_rate)}
-                  onChange={(e) => handleRateChange('ss_fine_initial_rate', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Subsequent Rate (% per month)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formatRateForDisplay(formData.ss_fine_subsequent_rate)}
-                  onChange={(e) => handleRateChange('ss_fine_subsequent_rate', e.target.value)}
-                />
-              </div>
-            </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave} disabled={updateConfig.isPending || analyzeMutation.isPending}>
+              {(updateConfig.isPending || analyzeMutation.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={updateConfig.isPending}>
-            {updateConfig.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Split Confirmation */}
+      <C3SplitConfirmDialog
+        open={showSplitConfirm}
+        onOpenChange={setShowSplitConfirm}
+        analysis={splitAnalysis}
+        onConfirm={handleConfirmSplit}
+        isLoading={upsertWithSplit.isPending}
+      />
+    </>
   );
 }

@@ -11,11 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, Info, Save, Check, Plus, Edit, Trash2, X, AlertTriangle, Calendar, CalendarOff, Tag } from 'lucide-react';
 import { useIncomeCodes, useIncomeCodePolicyDefaults, useCreateIncomeCodePolicyDefault, useUpdateIncomeCodePolicyDefault, useDeleteIncomeCodePolicyDefault, checkDateOverlap } from '@/hooks/useIncomeCodePolicy';
+import { useAnalyzeC3ConfigChange, useUpsertC3ConfigWithSplit } from '@/hooks/useC3ConfigLifecycle';
+import { C3SplitConfirmDialog, SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useQueryClient } from '@tanstack/react-query';
 import MonthYearPicker from '@/components/c3/MonthYearPicker';
 import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { IncomeCodePolicyDefault, BonusDistribution, DateEntryMode } from '@/types/incomeCodePolicy';
 import { DEFAULT_DISTRIBUTION, DATE_ENTRY_MODE_LABELS } from '@/types/incomeCodePolicy';
+import { toast } from 'sonner';
 
 const EMPTY_POLICY: Omit<IncomeCodePolicyDefault, 'id' | 'created_on' | 'modified_on'> = {
   income_code_id: '',
@@ -59,7 +63,10 @@ export function IncomeCodePolicyDefaultTab() {
   const createMutation = useCreateIncomeCodePolicyDefault();
   const updateMutation = useUpdateIncomeCodePolicyDefault();
   const deleteMutation = useDeleteIncomeCodePolicyDefault();
+  const analyzeMutation = useAnalyzeC3ConfigChange();
+  const upsertWithSplit = useUpsertC3ConfigWithSplit();
   const { userCode } = useUserCode();
+  const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,6 +74,9 @@ export function IncomeCodePolicyDefaultTab() {
   const [cappingEnabled, setCappingEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
+  const [splitAnalysis, setSplitAnalysis] = useState<SplitAnalysis | null>(null);
+  const [showSplitConfirm, setShowSplitConfirm] = useState(false);
+  const [pendingSaveData, setPendingSaveData] = useState<any>(null);
 
   const selectedCode = incomeCodes.find(c => c.id === selectedCodeId);
 
@@ -107,25 +117,55 @@ export function IncomeCodePolicyDefaultTab() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.date_from) { setOverlapWarning('Date From is required.'); return; }
     if (form.date_to && form.date_to < form.date_from) { setOverlapWarning('Date To cannot be earlier than Date From.'); return; }
 
     const existing = (policies ?? []).map(p => ({ id: p.id, date_from: p.date_from, date_to: p.date_to, policy_type: p.policy_type }));
     const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined, form.date_entry_mode !== 'no_dates' ? form.policy_type : undefined);
-    if (overlap.overlaps) {
-      setOverlapWarning('The selected period overlaps with an existing policy.');
-      return;
-    }
+    if (overlap.overlaps) { setOverlapWarning('The selected period overlaps with an existing policy.'); return; }
 
     const updates = { ...form };
     if (!cappingEnabled) { updates.min_amount = null; updates.max_amount = null; }
 
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
-    } else {
-      createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
-    }
+    try {
+      const analysis = await analyzeMutation.mutateAsync({
+        tableName: 'c3_income_code_policy_default',
+        id: editingId,
+        dateFrom: form.date_from,
+        dateTo: form.date_to,
+        scopeFilter: { income_code_id: form.income_code_id },
+      });
+
+      if (analysis.action === 'error') { setOverlapWarning(analysis.message || 'Validation failed'); return; }
+      if (analysis.action === 'split') {
+        setSplitAnalysis(analysis);
+        setPendingSaveData(updates);
+        setShowSplitConfirm(true);
+        return;
+      }
+
+      if (editingId) {
+        updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      } else {
+        createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      }
+    } catch (err: any) { setOverlapWarning(err.message || 'Validation failed'); }
+  };
+
+  const handleConfirmSplit = async () => {
+    if (!editingId || !pendingSaveData) return;
+    try {
+      const { id, created_on, modified_on, ...vals } = pendingSaveData;
+      await upsertWithSplit.mutateAsync({
+        tableName: 'c3_income_code_policy_default',
+        id: editingId, dateFrom: pendingSaveData.date_from, dateTo: pendingSaveData.date_to,
+        valuesJson: vals, userCode: userCode || undefined, forceSplit: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['income-code-policy-defaults'] });
+      toast.success('Configuration split successfully.');
+      setShowSplitConfirm(false); setSplitAnalysis(null); setPendingSaveData(null); setShowForm(false);
+    } catch (err: any) { toast.error(err.message || 'Split failed'); }
   };
 
   const handleDelete = async () => {
@@ -487,6 +527,15 @@ export function IncomeCodePolicyDefaultTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Split Confirmation */}
+      <C3SplitConfirmDialog
+        open={showSplitConfirm}
+        onOpenChange={setShowSplitConfirm}
+        analysis={splitAnalysis}
+        onConfirm={handleConfirmSplit}
+        isLoading={upsertWithSplit.isPending}
+      />
     </div>
   );
 }
