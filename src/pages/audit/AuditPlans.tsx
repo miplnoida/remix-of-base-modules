@@ -11,6 +11,8 @@ import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { PageShell, StandardSearchFilterBar, DataTable, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { AUDIT_PLANS_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getSubmitEligibility, getEditEligibility, getApproveEligibility } from '@/hooks/useAuditPlanWorkflowAccess';
 
 const exportColumns = toExportColumns(AUDIT_PLANS_SCHEMA);
 
@@ -109,18 +111,30 @@ export default function AuditPlans() {
         columns={columns}
         data={filteredPlans}
         renderActions={(row) => {
-          const canSubmitRow = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(row.status);
-          const canEditRow = ['Draft', 'Changes Requested', 'Rejected'].includes(row.status);
+          const submitEl = getSubmitEligibility(hasPermission, row.status);
+          const editEl = getEditEligibility(hasPermission, row.status);
+          const approveEl = getApproveEligibility(hasPermission, row.status);
           return (
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" title="Open Plan" onClick={() => navigate(`/audit/audit-plans/${row.id}`)}><Eye className="h-4 w-4" /></Button>
-              {hasPermission('edit_audit_plans') && canEditRow && (
+              {editEl.visible && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit Plan" onClick={() => handleEditPlan(row)}><Edit className="h-4 w-4" /></Button>
               )}
-              {hasPermission('edit_audit_plans') && canSubmitRow && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Submit for Approval" onClick={() => navigate(`/audit/audit-plans/${row.id}?action=submit`)}><Send className="h-4 w-4" /></Button>
+              {submitEl.visible && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Submit for Approval" onClick={() => submitEl.enabled ? navigate(`/audit/audit-plans/${row.id}?action=submit`) : undefined} disabled={!submitEl.enabled}><Send className="h-4 w-4" /></Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!submitEl.enabled && submitEl.reason && (
+                      <TooltipContent className="max-w-[250px]"><p className="text-xs">{submitEl.reason}</p></TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
-              {hasPermission('approve_audit_plans') && row.status === 'Submitted' && (
+              {approveEl.visible && approveEl.enabled && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-warning" title="Review & Approve" onClick={() => navigate(`/audit/plan-approval?planId=${row.id}`)}><ClipboardCheck className="h-4 w-4" /></Button>
               )}
             </div>
