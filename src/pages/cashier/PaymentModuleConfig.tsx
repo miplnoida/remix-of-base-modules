@@ -8,6 +8,9 @@ import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
 import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash, CreditCard } from 'lucide-react';
 import CardMachineTab from '@/components/payments/CardMachineTab';
 import NumberFormatSegmentBuilder, { type Segment } from '@/components/cashier/NumberFormatSegmentBuilder';
+import HeadCashierAssignmentSection from '@/components/payments/HeadCashierAssignmentSection';
+import BatchBehaviorConfigSection from '@/components/payments/BatchBehaviorConfigSection';
+import DefaultOpeningBalanceTab from '@/components/payments/DefaultOpeningBalanceTab';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
 import InvoiceTemplateTab from '@/components/cashier/InvoiceTemplateTab';
 import { usePaymentModuleConfig, useUpdatePaymentConfig } from '@/hooks/usePaymentModuleConfig';
@@ -428,8 +431,9 @@ const PaymentModuleConfig: React.FC = () => {
       </div>
 
       <Tabs defaultValue="roles" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="opening-balances">Opening Balances</TabsTrigger>
           <TabsTrigger value="c3-payment-types">C3 Payment Types</TabsTrigger>
           <TabsTrigger value="mop-details">MOP Detail Settings</TabsTrigger>
           <TabsTrigger value="currencies">Cashier Currencies</TabsTrigger>
@@ -527,6 +531,15 @@ const PaymentModuleConfig: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
+          <Separator />
+          <HeadCashierAssignmentSection />
+          <Separator />
+          <BatchBehaviorConfigSection />
+        </TabsContent>
+
+        {/* ─── OPENING BALANCES TAB ─── */}
+        <TabsContent value="opening-balances" className="space-y-6">
+          <DefaultOpeningBalanceTab />
         </TabsContent>
 
         {/* ─── C3 PAYMENT TYPES TAB ─── */}

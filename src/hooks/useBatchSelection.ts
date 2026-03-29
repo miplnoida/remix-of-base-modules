@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useCanManageAllBatches } from '@/hooks/usePaymentModuleConfig';
 import { useQuery } from '@tanstack/react-query';
+import { useBatchBehaviorConfig } from '@/hooks/useBatchBehaviorConfig';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export interface BatchRow {
@@ -16,7 +18,8 @@ export interface BatchRow {
   balance_forward: number | null;
 }
 
-export function useBatchSelection() {
+export function useBatchSelection(options?: { skipDateFilter?: boolean }) {
+  const skipDateFilter = options?.skipDateFilter ?? false;
   const [searchParams] = useSearchParams();
   const batchParam = searchParams.get('batch');
   const { profile } = useSupabaseAuth();
@@ -94,13 +97,27 @@ export function useBatchSelection() {
     setShowPopup(true);
   }, []);
 
-  const isLoading = permLoading || batchesLoading || (!resolved && !!batchParam);
-  const noBatchesAvailable = resolved && !selectedBatch && !showPopup && (openBatches?.length === 0);
+  const { allowCurrentDatePaymentInOldBatch, isLoading: behaviorLoading } = useBatchBehaviorConfig();
+
+  // Date-filtered batches: if config disallows current-date payments in old batches, only show today's batches
+  const filteredOpenBatches = useMemo(() => {
+    if (!openBatches) return [];
+    if (skipDateFilter || allowCurrentDatePaymentInOldBatch) return openBatches;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return openBatches.filter(b => {
+      if (!b.batch_date) return false;
+      const batchDateStr = b.batch_date.substring(0, 10);
+      return batchDateStr === todayStr;
+    });
+  }, [openBatches, skipDateFilter, allowCurrentDatePaymentInOldBatch]);
+
+  const isLoading = permLoading || batchesLoading || behaviorLoading || (!resolved && !!batchParam);
+  const noBatchesAvailable = resolved && !selectedBatch && !showPopup && (filteredOpenBatches.length === 0);
   const isReady = !!selectedBatch;
 
   return {
     selectedBatch,
-    openBatches: openBatches || [],
+    openBatches: filteredOpenBatches,
     showPopup,
     setShowPopup,
     selectBatch,
