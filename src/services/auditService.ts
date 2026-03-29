@@ -82,6 +82,12 @@ export function computeFieldDiff(
  */
 export async function logAuditTrail(entry: AuditTrailEntry): Promise<string | null> {
   try {
+    // Skip manual logging for tables covered by DB triggers — the trigger writes accurate full-row data
+    if (entry.entityType && DB_TRIGGER_TABLES.has(entry.entityType)) {
+      console.debug('[AuditService] Skipping manual log for DB-triggered table:', entry.entityType);
+      return null;
+    }
+
     let userId = entry.userId;
     if (!userId) {
       const { data: { user } } = await supabase.auth.getUser();
