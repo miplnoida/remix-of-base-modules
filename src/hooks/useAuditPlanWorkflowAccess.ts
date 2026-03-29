@@ -63,8 +63,8 @@ const REVISABLE_STATUSES: PlanStatus[] = ['Approved'];
 
 // ── Permission helpers (pure functions, no hooks) ────────────────────
 
-/** Maker/submitter permissions: can create or edit plans → can submit */
-const SUBMIT_PERMISSIONS = ['create_audit_plans', 'edit_audit_plans'] as const;
+/** Maker/submitter permissions: anyone with screen access can submit */
+const SUBMIT_PERMISSIONS = ['create_audit_plans', 'edit_audit_plans', 'view_audit_plans'] as const;
 
 /** Approver permissions */
 const APPROVE_PERMISSIONS = ['approve_audit_plans'] as const;
