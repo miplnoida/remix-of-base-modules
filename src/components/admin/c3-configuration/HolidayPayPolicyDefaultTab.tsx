@@ -11,11 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, Info, Save, Check, Plus, Edit, Trash2, X, AlertTriangle, Calendar, CalendarOff } from 'lucide-react';
 import { useHolidayPayPolicyDefaults, useCreateHolidayPayPolicyDefault, useUpdateHolidayPayPolicyDefault, useDeleteHolidayPayPolicyDefault, checkDateOverlap } from '@/hooks/useHolidayPayPolicy';
+import { useAnalyzeC3ConfigChange, useUpsertC3ConfigWithSplit } from '@/hooks/useC3ConfigLifecycle';
+import { C3SplitConfirmDialog, SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useQueryClient } from '@tanstack/react-query';
 import MonthYearPicker from '@/components/c3/MonthYearPicker';
 import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { HolidayPayPolicyDefault, BonusDistribution, CalculationMethod, HolidayPolicyType } from '@/types/holidayPayPolicy';
 import { DEFAULT_DISTRIBUTION } from '@/types/holidayPayPolicy';
+import { toast } from 'sonner';
 
 const EMPTY_POLICY: Omit<HolidayPayPolicyDefault, 'id' | 'created_on' | 'modified_on'> = {
   date_from: formatDateForStorage(new Date()),
@@ -45,7 +49,10 @@ export function HolidayPayPolicyDefaultTab() {
   const createMutation = useCreateHolidayPayPolicyDefault();
   const updateMutation = useUpdateHolidayPayPolicyDefault();
   const deleteMutation = useDeleteHolidayPayPolicyDefault();
+  const analyzeMutation = useAnalyzeC3ConfigChange();
+  const upsertWithSplit = useUpsertC3ConfigWithSplit();
   const { userCode } = useUserCode();
+  const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,6 +60,9 @@ export function HolidayPayPolicyDefaultTab() {
   const [cappingEnabled, setCappingEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
+  const [splitAnalysis, setSplitAnalysis] = useState<SplitAnalysis | null>(null);
+  const [showSplitConfirm, setShowSplitConfirm] = useState(false);
+  const [pendingSaveData, setPendingSaveData] = useState<any>(null);
 
   const openCreate = () => {
     setEditingId(null);
@@ -95,36 +105,59 @@ export function HolidayPayPolicyDefaultTab() {
     setField('levy_distribution', newDist);
   };
 
-  const handleSave = () => {
-    if (!form.date_from) {
-      setOverlapWarning('Date From is required.');
-      return;
-    }
-    if (form.date_to && form.date_to < form.date_from) {
-      setOverlapWarning('Date To cannot be earlier than Date From.');
-      return;
-    }
+  const handleSave = async () => {
+    if (!form.date_from) { setOverlapWarning('Date From is required.'); return; }
+    if (form.date_to && form.date_to < form.date_from) { setOverlapWarning('Date To cannot be earlier than Date From.'); return; }
+
     const existing = (policies ?? []).map(p => ({ id: p.id, date_from: p.date_from, date_to: p.date_to, policy_type: p.policy_type }));
     const overlap = checkDateOverlap(form.date_from, form.date_to, existing, editingId || undefined, form.policy_type);
     if (overlap.overlaps) {
       const rec = overlap.overlappingRecord!;
-      const from = formatDisplayDate(rec.date_from);
-      const to = rec.date_to ? formatDisplayDate(rec.date_to) : 'Open-ended';
-      setOverlapWarning(`The selected period overlaps with an existing ${form.policy_type === 'with_dates' ? 'with-dates' : 'without-dates'} policy (${from} – ${to}).`);
+      setOverlapWarning(`The selected period overlaps with an existing ${form.policy_type === 'with_dates' ? 'with-dates' : 'without-dates'} policy (${formatDisplayDate(rec.date_from)} – ${rec.date_to ? formatDisplayDate(rec.date_to) : 'Open-ended'}).`);
       return;
     }
 
     const updates = { ...form };
-    if (!cappingEnabled) {
-      updates.min_holiday_amount = null;
-      updates.max_holiday_amount = null;
-    }
+    if (!cappingEnabled) { updates.min_holiday_amount = null; updates.max_holiday_amount = null; }
 
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
-    } else {
-      createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
-    }
+    try {
+      const analysis = await analyzeMutation.mutateAsync({
+        tableName: 'c3_holiday_pay_policy_default',
+        id: editingId,
+        dateFrom: form.date_from,
+        dateTo: form.date_to,
+        scopeFilter: { policy_type: form.policy_type },
+      });
+
+      if (analysis.action === 'error') { setOverlapWarning(analysis.message || 'Validation failed'); return; }
+      if (analysis.action === 'split') {
+        setSplitAnalysis(analysis);
+        setPendingSaveData(updates);
+        setShowSplitConfirm(true);
+        return;
+      }
+
+      if (editingId) {
+        updateMutation.mutate({ id: editingId, updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      } else {
+        createMutation.mutate({ policy: updates, userCode: userCode || undefined }, { onSuccess: () => setShowForm(false) });
+      }
+    } catch (err: any) { setOverlapWarning(err.message || 'Validation failed'); }
+  };
+
+  const handleConfirmSplit = async () => {
+    if (!editingId || !pendingSaveData) return;
+    try {
+      const { id, created_on, modified_on, ...vals } = pendingSaveData;
+      await upsertWithSplit.mutateAsync({
+        tableName: 'c3_holiday_pay_policy_default',
+        id: editingId, dateFrom: pendingSaveData.date_from, dateTo: pendingSaveData.date_to,
+        valuesJson: vals, userCode: userCode || undefined, forceSplit: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['holiday-pay-policy-defaults'] });
+      toast.success('Configuration split successfully.');
+      setShowSplitConfirm(false); setSplitAnalysis(null); setPendingSaveData(null); setShowForm(false);
+    } catch (err: any) { toast.error(err.message || 'Split failed'); }
   };
 
   const handleDelete = async () => {
