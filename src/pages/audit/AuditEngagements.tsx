@@ -282,7 +282,6 @@ export default function AuditEngagements() {
 
       <Card><CardContent>
         <DataTable columns={columns} data={filtered}
-          onRowClick={(row) => navigate(`/audit/audits/${row.id}`)}
           renderActions={(row) => (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>Edit</Button>
