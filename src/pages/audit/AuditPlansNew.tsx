@@ -9,25 +9,17 @@ import { StandardModal } from '@/components/common/StandardModal';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useIAAnnualPlans, useIAAnnualPlanMutations } from '@/hooks/useAuditData';
-import { useStartPlanApproval, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
-import { useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
-import { useAuth } from '@/contexts/AuthContext';
-import { useUserCode } from '@/hooks/useUserCode';
-import { useToast } from '@/hooks/use-toast';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
 import { PlanRevisionDialog } from '@/components/audit/PlanRevisionDialog';
-import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getSubmitEligibility, getEditEligibility, getReviseEligibility, getApproveEligibility } from '@/hooks/useAuditPlanWorkflowAccess';
+import { getSubmitEligibility, getEditEligibility, getReviseEligibility, getApproveEligibility, useAuditAnnualPlanPermissionContext } from '@/hooks/useAuditPlanWorkflowAccess';
+import { useAuditAnnualPlanReadinessMap, useSubmitAnnualPlanWorkflow } from '@/hooks/useAuditAnnualPlanFlow';
 
 export default function AuditPlansNew() {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  const { userCode } = useUserCode();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ status: 'all', fiscalYear: 'all', boardPack: 'all' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -39,8 +31,9 @@ export default function AuditPlansNew() {
 
   const { data: plans = [], isLoading } = useIAAnnualPlans();
   const { create, update } = useIAAnnualPlanMutations();
-  const startApproval = useStartPlanApproval();
-  const checkAvailability = useTeamAvailabilityCheck();
+  const permissionContext = useAuditAnnualPlanPermissionContext();
+  const { readinessMap } = useAuditAnnualPlanReadinessMap(enrichedPlans);
+  const submitPlan = useSubmitAnnualPlanWorkflow();
 
   // Get all fiscal years for filter
   const fiscalYears = useMemo(() => {
@@ -75,33 +68,6 @@ export default function AuditPlansNew() {
     drafts: enrichedPlans.filter((p: any) => ['Draft', 'Submitted', 'Under Review', 'Amendment Pending', 'Rejected'].includes(p._status)).length,
     boardPacks: enrichedPlans.filter((p: any) => p._boardPackStatus !== 'None').length,
   }), [enrichedPlans]);
-
-  const handleSubmitForApproval = async (planId: string) => {
-    const plan = enrichedPlans.find((p: any) => p.id === planId);
-    try {
-      const conflicts = await checkAvailability.mutateAsync({ planId });
-      setConflictResult(conflicts);
-      if (conflicts.has_blocking) {
-        toast({ title: 'Blocking Conflicts Detected', description: `${conflicts.total_conflicts} conflict(s) found.`, variant: 'destructive' });
-        notifyTeamConflict(planId, {
-          plan_title: plan?.title || 'Audit Plan', conflict_type: 'multiple',
-          auditor_name: 'Team', conflict_dates: 'See details', severity: 'blocking',
-        });
-        return;
-      }
-
-      await startApproval.mutateAsync({ planId, submittedBy: userCode || 'SYSTEM', isRevision: false });
-      notifyPlanSubmitted(planId, {
-        plan_title: plan?.title || 'Audit Plan', fiscal_year: plan?.fiscal_year || '',
-        submitted_by: userCode || 'SYSTEM', plan_id: planId,
-        department_name: '', risk_level: '',
-      });
-    } catch (err: any) {
-      toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
-    } finally {
-      setSubmitPlanId(null);
-    }
-  };
 
   const columns: DataTableColumn<any>[] = [
     { key: 'title', header: 'Plan Title', render: (row) => <span className="font-medium">{row.title}</span> },
@@ -149,7 +115,24 @@ export default function AuditPlansNew() {
       subtitle="Board-ready annual audit plan portfolio"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Annual Plans' }]}
       isLoading={isLoading}
-      actions={<Button onClick={() => setIsCreateOpen(true)}><Plus className="mr-2 h-4 w-4" />Create Annual Plan</Button>}
+      actions={
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button onClick={() => permissionContext.canManagePlans && setIsCreateOpen(true)} disabled={!permissionContext.canManagePlans || permissionContext.isLoading}>
+                  <Plus className="mr-2 h-4 w-4" />Create Annual Plan
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!permissionContext.canManagePlans && !permissionContext.isLoading && (
+              <TooltipContent>
+                <p className="text-xs">Missing annual plan maker permission.</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+      }
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard icon={ClipboardList} label="Total Plans" value={metrics.total} />
@@ -183,10 +166,11 @@ export default function AuditPlansNew() {
             data={filteredPlans}
             emptyMessage="No annual audit plans found."
             renderActions={(row) => {
-              const submitEl = getSubmitEligibility(hasPermission, row._status);
-              const editEl = getEditEligibility(hasPermission, row._status);
-              const reviseEl = getReviseEligibility(hasPermission, row._status);
-              const approveEl = getApproveEligibility(hasPermission, row._status);
+              const readiness = readinessMap[row.id];
+              const submitEl = getSubmitEligibility(permissionContext.hasPermission, row._status, readiness);
+              const editEl = getEditEligibility(permissionContext.hasPermission, row._status);
+              const reviseEl = getReviseEligibility(permissionContext.hasPermission, row._status);
+              const approveEl = getApproveEligibility(permissionContext.hasPermission, row._status);
 
               return (
                 <div className="flex items-center justify-end gap-1">
@@ -199,9 +183,22 @@ export default function AuditPlansNew() {
 
                   {/* Edit button */}
                   {editEl.visible && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditPlan(row)} title="Edit">
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editEl.enabled ? setEditPlan(row) : undefined} title="Edit" disabled={!editEl.enabled}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!editEl.enabled && editEl.reason && (
+                          <TooltipContent side="left" className="max-w-[250px]">
+                            <p className="text-xs">{editEl.reason}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
 
                   {/* Revise button (for Approved plans) */}
@@ -283,7 +280,19 @@ export default function AuditPlansNew() {
         onOpenChange={() => setSubmitPlanId(null)}
         title="Submit Plan for Approval"
         description="This will run team availability checks and submit the annual plan through the approval workflow."
-        onConfirm={() => submitPlanId && handleSubmitForApproval(submitPlanId)}
+        onConfirm={() => {
+          if (!submitPlanId) return;
+          const plan = enrichedPlans.find((candidate: any) => candidate.id === submitPlanId);
+          submitPlan.mutate(
+            { planId: submitPlanId, plan },
+            {
+              onSuccess: () => {
+                setSubmitPlanId(null);
+                setConflictResult(null);
+              },
+            },
+          );
+        }}
       />
 
       <PlanRevisionDialog open={!!revisionPlan} onOpenChange={(open) => !open && setRevisionPlan(null)} plan={revisionPlan} />

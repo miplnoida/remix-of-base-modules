@@ -37,7 +37,6 @@ export default function PlanApproval() {
   const { data: annualPlans = [], isLoading } = useIAAnnualPlans();
   const { approvePlan, rejectPlan, sendBackForChanges } = useAuditPlanWorkflow();
 
-  // Use unified access check — no plan-specific status needed for page-level check
   const access = usePlanWorkflowAccess();
 
   // Fetch engagements for current viewed item
@@ -72,6 +71,17 @@ export default function PlanApproval() {
   });
 
   // Gate: only approvers can see this page
+  if (access.isLoading) {
+    return (
+      <PageShell
+        title="Plan Approval"
+        subtitle="Review, approve, or return annual audit plans"
+        breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Plan Approval' }]}
+        isLoading
+      />
+    );
+  }
+
   if (!access.isApprover) {
     return (
       <PageShell

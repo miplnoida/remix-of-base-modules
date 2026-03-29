@@ -16,24 +16,21 @@ import { PlanApprovalHistoryTimeline } from '@/components/audit/PlanApprovalHist
 import { PlanAmendmentHistory } from '@/components/audit/PlanAmendmentHistory';
 import { PlanApprovalBanner } from '@/components/audit/PlanApprovalBanner';
 import { PlanSubmissionReadiness } from '@/components/audit/PlanSubmissionReadiness';
+import { PlanRevisionDialog } from '@/components/audit/PlanRevisionDialog';
 import { BoardPackTab } from '@/components/audit/BoardPackTab';
 import { PlanDistributionTab } from '@/components/audit/PlanDistributionTab';
 import { CoverageRiskTab } from '@/components/audit/CoverageRiskTab';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
-import { useAuth } from '@/contexts/AuthContext';
-import { useUserCode } from '@/hooks/useUserCode';
 import { PageShell, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
 import { Loader2, X } from 'lucide-react';
-import { validatePlanReadiness, useAuditPlanWorkflow, isPlanEditable, isPlanLocked } from '@/hooks/useAuditPlanApproval';
-import { useStartPlanApproval, useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
-import { notifyPlanSubmitted, notifyTeamConflict } from '@/services/iaNotificationService';
+import { useAuditPlanWorkflow } from '@/hooks/useAuditPlanApproval';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePlanWorkflowAccess } from '@/hooks/useAuditPlanWorkflowAccess';
+import { getAnnualPlanReadinessChecks, summarizeAnnualPlanReadiness, useSubmitAnnualPlanWorkflow } from '@/hooks/useAuditAnnualPlanFlow';
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -48,9 +45,6 @@ export default function AuditPlanDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasPermission } = useAuth();
-  const { userCode } = useUserCode();
-  const { toast } = useToast();
 
   const { data: plans = [], isLoading: plansLoading } = useIAAnnualPlans();
   const { data: engagements = [], isLoading: engLoading } = useIAPlanEngagements(id);
@@ -63,17 +57,17 @@ export default function AuditPlanDetail() {
   const [showReadiness, setShowReadiness] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [conflictResult, setConflictResult] = useState<any>(null);
+  const [revisionPlan, setRevisionPlan] = useState<any>(null);
 
-  // Use the SAME workflow RPC as the list page
-  const startApproval = useStartPlanApproval();
-  const checkAvailability = useTeamAvailabilityCheck();
   const { withdrawSubmission } = useAuditPlanWorkflow();
+  const submitPlan = useSubmitAnnualPlanWorkflow();
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
   const planStatus = plan?.status || 'Draft';
+  const readinessChecks = useMemo(() => getAnnualPlanReadinessChecks(plan, engagements || []), [engagements, plan]);
+  const readinessSummary = useMemo(() => summarizeAnnualPlanReadiness(readinessChecks), [readinessChecks]);
 
-  // Unified RBAC access
-  const access = usePlanWorkflowAccess(planStatus);
+  const access = usePlanWorkflowAccess(planStatus, readinessSummary);
 
   // Auto-open submission readiness dialog when navigated with ?action=submit
   useEffect(() => {
@@ -97,31 +91,17 @@ export default function AuditPlanDetail() {
     return { total: all.length, planned: planned.length, ongoing: ongoing.length, completed: closed.length, totalDays, totalWeeks, highRisk };
   }, [engagements]);
 
-  // Shared submit handler — same as list page
   const handleSubmitForApproval = async () => {
     if (!id || !plan) return;
-    try {
-      const conflicts = await checkAvailability.mutateAsync({ planId: id });
-      setConflictResult(conflicts);
-      if (conflicts.has_blocking) {
-        toast({ title: 'Blocking Conflicts Detected', description: `${conflicts.total_conflicts} conflict(s) found.`, variant: 'destructive' });
-        notifyTeamConflict(id, {
-          plan_title: plan?.title || 'Audit Plan', conflict_type: 'multiple',
-          auditor_name: 'Team', conflict_dates: 'See details', severity: 'blocking',
-        });
-        return;
-      }
-
-      await startApproval.mutateAsync({ planId: id, submittedBy: userCode || 'SYSTEM', isRevision: false });
-      notifyPlanSubmitted(id, {
-        plan_title: plan?.title || 'Audit Plan', fiscal_year: plan?.fiscal_year || '',
-        submitted_by: userCode || 'SYSTEM', plan_id: id,
-        department_name: '', risk_level: '',
-      });
-      setShowReadiness(false);
-    } catch (err: any) {
-      toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
-    }
+    submitPlan.mutate(
+      { planId: id, plan, engagements },
+      {
+        onSuccess: () => {
+          setShowReadiness(false);
+          setConflictResult(null);
+        },
+      },
+    );
   };
 
   if (plansLoading) {
@@ -142,11 +122,6 @@ export default function AuditPlanDetail() {
       </div>
     );
   }
-
-  const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-  const canEditHeader = isPlanEditable(planStatus);
-  const locked = isPlanLocked(planStatus);
-  const readinessChecks = validatePlanReadiness(plan, engagements || []);
 
   return (
     <PageShell
@@ -177,6 +152,12 @@ export default function AuditPlanDetail() {
                 )}
               </Tooltip>
             </TooltipProvider>
+          )}
+
+          {access.revise.visible && access.revise.enabled && (
+            <Button variant="outline" onClick={() => setRevisionPlan(plan)}>
+              <Edit className="h-4 w-4 mr-2" />Revise Plan
+            </Button>
           )}
 
           {/* Withdraw */}
@@ -240,11 +221,22 @@ export default function AuditPlanDetail() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm">Plan Information</CardTitle>
-                    {canEditHeader && access.edit.enabled && (
-                      <Button variant="ghost" size="sm" onClick={() => setIsEditingHeader(true)}>
-                        <Edit className="h-3.5 w-3.5 mr-1" />Edit
-                      </Button>
-                    )}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button variant="ghost" size="sm" onClick={() => access.edit.enabled ? setIsEditingHeader(true) : undefined} disabled={!access.edit.enabled}>
+                              <Edit className="h-3.5 w-3.5 mr-1" />Edit
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!access.edit.enabled && access.edit.reason && (
+                          <TooltipContent className="max-w-[280px]">
+                            <p className="text-xs">{access.edit.reason}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </CardHeader>
                   <CardContent>
                     <DetailRow label="Plan Title" value={plan.title} />
@@ -428,7 +420,7 @@ export default function AuditPlanDetail() {
         checks={readinessChecks}
         engagementCount={(engagements || []).length}
         onSubmit={handleSubmitForApproval}
-        isSubmitting={startApproval.isPending || checkAvailability.isPending}
+        isSubmitting={submitPlan.isPending}
       />
 
       {/* Withdraw Dialog */}
@@ -442,6 +434,8 @@ export default function AuditPlanDetail() {
           setShowWithdraw(false);
         }}
       />
+
+      <PlanRevisionDialog open={!!revisionPlan} onOpenChange={(open) => !open && setRevisionPlan(null)} plan={revisionPlan} />
     </PageShell>
   );
 }

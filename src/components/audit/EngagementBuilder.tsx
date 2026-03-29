@@ -14,6 +14,7 @@ import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from 
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useManualOverride } from '@/hooks/useAutoPlanEngine';
+import { isEditablePlanStatus, isLockedPlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 
 interface EngagementBuilderProps {
   planId: string;
@@ -34,11 +35,10 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const manualOverride = useManualOverride(planId);
 
-  const canEdit = ['Draft', 'Revision', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
+  const canEdit = isEditablePlanStatus(planStatus);
   const isApproved = planStatus === 'Approved';
-  const isLocked = ['Submitted', 'Under Review'].includes(planStatus);
-  // Allow editing even on approved plans (triggers amendment)
-  const canModify = canEdit || isApproved;
+  const isLocked = isLockedPlanStatus(planStatus);
+  const canModify = canEdit;
 
   const getDeptName = (id: string) => (departments || []).find((d: any) => d.id === id)?.name || '—';
   const getFuncName = (id: string) => (functions || []).find((f: any) => f.id === id)?.function_name || '—';
@@ -189,6 +189,11 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
       {isLocked && (
         <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
           <span className="font-medium">🔒 Plan is under review.</span> Editing is disabled until the approval process completes.
+        </div>
+      )}
+      {isApproved && (
+        <div className="mb-3 rounded-md border border-border bg-muted px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
+          <span className="font-medium">Approved plan is locked.</span> Use the Revise Plan action to create an amendment before changing engagements.
         </div>
       )}
       <Card>
