@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit, Send, Undo2 } from 'lucide-react';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
@@ -12,21 +12,24 @@ import { AutoPlanSuggestions } from '@/components/audit/AutoPlanSuggestions';
 import { PlanningWizard } from '@/components/audit/PlanningWizard';
 import { PlanVersionHistory } from '@/components/audit/PlanVersionHistory';
 import { CapacityCalendarPanel } from '@/components/audit/CapacityCalendarPanel';
-import { ApprovalHistoryPanel } from '@/components/audit/ApprovalHistoryPanel';
+import { PlanApprovalHistoryTimeline } from '@/components/audit/PlanApprovalHistoryTimeline';
 import { PlanAmendmentHistory } from '@/components/audit/PlanAmendmentHistory';
+import { PlanApprovalBanner } from '@/components/audit/PlanApprovalBanner';
+import { PlanSubmissionReadiness } from '@/components/audit/PlanSubmissionReadiness';
 import { BoardPackTab } from '@/components/audit/BoardPackTab';
 import { PlanDistributionTab } from '@/components/audit/PlanDistributionTab';
 import { CoverageRiskTab } from '@/components/audit/CoverageRiskTab';
 import { AnnualPlanForm } from '@/components/audit/AnnualPlanForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
-import { PageShell, DataTable, StatusBadge } from '@/components/common';
+import { PageShell, DataTable, StatusBadge, ConfirmDialog } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, X } from 'lucide-react';
+import { validatePlanReadiness, useAuditPlanWorkflow, isPlanEditable, isPlanLocked } from '@/hooks/useAuditPlanApproval';
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -52,6 +55,10 @@ export default function AuditPlanDetail() {
   const { update: updatePlan } = useIAAnnualPlanMutations();
 
   const [isEditingHeader, setIsEditingHeader] = useState(false);
+  const [showReadiness, setShowReadiness] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+
+  const { submitForApproval, withdrawSubmission } = useAuditPlanWorkflow();
 
   const plan = useMemo(() => (plans || []).find((p: any) => p.id === id), [plans, id]);
 
@@ -86,20 +93,39 @@ export default function AuditPlanDetail() {
   }
 
   const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-  const canEditHeader = ['Draft', 'Revision'].includes(plan.status);
+  const planStatus = plan.status || 'Draft';
+  const canEditHeader = isPlanEditable(planStatus);
+  const locked = isPlanLocked(planStatus);
+  const canSubmit = ['Draft', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
+  const canWithdraw = planStatus === 'Submitted';
+  const readinessChecks = validatePlanReadiness(plan, engagements || []);
 
   return (
     <PageShell
       title={plan.title || 'Plan Workspace'}
-      subtitle={`Fiscal Year: ${plan.fiscal_year || '—'} • Version: v${plan.current_version_number || 1} • Status: ${plan.status || 'Draft'}`}
+      subtitle={`Fiscal Year: ${plan.fiscal_year || '—'} • Version: v${plan.current_version_number || 1} • Status: ${planStatus}`}
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Annual Plans', href: '/audit/audit-plans' }, { label: plan.title || 'Workspace' }]}
       isLoading={engLoading}
       actions={
-        <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />Back
-        </Button>
+        <div className="flex items-center gap-2">
+          {canSubmit && hasPermission('edit_audit_plans') && (
+            <Button onClick={() => setShowReadiness(true)}>
+              <Send className="h-4 w-4 mr-2" />Submit for Approval
+            </Button>
+          )}
+          {canWithdraw && hasPermission('edit_audit_plans') && (
+            <Button variant="outline" onClick={() => setShowWithdraw(true)}>
+              <Undo2 className="h-4 w-4 mr-2" />Withdraw
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => navigate('/audit/audit-plans')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />Back
+          </Button>
+        </div>
       }
     >
+      {/* Approval Status Banner */}
+      <PlanApprovalBanner plan={plan} />
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <MetricCard title="Engagements" value={stats.total} icon={Briefcase} variant="info" />
@@ -327,12 +353,7 @@ export default function AuditPlanDetail() {
         {/* Approval & Amendments Tab */}
         <TabsContent value="approval">
           <div className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Approval History</CardTitle></CardHeader>
-              <CardContent>
-                <ApprovalHistoryPanel entityId={id!} entityType="plan" />
-              </CardContent>
-            </Card>
+            <PlanApprovalHistoryTimeline planId={id!} />
             <Card>
               <CardHeader><CardTitle className="text-sm">Version History</CardTitle></CardHeader>
               <CardContent>
@@ -367,6 +388,31 @@ export default function AuditPlanDetail() {
           <PlanDistributionTab planId={id!} plan={plan} />
         </TabsContent>
       </Tabs>
+
+      {/* Submission Readiness Dialog */}
+      <PlanSubmissionReadiness
+        open={showReadiness}
+        onOpenChange={setShowReadiness}
+        checks={readinessChecks}
+        engagementCount={(engagements || []).length}
+        onSubmit={() => {
+          submitForApproval.mutate({ planId: id! });
+          setShowReadiness(false);
+        }}
+        isSubmitting={submitForApproval.isPending}
+      />
+
+      {/* Withdraw Confirmation */}
+      <ConfirmDialog
+        open={showWithdraw}
+        onOpenChange={() => setShowWithdraw(false)}
+        title="Withdraw Submission"
+        description="Are you sure you want to withdraw this plan from approval? It will return to Draft status and can be edited again."
+        onConfirm={() => {
+          withdrawSubmission.mutate({ planId: id! });
+          setShowWithdraw(false);
+        }}
+      />
     </PageShell>
   );
 }

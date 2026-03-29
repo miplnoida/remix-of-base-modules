@@ -34,8 +34,9 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const manualOverride = useManualOverride(planId);
 
-  const canEdit = ['Draft', 'Revision'].includes(planStatus);
+  const canEdit = ['Draft', 'Revision', 'Changes Requested', 'Rejected', 'Amendment Pending'].includes(planStatus);
   const isApproved = planStatus === 'Approved';
+  const isLocked = ['Submitted', 'Under Review'].includes(planStatus);
   // Allow editing even on approved plans (triggers amendment)
   const canModify = canEdit || isApproved;
 
@@ -185,6 +186,11 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
 
   return (
     <>
+      {isLocked && (
+        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
+          <span className="font-medium">🔒 Plan is under review.</span> Editing is disabled until the approval process completes.
+        </div>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -194,7 +200,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
               {byQuarter.filter(q => q.count > 0).map(q => ` • ${q.quarter}: ${q.count}`).join('')}
             </p>
           </div>
-          {canModify && (
+          {canModify && !isLocked && (
             <Button size="sm" onClick={() => { setEditTarget(null); setShowDialog(true); }}>
               <Plus className="h-4 w-4 mr-1" />Add Engagement
             </Button>
@@ -205,7 +211,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
             columns={columns}
             data={engagements}
             emptyMessage="No engagements added to this plan yet. Click 'Add Engagement' to build the audit portfolio."
-            renderActions={canModify ? (row) => (
+            renderActions={(canModify && !isLocked) ? (row) => (
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditTarget(row); setShowDialog(true); }} title="Edit">
                   <Edit className="h-4 w-4" />
