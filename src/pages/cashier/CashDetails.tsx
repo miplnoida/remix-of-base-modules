@@ -18,7 +18,7 @@ import { ChequeVerificationList } from '@/components/payments/ChequeVerification
 
 const CashDetails: React.FC = () => {
   const { toast } = useToast();
-  const batchSel = useBatchSelection();
+  const batchSel = useBatchSelection({ skipDateFilter: true });
   const { userCode } = useUserCode();
   const [saving, setSaving] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
