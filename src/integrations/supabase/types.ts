@@ -9763,9 +9763,13 @@ export type Database = {
           estimated_hours: number | null
           execution_gate_status: Json | null
           expected_deliverable: string | null
+          expected_deliverable_codes: Json | null
+          expected_deliverable_notes: string | null
           function_id: string | null
           id: string
           inclusion_rationale: string | null
+          inclusion_reason_codes: Json | null
+          inclusion_reason_notes: string | null
           is_active: boolean | null
           is_adhoc: boolean | null
           lead_auditor_id: string | null
@@ -9774,10 +9778,12 @@ export type Database = {
           objectives: string | null
           planned_end_date: string | null
           planned_start_date: string | null
+          primary_auditee_contact_id: string | null
           quarter: string | null
           reviewer_id: string | null
           scheduling_notes: string | null
           scope: string | null
+          secondary_auditee_contact_ids: Json | null
           sequence_no: number | null
           status: string | null
           supportive_auditor_ids: Json | null
@@ -9817,9 +9823,13 @@ export type Database = {
           estimated_hours?: number | null
           execution_gate_status?: Json | null
           expected_deliverable?: string | null
+          expected_deliverable_codes?: Json | null
+          expected_deliverable_notes?: string | null
           function_id?: string | null
           id?: string
           inclusion_rationale?: string | null
+          inclusion_reason_codes?: Json | null
+          inclusion_reason_notes?: string | null
           is_active?: boolean | null
           is_adhoc?: boolean | null
           lead_auditor_id?: string | null
@@ -9828,10 +9838,12 @@ export type Database = {
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
+          primary_auditee_contact_id?: string | null
           quarter?: string | null
           reviewer_id?: string | null
           scheduling_notes?: string | null
           scope?: string | null
+          secondary_auditee_contact_ids?: Json | null
           sequence_no?: number | null
           status?: string | null
           supportive_auditor_ids?: Json | null
@@ -9871,9 +9883,13 @@ export type Database = {
           estimated_hours?: number | null
           execution_gate_status?: Json | null
           expected_deliverable?: string | null
+          expected_deliverable_codes?: Json | null
+          expected_deliverable_notes?: string | null
           function_id?: string | null
           id?: string
           inclusion_rationale?: string | null
+          inclusion_reason_codes?: Json | null
+          inclusion_reason_notes?: string | null
           is_active?: boolean | null
           is_adhoc?: boolean | null
           lead_auditor_id?: string | null
@@ -9882,10 +9898,12 @@ export type Database = {
           objectives?: string | null
           planned_end_date?: string | null
           planned_start_date?: string | null
+          primary_auditee_contact_id?: string | null
           quarter?: string | null
           reviewer_id?: string | null
           scheduling_notes?: string | null
           scope?: string | null
+          secondary_auditee_contact_ids?: Json | null
           sequence_no?: number | null
           status?: string | null
           supportive_auditor_ids?: Json | null
