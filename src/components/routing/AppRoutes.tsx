@@ -727,6 +727,7 @@ import IncomeCodeManagement from '@/pages/admin/IncomeCodeManagement';
 import ActivityManagement from '@/pages/admin/master-data/ActivityManagement';
 import BankCodeManagement from '@/pages/admin/master-data/BankCodeManagement';
 import BatchStatusManagement from '@/pages/admin/master-data/BatchStatusManagement';
+import PayPeriodManagement from '@/pages/admin/master-data/PayPeriodManagement';
 import C3StatusManagement from '@/pages/admin/master-data/C3StatusManagement';
 import CountryManagement from '@/pages/admin/master-data/CountryManagement';
 import DependentRelationManagement from '@/pages/admin/master-data/DependentRelationManagement';
@@ -1073,6 +1074,7 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/activity-types" element={<ProtectedLayout><ActivityManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/bank-codes" element={<ProtectedLayout><BankCodeManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/batch-status" element={<ProtectedLayout><BatchStatusManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/pay-periods" element={<ProtectedLayout><PayPeriodManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/c3-status" element={<ProtectedLayout><C3StatusManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/countries" element={<ProtectedLayout><CountryManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/dependent-relations" element={<ProtectedLayout><DependentRelationManagement /></ProtectedLayout>} />

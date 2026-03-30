@@ -136,7 +136,7 @@ export const DB_TRIGGER_TABLES = new Set([
   'system_settings', 'security_policy_config', 'ip_access_rules',
   'c3_calculation_config', 'payment_module_config',
   'tb_levy_slabs', 'tb_levy_slab_details',
-  'tb_currencies', 'tb_self_emp_contrib_rate',
+  'tb_currencies', 'tb_self_emp_contrib_rate', 'tb_pay_periods',
   // API & Workflow
   'api_settings', 'api_registry', 'workflow_instances',
   // Mutation-key aliases (used in mutationKey arrays, map to real tables above)
