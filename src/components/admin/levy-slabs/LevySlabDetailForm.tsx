@@ -46,6 +46,15 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
   const updateMutation = useUpdateLevySlabDetail();
   const { userCode } = useUserCode();
 
+  const { data: payPeriods = [] } = useQuery({
+    queryKey: ['tb_pay_periods'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('tb_pay_periods').select('code, description').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+
   const [payPeriod, setPayPeriod] = useState('W');
   const [overAmt, setOverAmt] = useState('0');
   const [baseAmt, setBaseAmt] = useState('0');
@@ -134,9 +143,9 @@ export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
                   <SelectValue placeholder="Select pay period" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAY_PERIODS.map((period) => (
-                    <SelectItem key={period.value} value={period.value}>
-                      {period.label}
+                  {payPeriods.map((period) => (
+                    <SelectItem key={period.code} value={period.code}>
+                      {period.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
