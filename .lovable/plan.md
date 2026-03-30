@@ -1,62 +1,58 @@
 
 
-# Fix Validation API Issues — Email Enforcement & Address Mapping
+# C3-Wizard Configuration — SSB Admin Credentials for `c3_site_settings`
 
-## Issues Identified
+## What C3-Wizard Needs
 
-### Issue 1: Email Validation Not Enforced (SECURITY BUG)
-Both ER and SE master RPCs have `p_email TEXT DEFAULT NULL` — email is optional. The edge function handlers also treat email as optional: if the URL doesn't include `,email`, validation is skipped entirely. Data leaks based on a single identifier (regNo or SSN), which is exactly the security gap the C3-Wizard team flagged in Section 12 of their guide.
+The C3-Wizard team needs two values for their `c3_site_settings` table:
 
-**Root cause in edge function** (lines 660-667 & 678-685): `email` is derived from `parts[1]` after comma-split. If no comma in URL, email is `null` and the RPC skips validation.
+### 1. `SSB_BIMA_BASE_URL`
 
-### Issue 2: ER Master Address Mapping Wrong
-Current mapping: `city → COALESCE(TRIM(v_rec.maddr1), '')` — this is **mailing address line 1**, not city. The `er_master` table has no dedicated `city` column. The `hq_addr2` field typically contains the island/city (e.g., "Nevis"). 
+The base URL for all SSB Admin public APIs:
 
-Correct mapping should be:
-- `address1` → `hq_addr1` (physical/HQ address line 1) ✅ already correct
-- `address2` → `hq_addr2` (physical/HQ address line 2) ✅ already correct  
-- `city` → empty string (no city column exists; `maddr1` is mailing, not city)
+```
+https://xynceskeiiisiefqlgxo.supabase.co/functions/v1/public-api/api/v1
+```
 
-### Issue 3: SE SSN 100010 — Data Exists, API Should Work
-Database confirms:
-- `ip_master`: SSN 100010 exists (Tonnie James, tonnie@yopmail.com)
-- `ip_self_employ`: 2 activities exist (status P)
-- `ip_self_category`: 2 wage categories exist
+This is the edge function URL with the `/api/v1` path prefix that all endpoints expect.
 
-The SE master RPC should return this data successfully. The "invalid ssn" error is likely on the **C3-Wizard side** — they may be calling the wrong endpoint, or their local validation is failing. A clarification request will be raised.
+### 2. `SSB_BIMA_API_KEY`
 
-## Changes
+The API key for the **"C3 Wizard Application"** entry already exists in the system (`public_api_keys` table, ID: `cb45c54e-6946-4cd1-a007-c3c1cf33d5f0`, status: active).
 
-### Step 1: Database Migration — Fix 2 RPCs
+**However**, the plain-text key is encrypted and can only be retrieved through the admin UI:
+1. Log into SSB Admin
+2. Navigate to **Admin → API Keys Management**
+3. Find the **"C3 Wizard Application"** key
+4. Click the **reveal/copy** button to get the plain-text API key
+5. Share that value as `SSB_BIMA_API_KEY`
 
-**`public_api_er_master_details`**: 
-- Make `p_email` truly required: if NULL or empty, return error `{ "error": "Email is required", "code": "BAD_REQUEST" }`
-- Fix `city` mapping: change from `maddr1` to empty string `''`
-- Return 404 (NOT_FOUND) when email doesn't match
+## What to Share with C3-Wizard Team
 
-**`public_api_se_master_details`**:
-- Make `p_email` truly required: same validation as ER
-- Return 404 when email doesn't match
+Once you retrieve the API key from the admin UI, send them this message:
 
-### Step 2: Edge Function — Enforce Email in Handlers
+---
 
-Update `handleERMasterDetails` (line 660):
-- After splitting `regNoAndEmail`, if `email` is null/empty, throw `BAD_REQUEST` error: "Email parameter is required. Use format: /{regNo},{email}"
+**Subject: SSB Admin API Credentials for c3_site_settings**
 
-Update `handleSEMasterDetails` (line 678):
-- Same enforcement for `ssnAndEmail`
+**To: C3-Wizard Development Team**
 
-### Step 3: Raise Query to C3-Wizard Team
+Please insert the following into your `c3_site_settings` table:
 
-Prepare a structured message asking:
-- **SE SSN 100010**: Which exact API endpoint is being called? The SE master details API (`/Employer/getSEMasterDetails/100010,tonnie@yopmail.com`) should return valid data. Please share the exact URL being called and the full error response.
-- **Confirmation**: Email is now mandatory for both ER and SE lookups (URL format: `/{regNo},{email}` and `/{ssn},{email}`). Calls without email will return 400.
-- **Address fields**: `city` will return empty string for ER (no city column in database). Is this acceptable, or should C3-Wizard derive city from `address2`?
+| Setting Key | Value |
+|---|---|
+| `SSB_BIMA_BASE_URL` | `https://xynceskeiiisiefqlgxo.supabase.co/functions/v1/public-api/api/v1` |
+| `SSB_BIMA_API_KEY` | *(the API key retrieved from the admin panel — shared separately)* |
 
-## Files Modified
+**Usage**: All API calls should use:
+- **Header**: `x-api-key: {SSB_BIMA_API_KEY}`  
+- **Base URL**: `{SSB_BIMA_BASE_URL}` + endpoint path (e.g., `/Employer/getERMasterDetails/{regNo},{email}`)
 
-| File | Change |
-|------|--------|
-| Migration SQL | Recreate 2 RPCs with mandatory email + fixed address mapping |
-| `supabase/functions/public-api/index.ts` | Add email-required check in both handlers |
+**Confirmation**: The `BIMA_API_USERNAME` and `BIMA_API_PASSWORD` secrets are no longer needed and can be safely deleted from your configuration.
+
+---
+
+## No Code Changes Required
+
+This is a configuration handoff — no code changes are needed on the SSB Admin side. The API key and base URL already exist and are functional.
 
