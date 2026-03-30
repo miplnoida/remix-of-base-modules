@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions, useIAFindings, useIAActionTracking, useIAManagementResponses } from '@/hooks/useAuditData';
+import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers } from '@/hooks/useEngagementData';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
