@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Briefcase, Clock, CheckCircle, AlertTriangle, Search, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
@@ -284,16 +285,22 @@ export default function AuditEngagements() {
         <DataTable columns={columns} data={filtered}
           renderActions={(row) => (
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/audit/audits/${row.id}`);
-                }}
-              >
-                Open Workspace
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/audit/audits/${row.id}`);
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Open Workspace</TooltipContent>
+              </Tooltip>
             </div>
           )} />
       </CardContent></Card>
