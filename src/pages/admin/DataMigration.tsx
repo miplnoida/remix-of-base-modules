@@ -1046,21 +1046,11 @@ const DataMigration = () => {
     fetchTables();
   }, []);
   
-  // Individual table selection for Export/Import
+  // Individual table selection for Export/Import — all unchecked by default
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  
-  // Auto-select all on first load
-  useEffect(() => {
-    if (allTables.length > 0 && selectedTables.length === 0) {
-      setSelectedTables([...allTables]);
-    }
-  }, [allTables]);
 
-  const tableOptions = useMemo(() => 
-    allTables.map(t => ({ value: t, label: t })).sort((a, b) => a.label.localeCompare(b.label)),
-    [allTables]
-  );
-  
+  const selectedSet = useMemo(() => new Set(selectedTables), [selectedTables]);
+
   const [tableSearch, setTableSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -1070,6 +1060,22 @@ const DataMigration = () => {
   const [exportComplete, setExportComplete] = useState(false);
   const [lastExportCount, setLastExportCount] = useState(0);
 
+  const availableForExport = useMemo(() => 
+    allTables.filter(t => !selectedSet.has(t)).sort(),
+    [allTables, selectedSet]
+  );
+
+  const filteredForExport = useMemo(() =>
+    availableForExport.filter(t => t.toLowerCase().includes(tableSearch.toLowerCase())),
+    [availableForExport, tableSearch]
+  );
+
+  const handleSelectToExport = (table: string) => {
+    setSelectedTables(prev => prev.includes(table) ? prev : [...prev, table]);
+  };
+  const handleDeselectFromExport = (table: string) => {
+    setSelectedTables(prev => prev.filter(t => t !== table));
+  };
   const handleSelectAll = () => setSelectedTables([...allTables]);
   const handleSelectNone = () => setSelectedTables([]);
   const handleSelectConfig = () => {
@@ -1086,7 +1092,7 @@ const DataMigration = () => {
       if (error) throw error;
       const tables = (data || []).map((t: { table_name: string }) => t.table_name);
       setAllTables(tables);
-      setSelectedTables(tables);
+      setSelectedTables([]);
       toast({ title: "Tables Refreshed", description: `Found ${data?.length || 0} tables` });
     } catch (err) {
       console.error('Failed to fetch tables:', err);
