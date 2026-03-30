@@ -137,9 +137,7 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
       </div>
       <div><Label className="text-xs">Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="text-xs" /></div>
       <div className="flex gap-2">
-        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={create.isPending || uploading}>
-          {uploading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Uploading...</> : 'Save Working Paper'}
-        </Button>
+        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={create.isPending}>Save Working Paper</Button>
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onClose}>Cancel</Button>
       </div>
     </div>
