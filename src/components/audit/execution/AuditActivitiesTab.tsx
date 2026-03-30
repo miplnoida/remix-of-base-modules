@@ -113,11 +113,13 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
 
   const handleSave = async () => {
     if (!form.title) return;
+    const workingPaperId = form.reference_number.trim() || `WP-${Date.now().toString(36).toUpperCase()}`;
+
     create.mutate({
-      title: form.title,
-      working_paper_id: form.reference_number || null,
-      description: form.description || null,
-      audit_area: form.paper_type || 'Analysis',
+      title: form.title.trim(),
+      working_paper_id: workingPaperId,
+      description: form.description.trim() || null,
+      audit_area: form.paper_type.trim() || 'Analysis',
       engagement_id: auditId,
       activity_id: activityId,
       status: 'Draft',
@@ -151,11 +153,14 @@ function InlineFindingForm({ auditId, activityId, onClose }: { auditId: string; 
 
   const handleSave = () => {
     if (!form.title) return;
+    const findingId = `FND-${Date.now().toString(36).toUpperCase()}`;
+
     create.mutate({
-      title: form.title,
-      condition: form.description || null,
+      finding_id: findingId,
+      title: form.title.trim(),
+      condition: form.description.trim() || null,
       risk_rating: form.risk_rating,
-      recommendation: form.recommendation || null,
+      recommendation: form.recommendation.trim() || null,
       status: 'Open',
       engagement_id: auditId,
       activity_id: activityId,
