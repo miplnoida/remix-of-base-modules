@@ -24903,6 +24903,36 @@ export type Database = {
         Args: { p_unique_uuid: string }
         Returns: Json
       }
+      public_api_c3_detail: {
+        Args: {
+          p_c3_type: string
+          p_month: string
+          p_payer_id: string
+          p_payer_type: string
+          p_sequence_no: string
+          p_year: string
+        }
+        Returns: Json
+      }
+      public_api_c3_last_submitted: {
+        Args: {
+          p_c3_type: string
+          p_payer_id: string
+          p_payer_type: string
+          p_sequence_no: string
+        }
+        Returns: Json
+      }
+      public_api_c3_range: {
+        Args: {
+          p_c3_type: string
+          p_end_period: string
+          p_payer_id: string
+          p_payer_type: string
+          p_start_period: string
+        }
+        Returns: Json
+      }
       public_api_insert_c3_reported:
         | {
             Args: {
