@@ -104,7 +104,7 @@ export default function AuditorLeaveManagement() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><Clock className="h-4 w-4 text-amber-500" /><div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-semibold">{stats.pending}</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><div><p className="text-xs text-muted-foreground">Approved</p><p className="text-lg font-semibold">{stats.approved}</p></div></div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /><div><p className="text-xs text-muted-foreground">Approved</p><p className="text-lg font-semibold">{stats.approved}</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><XCircle className="h-4 w-4 text-destructive" /><div><p className="text-xs text-muted-foreground">Rejected</p><p className="text-lg font-semibold">{stats.rejected}</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" /><div><p className="text-xs text-muted-foreground">Total Leave Days</p><p className="text-lg font-semibold">{stats.totalDays}</p></div></div></CardContent></Card>
       </div>
