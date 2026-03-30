@@ -21407,6 +21407,39 @@ export type Database = {
           },
         ]
       }
+      tb_pay_periods: {
+        Row: {
+          code: string
+          description: string | null
+          entered_by: string | null
+          entered_on: string | null
+          is_active: boolean | null
+          modified_by: string | null
+          modified_on: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          entered_by?: string | null
+          entered_on?: string | null
+          is_active?: boolean | null
+          modified_by?: string | null
+          modified_on?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       tb_payer_type: {
         Row: {
           code: string

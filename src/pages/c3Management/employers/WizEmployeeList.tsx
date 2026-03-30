@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -21,12 +23,7 @@ import {
 } from '@/services/wizAdminApiService';
 import { format, parseISO } from 'date-fns';
 
-const PAY_PERIODS: Record<string, string> = {
-  'M': 'Monthly',
-  '2M': '2x Monthly',
-  'W': 'Weekly',
-  '2W': 'Bi-Weekly',
-};
+// PAY_PERIODS now fetched from database via useQuery below
 
 // Legacy stores "S" and "M" for marital status
 const MARITAL_STATUS_MAP: Record<string, string> = { 'S': 'Single', 'M': 'Married' };
@@ -41,6 +38,21 @@ const WizEmployeeList: React.FC = () => {
   const [companies, setCompanies] = useState<WizCompanyDropdown[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState(companyId || '');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Fetch pay periods from database
+  const { data: payPeriodsData = [] } = useQuery({
+    queryKey: ['tb_pay_periods'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('tb_pay_periods').select('code, description').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+  const PAY_PERIODS: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {};
+    payPeriodsData.forEach((p) => { map[p.code] = p.description; });
+    return map;
+  }, [payPeriodsData]);
 
   // Edit employee dialog
   const [editOpen, setEditOpen] = useState(false);

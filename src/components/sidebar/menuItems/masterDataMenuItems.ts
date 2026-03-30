@@ -41,6 +41,7 @@ export const masterDataMenuItems = [
       // C3 & Contributions
       { title: "Batch Status", url: "/admin/master-data/batch-status", icon: Settings, requiresPermission: "master_data" },
       { title: "C3 Status", url: "/admin/master-data/c3-status", icon: Settings, requiresPermission: "master_data" },
+      { title: "Pay Periods", url: "/admin/master-data/pay-periods", icon: Settings, requiresPermission: "master_data" },
       { title: "VC Contrib Rates", url: "/admin/master-data/vc-contrib-rates", icon: Percent, requiresPermission: "master_data" },
       { title: "VC Eligibility Config", url: "/admin/master-data/vc-eligibility-config", icon: Settings, requiresPermission: "master_data" },
       // Existing
