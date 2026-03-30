@@ -79,12 +79,59 @@ async function checkApiRegistry(
   }
 
   // For Employee Sync dynamic routes, check by category
-  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+  if (isEmployeeRoute(endpointPath)) {
     const { data, error } = await supabase
       .from("api_registry")
       .select("*")
       .eq("category", "employee-sync")
-      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Validation routes (Employer/SE master), check by category
+  if (isValidationRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "validation")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Payment routes, check by category
+  if (isPaymentRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "payment")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Profile Sync routes, check by category
+  if (isProfileRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "profile-sync")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Utility routes (ReferenceData), check by category
+  if (isUtilityRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "utility")
       .eq("is_enabled", true)
       .limit(1);
     if (error || !data || data.length === 0) return { allowed: false };
