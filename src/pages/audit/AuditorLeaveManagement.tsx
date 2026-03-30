@@ -144,7 +144,7 @@ export default function AuditorLeaveManagement() {
               <div className="flex gap-1">
                 {row.status === 'Pending' && (
                   <>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => handleApprove(row.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleApprove(row.id)}>
                       <CheckCircle2 className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleReject(row.id)}>
