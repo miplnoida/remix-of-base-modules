@@ -658,13 +658,13 @@ async function handleERMasterDetails(
   params: Record<string, string>
 ) {
   const { regNoAndEmail } = params;
-  // Parse comma-separated: regNo or regNo,email
+  // Parse comma-separated: regNo,email (email is mandatory)
   const parts = regNoAndEmail.split(",");
   const regNo = parts[0]?.trim();
   const email = parts[1]?.trim() || null;
   if (!regNo) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
-  const rpcParams: Record<string, unknown> = { p_reg_no: regNo };
-  if (email) rpcParams.p_email = email;
+  if (!email) throw { code: "BAD_REQUEST", message: "Email parameter is required. Use format: /{regNo},{email}" };
+  const rpcParams: Record<string, unknown> = { p_reg_no: regNo, p_email: email };
   const { data, error } = await supabase.rpc("public_api_er_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
@@ -676,13 +676,13 @@ async function handleSEMasterDetails(
   params: Record<string, string>
 ) {
   const { ssnAndEmail } = params;
-  // Parse comma-separated: ssn or ssn,email
+  // Parse comma-separated: ssn,email (email is mandatory)
   const parts = ssnAndEmail.split(",");
   const ssn = parts[0]?.trim();
   const email = parts[1]?.trim() || null;
   if (!ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
-  const rpcParams: Record<string, unknown> = { p_ssn: ssn };
-  if (email) rpcParams.p_email = email;
+  if (!email) throw { code: "BAD_REQUEST", message: "Email parameter is required. Use format: /{ssn},{email}" };
+  const rpcParams: Record<string, unknown> = { p_ssn: ssn, p_email: email };
   const { data, error } = await supabase.rpc("public_api_se_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
