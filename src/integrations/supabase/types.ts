@@ -9661,10 +9661,12 @@ export type Database = {
       ia_audit_checklists: {
         Row: {
           audit_id: string
+          category: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           evidence_file: string | null
+          evidence_required: boolean | null
           id: string
           is_active: boolean | null
           question: string
@@ -9672,15 +9674,18 @@ export type Database = {
           response: string | null
           sort_order: number | null
           status: string | null
+          template_id: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
           audit_id: string
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           evidence_file?: string | null
+          evidence_required?: boolean | null
           id?: string
           is_active?: boolean | null
           question: string
@@ -9688,15 +9693,18 @@ export type Database = {
           response?: string | null
           sort_order?: number | null
           status?: string | null
+          template_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
           audit_id?: string
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           evidence_file?: string | null
+          evidence_required?: boolean | null
           id?: string
           is_active?: boolean | null
           question?: string
@@ -9704,6 +9712,7 @@ export type Database = {
           response?: string | null
           sort_order?: number | null
           status?: string | null
+          template_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -9713,6 +9722,13 @@ export type Database = {
             columns: ["audit_id"]
             isOneToOne: false
             referencedRelation: "ia_audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_checklists_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_checklist_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -10893,6 +10909,106 @@ export type Database = {
           severity?: string | null
         }
         Relationships: []
+      }
+      ia_checklist_template_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          evidence_required: boolean | null
+          id: string
+          is_active: boolean | null
+          question: string
+          sort_order: number | null
+          template_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          evidence_required?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          question: string
+          sort_order?: number | null
+          template_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          evidence_required?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          question?: string
+          sort_order?: number | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_checklist_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_checklist_templates: {
+        Row: {
+          audit_type: string | null
+          control_area: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          engagement_type: string | null
+          id: string
+          is_active: boolean | null
+          risk_category: string | null
+          template_name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          audit_type?: string | null
+          control_area?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          engagement_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          risk_category?: string | null
+          template_name: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          audit_type?: string | null
+          control_area?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          engagement_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          risk_category?: string | null
+          template_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_checklist_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_communication_stages: {
         Row: {

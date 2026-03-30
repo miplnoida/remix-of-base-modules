@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/common';
 import { useIAEngagements } from '@/hooks/useAuditDataPhase2';
 import { useIADepartments, useIAAnnualPlans, useIAAuditors, useIADepartmentFunctions, useIAFindings, useIAActionTracking, useIAManagementResponses } from '@/hooks/useAuditData';
+import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers } from '@/hooks/useEngagementData';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
@@ -124,6 +125,9 @@ export default function EngagementDetail() {
   const { data: allFindings = [] } = useIAFindings();
   const { data: allActions = [] } = useIAActionTracking();
   const { data: allResponses = [] } = useIAManagementResponses();
+  const { data: auditActivities = [] } = useEngagementActivities(id);
+  const { data: auditEvidence = [] } = useEngagementEvidence(id);
+  const { data: auditWorkingPapers = [] } = useEngagementWorkingPapers(id);
 
   const auditFindings = useMemo(() => allFindings.filter((f: any) => f.engagement_id === id), [allFindings, id]);
   const auditActions = useMemo(() => allActions.filter((a: any) => a.engagement_id === id), [allActions, id]);
@@ -279,11 +283,11 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="activities">
-            <AuditActivitiesTab auditId={id!} />
+            <AuditActivitiesTab auditId={id!} auditors={auditors} />
           </TabsContent>
 
           <TabsContent value="evidence">
-            <AuditEvidenceTab auditId={id!} />
+            <AuditEvidenceTab auditId={id!} auditFindings={auditFindings} auditActivities={auditActivities} />
           </TabsContent>
 
           <TabsContent value="working-papers">
@@ -291,7 +295,7 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="findings">
-            <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} departmentId={audit?.department_id} />
+            <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} auditEvidence={auditEvidence} auditWorkingPapers={auditWorkingPapers} departmentId={audit?.department_id} />
           </TabsContent>
 
           <TabsContent value="control-tests">
@@ -311,7 +315,7 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="follow-ups">
-            <AuditFollowUpsTab auditId={id!} />
+            <AuditFollowUpsTab auditId={id!} auditFindings={auditFindings} departmentId={audit?.department_id} />
           </TabsContent>
 
           <TabsContent value="timeline">
