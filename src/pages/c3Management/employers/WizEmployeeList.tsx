@@ -39,6 +39,21 @@ const WizEmployeeList: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState(companyId || '');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch pay periods from database
+  const { data: payPeriodsData = [] } = useQuery({
+    queryKey: ['tb_pay_periods'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('tb_pay_periods').select('code, description').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return data as { code: string; description: string }[];
+    },
+  });
+  const PAY_PERIODS: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {};
+    payPeriodsData.forEach((p) => { map[p.code] = p.description; });
+    return map;
+  }, [payPeriodsData]);
+
   // Edit employee dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState<Record<string, any>>({});
