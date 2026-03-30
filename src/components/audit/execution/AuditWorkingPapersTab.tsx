@@ -49,16 +49,15 @@ export function AuditWorkingPapersTab({ auditId }: AuditWorkingPapersTabProps) {
     }
     create.mutate({
       title: form.title,
-      reference_number: form.reference_number || null,
+      working_paper_id: form.reference_number || null,
       description: form.description || null,
-      paper_type: form.paper_type,
-      file_path: filePath,
+      audit_area: form.paper_type || 'Analysis',
       engagement_id: auditId,
+      status: 'Draft',
     } as any, {
       onSuccess: () => {
         setShowForm(false);
         setForm({ title: '', reference_number: '', description: '', paper_type: 'Analysis' });
-        if (fileInputRef.current) fileInputRef.current.value = '';
       },
     });
   };
