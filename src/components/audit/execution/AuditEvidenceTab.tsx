@@ -192,19 +192,19 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Linking</p>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Link to Finding</Label>
-              <Select value={form.finding_id} onValueChange={v => setForm(f => ({ ...f, finding_id: v }))} disabled={modal.mode === 'view'}>
+              <Select value={form.finding_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, finding_id: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
                 <SelectTrigger><SelectValue placeholder="Select finding (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {auditFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title} ({f.risk_rating})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div><Label>Link to Activity</Label>
-              <Select value={form.activity_id} onValueChange={v => setForm(f => ({ ...f, activity_id: v }))} disabled={modal.mode === 'view'}>
+              <Select value={form.activity_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, activity_id: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
                 <SelectTrigger><SelectValue placeholder="Select activity (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {auditActivities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name || a.title}</SelectItem>)}
                 </SelectContent>
               </Select>
