@@ -10,8 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Loader2, AlertTriangle, Building2, User, FileText, Edit3, RefreshCw, Bell } from 'lucide-react';
 import { useRecordCommunicationStage, useValidateTemplatePolicy, STAGE_LABELS } from '@/hooks/useAuditCommunicationStages';
 import { useIADocumentTemplates } from '@/hooks/useAuditData';
+import { useDocumentRequests } from '@/hooks/useEngagementExecution';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 const STAGE_TO_CATEGORY: Record<string, string> = {
   PLAN_INTIMATION: 'Audit Notification',
