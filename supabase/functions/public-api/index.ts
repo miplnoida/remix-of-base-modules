@@ -208,10 +208,42 @@ async function checkScopeAuthorization(
   }
 
   // For Employee Sync dynamic routes, check by category
-  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+  if (isEmployeeRoute(endpointPath)) {
     return scopes.some((s: any) => {
       const reg = s.api_registry;
-      return reg && reg.category === "employee-sync" && reg.http_method === "GET";
+      return reg && reg.category === "employee-sync";
+    });
+  }
+
+  // For Validation routes, check by category
+  if (isValidationRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "validation";
+    });
+  }
+
+  // For Payment routes, check by category
+  if (isPaymentRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "payment";
+    });
+  }
+
+  // For Profile Sync routes, check by category
+  if (isProfileRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "profile-sync";
+    });
+  }
+
+  // For Utility routes, check by category
+  if (isUtilityRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "utility";
     });
   }
 
