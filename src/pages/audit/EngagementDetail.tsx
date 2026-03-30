@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Briefcase, Loader2, AlertTriangle, ClipboardCheck,
-  FileText, MessageSquare, CheckCircle, BarChart3, Clock, Shield, ListChecks
+  FileText, MessageSquare, CheckCircle, BarChart3, Clock, Shield, ListChecks, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,7 +38,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
   const alerts: { type: 'warning' | 'info' | 'error'; message: string }[] = [];
   const execStatus = audit.execution_status || 'Planned';
 
-  // Start date alerts
   if ((execStatus === 'Planned' || execStatus === 'Ready for Launch') && audit.planned_start_date) {
     const daysUntilStart = Math.ceil((new Date(audit.planned_start_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysUntilStart <= 7 && daysUntilStart > 0) {
@@ -48,7 +47,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     }
   }
 
-  // Pending management responses
   const pendingResponses = auditFindings.filter(f =>
     !auditResponses.find(r => r.finding_id === f.id) && f.status !== 'Closed'
   );
@@ -56,7 +54,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'warning', message: `${pendingResponses.length} finding(s) awaiting management response.` });
   }
 
-  // Overdue actions
   const overdueActions = auditActions.filter(a =>
     a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()
   );
@@ -64,7 +61,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'error', message: `${overdueActions.length} overdue action item(s).` });
   }
 
-  // Missing evidence on findings
   const findingsWithoutEvidence = auditFindings.filter(f =>
     f.status !== 'Closed' && (!f.evidence_ids || (Array.isArray(f.evidence_ids) && f.evidence_ids.length === 0))
   );
@@ -72,7 +68,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'info', message: `${findingsWithoutEvidence.length} finding(s) have no supporting evidence attached.` });
   }
 
-  // Unassigned actions
   const unassignedActions = auditActions.filter(a =>
     !a.assigned_to && !['Completed', 'Closed'].includes(a.status || '')
   );
@@ -80,7 +75,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'warning', message: `${unassignedActions.length} action(s) have no assignee.` });
   }
 
-  // End date approaching
   if (audit.planned_end_date && !['Closed', 'Completed'].includes(execStatus)) {
     const daysUntilEnd = Math.ceil((new Date(audit.planned_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysUntilEnd <= 3 && daysUntilEnd > 0) {
@@ -169,11 +163,6 @@ export default function EngagementDetail() {
     updateAudit.mutate({ id, status: 'Closed', closure_date: new Date().toISOString().split('T')[0], closure_notes: '' } as any);
   };
 
-  const handleStatusTransition = (newStatus: ExecutionStatus) => {
-    if (!id) return;
-    transitionMutation.mutate({ engagementId: id, newStatus });
-  };
-
   if (!audit && !isLoading) {
     return (
       <div className="p-6 space-y-4">
@@ -184,7 +173,6 @@ export default function EngagementDetail() {
   }
 
   const execStatus = audit?.execution_status || 'Planned';
-
   const sourceLabel = audit?.engagement_type === 'Ad Hoc' ? 'Ad Hoc' :
     audit?.engagement_type === 'Supplementary' ? 'Supplementary Plan' :
     audit?.annual_plan_id ? 'Annual Plan' : 'Ad Hoc';
@@ -229,26 +217,20 @@ export default function EngagementDetail() {
         }
         alerts={audit ? <SmartAlertsBanner audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} /> : undefined}
       >
-        {/* All Audit Workspace Tabs */}
+        {/* Simplified Tab Structure */}
         <Tabs defaultValue="overview" className="mt-2">
           <TabsList className="flex-wrap bg-transparent">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="overview">
+              <Eye className="h-3.5 w-3.5 mr-1.5" />Overview
+            </TabsTrigger>
             <TabsTrigger value="preparation">Preparation</TabsTrigger>
             <TabsTrigger value="activities">
               <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" />Activities
-            </TabsTrigger>
-            <TabsTrigger value="evidence">
-              <FileText className="h-3.5 w-3.5 mr-1.5" />Evidence
-            </TabsTrigger>
-            <TabsTrigger value="working-papers">
-              <FileText className="h-3.5 w-3.5 mr-1.5" />Working Papers
+              {auditActivities.length > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-primary/10 text-primary px-1.5 text-[10px] font-bold leading-5">{auditActivities.length}</span>}
             </TabsTrigger>
             <TabsTrigger value="findings">
               <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Findings
               {auditFindings.length > 0 && <span className="ml-1.5 h-5 min-w-5 rounded-full bg-muted px-1.5 text-[10px] font-bold leading-5">{auditFindings.length}</span>}
-            </TabsTrigger>
-            <TabsTrigger value="control-tests">
-              <Shield className="h-3.5 w-3.5 mr-1.5" />Control Tests
             </TabsTrigger>
             <TabsTrigger value="responses">
               <MessageSquare className="h-3.5 w-3.5 mr-1.5" />Responses
@@ -260,9 +242,6 @@ export default function EngagementDetail() {
             </TabsTrigger>
             <TabsTrigger value="report">
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />Report
-            </TabsTrigger>
-            <TabsTrigger value="follow-ups">
-              <ListChecks className="h-3.5 w-3.5 mr-1.5" />Follow-ups
             </TabsTrigger>
             <TabsTrigger value="timeline">
               <Clock className="h-3.5 w-3.5 mr-1.5" />Timeline
@@ -286,20 +265,8 @@ export default function EngagementDetail() {
             <AuditActivitiesTab auditId={id!} auditors={auditors} />
           </TabsContent>
 
-          <TabsContent value="evidence">
-            <AuditEvidenceTab auditId={id!} auditFindings={auditFindings} auditActivities={auditActivities} />
-          </TabsContent>
-
-          <TabsContent value="working-papers">
-            <AuditWorkingPapersTab auditId={id!} />
-          </TabsContent>
-
           <TabsContent value="findings">
             <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} auditEvidence={auditEvidence} auditWorkingPapers={auditWorkingPapers} departmentId={audit?.department_id} />
-          </TabsContent>
-
-          <TabsContent value="control-tests">
-            <AuditControlTestsTab auditId={id!} />
           </TabsContent>
 
           <TabsContent value="responses">
@@ -312,10 +279,6 @@ export default function EngagementDetail() {
 
           <TabsContent value="report">
             <AuditReportTab auditId={id!} audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} getDeptName={getDeptName} getAuditorName={getAuditorName} />
-          </TabsContent>
-
-          <TabsContent value="follow-ups">
-            <AuditFollowUpsTab auditId={id!} auditFindings={auditFindings} departmentId={audit?.department_id} />
           </TabsContent>
 
           <TabsContent value="timeline">
