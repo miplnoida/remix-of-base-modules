@@ -272,16 +272,18 @@ export function mapListItemFromApi(item: ExternalApplicationListItem): Applicati
 /**
  * Format status for display
  */
-export function formatStatusDisplay(status: string): string {
+export function formatStatusDisplay(status: string | undefined | null): string {
+  if (!status) return 'Unknown';
+
+  const normalizedStatus = status.toLowerCase();
   const statusMap: Record<string, string> = {
-    'pending': 'Pending',
-    'approved': 'Approved',
-    'rejected': 'Rejected',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
     'in-office - in progress': 'Under Review',
-    'In-Office - In Progress': 'Under Review',
   };
-  
-  return statusMap[status.toLowerCase()] || status;
+
+  return statusMap[normalizedStatus] || status;
 }
 
 /**
@@ -289,8 +291,9 @@ export function formatStatusDisplay(status: string): string {
  */
 export function getStatusVariant(status: string | undefined | null): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (!status) return 'outline';
+
   const lowerStatus = status.toLowerCase();
-  
+
   if (lowerStatus === 'approved') return 'default';
   if (lowerStatus === 'rejected') return 'destructive';
   if (lowerStatus === 'pending') return 'outline';
