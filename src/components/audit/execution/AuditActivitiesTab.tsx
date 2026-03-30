@@ -155,9 +155,13 @@ function InlineFindingForm({ auditId, activityId, onClose }: { auditId: string; 
   const handleSave = () => {
     if (!form.title) return;
     create.mutate({
-      title: form.title, description: form.description || null,
-      risk_rating: form.risk_rating, recommendation: form.recommendation || null,
-      status: 'Open', engagement_id: auditId, activity_id: activityId,
+      title: form.title,
+      condition: form.description || null,
+      risk_rating: form.risk_rating,
+      recommendation: form.recommendation || null,
+      status: 'Open',
+      engagement_id: auditId,
+      activity_id: activityId,
     } as any, { onSuccess: onClose });
   };
 
