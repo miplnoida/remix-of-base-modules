@@ -29,12 +29,30 @@ function getServiceClient() {
   );
 }
 
+// ── Check if path is a C3 History dynamic route ──
+function isC3HistoryRoute(path: string): boolean {
+  return path.startsWith("/api/v1/C3/") && path.includes("/C3Submitted/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
   endpointPath: string,
   httpMethod: string
 ): Promise<{ allowed: boolean; registryEntry?: Record<string, unknown> }> {
+  // For C3 History dynamic routes, check by category instead of exact path
+  if (isC3HistoryRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "c3-history")
+      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
   const { data, error } = await supabase
     .from("api_registry")
     .select("*")
@@ -89,12 +107,20 @@ async function checkScopeAuthorization(
 ): Promise<boolean> {
   const { data: scopes, error } = await supabase
     .from("api_key_scope_assignments")
-    .select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method)")
+    .select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method, category)")
     .eq("api_key_id", apiKeyId)
     .eq("is_allowed", true);
 
   if (error) return false;
   if (!scopes || scopes.length === 0) return true;
+
+  // For C3 History dynamic routes, check by category
+  if (isC3HistoryRoute(endpointPath) && httpMethod === "GET") {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "c3-history" && reg.http_method === "GET";
+    });
+  }
 
   return scopes.some((s: any) => {
     const reg = s.api_registry;
