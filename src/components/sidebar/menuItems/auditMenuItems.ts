@@ -79,6 +79,25 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
       },
+      // ── Resources ──
+      {
+        title: "Resources",
+        isGroupLabel: true,
+      },
+      {
+        title: "Holiday Calendar",
+        url: "/audit/holidays",
+        icon: Calendar,
+        requiresPermission: "view_audit_assignments",
+        description: "Public holidays and non-working days"
+      },
+      {
+        title: "Auditor Leave",
+        url: "/audit/leave",
+        icon: Clock,
+        requiresPermission: "view_audit_assignments",
+        description: "Manage auditor leave schedules"
+      },
       // ── Execution ──
       {
         title: "Execution",
