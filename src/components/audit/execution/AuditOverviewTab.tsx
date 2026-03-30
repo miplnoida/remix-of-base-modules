@@ -83,6 +83,11 @@ export function AuditOverviewTab({
             <InfoRow label="Source" value={sourceLabel} />
             <InfoRow label="Type" value={audit?.engagement_type || 'Planned Audit'} />
             <InfoRow label="Status" value={<StatusBadge status={audit?.status} />} />
+            <InfoRow label="Approval" value={
+              audit?.approved_by && audit?.approved_at 
+                ? <span className="text-primary font-medium">Approved by {audit.approved_by}</span>
+                : <span className="text-muted-foreground">Not yet approved</span>
+            } />
             <InfoRow label="Risk Rating" value={<StatusBadge status={audit?.engagement_risk_rating} />} />
             {audit?.annual_plan_id && <InfoRow label="Annual Plan" value={getPlanTitle(audit.annual_plan_id)} />}
             {audit?.launched_at && <InfoRow label="Launched" value={`${formatDateForDisplay(audit.launched_at)} by ${audit.launched_by || '—'}`} />}

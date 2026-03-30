@@ -63,7 +63,15 @@ export function LaunchReadinessPanel({ engagementId, currentExecutionStatus, onL
           ) : (
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           )}
-          Launch Readiness ({passedCount}/{totalCount})
+          Launch Readiness
+          <span className={cn(
+            'text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto',
+            readiness?.ready 
+              ? 'bg-primary/10 text-primary' 
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+          )}>
+            {passedCount}/{totalCount}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
