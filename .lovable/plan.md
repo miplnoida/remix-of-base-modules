@@ -1,43 +1,48 @@
 
 
-# C3-Wizard Path Verification — Response (No Code Changes Needed)
+# Fix Migration Error: `ia_start_plan_approval_workflow` Default Conflict
 
-## Analysis
+## Problem
 
-The 5 "mismatches" are between the **handoff document** (which had incorrect paths) and the **actual running code**. The edge function already uses the paths C3-Wizard expects.
+PostgreSQL error `42P13: cannot remove parameter defaults from existing function` is blocking all deployments to Live. The function `ia_start_plan_approval_workflow` was originally created with `p_submitted_by text DEFAULT 'SYSTEM'` and later migrations try to replace it with `p_submitted_by text` (no default). PostgreSQL's `CREATE OR REPLACE` cannot remove defaults — it requires a `DROP FUNCTION` first.
 
-## Confirmed Paths (Current Implementation)
+The existing DROP statements target `(uuid, text, boolean)` but the Live database may have a version with defaults that doesn't match or the migration ordering causes the CREATE OR REPLACE to execute before the DROP in a later migration file.
 
-| # | Endpoint | Correct Path (Already Live) | C3-Wizard's Code | Match? |
-|---|----------|---------------------------|-------------------|--------|
-| 1 | Employee Lookup | `GET /Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}` | Same | ✅ Multi-param, lowercase "p" |
-| 2 | Bulk SSN Lookup | `POST /Employee/getMultipleIpDetails` | Same | ✅ Lowercase "p" |
-| 3 | Profile Update | `POST /User/updateUser` | Same | ✅ `/User/` prefix |
-| 4 | Payment Save | `POST /api/payment/save/{payerId}/{payerType}` | Same | ✅ payerId/payerType in URL |
-| 5 | Receipt Lookup | `GET /api/payment/getReceipt/{receiptNo}` | Same | ✅ `/api/payment/` prefix |
+## Fix
 
-## What Needs to Happen
+Create a single new migration that:
 
-1. **Update the handoff document** (`C3_Wizard_API_Configuration_Handoff.md`) to fix the 5 incorrect endpoint paths so future references are accurate
-2. **Generate a response message** to C3-Wizard confirming all 5 paths match their existing code — no changes needed on their side
+1. Drops ALL possible signatures of `ia_start_plan_approval_workflow` to handle any state the Live DB might be in
+2. Recreates the function with the latest version (from migration `20260329023458` — the most recent, with user_id resolution logic)
 
-## Response to C3-Wizard Team
+### SQL
 
-> **Subject: RE: Endpoint Path Verification — All 5 Paths Confirmed**
->
-> All 5 paths in your existing code are correct. The discrepancies were in our documentation, not the live API. Here are the confirmed paths:
->
-> 1. `GET /Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}` — multi-param, lowercase "p"
-> 2. `POST /Employee/getMultipleIpDetails` — lowercase "p"
-> 3. `POST /User/updateUser` — `/User/` prefix
-> 4. `POST /api/payment/save/{payerId}/{payerType}` — payerId/payerType in URL path
-> 5. `GET /api/payment/getReceipt/{receiptNo}` — `/api/payment/` prefix
->
-> No changes needed on your side. Please proceed with inserting the config values and re-testing SE SSN 100010.
+```sql
+-- Drop all possible overloads to handle any Live state
+DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid, text, boolean);
+DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid, text);
+DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid);
+
+-- Recreate with the latest version (matches 20260329023458)
+CREATE OR REPLACE FUNCTION public.ia_start_plan_approval_workflow(
+  p_plan_id uuid,
+  p_submitted_by text,
+  p_is_revision boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  -- [full function body from 20260329023458 migration]
+$$;
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `/mnt/documents/C3_Wizard_API_Configuration_Handoff.md` | Fix 5 endpoint paths to match actual implementation |
+| New migration SQL | Drop all signatures + recreate function with latest body |
+
+No application code changes needed — this is purely a database migration fix.
 
