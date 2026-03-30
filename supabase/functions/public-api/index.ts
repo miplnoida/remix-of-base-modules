@@ -663,6 +663,10 @@ async function executeHandler(
       return handleC3Detail(supabase, routeParams);
     case "c3LastSubmitted":
       return handleC3LastSubmitted(supabase, routeParams);
+    case "employeesByLastC3":
+      return handleEmployeesByLastC3(supabase, routeParams);
+    case "nwDirectorsByLastC3":
+      return handleNwDirectorsByLastC3(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
