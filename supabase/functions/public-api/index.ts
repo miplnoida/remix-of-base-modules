@@ -920,7 +920,7 @@ async function executeHandler(
   handlerName: string,
   supabase: ReturnType<typeof createClient>,
   routeParams: Record<string, string>,
-  _payload: Record<string, unknown>,
+  _payload: unknown,
   queryParams: Record<string, string>
 ) {
   switch (handlerName) {
@@ -931,11 +931,11 @@ async function executeHandler(
     case "moduleDocuments":
       return handleModuleDocuments(supabase, queryParams);
     case "c3ReportedInsert":
-      return handleC3ReportedInsert(supabase, _payload);
+      return handleC3ReportedInsert(supabase, _payload as Record<string, unknown>);
     case "c3WagesInsert":
-      return handleC3WagesInsert(supabase, _payload);
+      return handleC3WagesInsert(supabase, _payload as Record<string, unknown>);
     case "c3Verify":
-      return handleC3Verify(supabase, _payload);
+      return handleC3Verify(supabase, _payload as Record<string, unknown>);
     case "c3Range":
       return handleC3Range(supabase, routeParams);
     case "c3Detail":
@@ -955,9 +955,9 @@ async function executeHandler(
     case "multipleIpDetails":
       return handleMultipleIpDetails(supabase, _payload);
     case "updateUser":
-      return handleUpdateUser(supabase, _payload);
+      return handleUpdateUser(supabase, _payload as Record<string, unknown>);
     case "paymentSave":
-      return handlePaymentSave(supabase, routeParams, _payload);
+      return handlePaymentSave(supabase, routeParams, _payload as Record<string, unknown>);
     case "receiptLookup":
       return handleReceiptLookup(supabase, routeParams);
     default:
