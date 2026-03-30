@@ -132,11 +132,10 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div><Label className="text-xs">Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" /></div>
-        <div><Label className="text-xs">Ref #</Label><Input value={form.reference_number} onChange={e => setForm(f => ({ ...f, reference_number: e.target.value }))} placeholder="WP-001" className="h-8 text-xs" /></div>
-        <div><Label className="text-xs">Type</Label><Input value={form.paper_type} onChange={e => setForm(f => ({ ...f, paper_type: e.target.value }))} placeholder="Analysis" className="h-8 text-xs" /></div>
+        <div><Label className="text-xs">Working Paper ID</Label><Input value={form.reference_number} onChange={e => setForm(f => ({ ...f, reference_number: e.target.value }))} placeholder="WP-001" className="h-8 text-xs" /></div>
+        <div><Label className="text-xs">Audit Area</Label><Input value={form.paper_type} onChange={e => setForm(f => ({ ...f, paper_type: e.target.value }))} placeholder="Analysis" className="h-8 text-xs" /></div>
       </div>
       <div><Label className="text-xs">Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="text-xs" /></div>
-      <div><Label className="text-xs">Attach File</Label><Input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="text-xs h-8" /></div>
       <div className="flex gap-2">
         <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={create.isPending || uploading}>
           {uploading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Uploading...</> : 'Save Working Paper'}
