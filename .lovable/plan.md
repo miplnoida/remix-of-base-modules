@@ -1,57 +1,89 @@
 
 
-# Enhanced Table Selection for Data Migration
+# Create Pay Periods Master Data Table & Bind to Levy Slab Detail
 
-## Current State
-- **Environment Sync**: Uses `SearchableSelect` dropdown to add one table at a time to `migration_analysis_tables`. Works but isn't visual/structured.
-- **Export/Import**: Auto-selects ALL tables on load. Uses inline checkboxes. No shortlist separation.
+## Finding
 
-## Changes
+The Pay Period select box in `LevySlabDetailForm.tsx` (line 35-40) is **hardcoded**:
+```
+W = Weekly, B = Bi-Weekly, S = Semi-Monthly, M = Monthly
+```
+A second hardcoded list exists in `WizEmployeeList.tsx` (line 24-29) with different values:
+```
+M = Monthly, 2M = 2x Monthly, W = Weekly, 2W = Bi-Weekly
+```
+No database table exists. Both need to be driven from a single `tb_pay_periods` table.
 
-### 1. Environment Sync — Redesign `ManageAnalysisTables`
+## Steps
 
-Replace the `SearchableSelect` dropdown with a two-panel layout matching the reference screenshot:
+### Step 1: Create `tb_pay_periods` Table + Seed Data
 
-**Left Panel — Available Tables**: Scrollable list of all public tables NOT already in `migration_analysis_tables`. Each row has a radio button. Clicking a radio button moves the table into a local "staging" list (right panel). Include search filter at top.
+Migration SQL:
+```sql
+CREATE TABLE public.tb_pay_periods (
+  code VARCHAR(5) PRIMARY KEY,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  entered_by VARCHAR(50),
+  entered_on TIMESTAMPTZ DEFAULT now(),
+  modified_by VARCHAR(50),
+  modified_on TIMESTAMPTZ
+);
 
-**Right Panel — Shortlisted (Staged)**: Shows tables the user has staged for addition. Each has an "×" to remove from staging. "Add" button at bottom persists ALL staged tables to `migration_analysis_tables` in one batch insert via Supabase. After persisting, the staged list clears and the "Configured Tables" badge list below updates.
+INSERT INTO public.tb_pay_periods (code, description, sort_order) VALUES
+  ('W', 'Weekly', 1),
+  ('2W', 'Bi-Weekly', 2),
+  ('S', 'Semi-Monthly', 3),
+  ('M', 'Monthly', 4),
+  ('2M', '2x Monthly', 5);
+```
 
-**Already Configured**: The existing badge list of tables already in `migration_analysis_tables` stays below, with remove buttons. These tables are excluded from the available list.
+Add audit trigger (`fn_audit_row_change`) to this table. Add to `DB_TRIGGER_TABLES` set.
 
-Deduplication is handled by filtering: available = `allPublicTables - existingAnalysisTables - stagedTables`.
+### Step 2: Create Master Data Screen
 
-### 2. Export/Import — Two-Panel Shortlist Pattern
+New file: `src/pages/admin/master-data/PayPeriodManagement.tsx`
 
-Replace the current single-list checkbox approach:
+Follow the exact pattern from `BatchStatusManagement.tsx` — CRUD with code/description/is_active, `PermissionWrapper` gating on `md_pay_periods`, audit fields via `useUserCode()`.
 
-**Default state**: All tables unchecked on load (remove the `useEffect` that auto-selects all).
-
-**Left Panel — Available Tables**: Scrollable, searchable list with checkboxes. Selecting a table moves it to the right panel and removes/disables it from the left. Quick filters (Select All, Config Only) move matching tables to right panel.
-
-**Right Panel — Selected for Export**: Shows all shortlisted tables with count. Each has an "×" to remove (moves back to available). "Export Data" button at bottom.
-
-### 3. Backend Persistence & Audit
-
-- Environment Sync already persists via `migration_analysis_tables` — batch insert for the "Add" action.
-- Export/Import selection is ephemeral (per-session) since it's a one-time export action, but the export action itself is already logged.
-- Add audit trail entry when tables are added/removed from analysis config via the existing `system_audit_trail` insert pattern.
-
-### 4. Validation & Edge Cases
-
-- "Add" button disabled when staging list is empty
-- "Export" button disabled when no tables selected
-- Duplicate prevention: filter already-configured tables from available list
-- Rapid clicks: disable buttons during async operations (already done for Add/Remove)
-- Page refresh: `migration_analysis_tables` is the source of truth, fetched on mount
-
-## Files to Modify
+### Step 3: Register Route, Menu Item, Module
 
 | File | Change |
 |------|--------|
-| `src/pages/admin/DataMigration.tsx` | Redesign `ManageAnalysisTables` with two-panel radio+staging pattern; redesign Export tab with two-panel shortlist; remove auto-select-all effect |
+| `src/components/routing/AppRoutes.tsx` | Import `PayPeriodManagement`, add route `/admin/master-data/pay-periods` |
+| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add "Pay Periods" entry under C3 & Contributions group |
 
-## Technical Notes
-- No new database tables needed — `migration_analysis_tables` already exists for Environment Sync persistence
-- No new edge functions needed — all operations use existing Supabase client queries
-- Single file change (~300 lines rewritten in the two components)
+Insert `app_modules` row for `md_pay_periods` via Supabase insert tool.
+
+### Step 4: Bind Levy Slab Detail Form
+
+In `src/components/admin/levy-slabs/LevySlabDetailForm.tsx`:
+- Remove hardcoded `PAY_PERIODS` array
+- Add `useQuery` to fetch from `tb_pay_periods` (active only, ordered by `sort_order`)
+- Populate the Select dropdown from the query result
+
+### Step 5: Bind WizEmployeeList
+
+In `src/pages/c3Management/employers/WizEmployeeList.tsx`:
+- Remove hardcoded `PAY_PERIODS` record
+- Add `useQuery` to fetch from `tb_pay_periods`
+- Build the lookup map and Select options from query result
+
+### Step 6: Update `DB_TRIGGER_TABLES`
+
+Add `tb_pay_periods` to the set in `globalAuditInterceptor.ts` to prevent duplicate audit entries.
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| **Migration SQL** | Create `tb_pay_periods` + seed + audit trigger |
+| `src/pages/admin/master-data/PayPeriodManagement.tsx` | **New** — CRUD screen |
+| `src/components/routing/AppRoutes.tsx` | Add import + route |
+| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add menu entry |
+| `src/components/admin/levy-slabs/LevySlabDetailForm.tsx` | Replace hardcoded array with DB query |
+| `src/pages/c3Management/employers/WizEmployeeList.tsx` | Replace hardcoded record with DB query |
+| `src/services/globalAuditInterceptor.ts` | Add `tb_pay_periods` to `DB_TRIGGER_TABLES` |
+| **Supabase insert** | `app_modules` row for `md_pay_periods` |
 
