@@ -39,6 +39,26 @@ function isEmployeeRoute(path: string): boolean {
   return path.startsWith("/api/v1/Employee/");
 }
 
+// ── Check if path is a Validation route (Employer/SE master) ──
+function isValidationRoute(path: string): boolean {
+  return path.startsWith("/api/v1/Employer/");
+}
+
+// ── Check if path is a Payment route ──
+function isPaymentRoute(path: string): boolean {
+  return path.startsWith("/api/v1/api/payment/");
+}
+
+// ── Check if path is a Profile Sync route ──
+function isProfileRoute(path: string): boolean {
+  return path.startsWith("/api/v1/User/");
+}
+
+// ── Check if path is a Utility route ──
+function isUtilityRoute(path: string): boolean {
+  return path.startsWith("/api/v1/ReferenceData/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
@@ -59,12 +79,59 @@ async function checkApiRegistry(
   }
 
   // For Employee Sync dynamic routes, check by category
-  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+  if (isEmployeeRoute(endpointPath)) {
     const { data, error } = await supabase
       .from("api_registry")
       .select("*")
       .eq("category", "employee-sync")
-      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Validation routes (Employer/SE master), check by category
+  if (isValidationRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "validation")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Payment routes, check by category
+  if (isPaymentRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "payment")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Profile Sync routes, check by category
+  if (isProfileRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "profile-sync")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Utility routes (ReferenceData), check by category
+  if (isUtilityRoute(endpointPath)) {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "utility")
       .eq("is_enabled", true)
       .limit(1);
     if (error || !data || data.length === 0) return { allowed: false };
@@ -141,10 +208,42 @@ async function checkScopeAuthorization(
   }
 
   // For Employee Sync dynamic routes, check by category
-  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+  if (isEmployeeRoute(endpointPath)) {
     return scopes.some((s: any) => {
       const reg = s.api_registry;
-      return reg && reg.category === "employee-sync" && reg.http_method === "GET";
+      return reg && reg.category === "employee-sync";
+    });
+  }
+
+  // For Validation routes, check by category
+  if (isValidationRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "validation";
+    });
+  }
+
+  // For Payment routes, check by category
+  if (isPaymentRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "payment";
+    });
+  }
+
+  // For Profile Sync routes, check by category
+  if (isProfileRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "profile-sync";
+    });
+  }
+
+  // For Utility routes, check by category
+  if (isUtilityRoute(endpointPath)) {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "utility";
     });
   }
 
@@ -553,6 +652,113 @@ async function handleNwDirectorsByLastC3(
   return data || [];
 }
 
+// ── Validation Handlers (Employer/SE Master) ──
+async function handleERMasterDetails(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { regNo } = params;
+  if (!regNo) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+  const { data, error } = await supabase.rpc("public_api_er_master_details", { p_reg_no: regNo });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
+async function handleSEMasterDetails(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { ssn } = params;
+  if (!ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
+  const { data, error } = await supabase.rpc("public_api_se_master_details", { p_ssn: ssn });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
+// ── Employee Lookup Handlers ──
+async function handleIpDetailsByQuery(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { queryParams: qp } = params;
+  // Parse comma-separated params: ssn,dob,firstName,lastName,middleName
+  const parts = qp.split(",");
+  const p_ssn = parts[0] || "";
+  const p_dob = parts[1] || "";
+  const p_first_name = parts[2] || "";
+  const p_last_name = parts[3] || "";
+  const p_middle_name = parts[4] || "";
+
+  const { data, error } = await supabase.rpc("public_api_ip_details_by_query", {
+    p_ssn, p_dob, p_first_name, p_last_name, p_middle_name,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+async function handleMultipleIpDetails(
+  supabase: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>
+) {
+  const employees = payload.employees || payload.Employees || [];
+  if (!Array.isArray(employees) || employees.length === 0) {
+    throw { code: "BAD_REQUEST", message: "employees array is required" };
+  }
+  const { data, error } = await supabase.rpc("public_api_multiple_ip_details", {
+    p_employees: employees,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Profile Sync Handler ──
+async function handleUpdateUser(
+  supabase: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>
+) {
+  if (!payload || Object.keys(payload).length === 0) {
+    throw { code: "BAD_REQUEST", message: "Request body is required" };
+  }
+  const { data, error } = await supabase.rpc("public_api_update_user", {
+    p_payload: payload,
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "BAD_REQUEST", message: data.error };
+  return data;
+}
+
+// ── Payment Handlers ──
+async function handlePaymentSave(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>,
+  payload: Record<string, unknown>
+) {
+  const { payerId, payerType } = params;
+  if (!payerId || !payerType) throw { code: "BAD_REQUEST", message: "payerId and payerType are required" };
+  const { data, error } = await supabase.rpc("public_api_payment_save", {
+    p_payer_id: payerId,
+    p_payer_type: payerType,
+    p_payload: payload,
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "BAD_REQUEST", message: data.error };
+  return data;
+}
+
+async function handleReceiptLookup(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { receiptNo } = params;
+  if (!receiptNo) throw { code: "BAD_REQUEST", message: "receiptNo is required" };
+  const { data, error } = await supabase.rpc("public_api_get_receipt", { p_receipt_no: receiptNo });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
@@ -623,6 +829,58 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
         params: { registrationNumber: nwMatch[1] },
       };
     }
+
+    // ── Employee Lookup: IP Details by Query ──
+    // /api/v1/Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}
+    const ipQueryMatch = path.match(/^\/api\/v1\/Employee\/getIpDetailsByQuery\/(.+)$/);
+    if (ipQueryMatch) {
+      return {
+        handler: "ipDetailsByQuery",
+        params: { queryParams: decodeURIComponent(ipQueryMatch[1]) },
+      };
+    }
+
+    // ── Validation: Employer Master Details ──
+    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/([^/]+)$/);
+    if (erMatch) {
+      return { handler: "erMasterDetails", params: { regNo: erMatch[1] } };
+    }
+
+    // ── Validation: SE Master Details ──
+    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/([^/]+)$/);
+    if (seMatch) {
+      return { handler: "seMasterDetails", params: { ssn: seMatch[1] } };
+    }
+
+    // ── Payment: Get Receipt ──
+    const receiptMatch = path.match(/^\/api\/v1\/api\/payment\/getReceipt\/([^/]+)$/);
+    if (receiptMatch) {
+      return { handler: "receiptLookup", params: { receiptNo: receiptMatch[1] } };
+    }
+
+    // ── Utility: ReferenceData/about ──
+    if (path.match(/^\/api\/v1\/ReferenceData\/about\/?$/)) {
+      return { handler: "health", params: {} };
+    }
+  }
+
+  // ── POST routes ──
+  if (method === "POST") {
+    // Multiple IP Details
+    if (path === "/api/v1/Employee/getMultipleIpDetails") {
+      return { handler: "multipleIpDetails", params: {} };
+    }
+
+    // Update User
+    if (path === "/api/v1/User/updateUser") {
+      return { handler: "updateUser", params: {} };
+    }
+
+    // Payment Save: /api/v1/api/payment/save/{payerId}/{payerType}
+    const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
+    if (paymentMatch) {
+      return { handler: "paymentSave", params: { payerId: paymentMatch[1], payerType: paymentMatch[2] } };
+    }
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
@@ -667,6 +925,20 @@ async function executeHandler(
       return handleEmployeesByLastC3(supabase, routeParams);
     case "nwDirectorsByLastC3":
       return handleNwDirectorsByLastC3(supabase, routeParams);
+    case "erMasterDetails":
+      return handleERMasterDetails(supabase, routeParams);
+    case "seMasterDetails":
+      return handleSEMasterDetails(supabase, routeParams);
+    case "ipDetailsByQuery":
+      return handleIpDetailsByQuery(supabase, routeParams);
+    case "multipleIpDetails":
+      return handleMultipleIpDetails(supabase, _payload);
+    case "updateUser":
+      return handleUpdateUser(supabase, _payload);
+    case "paymentSave":
+      return handlePaymentSave(supabase, routeParams, _payload);
+    case "receiptLookup":
+      return handleReceiptLookup(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
