@@ -34,6 +34,11 @@ function isC3HistoryRoute(path: string): boolean {
   return path.startsWith("/api/v1/C3/") && path.includes("/C3Submitted/");
 }
 
+// ── Check if path is an Employee Sync dynamic route ──
+function isEmployeeRoute(path: string): boolean {
+  return path.startsWith("/api/v1/Employee/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
@@ -46,6 +51,19 @@ async function checkApiRegistry(
       .from("api_registry")
       .select("*")
       .eq("category", "c3-history")
+      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
+  // For Employee Sync dynamic routes, check by category
+  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "employee-sync")
       .eq("http_method", "GET")
       .eq("is_enabled", true)
       .limit(1);
@@ -119,6 +137,14 @@ async function checkScopeAuthorization(
     return scopes.some((s: any) => {
       const reg = s.api_registry;
       return reg && reg.category === "c3-history" && reg.http_method === "GET";
+    });
+  }
+
+  // For Employee Sync dynamic routes, check by category
+  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "employee-sync" && reg.http_method === "GET";
     });
   }
 
@@ -498,6 +524,35 @@ async function handleC3LastSubmitted(
   return data;
 }
 
+// ── Employee Sync Handlers ──
+async function handleEmployeesByLastC3(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { registrationNumber } = params;
+  if (!registrationNumber) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+
+  const { data, error } = await supabase.rpc("public_api_employees_by_last_c3", {
+    p_registration_number: registrationNumber,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+async function handleNwDirectorsByLastC3(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { registrationNumber } = params;
+  if (!registrationNumber) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+
+  const { data, error } = await supabase.rpc("public_api_nwdirectors_by_last_c3", {
+    p_registration_number: registrationNumber,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
@@ -548,6 +603,26 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
         params: { payerId: lastMatch[1], payerType: lastMatch[2], seqAndType: lastMatch[3] },
       };
     }
+
+
+    // ── Employee Sync GET routes (BIMA-compatible) ──
+    // Employees by Last C3: /api/v1/Employee/employeesByLastC3/{registrationNumber}
+    const empMatch = path.match(/^\/api\/v1\/Employee\/employeesByLastC3\/([^/]+)$/);
+    if (empMatch) {
+      return {
+        handler: "employeesByLastC3",
+        params: { registrationNumber: empMatch[1] },
+      };
+    }
+
+    // NW Directors by Last C3: /api/v1/Employee/nwdirectorsByLastC3/{registrationNumber}
+    const nwMatch = path.match(/^\/api\/v1\/Employee\/nwdirectorsByLastC3\/([^/]+)$/);
+    if (nwMatch) {
+      return {
+        handler: "nwDirectorsByLastC3",
+        params: { registrationNumber: nwMatch[1] },
+      };
+    }
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
@@ -588,6 +663,10 @@ async function executeHandler(
       return handleC3Detail(supabase, routeParams);
     case "c3LastSubmitted":
       return handleC3LastSubmitted(supabase, routeParams);
+    case "employeesByLastC3":
+      return handleEmployeesByLastC3(supabase, routeParams);
+    case "nwDirectorsByLastC3":
+      return handleNwDirectorsByLastC3(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
