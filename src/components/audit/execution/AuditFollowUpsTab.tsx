@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Loader2, Eye, Edit, RefreshCw } from 'lucide-react';
-import { StatusBadge, DataTable, StandardModal } from '@/components/common';
+import { Plus, Loader2, Eye, Edit, RefreshCw, X } from 'lucide-react';
+import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useEngagementFollowUps } from '@/hooks/useEngagementData';
 import { useIAFollowUpMutations } from '@/hooks/useAuditData';
@@ -34,10 +34,13 @@ export function AuditFollowUpsTab({ auditId, auditFindings = [], departmentId }:
   const { data: followUps = [], isLoading } = useEngagementFollowUps(auditId);
   const { create, update } = useIAFollowUpMutations();
   const { userCode } = useUserCode();
-  const [modal, setModal] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view' | null>(null);
+  const [editRecord, setEditRecord] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const openCreate = () => { setForm({ ...emptyForm }); setModal({ mode: 'create' }); };
+  const closeForm = () => { setFormMode(null); setEditRecord(null); };
+
+  const openCreate = () => { setForm({ ...emptyForm }); setFormMode('create'); setEditRecord(null); };
   const openEdit = (r: any) => {
     setForm({
       action_required: r.action_required || '', description: r.description || '',
@@ -47,9 +50,9 @@ export function AuditFollowUpsTab({ auditId, auditFindings = [], departmentId }:
       scheduled_follow_up_date: r.scheduled_follow_up_date || '',
       resolution: r.resolution || '', resolved_date: r.resolved_date || '', finding_id: r.finding_id || '',
     });
-    setModal({ mode: 'edit', record: r });
+    setFormMode('edit'); setEditRecord(r);
   };
-  const openView = (r: any) => { openEdit(r); setModal({ mode: 'view', record: r }); };
+  const openView = (r: any) => { openEdit(r); setFormMode('view'); };
 
   const handleSave = () => {
     if (!form.action_required || !form.due_date) return;
@@ -61,10 +64,10 @@ export function AuditFollowUpsTab({ auditId, auditFindings = [], departmentId }:
       resolution: form.resolution || null, resolved_date: form.resolved_date || null,
       finding_id: form.finding_id || null, engagement_id: auditId, department_id: departmentId || null,
     };
-    if (modal.mode === 'create') {
-      create.mutate({ ...payload, created_by: userCode || null } as any, { onSuccess: () => setModal({ mode: null }) });
-    } else if (modal.mode === 'edit' && modal.record) {
-      update.mutate({ id: modal.record.id, ...payload, updated_by: userCode || null } as any, { onSuccess: () => setModal({ mode: null }) });
+    if (formMode === 'create') {
+      create.mutate({ ...payload, created_by: userCode || null } as any, { onSuccess: closeForm });
+    } else if (formMode === 'edit' && editRecord) {
+      update.mutate({ id: editRecord.id, ...payload, updated_by: userCode || null } as any, { onSuccess: closeForm });
     }
   };
 
@@ -102,11 +105,78 @@ export function AuditFollowUpsTab({ auditId, auditFindings = [], departmentId }:
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add Follow-up</Button>
       </div>
 
-      {followUps.length === 0 ? (
+      {/* Inline Form */}
+      {formMode && (
+        <Card className="border-primary/20">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">
+                {formMode === 'create' ? 'New Follow-up' : formMode === 'edit' ? 'Edit Follow-up' : 'Follow-up Detail'}
+              </p>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closeForm}><X className="h-4 w-4" /></Button>
+            </div>
+            <div><Label>Action Required *</Label><Textarea value={form.action_required} onChange={e => setForm(f => ({ ...f, action_required: e.target.value }))} rows={3} disabled={formMode === 'view'} className="text-sm leading-relaxed" /></div>
+            <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} disabled={formMode === 'view'} className="text-sm leading-relaxed" /></div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><Label>Follow-up Type</Label>
+                <Select value={form.follow_up_type || '__none__'} onValueChange={v => setForm(f => ({ ...f, follow_up_type: v === '__none__' ? '' : v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select type</SelectItem>
+                    {FOLLOW_UP_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Priority</Label>
+                <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{FOLLOW_UP_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Linked Finding</Label>
+                <Select value={form.finding_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, finding_id: v === '__none__' ? '' : v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue placeholder="Select finding (optional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {auditFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Due Date *</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} disabled={formMode === 'view'} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Responsible Person</Label><Input value={form.responsible_name} onChange={e => setForm(f => ({ ...f, responsible_name: e.target.value }))} disabled={formMode === 'view'} /></div>
+              <div><Label>Scheduled Follow-up Date</Label><Input type="date" value={form.scheduled_follow_up_date} onChange={e => setForm(f => ({ ...f, scheduled_follow_up_date: e.target.value }))} disabled={formMode === 'view'} /></div>
+            </div>
+            {(form.status === 'Resolved' || form.status === 'Closed') && (
+              <>
+                <div><Label>Resolution Notes</Label><Textarea value={form.resolution} onChange={e => setForm(f => ({ ...f, resolution: e.target.value }))} rows={3} disabled={formMode === 'view'} className="text-sm leading-relaxed" /></div>
+                <div><Label>Resolved Date</Label><Input type="date" value={form.resolved_date} onChange={e => setForm(f => ({ ...f, resolved_date: e.target.value }))} disabled={formMode === 'view'} /></div>
+              </>
+            )}
+            {formMode !== 'view' && (
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSave} disabled={create.isPending || update.isPending}>Save</Button>
+                <Button variant="outline" onClick={closeForm}>Cancel</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {followUps.length === 0 && !formMode ? (
         <AuditEmptyState icon={RefreshCw} title="No follow-ups scheduled"
           description="Follow-ups track verification of corrective action implementation and confirm that audit recommendations have been addressed."
           actionLabel="Schedule Follow-up" onAction={openCreate} />
-      ) : (
+      ) : followUps.length > 0 && (
         <Card><CardContent className="pt-4">
           <DataTable columns={columns} data={followUps} emptyMessage="No follow-ups."
             rowClassName={(row) => isOverdue(row) ? 'bg-destructive/5' : ''}
@@ -119,58 +189,6 @@ export function AuditFollowUpsTab({ auditId, auditFindings = [], departmentId }:
           />
         </CardContent></Card>
       )}
-
-      <StandardModal open={modal.mode !== null} onOpenChange={() => setModal({ mode: null })}
-        title={modal.mode === 'create' ? 'New Follow-up' : modal.mode === 'edit' ? 'Edit Follow-up' : 'Follow-up Detail'}
-        mode={modal.mode === 'view' ? 'view' : modal.mode || 'create'} onSave={handleSave}
-        saveLabel="Save" isSaving={create.isPending || update.isPending} size="3xl">
-        <div className="space-y-4">
-          <div><Label>Action Required *</Label><Textarea value={form.action_required} onChange={e => setForm(f => ({ ...f, action_required: e.target.value }))} rows={3} disabled={modal.mode === 'view'} className="text-sm leading-relaxed" /></div>
-          <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} disabled={modal.mode === 'view'} className="text-sm leading-relaxed" /></div>
-          <div className="grid grid-cols-3 gap-4">
-            <div><Label>Follow-up Type</Label>
-              <Select value={form.follow_up_type} onValueChange={v => setForm(f => ({ ...f, follow_up_type: v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>{FOLLOW_UP_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Priority</Label>
-              <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{FOLLOW_UP_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Linked Finding</Label>
-              <Select value={form.finding_id} onValueChange={v => setForm(f => ({ ...f, finding_id: v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue placeholder="Select finding (optional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {auditFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Due Date *</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} disabled={modal.mode === 'view'} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Responsible Person</Label><Input value={form.responsible_name} onChange={e => setForm(f => ({ ...f, responsible_name: e.target.value }))} disabled={modal.mode === 'view'} /></div>
-            <div><Label>Scheduled Follow-up Date</Label><Input type="date" value={form.scheduled_follow_up_date} onChange={e => setForm(f => ({ ...f, scheduled_follow_up_date: e.target.value }))} disabled={modal.mode === 'view'} /></div>
-          </div>
-          {(form.status === 'Resolved' || form.status === 'Closed') && (
-            <>
-              <div><Label>Resolution Notes</Label><Textarea value={form.resolution} onChange={e => setForm(f => ({ ...f, resolution: e.target.value }))} rows={3} disabled={modal.mode === 'view'} className="text-sm leading-relaxed" /></div>
-              <div><Label>Resolved Date</Label><Input type="date" value={form.resolved_date} onChange={e => setForm(f => ({ ...f, resolved_date: e.target.value }))} disabled={modal.mode === 'view'} /></div>
-            </>
-          )}
-        </div>
-      </StandardModal>
     </div>
   );
 }
