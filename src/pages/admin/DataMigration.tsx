@@ -8,8 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Database, 
   Download, 
@@ -118,10 +120,12 @@ const ManageAnalysisTables = () => {
   const [analysisTables, setAnalysisTables] = useState<AnalysisTableRow[]>([]);
   const [allPublicTables, setAllPublicTables] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTable, setSelectedTable] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [stagedTables, setStagedTables] = useState<string[]>([]);
+  const [radioValue, setRadioValue] = useState("");
+  const [searchAvailable, setSearchAvailable] = useState("");
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -142,25 +146,59 @@ const ManageAnalysisTables = () => {
   useEffect(() => { fetchData(); }, []);
 
   const existingTableNames = new Set(analysisTables.map(t => t.table_name));
+  const stagedSet = new Set(stagedTables);
   const availableTables = allPublicTables
-    .filter(t => !existingTableNames.has(t))
-    .sort()
-    .map(t => ({ value: t, label: t }));
+    .filter(t => !existingTableNames.has(t) && !stagedSet.has(t))
+    .sort();
 
-  const handleAdd = async () => {
-    if (!selectedTable) return;
+  const filteredAvailable = availableTables.filter(t =>
+    t.toLowerCase().includes(searchAvailable.toLowerCase())
+  );
+
+  const handleRadioSelect = (value: string) => {
+    setRadioValue("");
+    if (value && !stagedSet.has(value) && !existingTableNames.has(value)) {
+      setStagedTables(prev => [...prev, value]);
+    }
+  };
+
+  const handleRemoveFromStaging = (table: string) => {
+    setStagedTables(prev => prev.filter(t => t !== table));
+  };
+
+  const handleBatchAdd = async () => {
+    if (stagedTables.length === 0) return;
     setIsAdding(true);
     try {
-      const { error } = await supabase.from("migration_analysis_tables" as any).insert({
-        table_name: selectedTable,
+      const inserts = stagedTables.map(t => ({
+        table_name: t,
         primary_key_field: "id",
-      } as any);
+      }));
+      const { error } = await supabase.from("migration_analysis_tables" as any).insert(inserts as any);
       if (error) throw error;
-      toast({ title: "Table Added", description: `${selectedTable} added to analysis list` });
-      setSelectedTable("");
+
+      // Audit log
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from("system_audit_trail").insert({
+          action: "add_analysis_tables",
+          entity_type: "migration_analysis_tables",
+          entity_id: `batch-${Date.now()}`,
+          module: "admin",
+          user_id: user?.id,
+          user_name: user?.email?.split("@")[0]?.substring(0, 5) || "SYSTEM",
+          after_value: { tables: stagedTables },
+          severity: "info",
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed:", auditErr);
+      }
+
+      toast({ title: "Tables Added", description: `${stagedTables.length} table(s) added to analysis list` });
+      setStagedTables([]);
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Failed to add table", description: err.message, variant: "destructive" });
+      toast({ title: "Failed to add tables", description: err.message, variant: "destructive" });
     } finally {
       setIsAdding(false);
     }
@@ -171,6 +209,24 @@ const ManageAnalysisTables = () => {
     try {
       const { error } = await supabase.from("migration_analysis_tables" as any).delete().eq("id", row.id);
       if (error) throw error;
+
+      // Audit log
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from("system_audit_trail").insert({
+          action: "remove_analysis_table",
+          entity_type: "migration_analysis_tables",
+          entity_id: row.id,
+          module: "admin",
+          user_id: user?.id,
+          user_name: user?.email?.split("@")[0]?.substring(0, 5) || "SYSTEM",
+          before_value: { table_name: row.table_name },
+          severity: "info",
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed:", auditErr);
+      }
+
       toast({ title: "Table Removed", description: `${row.table_name} removed from analysis list` });
       await fetchData();
     } catch (err: any) {
@@ -197,56 +253,135 @@ const ManageAnalysisTables = () => {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-4">
-            {/* Add table */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Add a table to analysis list</label>
-                <SearchableSelect
-                  options={availableTables}
-                  value={selectedTable}
-                  onValueChange={setSelectedTable}
-                  placeholder="Search and select a table..."
-                  searchPlaceholder="Search tables..."
-                  emptyMessage="No more tables available"
-                  disabled={isLoading}
-                />
-              </div>
-              <Button onClick={handleAdd} disabled={!selectedTable || isAdding} size="default">
-                {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-                Add
-              </Button>
-            </div>
-
-            {/* Current tables */}
             {isLoading ? (
               <div className="text-sm text-muted-foreground text-center py-4">Loading...</div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {analysisTables.map(row => (
-                  <Badge
-                    key={row.id}
-                    variant="outline"
-                    className="text-xs font-mono flex items-center gap-1 pr-1"
-                  >
-                    {row.table_name}
-                    <button
-                      onClick={() => handleRemove(row)}
-                      disabled={removingId === row.id}
-                      className="ml-1 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
-                      title={`Remove ${row.table_name}`}
-                    >
-                      {removingId === row.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              <>
+                {/* Two-panel layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left Panel — Available Tables */}
+                  <div className="border rounded-lg">
+                    <div className="p-3 border-b bg-muted/30">
+                      <h4 className="text-sm font-medium mb-2">Available Tables ({filteredAvailable.length})</h4>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search tables..."
+                          value={searchAvailable}
+                          onChange={(e) => setSearchAvailable(e.target.value)}
+                          className="pl-8 h-9"
+                        />
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[280px]">
+                      <RadioGroup value={radioValue} onValueChange={handleRadioSelect} className="p-2 space-y-0.5">
+                        {filteredAvailable.length === 0 ? (
+                          <div className="text-center py-6 text-sm text-muted-foreground">
+                            {searchAvailable ? `No tables match "${searchAvailable}"` : "All tables are already configured or staged"}
+                          </div>
+                        ) : (
+                          filteredAvailable.map(t => (
+                            <div
+                              key={t}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                              onClick={() => handleRadioSelect(t)}
+                            >
+                              <RadioGroupItem value={t} id={`avail-${t}`} />
+                              <Label htmlFor={`avail-${t}`} className="text-sm font-mono cursor-pointer flex-1">{t}</Label>
+                            </div>
+                          ))
+                        )}
+                      </RadioGroup>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Right Panel — Staged (Shortlisted) */}
+                  <div className="border rounded-lg">
+                    <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Shortlisted for Addition ({stagedTables.length})</h4>
+                      {stagedTables.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={() => setStagedTables([])}
+                        >
+                          Clear All
+                        </Button>
                       )}
-                    </button>
-                  </Badge>
-                ))}
-                {analysisTables.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No tables configured. Add tables above to enable analysis.</p>
-                )}
-              </div>
+                    </div>
+                    <ScrollArea className="h-[230px]">
+                      {stagedTables.length === 0 ? (
+                        <div className="text-center py-10 text-sm text-muted-foreground">
+                          <Plus className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+                          Select tables from the left panel
+                        </div>
+                      ) : (
+                        <div className="p-2 space-y-1">
+                          {stagedTables.map(t => (
+                            <div key={t} className="flex items-center justify-between px-2 py-1.5 rounded bg-primary/5 border border-primary/20">
+                              <span className="text-sm font-mono">{t}</span>
+                              <button
+                                onClick={() => handleRemoveFromStaging(t)}
+                                className="rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
+                                title={`Remove ${t}`}
+                              >
+                                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                    <div className="p-3 border-t">
+                      <Button
+                        className="w-full"
+                        onClick={handleBatchAdd}
+                        disabled={stagedTables.length === 0 || isAdding}
+                      >
+                        {isAdding ? (
+                          <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Adding...</>
+                        ) : (
+                          <><Plus className="h-4 w-4 mr-1" />Add {stagedTables.length > 0 ? `${stagedTables.length} Table${stagedTables.length > 1 ? "s" : ""}` : "Tables"}</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Already Configured Tables */}
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                    Configured Tables ({analysisTables.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisTables.map(row => (
+                      <Badge
+                        key={row.id}
+                        variant="outline"
+                        className="text-xs font-mono flex items-center gap-1 pr-1"
+                      >
+                        {row.table_name}
+                        <button
+                          onClick={() => handleRemove(row)}
+                          disabled={removingId === row.id}
+                          className="ml-1 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
+                          title={`Remove ${row.table_name}`}
+                        >
+                          {removingId === row.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                          )}
+                        </button>
+                      </Badge>
+                    ))}
+                    {analysisTables.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No tables configured. Add tables above to enable analysis.</p>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </CollapsibleContent>
