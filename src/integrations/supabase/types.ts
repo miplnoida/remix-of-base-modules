@@ -24937,6 +24937,11 @@ export type Database = {
         Args: { p_registration_number: string }
         Returns: Json
       }
+      public_api_er_master_details: {
+        Args: { p_reg_no: string }
+        Returns: Json
+      }
+      public_api_get_receipt: { Args: { p_receipt_no: string }; Returns: Json }
       public_api_insert_c3_reported:
         | {
             Args: {
@@ -25024,10 +25029,30 @@ export type Database = {
         }
         Returns: Json
       }
+      public_api_ip_details_by_query: {
+        Args: {
+          p_dob: string
+          p_first_name: string
+          p_last_name: string
+          p_middle_name: string
+          p_ssn: string
+        }
+        Returns: Json
+      }
+      public_api_multiple_ip_details: {
+        Args: { p_employees: Json }
+        Returns: Json
+      }
       public_api_nwdirectors_by_last_c3: {
         Args: { p_registration_number: string }
         Returns: Json
       }
+      public_api_payment_save: {
+        Args: { p_payer_id: string; p_payer_type: string; p_payload: Json }
+        Returns: Json
+      }
+      public_api_se_master_details: { Args: { p_ssn: string }; Returns: Json }
+      public_api_update_user: { Args: { p_payload: Json }; Returns: Json }
       public_api_verify_c3: {
         Args: {
           p_payer_id: string
