@@ -39,6 +39,26 @@ function isEmployeeRoute(path: string): boolean {
   return path.startsWith("/api/v1/Employee/");
 }
 
+// ── Check if path is a Validation route (Employer/SE master) ──
+function isValidationRoute(path: string): boolean {
+  return path.startsWith("/api/v1/Employer/");
+}
+
+// ── Check if path is a Payment route ──
+function isPaymentRoute(path: string): boolean {
+  return path.startsWith("/api/v1/api/payment/");
+}
+
+// ── Check if path is a Profile Sync route ──
+function isProfileRoute(path: string): boolean {
+  return path.startsWith("/api/v1/User/");
+}
+
+// ── Check if path is a Utility route ──
+function isUtilityRoute(path: string): boolean {
+  return path.startsWith("/api/v1/ReferenceData/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
