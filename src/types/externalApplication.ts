@@ -287,7 +287,8 @@ export function formatStatusDisplay(status: string): string {
 /**
  * Get status variant for Badge component
  */
-export function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+export function getStatusVariant(status: string | undefined | null): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (!status) return 'outline';
   const lowerStatus = status.toLowerCase();
   
   if (lowerStatus === 'approved') return 'default';
