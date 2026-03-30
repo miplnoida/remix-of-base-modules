@@ -122,6 +122,11 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       setSelectedTemplateId(matchingTemplate.id);
       let rendered = renderTemplate(matchingTemplate.content || '', mergeData);
 
+      // For DOC_REQUEST stage, auto-append the document request list if not already in template
+      if (stageCode === 'DOC_REQUEST' && !rendered.includes('{{document_list}}') && pendingDocs.length > 0) {
+        rendered += buildDocTable();
+      }
+
       if (mode === 'reminder') {
         rendered = REMINDER_PREFIX + rendered;
       }
@@ -133,7 +138,15 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       }).catch(() => setPolicyValid(null));
     } else {
       setSelectedTemplateId('');
-      setMessageContent(mode === 'reminder' ? REMINDER_PREFIX : '');
+      let defaultContent = mode === 'reminder' ? REMINDER_PREFIX : '';
+      
+      // If DOC_REQUEST with no template, generate a complete default message
+      if (stageCode === 'DOC_REQUEST' && pendingDocs.length > 0) {
+        const ctx = engagementContext || {};
+        defaultContent += `Dear ${ctx.department_head || 'Department Head'},\n\nAs part of the ongoing audit engagement — ${ctx.engagement_name || engagementName || 'Internal Audit'} — we kindly request the following document(s) to be provided to the Internal Audit team:\n${buildDocTable()}\nPlease ensure the above documents are submitted by the indicated due dates. If any document is not available, please inform us with the reason and expected availability date.\n\nShould you require any clarification, please do not hesitate to contact the audit team.\n\nRegards,\nSSBM Internal Audit`;
+      }
+      
+      setMessageContent(defaultContent);
       setPolicyValid(null);
     }
   }, [open, stageCode, matchingTemplate?.id, mergeData, mode]);
