@@ -1,4 +1,4 @@
-import { 
+import {
   Shield,
   LayoutDashboard,
   Users,
@@ -12,7 +12,8 @@ import {
   BarChart3,
   ClipboardCheck,
   Calendar,
-  Clock
+  Clock,
+  Settings,
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -78,6 +79,13 @@ export const auditMenuItems = [
         icon: ClipboardCheck,
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
+      },
+      {
+        title: "Auto Plan Config",
+        url: "/audit/config",
+        icon: Settings,
+        requiresPermission: "configure_audit_system",
+        description: "Configure Auto Plan rules, weights, and thresholds"
       },
       // ── Resources ──
       {
