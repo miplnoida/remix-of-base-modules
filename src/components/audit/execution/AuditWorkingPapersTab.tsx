@@ -49,31 +49,26 @@ export function AuditWorkingPapersTab({ auditId }: AuditWorkingPapersTabProps) {
     }
     create.mutate({
       title: form.title,
-      reference_number: form.reference_number || null,
+      working_paper_id: form.reference_number || null,
       description: form.description || null,
-      paper_type: form.paper_type,
-      file_path: filePath,
+      audit_area: form.paper_type || 'Analysis',
       engagement_id: auditId,
+      status: 'Draft',
     } as any, {
       onSuccess: () => {
         setShowForm(false);
         setForm({ title: '', reference_number: '', description: '', paper_type: 'Analysis' });
-        if (fileInputRef.current) fileInputRef.current.value = '';
       },
     });
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'reference_number', header: 'Ref', render: (r) => <span className="font-mono text-xs">{r.reference_number || '—'}</span> },
+    { key: 'working_paper_id', header: 'Ref', render: (r) => <span className="font-mono text-xs">{r.working_paper_id || '—'}</span> },
     { key: 'title', header: 'Title', render: (r) => <span className="font-medium text-sm">{r.title || '—'}</span> },
-    { key: 'paper_type', header: 'Type', render: (r) => <StatusBadge status={r.paper_type || 'Analysis'} /> },
+    { key: 'audit_area', header: 'Area', render: (r) => <StatusBadge status={r.audit_area || 'General'} /> },
     { key: 'description', header: 'Description', render: (r) => <span className="text-xs max-w-[180px] truncate block">{r.description || '—'}</span> },
     { key: 'created_at', header: 'Created', render: (r) => r.created_at ? formatDateForDisplay(r.created_at) : '—' },
-    { key: 'file_path', header: 'File', render: (r) => {
-      if (!r.file_path) return <span className="text-muted-foreground text-xs">None</span>;
-      const { data } = supabase.storage.from('audit-attachments').getPublicUrl(r.file_path);
-      return <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => window.open(data?.publicUrl, '_blank')}><FileText className="h-3 w-3 mr-1" />View</Button>;
-    }},
+    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Draft'} /> },
   ];
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;

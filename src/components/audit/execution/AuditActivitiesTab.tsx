@@ -113,23 +113,14 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
 
   const handleSave = async () => {
     if (!form.title) return;
-    let filePath: string | null = null;
-    const file = fileRef.current?.files?.[0];
-    if (file) {
-      if (!ALLOWED_FILE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) {
-        toast({ title: 'Invalid file', variant: 'destructive' }); return;
-      }
-      setUploading(true);
-      const path = `working-papers/${auditId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from('audit-attachments').upload(path, file);
-      setUploading(false);
-      if (error) { toast({ title: 'Upload failed', variant: 'destructive' }); return; }
-      filePath = path;
-    }
     create.mutate({
-      title: form.title, reference_number: form.reference_number || null,
-      description: form.description || null, paper_type: form.paper_type,
-      file_path: filePath, engagement_id: auditId, activity_id: activityId,
+      title: form.title,
+      working_paper_id: form.reference_number || null,
+      description: form.description || null,
+      audit_area: form.paper_type || 'Analysis',
+      engagement_id: auditId,
+      activity_id: activityId,
+      status: 'Draft',
     } as any, { onSuccess: onClose });
   };
 
@@ -141,15 +132,12 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div><Label className="text-xs">Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" /></div>
-        <div><Label className="text-xs">Ref #</Label><Input value={form.reference_number} onChange={e => setForm(f => ({ ...f, reference_number: e.target.value }))} placeholder="WP-001" className="h-8 text-xs" /></div>
-        <div><Label className="text-xs">Type</Label><Input value={form.paper_type} onChange={e => setForm(f => ({ ...f, paper_type: e.target.value }))} placeholder="Analysis" className="h-8 text-xs" /></div>
+        <div><Label className="text-xs">Working Paper ID</Label><Input value={form.reference_number} onChange={e => setForm(f => ({ ...f, reference_number: e.target.value }))} placeholder="WP-001" className="h-8 text-xs" /></div>
+        <div><Label className="text-xs">Audit Area</Label><Input value={form.paper_type} onChange={e => setForm(f => ({ ...f, paper_type: e.target.value }))} placeholder="Analysis" className="h-8 text-xs" /></div>
       </div>
       <div><Label className="text-xs">Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="text-xs" /></div>
-      <div><Label className="text-xs">Attach File</Label><Input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="text-xs h-8" /></div>
       <div className="flex gap-2">
-        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={create.isPending || uploading}>
-          {uploading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Uploading...</> : 'Save Working Paper'}
-        </Button>
+        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={create.isPending}>Save Working Paper</Button>
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onClose}>Cancel</Button>
       </div>
     </div>
@@ -164,9 +152,13 @@ function InlineFindingForm({ auditId, activityId, onClose }: { auditId: string; 
   const handleSave = () => {
     if (!form.title) return;
     create.mutate({
-      title: form.title, description: form.description || null,
-      risk_rating: form.risk_rating, recommendation: form.recommendation || null,
-      status: 'Open', engagement_id: auditId, activity_id: activityId,
+      title: form.title,
+      condition: form.description || null,
+      risk_rating: form.risk_rating,
+      recommendation: form.recommendation || null,
+      status: 'Open',
+      engagement_id: auditId,
+      activity_id: activityId,
     } as any, { onSuccess: onClose });
   };
 
@@ -359,9 +351,9 @@ function ActivityCard({ activity, evidence, workingPapers, findings, auditId, on
                   {workingPapers.map((wp: any) => (
                     <div key={wp.id} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted/20">
                       <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="font-mono text-muted-foreground text-[10px]">{wp.reference_number || '—'}</span>
+                      <span className="font-mono text-muted-foreground text-[10px]">{wp.working_paper_id || '—'}</span>
                       <span className="truncate flex-1">{wp.title || '—'}</span>
-                      <StatusBadge status={wp.paper_type || 'Analysis'} />
+                      <StatusBadge status={wp.audit_area || 'General'} />
                       <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeWP.mutate(wp.id)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                   ))}
