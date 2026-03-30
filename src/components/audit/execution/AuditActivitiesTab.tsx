@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Loader2, Edit, Eye, ClipboardCheck } from 'lucide-react';
-import { StatusBadge, DataTable, StandardModal } from '@/components/common';
-import type { DataTableColumn } from '@/components/common';
-import { useEngagementActivities } from '@/hooks/useEngagementData';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Plus, Loader2, Edit, Eye, ClipboardCheck, ChevronDown, ChevronRight,
+  FileText, AlertTriangle, Paperclip, CheckCircle2, Clock, AlertCircle
+} from 'lucide-react';
+import { StatusBadge, StandardModal } from '@/components/common';
+import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers } from '@/hooks/useEngagementData';
 import { useIAActivityMutations } from '@/hooks/useAuditDataExtended';
+import { useIAFindings } from '@/hooks/useAuditData';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 
 const ACTIVITY_STATUSES = ['Planned', 'In Progress', 'Completed', 'Deferred', 'Cancelled'];
 const ACTIVITY_TYPES = ['Document Review', 'Walkthrough', 'Testing', 'Interview', 'Observation', 'Data Analysis', 'Sampling', 'Reconciliation', 'Inspection', 'Other'];
@@ -33,13 +37,183 @@ interface AuditActivitiesTabProps {
   auditors?: any[];
 }
 
+// ===== Activity Card with inline sub-sections =====
+function ActivityCard({ activity, evidence, workingPapers, findings, onEdit, onView }: {
+  activity: any; evidence: any[]; workingPapers: any[]; findings: any[];
+  onEdit: () => void; onView: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const statusIcon = activity.status === 'Completed' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
+    activity.status === 'In Progress' ? <Clock className="h-4 w-4 text-amber-500" /> :
+    activity.status === 'Deferred' || activity.status === 'Cancelled' ? <AlertCircle className="h-4 w-4 text-muted-foreground" /> :
+    <Clock className="h-4 w-4 text-muted-foreground" />;
+
+  // Smart guidance: determine what's missing
+  const alerts: string[] = [];
+  if (evidence.length === 0 && activity.status !== 'Cancelled') alerts.push('No evidence uploaded');
+  if (workingPapers.length === 0 && activity.status === 'Completed') alerts.push('No working paper created');
+  if (activity.status === 'In Progress' && !activity.actual_date_from) alerts.push('Actual start date not set');
+
+  // Next action suggestion
+  let nextAction = '';
+  if (activity.status === 'Planned') nextAction = 'Start this activity and begin fieldwork';
+  else if (activity.status === 'In Progress' && evidence.length === 0) nextAction = 'Upload supporting evidence';
+  else if (activity.status === 'In Progress' && workingPapers.length === 0) nextAction = 'Create a working paper to document analysis';
+  else if (activity.status === 'In Progress' && findings.length === 0) nextAction = 'Raise finding if issues identified';
+  else if (activity.status === 'In Progress') nextAction = 'Mark as completed when fieldwork is done';
+
+  return (
+    <Card className={`transition-all ${expanded ? 'ring-1 ring-primary/20' : ''}`}>
+      <div
+        className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="mt-0.5">
+          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {statusIcon}
+            <span className="font-medium text-sm">{activity.name || activity.title || 'Untitled Activity'}</span>
+            {activity.activity_type && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{activity.activity_type}</Badge>}
+            {activity.priority && <StatusBadge status={activity.priority} />}
+          </div>
+          {activity.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{activity.description}</p>}
+          <div className="flex items-center gap-4 mt-1.5 text-[11px] text-muted-foreground">
+            {activity.auditor_name && <span>👤 {activity.auditor_name}</span>}
+            {(activity.planned_date_from || activity.start_date) && (
+              <span>📅 {formatDateForDisplay(activity.planned_date_from || activity.start_date)}
+                {(activity.planned_date_to || activity.end_date) ? ` – ${formatDateForDisplay(activity.planned_date_to || activity.end_date)}` : ''}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Inline counters */}
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="flex items-center gap-0.5" title="Evidence">
+              <Paperclip className="h-3 w-3" />{evidence.length}
+            </span>
+            <span className="flex items-center gap-0.5" title="Working Papers">
+              <FileText className="h-3 w-3" />{workingPapers.length}
+            </span>
+            <span className="flex items-center gap-0.5" title="Findings">
+              <AlertTriangle className="h-3 w-3" />{findings.length}
+            </span>
+          </div>
+          <StatusBadge status={activity.status || 'Planned'} />
+          <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView}><Eye className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}><Edit className="h-3.5 w-3.5" /></Button>
+          </div>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+          {/* Smart guidance */}
+          {nextAction && (
+            <div className="flex items-center gap-2 text-xs px-3 py-2 bg-primary/5 text-primary rounded-md border border-primary/10">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              <span><strong>Next:</strong> {nextAction}</span>
+            </div>
+          )}
+          {alerts.length > 0 && (
+            <div className="space-y-1">
+              {alerts.map((a, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs px-3 py-1.5 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 rounded-md border border-amber-200/50 dark:border-amber-800/30">
+                  <AlertCircle className="h-3 w-3 shrink-0" />{a}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Linked Evidence */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <Paperclip className="h-3 w-3" /> Evidence ({evidence.length})
+            </p>
+            {evidence.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic pl-4">No evidence linked to this activity. Use the Evidence tab to upload and link.</p>
+            ) : (
+              <div className="space-y-1 pl-4">
+                {evidence.map((e: any) => (
+                  <div key={e.id} className="flex items-center gap-2 text-xs py-1">
+                    <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="font-mono text-muted-foreground">{e.evidence_id || '—'}</span>
+                    <span className="truncate">{e.description || e.file_name || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Linked Working Papers */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <FileText className="h-3 w-3" /> Working Papers ({workingPapers.length})
+            </p>
+            {workingPapers.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic pl-4">No working papers linked. Use the Working Papers tab to create and link.</p>
+            ) : (
+              <div className="space-y-1 pl-4">
+                {workingPapers.map((wp: any) => (
+                  <div key={wp.id} className="flex items-center gap-2 text-xs py-1">
+                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="font-mono text-muted-foreground">{wp.reference_number || '—'}</span>
+                    <span className="truncate">{wp.title || '—'}</span>
+                    <StatusBadge status={wp.paper_type || 'Analysis'} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Linked Findings */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <AlertTriangle className="h-3 w-3" /> Findings ({findings.length})
+            </p>
+            {findings.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic pl-4">No findings raised from this activity yet.</p>
+            ) : (
+              <div className="space-y-1 pl-4">
+                {findings.map((f: any) => (
+                  <div key={f.id} className="flex items-center gap-2 text-xs py-1">
+                    <AlertTriangle className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate font-medium">{f.title || '—'}</span>
+                    <StatusBadge status={f.risk_rating || 'Medium'} />
+                    <StatusBadge status={f.status || 'Open'} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ===== Main Component =====
 export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }: AuditActivitiesTabProps) {
   const { data: activities = [], isLoading } = useEngagementActivities(auditId);
+  const { data: allEvidence = [] } = useEngagementEvidence(auditId);
+  const { data: allWorkingPapers = [] } = useEngagementWorkingPapers(auditId);
+  const { data: allFindings = [] } = useIAFindings();
   const { create, update } = useIAActivityMutations();
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const [modal, setModal] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
   const [form, setForm] = useState(emptyForm);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  const engagementFindings = useMemo(() => allFindings.filter((f: any) => f.engagement_id === auditId), [allFindings, auditId]);
+
+  // Progress stats
+  const completedCount = activities.filter((a: any) => a.status === 'Completed').length;
+  const inProgressCount = activities.filter((a: any) => a.status === 'In Progress').length;
+  const progressPct = activities.length > 0 ? Math.round((completedCount / activities.length) * 100) : 0;
 
   const openCreate = () => { setForm({ ...emptyForm }); setModal({ mode: 'create' }); setAdvancedOpen(false); };
   const openEdit = (r: any) => {
@@ -74,32 +248,49 @@ export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }
     }
   };
 
-  const getAuditorLabel = (id: string) => auditors.find((a: any) => a.id === id)?.name || id || '—';
-
-  const columns: DataTableColumn<any>[] = [
-    { key: 'name', header: 'Activity Name', render: (r) => (
-      <div><span className="font-medium text-sm">{r.name || r.title || '—'}</span>
-        {r.activity_type && <span className="text-xs text-muted-foreground block">{r.activity_type}</span>}
-      </div>
-    )},
-    { key: 'control_area', header: 'Control / Function Area', render: (r) => (
-      <div className="text-xs">{r.control_area || r.function_area || '—'}</div>
-    )},
-    { key: 'auditor_id', header: 'Assigned To', render: (r) => <span className="text-sm">{r.auditor_name || (r.auditor_id ? getAuditorLabel(r.auditor_id) : '—')}</span> },
-    { key: 'planned_date_from', header: 'Planned Period', render: (r) => (
-      <span className="text-xs">
-        {r.planned_date_from ? formatDateForDisplay(r.planned_date_from) : r.start_date ? formatDateForDisplay(r.start_date) : '—'}
-        {(r.planned_date_to || r.end_date) ? ` — ${formatDateForDisplay(r.planned_date_to || r.end_date)}` : ''}
-      </span>
-    )},
-    { key: 'priority', header: 'Priority', render: (r) => r.priority ? <StatusBadge status={r.priority} /> : <span className="text-muted-foreground text-xs">—</span> },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status || 'Planned'} /> },
-  ];
-
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
     <div className="space-y-4">
+      {/* Progress Dashboard */}
+      {activities.length > 0 && (
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-6">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Fieldwork Progress</span>
+                  <span className="text-xs font-bold">{progressPct}%</span>
+                </div>
+                <Progress value={progressPct} className="h-2" />
+              </div>
+              <div className="flex gap-4 text-center shrink-0">
+                <div>
+                  <p className="text-lg font-bold">{activities.length}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-amber-600">{inProgressCount}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Active</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-emerald-600">{completedCount}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Done</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold">{allEvidence.length}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Evidence</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold">{engagementFindings.length}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Findings</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">{activities.length} activit{activities.length === 1 ? 'y' : 'ies'} recorded</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add Activity</Button>
@@ -107,19 +298,27 @@ export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }
 
       {activities.length === 0 ? (
         <AuditEmptyState icon={ClipboardCheck} title="No audit activities yet"
-          description="Activities represent individual audit tasks — document reviews, walkthroughs, testing, interviews, and observations performed during fieldwork."
+          description="Activities represent individual audit tasks — document reviews, walkthroughs, testing, interviews, and observations performed during fieldwork. Each activity acts as a working unit linking evidence, working papers, and findings."
           actionLabel="Add First Activity" onAction={openCreate} />
       ) : (
-        <Card><CardContent className="pt-4">
-          <DataTable columns={columns} data={activities} emptyMessage="No activities recorded."
-            renderActions={(row) => (
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openView(row); }}><Eye className="h-3.5 w-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(row); }}><Edit className="h-3.5 w-3.5" /></Button>
-              </div>
-            )}
-          />
-        </CardContent></Card>
+        <div className="space-y-2">
+          {activities.map((activity: any) => {
+            const actEvidence = allEvidence.filter((e: any) => e.activity_id === activity.id);
+            const actWPs = allWorkingPapers.filter((wp: any) => wp.activity_id === activity.id);
+            const actFindings = engagementFindings.filter((f: any) => f.activity_id === activity.id);
+            return (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                evidence={actEvidence}
+                workingPapers={actWPs}
+                findings={actFindings}
+                onEdit={() => openEdit(activity)}
+                onView={() => openView(activity)}
+              />
+            );
+          })}
+        </div>
       )}
 
       {/* Create / Edit / View Modal */}
@@ -132,9 +331,12 @@ export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Activity Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} disabled={modal.mode === 'view'} placeholder="e.g. Review payroll records" /></div>
             <div><Label>Activity Type</Label>
-              <Select value={form.activity_type} onValueChange={v => setForm(f => ({ ...f, activity_type: v }))} disabled={modal.mode === 'view'}>
+              <Select value={form.activity_type || '__none__'} onValueChange={v => setForm(f => ({ ...f, activity_type: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>{ACTIVITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__none__">Select type</SelectItem>
+                  {ACTIVITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -155,9 +357,12 @@ export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }
             </div>
             <div><Label>Assigned Auditor</Label>
               {auditors.length > 0 ? (
-                <Select value={form.auditor_id} onValueChange={v => { const a = auditors.find((x: any) => x.id === v); setForm(f => ({ ...f, auditor_id: v, auditor_name: a?.name || '' })); }} disabled={modal.mode === 'view'}>
+                <Select value={form.auditor_id || '__none__'} onValueChange={v => { const a = auditors.find((x: any) => x.id === v); setForm(f => ({ ...f, auditor_id: v === '__none__' ? '' : v, auditor_name: a?.name || '' })); }} disabled={modal.mode === 'view'}>
                   <SelectTrigger><SelectValue placeholder="Select auditor" /></SelectTrigger>
-                  <SelectContent>{auditors.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select auditor</SelectItem>
+                    {auditors.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               ) : (
                 <Input value={form.auditor_name} onChange={e => setForm(f => ({ ...f, auditor_name: e.target.value }))} disabled={modal.mode === 'view'} placeholder="Auditor name" />
@@ -175,7 +380,6 @@ export function AuditActivitiesTab({ auditId, departmentAuditId, auditors = [] }
             <div><Label>Actual End</Label><Input type="date" value={form.actual_date_to} onChange={e => setForm(f => ({ ...f, actual_date_to: e.target.value }))} disabled={modal.mode === 'view'} /></div>
           </div>
 
-          {/* Advanced fields in collapsible */}
           <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
             <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 cursor-pointer hover:text-foreground transition-colors">
               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
