@@ -10,8 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Send, Loader2, AlertTriangle, Building2, User, FileText, Edit3, RefreshCw, Bell } from 'lucide-react';
 import { useRecordCommunicationStage, useValidateTemplatePolicy, STAGE_LABELS } from '@/hooks/useAuditCommunicationStages';
 import { useIADocumentTemplates } from '@/hooks/useAuditData';
+import { useDocumentRequests } from '@/hooks/useEngagementExecution';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 const STAGE_TO_CATEGORY: Record<string, string> = {
   PLAN_INTIMATION: 'Audit Notification',
@@ -56,6 +58,7 @@ const REMINDER_PREFIX = `REMINDER: This is a follow-up to our earlier communicat
 
 export function CommunicationStageDialog({ engagementId, engagementName, stageCode, open, onClose, engagementContext, mode = 'send' }: CommunicationStageDialogProps) {
   const { data: templates = [] } = useIADocumentTemplates();
+  const { data: docRequests = [] } = useDocumentRequests(engagementId);
   const recordStage = useRecordCommunicationStage();
   const validatePolicy = useValidateTemplatePolicy();
   const { toast } = useToast();
@@ -69,6 +72,17 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [policyValid, setPolicyValid] = useState<boolean | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Build document request table for DOC_REQUEST stage
+  const pendingDocs = (docRequests as any[]).filter(r => r.status === 'Pending' || r.status === 'Partially Received');
+
+  const buildDocTable = (): string => {
+    if (pendingDocs.length === 0) return '\n[No pending document requests found. Please add document requests first.]\n';
+    const rows = pendingDocs.map((d, i) =>
+      `${i + 1}. ${d.document_title}${d.description ? ` — ${d.description}` : ''}  |  Priority: ${d.priority || 'Medium'}  |  Due: ${d.due_date ? formatDateForDisplay(d.due_date) : 'TBD'}`
+    ).join('\n');
+    return `\nDocuments Requested:\n${'—'.repeat(60)}\n${rows}\n${'—'.repeat(60)}\n`;
+  };
 
   const matchingTemplate = useMemo(() => {
     const requiredCategory = STAGE_TO_CATEGORY[stageCode];
@@ -90,8 +104,9 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       objectives: ctx.objectives || '',
       scope: ctx.scope || '',
       response_due_date: '[Please specify]',
+      document_list: stageCode === 'DOC_REQUEST' ? buildDocTable() : '',
     };
-  }, [engagementContext, engagementName]);
+  }, [engagementContext, engagementName, stageCode, pendingDocs.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +122,11 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       setSelectedTemplateId(matchingTemplate.id);
       let rendered = renderTemplate(matchingTemplate.content || '', mergeData);
 
+      // For DOC_REQUEST stage, auto-append the document request list if not already in template
+      if (stageCode === 'DOC_REQUEST' && !rendered.includes('{{document_list}}') && pendingDocs.length > 0) {
+        rendered += buildDocTable();
+      }
+
       if (mode === 'reminder') {
         rendered = REMINDER_PREFIX + rendered;
       }
@@ -118,7 +138,15 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       }).catch(() => setPolicyValid(null));
     } else {
       setSelectedTemplateId('');
-      setMessageContent(mode === 'reminder' ? REMINDER_PREFIX : '');
+      let defaultContent = mode === 'reminder' ? REMINDER_PREFIX : '';
+      
+      // If DOC_REQUEST with no template, generate a complete default message
+      if (stageCode === 'DOC_REQUEST' && pendingDocs.length > 0) {
+        const ctx = engagementContext || {};
+        defaultContent += `Dear ${ctx.department_head || 'Department Head'},\n\nAs part of the ongoing audit engagement — ${ctx.engagement_name || engagementName || 'Internal Audit'} — we kindly request the following document(s) to be provided to the Internal Audit team:\n${buildDocTable()}\nPlease ensure the above documents are submitted by the indicated due dates. If any document is not available, please inform us with the reason and expected availability date.\n\nShould you require any clarification, please do not hesitate to contact the audit team.\n\nRegards,\nSSBM Internal Audit`;
+      }
+      
+      setMessageContent(defaultContent);
       setPolicyValid(null);
     }
   }, [open, stageCode, matchingTemplate?.id, mergeData, mode]);

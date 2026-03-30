@@ -95,7 +95,7 @@ export function AuditPreparationTab({ auditId, audit, engagementContext }: Audit
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
-              <DocumentRequestsTab engagementId={auditId} departmentId={audit?.department_id} />
+              <DocumentRequestsTab engagementId={auditId} departmentId={audit?.department_id} engagementName={audit?.engagement_name} />
             </CardContent>
           </CollapsibleContent>
         </Card>
