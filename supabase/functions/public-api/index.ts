@@ -603,6 +603,26 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
         params: { payerId: lastMatch[1], payerType: lastMatch[2], seqAndType: lastMatch[3] },
       };
     }
+
+
+    // ── Employee Sync GET routes (BIMA-compatible) ──
+    // Employees by Last C3: /api/v1/Employee/employeesByLastC3/{registrationNumber}
+    const empMatch = path.match(/^\/api\/v1\/Employee\/employeesByLastC3\/([^/]+)$/);
+    if (empMatch) {
+      return {
+        handler: "employeesByLastC3",
+        params: { registrationNumber: empMatch[1] },
+      };
+    }
+
+    // NW Directors by Last C3: /api/v1/Employee/nwdirectorsByLastC3/{registrationNumber}
+    const nwMatch = path.match(/^\/api\/v1\/Employee\/nwdirectorsByLastC3\/([^/]+)$/);
+    if (nwMatch) {
+      return {
+        handler: "nwDirectorsByLastC3",
+        params: { registrationNumber: nwMatch[1] },
+      };
+    }
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
