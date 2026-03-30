@@ -1374,7 +1374,7 @@ const DataMigration = () => {
             </Card>
 
             {/* Import Section */}
-            <Card>
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" />Import Data</CardTitle>
                 <CardDescription>Upload an exported JSON file to import data</CardDescription>
