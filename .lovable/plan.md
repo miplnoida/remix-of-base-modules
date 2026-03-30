@@ -1,148 +1,136 @@
+# C3-Wizard API Migration — Updated Guide Implementation Plan
+
+## Summary of Changes Required
+
+The C3-Wizard team's updated guide reveals significant gaps between the current implementation and what BIMA actually returns. This plan addresses all discrepancies, including a critical **Security Enhancement** (email validation on Employer/SE lookup) and several **bug fixes** (wrong column names in employee sync RPCs).
+
+---
+
+## Critical Bug Fix
+
+The employee sync RPCs (`public_api_employees_by_last_c3`, `public_api_nwdirectors_by_last_c3`) reference non-existent columns: `m.first_name`, `m.last_name`, `m.date_of_birth`. The actual columns are `m.firstname`, `m.surname`, `m.dob`. These RPCs would fail at runtime. Must be fixed.
+
+---
+
+## Changes by API
+
+### 1. C3 Range API — Date Format Fix
+
+**Current**: Expects `DD-MM-YYYY` in URL path  
+**Required**: `MMYYYY` format (e.g., `012025`, `122025`)  
+**Response changes**: Return `month`, `year`, `seqNo`, `payerType`, `c3Type` instead of full header object
+
+**Changes**: Update `public_api_c3_range` RPC to parse `MMYYYY`, update edge function URL regex for `{startDate}/{endDate},{c3Type}`
+
+### 2. C3 Detail API — Response Field Alignment
+
+**Current**: Returns `sequenceNo`, dates in `DD/MM/YYYY`, `c3Status` as `VAC`  
+**Required**: Returns `c3Status` as `S` (submitted), `submittedByEmail` field, `dateReceived` as `YYYY-MM-DD`  
+**Changes**: Update RPC to match exact BIMA response schema
+
+### 3. Employee Sync RPCs — Column Name Fixes
+
+**Bug**: `m.first_name` → `m.firstname`, `m.last_name` → `m.surname`, `m.date_of_birth` → `m.dob`  
+**Also**: Add `payPeriod` as single char (M/W/F), add `startDate`/`endDate` from ip_wages if available
+
+### 4. Employer Master Details — Enhanced with Email Validation
+
+**Current**: `GET /Employer/getERMasterDetails/{regNo}`  
+**Required**: `GET /Employer/getERMasterDetails/{regNo},{email}`  
+**Response changes**: Add fields `city`, `phoneNo`, `mobileNo`, `dateRegistered`, `prntRegNo`, `regNo`, `firstName`/`lastName` from contact. Map `c3RegnStatusCode` with values `D`/`A`/`O` (not `R`/`NR`).  
+**Changes**: Update RPC signature, add email cross-check, update field mappings
+
+### 5. SE Master Details — Enhanced with Email Validation
+
+**Current**: `GET /Employer/getSEMasterDetails/{ssn}`  
+**Required**: `GET /Employer/getSEMasterDetails/{ssn},{email}`  
+**Response changes**: Add `email` from `ip_master.email_addr`, `wageCategory` from `ip_self_category`, `tradeName` from self-employ business, `gender`/`dateOfBirth`/`lastName`/`city`/`dateRegistered`, `name` composite field  
+**Changes**: Update RPC signature, add email cross-check, join `ip_self_category` for wage category
+
+### 6. IP Details by Query — Major Response Expansion
+
+**Current**: Returns basic person info (12 fields)  
+**Required**: Returns full employee profile (25+ fields) including `socSecNum`, `gender`, `streetAddress`, `cityTownName`, `stateRegion`, `postalCode`, `countryCode`, `email`, `phoneNo`, `mobileNo`, `occupation`, `salary`, `last_Pay_Date`, `isLevyExempt`, `isActive`, `isdirectorOnly`, `isemployeeDirector`, `status`  
+**DOB format**: Must accept `MM/DD/YYYY` in addition to current formats  
+**middleName**: Must handle literal `"null"` string as empty  
+**Changes**: Rewrite RPC to join `ip_employer` for occupation/employment data, add all missing fields
+
+### 7. Multiple IP Details — Input/Output Format Fix
+
+**Current**: Expects `{ employees: [...] }` with `socSecNum` key  
+**Required**: Accepts raw array `[...]` with `ssn`/`birthDate`/`firstName`/`lastName` keys  
+**Response**: Must include `socSecNum`, `valid` field  
+**Changes**: Update edge function to accept direct array, update RPC to match on `ssn` key
+
+### 8. Update User — Response Message Alignment
+
+**Current**: Returns `{ success: true, message: "Profile updated successfully" }`  
+**Required ER**: `{ message: "Employer data Successfully Updated!" }`  
+**Required SE**: `{ message: "Self Employee data Successfully Updated!" }`  
+**Also**: Handle `employerType` field (not just `payerType`), `contactName`, `companyName`, `tradeName`, `country`, `postalCode`, `userName`, `firstName`, `surName`  
+**Changes**: Update RPC to handle full BIMA payload fields and return exact response messages
+
+### 9. Payment Save — Payload Structure Fix
+
+**Current**: Expects `p_payload.payments` array with `amount` key  
+**Required**: Expects `paymentHeaders` array with `paymentAmount` key, `mopCode`/`officeCode` at top level  
+**Response**: Must return `{ receiptId: "RCP-2025-001234", message: "Payment processed successfully" }`  
+**Changes**: Update RPC to read correct field names from BIMA payload
 
 
-# C3 History Sync APIs — SSB Admin Implementation Plan
 
-## Overview
+---
 
-Build complete BIMA API replacement inside the existing `public-api` edge function, allowing C3-Wizard to switch from BIMA to SSB Admin with zero frontend changes. All 13 active endpoints replicate BIMA's exact URL structure and response schemas.
+## Implementation Steps
 
-## Existing Infrastructure
+### Step 1: Database Migration — Recreate All RPCs
 
-The project already has a robust public API gateway (`supabase/functions/public-api/index.ts`) with:
-- API key validation via `x-api-key` header (hashed keys in `public_api_keys`)
-- API registry check (`api_registry` table)
-- Rate limiting, scope authorization, IP whitelisting
-- Access logging (`public_api_access_logs`)
-- RESTful URL routing via `extractApiPath()` and `matchRoute()`
+Single migration that drops and recreates all 12 RPCs with corrected logic:
 
-## APIs Implemented (13 Total)
+- Fix column names (`firstname`/`surname`/`dob`)
+- Fix C3 Range date parsing (`MMYYYY`)
+- Fix C3 Range/Detail response fields to match BIMA exactly
+- Add email validation to ER/SE master lookups
+- Expand IP Details response schema
+- Fix Multiple IP Details input format
+- Fix Update User response messages and field handling
+- Fix Payment Save payload structure
+- Step 2: Update Edge Function Routes
 
-### C3 History APIs (Phase 1)
+-   
+Update ER Master route regex: `/{regNo}` → handle `/{regNo},{email}` (comma-separated)
+- Update SE Master route regex: `/{ssn}` → handle `/{ssn},{email}` (comma-separated)
+- Update C3 Range URL regex for `MMYYYY` format
+- Update Multiple IP Details handler to accept raw array (not wrapped)
+- Pass email params to RPC calls
 
-#### API 1: Range API
-```
-GET /api/v1/C3/{payerId}/C3Submitted/{payerType}/range/{startPeriod}/{endPeriod},{c3Type}
-```
+### Step 3: Update External API Master Entries
 
-#### API 2: Detail API
-```
-GET /api/v1/C3/{payerId}/C3Submitted/{month},{year},{sequenceNo},{payerType},{c3Type}
-```
+Update `external_api_master` rows for ER/SE master to reflect new URL patterns with email parameter.
 
-#### API 3: Last C3 Submitted
-```
-GET /api/v1/C3/{payerId}/C3Submitted/{payerType}/{sequenceNo},{c3Type}
-```
+### Step 4: Update Plan Document
 
-### Employee Sync APIs (Phase 1.1)
+Update `.lovable/plan.md` with current state of all 13 APIs.
 
-#### API 4: Employees By Last C3
-```
-GET /api/v1/Employee/employeesByLastC3/{registrationNumber}
-```
+### Step 5: Generate Response Document
 
-#### API 5: NW Directors By Last C3
-```
-GET /api/v1/Employee/nwdirectorsByLastC3/{registrationNumber}
-```
+Create `/mnt/documents/C3_Integration_Response_v2.pdf` with:
 
-### Validation APIs (Phase 2)
+- Confirmation of all changes made per the updated guide
+- Exact URL patterns now supported
+- Response schema examples for each API
+- Answers to Section 12 action items (email validation confirmed, DOB format support confirmed, empty lastName/null middleName handling confirmed)
+- Migration notes
 
-#### API 6: Employer Master Details
-```
-GET /api/v1/Employer/getERMasterDetails/{regNo}
-```
+---
 
-#### API 7: Self-Employed Master Details
-```
-GET /api/v1/Employer/getSEMasterDetails/{ssn}
-```
+## Files to Create/Modify
 
-### Employee Lookup APIs (Phase 2)
 
-#### API 8: IP Details By Query
-```
-GET /api/v1/Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}
-```
-
-#### API 9: Multiple IP Details (Bulk SSN)
-```
-POST /api/v1/Employee/getMultipleIpDetails
-```
-
-### Profile Sync API (Phase 2)
-
-#### API 10: Update User Profile
-```
-POST /api/v1/User/updateUser
-```
-
-### Payment APIs (Phase 2)
-
-#### API 11: Payment Save
-```
-POST /api/v1/api/payment/save/{payerId}/{payerType}
-```
-
-#### API 12: Receipt Lookup
-```
-GET /api/v1/api/payment/getReceipt/{receiptNo}
-```
-
-### Utility API (Phase 2)
-
-#### API 13: Connectivity Check
-```
-GET /api/v1/ReferenceData/about/
-```
-
-## Implementation Status
-
-### ✅ Phase 1: C3 History + Employee Sync (5 APIs)
-- `public_api_c3_range`, `public_api_c3_detail`, `public_api_c3_last_submitted`
-- `public_api_employees_by_last_c3`, `public_api_nwdirectors_by_last_c3`
-
-### ✅ Phase 2: Full BIMA Replacement (8 APIs)
-- `public_api_er_master_details` — Employer master by regNo
-- `public_api_se_master_details` — SE master by SSN (ip_master + ip_self_employ)
-- `public_api_ip_details_by_query` — Employee lookup by SSN/DOB/name
-- `public_api_multiple_ip_details` — Bulk SSN validation
-- `public_api_update_user` — Profile update (ER/SE)
-- `public_api_payment_save` — Payment + receipt generation
-- `public_api_get_receipt` — Receipt lookup
-- Health alias at /ReferenceData/about/
-
-### ✅ API Registry
-- 13 entries across categories: c3-history, employee-sync, validation, employee-lookup, profile-sync, payment, utility
-
-### ✅ External API Master
-- All 13 C3-Wizard APIs registered under "C3-Wizard" group for admin UI visibility
-
-### ✅ Integration Guides
-- v1: `C3_History_Sync_Integration_Guide.pdf` — Initial 3 APIs
-- v2: `C3_Integration_Response_v2.pdf` — 5 APIs + query responses
-- v3: `C3_Full_API_Migration_Guide_v3.pdf` — Complete 13-API guide
-
-## Deferred APIs (Not Implemented)
-- User Registration — Handled by SSB Admin's own registration flow
-- C3 Bulk Submit — Uses existing C3 ingestion APIs (c3-reported, c3-wages, c3-verify)
-- C3 Delete — Not supported per SSB Admin data integrity policy
-
-## C3-Wizard Query Responses Summary
-
-| Query | Status | Answer |
-|-------|--------|--------|
-| Q1 — URL Prefix | ✅ Resolved | Set base_url to include `/api/v1` |
-| Q2 — Employee API | ✅ Implemented | `GET /Employee/employeesByLastC3/{regNo}` |
-| Q3 — NW Director API | ✅ Implemented | `GET /Employee/nwdirectorsByLastC3/{regNo}` |
-| Q4 — Payer Type | ✅ Confirmed | ER+EE, ER+NW, SE+EE |
-| Q5 — Empty Response | ✅ Confirmed | Range/Employee=200[], Detail/Last=404 |
-| Q6 — Rate Limits | ✅ Confirmed | 100 req/min default, configurable |
-| Q7 — Profile Update | ✅ Implemented | Security Q&A acknowledged, not stored |
-| Q8 — Connectivity | ✅ Implemented | /ReferenceData/about/ returns health |
-
-## Data Mapping Notes (Pending C3-Wizard Clarification)
-- ER Master: `contactPerson` defaults to `compName`, `postalCode` returns null, `isLevyExempt` defaults to false
-- SE Master: `wageCategory` and `tin` return null, `userName` returns empty string
-- Payment: Receipt auto-generated, fund codes SS/LV/SV/PN supported
-- Profile Update: Security questions acknowledged but not persisted
+| File                                                | Action                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Migration SQL**                                   | Recreate 12 RPCs with all fixes                                                     |
+| `supabase/functions/public-api/index.ts`            | Update route regexes, handler parameter passing, Multiple IP Details array handling |
+| `external_api_master` rows                          | Update ER/SE endpoint URLs                                                          |
+| `.lovable/plan.md`                                  | Update API status                                                                   |
+| `/mnt/documents/C3_Full_API_Migration_Guide_v3.pdf` | Complete response for C3-Wizard team                                                |
