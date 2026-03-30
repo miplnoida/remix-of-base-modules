@@ -283,11 +283,11 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="activities">
-            <AuditActivitiesTab auditId={id!} />
+            <AuditActivitiesTab auditId={id!} auditors={auditors} />
           </TabsContent>
 
           <TabsContent value="evidence">
-            <AuditEvidenceTab auditId={id!} />
+            <AuditEvidenceTab auditId={id!} auditFindings={auditFindings} auditActivities={auditActivities} />
           </TabsContent>
 
           <TabsContent value="working-papers">
@@ -295,7 +295,7 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="findings">
-            <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} departmentId={audit?.department_id} />
+            <AuditFindingsTab auditId={id!} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} auditEvidence={auditEvidence} auditWorkingPapers={auditWorkingPapers} departmentId={audit?.department_id} />
           </TabsContent>
 
           <TabsContent value="control-tests">
@@ -315,7 +315,7 @@ export default function EngagementDetail() {
           </TabsContent>
 
           <TabsContent value="follow-ups">
-            <AuditFollowUpsTab auditId={id!} />
+            <AuditFollowUpsTab auditId={id!} auditFindings={auditFindings} departmentId={audit?.department_id} />
           </TabsContent>
 
           <TabsContent value="timeline">
