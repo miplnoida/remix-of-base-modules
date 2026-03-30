@@ -861,16 +861,16 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
       };
     }
 
-    // ── Validation: Employer Master Details ──
-    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/([^/]+)$/);
+    // ── Validation: Employer Master Details (supports {regNo} or {regNo},{email}) ──
+    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/(.+)$/);
     if (erMatch) {
-      return { handler: "erMasterDetails", params: { regNo: erMatch[1] } };
+      return { handler: "erMasterDetails", params: { regNoAndEmail: decodeURIComponent(erMatch[1]) } };
     }
 
-    // ── Validation: SE Master Details ──
-    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/([^/]+)$/);
+    // ── Validation: SE Master Details (supports {ssn} or {ssn},{email}) ──
+    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/(.+)$/);
     if (seMatch) {
-      return { handler: "seMasterDetails", params: { ssn: seMatch[1] } };
+      return { handler: "seMasterDetails", params: { ssnAndEmail: decodeURIComponent(seMatch[1]) } };
     }
 
     // ── Payment: Get Receipt ──
