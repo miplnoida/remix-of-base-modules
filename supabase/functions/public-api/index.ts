@@ -992,7 +992,7 @@ async function processApiRequest(
   supabase: ReturnType<typeof createClient>,
   apiPath: string,
   httpMethod: string,
-  payload: Record<string, unknown>,
+  payload: unknown,
   queryParams: Record<string, string>,
   req: Request,
   requestIp: string,
@@ -1081,7 +1081,7 @@ Deno.serve(async (req) => {
     const urlApiPath = extractApiPath(req);
     if (urlApiPath) {
       const queryParams = extractQueryParams(req);
-      let payload: Record<string, unknown> = {};
+      let payload: unknown = {};
       if (["POST", "PUT", "PATCH"].includes(req.method)) {
         try { payload = await req.json(); } catch { payload = {}; }
       }
