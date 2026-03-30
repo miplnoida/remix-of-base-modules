@@ -24719,7 +24719,7 @@ export type Database = {
         Args: {
           p_is_revision?: boolean
           p_plan_id: string
-          p_submitted_by: string
+          p_submitted_by?: string
         }
         Returns: Json
       }
