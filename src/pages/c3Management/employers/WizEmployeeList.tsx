@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -21,12 +23,7 @@ import {
 } from '@/services/wizAdminApiService';
 import { format, parseISO } from 'date-fns';
 
-const PAY_PERIODS: Record<string, string> = {
-  'M': 'Monthly',
-  '2M': '2x Monthly',
-  'W': 'Weekly',
-  '2W': 'Bi-Weekly',
-};
+// PAY_PERIODS now fetched from database via useQuery below
 
 // Legacy stores "S" and "M" for marital status
 const MARITAL_STATUS_MAP: Record<string, string> = { 'S': 'Single', 'M': 'Married' };
