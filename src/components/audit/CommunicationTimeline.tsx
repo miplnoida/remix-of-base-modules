@@ -50,12 +50,31 @@ function DeliveryStatusBadge({ recipientEmail }: { recipientEmail?: string }) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger>
+            <Badge className="bg-blue-100 text-blue-800 border-blue-300 text-[9px] h-4 gap-0.5">
+              <Send className="h-2.5 w-2.5" /> Sent
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs">
+            <p>Accepted by email provider (delivery not yet confirmed)</p>
+            {deliveryInfo.resend_message_id && <p className="text-muted-foreground">ID: {deliveryInfo.resend_message_id.slice(0, 8)}...</p>}
+            {deliveryInfo.sent_at && <p className="text-muted-foreground">{new Date(deliveryInfo.sent_at).toLocaleString()}</p>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  if (deliveryInfo.status === 'delivered') {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
             <Badge className="bg-green-100 text-green-800 border-green-300 text-[9px] h-4 gap-0.5">
               <CheckCheck className="h-2.5 w-2.5" /> Delivered
             </Badge>
           </TooltipTrigger>
           <TooltipContent className="text-xs">
-            <p>Sent via email provider</p>
+            <p>Confirmed delivered to recipient</p>
             {deliveryInfo.resend_message_id && <p className="text-muted-foreground">ID: {deliveryInfo.resend_message_id.slice(0, 8)}...</p>}
             {deliveryInfo.sent_at && <p className="text-muted-foreground">{new Date(deliveryInfo.sent_at).toLocaleString()}</p>}
           </TooltipContent>
