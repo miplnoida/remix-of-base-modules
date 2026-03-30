@@ -58,6 +58,7 @@ const REMINDER_PREFIX = `REMINDER: This is a follow-up to our earlier communicat
 
 export function CommunicationStageDialog({ engagementId, engagementName, stageCode, open, onClose, engagementContext, mode = 'send' }: CommunicationStageDialogProps) {
   const { data: templates = [] } = useIADocumentTemplates();
+  const { data: docRequests = [] } = useDocumentRequests(engagementId);
   const recordStage = useRecordCommunicationStage();
   const validatePolicy = useValidateTemplatePolicy();
   const { toast } = useToast();
@@ -71,6 +72,17 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [policyValid, setPolicyValid] = useState<boolean | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Build document request table for DOC_REQUEST stage
+  const pendingDocs = (docRequests as any[]).filter(r => r.status === 'Pending' || r.status === 'Partially Received');
+
+  const buildDocTable = (): string => {
+    if (pendingDocs.length === 0) return '\n[No pending document requests found. Please add document requests first.]\n';
+    const rows = pendingDocs.map((d, i) =>
+      `${i + 1}. ${d.document_title}${d.description ? ` — ${d.description}` : ''}  |  Priority: ${d.priority || 'Medium'}  |  Due: ${d.due_date ? formatDateForDisplay(d.due_date) : 'TBD'}`
+    ).join('\n');
+    return `\nDocuments Requested:\n${'—'.repeat(60)}\n${rows}\n${'—'.repeat(60)}\n`;
+  };
 
   const matchingTemplate = useMemo(() => {
     const requiredCategory = STAGE_TO_CATEGORY[stageCode];
@@ -92,8 +104,9 @@ export function CommunicationStageDialog({ engagementId, engagementName, stageCo
       objectives: ctx.objectives || '',
       scope: ctx.scope || '',
       response_due_date: '[Please specify]',
+      document_list: stageCode === 'DOC_REQUEST' ? buildDocTable() : '',
     };
-  }, [engagementContext, engagementName]);
+  }, [engagementContext, engagementName, stageCode, pendingDocs.length]);
 
   useEffect(() => {
     if (!open) return;
