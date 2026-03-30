@@ -34,6 +34,11 @@ function isC3HistoryRoute(path: string): boolean {
   return path.startsWith("/api/v1/C3/") && path.includes("/C3Submitted/");
 }
 
+// ── Check if path is an Employee Sync dynamic route ──
+function isEmployeeRoute(path: string): boolean {
+  return path.startsWith("/api/v1/Employee/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
