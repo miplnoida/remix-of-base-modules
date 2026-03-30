@@ -201,10 +201,10 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
               </Select>
             </div>
             <div><Label>Link to Activity</Label>
-              <Select value={form.activity_id} onValueChange={v => setForm(f => ({ ...f, activity_id: v }))} disabled={modal.mode === 'view'}>
+              <Select value={form.activity_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, activity_id: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
                 <SelectTrigger><SelectValue placeholder="Select activity (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {auditActivities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name || a.title}</SelectItem>)}
                 </SelectContent>
               </Select>
