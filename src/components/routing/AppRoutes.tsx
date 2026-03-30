@@ -956,6 +956,8 @@ export const AppRoutes = () => {
       <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/queries" element={<ProtectedLayout><Suspense fallback={<div />}><AuditQueries /></Suspense></ProtectedLayout>} />
       <Route path="/audit/auditor-profiles" element={<ProtectedLayout><Suspense fallback={<div />}><AuditorProfiles /></Suspense></ProtectedLayout>} />
+      <Route path="/audit/holidays" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_HOLIDAY_MANAGEMENT"><Suspense fallback={<div />}><HolidayCalendar /></Suspense></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><Suspense fallback={<div />}><AuditorLeaveManagement /></Suspense></AuditFeatureGate></ProtectedLayout>} />
 
       {/* Legacy redirects */}
       <Route path="/audit/engagements" element={<ProtectedLayout><Navigate to="/audit/audits" replace /></ProtectedLayout>} />
