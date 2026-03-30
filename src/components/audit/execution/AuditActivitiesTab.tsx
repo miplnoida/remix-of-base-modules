@@ -11,7 +11,7 @@ import {
   Plus, Loader2, Edit, Eye, ClipboardCheck, ChevronDown, ChevronRight,
   FileText, AlertTriangle, Paperclip, CheckCircle2, Clock, AlertCircle
 } from 'lucide-react';
-import { StatusBadge, StandardModal } from '@/components/common';
+import { StatusBadge } from '@/components/common';
 import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers } from '@/hooks/useEngagementData';
 import { useIAActivityMutations } from '@/hooks/useAuditDataExtended';
 import { useIAFindings } from '@/hooks/useAuditData';
