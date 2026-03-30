@@ -1,48 +1,52 @@
 
 
-# Fix Migration Error: `ia_start_plan_approval_workflow` Default Conflict
+# Fix ER & SE Master Detail RPCs — Column Name Mismatches
 
-## Problem
+## Root Cause
 
-PostgreSQL error `42P13: cannot remove parameter defaults from existing function` is blocking all deployments to Live. The function `ia_start_plan_approval_workflow` was originally created with `p_submitted_by text DEFAULT 'SYSTEM'` and later migrations try to replace it with `p_submitted_by text` (no default). PostgreSQL's `CREATE OR REPLACE` cannot remove defaults — it requires a `DROP FUNCTION` first.
+The RPCs reference column names that don't exist in the actual database tables.
 
-The existing DROP statements target `(uuid, text, boolean)` but the Live database may have a version with defaults that doesn't match or the migration ordering causes the CREATE OR REPLACE to execute before the DROP in a later migration file.
+### ER Master (`public_api_er_master_details`)
+
+| RPC Uses | Actual Column | Fix |
+|----------|--------------|-----|
+| `reg_no` | `regno` | Rename reference |
+| `comp_name` | `name` | Rename reference |
+| `date_registered` | `registration_date` | Rename reference |
+| `prnt_reg_no` | `parent_regno` | Rename reference |
+| `c3_reg_status` | Does not exist | Remove / use empty default |
+
+### SE Master (`public_api_se_master_details`)
+
+| RPC Uses | Actual Column | Fix |
+|----------|--------------|-----|
+| `ip_master.address1` | `resident_addr1` | Rename reference |
+| `ip_master.address2` | `resident_addr2` | Rename reference |
+| `ip_self_category.effective_date` | `effective_start_date` | Rename reference |
+| `TRIM(wage_category)` on numeric | `wage_category` is `numeric` | Cast to TEXT first |
 
 ## Fix
 
-Create a single new migration that:
+One migration that drops both functions and recreates them with corrected column references:
 
-1. Drops ALL possible signatures of `ia_start_plan_approval_workflow` to handle any state the Live DB might be in
-2. Recreates the function with the latest version (from migration `20260329023458` — the most recent, with user_id resolution logic)
+**ER Master changes:**
+- `reg_no` → `regno`
+- `comp_name` → `name`  
+- `date_registered` → `registration_date`
+- `prnt_reg_no` → `parent_regno`
+- `c3_reg_status` → hardcoded empty default (column doesn't exist)
 
-### SQL
-
-```sql
--- Drop all possible overloads to handle any Live state
-DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid, text, boolean);
-DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid, text);
-DROP FUNCTION IF EXISTS public.ia_start_plan_approval_workflow(uuid);
-
--- Recreate with the latest version (matches 20260329023458)
-CREATE OR REPLACE FUNCTION public.ia_start_plan_approval_workflow(
-  p_plan_id uuid,
-  p_submitted_by text,
-  p_is_revision boolean DEFAULT false
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  -- [full function body from 20260329023458 migration]
-$$;
-```
+**SE Master changes:**
+- `address1` → `resident_addr1`
+- `address2` → `resident_addr2`
+- `effective_date` → `effective_start_date`
+- `TRIM(wage_category)` → `TRIM(wage_category::TEXT)`
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| New migration SQL | Drop all signatures + recreate function with latest body |
+| New migration SQL | Drop + recreate both RPCs with correct column names |
 
-No application code changes needed — this is purely a database migration fix.
+No edge function or application code changes needed — the RPCs return the same JSON shape.
 
