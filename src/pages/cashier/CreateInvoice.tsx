@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -512,42 +513,42 @@ const CreateInvoice: React.FC = () => {
             {/* Invoice Type */}
             <div className="space-y-1.5">
               <Label>Invoice Type *</Label>
-              <Select value={invoiceType} onValueChange={v => { setInvoiceType(v); clearError('invoiceType'); }}>
-                <SelectTrigger className={errors.invoiceType ? 'border-destructive' : ''}>
-                  <SelectValue placeholder={loadingIT ? 'Loading...' : 'Select type'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(invoiceTypes || []).map(t => <SelectItem key={t.code} value={t.code}>{t.description}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(invoiceTypes || []).map(t => ({ value: t.code, label: t.description }))}
+                value={invoiceType}
+                onValueChange={v => { setInvoiceType(v); clearError('invoiceType'); }}
+                placeholder={loadingIT ? 'Loading...' : 'Select type'}
+                searchPlaceholder="Search invoice types..."
+                className={errors.invoiceType ? 'border-destructive' : ''}
+              />
               <FieldError name="invoiceType" />
             </div>
 
             {/* Payment Source */}
             <div className="space-y-1.5">
               <Label>Payment Source *</Label>
-              <Select value={paymentSource} onValueChange={v => { setPaymentSource(v); clearError('paymentSource'); }}>
-                <SelectTrigger className={errors.paymentSource ? 'border-destructive' : ''}>
-                  <SelectValue placeholder={loadingPS ? 'Loading...' : 'Select source'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(paymentSources || []).map(s => <SelectItem key={s.code} value={s.code}>{s.description}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(paymentSources || []).map(s => ({ value: s.code, label: s.description }))}
+                value={paymentSource}
+                onValueChange={v => { setPaymentSource(v); clearError('paymentSource'); }}
+                placeholder={loadingPS ? 'Loading...' : 'Select source'}
+                searchPlaceholder="Search payment sources..."
+                className={errors.paymentSource ? 'border-destructive' : ''}
+              />
               <FieldError name="paymentSource" />
             </div>
 
             {/* Payer Type */}
             <div className="space-y-1.5">
               <Label>Payer Type *</Label>
-              <Select value={payerType} onValueChange={handlePayerTypeChange}>
-                <SelectTrigger className={errors.payerType ? 'border-destructive' : ''}>
-                  <SelectValue placeholder={loadingPT ? 'Loading...' : 'Select payer type'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(payerTypes || []).map(p => <SelectItem key={p.code} value={p.code}>{p.description}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(payerTypes || []).map(p => ({ value: p.code, label: p.description }))}
+                value={payerType}
+                onValueChange={handlePayerTypeChange}
+                placeholder={loadingPT ? 'Loading...' : 'Select payer type'}
+                searchPlaceholder="Search payer types..."
+                className={errors.payerType ? 'border-destructive' : ''}
+              />
               <FieldError name="payerType" />
             </div>
 
@@ -675,16 +676,13 @@ const CreateInvoice: React.FC = () => {
             {/* Invoice Currency */}
             <div className="space-y-1.5">
               <Label>Invoice Currency</Label>
-              <Select value={currencyCode} onValueChange={setCurrencyCode}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingCurr ? 'Loading...' : 'Select currency'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(enabledCurrencies || []).map(c => (
-                    <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code} — {c.currency_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={(enabledCurrencies || []).map(c => ({ value: c.currency_code, label: `${c.currency_code} — ${c.currency_name}` }))}
+                value={currencyCode}
+                onValueChange={setCurrencyCode}
+                placeholder={loadingCurr ? 'Loading...' : 'Select currency'}
+                searchPlaceholder="Search currencies..."
+              />
             </div>
 
             {/* Due Date */}
@@ -772,29 +770,24 @@ const CreateInvoice: React.FC = () => {
               {lines.map((line, idx) => (
                 <TableRow key={line.key}>
                   <TableCell>
-                    <Select value={line.payment_code} onValueChange={v => { updateLine(line.key, 'payment_code', v); clearError(`line_pt_${idx}`); }}>
-                      <SelectTrigger className={errors[`line_pt_${idx}`] ? 'border-destructive' : ''}>
-                        <SelectValue placeholder={loadingPMT ? 'Loading...' : 'Select type'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(paymentTypes || []).map(pt => (
-                          <SelectItem key={pt.payment_code} value={pt.payment_code}>{pt.payment_type_description}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={(paymentTypes || []).map(pt => ({ value: pt.payment_code, label: pt.payment_type_description }))}
+                      value={line.payment_code}
+                      onValueChange={v => { updateLine(line.key, 'payment_code', v); clearError(`line_pt_${idx}`); }}
+                      placeholder={loadingPMT ? 'Loading...' : 'Select type'}
+                      searchPlaceholder="Search payment types..."
+                      className={errors[`line_pt_${idx}`] ? 'border-destructive' : ''}
+                    />
                     <FieldError name={`line_pt_${idx}`} />
                   </TableCell>
                   <TableCell>
-                    <Select value={line.currency_code} onValueChange={v => updateLine(line.key, 'currency_code', v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(enabledCurrencies || []).map(c => (
-                          <SelectItem key={c.currency_code} value={c.currency_code}>{c.currency_code}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={(enabledCurrencies || []).map(c => ({ value: c.currency_code, label: c.currency_code }))}
+                      value={line.currency_code}
+                      onValueChange={v => updateLine(line.key, 'currency_code', v)}
+                      placeholder="Currency"
+                      searchPlaceholder="Search..."
+                    />
                   </TableCell>
                   <TableCell>
                     <Input
