@@ -29,12 +29,30 @@ function getServiceClient() {
   );
 }
 
+// ── Check if path is a C3 History dynamic route ──
+function isC3HistoryRoute(path: string): boolean {
+  return path.startsWith("/api/v1/C3/") && path.includes("/C3Submitted/");
+}
+
 // ── Middleware: Check API Registry (enabled/disabled) ──
 async function checkApiRegistry(
   supabase: ReturnType<typeof createClient>,
   endpointPath: string,
   httpMethod: string
 ): Promise<{ allowed: boolean; registryEntry?: Record<string, unknown> }> {
+  // For C3 History dynamic routes, check by category instead of exact path
+  if (isC3HistoryRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "c3-history")
+      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
   const { data, error } = await supabase
     .from("api_registry")
     .select("*")
@@ -89,12 +107,20 @@ async function checkScopeAuthorization(
 ): Promise<boolean> {
   const { data: scopes, error } = await supabase
     .from("api_key_scope_assignments")
-    .select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method)")
+    .select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method, category)")
     .eq("api_key_id", apiKeyId)
     .eq("is_allowed", true);
 
   if (error) return false;
   if (!scopes || scopes.length === 0) return true;
+
+  // For C3 History dynamic routes, check by category
+  if (isC3HistoryRoute(endpointPath) && httpMethod === "GET") {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "c3-history" && reg.http_method === "GET";
+    });
+  }
 
   return scopes.some((s: any) => {
     const reg = s.api_registry;
@@ -394,6 +420,84 @@ async function handleC3Verify(supabase: ReturnType<typeof createClient>, payload
   return data;
 }
 
+// ── C3 History Handlers ──
+async function handleC3Range(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { payerId, payerType, startPeriod, endPeriodAndType } = params;
+  // endPeriodAndType = "31-03-2026,EE"
+  const commaIdx = endPeriodAndType.lastIndexOf(",");
+  if (commaIdx === -1) throw { code: "BAD_REQUEST", message: "Invalid URL format. Expected {endPeriod},{c3Type}" };
+  const endPeriod = endPeriodAndType.substring(0, commaIdx);
+  const c3Type = endPeriodAndType.substring(commaIdx + 1);
+
+  if (!["ER", "SE"].includes(payerType.toUpperCase())) throw { code: "BAD_REQUEST", message: "payerType must be ER or SE" };
+  if (!["EE", "NW"].includes(c3Type.toUpperCase())) throw { code: "BAD_REQUEST", message: "c3Type must be EE or NW" };
+
+  const { data, error } = await supabase.rpc("public_api_c3_range", {
+    p_payer_id: payerId,
+    p_payer_type: payerType.toUpperCase(),
+    p_start_period: startPeriod,
+    p_end_period: endPeriod,
+    p_c3_type: c3Type.toUpperCase(),
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "BAD_REQUEST", message: data.error };
+  return data;
+}
+
+async function handleC3Detail(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { payerId, detailParams } = params;
+  // detailParams = "3,2026,1,ER,EE"
+  const parts = detailParams.split(",");
+  if (parts.length !== 5) throw { code: "BAD_REQUEST", message: "Invalid URL format. Expected {month},{year},{sequenceNo},{payerType},{c3Type}" };
+  const [month, year, sequenceNo, payerType, c3Type] = parts;
+
+  if (!["ER", "SE"].includes(payerType.toUpperCase())) throw { code: "BAD_REQUEST", message: "payerType must be ER or SE" };
+  if (!["EE", "NW"].includes(c3Type.toUpperCase())) throw { code: "BAD_REQUEST", message: "c3Type must be EE or NW" };
+
+  const { data, error } = await supabase.rpc("public_api_c3_detail", {
+    p_payer_id: payerId,
+    p_month: month,
+    p_year: year,
+    p_sequence_no: sequenceNo,
+    p_payer_type: payerType.toUpperCase(),
+    p_c3_type: c3Type.toUpperCase(),
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
+async function handleC3LastSubmitted(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { payerId, payerType, seqAndType } = params;
+  // seqAndType = "1,NW"
+  const commaIdx = seqAndType.lastIndexOf(",");
+  if (commaIdx === -1) throw { code: "BAD_REQUEST", message: "Invalid URL format. Expected {sequenceNo},{c3Type}" };
+  const sequenceNo = seqAndType.substring(0, commaIdx);
+  const c3Type = seqAndType.substring(commaIdx + 1);
+
+  if (!["ER", "SE"].includes(payerType.toUpperCase())) throw { code: "BAD_REQUEST", message: "payerType must be ER or SE" };
+  if (!["EE", "NW"].includes(c3Type.toUpperCase())) throw { code: "BAD_REQUEST", message: "c3Type must be EE or NW" };
+
+  const { data, error } = await supabase.rpc("public_api_c3_last_submitted", {
+    p_payer_id: payerId,
+    p_payer_type: payerType.toUpperCase(),
+    p_sequence_no: sequenceNo,
+    p_c3_type: c3Type.toUpperCase(),
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
@@ -413,6 +517,37 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
   }
   if (path === "/api/v1/c3-verify" && method === "POST") {
     return { handler: "c3Verify", params: {} };
+  }
+
+  // ── C3 History GET routes (BIMA-compatible) ──
+  if (method === "GET") {
+    // Range API: /api/v1/C3/{payerId}/C3Submitted/{payerType}/range/{startPeriod}/{endPeriod,c3Type}
+    const rangeMatch = path.match(/^\/api\/v1\/C3\/([^/]+)\/C3Submitted\/([^/]+)\/range\/([^/]+)\/(.+)$/);
+    if (rangeMatch) {
+      return {
+        handler: "c3Range",
+        params: { payerId: rangeMatch[1], payerType: rangeMatch[2], startPeriod: rangeMatch[3], endPeriodAndType: rangeMatch[4] },
+      };
+    }
+
+    // Detail API: /api/v1/C3/{payerId}/C3Submitted/{month,year,seq,payerType,c3Type}
+    // Must check this BEFORE lastSubmitted since both match similar patterns
+    const detailMatch = path.match(/^\/api\/v1\/C3\/([^/]+)\/C3Submitted\/(\d+,\d{4},\d+,[A-Za-z]+,[A-Za-z]+)$/);
+    if (detailMatch) {
+      return {
+        handler: "c3Detail",
+        params: { payerId: detailMatch[1], detailParams: detailMatch[2] },
+      };
+    }
+
+    // Last Submitted API: /api/v1/C3/{payerId}/C3Submitted/{payerType}/{sequenceNo,c3Type}
+    const lastMatch = path.match(/^\/api\/v1\/C3\/([^/]+)\/C3Submitted\/([^/]+)\/(\d+,[A-Za-z]+)$/);
+    if (lastMatch) {
+      return {
+        handler: "c3LastSubmitted",
+        params: { payerId: lastMatch[1], payerType: lastMatch[2], seqAndType: lastMatch[3] },
+      };
+    }
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
@@ -447,6 +582,12 @@ async function executeHandler(
       return handleC3WagesInsert(supabase, _payload);
     case "c3Verify":
       return handleC3Verify(supabase, _payload);
+    case "c3Range":
+      return handleC3Range(supabase, routeParams);
+    case "c3Detail":
+      return handleC3Detail(supabase, routeParams);
+    case "c3LastSubmitted":
+      return handleC3LastSubmitted(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
