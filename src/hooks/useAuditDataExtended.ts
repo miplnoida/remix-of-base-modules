@@ -60,16 +60,20 @@ export function useIAActivities(filters?: { department_audit_id?: string; audito
 export function useIAActivityMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ia_activities'] });
+    queryClient.invalidateQueries({ queryKey: ['eng_activities'] });
+  };
   const create = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
+    mutationKey: ['InternalAudit', 'ia_activities', 'create'],
     mutationFn: async (a: any) => { const { data, error } = await supabase.from('ia_activities').insert(a).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activities'] }); toast({ title: 'Activity Created' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Activity Created' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
+    mutationKey: ['InternalAudit', 'ia_activities', 'update'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_activities').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_activities'] }); toast({ title: 'Activity Updated' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Activity Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   return { create, update };
