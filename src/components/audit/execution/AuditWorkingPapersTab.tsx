@@ -32,26 +32,13 @@ export function AuditWorkingPapersTab({ auditId }: AuditWorkingPapersTabProps) {
 
   const handleCreate = async () => {
     if (!form.title) return;
-    let filePath: string | null = null;
-    const fileInput = fileInputRef.current;
-    if (fileInput?.files?.[0]) {
-      const file = fileInput.files[0];
-      if (!ALLOWED_FILE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) {
-        toast({ title: 'Invalid File', description: 'Check file type or size (max 20MB)', variant: 'destructive' });
-        return;
-      }
-      setUploading(true);
-      const path = `working-papers/${auditId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from('audit-attachments').upload(path, file);
-      setUploading(false);
-      if (error) { toast({ title: 'Upload Failed', variant: 'destructive' }); return; }
-      filePath = path;
-    }
+    const workingPaperId = form.reference_number.trim() || `WP-${Date.now().toString(36).toUpperCase()}`;
+
     create.mutate({
-      title: form.title,
-      working_paper_id: form.reference_number || null,
-      description: form.description || null,
-      audit_area: form.paper_type || 'Analysis',
+      title: form.title.trim(),
+      working_paper_id: workingPaperId,
+      description: form.description.trim() || null,
+      audit_area: form.paper_type.trim() || 'Analysis',
       engagement_id: auditId,
       status: 'Draft',
     } as any, {

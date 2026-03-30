@@ -153,11 +153,14 @@ function InlineFindingForm({ auditId, activityId, onClose }: { auditId: string; 
 
   const handleSave = () => {
     if (!form.title) return;
+    const findingId = `FND-${Date.now().toString(36).toUpperCase()}`;
+
     create.mutate({
-      title: form.title,
-      condition: form.description || null,
+      finding_id: findingId,
+      title: form.title.trim(),
+      condition: form.description.trim() || null,
       risk_rating: form.risk_rating,
-      recommendation: form.recommendation || null,
+      recommendation: form.recommendation.trim() || null,
       status: 'Open',
       engagement_id: auditId,
       activity_id: activityId,
