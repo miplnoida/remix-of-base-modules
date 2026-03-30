@@ -136,22 +136,26 @@ export function useIAWorkingPapers(activityId?: string) {
 export function useIAWorkingPaperMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] });
+    queryClient.invalidateQueries({ queryKey: ['eng_working_papers'] });
+  };
   const create = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'delete'],
+    mutationKey: ['InternalAudit', 'ia_working_papers', 'create'],
     mutationFn: async (wp: any) => { const { data, error } = await supabase.from('ia_working_papers').insert(wp).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Created' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Working Paper Created' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
+    mutationKey: ['InternalAudit', 'ia_working_papers', 'update'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_working_papers').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Updated' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Working Paper Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
+    mutationKey: ['InternalAudit', 'ia_working_papers', 'delete'],
     mutationFn: async (id: string) => { const { error } = await supabase.from('ia_working_papers').delete().eq('id', id); if (error) throw error; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_working_papers'] }); toast({ title: 'Working Paper Deleted' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Working Paper Deleted' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   return { create, update, remove };
