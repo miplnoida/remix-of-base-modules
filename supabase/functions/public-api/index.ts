@@ -551,7 +551,7 @@ async function handleC3Range(
   params: Record<string, string>
 ) {
   const { payerId, payerType, startPeriod, endPeriodAndType } = params;
-  // endPeriodAndType = "31-03-2026,EE"
+  // endPeriodAndType = "122025,EE" (MMYYYY,c3Type)
   const commaIdx = endPeriodAndType.lastIndexOf(",");
   if (commaIdx === -1) throw { code: "BAD_REQUEST", message: "Invalid URL format. Expected {endPeriod},{c3Type}" };
   const endPeriod = endPeriodAndType.substring(0, commaIdx);
@@ -657,9 +657,15 @@ async function handleERMasterDetails(
   supabase: ReturnType<typeof createClient>,
   params: Record<string, string>
 ) {
-  const { regNo } = params;
+  const { regNoAndEmail } = params;
+  // Parse comma-separated: regNo or regNo,email
+  const parts = regNoAndEmail.split(",");
+  const regNo = parts[0]?.trim();
+  const email = parts[1]?.trim() || null;
   if (!regNo) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
-  const { data, error } = await supabase.rpc("public_api_er_master_details", { p_reg_no: regNo });
+  const rpcParams: Record<string, unknown> = { p_reg_no: regNo };
+  if (email) rpcParams.p_email = email;
+  const { data, error } = await supabase.rpc("public_api_er_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
   return data;
@@ -669,9 +675,15 @@ async function handleSEMasterDetails(
   supabase: ReturnType<typeof createClient>,
   params: Record<string, string>
 ) {
-  const { ssn } = params;
+  const { ssnAndEmail } = params;
+  // Parse comma-separated: ssn or ssn,email
+  const parts = ssnAndEmail.split(",");
+  const ssn = parts[0]?.trim();
+  const email = parts[1]?.trim() || null;
   if (!ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
-  const { data, error } = await supabase.rpc("public_api_se_master_details", { p_ssn: ssn });
+  const rpcParams: Record<string, unknown> = { p_ssn: ssn };
+  if (email) rpcParams.p_email = email;
+  const { data, error } = await supabase.rpc("public_api_se_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
   return data;
@@ -700,9 +712,18 @@ async function handleIpDetailsByQuery(
 
 async function handleMultipleIpDetails(
   supabase: ReturnType<typeof createClient>,
-  payload: Record<string, unknown>
+  payload: unknown
 ) {
-  const employees = payload.employees || payload.Employees || [];
+  // Accept raw array [...] or wrapped { employees: [...] }
+  let employees: unknown[];
+  if (Array.isArray(payload)) {
+    employees = payload;
+  } else if (typeof payload === 'object' && payload !== null) {
+    const p = payload as Record<string, unknown>;
+    employees = (p.employees || p.Employees || []) as unknown[];
+  } else {
+    employees = [];
+  }
   if (!Array.isArray(employees) || employees.length === 0) {
     throw { code: "BAD_REQUEST", message: "employees array is required" };
   }
