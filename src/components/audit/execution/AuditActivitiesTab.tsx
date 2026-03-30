@@ -351,9 +351,9 @@ function ActivityCard({ activity, evidence, workingPapers, findings, auditId, on
                   {workingPapers.map((wp: any) => (
                     <div key={wp.id} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted/20">
                       <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="font-mono text-muted-foreground text-[10px]">{wp.reference_number || '—'}</span>
+                      <span className="font-mono text-muted-foreground text-[10px]">{wp.working_paper_id || '—'}</span>
                       <span className="truncate flex-1">{wp.title || '—'}</span>
-                      <StatusBadge status={wp.paper_type || 'Analysis'} />
+                      <StatusBadge status={wp.audit_area || 'General'} />
                       <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeWP.mutate(wp.id)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                   ))}
