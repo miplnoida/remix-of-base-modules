@@ -41,7 +41,8 @@ export function AuditFindingsTab({ auditId, auditFindings, auditResponses, audit
   const { create, update } = useIAFindingMutations();
   const { getCreateFields, getUpdateFields } = useAuditFields();
   const { toast } = useToast();
-  const [modal, setModal] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view' | null>(null);
+  const [editRecord, setEditRecord] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
