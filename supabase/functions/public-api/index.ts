@@ -551,7 +551,7 @@ async function handleC3Range(
   params: Record<string, string>
 ) {
   const { payerId, payerType, startPeriod, endPeriodAndType } = params;
-  // endPeriodAndType = "31-03-2026,EE"
+  // endPeriodAndType = "122025,EE" (MMYYYY,c3Type)
   const commaIdx = endPeriodAndType.lastIndexOf(",");
   if (commaIdx === -1) throw { code: "BAD_REQUEST", message: "Invalid URL format. Expected {endPeriod},{c3Type}" };
   const endPeriod = endPeriodAndType.substring(0, commaIdx);
@@ -657,9 +657,15 @@ async function handleERMasterDetails(
   supabase: ReturnType<typeof createClient>,
   params: Record<string, string>
 ) {
-  const { regNo } = params;
+  const { regNoAndEmail } = params;
+  // Parse comma-separated: regNo or regNo,email
+  const parts = regNoAndEmail.split(",");
+  const regNo = parts[0]?.trim();
+  const email = parts[1]?.trim() || null;
   if (!regNo) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
-  const { data, error } = await supabase.rpc("public_api_er_master_details", { p_reg_no: regNo });
+  const rpcParams: Record<string, unknown> = { p_reg_no: regNo };
+  if (email) rpcParams.p_email = email;
+  const { data, error } = await supabase.rpc("public_api_er_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
   return data;
@@ -669,9 +675,15 @@ async function handleSEMasterDetails(
   supabase: ReturnType<typeof createClient>,
   params: Record<string, string>
 ) {
-  const { ssn } = params;
+  const { ssnAndEmail } = params;
+  // Parse comma-separated: ssn or ssn,email
+  const parts = ssnAndEmail.split(",");
+  const ssn = parts[0]?.trim();
+  const email = parts[1]?.trim() || null;
   if (!ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
-  const { data, error } = await supabase.rpc("public_api_se_master_details", { p_ssn: ssn });
+  const rpcParams: Record<string, unknown> = { p_ssn: ssn };
+  if (email) rpcParams.p_email = email;
+  const { data, error } = await supabase.rpc("public_api_se_master_details", rpcParams);
   if (error) throw error;
   if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
   return data;
@@ -700,9 +712,18 @@ async function handleIpDetailsByQuery(
 
 async function handleMultipleIpDetails(
   supabase: ReturnType<typeof createClient>,
-  payload: Record<string, unknown>
+  payload: unknown
 ) {
-  const employees = payload.employees || payload.Employees || [];
+  // Accept raw array [...] or wrapped { employees: [...] }
+  let employees: unknown[];
+  if (Array.isArray(payload)) {
+    employees = payload;
+  } else if (typeof payload === 'object' && payload !== null) {
+    const p = payload as Record<string, unknown>;
+    employees = (p.employees || p.Employees || []) as unknown[];
+  } else {
+    employees = [];
+  }
   if (!Array.isArray(employees) || employees.length === 0) {
     throw { code: "BAD_REQUEST", message: "employees array is required" };
   }
@@ -840,16 +861,16 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
       };
     }
 
-    // ── Validation: Employer Master Details ──
-    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/([^/]+)$/);
+    // ── Validation: Employer Master Details (supports {regNo} or {regNo},{email}) ──
+    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/(.+)$/);
     if (erMatch) {
-      return { handler: "erMasterDetails", params: { regNo: erMatch[1] } };
+      return { handler: "erMasterDetails", params: { regNoAndEmail: decodeURIComponent(erMatch[1]) } };
     }
 
-    // ── Validation: SE Master Details ──
-    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/([^/]+)$/);
+    // ── Validation: SE Master Details (supports {ssn} or {ssn},{email}) ──
+    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/(.+)$/);
     if (seMatch) {
-      return { handler: "seMasterDetails", params: { ssn: seMatch[1] } };
+      return { handler: "seMasterDetails", params: { ssnAndEmail: decodeURIComponent(seMatch[1]) } };
     }
 
     // ── Payment: Get Receipt ──
@@ -899,7 +920,7 @@ async function executeHandler(
   handlerName: string,
   supabase: ReturnType<typeof createClient>,
   routeParams: Record<string, string>,
-  _payload: Record<string, unknown>,
+  _payload: unknown,
   queryParams: Record<string, string>
 ) {
   switch (handlerName) {
@@ -910,11 +931,11 @@ async function executeHandler(
     case "moduleDocuments":
       return handleModuleDocuments(supabase, queryParams);
     case "c3ReportedInsert":
-      return handleC3ReportedInsert(supabase, _payload);
+      return handleC3ReportedInsert(supabase, _payload as Record<string, unknown>);
     case "c3WagesInsert":
-      return handleC3WagesInsert(supabase, _payload);
+      return handleC3WagesInsert(supabase, _payload as Record<string, unknown>);
     case "c3Verify":
-      return handleC3Verify(supabase, _payload);
+      return handleC3Verify(supabase, _payload as Record<string, unknown>);
     case "c3Range":
       return handleC3Range(supabase, routeParams);
     case "c3Detail":
@@ -934,9 +955,9 @@ async function executeHandler(
     case "multipleIpDetails":
       return handleMultipleIpDetails(supabase, _payload);
     case "updateUser":
-      return handleUpdateUser(supabase, _payload);
+      return handleUpdateUser(supabase, _payload as Record<string, unknown>);
     case "paymentSave":
-      return handlePaymentSave(supabase, routeParams, _payload);
+      return handlePaymentSave(supabase, routeParams, _payload as Record<string, unknown>);
     case "receiptLookup":
       return handleReceiptLookup(supabase, routeParams);
     default:
@@ -971,7 +992,7 @@ async function processApiRequest(
   supabase: ReturnType<typeof createClient>,
   apiPath: string,
   httpMethod: string,
-  payload: Record<string, unknown>,
+  payload: unknown,
   queryParams: Record<string, string>,
   req: Request,
   requestIp: string,
@@ -1060,7 +1081,7 @@ Deno.serve(async (req) => {
     const urlApiPath = extractApiPath(req);
     if (urlApiPath) {
       const queryParams = extractQueryParams(req);
-      let payload: Record<string, unknown> = {};
+      let payload: unknown = {};
       if (["POST", "PUT", "PATCH"].includes(req.method)) {
         try { payload = await req.json(); } catch { payload = {}; }
       }
