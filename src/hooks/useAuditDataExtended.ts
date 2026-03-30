@@ -95,22 +95,26 @@ export function useIAEvidence(activityId?: string) {
 export function useIAEvidenceMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ia_evidence'] });
+    queryClient.invalidateQueries({ queryKey: ['eng_evidence'] });
+  };
   const create = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'delete'],
+    mutationKey: ['InternalAudit', 'ia_evidence', 'create'],
     mutationFn: async (ev: any) => { const { data, error } = await supabase.from('ia_evidence').insert(ev).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Added' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Evidence Added' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const update = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'create'],
+    mutationKey: ['InternalAudit', 'ia_evidence', 'update'],
     mutationFn: async ({ id, ...u }: { id: string; [k: string]: any }) => { const { data, error } = await supabase.from('ia_evidence').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Updated' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Evidence Updated' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   const remove = useMutation({
-    mutationKey: ['InternalAudit', 'ia_engagements', 'update'],
+    mutationKey: ['InternalAudit', 'ia_evidence', 'delete'],
     mutationFn: async (id: string) => { const { error } = await supabase.from('ia_evidence').delete().eq('id', id); if (error) throw error; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ia_evidence'] }); toast({ title: 'Evidence Deleted' }); },
+    onSuccess: () => { invalidateAll(); toast({ title: 'Evidence Deleted' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
   return { create, update, remove };
