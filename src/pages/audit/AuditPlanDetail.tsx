@@ -84,7 +84,7 @@ export default function AuditPlanDetail() {
     const all = engagements || [];
     const closed = all.filter((e: any) => ['Closed', 'Completed'].includes(e.status));
     const ongoing = all.filter((e: any) => ['In Progress', 'Fieldwork', 'Fieldwork Complete', 'Observation', 'Reporting', 'Report Issued'].includes(e.status));
-    const planned = all.filter((e: any) => ['Planned', 'Draft', 'Ready', 'In Preparation'].includes(e.status));
+    const planned = all.filter((e: any) => ['Planned', 'Draft', 'Ready', 'In Preparation', 'Approved'].includes(e.status));
     const totalDays = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_days) || 0), 0);
     const totalWeeks = all.reduce((sum: number, e: any) => sum + (Number(e.estimated_hours) || 0), 0);
     const highRisk = all.filter((e: any) => ['High', 'Critical'].includes(e.engagement_risk_rating)).length;
