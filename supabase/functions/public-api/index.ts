@@ -925,6 +925,20 @@ async function executeHandler(
       return handleEmployeesByLastC3(supabase, routeParams);
     case "nwDirectorsByLastC3":
       return handleNwDirectorsByLastC3(supabase, routeParams);
+    case "erMasterDetails":
+      return handleERMasterDetails(supabase, routeParams);
+    case "seMasterDetails":
+      return handleSEMasterDetails(supabase, routeParams);
+    case "ipDetailsByQuery":
+      return handleIpDetailsByQuery(supabase, routeParams);
+    case "multipleIpDetails":
+      return handleMultipleIpDetails(supabase, _payload);
+    case "updateUser":
+      return handleUpdateUser(supabase, _payload);
+    case "paymentSave":
+      return handlePaymentSave(supabase, routeParams, _payload);
+    case "receiptLookup":
+      return handleReceiptLookup(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
