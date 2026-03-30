@@ -524,6 +524,35 @@ async function handleC3LastSubmitted(
   return data;
 }
 
+// ── Employee Sync Handlers ──
+async function handleEmployeesByLastC3(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { registrationNumber } = params;
+  if (!registrationNumber) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+
+  const { data, error } = await supabase.rpc("public_api_employees_by_last_c3", {
+    p_registration_number: registrationNumber,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+async function handleNwDirectorsByLastC3(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { registrationNumber } = params;
+  if (!registrationNumber) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+
+  const { data, error } = await supabase.rpc("public_api_nwdirectors_by_last_c3", {
+    p_registration_number: registrationNumber,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
