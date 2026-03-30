@@ -23,11 +23,14 @@ The project already has a robust public API gateway (`supabase/functions/public-
 ```
 GET /api/v1/C3/{payerId}/C3Submitted/{payerType}/range/{startPeriod}/{endPeriod},{c3Type}
 ```
+- Date format: **MMYYYY** (e.g., 012025, 122025)
+- Response: Array of `{month, year, seqNo, payerType, c3Type}`
 
 #### API 2: Detail API
 ```
 GET /api/v1/C3/{payerId}/C3Submitted/{month},{year},{sequenceNo},{payerType},{c3Type}
 ```
+- Response: `{c3Header, ipWages[]}` with `c3Status = "S"`
 
 #### API 3: Last C3 Submitted
 ```
@@ -50,13 +53,17 @@ GET /api/v1/Employee/nwdirectorsByLastC3/{registrationNumber}
 
 #### API 6: Employer Master Details
 ```
-GET /api/v1/Employer/getERMasterDetails/{regNo}
+GET /api/v1/Employer/getERMasterDetails/{regNo},{email}
 ```
+- Email validation server-side (security enhancement)
+- Legacy: `{regNo}` alone still supported
 
 #### API 7: Self-Employed Master Details
 ```
-GET /api/v1/Employer/getSEMasterDetails/{ssn}
+GET /api/v1/Employer/getSEMasterDetails/{ssn},{email}
 ```
+- Email validation server-side (security enhancement)
+- Joins `ip_self_category` for `wageCategory`
 
 ### Employee Lookup APIs (Phase 2)
 
@@ -64,11 +71,15 @@ GET /api/v1/Employer/getSEMasterDetails/{ssn}
 ```
 GET /api/v1/Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}
 ```
+- DOB formats: dd-MM-yyyy, MM/DD/YYYY, YYYY-MM-DD
+- Handles literal "null" middleName, empty lastName
 
 #### API 9: Multiple IP Details (Bulk SSN)
 ```
 POST /api/v1/Employee/getMultipleIpDetails
 ```
+- Accepts raw JSON array (not wrapped)
+- Returns `{socSecNum, firstName, surName, birthDate, valid}`
 
 ### Profile Sync API (Phase 2)
 
@@ -76,6 +87,8 @@ POST /api/v1/Employee/getMultipleIpDetails
 ```
 POST /api/v1/User/updateUser
 ```
+- ER response: `"Employer data Successfully Updated!"`
+- SE response: `"Self Employee data Successfully Updated!"`
 
 ### Payment APIs (Phase 2)
 
@@ -83,11 +96,14 @@ POST /api/v1/User/updateUser
 ```
 POST /api/v1/api/payment/save/{payerId}/{payerType}
 ```
+- Payload: `{mopCode, officeCode, paymentHeaders[{fundCode, paymentCode, paymentAmount}]}`
+- Returns: `{receiptId, message}`
 
 #### API 12: Receipt Lookup
 ```
 GET /api/v1/api/payment/getReceipt/{receiptNo}
 ```
+- Returns flat array of payment entries
 
 ### Utility API (Phase 2)
 
@@ -103,13 +119,13 @@ GET /api/v1/ReferenceData/about/
 - `public_api_employees_by_last_c3`, `public_api_nwdirectors_by_last_c3`
 
 ### ✅ Phase 2: Full BIMA Replacement (8 APIs)
-- `public_api_er_master_details` — Employer master by regNo
-- `public_api_se_master_details` — SE master by SSN (ip_master + ip_self_employ)
-- `public_api_ip_details_by_query` — Employee lookup by SSN/DOB/name
-- `public_api_multiple_ip_details` — Bulk SSN validation
-- `public_api_update_user` — Profile update (ER/SE)
-- `public_api_payment_save` — Payment + receipt generation
-- `public_api_get_receipt` — Receipt lookup
+- `public_api_er_master_details` — Employer master by regNo with email validation
+- `public_api_se_master_details` — SE master by SSN with email validation
+- `public_api_ip_details_by_query` — Full employee profile (25+ fields)
+- `public_api_multiple_ip_details` — Bulk SSN validation (raw array input)
+- `public_api_update_user` — Profile update with exact BIMA response messages
+- `public_api_payment_save` — Payment with paymentHeaders + receipt generation
+- `public_api_get_receipt` — Receipt lookup returning flat array
 - Health alias at /ReferenceData/about/
 
 ### ✅ API Registry
@@ -128,21 +144,8 @@ GET /api/v1/ReferenceData/about/
 - C3 Bulk Submit — Uses existing C3 ingestion APIs (c3-reported, c3-wages, c3-verify)
 - C3 Delete — Not supported per SSB Admin data integrity policy
 
-## C3-Wizard Query Responses Summary
-
-| Query | Status | Answer |
-|-------|--------|--------|
-| Q1 — URL Prefix | ✅ Resolved | Set base_url to include `/api/v1` |
-| Q2 — Employee API | ✅ Implemented | `GET /Employee/employeesByLastC3/{regNo}` |
-| Q3 — NW Director API | ✅ Implemented | `GET /Employee/nwdirectorsByLastC3/{regNo}` |
-| Q4 — Payer Type | ✅ Confirmed | ER+EE, ER+NW, SE+EE |
-| Q5 — Empty Response | ✅ Confirmed | Range/Employee=200[], Detail/Last=404 |
-| Q6 — Rate Limits | ✅ Confirmed | 100 req/min default, configurable |
-| Q7 — Profile Update | ✅ Implemented | Security Q&A acknowledged, not stored |
-| Q8 — Connectivity | ✅ Implemented | /ReferenceData/about/ returns health |
-
-## Data Mapping Notes (Pending C3-Wizard Clarification)
+## Data Mapping Notes
 - ER Master: `contactPerson` defaults to `compName`, `postalCode` returns null, `isLevyExempt` defaults to false
-- SE Master: `wageCategory` and `tin` return null, `userName` returns empty string
-- Payment: Receipt auto-generated, fund codes SS/LV/SV/PN supported
+- SE Master: `wageCategory` from `ip_self_category`, `tin` returns null, `userName` returns empty string
+- Payment: Receipt auto-generated (RCP-YYYY-NNNNNN), fund codes SS/LV/SV/PN supported
 - Profile Update: Security questions acknowledged but not persisted
