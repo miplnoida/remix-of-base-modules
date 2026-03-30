@@ -125,6 +125,9 @@ export default function EngagementDetail() {
   const { data: allFindings = [] } = useIAFindings();
   const { data: allActions = [] } = useIAActionTracking();
   const { data: allResponses = [] } = useIAManagementResponses();
+  const { data: auditActivities = [] } = useEngagementActivities(id);
+  const { data: auditEvidence = [] } = useEngagementEvidence(id);
+  const { data: auditWorkingPapers = [] } = useEngagementWorkingPapers(id);
 
   const auditFindings = useMemo(() => allFindings.filter((f: any) => f.engagement_id === id), [allFindings, id]);
   const auditActions = useMemo(() => allActions.filter((a: any) => a.engagement_id === id), [allActions, id]);
