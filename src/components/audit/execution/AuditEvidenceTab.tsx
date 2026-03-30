@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, FileText, Trash2, Loader2, Upload, Eye, Edit, ExternalLink, Paperclip } from 'lucide-react';
-import { StatusBadge, DataTable, StandardModal } from '@/components/common';
+import { Plus, FileText, Trash2, Loader2, Eye, Edit, ExternalLink, Paperclip, X } from 'lucide-react';
+import { StatusBadge, DataTable } from '@/components/common';
 import type { DataTableColumn } from '@/components/common';
 import { useEngagementEvidence } from '@/hooks/useEngagementData';
 import { useIAEvidenceMutations } from '@/hooks/useAuditDataExtended';
@@ -40,7 +40,8 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
   const { userCode } = useUserCode();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [modal, setModal] = useState<{ mode: 'create' | 'edit' | 'view' | null; record?: any }>({ mode: null });
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view' | null>(null);
+  const [editRecord, setEditRecord] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -48,7 +49,8 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
 
   const openCreate = () => {
     setForm({ ...emptyForm, evidence_id: generateEvidenceId() });
-    setModal({ mode: 'create' });
+    setFormMode('create');
+    setEditRecord(null);
     setAdvancedOpen(false);
   };
 
@@ -59,10 +61,20 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
       file_url: r.file_url || '', file_type: r.file_type || '',
       tags: Array.isArray(r.tags) ? r.tags.join(', ') : '', activity_id: r.activity_id || '', finding_id: r.finding_id || '',
     });
-    setModal({ mode: 'edit', record: r });
+    setFormMode('edit');
+    setEditRecord(r);
   };
 
-  const openView = (r: any) => { openEdit(r); setModal({ mode: 'view', record: r }); };
+  const openView = (r: any) => {
+    openEdit(r);
+    setFormMode('view');
+  };
+
+  const closeForm = () => {
+    setFormMode(null);
+    setEditRecord(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSave = async () => {
     if (!form.evidence_id) return;
@@ -99,13 +111,13 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
       engagement_id: auditId, uploaded_by: userCode || null, upload_date: new Date().toISOString(),
     };
 
-    if (modal.mode === 'create') {
+    if (formMode === 'create') {
       create.mutate({ ...payload, created_by: userCode || null } as any, {
-        onSuccess: () => { setModal({ mode: null }); if (fileInputRef.current) fileInputRef.current.value = ''; },
+        onSuccess: () => closeForm(),
       });
-    } else if (modal.mode === 'edit' && modal.record) {
-      update.mutate({ id: modal.record.id, ...payload, updated_by: userCode || null } as any, {
-        onSuccess: () => { setModal({ mode: null }); if (fileInputRef.current) fileInputRef.current.value = ''; },
+    } else if (formMode === 'edit' && editRecord) {
+      update.mutate({ id: editRecord.id, ...payload, updated_by: userCode || null } as any, {
+        onSuccess: () => closeForm(),
       });
     }
   };
@@ -122,7 +134,12 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
         </Button>
       );
     }},
-    { key: 'finding_id', header: 'Linked Finding', render: (r) => {
+    { key: 'activity_id', header: 'Activity', render: (r) => {
+      if (!r.activity_id) return <span className="text-muted-foreground text-xs">—</span>;
+      const act = auditActivities.find((a: any) => a.id === r.activity_id);
+      return <span className="text-xs">{act?.name || act?.title || r.activity_id.slice(0, 8)}</span>;
+    }},
+    { key: 'finding_id', header: 'Finding', render: (r) => {
       if (!r.finding_id) return <span className="text-muted-foreground text-xs">—</span>;
       const finding = auditFindings.find((f: any) => f.id === r.finding_id);
       return <span className="text-xs">{finding?.title || r.finding_id.slice(0, 8)}</span>;
@@ -143,11 +160,88 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add Evidence</Button>
       </div>
 
-      {evidence.length === 0 ? (
+      {/* Inline Form */}
+      {formMode && (
+        <Card className="border-primary/20">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">
+                {formMode === 'create' ? 'Add New Evidence' : formMode === 'edit' ? 'Edit Evidence' : 'Evidence Detail'}
+              </p>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closeForm}><X className="h-4 w-4" /></Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Evidence ID *</Label><Input value={form.evidence_id} onChange={e => setForm(f => ({ ...f, evidence_id: e.target.value }))} disabled={formMode !== 'create'} className={formMode !== 'create' ? 'bg-muted' : ''} /></div>
+              <div><Label>Reference No.</Label><Input value={form.reference_no} onChange={e => setForm(f => ({ ...f, reference_no: e.target.value }))} disabled={formMode === 'view'} placeholder="e.g. EVD-REF-001" /></div>
+            </div>
+            <div><Label>Description *</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} disabled={formMode === 'view'} className="text-sm" placeholder="Describe what this evidence is" /></div>
+
+            {formMode !== 'view' && (
+              <div>
+                <Label>Attach File</Label>
+                <Input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="text-xs" />
+                <p className="text-xs text-muted-foreground mt-1">PDF, DOC, XLS, PNG, JPG — max 20MB</p>
+              </div>
+            )}
+            {form.file_name && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border/30">
+                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm">{form.file_name}</span>
+                {form.file_url && <Button variant="link" size="sm" className="h-auto p-0 text-xs ml-auto" onClick={() => window.open(form.file_url, '_blank')}><ExternalLink className="h-3 w-3 mr-1" />Open</Button>}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Link to Activity</Label>
+                <Select value={form.activity_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, activity_id: v === '__none__' ? '' : v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue placeholder="Select activity (optional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {auditActivities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name || a.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Link to Finding</Label>
+                <Select value={form.finding_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, finding_id: v === '__none__' ? '' : v }))} disabled={formMode === 'view'}>
+                  <SelectTrigger><SelectValue placeholder="Select finding (optional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {auditFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title} ({f.risk_rating})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+                Tags & Metadata
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <div><Label>Tags <span className="text-xs text-muted-foreground">(comma-separated)</span></Label>
+                  <Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} disabled={formMode === 'view'} placeholder="e.g. payroll, interview, supporting" />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {formMode !== 'view' && (
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSave} disabled={create.isPending || update.isPending || uploading}>
+                  {uploading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading...</> : formMode === 'create' ? 'Add Evidence' : 'Save Changes'}
+                </Button>
+                <Button variant="outline" onClick={closeForm}>Cancel</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {evidence.length === 0 && !formMode ? (
         <AuditEmptyState icon={FileText} title="No evidence collected"
           description="Evidence includes documents, screenshots, interview notes, system extracts, and any supporting material gathered during audit procedures."
           actionLabel="Add Evidence" onAction={openCreate} />
-      ) : (
+      ) : evidence.length > 0 && (
         <Card><CardContent className="pt-4">
           <DataTable columns={columns} data={evidence} emptyMessage="No evidence items."
             renderActions={(row) => (
@@ -160,70 +254,6 @@ export function AuditEvidenceTab({ auditId, auditFindings = [], auditActivities 
           />
         </CardContent></Card>
       )}
-
-      <StandardModal open={modal.mode !== null} onOpenChange={() => setModal({ mode: null })}
-        title={modal.mode === 'create' ? 'Add Evidence' : modal.mode === 'edit' ? 'Edit Evidence' : 'Evidence Detail'}
-        mode={modal.mode === 'view' ? 'view' : modal.mode || 'create'} onSave={handleSave}
-        saveLabel={uploading ? 'Uploading...' : 'Save Evidence'} isSaving={create.isPending || update.isPending || uploading} size="3xl">
-        <div className="space-y-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identification</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Evidence ID *</Label><Input value={form.evidence_id} onChange={e => setForm(f => ({ ...f, evidence_id: e.target.value }))} disabled={modal.mode !== 'create'} className={modal.mode !== 'create' ? 'bg-muted' : ''} /></div>
-            <div><Label>Reference No.</Label><Input value={form.reference_no} onChange={e => setForm(f => ({ ...f, reference_no: e.target.value }))} disabled={modal.mode === 'view'} placeholder="e.g. EVD-REF-001" /></div>
-          </div>
-          <div><Label>Description *</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} disabled={modal.mode === 'view'} className="text-sm leading-relaxed" placeholder="Describe what this evidence is and how it supports the audit" /></div>
-
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">File Upload</p>
-          {modal.mode !== 'view' && (
-            <div>
-              <Label>Attach File</Label>
-              <Input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="text-xs" />
-              <p className="text-xs text-muted-foreground mt-1">PDF, DOC, XLS, PNG, JPG — max 20MB</p>
-            </div>
-          )}
-          {form.file_name && (
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border/30">
-              <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm">{form.file_name}</span>
-              {form.file_url && <Button variant="link" size="sm" className="h-auto p-0 text-xs ml-auto" onClick={() => window.open(form.file_url, '_blank')}><ExternalLink className="h-3 w-3 mr-1" />Open</Button>}
-            </div>
-          )}
-
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Linking</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Link to Finding</Label>
-              <Select value={form.finding_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, finding_id: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue placeholder="Select finding (optional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {auditFindings.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.title} ({f.risk_rating})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Link to Activity</Label>
-              <Select value={form.activity_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, activity_id: v === '__none__' ? '' : v }))} disabled={modal.mode === 'view'}>
-                <SelectTrigger><SelectValue placeholder="Select activity (optional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {auditActivities.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name || a.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-            <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 cursor-pointer hover:text-foreground transition-colors">
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
-              Tags & Metadata
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-3 space-y-4">
-              <div><Label>Tags <span className="text-xs text-muted-foreground">(comma-separated)</span></Label>
-                <Input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} disabled={modal.mode === 'view'} placeholder="e.g. payroll, interview, supporting" />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-      </StandardModal>
     </div>
   );
 }
