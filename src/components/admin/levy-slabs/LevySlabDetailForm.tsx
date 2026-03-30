@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -32,12 +34,7 @@ interface LevySlabDetailFormProps {
   detail: LevySlabDetail | null;
 }
 
-const PAY_PERIODS = [
-  { value: 'W', label: 'Weekly' },
-  { value: 'B', label: 'Bi-Weekly' },
-  { value: 'S', label: 'Semi-Monthly' },
-  { value: 'M', label: 'Monthly' }
-];
+// Pay periods fetched from database
 
 export const LevySlabDetailForm: React.FC<LevySlabDetailFormProps> = ({
   open,
