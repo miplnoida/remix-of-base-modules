@@ -49,9 +49,12 @@ export function AuditFindingsTab({ auditId, auditFindings, auditResponses, audit
 
   const generateFindingId = () => `FND-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
+  const closeForm = () => { setFormMode(null); setEditRecord(null); };
+
   const openCreate = () => {
     setForm({ ...emptyForm, finding_id: generateFindingId() });
-    setModal({ mode: 'create' });
+    setFormMode('create');
+    setEditRecord(null);
     setAdvancedOpen(false);
   };
 
@@ -64,10 +67,11 @@ export function AuditFindingsTab({ auditId, auditFindings, auditResponses, audit
       root_cause_category: r.root_cause_category || '', corrective_action_description: r.corrective_action_description || '',
       function_area: r.function_area || '', department_head_name: r.department_head_name || '',
     });
-    setModal({ mode: 'edit', record: r });
+    setFormMode('edit');
+    setEditRecord(r);
   };
 
-  const openView = (r: any) => { openEdit(r); setModal({ mode: 'view', record: r }); };
+  const openView = (r: any) => { openEdit(r); setFormMode('view'); };
 
   const handleSave = () => {
     if (!form.title || !form.condition) {
@@ -84,10 +88,10 @@ export function AuditFindingsTab({ auditId, auditFindings, auditResponses, audit
       engagement_id: auditId, department_id: departmentId || null,
       activity_id: null, annual_plan_id: null,
     };
-    if (modal.mode === 'create') {
-      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: () => setModal({ mode: null }) });
-    } else if (modal.mode === 'edit' && modal.record) {
-      update.mutate({ id: modal.record.id, ...payload, ...getUpdateFields() } as any, { onSuccess: () => setModal({ mode: null }) });
+    if (formMode === 'create') {
+      create.mutate({ ...payload, ...getCreateFields() } as any, { onSuccess: closeForm });
+    } else if (formMode === 'edit' && editRecord) {
+      update.mutate({ id: editRecord.id, ...payload, ...getUpdateFields() } as any, { onSuccess: closeForm });
     }
   };
 
