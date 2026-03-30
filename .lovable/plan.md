@@ -1,63 +1,57 @@
 
 
-# Comprehensive Audit Trail Unification — Global Policy
+# Enhanced Table Selection for Data Migration
 
-## Problem Summary
+## Current State
+- **Environment Sync**: Uses `SearchableSelect` dropdown to add one table at a time to `migration_analysis_tables`. Works but isn't visual/structured.
+- **Export/Import**: Auto-selects ALL tables on load. Uses inline checkboxes. No shortlist separation.
 
-The system has **three competing audit write paths** that create duplicate and inconsistent entries:
+## Changes
 
-1. **Old trigger** (`audit_table_changes`) — 17 tables use this. Stores full rows but no `changed_fields` metadata, no `source` tag. Uses `trg_audit_*` trigger names.
-2. **New trigger** (`fn_audit_row_change`) — 17 tables use this. Stores full rows + `changed_fields` in `payload_json`. Uses `audit_table_changes` trigger names (confusingly).
-3. **App-level** — `logAuditTrail()` (13 files, ~95 calls), `logAuditEntry()` (global interceptor + `useAuditedMutation`), and `useLoggedMutation`.
+### 1. Environment Sync — Redesign `ManageAnalysisTables`
 
-Tables like `cn_receipt`, `cn_batch`, `er_master`, `profiles`, `system_settings`, `bema_*` have **BOTH** the old and new triggers — creating 2 DB-level entries per change. Tables like `tb_currencies`, `ip_self_employ`, `cn_cash_count`, `api_settings`, `api_registry`, `workflow_instances`, `cn_card_machine`, `cn_batch_card_transaction`, `cn_batch_cheque_verification`, `tb_self_emp_contrib_rate` only have the old trigger. Then the global MutationCache interceptor adds a third entry (which gets suppressed for tables in `DB_TRIGGER_TABLES`, but that set is incomplete).
+Replace the `SearchableSelect` dropdown with a two-panel layout matching the reference screenshot:
 
-## Fix Strategy
+**Left Panel — Available Tables**: Scrollable list of all public tables NOT already in `migration_analysis_tables`. Each row has a radio button. Clicking a radio button moves the table into a local "staging" list (right panel). Include search filter at top.
 
-### Step 1: Database Migration — Consolidate to Single Trigger Function
+**Right Panel — Shortlisted (Staged)**: Shows tables the user has staged for addition. Each has an "×" to remove from staging. "Add" button at bottom persists ALL staged tables to `migration_analysis_tables` in one batch insert via Supabase. After persisting, the staged list clears and the "Configured Tables" badge list below updates.
 
-One migration that:
-- **Drops ALL old `trg_audit_*` triggers** (the ones using `audit_table_changes`)
-- **Creates new `fn_audit_row_change` triggers** on tables that currently only have the old trigger (`tb_currencies`, `ip_self_employ`, `ip_master`, `cn_cash_count`, `api_settings`, `api_registry`, `workflow_instances`, `cn_card_machine`, `cn_batch_card_transaction`, `cn_batch_cheque_verification`, `tb_self_emp_contrib_rate`)
-- **Drops the old `audit_table_changes` function** entirely (replaced by `fn_audit_row_change`)
+**Already Configured**: The existing badge list of tables already in `migration_analysis_tables` stays below, with remove buttons. These tables are excluded from the available list.
 
-This eliminates all duplicate DB-level entries and standardizes every audited table on the new function with `changed_fields` support.
+Deduplication is handled by filtering: available = `allPublicTables - existingAnalysisTables - stagedTables`.
 
-### Step 2: Expand `DB_TRIGGER_TABLES` in `globalAuditInterceptor.ts`
+### 2. Export/Import — Two-Panel Shortlist Pattern
 
-Add every table that now has the `fn_audit_row_change` trigger, plus their mutation key aliases:
-- `ip_master`, `ip_self_employ`, `cn_cash_count`, `api_settings`, `api_registry`, `workflow_instances`, `cn_card_machine`, `cn_batch_card_transaction`, `cn_batch_cheque_verification`, `tb_self_emp_contrib_rate`, `tb_currencies`
+Replace the current single-list checkbox approach:
 
-This ensures the global MutationCache interceptor skips app-level logging for all DB-triggered tables.
+**Default state**: All tables unchecked on load (remove the `useEffect` that auto-selects all).
 
-### Step 3: Update `auditService.ts` — Strengthen Guards
+**Left Panel — Available Tables**: Scrollable, searchable list with checkboxes. Selecting a table moves it to the right panel and removes/disables it from the left. Quick filters (Select All, Config Only) move matching tables to right panel.
 
-The `logAuditTrail()` function already checks `DB_TRIGGER_TABLES`. With the expanded set, all manual calls in `PaymentModuleConfig.tsx`, `SecurityPolicySettings.tsx`, `IPAccessRulesManagement.tsx`, `useSystemSettings.ts`, `usePaymentModuleConfig.ts`, etc. will be automatically suppressed for DB-triggered tables — no need to edit each caller.
+**Right Panel — Selected for Export**: Shows all shortlisted tables with count. Each has an "×" to remove (moves back to available). "Export Data" button at bottom.
 
-For entity types NOT in `DB_TRIGGER_TABLES` (e.g., `cybersource_settings`, `cloudflare`, `system_setting` used as alias), the manual calls continue to work. Add an additional guard: skip any entry where `action` contains `update` and both `beforeValue` and `afterValue` are empty/null.
+### 3. Backend Persistence & Audit
 
-### Step 4: Update `useAuditedMutation` — Add DB Trigger Guard
+- Environment Sync already persists via `migration_analysis_tables` — batch insert for the "Add" action.
+- Export/Import selection is ephemeral (per-session) since it's a one-time export action, but the export action itself is already logged.
+- Add audit trail entry when tables are added/removed from analysis config via the existing `system_audit_trail` insert pattern.
 
-Import `DB_TRIGGER_TABLES` and skip `logAuditEntry` call when the `entityType` is in the set, same as the other two paths.
+### 4. Validation & Edge Cases
 
-### Step 5: Provide Live SQL Script
-
-Output a standalone SQL script the user can execute on the Live database containing:
-- The consolidated `fn_audit_row_change()` function
-- All `DROP TRIGGER` statements for old triggers  
-- All `CREATE TRIGGER` statements for new triggers
-- Drop of the old function
+- "Add" button disabled when staging list is empty
+- "Export" button disabled when no tables selected
+- Duplicate prevention: filter already-configured tables from available list
+- Rapid clicks: disable buttons during async operations (already done for Add/Remove)
+- Page refresh: `migration_analysis_tables` is the source of truth, fetched on mount
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| **New migration SQL** | Drop old triggers, create new ones on all tables, drop `audit_table_changes` function |
-| `src/services/globalAuditInterceptor.ts` | Expand `DB_TRIGGER_TABLES` with all audited table names + aliases |
-| `src/services/auditService.ts` | Add empty before/after guard for all actions (not just update) |
-| `src/hooks/useAuditedMutation.ts` | Add `DB_TRIGGER_TABLES` guard to skip logging for triggered tables |
+| `src/pages/admin/DataMigration.tsx` | Redesign `ManageAnalysisTables` with two-panel radio+staging pattern; redesign Export tab with two-panel shortlist; remove auto-select-all effect |
 
-## Technical Detail
-
-After this change, the audit trail has exactly **one entry per data change** — from the DB trigger. The three app-level paths (MutationCache, `logAuditTrail`, `useAuditedMutation`) all check `DB_TRIGGER_TABLES` and silently skip. For tables without triggers (rare, non-critical), app-level logging still works as a fallback. This is enforced as a reusable standard: any new table added to `DB_TRIGGER_TABLES` is automatically protected from duplicates across all three paths.
+## Technical Notes
+- No new database tables needed — `migration_analysis_tables` already exists for Environment Sync persistence
+- No new edge functions needed — all operations use existing Supabase client queries
+- Single file change (~300 lines rewritten in the two components)
 
