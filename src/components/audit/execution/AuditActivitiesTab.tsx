@@ -113,11 +113,13 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
 
   const handleSave = async () => {
     if (!form.title) return;
+    const workingPaperId = form.reference_number.trim() || `WP-${Date.now().toString(36).toUpperCase()}`;
+
     create.mutate({
-      title: form.title,
-      working_paper_id: form.reference_number || null,
-      description: form.description || null,
-      audit_area: form.paper_type || 'Analysis',
+      title: form.title.trim(),
+      working_paper_id: workingPaperId,
+      description: form.description.trim() || null,
+      audit_area: form.paper_type.trim() || 'Analysis',
       engagement_id: auditId,
       activity_id: activityId,
       status: 'Draft',
