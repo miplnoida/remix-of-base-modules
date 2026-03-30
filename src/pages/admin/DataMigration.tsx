@@ -1261,11 +1261,11 @@ const DataMigration = () => {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Export Section */}
-            <Card>
+            {/* Export Section — Two Panel */}
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" />Export Data</CardTitle>
-                <CardDescription>Select individual tables to export</CardDescription>
+                <CardDescription>Select tables to export — shortlisted tables appear on the right</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
@@ -1276,61 +1276,92 @@ const DataMigration = () => {
                     <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingTables ? 'animate-spin' : ''}`} />Refresh
                   </Button>
                 </div>
-                <div className="border rounded-lg">
-                  <div className="p-2 border-b">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search tables..."
-                        value={tableSearch}
-                        onChange={(e) => setTableSearch(e.target.value)}
-                        className="pl-8 h-9"
-                      />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left Panel — Available Tables */}
+                  <div className="border rounded-lg">
+                    <div className="p-3 border-b bg-muted/30">
+                      <h4 className="text-sm font-medium mb-2">Available Tables ({availableForExport.length})</h4>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search tables..."
+                          value={tableSearch}
+                          onChange={(e) => setTableSearch(e.target.value)}
+                          className="pl-8 h-9"
+                        />
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[300px]">
+                      <div className="p-2 space-y-0.5">
+                        {isLoadingTables ? (
+                          <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
+                        ) : filteredForExport.length === 0 ? (
+                          <div className="text-center py-6 text-sm text-muted-foreground">
+                            {tableSearch ? `No tables match "${tableSearch}"` : "All tables have been selected"}
+                          </div>
+                        ) : (
+                          filteredForExport.map(t => (
+                            <div
+                              key={t}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                              onClick={() => handleSelectToExport(t)}
+                            >
+                              <Checkbox checked={false} onCheckedChange={() => handleSelectToExport(t)} />
+                              <span className="text-sm font-mono">{t}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Right Panel — Selected for Export */}
+                  <div className="border rounded-lg">
+                    <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Selected for Export ({selectedTables.length})</h4>
+                      {selectedTables.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={handleSelectNone}
+                        >
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
+                    <ScrollArea className="h-[250px]">
+                      {selectedTables.length === 0 ? (
+                        <div className="text-center py-10 text-sm text-muted-foreground">
+                          <Download className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+                          Select tables from the left panel
+                        </div>
+                      ) : (
+                        <div className="p-2 space-y-1">
+                          {[...selectedTables].sort().map(t => (
+                            <div key={t} className="flex items-center justify-between px-2 py-1.5 rounded bg-primary/5 border border-primary/20">
+                              <span className="text-sm font-mono">{t}</span>
+                              <button
+                                onClick={() => handleDeselectFromExport(t)}
+                                className="rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
+                                title={`Remove ${t}`}
+                              >
+                                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                    <div className="p-3 border-t">
+                      <Button className="w-full" onClick={handleExport} disabled={isExporting || selectedTables.length === 0}>
+                        {isExporting ? <>Exporting...</> : <><Download className="mr-2 h-4 w-4" />Export {selectedTables.length > 0 ? `${selectedTables.length} Tables` : "Data"}</>}
+                      </Button>
                     </div>
                   </div>
-                  <div className="max-h-[350px] overflow-y-auto p-2 space-y-0.5">
-                    {isLoadingTables ? (
-                      <div className="text-center py-4 text-muted-foreground">Loading tables...</div>
-                    ) : (
-                      tableOptions
-                        .filter(t => t.label.toLowerCase().includes(tableSearch.toLowerCase()))
-                        .map(t => (
-                          <div
-                            key={t.value}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
-                            onClick={() => {
-                              setSelectedTables(prev =>
-                                prev.includes(t.value)
-                                  ? prev.filter(v => v !== t.value)
-                                  : [...prev, t.value]
-                              );
-                            }}
-                          >
-                            <Checkbox
-                              checked={selectedTables.includes(t.value)}
-                              onCheckedChange={() => {
-                                setSelectedTables(prev =>
-                                  prev.includes(t.value)
-                                    ? prev.filter(v => v !== t.value)
-                                    : [...prev, t.value]
-                                );
-                              }}
-                            />
-                            <span className="text-sm font-mono">{t.label}</span>
-                          </div>
-                        ))
-                    )}
-                    {!isLoadingTables && tableOptions.filter(t => t.label.toLowerCase().includes(tableSearch.toLowerCase())).length === 0 && (
-                      <div className="text-center py-4 text-sm text-muted-foreground">No tables match "{tableSearch}"</div>
-                    )}
-                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Selected: <strong>{selectedTables.length} tables</strong> of {allTables.length} total
-                </div>
-                <Button className="w-full" onClick={handleExport} disabled={isExporting || selectedTables.length === 0}>
-                  {isExporting ? <>Exporting...</> : <><Download className="mr-2 h-4 w-4" />Export Data</>}
-                </Button>
+
                 {exportComplete && (
                   <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
                     <CheckCircle className="h-4 w-4 text-green-600" />
