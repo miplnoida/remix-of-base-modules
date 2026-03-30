@@ -58,6 +58,19 @@ async function checkApiRegistry(
     return { allowed: true, registryEntry: data[0] };
   }
 
+  // For Employee Sync dynamic routes, check by category
+  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+    const { data, error } = await supabase
+      .from("api_registry")
+      .select("*")
+      .eq("category", "employee-sync")
+      .eq("http_method", "GET")
+      .eq("is_enabled", true)
+      .limit(1);
+    if (error || !data || data.length === 0) return { allowed: false };
+    return { allowed: true, registryEntry: data[0] };
+  }
+
   const { data, error } = await supabase
     .from("api_registry")
     .select("*")
@@ -124,6 +137,14 @@ async function checkScopeAuthorization(
     return scopes.some((s: any) => {
       const reg = s.api_registry;
       return reg && reg.category === "c3-history" && reg.http_method === "GET";
+    });
+  }
+
+  // For Employee Sync dynamic routes, check by category
+  if (isEmployeeRoute(endpointPath) && httpMethod === "GET") {
+    return scopes.some((s: any) => {
+      const reg = s.api_registry;
+      return reg && reg.category === "employee-sync" && reg.http_method === "GET";
     });
   }
 
