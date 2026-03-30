@@ -556,6 +556,12 @@ async function executeHandler(
       return handleC3WagesInsert(supabase, _payload);
     case "c3Verify":
       return handleC3Verify(supabase, _payload);
+    case "c3Range":
+      return handleC3Range(supabase, routeParams);
+    case "c3Detail":
+      return handleC3Detail(supabase, routeParams);
+    case "c3LastSubmitted":
+      return handleC3LastSubmitted(supabase, routeParams);
     default:
       throw { code: "NOT_FOUND", message: `Unknown handler: ${handlerName}` };
   }
