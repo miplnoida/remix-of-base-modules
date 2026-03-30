@@ -24933,6 +24933,10 @@ export type Database = {
         }
         Returns: Json
       }
+      public_api_employees_by_last_c3: {
+        Args: { p_registration_number: string }
+        Returns: Json
+      }
       public_api_insert_c3_reported:
         | {
             Args: {
@@ -25018,6 +25022,10 @@ export type Database = {
           p_wages_paid6?: number
           p_wages_paid7?: number
         }
+        Returns: Json
+      }
+      public_api_nwdirectors_by_last_c3: {
+        Args: { p_registration_number: string }
         Returns: Json
       }
       public_api_verify_c3: {
