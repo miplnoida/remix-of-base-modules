@@ -1,89 +1,162 @@
 
 
-# Create Pay Periods Master Data Table & Bind to Levy Slab Detail
+# C3 History Sync APIs — SSB Admin Implementation Plan
 
-## Finding
+## Overview
 
-The Pay Period select box in `LevySlabDetailForm.tsx` (line 35-40) is **hardcoded**:
+Build 3 new GET APIs inside the existing `public-api` edge function that replicate BIMA's URL structure exactly, allowing C3-Wizard to switch from BIMA to SSB Admin with zero frontend changes. Additionally, generate a PDF integration guide for the C3-Wizard team.
+
+## Existing Infrastructure
+
+The project already has a robust public API gateway (`supabase/functions/public-api/index.ts`) with:
+- API key validation via `x-api-key` header (hashed keys in `public_api_keys`)
+- API registry check (`api_registry` table)
+- Rate limiting, scope authorization, IP whitelisting
+- Access logging (`public_api_access_logs`)
+- RESTful URL routing via `extractApiPath()` and `matchRoute()`
+
+The data exists in `cn_c3_reported` (C3 headers) and `ip_wages` (wage line items). Person names come from `ip_master` (joined by SSN). Employment history is in `ip_employer`.
+
+## APIs to Implement
+
+### API 1: Range API
 ```
-W = Weekly, B = Bi-Weekly, S = Semi-Monthly, M = Monthly
+GET /api/v1/C3/{payerId}/C3Submitted/{payerType}/range/{startPeriod}/{endPeriod},{c3Type}
 ```
-A second hardcoded list exists in `WizEmployeeList.tsx` (line 24-29) with different values:
+Returns array of VAC C3 headers for a date range. Dates in URL use `dd-MM-yyyy` format, response dates use `dd/MM/yyyy`.
+
+### API 2: Detail API
 ```
-M = Monthly, 2M = 2x Monthly, W = Weekly, 2W = Bi-Weekly
+GET /api/v1/C3/{payerId}/C3Submitted/{month},{year},{sequenceNo},{payerType},{c3Type}
 ```
-No database table exists. Both need to be driven from a single `tb_pay_periods` table.
+Returns full C3 (header + wages). For `c3Type=EE`, returns `ipWages` array. For `c3Type=NW`, returns `nonWorkingDirectorWages` array.
 
-## Steps
+### API 3: Last C3 Submitted
+```
+GET /api/v1/C3/{payerId}/C3Submitted/{payerType}/{sequenceNo},{c3Type}
+```
+Returns the most recent C3 header for a payer/sequence/type combination.
 
-### Step 1: Create `tb_pay_periods` Table + Seed Data
+## Implementation Steps
 
-Migration SQL:
+### Step 1: Database — Create RPC Functions
+
+Create 3 PostgreSQL RPC functions for efficient, indexed data retrieval:
+
+**`public_api_c3_range`** — Accepts `p_payer_id`, `p_payer_type`, `p_start_period` (text), `p_end_period` (text), `p_c3_type` (text). Queries `cn_c3_reported` where `posting_status = 'VAC'` and period falls within the parsed date range. Returns JSON array of header summaries with fields mapped to BIMA format (`payerId`, `payerType`, `period` as `dd/MM/yyyy`, `sequenceNo`, `c3Status`, `receivedBy`, `dateReceived`).
+
+**`public_api_c3_detail`** — Accepts `p_payer_id`, `p_month`, `p_year`, `p_sequence_no`, `p_payer_type`, `p_c3_type`. Fetches the C3 header and joins `ip_wages` with `ip_master` (for person names/DOB). For `EE` type: builds `ipWages` array with all wage/paid-code fields, person details, and contribution amounts. For `NW` type: builds `nonWorkingDirectorWages` array with SSN, name, wages, levy. Returns single JSON object `{ c3Header, ipWages/nonWorkingDirectorWages }`.
+
+**`public_api_c3_last_submitted`** — Accepts `p_payer_id`, `p_payer_type`, `p_sequence_no`, `p_c3_type`. Returns the most recent VAC C3 header (ordered by period DESC, limit 1).
+
+All functions use `SECURITY DEFINER` with `search_path = public` and cast text dates internally.
+
+### Step 2: Add Indexes for Performance
+
 ```sql
-CREATE TABLE public.tb_pay_periods (
-  code VARCHAR(5) PRIMARY KEY,
-  description TEXT,
-  is_active BOOLEAN DEFAULT true,
-  sort_order INTEGER DEFAULT 0,
-  entered_by VARCHAR(50),
-  entered_on TIMESTAMPTZ DEFAULT now(),
-  modified_by VARCHAR(50),
-  modified_on TIMESTAMPTZ
-);
+CREATE INDEX IF NOT EXISTS idx_cn_c3_reported_range_lookup 
+  ON cn_c3_reported(payer_id, payer_type, posting_status, period);
+  
+CREATE INDEX IF NOT EXISTS idx_ip_wages_c3_detail 
+  ON ip_wages(c3_id, payer_type);
 
-INSERT INTO public.tb_pay_periods (code, description, sort_order) VALUES
-  ('W', 'Weekly', 1),
-  ('2W', 'Bi-Weekly', 2),
-  ('S', 'Semi-Monthly', 3),
-  ('M', 'Monthly', 4),
-  ('2M', '2x Monthly', 5);
+CREATE INDEX IF NOT EXISTS idx_ip_master_ssn_name
+  ON ip_master(ssn);
 ```
 
-Add audit trigger (`fn_audit_row_change`) to this table. Add to `DB_TRIGGER_TABLES` set.
+### Step 3: Update `public-api` Edge Function
 
-### Step 2: Create Master Data Screen
+Add 3 new route patterns to `matchRoute()`:
 
-New file: `src/pages/admin/master-data/PayPeriodManagement.tsx`
+```text
+/api/v1/C3/{payerId}/C3Submitted/{payerType}/range/{startPeriod}/{endPeriod},{c3Type}  → c3Range
+/api/v1/C3/{payerId}/C3Submitted/{month},{year},{seq},{payerType},{c3Type}              → c3Detail
+/api/v1/C3/{payerId}/C3Submitted/{payerType}/{sequenceNo},{c3Type}                     → c3LastSubmitted
+```
 
-Follow the exact pattern from `BatchStatusManagement.tsx` — CRUD with code/description/is_active, `PermissionWrapper` gating on `md_pay_periods`, audit fields via `useUserCode()`.
+Add 3 handler functions that call the corresponding RPCs, validate path parameters (payer type must be ER/SE, c3Type must be EE/NW, dates must be dd-MM-yyyy), and return BIMA-compatible JSON responses.
 
-### Step 3: Register Route, Menu Item, Module
+Error responses follow existing pattern: `{ "status": "error", "message": "..." }` with appropriate HTTP status codes (400, 404, 500).
 
-| File | Change |
-|------|--------|
-| `src/components/routing/AppRoutes.tsx` | Import `PayPeriodManagement`, add route `/admin/master-data/pay-periods` |
-| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add "Pay Periods" entry under C3 & Contributions group |
+### Step 4: Register APIs in `api_registry`
 
-Insert `app_modules` row for `md_pay_periods` via Supabase insert tool.
+Insert 3 new rows into `api_registry` via Supabase insert tool:
 
-### Step 4: Bind Levy Slab Detail Form
+| endpoint_path | http_method | api_name | category |
+|---|---|---|---|
+| `/api/v1/C3/:payerId/C3Submitted/:payerType/range/:dates` | GET | C3 Range API | c3-history |
+| `/api/v1/C3/:payerId/C3Submitted/:detail` | GET | C3 Detail API | c3-history |
+| `/api/v1/C3/:payerId/C3Submitted/:last` | GET | C3 Last Submitted | c3-history |
 
-In `src/components/admin/levy-slabs/LevySlabDetailForm.tsx`:
-- Remove hardcoded `PAY_PERIODS` array
-- Add `useQuery` to fetch from `tb_pay_periods` (active only, ordered by `sort_order`)
-- Populate the Select dropdown from the query result
+Note: Since these use dynamic path segments, the registry check in the edge function will need a pattern-matching approach (prefix match on `/api/v1/C3/`) rather than exact match. This will be handled by adding a `c3History` category check in the middleware.
 
-### Step 5: Bind WizEmployeeList
+### Step 5: Generate Integration Guide PDF
 
-In `src/pages/c3Management/employers/WizEmployeeList.tsx`:
-- Remove hardcoded `PAY_PERIODS` record
-- Add `useQuery` to fetch from `tb_pay_periods`
-- Build the lookup map and Select options from query result
-
-### Step 6: Update `DB_TRIGGER_TABLES`
-
-Add `tb_pay_periods` to the set in `globalAuditInterceptor.ts` to prevent duplicate audit entries.
+Create a comprehensive PDF document at `/mnt/documents/C3_History_Sync_Integration_Guide.pdf` covering:
+- Old → New endpoint mapping
+- API key configuration via `/admin/api-keys`
+- Request/response examples
+- First-login sync flow
+- Error handling and retry strategy
+- Migration checklist for C3-Wizard team
 
 ## Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| **Migration SQL** | Create `tb_pay_periods` + seed + audit trigger |
-| `src/pages/admin/master-data/PayPeriodManagement.tsx` | **New** — CRUD screen |
-| `src/components/routing/AppRoutes.tsx` | Add import + route |
-| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add menu entry |
-| `src/components/admin/levy-slabs/LevySlabDetailForm.tsx` | Replace hardcoded array with DB query |
-| `src/pages/c3Management/employers/WizEmployeeList.tsx` | Replace hardcoded record with DB query |
-| `src/services/globalAuditInterceptor.ts` | Add `tb_pay_periods` to `DB_TRIGGER_TABLES` |
-| **Supabase insert** | `app_modules` row for `md_pay_periods` |
+| **Migration SQL** | Create 3 RPC functions + indexes |
+| `supabase/functions/public-api/index.ts` | Add route patterns + handlers for C3 Range, Detail, Last Submitted |
+| `api_registry` rows | Insert 3 new API entries via insert tool |
+| `/mnt/documents/C3_History_Sync_Integration_Guide.pdf` | Generated integration guide |
+
+## Data Mapping Summary
+
+### `cn_c3_reported` → Range/Header Response
+
+| DB Column | API Field |
+|---|---|
+| `payer_id` | `payerId` |
+| `payer_type` | `payerType` |
+| `period` (date) | `period` (formatted `dd/MM/yyyy`) |
+| `sequence_no` | `sequenceNo` |
+| `posting_status` = 'VAC' | `c3Status` = "VAC" |
+| `received_by` | `receivedBy` |
+| `date_received` | `dateReceived` (formatted `dd/MM/yyyy`) |
+| `number_employed` | `numberEmployed` |
+| `emp_ss_amt_calc` | `calcEmpSsAmt` |
+| `emp_levy_amt_calc` | `calcEmpLevyAmt` |
+| `emp_pe_amt_calc` | `calcEmpPeAmt` |
+| `emp_ss_fines_due` | `totalEmpSsFines` |
+| `emp_levy_penalty_amt` | `totalEmpLevyPenalty` |
+| `emp_pe_penalty_amt` | `totalEmpPePenalty` |
+| `entered_by` | `submittedByName` |
+| `nil_return` (bool→int) | `nilReturn` |
+
+### `ip_wages` + `ip_master` → ipWages Response
+
+| DB Column | API Field |
+|---|---|
+| `ip_wages.ssn` | `ssn` |
+| `ip_master.first_name` | `firstName` |
+| `ip_master.last_name` | `surName` |
+| `ip_master.middle_name` | `middleName` |
+| `ip_master.date_of_birth` | `birthDate` (yyyy-MM-dd) |
+| `ip_wages.pay_period` → description from `tb_pay_periods` | `payPeriod` |
+| `ip_wages.paid_code1-7` | `paidCode1-7` (X or empty) |
+| `ip_wages.wages_paid1-7` | `wagesPaid1-7` |
+| `ip_wages.ip_ss_amt` | `ipSsAmt` |
+| `ip_wages.er_ss_amt` | `erSsAmt` |
+| `ip_wages.ip_levy_amt` | `ipLevyAmt` |
+| `ip_wages.er_levy_amt` | `erLevyAmt` |
+| `ip_wages.ip_pe_amt` | `ipPeAmt` |
+| `ip_wages.er_ei_amt` | `erEiAmt` |
+
+## Validation & Edge Cases
+
+- Date format validation: `dd-MM-yyyy` in URL path params
+- Payer type must be `ER` or `SE`
+- c3Type must be `EE` or `NW`
+- Only `posting_status = 'VAC'` records returned
+- Empty array `[]` for no results (HTTP 200, not 404)
+- Person name lookup gracefully handles missing `ip_master` records (returns `employee_name` from `ip_wages` as fallback)
 
