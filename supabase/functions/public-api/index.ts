@@ -652,6 +652,113 @@ async function handleNwDirectorsByLastC3(
   return data || [];
 }
 
+// ── Validation Handlers (Employer/SE Master) ──
+async function handleERMasterDetails(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { regNo } = params;
+  if (!regNo) throw { code: "BAD_REQUEST", message: "registrationNumber is required" };
+  const { data, error } = await supabase.rpc("public_api_er_master_details", { p_reg_no: regNo });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
+async function handleSEMasterDetails(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { ssn } = params;
+  if (!ssn) throw { code: "BAD_REQUEST", message: "ssn is required" };
+  const { data, error } = await supabase.rpc("public_api_se_master_details", { p_ssn: ssn });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
+// ── Employee Lookup Handlers ──
+async function handleIpDetailsByQuery(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { queryParams: qp } = params;
+  // Parse comma-separated params: ssn,dob,firstName,lastName,middleName
+  const parts = qp.split(",");
+  const p_ssn = parts[0] || "";
+  const p_dob = parts[1] || "";
+  const p_first_name = parts[2] || "";
+  const p_last_name = parts[3] || "";
+  const p_middle_name = parts[4] || "";
+
+  const { data, error } = await supabase.rpc("public_api_ip_details_by_query", {
+    p_ssn, p_dob, p_first_name, p_last_name, p_middle_name,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+async function handleMultipleIpDetails(
+  supabase: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>
+) {
+  const employees = payload.employees || payload.Employees || [];
+  if (!Array.isArray(employees) || employees.length === 0) {
+    throw { code: "BAD_REQUEST", message: "employees array is required" };
+  }
+  const { data, error } = await supabase.rpc("public_api_multiple_ip_details", {
+    p_employees: employees,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Profile Sync Handler ──
+async function handleUpdateUser(
+  supabase: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>
+) {
+  if (!payload || Object.keys(payload).length === 0) {
+    throw { code: "BAD_REQUEST", message: "Request body is required" };
+  }
+  const { data, error } = await supabase.rpc("public_api_update_user", {
+    p_payload: payload,
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "BAD_REQUEST", message: data.error };
+  return data;
+}
+
+// ── Payment Handlers ──
+async function handlePaymentSave(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>,
+  payload: Record<string, unknown>
+) {
+  const { payerId, payerType } = params;
+  if (!payerId || !payerType) throw { code: "BAD_REQUEST", message: "payerId and payerType are required" };
+  const { data, error } = await supabase.rpc("public_api_payment_save", {
+    p_payer_id: payerId,
+    p_payer_type: payerType,
+    p_payload: payload,
+  });
+  if (error) throw error;
+  if (data && data.error) throw { code: "BAD_REQUEST", message: data.error };
+  return data;
+}
+
+async function handleReceiptLookup(
+  supabase: ReturnType<typeof createClient>,
+  params: Record<string, string>
+) {
+  const { receiptNo } = params;
+  if (!receiptNo) throw { code: "BAD_REQUEST", message: "receiptNo is required" };
+  const { data, error } = await supabase.rpc("public_api_get_receipt", { p_receipt_no: receiptNo });
+  if (error) throw error;
+  if (data && data.error) throw { code: "NOT_FOUND", message: data.error };
+  return data;
+}
+
 // ── Route Matching ──
 function matchRoute(path: string, method: string): { handler: string; params: Record<string, string> } | null {
   if (path === "/api/v1/health" && method === "GET") {
