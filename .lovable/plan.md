@@ -1,58 +1,43 @@
 
 
-# C3-Wizard Configuration — SSB Admin Credentials for `c3_site_settings`
+# C3-Wizard Path Verification — Response (No Code Changes Needed)
 
-## What C3-Wizard Needs
+## Analysis
 
-The C3-Wizard team needs two values for their `c3_site_settings` table:
+The 5 "mismatches" are between the **handoff document** (which had incorrect paths) and the **actual running code**. The edge function already uses the paths C3-Wizard expects.
 
-### 1. `SSB_BIMA_BASE_URL`
+## Confirmed Paths (Current Implementation)
 
-The base URL for all SSB Admin public APIs:
+| # | Endpoint | Correct Path (Already Live) | C3-Wizard's Code | Match? |
+|---|----------|---------------------------|-------------------|--------|
+| 1 | Employee Lookup | `GET /Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}` | Same | ✅ Multi-param, lowercase "p" |
+| 2 | Bulk SSN Lookup | `POST /Employee/getMultipleIpDetails` | Same | ✅ Lowercase "p" |
+| 3 | Profile Update | `POST /User/updateUser` | Same | ✅ `/User/` prefix |
+| 4 | Payment Save | `POST /api/payment/save/{payerId}/{payerType}` | Same | ✅ payerId/payerType in URL |
+| 5 | Receipt Lookup | `GET /api/payment/getReceipt/{receiptNo}` | Same | ✅ `/api/payment/` prefix |
 
-```
-https://xynceskeiiisiefqlgxo.supabase.co/functions/v1/public-api/api/v1
-```
+## What Needs to Happen
 
-This is the edge function URL with the `/api/v1` path prefix that all endpoints expect.
+1. **Update the handoff document** (`C3_Wizard_API_Configuration_Handoff.md`) to fix the 5 incorrect endpoint paths so future references are accurate
+2. **Generate a response message** to C3-Wizard confirming all 5 paths match their existing code — no changes needed on their side
 
-### 2. `SSB_BIMA_API_KEY`
+## Response to C3-Wizard Team
 
-The API key for the **"C3 Wizard Application"** entry already exists in the system (`public_api_keys` table, ID: `cb45c54e-6946-4cd1-a007-c3c1cf33d5f0`, status: active).
+> **Subject: RE: Endpoint Path Verification — All 5 Paths Confirmed**
+>
+> All 5 paths in your existing code are correct. The discrepancies were in our documentation, not the live API. Here are the confirmed paths:
+>
+> 1. `GET /Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}` — multi-param, lowercase "p"
+> 2. `POST /Employee/getMultipleIpDetails` — lowercase "p"
+> 3. `POST /User/updateUser` — `/User/` prefix
+> 4. `POST /api/payment/save/{payerId}/{payerType}` — payerId/payerType in URL path
+> 5. `GET /api/payment/getReceipt/{receiptNo}` — `/api/payment/` prefix
+>
+> No changes needed on your side. Please proceed with inserting the config values and re-testing SE SSN 100010.
 
-**However**, the plain-text key is encrypted and can only be retrieved through the admin UI:
-1. Log into SSB Admin
-2. Navigate to **Admin → API Keys Management**
-3. Find the **"C3 Wizard Application"** key
-4. Click the **reveal/copy** button to get the plain-text API key
-5. Share that value as `SSB_BIMA_API_KEY`
+## Files Modified
 
-## What to Share with C3-Wizard Team
-
-Once you retrieve the API key from the admin UI, send them this message:
-
----
-
-**Subject: SSB Admin API Credentials for c3_site_settings**
-
-**To: C3-Wizard Development Team**
-
-Please insert the following into your `c3_site_settings` table:
-
-| Setting Key | Value |
-|---|---|
-| `SSB_BIMA_BASE_URL` | `https://xynceskeiiisiefqlgxo.supabase.co/functions/v1/public-api/api/v1` |
-| `SSB_BIMA_API_KEY` | *(the API key retrieved from the admin panel — shared separately)* |
-
-**Usage**: All API calls should use:
-- **Header**: `x-api-key: {SSB_BIMA_API_KEY}`  
-- **Base URL**: `{SSB_BIMA_BASE_URL}` + endpoint path (e.g., `/Employer/getERMasterDetails/{regNo},{email}`)
-
-**Confirmation**: The `BIMA_API_USERNAME` and `BIMA_API_PASSWORD` secrets are no longer needed and can be safely deleted from your configuration.
-
----
-
-## No Code Changes Required
-
-This is a configuration handoff — no code changes are needed on the SSB Admin side. The API key and base URL already exist and are functional.
+| File | Change |
+|------|--------|
+| `/mnt/documents/C3_Wizard_API_Configuration_Handoff.md` | Fix 5 endpoint paths to match actual implementation |
 
