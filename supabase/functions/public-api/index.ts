@@ -829,6 +829,58 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
         params: { registrationNumber: nwMatch[1] },
       };
     }
+
+    // ── Employee Lookup: IP Details by Query ──
+    // /api/v1/Employee/getIpDetailsByQuery/{ssn},{dob},{fname},{lname},{mname}
+    const ipQueryMatch = path.match(/^\/api\/v1\/Employee\/getIpDetailsByQuery\/(.+)$/);
+    if (ipQueryMatch) {
+      return {
+        handler: "ipDetailsByQuery",
+        params: { queryParams: decodeURIComponent(ipQueryMatch[1]) },
+      };
+    }
+
+    // ── Validation: Employer Master Details ──
+    const erMatch = path.match(/^\/api\/v1\/Employer\/getERMasterDetails\/([^/]+)$/);
+    if (erMatch) {
+      return { handler: "erMasterDetails", params: { regNo: erMatch[1] } };
+    }
+
+    // ── Validation: SE Master Details ──
+    const seMatch = path.match(/^\/api\/v1\/Employer\/getSEMasterDetails\/([^/]+)$/);
+    if (seMatch) {
+      return { handler: "seMasterDetails", params: { ssn: seMatch[1] } };
+    }
+
+    // ── Payment: Get Receipt ──
+    const receiptMatch = path.match(/^\/api\/v1\/api\/payment\/getReceipt\/([^/]+)$/);
+    if (receiptMatch) {
+      return { handler: "receiptLookup", params: { receiptNo: receiptMatch[1] } };
+    }
+
+    // ── Utility: ReferenceData/about ──
+    if (path.match(/^\/api\/v1\/ReferenceData\/about\/?$/)) {
+      return { handler: "health", params: {} };
+    }
+  }
+
+  // ── POST routes ──
+  if (method === "POST") {
+    // Multiple IP Details
+    if (path === "/api/v1/Employee/getMultipleIpDetails") {
+      return { handler: "multipleIpDetails", params: {} };
+    }
+
+    // Update User
+    if (path === "/api/v1/User/updateUser") {
+      return { handler: "updateUser", params: {} };
+    }
+
+    // Payment Save: /api/v1/api/payment/save/{payerId}/{payerType}
+    const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
+    if (paymentMatch) {
+      return { handler: "paymentSave", params: { payerId: paymentMatch[1], payerType: paymentMatch[2] } };
+    }
   }
 
   const masterMatch = path.match(/^\/api\/v1\/([a-z0-9-]+)\/?$/);
