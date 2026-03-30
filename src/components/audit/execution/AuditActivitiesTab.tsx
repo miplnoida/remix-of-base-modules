@@ -113,23 +113,14 @@ function InlineWorkingPaperForm({ auditId, activityId, onClose }: { auditId: str
 
   const handleSave = async () => {
     if (!form.title) return;
-    let filePath: string | null = null;
-    const file = fileRef.current?.files?.[0];
-    if (file) {
-      if (!ALLOWED_FILE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) {
-        toast({ title: 'Invalid file', variant: 'destructive' }); return;
-      }
-      setUploading(true);
-      const path = `working-papers/${auditId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from('audit-attachments').upload(path, file);
-      setUploading(false);
-      if (error) { toast({ title: 'Upload failed', variant: 'destructive' }); return; }
-      filePath = path;
-    }
     create.mutate({
-      title: form.title, reference_number: form.reference_number || null,
-      description: form.description || null, paper_type: form.paper_type,
-      file_path: filePath, engagement_id: auditId, activity_id: activityId,
+      title: form.title,
+      working_paper_id: form.reference_number || null,
+      description: form.description || null,
+      audit_area: form.paper_type || 'Analysis',
+      engagement_id: auditId,
+      activity_id: activityId,
+      status: 'Draft',
     } as any, { onSuccess: onClose });
   };
 
