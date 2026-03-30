@@ -219,6 +219,8 @@ import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import PlanApproval from '@/pages/audit/PlanApproval';
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
+const HolidayCalendar = lazy(() => import('@/pages/audit/HolidayCalendar'));
+const AuditorLeaveManagement = lazy(() => import('@/pages/audit/AuditorLeaveManagement'));
 
 // Reports
 import ReportsHub from '@/pages/reports/ReportsHub';
