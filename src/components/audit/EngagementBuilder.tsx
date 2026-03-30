@@ -186,7 +186,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
 
   return (
     <>
-      {isLocked && (
+      {isLocked && !isApproved && (
         <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
           <span className="font-medium">🔒 Plan is under review.</span> Editing is disabled until the approval process completes.
         </div>
