@@ -10,7 +10,9 @@ import {
   AlertCircle,
   CheckSquare,
   BarChart3,
-  ClipboardCheck
+  ClipboardCheck,
+  Calendar,
+  Clock
 } from "lucide-react";
 
 export const auditMenuItems = [

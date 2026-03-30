@@ -88,6 +88,10 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
   { moduleKey: 'findings', label: 'Findings', path: '/audit/findings', permission: 'enter_audit_findings', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FINDINGS, category: 'execution', component: 'FindingsManagement' },
 
+  // ===== Resources =====
+  { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
+  { moduleKey: 'leave-management', label: 'Auditor Leave', path: '/audit/leave', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_LEAVE_MANAGEMENT, category: 'planning', component: 'AuditorLeaveManagement' },
+
   // ===== Follow-up =====
   { moduleKey: 'action-tracking', label: 'Action Tracker', path: '/audit/actions', permission: 'manage_audit_followups', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ACTION_TRACKING, category: 'followup', component: 'ActionTracking' },
 

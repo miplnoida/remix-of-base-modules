@@ -67,11 +67,11 @@ export default function AuditorLeaveManagement() {
   };
 
   const handleApprove = (id: string) => {
-    mutations.update.mutate({ id, status: 'Approved', decided_date: new Date().toISOString(), updated_by: userCode });
+    mutations.updateStatus.mutate({ id, status: 'Approved' });
   };
 
   const handleReject = (id: string) => {
-    mutations.update.mutate({ id, status: 'Rejected', decided_date: new Date().toISOString(), updated_by: userCode });
+    mutations.updateStatus.mutate({ id, status: 'Rejected' });
   };
 
   const columns: DataTableColumn<any>[] = [
