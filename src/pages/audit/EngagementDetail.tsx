@@ -37,6 +37,7 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
   const alerts: { type: 'warning' | 'info' | 'error'; message: string }[] = [];
   const execStatus = audit.execution_status || 'Planned';
 
+  // Start date alerts
   if ((execStatus === 'Planned' || execStatus === 'Ready for Launch') && audit.planned_start_date) {
     const daysUntilStart = Math.ceil((new Date(audit.planned_start_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysUntilStart <= 7 && daysUntilStart > 0) {
@@ -46,6 +47,7 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     }
   }
 
+  // Pending management responses
   const pendingResponses = auditFindings.filter(f =>
     !auditResponses.find(r => r.finding_id === f.id) && f.status !== 'Closed'
   );
@@ -53,11 +55,38 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
     alerts.push({ type: 'warning', message: `${pendingResponses.length} finding(s) awaiting management response.` });
   }
 
+  // Overdue actions
   const overdueActions = auditActions.filter(a =>
     a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()
   );
   if (overdueActions.length > 0) {
     alerts.push({ type: 'error', message: `${overdueActions.length} overdue action item(s).` });
+  }
+
+  // Missing evidence on findings
+  const findingsWithoutEvidence = auditFindings.filter(f =>
+    f.status !== 'Closed' && (!f.evidence_ids || (Array.isArray(f.evidence_ids) && f.evidence_ids.length === 0))
+  );
+  if (findingsWithoutEvidence.length > 0) {
+    alerts.push({ type: 'info', message: `${findingsWithoutEvidence.length} finding(s) have no supporting evidence attached.` });
+  }
+
+  // Unassigned actions
+  const unassignedActions = auditActions.filter(a =>
+    !a.assigned_to && !['Completed', 'Closed'].includes(a.status || '')
+  );
+  if (unassignedActions.length > 0) {
+    alerts.push({ type: 'warning', message: `${unassignedActions.length} action(s) have no assignee.` });
+  }
+
+  // End date approaching
+  if (audit.planned_end_date && !['Closed', 'Completed'].includes(execStatus)) {
+    const daysUntilEnd = Math.ceil((new Date(audit.planned_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysUntilEnd <= 3 && daysUntilEnd > 0) {
+      alerts.push({ type: 'warning', message: `Planned end date is in ${daysUntilEnd} day(s).` });
+    } else if (daysUntilEnd <= 0) {
+      alerts.push({ type: 'error', message: `Planned end date has passed (${Math.abs(daysUntilEnd)} day(s) overdue).` });
+    }
   }
 
   if (alerts.length === 0) return null;

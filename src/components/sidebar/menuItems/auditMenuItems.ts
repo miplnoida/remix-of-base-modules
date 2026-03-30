@@ -10,7 +10,9 @@ import {
   AlertCircle,
   CheckSquare,
   BarChart3,
-  ClipboardCheck
+  ClipboardCheck,
+  Calendar,
+  Clock
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -76,6 +78,25 @@ export const auditMenuItems = [
         icon: ClipboardCheck,
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
+      },
+      // ── Resources ──
+      {
+        title: "Resources",
+        isGroupLabel: true,
+      },
+      {
+        title: "Holiday Calendar",
+        url: "/audit/holidays",
+        icon: Calendar,
+        requiresPermission: "view_audit_assignments",
+        description: "Public holidays and non-working days"
+      },
+      {
+        title: "Auditor Leave",
+        url: "/audit/leave",
+        icon: Clock,
+        requiresPermission: "view_audit_assignments",
+        description: "Manage auditor leave schedules"
       },
       // ── Execution ──
       {

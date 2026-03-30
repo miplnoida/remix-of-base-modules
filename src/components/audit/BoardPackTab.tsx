@@ -332,34 +332,35 @@ async function generateDetailedPlanPdf(
 
     // Gold accent lines
     doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-    doc.rect(pw * 0.2, 85, pw * 0.6, 2.5, 'F');
-    doc.rect(pw * 0.25, 90, pw * 0.5, 0.8, 'F');
+    doc.rect(pw * 0.2, 80, pw * 0.6, 2.5, 'F');
+    doc.rect(pw * 0.25, 85, pw * 0.5, 0.8, 'F');
 
     // Organization name
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont(undefined as any, 'bold');
-    doc.text(config.headerTitle || 'Social Security Board', pw / 2, 110, { align: 'center' });
+    doc.text(config.headerTitle || 'Social Security Board', pw / 2, 100, { align: 'center' });
 
     // Department
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setFont(undefined as any, 'normal');
-    doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 122, { align: 'center' });
+    doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 112, { align: 'center' });
 
-    // Main title
-    doc.setFontSize(28);
+    // Main title — use splitTextToSize to prevent overlap
+    doc.setFontSize(26);
     doc.setFont(undefined as any, 'bold');
-    doc.text('Annual Internal', pw / 2, ph * 0.42, { align: 'center' });
-    doc.text('Audit Plan', pw / 2, ph * 0.42 + 14, { align: 'center' });
+    const titleY = ph * 0.40;
+    doc.text('Annual Internal', pw / 2, titleY, { align: 'center' });
+    doc.text('Audit Plan', pw / 2, titleY + 16, { align: 'center' });
 
     // Fiscal year
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont(undefined as any, 'normal');
-    doc.text(`Fiscal Year ${dv(plan?.fiscal_year, 'N/A')}`, pw / 2, ph * 0.42 + 35, { align: 'center' });
+    doc.text(`Fiscal Year ${dv(plan?.fiscal_year, 'N/A')}`, pw / 2, titleY + 40, { align: 'center' });
 
-    // Metadata block — centered
-    const metaY = ph * 0.62;
-    doc.setFontSize(11);
+    // Metadata block — positioned with more breathing room
+    const metaY = ph * 0.65;
+    doc.setFontSize(10);
     doc.setTextColor(200, 230, 210);
     const metaLines = [
       `Plan Version: v${version}`,
@@ -371,7 +372,7 @@ async function generateDetailedPlanPdf(
       if (plan?.approved_date) metaLines.push(`Approved Date: ${formatDateForDisplay(plan.approved_date)}`);
     }
     metaLines.forEach((line, i) => {
-      doc.text(line, pw / 2, metaY + i * 9, { align: 'center' });
+      doc.text(line, pw / 2, metaY + i * 10, { align: 'center' });
     });
 
     // Confidentiality note at bottom
