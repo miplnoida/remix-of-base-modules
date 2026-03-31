@@ -25,6 +25,7 @@ interface CardMachine {
   settlement_account_no: string | null;
   settlement_account_name: string | null;
   notes: string | null;
+  office_code: string | null;
   created_by: string | null;
   created_at: string;
   modified_by: string | null;
