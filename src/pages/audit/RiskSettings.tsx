@@ -705,7 +705,6 @@ export default function RiskSettings() {
     <PageShell
       title="Risk Configuration"
       subtitle="Centralized risk settings for the Internal Audit module"
-      icon={Shield}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
