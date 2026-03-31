@@ -499,10 +499,19 @@ function OpenBatchDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Office Location</Label>
             <Input
-              value={officeLoading ? 'Loading...' : (resolvedOffice ? `${resolvedOffice.description} (${resolvedOffice.code})` : selectedCashier?.office_description || selectedCashier?.office_code || '—')}
+              value={
+                officeLoading || ipChecking
+                  ? 'Detecting...'
+                  : effectiveOffice
+                    ? `${effectiveOffice.description} (${effectiveOffice.code})`
+                    : '—'
+              }
               disabled
             />
-            {resolvedOffice?.isOverride && (
+            {ipDetectedOffice && (
+              <p className="text-xs text-primary">Detected from IP: {ipDetectedOffice.ip}</p>
+            )}
+            {!ipDetectedOffice && resolvedOffice?.isOverride && (
               <p className="text-xs text-primary">(Override by Head Cashier)</p>
             )}
           </div>
