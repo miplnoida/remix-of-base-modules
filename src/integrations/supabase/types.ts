@@ -6169,6 +6169,7 @@ export type Database = {
           bank_code: string | null
           bank_lodgement_code: string | null
           base_currency: string
+          card_machine_id: string | null
           cheque_date: string | null
           created_at: string | null
           credit_card_code: string | null
@@ -6192,6 +6193,7 @@ export type Database = {
           bank_code?: string | null
           bank_lodgement_code?: string | null
           base_currency?: string
+          card_machine_id?: string | null
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
@@ -6215,6 +6217,7 @@ export type Database = {
           bank_code?: string | null
           bank_lodgement_code?: string | null
           base_currency?: string
+          card_machine_id?: string | null
           cheque_date?: string | null
           created_at?: string | null
           credit_card_code?: string | null
@@ -6234,7 +6237,15 @@ export type Database = {
           payment_sequence_no?: number
           period?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cn_payment_card_machine_id_fkey"
+            columns: ["card_machine_id"]
+            isOneToOne: false
+            referencedRelation: "cn_card_machine"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cn_payment_header: {
         Row: {
@@ -24421,14 +24432,14 @@ export type Database = {
         | {
             Args: {
               p_batch_number: string
-              p_components: Json
+              p_components?: Json
               p_date_received: string
-              p_methods: Json
+              p_methods?: Json
               p_payer_id: string
               p_payer_type: string
-              p_receipt_total: number
-              p_remarks: string
-              p_user_code: string
+              p_receipt_total?: number
+              p_remarks?: string
+              p_user_code?: string
             }
             Returns: Json
           }
@@ -25212,7 +25223,7 @@ export type Database = {
               p_payer_type: string
               p_receipt_total: number
               p_remarks: string
-              p_user_code: string
+              p_user_code?: string
             }
             Returns: Json
           }
