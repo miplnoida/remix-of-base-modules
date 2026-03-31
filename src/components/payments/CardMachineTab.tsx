@@ -123,6 +123,7 @@ const CardMachineTab: React.FC = () => {
       settlement_account_no: machine.settlement_account_no || '',
       settlement_account_name: machine.settlement_account_name || '',
       notes: machine.notes || '',
+      office_code: machine.office_code || '',
     });
     setErrors({});
     setDialogOpen(true);
