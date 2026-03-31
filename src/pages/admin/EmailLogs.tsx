@@ -352,6 +352,30 @@ export default function EmailLogs() {
                     <p className="font-medium">{selectedLog.trigger_source}</p>
                   </div>
                 )}
+                {selectedLog.metadata?.payer_type && (
+                  <div>
+                    <p className="text-muted-foreground">Payer Type</p>
+                    <p className="font-medium">{String(selectedLog.metadata.payer_type)}</p>
+                  </div>
+                )}
+                {selectedLog.metadata?.payer_id && (
+                  <div>
+                    <p className="text-muted-foreground">Payer ID</p>
+                    <p className="font-medium font-mono">{String(selectedLog.metadata.payer_id)}</p>
+                  </div>
+                )}
+                {selectedLog.metadata?.document_type && (
+                  <div>
+                    <p className="text-muted-foreground">Document Type</p>
+                    <p className="font-medium capitalize">{String(selectedLog.metadata.document_type)}</p>
+                  </div>
+                )}
+                {selectedLog.metadata?.document_number && (
+                  <div>
+                    <p className="text-muted-foreground">Document #</p>
+                    <p className="font-medium">{String(selectedLog.metadata.document_number)}</p>
+                  </div>
+                )}
               </div>
 
               {selectedLog.failure_reason && (
