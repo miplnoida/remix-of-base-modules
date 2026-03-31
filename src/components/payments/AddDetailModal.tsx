@@ -77,6 +77,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
   const [mopOpen, setMopOpen] = useState(false);
   const [paymentCodeSearch, setPaymentCodeSearch] = useState('');
   const [mopSearch, setMopSearch] = useState('');
+  const [cardMachineId, setCardMachineId] = useState('');
   
   const paymentCodeTriggerRef = useRef<HTMLButtonElement>(null);
 
