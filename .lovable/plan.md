@@ -1,67 +1,61 @@
-# Fix: ER & SE Validation APIs — Return Complete Registration Data
 
-## Problem
+Goal: make Live publish-safe by reconciling the ER/SE validation RPCs to the latest 2-parameter contract.
 
-Comparing the C3-Wizard registration form fields (screenshots) with the current API responses reveals several missing or incorrectly mapped fields.
+What I found
+- Test already has the latest signatures:
+  - `public_api_er_master_details(p_reg_no text, p_email text)`
+  - `public_api_se_master_details(p_ssn text, p_email text)`
+- Live is still on older definitions with `DEFAULT NULL` on `p_email`.
+- The public API edge function already enforces `/{identifier},{email}` and always calls both params, so the 1-parameter form is not used by the app.
+- Generated client types also expect both params as required.
 
-### ER Endpoint Gaps (`getERMasterDetails`)
+Root cause
+- There is schema drift between Test and Live for these two RPCs.
+- Recent changes removed `DEFAULT NULL` from `p_email`, but Live still has the older defaulted definitions.
+- PostgreSQL is strict about function signature/default changes; the safest way to converge Live is a clean drop + recreate using the latest function bodies.
+- Because these functions evolved across older 1-param and later defaulted 2-param versions, a defensive migration should remove both callable forms before recreating the final 2-param version.
 
+Implementation plan
+1. Create one new forward-only migration after the existing RPC migrations.
+2. In that migration, for both ER and SE functions:
+   - drop `(...TEXT)`
+   - drop `(...TEXT, TEXT)`
+   - recreate only the latest 2-parameter version without defaults
+3. Use the latest function bodies already present in the repo, including:
+   - ER: `mobile` from `er_master.mobile`, `fax`, `country`
+   - SE: `mobile` from `ip_master.phone_mobile`, `country`, `selfRefNo`, `city`, `wageCategory`
+4. Do not change the edge function or frontend:
+   - the edge function already requires email
+   - current code already matches the 2-parameter contract
+5. Publish after the migration is added so Live gets the same RPC definitions as Test.
 
-| Registration Form Field | Current API Response                    | Issue                                                                                                       |
-| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Contact Person**      | `contactPerson` = `name` (company name) | Wrong — should be a contact person, but `er_master` has no dedicated column. Current mapping is misleading. |
-| **Mobile Number**       | `mobile` = `fax`                        | Wrong — `er_master` has a `mobile` column; should use that instead of `fax`                                 |
-| **Name of Company**     | `companyName` = `name`                  | Correct                                                                                                     |
-| **Is Levy Exempt**      | Hardcoded `false`                       | No source column exists — acceptable default                                                                |
-| **Country**             | Not returned                            | Missing — needs to be added (default "St. Kitts and Nevis" or derive from `village_code`)                   |
-| **Postal Code**         | Returns `''`                            | No source column — acceptable                                                                               |
-| **City**                | Returns `''`                            | Could derive from `village_code`                                                                            |
+Why this is the safest publish fix
+- It avoids editing historical migrations that may already differ across environments.
+- It aligns Live to the actual current contract used by code.
+- It removes ambiguity from older callable forms and prevents the default-parameter conflict from blocking publish again.
 
+Technical details
+```text
+New migration actions:
 
-### SE Endpoint Gaps (`getSEMasterDetails`)
+DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT);
+DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT, TEXT);
 
+DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT);
+DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT, TEXT);
 
-| Registration Form Field | Current API Response              | Issue                                                     |
-| ----------------------- | --------------------------------- | --------------------------------------------------------- |
-| **Date of Birth**       | `dateOfBirth` ✓                   | Correct                                                   |
-| **Wage Category**       | `wageCategory` ✓                  | Correct                                                   |
-| **Mobile Number**       | `mobile` = `''`                   | Missing — should use `ip_master.phone_mobile`             |
-| **Phone Number**        | `phone` = `ip_self_employ.phone`  | Correct                                                   |
-| **TIN Number**          | `tin` = `''`                      | No source — acceptable                                    |
-| **Country**             | Not returned                      | Missing — needs to be added                               |
-| **Address fields**      | From `ip_master.resident_addr1/2` | Correct                                                   |
-| **City**                | Returns `''`                      | Could derive from `ip_master.district`                    |
-| **Self Ref No**         | Not returned                      | Missing — `ip_self_employ.self_ref_no` should be included |
+CREATE OR REPLACE FUNCTION public.public_api_er_master_details(
+  p_reg_no TEXT,
+  p_email TEXT
+) ...
 
+CREATE OR REPLACE FUNCTION public.public_api_se_master_details(
+  p_ssn TEXT,
+  p_email TEXT
+) ...
+```
 
-## Plan
-
-### Single Database Migration
-
-Update both RPCs to fix the identified gaps:
-
-#### 1. `public_api_er_master_details` fixes:
-
-- `**mobile**`: Change from `v_rec.fax` → `v_rec.mobile` (use the actual mobile column)
-- `**fax**`: Add as separate field using `v_rec.fax`
-- `**country**`: Add field, default `'St. Kitts and Nevis'`
-- `**contactPerson**`: Keep as company name (no better source exists) — document this
-
-#### 2. `public_api_se_master_details` fixes:
-
-- `**mobile**`: Change from `''` → `v_ip.phone_mobile`
-- `**country**`: Add field, default `'St. Kitts and Nevis'`
-- `**selfRefNo**`: Add field from `v_se.self_ref_no`
-- `**city**`: Map from `v_ip.district` (return the district code; wizard can resolve)
-
-### Files Changed
-
-- **1 new migration**: Updates both RPC functions with corrected field mappings
-
-### No Edge Function Changes
-
-The `public-api/index.ts` passes through RPC JSON responses — no handler changes needed.  
-  
-Important note: After doing this, please create a proper message for the C3-wizard to do all the chnages required there by these changes in this project to make the c3-wizard working properly according to the changes in this project.  
-  
-Aslo, in the SE , wage category is not returning or showing , if error from myour side please fix it otherwise add this in the message to check from the C3-wizard side.
+Expected outcome
+- Live and Test will both use the same latest 2-parameter RPC signatures.
+- Publish should no longer fail because of these ER/SE function definitions.
+- C3-Wizard-facing responses will remain on the latest field mapping already prepared in the current repo.
