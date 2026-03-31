@@ -256,8 +256,9 @@ const CardMachineManagement: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
+                     <TableHead>Code</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Office</TableHead>
                     <TableHead>Card Type</TableHead>
                     <TableHead>Bank</TableHead>
                     <TableHead>Settlement A/C</TableHead>
