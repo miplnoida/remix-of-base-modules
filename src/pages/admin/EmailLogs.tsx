@@ -80,7 +80,9 @@ export default function EmailLogs() {
       !search ||
       l.recipient_address?.toLowerCase().includes(search.toLowerCase()) ||
       l.subject?.toLowerCase().includes(search.toLowerCase()) ||
-      l.resend_message_id?.toLowerCase().includes(search.toLowerCase())
+      l.resend_message_id?.toLowerCase().includes(search.toLowerCase()) ||
+      l.metadata?.payer_id?.toString().toLowerCase().includes(search.toLowerCase()) ||
+      l.metadata?.document_number?.toString().toLowerCase().includes(search.toLowerCase())
   );
 
   const handleRetry = async (log: EmailLog) => {
