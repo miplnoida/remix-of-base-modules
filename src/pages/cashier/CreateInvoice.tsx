@@ -461,6 +461,21 @@ const CreateInvoice: React.FC = () => {
       } catch (printErr: any) {
         toast.error('Print failed', { description: printErr.message });
       }
+
+      // Email delivery logic
+      const payerEmailAddr = isAP ? payerEmail : (payerInfo?.email || '');
+      if (invoiceEmailMode === 'always' && payerEmailAddr) {
+        sendDocumentEmail({
+          documentType: 'invoice',
+          documentId: result.invoice_id,
+          documentNumber: result.invoice_number,
+          recipientEmail: payerEmailAddr,
+          userCode: userCode || 'SYSTEM',
+        });
+      } else if (invoiceEmailMode === 'ask' && payerEmailAddr) {
+        setPendingEmailDoc({ id: result.invoice_id, number: result.invoice_number, email: payerEmailAddr });
+        setShowEmailPrompt(true);
+      }
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });
     } finally {
