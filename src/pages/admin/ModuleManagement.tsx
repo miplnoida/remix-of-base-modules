@@ -43,6 +43,8 @@ import { cn } from "@/lib/utils";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 import { BusinessObjectRootConfig } from "@/components/admin/BusinessObjectRootConfig";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { toast } from "sonner";
 
 // Helper to get Lucide icon by name
 const getIcon = (iconName: string | null) => {
