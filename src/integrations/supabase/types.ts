@@ -21512,6 +21512,7 @@ export type Database = {
           address2: string
           code: string
           description: string
+          is_active: boolean | null
           office_email: string | null
           office_end_time: string | null
           office_phone: string | null
@@ -21522,6 +21523,7 @@ export type Database = {
           address2?: string
           code: string
           description: string
+          is_active?: boolean | null
           office_email?: string | null
           office_end_time?: string | null
           office_phone?: string | null
@@ -21532,6 +21534,7 @@ export type Database = {
           address2?: string
           code?: string
           description?: string
+          is_active?: boolean | null
           office_email?: string | null
           office_end_time?: string | null
           office_phone?: string | null
