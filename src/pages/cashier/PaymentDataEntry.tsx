@@ -11,9 +11,11 @@ import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDe
 import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
+import { EmailDeliveryPrompt } from '@/components/payments/EmailDeliveryPrompt';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
+import { useEmailDeliveryConfig, sendDocumentEmail } from '@/hooks/useEmailDeliveryConfig';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
