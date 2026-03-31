@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Flag, MapPin, Plus, Trash2, Target, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, Bell, Flag, MapPin, Plus, Trash2, Target, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { NotificationTriggerManager } from '@/components/audit/NotificationTriggerManager';
 import { TemplatePolicyMatrix } from '@/components/audit/TemplatePolicyMatrix';
 import { Badge } from '@/components/ui/badge';
