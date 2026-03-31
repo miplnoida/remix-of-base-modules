@@ -147,6 +147,13 @@ const AVAILABLE_PLACEHOLDERS = [
   { key: '{{TASK_NAME}}', description: 'Workflow task name' },
   { key: '{{ASSIGNED_TO}}', description: 'Person task is assigned to' },
   { key: '{{SLA_DEADLINE}}', description: 'SLA deadline datetime' },
+  // Document / Invoice / Receipt placeholders
+  { key: '{{DOCUMENT_NUMBER}}', description: 'Invoice or receipt number' },
+  { key: '{{PAYER_NAME}}', description: 'Name of the payer' },
+  { key: '{{PAYER_ID}}', description: 'Payer identifier (SSN/RegNo)' },
+  { key: '{{TOTAL_AMOUNT}}', description: 'Total document amount' },
+  { key: '{{CURRENCY_CODE}}', description: 'Currency code (e.g. XCD)' },
+  { key: '{{DOCUMENT_DATE}}', description: 'Document creation date' },
 ];
 
 // ─── Helper ────────────────────────────────────────────────────────────────────

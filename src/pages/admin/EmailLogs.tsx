@@ -270,7 +270,6 @@ export default function EmailLogs() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{log.trigger_source || "—"}</TableCell>
                     <TableCell>{log.retry_count ?? 0}</TableCell>
-                    <TableCell>{log.retry_count ?? 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => setSelectedLog(log)} title="View details">

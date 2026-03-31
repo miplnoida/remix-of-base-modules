@@ -25,7 +25,7 @@ export async function fetchInvoiceTemplate(): Promise<string> {
 /**
  * Fetch all data needed to render an invoice
  */
-async function fetchInvoiceData(invoiceId: number) {
+export async function fetchInvoiceData(invoiceId: number) {
   const [invoiceRes, linesRes, ptRes, statusRes] = await Promise.all([
     supabase.from('cn_invoices').select('*').eq('id', invoiceId).single(),
     supabase.from('cn_invoice_lines').select('*').eq('invoice_id', invoiceId).order('sort_order'),
