@@ -7,8 +7,6 @@ import {
   Grid3X3,
   FileText,
   Briefcase,
-  AlertCircle,
-  CheckSquare,
   BarChart3,
   ClipboardCheck,
   Calendar,
