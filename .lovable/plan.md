@@ -1,47 +1,72 @@
 
 
-# Fix: Invoice Attachment in Email, Email Log Creation, and Email Template for Documents
+# Card Machine Selection for CRD/DRD Payments
 
-## Root Cause Analysis
+## Overview
 
-### 1. Invoice/Receipt Missing from Email Attachment
-The `sendDocumentEmail()` in `useEmailDeliveryConfig.ts` sends a generic notification body ("Your invoice has been generated") but **never generates or attaches the actual invoice/receipt HTML**. The invoice rendering logic exists in `invoicePrinter.ts` (`fetchInvoiceTemplate` + `fetchInvoiceData`) but these functions are private and never called during email composition.
+When a cashier selects Credit Card (CRD) or Debit Card (DRD) as payment method, a mandatory card-machine dropdown must appear, filtered by the office location of the selected batch. If no machines are configured for that office, payment submission is blocked with a clear error.
 
-### 2. Email Log Not Created in `notification_logs`
-The `notification_logs.triggered_by` column has a **foreign key constraint** referencing `auth.users(id)` (UUID). The edge function passes a user code string (e.g., `"JBarry"`) into this field, causing the insert to fail silently. The edge function's `logToSystem` helper swallows errors with a `try/catch`, so no error surfaces.
-
-### 3. Email Template for Invoices/Receipts
-Currently `sendDocumentEmail` uses a hardcoded HTML body. The user wants admin-editable email templates via the existing Email Template Manager screen. We will seed two templates (`invoice_email` and `receipt_email`) with appropriate placeholders and modify `sendDocumentEmail` to fetch the template from `notification_templates` by `template_code`.
+This affects three screens (PaymentDataEntry, SearchPayInvoices, C3Payments) and two modal components (PaymentMethodModal, AddDetailModal).
 
 ---
 
-## Changes
+## Technical Details
 
-### 1. Database Migration
-- **Drop the FK constraint** `notification_logs_triggered_by_fkey` so the `triggered_by` column can accept user code strings instead of only UUIDs
-- **Seed two email templates** into `notification_templates` with `template_code = 'invoice_email'` and `template_code = 'receipt_email'`, including placeholders like `{{DOCUMENT_NUMBER}}`, `{{PAYER_NAME}}`, `{{TOTAL_AMOUNT}}`, `{{DOCUMENT_DATE}}`
+### 1. Database Migration — Add `card_machine_id` to `cn_payment`
 
-### 2. `supabase/functions/send-notification/index.ts`
-- Store `triggered_by` as-is (string) since the FK will be dropped
-- No other changes needed — the insert logic already works correctly when the FK doesn't block it
+Add a nullable `card_machine_id` column (UUID) to `cn_payment` referencing `cn_card_machine(id)`. This stores which card machine was used for each CRD/DRD payment line.
 
-### 3. `src/lib/invoicePrinter.ts`
-- **Export** `fetchInvoiceTemplate()` and `fetchInvoiceData()` so the email flow can reuse them
+```sql
+ALTER TABLE public.cn_payment
+  ADD COLUMN card_machine_id UUID REFERENCES cn_card_machine(id);
+```
 
-### 4. `src/hooks/useEmailDeliveryConfig.ts`
-- Import exported functions from `invoicePrinter.ts`
-- Before sending, **fetch the email template** from `notification_templates` by `template_code` (`invoice_email` or `receipt_email`)
-- **Generate the resolved invoice/receipt HTML** using `fetchInvoiceTemplate` + `fetchInvoiceData`
-- Pass the resolved document HTML as a **base64-encoded attachment** (HTML file) to the edge function
-- Replace placeholders in the email template body with actual values (payer name, document number, amount, date)
-- Pass the `template_id` to the edge function so `notification_logs.template_id` is populated
+### 2. Create Shared Hook — `useOfficeCardMachines(officeCode)`
 
-### 5. `src/pages/admin/EmailLogs.tsx`
-- Remove the **duplicate "Retries" column** at lines 272-273 (rendered twice)
+New file: `src/hooks/useOfficeCardMachines.ts`
 
-### 6. `src/pages/admin/notifications/EmailTemplateManager.tsx`
-- Add invoice/receipt-specific placeholders to the `AVAILABLE_PLACEHOLDERS` list: `{{DOCUMENT_NUMBER}}`, `{{PAYER_NAME}}`, `{{PAYER_ID}}`, `{{TOTAL_AMOUNT}}`, `{{DOCUMENT_DATE}}`, `{{CURRENCY_CODE}}`
-- Add `invoice_email_sent` and `receipt_email_sent` to `TRIGGER_EVENTS`
+Fetches active card machines from `cn_card_machine` filtered by `office_code` and `is_active = true`. Also filters by `card_type_support` compatibility (CRD, DRD, or BOTH). Returns `{ machines, isLoading }`.
+
+### 3. Update `PaymentMethodModal` Component
+
+- Accept new props: `officeCode` (from the selected batch) and `onCardMachineError` callback
+- When `mopCode` is CRD or DRD, call `useOfficeCardMachines(officeCode)` and filter by card type compatibility (`card_type_support` = mopCode or 'BOTH')
+- Render a **Card Machine** dropdown (mandatory) below the Method of Payment select
+- If no machines available for the office, show inline error: "No card machines configured for this office location. Card payment cannot be processed."
+- Block the Save button when card machine is required but not selected
+- Add `card_machine_id` to the `MethodRow` interface
+
+### 4. Update `AddDetailModal` Component (PaymentDataEntry)
+
+- Accept new prop: `officeCode`
+- When `mopCode` is CRD or DRD, show the card machine dropdown using the same hook
+- Add `card_machine_id` to `DetailLineData` interface
+- Block the Add/Update button if card machine is required but not selected or unavailable
+
+### 5. Update `PaymentDataEntry.tsx`
+
+- Pass `officeCode` from `batchSel.selectedBatch.office_code` to `AddDetailModal`
+- Include `card_machine_id` in the detail lines JSON sent to `create_payment_with_receipt` RPC
+- Add pre-submission validation: if any detail line has CRD/DRD without `card_machine_id`, block submission with error toast
+
+### 6. Update `SearchPayInvoices.tsx`
+
+- Pass `officeCode` to `PaymentMethodModal`
+- Include `card_machine_id` in the methods JSON sent to `pay_invoices_with_receipt` RPC
+- Add pre-submission validation for card machine
+
+### 7. Update `C3Payments.tsx`
+
+- Pass `officeCode` to `PaymentMethodModal`
+- Include `card_machine_id` in the methods JSON sent to `create_c3_payment_with_receipt` RPC
+- Add pre-submission validation for card machine
+
+### 8. Update RPCs (3 functions)
+
+Each of the three RPCs (`create_payment_with_receipt`, `pay_invoices_with_receipt`, `create_c3_payment_with_receipt`) needs to:
+- Read `card_machine_id` from the JSON detail/method lines
+- Persist it to the `cn_payment.card_machine_id` column
+- Validate server-side: if `mop_code` is CRD/DRD, `card_machine_id` must not be null
 
 ---
 
@@ -49,9 +74,12 @@ Currently `sendDocumentEmail` uses a hardcoded HTML body. The user wants admin-e
 
 | File | Change |
 |------|--------|
-| Migration SQL | Drop `triggered_by` FK, seed invoice/receipt email templates |
-| `src/lib/invoicePrinter.ts` | Export `fetchInvoiceTemplate` and `fetchInvoiceData` |
-| `src/hooks/useEmailDeliveryConfig.ts` | Fetch email template, generate document HTML attachment, pass template_id |
-| `src/pages/admin/EmailLogs.tsx` | Remove duplicate Retries column |
-| `src/pages/admin/notifications/EmailTemplateManager.tsx` | Add document-related placeholders and trigger events |
+| Migration SQL | Add `card_machine_id` column to `cn_payment` |
+| Migration SQL | Update 3 RPCs to handle `card_machine_id` |
+| `src/hooks/useOfficeCardMachines.ts` (new) | Shared hook to fetch office-filtered card machines |
+| `src/components/payments/PaymentMethodModal.tsx` | Add card machine dropdown for CRD/DRD, new props |
+| `src/components/payments/AddDetailModal.tsx` | Add card machine dropdown for CRD/DRD, new props |
+| `src/pages/cashier/PaymentDataEntry.tsx` | Pass officeCode, include card_machine_id in submission |
+| `src/pages/cashier/SearchPayInvoices.tsx` | Pass officeCode, include card_machine_id in submission |
+| `src/pages/cashier/C3Payments.tsx` | Pass officeCode, include card_machine_id in submission |
 
