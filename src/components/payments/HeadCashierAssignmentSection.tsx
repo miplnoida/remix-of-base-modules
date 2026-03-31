@@ -32,7 +32,7 @@ const HeadCashierAssignmentSection: React.FC = () => {
 
     // Look up the selected cashier's office_code so the assignment is per-office
     const selectedCashier = (cashierUsers || []).find((u: CashierUser) => u.id === selectedUserId);
-    const officeCode = selectedCashier?.office_code || profile?.office_code || null;
+    const officeCode = selectedCashier?.office_code || null;
 
     if (!officeCode) {
       toast.error('Cannot assign Head Cashier: no office location found for the selected user.');
