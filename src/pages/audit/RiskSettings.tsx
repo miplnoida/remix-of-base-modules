@@ -453,7 +453,7 @@ function RiskBandsTab() {
 
 // ============= Department Risk Method Tab =============
 function DeptMethodTab() {
-  const { data: config } = useRiskConfigMaster();
+  const { data: config, isLoading } = useRiskConfigMaster();
   const { update } = useRiskConfigMasterMutations();
   const { userCode } = useUserCode();
   const [method, setMethod] = useState('maximum');
@@ -461,6 +461,8 @@ function DeptMethodTab() {
   useEffect(() => {
     if (config) setMethod(config.dept_risk_method);
   }, [config]);
+
+  const hasUnsavedChanges = config && method !== config.dept_risk_method;
 
   const METHODS = [
     {
@@ -519,9 +521,12 @@ function DeptMethodTab() {
             </div>
           ))}
 
+          {hasUnsavedChanges && (
+            <p className="text-sm text-amber-600 font-medium">⚠ You have unsaved changes</p>
+          )}
           <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={update.isPending}>
-              <Save className="h-4 w-4 mr-2" /> Save Method
+            <Button onClick={handleSave} disabled={update.isPending || !hasUnsavedChanges || isLoading}>
+              <Save className="h-4 w-4 mr-2" /> {update.isPending ? 'Saving...' : 'Save Method'}
             </Button>
           </div>
         </CardContent>

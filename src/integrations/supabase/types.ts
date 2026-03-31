@@ -14243,6 +14243,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_risk_config_master: {
+        Row: {
+          config_name: string
+          created_at: string
+          created_by: string | null
+          dept_risk_method: string
+          description: string | null
+          formula_display: string
+          formula_type: string
+          id: string
+          is_active: boolean
+          scale_max: number
+          scale_min: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          config_name?: string
+          created_at?: string
+          created_by?: string | null
+          dept_risk_method?: string
+          description?: string | null
+          formula_display?: string
+          formula_type?: string
+          id?: string
+          is_active?: boolean
+          scale_max?: number
+          scale_min?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          config_name?: string
+          created_at?: string
+          created_by?: string | null
+          dept_risk_method?: string
+          description?: string | null
+          formula_display?: string
+          formula_type?: string
+          id?: string
+          is_active?: boolean
+          scale_max?: number
+          scale_min?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       ia_risk_criteria: {
         Row: {
           created_at: string
