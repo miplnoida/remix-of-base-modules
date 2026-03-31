@@ -300,12 +300,20 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     description: 'Manage auditor registry and roles',
   },
   {
-    id: 'ia-audit-settings',
-    title: 'Audit Settings',
+    id: 'ia-system-config',
+    title: 'System Configuration',
     icon: Settings,
-    path: '/audit/settings',
-    aliases: ['/audit/settings', '/audit/config', '/audit/risk-settings'],
-    description: 'Risk configuration and system settings',
+    path: '/audit/config',
+    aliases: ['/audit/config'],
+    description: 'Workflow defaults, notifications, SLA, and general audit settings',
+  },
+  {
+    id: 'ia-risk-config',
+    title: 'Risk Configuration',
+    icon: Shield,
+    path: '/audit/risk-settings',
+    aliases: ['/audit/risk-settings'],
+    description: 'Likelihood, impact, formula, rating bands, and risk derivation',
   },
 ];
 

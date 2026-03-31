@@ -84,11 +84,18 @@ export const auditMenuItems = [
         isGroupLabel: true,
       },
       {
-        title: "Audit Settings",
-        url: "/audit/settings",
+        title: "System Configuration",
+        url: "/audit/config",
         icon: Settings,
         requiresPermission: "configure_audit_system",
-        description: "Risk configuration and system settings"
+        description: "Workflow defaults, notifications, SLA, and general audit module behavior"
+      },
+      {
+        title: "Risk Configuration",
+        url: "/audit/risk-settings",
+        icon: Shield,
+        requiresPermission: "configure_audit_system",
+        description: "Likelihood, impact, formula, rating bands, and risk derivation"
       },
       // ── Resources ──
       {
