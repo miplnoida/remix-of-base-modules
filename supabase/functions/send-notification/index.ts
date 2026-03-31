@@ -36,6 +36,7 @@ interface SendNotificationRequest {
   metadata?: Record<string, unknown>;
   trigger_source?: string;
   triggered_by?: string;
+  template_id?: string;
 }
 
 async function logToSystem(
