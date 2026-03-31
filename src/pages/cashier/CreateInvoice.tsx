@@ -174,6 +174,7 @@ const CreateInvoice: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const [pendingEmailDoc, setPendingEmailDoc] = useState<{ id: number; number: string; email: string } | null>(null);
+  const [pendingPrintInvoiceId, setPendingPrintInvoiceId] = useState<number | null>(null);
 
   // errors
   const [errors, setErrors] = useState<Record<string, string>>({});
