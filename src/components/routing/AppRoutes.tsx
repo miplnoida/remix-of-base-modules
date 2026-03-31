@@ -257,6 +257,7 @@ import RolePermissionManagement from '@/pages/admin/RolePermissionManagement';
 import AuditLogViewer from '@/pages/admin/AuditLogViewer';
 import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
+import OfficeIPManagement from '@/pages/admin/OfficeIPManagement';
 import DepartmentManagement from '@/pages/admin/DepartmentManagement';
 import ModuleManagement from '@/pages/admin/ModuleManagement';
 import DesignationManagement from '@/pages/admin/DesignationManagement';
@@ -1149,6 +1150,7 @@ export const AppRoutes = () => {
       <Route path="/admin/email-campaigns" element={<ProtectedLayout><EmailCampaigns /></ProtectedLayout>} />
       <Route path="/admin/email-logs" element={<ProtectedLayout><EmailLogs /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
+      <Route path="/admin/office-ip-management" element={<ProtectedLayout><OfficeIPManagement /></ProtectedLayout>} />
       <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />

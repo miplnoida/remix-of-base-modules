@@ -18783,6 +18783,59 @@ export type Database = {
           },
         ]
       }
+      office_ip_addresses: {
+        Row: {
+          description: string | null
+          entered_at: string | null
+          entered_by: string | null
+          id: string
+          is_active: boolean | null
+          modified_at: string | null
+          modified_by: string | null
+          office_code: string
+          range_end_ip: string | null
+          range_start_ip: string | null
+          rule_type: string
+          single_ip: string | null
+        }
+        Insert: {
+          description?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code: string
+          range_end_ip?: string | null
+          range_start_ip?: string | null
+          rule_type: string
+          single_ip?: string | null
+        }
+        Update: {
+          description?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code?: string
+          range_end_ip?: string | null
+          range_start_ip?: string | null
+          rule_type?: string
+          single_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_ip_addresses_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       office_locations: {
         Row: {
           address: string | null
@@ -19321,6 +19374,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_api_keys"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_holidays: {
+        Row: {
+          entered_at: string | null
+          entered_by: string | null
+          holiday_date: string
+          holiday_name: string
+          id: string
+          is_active: boolean | null
+          modified_at: string | null
+          modified_by: string | null
+          office_code: string
+          year: number
+        }
+        Insert: {
+          entered_at?: string | null
+          entered_by?: string | null
+          holiday_date: string
+          holiday_name: string
+          id?: string
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code: string
+          year: number
+        }
+        Update: {
+          entered_at?: string | null
+          entered_by?: string | null
+          holiday_date?: string
+          holiday_name?: string
+          id?: string
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_holidays_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -25288,6 +25388,7 @@ export type Database = {
         Args: { p_context: Json; p_segments: Json }
         Returns: string
       }
+      resolve_office_by_ip: { Args: { p_ip_address: string }; Returns: Json }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string

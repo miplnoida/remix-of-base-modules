@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getClientIP } from '@/services/securityPolicyService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
@@ -284,8 +285,34 @@ function OpenBatchDialog({
   // Office resolution state
   const [resolvedOffice, setResolvedOffice] = useState<{ code: string; description: string; isOverride: boolean } | null>(null);
   const [officeLoading, setOfficeLoading] = useState(false);
+  const [ipDetectedOffice, setIpDetectedOffice] = useState<{ code: string; description: string; ip: string } | null>(null);
+  const [ipChecking, setIpChecking] = useState(false);
 
-  // Resolve office when cashier changes
+  // Detect office from IP when dialog opens
+  useEffect(() => {
+    if (!open) { setIpDetectedOffice(null); return; }
+    let cancelled = false;
+    (async () => {
+      setIpChecking(true);
+      try {
+        const ip = await getClientIP();
+        const { data, error } = await supabase.rpc('resolve_office_by_ip' as any, { p_ip_address: ip });
+        if (!error && data) {
+          const res = typeof data === 'string' ? JSON.parse(data) : data;
+          if (res.matched && !cancelled) {
+            setIpDetectedOffice({ code: res.office_code, description: res.office_description, ip });
+          }
+        }
+      } catch (e) {
+        console.error('[BatchManagement] IP office detection error:', e);
+      } finally {
+        if (!cancelled) setIpChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
+  // Resolve office when cashier changes (fallback to profile default)
   React.useEffect(() => {
     if (!effectiveCashierId) { setResolvedOffice(null); return; }
     setOfficeLoading(true);
@@ -310,7 +337,17 @@ function OpenBatchDialog({
     setSelectedCashierId('');
     setDuplicateWarning(null);
     setResolvedOffice(null);
+    setIpDetectedOffice(null);
   };
+
+  // Effective office: IP-detected takes priority, then head-cashier override, then profile default
+  const effectiveOffice = ipDetectedOffice
+    ? { code: ipDetectedOffice.code, description: ipDetectedOffice.description }
+    : resolvedOffice
+      ? { code: resolvedOffice.code, description: resolvedOffice.description }
+      : selectedCashier
+        ? { code: selectedCashier.office_code || 'HQ', description: selectedCashier.office_description || selectedCashier.office_code || 'HQ' }
+        : null;
 
   const handleCreate = async (force = false) => {
     if (!selectedCashier) return;
@@ -379,7 +416,7 @@ function OpenBatchDialog({
         : 0;
 
       const now = new Date();
-      const officeCode = resolvedOffice?.code || selectedCashier.office_code || 'HQ';
+      const officeCode = effectiveOffice?.code || selectedCashier.office_code || 'HQ';
       const batchNumber = `${officeCode}-${format(now, 'yyyyMMdd')}-${format(now, 'HHmmss')}`;
 
       const { error } = await supabase.from('cn_batch').insert({
@@ -462,10 +499,19 @@ function OpenBatchDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Office Location</Label>
             <Input
-              value={officeLoading ? 'Loading...' : (resolvedOffice ? `${resolvedOffice.description} (${resolvedOffice.code})` : selectedCashier?.office_description || selectedCashier?.office_code || '—')}
+              value={
+                officeLoading || ipChecking
+                  ? 'Detecting...'
+                  : effectiveOffice
+                    ? `${effectiveOffice.description} (${effectiveOffice.code})`
+                    : '—'
+              }
               disabled
             />
-            {resolvedOffice?.isOverride && (
+            {ipDetectedOffice && (
+              <p className="text-xs text-primary">Detected from IP: {ipDetectedOffice.ip}</p>
+            )}
+            {!ipDetectedOffice && resolvedOffice?.isOverride && (
               <p className="text-xs text-primary">(Override by Head Cashier)</p>
             )}
           </div>

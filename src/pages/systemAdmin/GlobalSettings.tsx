@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import CloudflareSettingsSection from '@/components/admin/CloudflareSettingsSection';
 import AppLogoUploadSection from '@/components/admin/AppLogoUploadSection';
+import PublicHolidaysSection from '@/components/admin/PublicHolidaysSection';
 import ToastConfigSection from '@/components/admin/ToastConfigSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -263,7 +264,7 @@ const GlobalSettings = () => {
           </TabsContent>
           
           {categories.map(category => (
-            <TabsContent key={category} value={category} className="mt-4">
+            <TabsContent key={category} value={category} className="mt-4 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>{category} Settings</CardTitle>
@@ -337,6 +338,7 @@ const GlobalSettings = () => {
                   </Table>
                 </CardContent>
               </Card>
+              {category === 'General' && <PublicHolidaysSection />}
             </TabsContent>
           ))}
         </Tabs>
