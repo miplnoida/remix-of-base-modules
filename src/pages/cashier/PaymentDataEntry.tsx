@@ -78,6 +78,8 @@ const PaymentDataEntry = () => {
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [pendingMopLineIndex, setPendingMopLineIndex] = useState<number | null>(null);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [pendingEmailDoc, setPendingEmailDoc] = useState<{ id: number; number: string; email: string } | null>(null);
 
   const totalAmount = detailLines.reduce((s, r) => s + (r.payment_amount || 0), 0);
 
