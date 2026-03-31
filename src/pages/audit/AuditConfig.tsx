@@ -191,10 +191,8 @@ export default function AuditConfig() {
 
   const pageContent = (
     <>
-      <Tabs defaultValue="risk" className="space-y-4">
+    <Tabs defaultValue="configApprovals" className="space-y-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Assessment</TabsTrigger>
-          <TabsTrigger value="riskMgmt"><BarChart3 className="w-4 h-4 mr-2" />Risk Management</TabsTrigger>
           <TabsTrigger value="configApprovals" className="relative">
             <CheckCircle className="w-4 h-4 mr-2" />Config Approvals
             {pendingRequests.length > 0 && (
