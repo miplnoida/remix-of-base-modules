@@ -338,6 +338,7 @@ const GlobalSettings = () => {
                   </Table>
                 </CardContent>
               </Card>
+              {category === 'General' && <PublicHolidaysSection />}
             </TabsContent>
           ))}
         </Tabs>
