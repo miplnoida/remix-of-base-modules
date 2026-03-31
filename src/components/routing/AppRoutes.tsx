@@ -546,6 +546,7 @@ import BatchClosing from '@/pages/cashier/BatchClosing';
 import CashierBatchManagement from '@/pages/cashier/BatchManagement';
 import PaymentModuleConfig from '@/pages/cashier/PaymentModuleConfig';
 import HeadCashierOfficeAssignment from '@/pages/cashier/HeadCashierOfficeAssignment';
+import HeadCashierAssignment from '@/pages/cashier/HeadCashierAssignment';
 import CardMachineManagement from '@/pages/cashier/CardMachineManagement';
 import DailyInvoiceReport from '@/pages/cashier/DailyInvoiceReport';
 import ChartAccountsMapping from '@/pages/cashier/ChartAccountsMapping';
