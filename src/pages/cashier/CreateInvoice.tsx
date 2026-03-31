@@ -465,7 +465,7 @@ const CreateInvoice: React.FC = () => {
       }
 
       // Email delivery logic
-      const payerEmailAddr = isAP ? payerEmail : (payerInfo?.email || '');
+      const payerEmailAddr = isAP ? payerEmail : '';
       if (invoiceEmailMode === 'always' && payerEmailAddr) {
         sendDocumentEmail({
           documentType: 'invoice',
