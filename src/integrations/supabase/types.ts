@@ -25431,6 +25431,14 @@ export type Database = {
         Args: { p_template_id: string; p_variables?: Json }
         Returns: string
       }
+      resolve_batch_office: {
+        Args: {
+          p_cashier_user_id: string
+          p_date?: string
+          p_ip_address?: string
+        }
+        Returns: Json
+      }
       resolve_entity_type: {
         Args: { p_identifier: string }
         Returns: {

@@ -23,6 +23,8 @@ import { InvoiceCancelModal } from '@/components/payments/InvoiceCancelModal';
 import { validateEmail, validatePhone } from '@/lib/contactValidation';
 import { cn } from '@/lib/utils';
 import { printConfiguredInvoice } from '@/lib/invoicePrinter';
+import { EmailDeliveryPrompt } from '@/components/payments/EmailDeliveryPrompt';
+import { useEmailDeliveryConfig, sendDocumentEmail } from '@/hooks/useEmailDeliveryConfig';
 
 // ---------- types ----------
 interface InvoiceLine {
@@ -170,6 +172,8 @@ const CreateInvoice: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [createdInvoice, setCreatedInvoice] = useState<{ id: number; invoice_number: string } | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [pendingEmailDoc, setPendingEmailDoc] = useState<{ id: number; number: string; email: string } | null>(null);
 
   // errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -184,6 +188,9 @@ const CreateInvoice: React.FC = () => {
   const { lookupPayer } = usePaymentEntry();
   const { userCode } = useUserCode();
   const invoiceActions = useInvoiceActions();
+
+  // Email delivery config
+  const { invoiceEmailMode } = useEmailDeliveryConfig();
 
   // AP search
   const { data: apResults = [], isLoading: apSearching } = useAPPayerSearch(
@@ -455,6 +462,21 @@ const CreateInvoice: React.FC = () => {
         await printConfiguredInvoice(result.invoice_id);
       } catch (printErr: any) {
         toast.error('Print failed', { description: printErr.message });
+      }
+
+      // Email delivery logic
+      const payerEmailAddr = isAP ? payerEmail : '';
+      if (invoiceEmailMode === 'always' && payerEmailAddr) {
+        sendDocumentEmail({
+          documentType: 'invoice',
+          documentId: result.invoice_id,
+          documentNumber: result.invoice_number,
+          recipientEmail: payerEmailAddr,
+          userCode: userCode || 'SYSTEM',
+        });
+      } else if (invoiceEmailMode === 'ask' && payerEmailAddr) {
+        setPendingEmailDoc({ id: result.invoice_id, number: result.invoice_number, email: payerEmailAddr });
+        setShowEmailPrompt(true);
       }
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });
@@ -947,6 +969,28 @@ const CreateInvoice: React.FC = () => {
         onConfirm={handleCancelInvoice}
         isLoading={invoiceActions.isLoading}
         invoiceNumber={createdInvoice?.invoice_number}
+      />
+
+      {/* Email Delivery Prompt */}
+      <EmailDeliveryPrompt
+        open={showEmailPrompt}
+        onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+        onConfirm={() => {
+          if (pendingEmailDoc) {
+            sendDocumentEmail({
+              documentType: 'invoice',
+              documentId: pendingEmailDoc.id,
+              documentNumber: pendingEmailDoc.number,
+              recipientEmail: pendingEmailDoc.email,
+              userCode: userCode || 'SYSTEM',
+            });
+          }
+          setShowEmailPrompt(false);
+          setPendingEmailDoc(null);
+        }}
+        recipientEmail={pendingEmailDoc?.email || ''}
+        documentType="invoice"
+        documentNumber={pendingEmailDoc?.number}
       />
     </div>
   );

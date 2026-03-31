@@ -11,9 +11,11 @@ import { ChequeDetailModal, ChequeDetails } from '@/components/payments/ChequeDe
 import { CardDetailModal, CardDetails } from '@/components/payments/CardDetailModal';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
+import { EmailDeliveryPrompt } from '@/components/payments/EmailDeliveryPrompt';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
+import { useEmailDeliveryConfig, sendDocumentEmail } from '@/hooks/useEmailDeliveryConfig';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
@@ -33,6 +35,7 @@ const PaymentDataEntry = () => {
   const receipt = useReceiptActions();
   const { userCode } = useUserCode();
   const { showChequeDetails, showCardDetails, isLoading: mopConfigLoading } = useMopDetailConfig();
+  const { receiptEmailMode } = useEmailDeliveryConfig();
 
   // Sync batch
   React.useEffect(() => {
@@ -75,6 +78,8 @@ const PaymentDataEntry = () => {
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [pendingMopLineIndex, setPendingMopLineIndex] = useState<number | null>(null);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [pendingEmailDoc, setPendingEmailDoc] = useState<{ id: number; number: string; email: string } | null>(null);
 
   const totalAmount = detailLines.reduce((s, r) => s + (r.payment_amount || 0), 0);
 
@@ -247,6 +252,35 @@ const PaymentDataEntry = () => {
       setFlowState('saved');
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
+
+      // Email delivery logic for receipt
+      // For receipts, we would need the payer's email — look it up from cn_payer if available
+      if (receiptEmailMode !== 'never') {
+        try {
+          const { data: payerData } = await supabase
+            .from('cn_payer')
+            .select('email')
+            .eq('payer_id', payerId.trim())
+            .maybeSingle();
+          const payerEmailAddr = payerData?.email || '';
+          if (payerEmailAddr) {
+            if (receiptEmailMode === 'always') {
+              sendDocumentEmail({
+                documentType: 'receipt',
+                documentId: generatedPaymentId,
+                documentNumber: generatedReceiptId,
+                recipientEmail: payerEmailAddr,
+                userCode: uCode,
+              });
+            } else if (receiptEmailMode === 'ask') {
+              setPendingEmailDoc({ id: generatedPaymentId, number: generatedReceiptId, email: payerEmailAddr });
+              setShowEmailPrompt(true);
+            }
+          }
+        } catch (emailErr) {
+          console.error('[PaymentDataEntry] Email lookup error:', emailErr);
+        }
+      }
 
       // Trigger configured receipt print
       setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
@@ -438,6 +472,26 @@ const PaymentDataEntry = () => {
           onConfirm={handleCancelReceipt}
           isLoading={receipt.isLoading}
           receiptId={receipt.currentReceipt?.receipt_id}
+        />
+        <EmailDeliveryPrompt
+          open={showEmailPrompt}
+          onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+          onConfirm={() => {
+            if (pendingEmailDoc) {
+              sendDocumentEmail({
+                documentType: 'receipt',
+                documentId: pendingEmailDoc.id,
+                documentNumber: pendingEmailDoc.number,
+                recipientEmail: pendingEmailDoc.email,
+                userCode: userCode || 'SYS',
+              });
+            }
+            setShowEmailPrompt(false);
+            setPendingEmailDoc(null);
+          }}
+          recipientEmail={pendingEmailDoc?.email || ''}
+          documentType="receipt"
+          documentNumber={pendingEmailDoc?.number}
         />
       </div>
     </BatchSelectionGuard>
