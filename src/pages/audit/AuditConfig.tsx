@@ -30,18 +30,9 @@ export default function AuditConfig() {
   const userCode = (profile as any)?.user_code || 'system';
 
   const { data: allSettings = [], isLoading: settingsLoading } = useIAAuditSettings();
-  const { data: riskCriteria = [], isLoading: riskLoading } = useIARiskCriteria();
   const { data: activityTypes = [], isLoading: typesLoading } = useIAActivityTypes();
   const { upsert: upsertSettings } = useIAAuditSettingMutations();
-  const { update: updateRisk, create: createRisk, remove: removeRisk } = useIARiskCriteriaMutations();
   const { update: updateType } = useIAActivityTypeMutations();
-
-  // Scoring model
-  const { data: scoringModel, isLoading: modelLoading } = useIARiskScoringModel();
-  const { update: updateModel } = useIARiskScoringModelMutations();
-  const { data: criteriaWeights = [] } = useIARiskCriteriaWeights(scoringModel?.id);
-  const { create: createWeight, update: updateWeight, remove: removeWeight } = useIARiskCriteriaWeightMutations();
-  const { data: frequencyMap = {} } = useIAFrequencyMapping();
 
   // Planning engine config
   const { data: planningWeights = [], updateWeight: updatePlanningWeight } = usePlanningWeights();
@@ -62,47 +53,6 @@ export default function AuditConfig() {
   const [editParamDialog, setEditParamDialog] = useState<any>(null);
   const [editParamValue, setEditParamValue] = useState('');
   const [editParamReason, setEditParamReason] = useState('');
-
-  // Risk Management config hooks
-  const { data: likelihoodLevels = [], create: createLikelihood, update: updateLikelihood, remove: removeLikelihood } = useIALikelihoodLevels();
-  const { data: impactLevels = [], create: createImpact, update: updateImpact, remove: removeImpact } = useIAImpactLevels();
-  const { data: effectivenessLevels = [], create: createEffectiveness, update: updateEffectiveness, remove: removeEffectiveness } = useIAControlEffectivenessLevels();
-  const { data: classificationThresholds = [], create: createThreshold, update: updateThreshold, remove: removeThreshold } = useIARiskClassificationThresholds();
-
-  // Threshold state
-  const [thresholds, setThresholds] = useState({ critical: 90, high: 75, medium: 50 });
-  useEffect(() => {
-    if (scoringModel) {
-      setThresholds({
-        critical: Number(scoringModel.critical_threshold) || 90,
-        high: Number(scoringModel.high_threshold) || 75,
-        medium: Number(scoringModel.medium_threshold) || 50,
-      });
-    }
-  }, [scoringModel]);
-
-  // Frequency state
-  const [freqSettings, setFreqSettings] = useState<Record<string, string>>({ Critical: '6', High: '12', Medium: '24', Low: '36' });
-  useEffect(() => {
-    if (Object.keys(frequencyMap).length > 0) {
-      setFreqSettings({
-        Critical: String(frequencyMap['Critical'] || 6),
-        High: String(frequencyMap['High'] || 12),
-        Medium: String(frequencyMap['Medium'] || 24),
-        Low: String(frequencyMap['Low'] || 36),
-      });
-    }
-  }, [frequencyMap]);
-
-  // New criterion form
-  const [newCriterionName, setNewCriterionName] = useState('');
-  const [newCriterionWeight, setNewCriterionWeight] = useState('');
-
-  // New row forms for Risk Management
-  const [newLikelihood, setNewLikelihood] = useState({ label: '', score: '', description: '' });
-  const [newImpact, setNewImpact] = useState({ label: '', score: '', description: '' });
-  const [newEffectiveness, setNewEffectiveness] = useState({ label: '', reduction_percentage: '', description: '' });
-  const [newClassification, setNewClassification] = useState({ label: '', min_score: '', max_score: '', color: '#gray' });
 
   // Config Change Requests
   const { data: changeRequests = [] } = useConfigChangeRequests();
@@ -146,42 +96,7 @@ export default function AuditConfig() {
     upsertSettings.mutate(entries);
   };
 
-  const totalWeight = criteriaWeights.reduce((sum: number, c: any) => sum + Number(c.weight || 0), 0);
-
-  const handleAddCriterion = () => {
-    if (!newCriterionName.trim() || !newCriterionWeight.trim() || !scoringModel?.id) return;
-    createWeight.mutate({
-      model_id: scoringModel.id,
-      criterion_name: newCriterionName.trim(),
-      weight: Number(newCriterionWeight),
-      max_score: 100,
-      sort_order: criteriaWeights.length + 1,
-      is_active: true,
-    });
-    setNewCriterionName('');
-    setNewCriterionWeight('');
-  };
-
-  const handleSaveThresholds = () => {
-    if (!scoringModel?.id) return;
-    updateModel.mutate({
-      id: scoringModel.id,
-      critical_threshold: thresholds.critical,
-      high_threshold: thresholds.high,
-      medium_threshold: thresholds.medium,
-      low_threshold: 0,
-      updated_by: userCode,
-    });
-  };
-
-  const handleSaveFrequency = () => {
-    const entries = Object.entries(freqSettings).map(([key, value]) => ({
-      setting_category: 'risk_frequency', setting_key: key, setting_value: value, updated_by: userCode,
-    }));
-    upsertSettings.mutate(entries);
-  };
-
-  const isLoading = settingsLoading || riskLoading || typesLoading || modelLoading;
+  const isLoading = settingsLoading || typesLoading;
 
   const pageContent = (
     <>
