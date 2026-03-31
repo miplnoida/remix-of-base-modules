@@ -24093,7 +24093,7 @@ export type Database = {
         Args: {
           p_assigned_by: string
           p_date: string
-          p_office_code?: string
+          p_office_code: string
           p_user_id: string
         }
         Returns: Json
