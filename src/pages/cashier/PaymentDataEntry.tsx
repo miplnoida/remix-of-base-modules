@@ -479,7 +479,15 @@ const PaymentDataEntry = () => {
         />
         <EmailDeliveryPrompt
           open={showEmailPrompt}
-          onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+          onClose={() => {
+            setShowEmailPrompt(false);
+            setPendingEmailDoc(null);
+            // Trigger deferred print after user skips email
+            if (pendingPrintPaymentId) {
+              setTimeout(() => printConfiguredReceipt(pendingPrintPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
+              setPendingPrintPaymentId(null);
+            }
+          }}
           onConfirm={() => {
             if (pendingEmailDoc) {
               sendDocumentEmail({
@@ -492,6 +500,11 @@ const PaymentDataEntry = () => {
             }
             setShowEmailPrompt(false);
             setPendingEmailDoc(null);
+            // Trigger deferred print after user confirms email
+            if (pendingPrintPaymentId) {
+              setTimeout(() => printConfiguredReceipt(pendingPrintPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
+              setPendingPrintPaymentId(null);
+            }
           }}
           recipientEmail={pendingEmailDoc?.email || ''}
           documentType="receipt"

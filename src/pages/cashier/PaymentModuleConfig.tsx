@@ -104,6 +104,8 @@ const PaymentModuleConfig: React.FC = () => {
   const [manageAllRoles, setManageAllRoles] = useState<string[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<string>('warning');
   const [c3PaymentTypes, setC3PaymentTypes] = useState<string[]>([]);
+  const [localInvoiceEmailMode, setLocalInvoiceEmailMode] = useState<string>('never');
+  const [localReceiptEmailMode, setLocalReceiptEmailMode] = useState<string>('never');
   const [selectedDenomCurrencyId, setSelectedDenomCurrencyId] = useState<string | null>(null);
   const { data: denominations, refetch: refetchDenoms } = useDenominationsForCurrency(selectedDenomCurrencyId);
 

@@ -992,7 +992,15 @@ const CreateInvoice: React.FC = () => {
       {/* Email Delivery Prompt */}
       <EmailDeliveryPrompt
         open={showEmailPrompt}
-        onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+        onClose={() => {
+          setShowEmailPrompt(false);
+          setPendingEmailDoc(null);
+          // Trigger deferred print after user skips email
+          if (pendingPrintInvoiceId) {
+            printConfiguredInvoice(pendingPrintInvoiceId).catch(e => console.error('Print error:', e));
+            setPendingPrintInvoiceId(null);
+          }
+        }}
         onConfirm={() => {
           if (pendingEmailDoc) {
             sendDocumentEmail({
@@ -1005,6 +1013,11 @@ const CreateInvoice: React.FC = () => {
           }
           setShowEmailPrompt(false);
           setPendingEmailDoc(null);
+          // Trigger deferred print after user confirms email
+          if (pendingPrintInvoiceId) {
+            printConfiguredInvoice(pendingPrintInvoiceId).catch(e => console.error('Print error:', e));
+            setPendingPrintInvoiceId(null);
+          }
         }}
         recipientEmail={pendingEmailDoc?.email || ''}
         documentType="invoice"
