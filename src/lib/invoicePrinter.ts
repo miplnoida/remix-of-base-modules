@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 /**
  * Fetch the HTML invoice template from the database
  */
-async function fetchInvoiceTemplate(): Promise<string> {
+export async function fetchInvoiceTemplate(): Promise<string> {
   const { data, error } = await supabase
     .from('payment_module_config')
     .select('config_value')
