@@ -842,6 +842,7 @@ const C3Payments: React.FC = () => {
           baseCurrCode={baseCurrCode}
           showChequeDetails={showChequeDetails}
           showCardDetails={showCardDetails}
+          officeCode={batchSel.selectedBatch?.office_code || undefined}
         />
         <ReceiptCancelModal
           open={showCancelModal}

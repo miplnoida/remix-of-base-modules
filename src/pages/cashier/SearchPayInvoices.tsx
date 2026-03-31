@@ -660,6 +660,7 @@ const SearchPayInvoices: React.FC = () => {
           baseCurrCode={baseCurrCode}
           showChequeDetails={showChequeDetails}
           showCardDetails={showCardDetails}
+          officeCode={batchSel.selectedBatch?.office_code || undefined}
         />
         <AllocationPreviewModal
           open={showAllocationPreview}
