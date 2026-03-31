@@ -273,7 +273,7 @@ const BatchBehaviorConfigSection: React.FC = () => {
         {/* Save Button */}
         <div className="flex items-center justify-between pt-2 border-t">
           {isDirty && (
-            <p className="text-xs text-amber-600 font-medium">You have unsaved changes.</p>
+            <p className="text-xs text-destructive font-medium">You have unsaved changes.</p>
           )}
           {!isDirty && <div />}
           <Button
