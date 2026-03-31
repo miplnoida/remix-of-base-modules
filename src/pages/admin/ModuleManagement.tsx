@@ -43,6 +43,8 @@ import { cn } from "@/lib/utils";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from "@/hooks/useActionPermission";
 import { BusinessObjectRootConfig } from "@/components/admin/BusinessObjectRootConfig";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { toast } from "sonner";
 
 // Helper to get Lucide icon by name
 const getIcon = (iconName: string | null) => {
@@ -407,6 +409,16 @@ const ModuleManagementContent = () => {
   };
 
   const handleSaveModule = async () => {
+    // Validate parent module doesn't have a route
+    if (moduleForm.parent_id) {
+      const parentModule = modules.find(m => m.id === moduleForm.parent_id);
+      if (parentModule && parentModule.route) {
+        toast.error("A module with a route cannot be used as a parent module.", {
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+        });
+        return;
+      }
+    }
     if (selectedModule) {
       await updateModule.mutateAsync({ id: selectedModule.id, ...moduleForm });
     } else {
@@ -656,40 +668,41 @@ const ModuleManagementContent = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="parent" className="text-sm">Parent Module</Label>
-                  <Select
-                    value={moduleForm.parent_id || "none"}
-                    onValueChange={(v) => setModuleForm({ ...moduleForm, parent_id: v === "none" ? null : v })}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="None (top level)" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover max-h-64 overflow-y-auto">
-                      <SelectItem value="none">None (top level)</SelectItem>
-                      {modules
-                        .filter((m) => {
-                          // Cannot select self or own descendants as parent
-                          if (m.id === selectedModule?.id) return false;
-                          // Must be enabled
-                          if (!m.is_enabled) return false;
-                          // Cannot select a descendant of the current module (prevents circular refs)
-                          const isDescendant = (parentId: string): boolean => {
-                            const children = childModulesMap.get(parentId) || [];
-                            return children.some(
-                              (c) => c.id === m.id || isDescendant(c.id)
-                            );
-                          };
-                          if (selectedModule && isDescendant(selectedModule.id)) return false;
-                          return true;
-                        })
-                        .sort((a, b) => a.display_name.localeCompare(b.display_name))
-                        .map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.display_name}
-                            {m.route ? ` (${m.route})` : " [container]"}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={moduleForm.parent_id || ""}
+                    onValueChange={(v) => setModuleForm({ ...moduleForm, parent_id: v || null })}
+                    placeholder="None (top level)"
+                    searchPlaceholder="Search parent modules..."
+                    emptyMessage="No eligible parent modules found."
+                    includeAllOption="None (top level)"
+                    options={modules
+                      .filter((m) => {
+                        // Cannot select self or own descendants as parent
+                        if (m.id === selectedModule?.id) return false;
+                        // Must be enabled
+                        if (!m.is_enabled) return false;
+                        // Cannot select a descendant of the current module (prevents circular refs)
+                        const isDescendant = (parentId: string): boolean => {
+                          const children = childModulesMap.get(parentId) || [];
+                          return children.some(
+                            (c) => c.id === m.id || isDescendant(c.id)
+                          );
+                        };
+                        if (selectedModule && isDescendant(selectedModule.id)) return false;
+                        // Only modules without a route are eligible as parents
+                        // Exception: preserve the currently assigned parent during edit
+                        if (m.route) {
+                          return selectedModule?.parent_id === m.id;
+                        }
+                        return true;
+                      })
+                      .sort((a, b) => a.display_name.localeCompare(b.display_name))
+                      .map((m) => ({
+                        value: m.id,
+                        label: m.display_name + (m.route ? ` (${m.route})` : " [container]"),
+                        searchText: `${m.display_name} ${m.name}`,
+                      }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sort_order" className="text-sm">Sort Order</Label>
