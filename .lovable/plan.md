@@ -1,99 +1,102 @@
 
 
-# Replace `office_locations` with `tb_office` in Office Management
+# Three Feature Implementation Plan
 
-## Summary
+## Feature 1: Office IP Address Management + Auto-Detection on Batch Creation
 
-The `office_locations` table is a legacy table that is only used in one place: the **Office Management** admin page (`src/pages/admin/OfficeManagement.tsx`) and its hooks in `useAdminData.ts`. The rest of the system (profiles, departments, payments, audit, etc.) already uses `tb_office` with `code` as the identifier. This plan eliminates the last references to `office_locations`.
-
-## Analysis Results
-
-| Where `office_locations` is used | Action |
-|---|---|
-| `src/hooks/useAdminData.ts` — `OfficeLocation` type, `useOfficeLocations`, `useCreateOfficeLocation`, `useUpdateOfficeLocation` | Remove all four. Already has `useTbOffices` which queries `tb_office`. |
-| `src/pages/admin/OfficeManagement.tsx` — entire page uses `OfficeLocation` type and the three hooks above | Rewrite to use `tb_office` via `useTbOffices` + new create/update mutations |
-| `src/pages/admin/system-cleanup/DependencyScan.tsx` — lists `office_locations` in known tables array | Remove from list |
-| `docs/rls-policies-backup.sql` — reference doc only | No code change needed |
-
-**Not affected** (already use `tb_office`):
-- `UserManagementAdmin.tsx`, `UserEdit.tsx` — use `useTbOffices` + `office_code`
-- `profiles` table — uses `office_code` referencing `tb_office.code`
-- `tb_office_departments` — uses `office_code` FK to `tb_office`
-- Payment batch, SEP lookups, ER forms — all use `tb_office.code`
-- Edge functions (`create-user`, `public-api`) — use `tb_office`
-
-## Changes
-
-### 1. `src/hooks/useAdminData.ts`
-
-- **Remove**: `OfficeLocation` interface, `useOfficeLocations()`, `useCreateOfficeLocation()`, `useUpdateOfficeLocation()`
-- **Add**: `useCreateTbOffice()` mutation — inserts into `tb_office` (code, description, address1, address2, office_email, office_phone)
-- **Add**: `useUpdateTbOffice()` mutation — updates `tb_office` by `code`
-- Keep existing `useTbOffices()` as-is
-
-### 2. `src/pages/admin/OfficeManagement.tsx`
-
-- Replace all `OfficeLocation` references with `TbOffice` type
-- Use `useTbOffices()` instead of `useOfficeLocations()`
-- Use new `useCreateTbOffice()` / `useUpdateTbOffice()` mutations
-- Update form fields to match `tb_office` columns:
-  - `branch_name` → `description` (office name)
-  - `address` → `address1`
-  - `city`/`state`/`country` → `address2` (combined)
-  - `is_active` — `tb_office` doesn't have this; remove toggle or add column via migration
-  - Add `code` field (read-only on edit, required on create)
-  - Add `office_email` and `office_phone` fields
-- Update table columns to show Code, Description, Address, Email, Phone
-- Remove accordion department display (departments are managed on their own page)
-- Remove `useOfficeDepartments` import (no longer needed here)
-
-### 3. `src/pages/admin/system-cleanup/DependencyScan.tsx`
-
-- Remove `'office_locations'` from the known tables array
-
-### 4. Database Migration (optional but recommended)
-
-Add `is_active BOOLEAN DEFAULT TRUE` to `tb_office` so office activation/deactivation is supported. Without this, the Active/Inactive toggle must be removed from the UI.
-
+### Database
+Create table `office_ip_addresses`:
 ```sql
-ALTER TABLE public.tb_office
-  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+CREATE TABLE public.office_ip_addresses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
+  rule_type TEXT NOT NULL CHECK (rule_type IN ('single', 'range')),
+  single_ip TEXT,
+  range_start_ip TEXT,
+  range_end_ip TEXT,
+  description TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  entered_by VARCHAR,
+  entered_at TIMESTAMPTZ DEFAULT now(),
+  modified_by VARCHAR,
+  modified_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
-## Technical Details
+Create RPC function `resolve_office_by_ip` that takes an IP address and returns the matching `office_code` by checking single IPs and ranges in `office_ip_addresses` (same numeric comparison logic used in `check_ip_whitelist`).
 
-```text
-tb_office schema (current):
-  code        VARCHAR  (PK)
-  description VARCHAR
-  address1    VARCHAR
-  address2    VARCHAR
-  office_email VARCHAR
-  office_phone VARCHAR
-  office_start_time TIME
-  office_end_time   TIME
+### New Admin Screen: `/admin/office-ip-management`
+- CRUD screen for managing IP addresses/ranges per office
+- Select office from `tb_office`, add single IP or range (start/end)
+- Table showing all rules grouped by office with edit/delete/toggle
+- Add route to `AppRoutes.tsx`
 
-office_locations schema (to be retired):
-  id          UUID (PK)
-  branch_name TEXT
-  address     TEXT
-  city        TEXT
-  state       TEXT
-  country     TEXT
-  is_active   BOOLEAN
-  created_at  TIMESTAMPTZ
-  ...
+### Batch Creation Auto-Detection
+In `OpenBatchDialog` (`src/pages/cashier/BatchManagement.tsx`):
+- On dialog open, call `getClientIP()` then invoke `resolve_office_by_ip` RPC
+- If a match is found, override the office location with the IP-matched office (show indicator "Detected from IP: x.x.x.x")
+- If no match found, fall back to existing logic (profile default / head cashier override)
+- The detected office code is what gets saved to `cn_batch.office_code`
 
-Key difference: tb_office uses short string `code` as PK
-               office_locations uses UUID `id` as PK
-```
-
-## Files Changed
-
+### Files Changed
 | File | Change |
-|---|---|
-| `ia_department_functions` (migration) | Add `is_active` to `tb_office` |
-| `src/hooks/useAdminData.ts` | Remove `OfficeLocation` hooks, add `tb_office` create/update mutations |
-| `src/pages/admin/OfficeManagement.tsx` | Full rewrite to use `tb_office` |
-| `src/pages/admin/system-cleanup/DependencyScan.tsx` | Remove `office_locations` from list |
+|------|--------|
+| Migration SQL | Create `office_ip_addresses` table + `resolve_office_by_ip` RPC |
+| `src/pages/admin/OfficeIPManagement.tsx` | New CRUD screen |
+| `src/components/routing/AppRoutes.tsx` | Add route |
+| `src/pages/cashier/BatchManagement.tsx` | Add IP detection in `OpenBatchDialog` |
+
+---
+
+## Feature 2: Move Non-Working Days from 'Meeting' to 'General' Category
+
+### Database
+Update the `system_settings` row for `non_working_days` to change its `category` from `'Meeting'` to `'General'`.
+
+### Impact
+- The GlobalSettings page dynamically renders tabs from categories, so the setting will automatically appear under the General tab
+- The meeting dialogs (`ScheduleMeetingDialog`, `RescheduleMeetingDialog`) query by `setting_key` not category, so they are unaffected
+- The trigger `validate_meeting_non_working_day` queries by `setting_key`, also unaffected
+
+### Files Changed
+| File | Change |
+|------|--------|
+| Data update (insert tool) | `UPDATE system_settings SET category = 'General' WHERE setting_key = 'non_working_days'` |
+
+---
+
+## Feature 3: Public Holidays Management in Global Settings (General Tab)
+
+### Database
+Create table `public_holidays`:
+```sql
+CREATE TABLE public.public_holidays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
+  holiday_date DATE NOT NULL,
+  holiday_name TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  entered_by VARCHAR,
+  entered_at TIMESTAMPTZ DEFAULT now(),
+  modified_by VARCHAR,
+  modified_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(office_code, holiday_date)
+);
+```
+
+### UI: New Section in Global Settings > General Tab
+Add a `PublicHolidaysSection` component rendered inside the General tab:
+- **Year selector** (dropdown) + **Office selector** (from `tb_office`)
+- Table of holidays for selected year/office with Add, Edit, Delete
+- Each holiday: date, name, office
+- **Copy Year** button: select a source year and target year → copies all holidays from source to target for the same office (blocks if target year already has entries)
+- Validation: no duplicate date per office, date must fall within selected year
+
+### Files Changed
+| File | Change |
+|------|--------|
+| Migration SQL | Create `public_holidays` table |
+| `src/components/admin/PublicHolidaysSection.tsx` | New component with CRUD + copy-year |
+| `src/pages/systemAdmin/GlobalSettings.tsx` | Import and render `PublicHolidaysSection` in General tab content |
 
