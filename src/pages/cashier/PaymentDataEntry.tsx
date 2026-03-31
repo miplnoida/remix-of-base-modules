@@ -15,7 +15,7 @@ import { EmailDeliveryPrompt } from '@/components/payments/EmailDeliveryPrompt';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
-import { useEmailDeliveryConfig, sendDocumentEmail } from '@/hooks/useEmailDeliveryConfig';
+import { useEmailDeliveryConfig, sendDocumentEmail, resolvePayerEmail } from '@/hooks/useEmailDeliveryConfig';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
