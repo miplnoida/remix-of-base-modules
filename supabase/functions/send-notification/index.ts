@@ -156,7 +156,7 @@ async function sendViaResend(
     emailPayload.attachments = attachments.map((att) => ({
       filename: att.filename,
       content: att.content,
-      content_type: att.contentType || "text/html",
+      content_type: att.contentType || "application/pdf",
     }));
   }
 
