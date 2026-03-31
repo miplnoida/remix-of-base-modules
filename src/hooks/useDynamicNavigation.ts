@@ -203,119 +203,90 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   return rootModules.map(buildMenuItem);
 }
 
-const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
-  id: string;
-  title: string;
+// ── Internal Audit: workflow-based group definitions ──
+interface IAGroupDef {
+  groupTitle: string;
   icon: LucideIcon;
-  path: string;
-  aliases: string[];
-  description: string;
-}> = [
+  /** Route paths that belong to this group (matched against child.url) */
+  paths: string[];
+}
+
+const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
   {
-    id: 'ia-dashboard',
-    title: 'Dashboard',
+    groupTitle: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/audit/dashboard',
-    aliases: ['/audit/dashboard'],
-    description: 'Audit overview and KPIs',
+    paths: ['/audit/dashboard'],
   },
   {
-    id: 'ia-departments',
-    title: 'Departments',
-    icon: Building2,
-    path: '/audit/departments',
-    aliases: ['/audit/departments'],
-    description: 'Manage department information',
-  },
-  {
-    id: 'ia-functions',
-    title: 'Functions',
-    icon: FolderTree,
-    path: '/audit/functions',
-    aliases: ['/audit/functions'],
-    description: 'Manage department functions',
-  },
-  {
-    id: 'ia-risk-assessment',
-    title: 'Risk Assessment',
+    groupTitle: 'Risk Management',
     icon: Shield,
-    path: '/audit/risk-assessment',
-    aliases: ['/audit/risk-assessment'],
-    description: 'Assess function-level risks',
+    paths: ['/audit/risk-assessment', '/audit/risk-matrix'],
   },
   {
-    id: 'ia-risk-matrix',
-    title: 'Risk Matrix',
-    icon: BarChart3,
-    path: '/audit/risk-matrix',
-    aliases: ['/audit/risk-matrix', '/audit/rcm'],
-    description: 'View the 5×5 risk heatmap',
-  },
-  {
-    id: 'ia-audit-plans',
-    title: 'Audit Plan',
-    icon: ClipboardList,
-    path: '/audit/audit-plans',
-    aliases: ['/audit/audit-plans', '/audit/plans'],
-    description: 'Create risk-driven audit plans',
-  },
-  {
-    id: 'ia-plan-approval',
-    title: 'Plan Approval',
+    groupTitle: 'Audit Planning',
     icon: ClipboardCheck,
-    path: '/audit/plan-approval',
-    aliases: ['/audit/plan-approval'],
-    description: 'Review and approve submitted plans',
+    paths: ['/audit/audit-plans', '/audit/plan-approval'],
   },
   {
-    id: 'ia-audits',
-    title: 'Audits',
+    groupTitle: 'Audit Execution',
     icon: Briefcase,
-    path: '/audit/audits',
-    aliases: ['/audit/audits', '/audit/engagements'],
-    description: 'Execute audits for department functions',
+    paths: ['/audit/audits'],
   },
   {
-    id: 'ia-queries',
-    title: 'Queries',
-    icon: Send,
-    path: '/audit/queries',
-    aliases: ['/audit/queries'],
-    description: 'Department communication during audits',
+    groupTitle: 'Resource Management',
+    icon: Users,
+    paths: [
+      '/audit/auditors', '/audit/auditor-profiles',
+      '/audit/workload',
+      '/audit/time-tracking',
+      '/audit/leave',
+      '/audit/holidays',
+    ],
   },
   {
-    id: 'ia-reports',
-    title: 'Reports',
+    groupTitle: 'Master Data',
+    icon: Database,
+    paths: ['/audit/departments', '/audit/functions', '/audit/templates'],
+  },
+  {
+    groupTitle: 'Reporting',
     icon: FileBarChart,
-    path: '/audit/audit-reports',
-    aliases: ['/audit/audit-reports', '/audit/reports'],
-    description: 'Generate audit reports',
+    paths: ['/audit/audit-reports'],
   },
   {
-    id: 'ia-auditor-profiles',
-    title: 'Auditor Profiles',
-    icon: UserCheck,
-    path: '/audit/auditor-profiles',
-    aliases: ['/audit/auditor-profiles'],
-    description: 'Manage auditor registry and roles',
-  },
-  {
-    id: 'ia-system-config',
-    title: 'System Configuration',
+    groupTitle: 'Configuration',
     icon: Settings,
-    path: '/audit/config',
-    aliases: ['/audit/config'],
-    description: 'Workflow defaults, notifications, SLA, and general audit settings',
+    paths: ['/audit/config', '/audit/risk-settings'],
   },
   {
-    id: 'ia-risk-config',
-    title: 'Risk Configuration',
-    icon: Shield,
-    path: '/audit/risk-settings',
-    aliases: ['/audit/risk-settings'],
-    description: 'Likelihood, impact, formula, rating bands, and risk derivation',
+    groupTitle: 'Admin',
+    icon: Terminal,
+    paths: ['/db-diagram/internal_audit'],
   },
 ];
+
+// Display overrides for individual items (icon, title, description)
+const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; description?: string }> = {
+  '/audit/dashboard':        { title: 'Dashboard',               icon: LayoutDashboard, description: 'Audit overview and KPIs' },
+  '/audit/risk-assessment':  { title: 'Risk Assessment',         icon: Shield,          description: 'Assess function-level risks' },
+  '/audit/risk-matrix':      { title: 'Risk Matrix',             icon: BarChart3,       description: 'View the 5×5 risk heatmap' },
+  '/audit/audit-plans':      { title: 'Audit Plan',              icon: ClipboardList,   description: 'Create risk-driven audit plans' },
+  '/audit/plan-approval':    { title: 'Plan Approval',           icon: ClipboardCheck,  description: 'Review and approve submitted plans' },
+  '/audit/audits':           { title: 'Audits',                  icon: Briefcase,       description: 'Execute audits for department functions' },
+  '/audit/auditors':         { title: 'Auditor Profiles',        icon: UserCheck,       description: 'Manage auditor registry and roles' },
+  '/audit/auditor-profiles': { title: 'Auditor Profiles',        icon: UserCheck,       description: 'Manage auditor registry and roles' },
+  '/audit/workload':         { title: 'Workload & Capacity',     icon: BarChart3,       description: 'View auditor workload and capacity' },
+  '/audit/time-tracking':    { title: 'Time Tracking',           icon: Clock,           description: 'Track audit time spent' },
+  '/audit/leave':            { title: 'Leave & Vacation',        icon: Calendar,        description: 'Manage auditor leave schedules' },
+  '/audit/holidays':         { title: 'Holiday Calendar',        icon: Flag,            description: 'Public holidays and non-working days' },
+  '/audit/departments':      { title: 'Departments',             icon: Building2,       description: 'Manage department information' },
+  '/audit/functions':        { title: 'Functions',               icon: FolderTree,      description: 'Manage department functions' },
+  '/audit/templates':        { title: 'Templates',               icon: FileText,        description: 'Manage audit templates' },
+  '/audit/audit-reports':    { title: 'Reports',                 icon: FileBarChart,    description: 'Generate audit reports' },
+  '/audit/config':           { title: 'System Configuration',    icon: Settings,        description: 'Workflow defaults, notifications, SLA' },
+  '/audit/risk-settings':    { title: 'Risk Configuration',      icon: Shield,          description: 'Likelihood, impact, formula, rating bands' },
+  '/db-diagram/internal_audit': { title: 'DB Diagram',           icon: Database,        description: 'Internal Audit database schema' },
+};
 
 function normalizePath(path?: string): string {
   if (!path) return '';
@@ -329,32 +300,52 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 
     if (!isInternalAuditRoot || children.length === 0) return item;
 
-    // Build a lookup of simplified overrides by path
-    const overrideByPath = new Map<string, typeof SIMPLIFIED_INTERNAL_AUDIT_MENU[number]>();
-    SIMPLIFIED_INTERNAL_AUDIT_MENU.forEach((config) => {
-      config.aliases.forEach((alias) => {
-        overrideByPath.set(normalizePath(alias), config);
-      });
-    });
-
-    // Apply display overrides from the simplified list but keep ALL children from DB
-    const enhancedChildren = children.map((child) => {
-      const override = overrideByPath.get(normalizePath(child.url));
-      if (override) {
+    // Apply display overrides to each child
+    const enhanced = children.map((child) => {
+      const norm = normalizePath(child.url);
+      const ov = IA_ITEM_OVERRIDES[norm];
+      if (ov) {
         return {
           ...child,
-          title: override.title,
-          icon: override.icon,
-          description: child.description || override.description,
+          title: ov.title ?? child.title,
+          icon: ov.icon ?? child.icon,
+          description: child.description || ov.description,
         } as MenuItem;
       }
       return child;
     });
 
-    return {
-      ...item,
-      subItems: enhancedChildren,
-    };
+    // Build a set of paths already claimed by groups
+    const claimedPaths = new Set<string>();
+    IA_WORKFLOW_GROUPS.forEach(g => g.paths.forEach(p => claimedPaths.add(normalizePath(p))));
+
+    // Create grouped sub-menus
+    const groupedItems: MenuItem[] = [];
+
+    IA_WORKFLOW_GROUPS.forEach((group) => {
+      const pathSet = new Set(group.paths.map(normalizePath));
+      const members = enhanced.filter(c => c.url && pathSet.has(normalizePath(c.url)));
+
+      if (members.length === 0) return;
+
+      // If only 1 member AND group title matches item title, flatten to direct link
+      if (members.length === 1 && members[0].title === group.groupTitle) {
+        groupedItems.push(members[0]);
+      } else {
+        groupedItems.push({
+          id: `ia-group-${group.groupTitle.toLowerCase().replace(/\s+/g, '-')}`,
+          title: group.groupTitle,
+          icon: group.icon,
+          subItems: members,
+        });
+      }
+    });
+
+    // Add any unclaimed enabled children at the end
+    const unclaimed = enhanced.filter(c => !c.url || !claimedPaths.has(normalizePath(c.url)));
+    unclaimed.forEach(c => groupedItems.push(c));
+
+    return { ...item, subItems: groupedItems };
   });
 }
 
