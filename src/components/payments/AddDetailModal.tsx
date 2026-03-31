@@ -187,6 +187,8 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     const selectedMop = mopTypes.find((m: any) => m.mop_code === mopCode);
     const fundDesc = FUND_LABELS[fundCode] || fundCode;
 
+    const selectedMachine = cardMachines.find(m => m.id === cardMachineId);
+
     const detail: DetailLineData = {
       payment_code: paymentCode,
       fund_code: fundCode,
@@ -201,12 +203,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       mop_notes1: editData?.mop_notes1 || null,
       credit_card_code: editData?.credit_card_code || null,
       expiration_date: editData?.expiration_date || null,
+      card_machine_id: isCard && cardMachineId ? cardMachineId : null,
       // descriptions for display
       payment_code_desc: selectedPt ? (selectedPt as any).payment_type_description : paymentCode,
       fund_code_desc: fundDesc,
       mop_desc: selectedMop ? (selectedMop as any).short_description : mopCode,
       bank_desc: editData?.bank_desc || null,
       card_desc: editData?.card_desc || null,
+      card_machine_name: selectedMachine?.machine_name || null,
     };
 
     onAdd(detail);
