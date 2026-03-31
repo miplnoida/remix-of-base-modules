@@ -416,7 +416,7 @@ function OpenBatchDialog({
         : 0;
 
       const now = new Date();
-      const officeCode = resolvedOffice?.code || selectedCashier.office_code || 'HQ';
+      const officeCode = effectiveOffice?.code || selectedCashier.office_code || 'HQ';
       const batchNumber = `${officeCode}-${format(now, 'yyyyMMdd')}-${format(now, 'HHmmss')}`;
 
       const { error } = await supabase.from('cn_batch').insert({
