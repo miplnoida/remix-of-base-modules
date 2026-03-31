@@ -146,6 +146,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       setFundCode(editData.fund_code || '');
       setAmount(editData.payment_amount?.toString() || '');
       setMopCode(editData.mop_code || '');
+      setCardMachineId(editData.card_machine_id || '');
       if (editData.period) {
         const d = new Date(editData.period);
         setPeriodMonth(String(d.getMonth() + 1).padStart(2, '0'));
@@ -159,6 +160,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       setFundCode('');
       setAmount('');
       setMopCode('');
+      setCardMachineId('');
       setPeriodMonth('');
       setPeriodYear(String(currentYear));
     }
