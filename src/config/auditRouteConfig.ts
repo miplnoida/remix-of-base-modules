@@ -89,8 +89,11 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
 
   // ===== Resources =====
-  { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
+  { moduleKey: 'auditor-profiles', label: 'Auditor Profiles', path: '/audit/auditors', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_AUDITOR_PROFILES, category: 'planning', component: 'AuditorProfiles' },
+  { moduleKey: 'workload-capacity', label: 'Workload & Capacity', path: '/audit/workload', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_WORKLOAD_CAPACITY, category: 'planning', component: 'WorkloadCapacity' },
+  { moduleKey: 'time-tracking', label: 'Time Tracking', path: '/audit/time-tracking', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_TIME_TRACKING, category: 'planning', component: 'TimeTracking' },
   { moduleKey: 'leave-management', label: 'Auditor Leave', path: '/audit/leave', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_LEAVE_MANAGEMENT, category: 'planning', component: 'AuditorLeaveManagement' },
+  { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
 
 
   // ===== Reports =====
