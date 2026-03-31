@@ -189,13 +189,7 @@ export default function AuditConfig({ embedded = false }: { embedded?: boolean }
 
   const isLoading = settingsLoading || riskLoading || typesLoading || modelLoading;
 
-  return (
-    <PageShell
-      title="System Configuration"
-      subtitle="Configure Internal Audit system settings"
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
-      isLoading={isLoading}
-    >
+  const pageContent = (
       <Tabs defaultValue="risk" className="space-y-4">
         <TabsList className="flex-wrap">
           <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Assessment</TabsTrigger>
