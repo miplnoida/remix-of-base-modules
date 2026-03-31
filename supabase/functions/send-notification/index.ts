@@ -178,6 +178,7 @@ const handler = async (req: Request): Promise<Response> => {
         failure_reason: errorMsg,
         trigger_source: trigger_source || null,
         triggered_by: triggered_by || null,
+        template_id: template_id || null,
         metadata: metadata || null,
         created_at: new Date().toISOString(),
       } as Record<string, unknown>);
