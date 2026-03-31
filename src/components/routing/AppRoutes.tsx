@@ -546,6 +546,7 @@ import BatchClosing from '@/pages/cashier/BatchClosing';
 import CashierBatchManagement from '@/pages/cashier/BatchManagement';
 import PaymentModuleConfig from '@/pages/cashier/PaymentModuleConfig';
 import HeadCashierOfficeAssignment from '@/pages/cashier/HeadCashierOfficeAssignment';
+import HeadCashierAssignment from '@/pages/cashier/HeadCashierAssignment';
 import CardMachineManagement from '@/pages/cashier/CardMachineManagement';
 import DailyInvoiceReport from '@/pages/cashier/DailyInvoiceReport';
 import ChartAccountsMapping from '@/pages/cashier/ChartAccountsMapping';
@@ -1396,6 +1397,7 @@ export const AppRoutes = () => {
       <Route path="/cashier/payment-module-config" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
       <Route path="/cashier/card-machines" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
       <Route path="/cashier/head-cashier-office-assignment" element={<ProtectedLayout><HeadCashierOfficeAssignment /></ProtectedLayout>} />
+      <Route path="/cashier/head-cashier-assignment" element={<ProtectedLayout><HeadCashierAssignment /></ProtectedLayout>} />
       <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />

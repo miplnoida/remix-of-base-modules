@@ -26,6 +26,7 @@ interface CardMachine {
   settlement_account_no: string | null;
   settlement_account_name: string | null;
   notes: string | null;
+  office_code: string | null;
   created_by: string | null;
   created_at: string;
   modified_by: string | null;
@@ -41,6 +42,7 @@ const emptyForm = {
   settlement_account_no: '',
   settlement_account_name: '',
   notes: '',
+  office_code: '',
 };
 
 const CardMachineManagement: React.FC = () => {
@@ -73,6 +75,21 @@ const CardMachineManagement: React.FC = () => {
       return data || [];
     },
   });
+
+  const { data: offices = [] } = useQuery({
+    queryKey: ['tb-office-list'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tb_office').select('code, description').eq('is_active', true).order('code');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getOfficeName = (code: string | null) => {
+    if (!code) return '—';
+    const o = offices.find((x: any) => x.code === code);
+    return o ? `${(o as any).description} (${code})` : code;
+  };
 
   const getBankName = (code: string | null) => {
     if (!code) return '—';
@@ -107,6 +124,7 @@ const CardMachineManagement: React.FC = () => {
       settlement_account_no: machine.settlement_account_no || '',
       settlement_account_name: machine.settlement_account_name || '',
       notes: machine.notes || '',
+      office_code: machine.office_code || '',
     });
     setErrors({});
     setDialogOpen(true);
@@ -138,6 +156,7 @@ const CardMachineManagement: React.FC = () => {
             settlement_account_no: form.settlement_account_no.trim() || null,
             settlement_account_name: form.settlement_account_name.trim() || null,
             notes: form.notes.trim() || null,
+            office_code: form.office_code || null,
             modified_by: userCode || null,
             modified_at: new Date().toISOString(),
           })
@@ -156,6 +175,7 @@ const CardMachineManagement: React.FC = () => {
             settlement_account_no: form.settlement_account_no.trim() || null,
             settlement_account_name: form.settlement_account_name.trim() || null,
             notes: form.notes.trim() || null,
+            office_code: form.office_code || null,
             created_by: userCode || null,
           });
         if (error) throw error;
@@ -236,8 +256,9 @@ const CardMachineManagement: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
+                     <TableHead>Code</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Office</TableHead>
                     <TableHead>Card Type</TableHead>
                     <TableHead>Bank</TableHead>
                     <TableHead>Settlement A/C</TableHead>
@@ -250,6 +271,7 @@ const CardMachineManagement: React.FC = () => {
                     <TableRow key={m.id} className={!m.is_active ? 'opacity-50' : ''}>
                       <TableCell className="font-mono font-semibold">{m.machine_code}</TableCell>
                       <TableCell>{m.machine_name}</TableCell>
+                      <TableCell className="text-sm">{getOfficeName(m.office_code)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{getCardTypeLabel(m.card_type_support)}</Badge>
                       </TableCell>
@@ -315,6 +337,18 @@ const CardMachineManagement: React.FC = () => {
                   <SelectItem value="BOTH">Credit & Debit Card</SelectItem>
                   <SelectItem value="CRD">Credit Card Only</SelectItem>
                   <SelectItem value="DRD">Debit Card Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Office Location</Label>
+              <Select value={form.office_code} onValueChange={v => setForm(f => ({ ...f, office_code: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select office..." /></SelectTrigger>
+                <SelectContent>
+                  {offices.map((o: any) => (
+                    <SelectItem key={o.code} value={o.code}>{o.description} ({o.code})</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
