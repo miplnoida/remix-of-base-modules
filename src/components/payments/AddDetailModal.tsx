@@ -357,6 +357,37 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
             </Popover>
           </div>
 
+          {/* Card Machine — mandatory for CRD/DRD */}
+          {isCard && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Card Machine *</Label>
+              {machinesLoading ? (
+                <div className="flex items-center h-10 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
+              ) : noMachinesForOffice ? (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>No card machines configured for this office location. Card payment cannot be processed.</span>
+                </div>
+              ) : (
+                <Select value={cardMachineId} onValueChange={setCardMachineId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select card machine..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cardMachines.map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.machine_code} — {m.machine_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {isCard && !cardMachineId && !noMachinesForOffice && !machinesLoading && (
+                <p className="text-xs text-destructive">Card machine selection is mandatory for card payments.</p>
+              )}
+            </div>
+          )}
+
           {/* Period */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Contribution Period</Label>
@@ -379,7 +410,10 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAdd} disabled={!amount || parseFloat(amount) <= 0 || !paymentCode || !mopCode}>
+          <Button
+            onClick={handleAdd}
+            disabled={!amount || parseFloat(amount) <= 0 || !paymentCode || !mopCode || (isCard && (!cardMachineId || noMachinesForOffice))}
+          >
             {editData ? 'Update Line' : 'Add Line'}
           </Button>
         </DialogFooter>
