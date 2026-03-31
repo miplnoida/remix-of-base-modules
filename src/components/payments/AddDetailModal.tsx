@@ -101,9 +101,17 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch C3 payment type codes to exclude from this dropdown
+   // Fetch C3 payment type codes to exclude from this dropdown
   const { c3PaymentTypes } = useC3PaymentTypes();
   const c3Exclusions = useMemo(() => new Set(c3PaymentTypes), [c3PaymentTypes]);
+
+  // Card machine hook
+  const isCard = mopCode === 'CRD' || mopCode === 'DRD';
+  const { machines: cardMachines, isLoading: machinesLoading } = useOfficeCardMachines(
+    isCard ? officeCode : undefined,
+    mopCode
+  );
+  const noMachinesForOffice = isCard && !machinesLoading && cardMachines.length === 0;
 
   // Filtered lists — exclude C3 payment types, then apply search
   const filteredPaymentTypes = useMemo(() => {
