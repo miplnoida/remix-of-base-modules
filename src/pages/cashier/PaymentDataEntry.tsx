@@ -203,6 +203,7 @@ const PaymentDataEntry = () => {
         mop_notes1: d.mop_notes1 || null,
         credit_card_code: d.credit_card_code || null,
         expiration_date: d.expiration_date || null,
+        card_machine_id: d.card_machine_id || null,
       }));
 
       const dateRcvd = dateReceived ? formatDateForStorage(dateReceived) : formatDateForStorage(new Date());
@@ -451,6 +452,7 @@ const PaymentDataEntry = () => {
           onClose={() => { setShowAddDetail(false); setEditIndex(null); }}
           onAdd={handleAddDetail}
           editData={editIndex !== null ? detailLines[editIndex] : null}
+          officeCode={batchSel.selectedBatch?.office_code || undefined}
         />
         <ChequeDetailModal
           open={showChequeModal}

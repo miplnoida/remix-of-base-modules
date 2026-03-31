@@ -11,8 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOfficeCardMachines } from '@/hooks/useOfficeCardMachines';
 
 export interface DetailLineData {
   payment_code: string;
@@ -29,12 +30,14 @@ export interface DetailLineData {
   mop_notes1: string | null;
   credit_card_code: string | null;
   expiration_date: string | null;
+  card_machine_id: string | null;
   // Display descriptions (client-side only, not saved to DB)
   payment_code_desc?: string;
   fund_code_desc?: string;
   mop_desc?: string;
   bank_desc?: string;
   card_desc?: string;
+  card_machine_name?: string | null;
 }
 
 interface AddDetailModalProps {
@@ -43,6 +46,7 @@ interface AddDetailModalProps {
   onAdd: (detail: DetailLineData) => void;
   editData?: DetailLineData | null;
   onMopPopupNeeded?: (mopCode: string) => void;
+  officeCode?: string;
 }
 
 const MONTHS = [
@@ -62,7 +66,7 @@ const FUND_LABELS: Record<string, string> = {
   LV: 'Levy',
 };
 
-export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeeded }: AddDetailModalProps) {
+export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeeded, officeCode }: AddDetailModalProps) {
   const [paymentCode, setPaymentCode] = useState('');
   const [fundCode, setFundCode] = useState('');
   const [amount, setAmount] = useState('');
@@ -73,6 +77,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
   const [mopOpen, setMopOpen] = useState(false);
   const [paymentCodeSearch, setPaymentCodeSearch] = useState('');
   const [mopSearch, setMopSearch] = useState('');
+  const [cardMachineId, setCardMachineId] = useState('');
   
   const paymentCodeTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -96,9 +101,17 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch C3 payment type codes to exclude from this dropdown
+   // Fetch C3 payment type codes to exclude from this dropdown
   const { c3PaymentTypes } = useC3PaymentTypes();
   const c3Exclusions = useMemo(() => new Set(c3PaymentTypes), [c3PaymentTypes]);
+
+  // Card machine hook
+  const isCard = mopCode === 'CRD' || mopCode === 'DRD';
+  const { machines: cardMachines, isLoading: machinesLoading } = useOfficeCardMachines(
+    isCard ? officeCode : undefined,
+    mopCode
+  );
+  const noMachinesForOffice = isCard && !machinesLoading && cardMachines.length === 0;
 
   // Filtered lists — exclude C3 payment types, then apply search
   const filteredPaymentTypes = useMemo(() => {
@@ -133,6 +146,7 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       setFundCode(editData.fund_code || '');
       setAmount(editData.payment_amount?.toString() || '');
       setMopCode(editData.mop_code || '');
+      setCardMachineId(editData.card_machine_id || '');
       if (editData.period) {
         const d = new Date(editData.period);
         setPeriodMonth(String(d.getMonth() + 1).padStart(2, '0'));
@@ -146,12 +160,18 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       setFundCode('');
       setAmount('');
       setMopCode('');
+      setCardMachineId('');
       setPeriodMonth('');
       setPeriodYear(String(currentYear));
     }
     setPaymentCodeSearch('');
     setMopSearch('');
   }, [open, editData]);
+
+  // Reset card machine when mop changes
+  useEffect(() => {
+    if (!isCard) setCardMachineId('');
+  }, [mopCode]);
 
   // Auto-focus Payment Code dropdown when modal opens
   useEffect(() => {
@@ -172,6 +192,8 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     const selectedMop = mopTypes.find((m: any) => m.mop_code === mopCode);
     const fundDesc = FUND_LABELS[fundCode] || fundCode;
 
+    const selectedMachine = cardMachines.find(m => m.id === cardMachineId);
+
     const detail: DetailLineData = {
       payment_code: paymentCode,
       fund_code: fundCode,
@@ -186,12 +208,14 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
       mop_notes1: editData?.mop_notes1 || null,
       credit_card_code: editData?.credit_card_code || null,
       expiration_date: editData?.expiration_date || null,
+      card_machine_id: isCard && cardMachineId ? cardMachineId : null,
       // descriptions for display
       payment_code_desc: selectedPt ? (selectedPt as any).payment_type_description : paymentCode,
       fund_code_desc: fundDesc,
       mop_desc: selectedMop ? (selectedMop as any).short_description : mopCode,
       bank_desc: editData?.bank_desc || null,
       card_desc: editData?.card_desc || null,
+      card_machine_name: selectedMachine?.machine_name || null,
     };
 
     onAdd(detail);
@@ -333,6 +357,37 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
             </Popover>
           </div>
 
+          {/* Card Machine — mandatory for CRD/DRD */}
+          {isCard && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Card Machine *</Label>
+              {machinesLoading ? (
+                <div className="flex items-center h-10 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
+              ) : noMachinesForOffice ? (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>No card machines configured for this office location. Card payment cannot be processed.</span>
+                </div>
+              ) : (
+                <Select value={cardMachineId} onValueChange={setCardMachineId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select card machine..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cardMachines.map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.machine_code} — {m.machine_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {isCard && !cardMachineId && !noMachinesForOffice && !machinesLoading && (
+                <p className="text-xs text-destructive">Card machine selection is mandatory for card payments.</p>
+              )}
+            </div>
+          )}
+
           {/* Period */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Contribution Period</Label>
@@ -355,7 +410,10 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAdd} disabled={!amount || parseFloat(amount) <= 0 || !paymentCode || !mopCode}>
+          <Button
+            onClick={handleAdd}
+            disabled={!amount || parseFloat(amount) <= 0 || !paymentCode || !mopCode || (isCard && (!cardMachineId || noMachinesForOffice))}
+          >
             {editData ? 'Update Line' : 'Add Line'}
           </Button>
         </DialogFooter>

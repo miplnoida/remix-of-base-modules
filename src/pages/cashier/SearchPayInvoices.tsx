@@ -274,6 +274,7 @@ const SearchPayInvoices: React.FC = () => {
         mop_notes1: m.mop_notes1 || null,
         credit_card_code: m.credit_card_code || null,
         expiration_date: m.expiration_date || null,
+        card_machine_id: m.card_machine_id || null,
       }));
 
       const { data, error } = await supabase.rpc('pay_invoices_with_receipt', {
@@ -659,6 +660,7 @@ const SearchPayInvoices: React.FC = () => {
           baseCurrCode={baseCurrCode}
           showChequeDetails={showChequeDetails}
           showCardDetails={showCardDetails}
+          officeCode={batchSel.selectedBatch?.office_code || undefined}
         />
         <AllocationPreviewModal
           open={showAllocationPreview}
