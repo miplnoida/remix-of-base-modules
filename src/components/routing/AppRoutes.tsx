@@ -1397,6 +1397,7 @@ export const AppRoutes = () => {
       <Route path="/cashier/payment-module-config" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
       <Route path="/cashier/card-machines" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
       <Route path="/cashier/head-cashier-office-assignment" element={<ProtectedLayout><HeadCashierOfficeAssignment /></ProtectedLayout>} />
+      <Route path="/cashier/head-cashier-assignment" element={<ProtectedLayout><HeadCashierAssignment /></ProtectedLayout>} />
       <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
       <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
       <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
