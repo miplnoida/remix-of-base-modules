@@ -1,89 +1,99 @@
 
 
-# Implement Weighted Function Risk for Audit Module
+# Replace `office_locations` with `tb_office` in Office Management
 
 ## Summary
-The `ia_department_functions` table currently lacks a `weight_percentage` column, and the "Weighted Risk" option in Risk Settings is disabled with a "Coming Soon" badge. This plan adds the column, implements the weighted calculation logic, and updates all affected UI screens.
 
-## 1. Database Migration
+The `office_locations` table is a legacy table that is only used in one place: the **Office Management** admin page (`src/pages/admin/OfficeManagement.tsx`) and its hooks in `useAdminData.ts`. The rest of the system (profiles, departments, payments, audit, etc.) already uses `tb_office` with `code` as the identifier. This plan eliminates the last references to `office_locations`.
 
-Add `weight_percentage` column to `ia_department_functions`:
+## Analysis Results
+
+| Where `office_locations` is used | Action |
+|---|---|
+| `src/hooks/useAdminData.ts` — `OfficeLocation` type, `useOfficeLocations`, `useCreateOfficeLocation`, `useUpdateOfficeLocation` | Remove all four. Already has `useTbOffices` which queries `tb_office`. |
+| `src/pages/admin/OfficeManagement.tsx` — entire page uses `OfficeLocation` type and the three hooks above | Rewrite to use `tb_office` via `useTbOffices` + new create/update mutations |
+| `src/pages/admin/system-cleanup/DependencyScan.tsx` — lists `office_locations` in known tables array | Remove from list |
+| `docs/rls-policies-backup.sql` — reference doc only | No code change needed |
+
+**Not affected** (already use `tb_office`):
+- `UserManagementAdmin.tsx`, `UserEdit.tsx` — use `useTbOffices` + `office_code`
+- `profiles` table — uses `office_code` referencing `tb_office.code`
+- `tb_office_departments` — uses `office_code` FK to `tb_office`
+- Payment batch, SEP lookups, ER forms — all use `tb_office.code`
+- Edge functions (`create-user`, `public-api`) — use `tb_office`
+
+## Changes
+
+### 1. `src/hooks/useAdminData.ts`
+
+- **Remove**: `OfficeLocation` interface, `useOfficeLocations()`, `useCreateOfficeLocation()`, `useUpdateOfficeLocation()`
+- **Add**: `useCreateTbOffice()` mutation — inserts into `tb_office` (code, description, address1, address2, office_email, office_phone)
+- **Add**: `useUpdateTbOffice()` mutation — updates `tb_office` by `code`
+- Keep existing `useTbOffices()` as-is
+
+### 2. `src/pages/admin/OfficeManagement.tsx`
+
+- Replace all `OfficeLocation` references with `TbOffice` type
+- Use `useTbOffices()` instead of `useOfficeLocations()`
+- Use new `useCreateTbOffice()` / `useUpdateTbOffice()` mutations
+- Update form fields to match `tb_office` columns:
+  - `branch_name` → `description` (office name)
+  - `address` → `address1`
+  - `city`/`state`/`country` → `address2` (combined)
+  - `is_active` — `tb_office` doesn't have this; remove toggle or add column via migration
+  - Add `code` field (read-only on edit, required on create)
+  - Add `office_email` and `office_phone` fields
+- Update table columns to show Code, Description, Address, Email, Phone
+- Remove accordion department display (departments are managed on their own page)
+- Remove `useOfficeDepartments` import (no longer needed here)
+
+### 3. `src/pages/admin/system-cleanup/DependencyScan.tsx`
+
+- Remove `'office_locations'` from the known tables array
+
+### 4. Database Migration (optional but recommended)
+
+Add `is_active BOOLEAN DEFAULT TRUE` to `tb_office` so office activation/deactivation is supported. Without this, the Active/Inactive toggle must be removed from the UI.
 
 ```sql
-ALTER TABLE public.ia_department_functions
-  ADD COLUMN IF NOT EXISTS weight_percentage NUMERIC(5,2) DEFAULT 0;
+ALTER TABLE public.tb_office
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 ```
 
-No additional tables are needed. The `ia_departments` table already has `risk_rating`; the calculated department risk score/rating will be derived in the frontend from function data + risk config (consistent with existing architecture where risk scoring is done client-side via `useRiskRatingCalculator`).
+## Technical Details
 
-## 2. Update `useRiskRatingCalculator` Hook (`src/hooks/useRiskConfig.ts`)
+```text
+tb_office schema (current):
+  code        VARCHAR  (PK)
+  description VARCHAR
+  address1    VARCHAR
+  address2    VARCHAR
+  office_email VARCHAR
+  office_phone VARCHAR
+  office_start_time TIME
+  office_end_time   TIME
 
-Add a `calculateDeptRisk` function that takes an array of functions and returns the department risk score based on the configured method:
+office_locations schema (to be retired):
+  id          UUID (PK)
+  branch_name TEXT
+  address     TEXT
+  city        TEXT
+  state       TEXT
+  country     TEXT
+  is_active   BOOLEAN
+  created_at  TIMESTAMPTZ
+  ...
 
-- **maximum**: highest function risk score
-- **average**: mean of all function risk scores
-- **weighted**: sum of (function_risk_score * weight_percentage / 100)
-
-Each function's risk score is calculated using the existing `calculateScore(likelihood, impact)` method. The likelihood/impact currently stored as text ("Low"/"Medium"/"High") will need a mapping to numeric values (Low=1, Medium=3, High=5 — matching the 1-5 scale in risk config).
-
-Also add a `getLikelihoodImpactScore` helper that maps text labels to the configured parameter scores from `ia_risk_likelihood_params` / `ia_risk_impact_params`.
-
-## 3. Update Function Master (`src/pages/audit/FunctionMaster.tsx`)
-
-### Form Changes
-- Add **Weightage %** numeric input field (0-100) to the function add/edit form
-- Show a **Department Total Weight** indicator below the field showing current total for the selected department
-- Validation: block save if adding this weight would push department total above 100%
-- Warning: if weighted method is active and department total is below 100%, show amber warning
-
-### Table/Grouped View Changes
-- Add **Weight %** column to the grouped table and flat list
-- Add **Risk Score** column (calculated from likelihood × impact using centralized calculator)
-- Show department total weight in the collapsible header (e.g., "5 functions • 85% allocated")
-
-### View Modal Changes
-- Display Weight %, Risk Score, and Risk Rating (from centralized bands)
-
-### Risk Calculation
-- Replace the local `calculateInherentRisk` function with the centralized `useRiskRatingCalculator` hook
-- Map existing text-based likelihood/impact ("Low"/"Medium"/"High") to numeric scores
-
-## 4. Update Department View (`src/pages/audit/DepartmentView.tsx`)
-
-- Add a **Calculated Department Risk** card showing:
-  - Current calculation method (from risk config)
-  - Calculated risk score and rating (using `calculateDeptRisk`)
-  - Breakdown showing how the score was derived
-  - Total allocated weight % (when weighted method is active)
-- Add weight % column to the functions table
-- Add tooltip/help text explaining the active formula
-
-## 5. Update Risk Settings — Department Method Tab (`src/pages/audit/RiskSettings.tsx`)
-
-- Remove `disabled: true` and "Coming Soon" badge from the Weighted Risk option
-- Update the description to reflect that it is now fully functional
-- Change value from `'weighted'` to remain `'weighted'` (already matches the config)
-
-## 6. Update `useAuditData.ts` — Function Mutations
-
-- Include `weight_percentage` in create/update mutations
-- Invalidate department-level risk queries when functions change
-
-## 7. Validation Logic
-
-Implemented in the Function Master form:
-- `weight_percentage` must be >= 0 and <= 100
-- Sum of all `weight_percentage` values for the same `department_id` must not exceed 100
-- Before save: query existing functions for the department, sum their weights (excluding the current function if editing), add the new value, reject if > 100
+Key difference: tb_office uses short string `code` as PK
+               office_locations uses UUID `id` as PK
+```
 
 ## Files Changed
 
 | File | Change |
-|------|--------|
-| `ia_department_functions` (migration) | Add `weight_percentage` column |
-| `src/hooks/useRiskConfig.ts` | Add `calculateDeptRisk`, likelihood/impact text-to-score mapping |
-| `src/pages/audit/FunctionMaster.tsx` | Add weight field, risk score column, department weight totals, centralized risk calc |
-| `src/pages/audit/DepartmentView.tsx` | Add calculated department risk card with method-aware scoring |
-| `src/pages/audit/RiskSettings.tsx` | Enable weighted method option, remove "Coming Soon" |
-| `src/hooks/useAuditData.ts` | Include `weight_percentage` in function mutations |
+|---|---|
+| `ia_department_functions` (migration) | Add `is_active` to `tb_office` |
+| `src/hooks/useAdminData.ts` | Remove `OfficeLocation` hooks, add `tb_office` create/update mutations |
+| `src/pages/admin/OfficeManagement.tsx` | Full rewrite to use `tb_office` |
+| `src/pages/admin/system-cleanup/DependencyScan.tsx` | Remove `office_locations` from list |
 
