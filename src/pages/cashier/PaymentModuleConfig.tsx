@@ -8,7 +8,7 @@ import { MultiSelectCheckbox } from '@/components/ui/multi-select-checkbox';
 import { Loader2, Settings, Save, ShieldCheck, Users, AlertTriangle, Coins, Plus, Trash2, FileText, Receipt, Edit2, Hash, CreditCard } from 'lucide-react';
 import CardMachineTab from '@/components/payments/CardMachineTab';
 import NumberFormatSegmentBuilder, { type Segment } from '@/components/cashier/NumberFormatSegmentBuilder';
-import HeadCashierAssignmentSection from '@/components/payments/HeadCashierAssignmentSection';
+// HeadCashierAssignmentSection removed — now a separate page at /cashier/head-cashier-assignment
 import BatchBehaviorConfigSection from '@/components/payments/BatchBehaviorConfigSection';
 import DefaultOpeningBalanceTab from '@/components/payments/DefaultOpeningBalanceTab';
 import ReceiptTemplateTab from '@/components/cashier/ReceiptTemplateTab';
