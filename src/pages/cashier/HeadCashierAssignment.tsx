@@ -67,10 +67,22 @@ const HeadCashierAssignment: React.FC = () => {
       if (!result?.success) {
         toast.error(result?.message || 'Assignment failed');
       } else {
-        toast.success(`Head Cashier assigned for ${selectedOffice}: ${result.user_code}`);
-        setSelectedUserId('');
-        queryClient.invalidateQueries({ queryKey: ['head-cashier-assignments'] });
-        queryClient.invalidateQueries({ queryKey: ['head-cashier'] });
+        // Post-save verification: confirm row exists in DB before showing success
+        const { data: verifyRows, error: verifyErr } = await supabase
+          .from('cn_head_cashier_assignment')
+          .select('id, user_code, office_code')
+          .eq('assignment_date', dateStr)
+          .eq('office_code', selectedOffice)
+          .eq('is_active', true);
+        if (verifyErr || !verifyRows || verifyRows.length === 0) {
+          console.error('[HeadCashier] Post-save verification failed:', verifyErr);
+          toast.error('Assignment may not have been saved. Please refresh and check.');
+        } else {
+          toast.success(`Head Cashier assigned for ${selectedOffice}: ${result.user_code}`);
+          setSelectedUserId('');
+          await queryClient.invalidateQueries({ queryKey: ['head-cashier-assignments'] });
+          await queryClient.invalidateQueries({ queryKey: ['head-cashier'] });
+        }
       }
     } catch (err: any) {
       toast.error('Failed to assign Head Cashier', { description: err.message });

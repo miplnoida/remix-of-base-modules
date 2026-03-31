@@ -457,18 +457,10 @@ const CreateInvoice: React.FC = () => {
       }
       await invoiceActions.loadInvoice(result.invoice_id);
       toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
-      // Auto-print the invoice
-      try {
-        await printConfiguredInvoice(result.invoice_id);
-      } catch (printErr: any) {
-        toast.error('Print failed', { description: printErr.message });
-      }
-
       // Email delivery logic — resolve payer email for all payer types
       let payerEmailAddr = isAP ? payerEmail : '';
       if (!payerEmailAddr && !isAP && payerId && invoiceEmailMode !== 'never') {
         try {
-          // Try cn_payer first
           const { data: payerRow } = await supabase
             .from('cn_payer')
             .select('email')
@@ -479,18 +471,29 @@ const CreateInvoice: React.FC = () => {
           console.error('[CreateInvoice] Payer email lookup error:', emailLookupErr);
         }
       }
-      if (invoiceEmailMode === 'always' && payerEmailAddr) {
-        sendDocumentEmail({
-          documentType: 'invoice',
-          documentId: result.invoice_id,
-          documentNumber: result.invoice_number,
-          recipientEmail: payerEmailAddr,
-          userCode: userCode || 'SYSTEM',
-        });
-      } else if (invoiceEmailMode === 'ask') {
-        // Show the prompt even if no email — prompt will disable Send if no email on file
+
+      if (invoiceEmailMode === 'ask') {
+        // Defer print — show email prompt first, print fires after user responds
         setPendingEmailDoc({ id: result.invoice_id, number: result.invoice_number, email: payerEmailAddr });
+        setPendingPrintInvoiceId(result.invoice_id);
         setShowEmailPrompt(true);
+      } else {
+        // For 'always' mode, send email then print
+        if (invoiceEmailMode === 'always' && payerEmailAddr) {
+          sendDocumentEmail({
+            documentType: 'invoice',
+            documentId: result.invoice_id,
+            documentNumber: result.invoice_number,
+            recipientEmail: payerEmailAddr,
+            userCode: userCode || 'SYSTEM',
+          });
+        }
+        // Print immediately for 'always' and 'never' modes
+        try {
+          await printConfiguredInvoice(result.invoice_id);
+        } catch (printErr: any) {
+          toast.error('Print failed', { description: printErr.message });
+        }
       }
     } catch (err: any) {
       toast.error('Failed to create invoice', { description: err.message });

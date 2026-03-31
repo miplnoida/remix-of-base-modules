@@ -253,8 +253,8 @@ const PaymentDataEntry = () => {
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
-      // Email delivery logic for receipt
-      // For receipts, we would need the payer's email — look it up from cn_payer if available
+      // Email delivery logic — defer print until after email prompt resolves for 'ask' mode
+      let payerEmailAddr = '';
       if (receiptEmailMode !== 'never') {
         try {
           const { data: payerData } = await supabase
@@ -262,28 +262,31 @@ const PaymentDataEntry = () => {
             .select('email')
             .eq('payer_id', payerId.trim())
             .maybeSingle();
-          const payerEmailAddr = payerData?.email || '';
-          if (payerEmailAddr) {
-            if (receiptEmailMode === 'always') {
-              sendDocumentEmail({
-                documentType: 'receipt',
-                documentId: generatedPaymentId,
-                documentNumber: generatedReceiptId,
-                recipientEmail: payerEmailAddr,
-                userCode: uCode,
-              });
-            } else if (receiptEmailMode === 'ask') {
-              setPendingEmailDoc({ id: generatedPaymentId, number: generatedReceiptId, email: payerEmailAddr });
-              setShowEmailPrompt(true);
-            }
-          }
+          payerEmailAddr = payerData?.email || '';
         } catch (emailErr) {
           console.error('[PaymentDataEntry] Email lookup error:', emailErr);
         }
       }
 
-      // Trigger configured receipt print
-      setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
+      if (receiptEmailMode === 'ask') {
+        // Defer print — show email prompt first, print fires after user responds
+        setPendingEmailDoc({ id: generatedPaymentId, number: generatedReceiptId, email: payerEmailAddr });
+        setPendingPrintPaymentId(generatedPaymentId);
+        setShowEmailPrompt(true);
+      } else {
+        // For 'always' mode, send email then print
+        if (receiptEmailMode === 'always' && payerEmailAddr) {
+          sendDocumentEmail({
+            documentType: 'receipt',
+            documentId: generatedPaymentId,
+            documentNumber: generatedReceiptId,
+            recipientEmail: payerEmailAddr,
+            userCode: uCode,
+          });
+        }
+        // Print immediately for 'always' and 'never' modes
+        setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
+      }
     } catch (err: any) {
       // Always log to system_error_logs
       await logApplicationError(err, {
