@@ -83,7 +83,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   // ===== Planning =====
   { moduleKey: 'plans', label: 'Audit Plans', path: '/audit/audit-plans', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLANS, category: 'planning', component: 'AuditPlansNew' },
   { moduleKey: 'plan-approval', label: 'Plan Approval', path: '/audit/plan-approval', permission: 'approve_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLAN_APPROVAL, category: 'planning', component: 'PlanApproval' },
-  { moduleKey: 'system-config', label: 'Auto Plan Config', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'planning', component: 'AuditConfig' },
+  
 
   // ===== Execution =====
   { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
@@ -96,8 +96,8 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   // ===== Reports =====
   { moduleKey: 'reports', label: 'Reports', path: '/audit/audit-reports', permission: 'generate_reports', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS, category: 'reports', component: 'AuditReports' },
 
-  // ===== Settings (Unified) =====
-  { moduleKey: 'audit-settings', label: 'Audit Settings', path: '/audit/settings', permission: 'configure_audit_system', enabled: true, category: 'master', component: 'AuditSettings' },
+  // ===== Settings =====
+  { moduleKey: 'system-config', label: 'System Configuration', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'master', component: 'AuditConfig' },
   { moduleKey: 'risk-settings', label: 'Risk Configuration', path: '/audit/risk-settings', permission: 'configure_audit_system', enabled: true, category: 'master', component: 'RiskSettings' },
 ];
 
