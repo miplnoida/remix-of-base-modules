@@ -104,6 +104,8 @@ const PaymentModuleConfig: React.FC = () => {
   const [manageAllRoles, setManageAllRoles] = useState<string[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<string>('warning');
   const [c3PaymentTypes, setC3PaymentTypes] = useState<string[]>([]);
+  const [localInvoiceEmailMode, setLocalInvoiceEmailMode] = useState<string>('never');
+  const [localReceiptEmailMode, setLocalReceiptEmailMode] = useState<string>('never');
   const [selectedDenomCurrencyId, setSelectedDenomCurrencyId] = useState<string | null>(null);
   const { data: denominations, refetch: refetchDenoms } = useDenominationsForCurrency(selectedDenomCurrencyId);
 
@@ -151,6 +153,10 @@ const PaymentModuleConfig: React.FC = () => {
     if (dm?.mode) setDuplicateMode(dm.mode);
     const c3pt = getVal('c3_payment_types');
     if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
+    const iem = getVal('invoice_email_delivery');
+    if (typeof iem === 'string') setLocalInvoiceEmailMode(iem);
+    const rem = getVal('receipt_email_delivery');
+    if (typeof rem === 'string') setLocalReceiptEmailMode(rem);
 
     // Number formats — segments
     const invFmt = getVal('invoice_number_format');
@@ -547,8 +553,8 @@ const PaymentModuleConfig: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <RadioGroup
-                value={configs?.find(c => c.config_key === 'invoice_email_delivery')?.config_value as string || 'never'}
-                onValueChange={(val) => handleSave('invoice_email_delivery', val)}
+                value={localInvoiceEmailMode}
+                onValueChange={setLocalInvoiceEmailMode}
               >
                 <div className="flex items-start gap-3">
                   <RadioGroupItem value="always" id="inv-email-always" />
@@ -572,6 +578,10 @@ const PaymentModuleConfig: React.FC = () => {
                   </Label>
                 </div>
               </RadioGroup>
+              <Button size="sm" onClick={() => handleSave('invoice_email_delivery', localInvoiceEmailMode)} disabled={updateConfig.isPending || localInvoiceEmailMode === (configs?.find(c => c.config_key === 'invoice_email_delivery')?.config_value as string || 'never')}>
+                {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                Save Invoice Email Setting
+              </Button>
             </CardContent>
           </Card>
 
@@ -588,8 +598,8 @@ const PaymentModuleConfig: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <RadioGroup
-                value={configs?.find(c => c.config_key === 'receipt_email_delivery')?.config_value as string || 'never'}
-                onValueChange={(val) => handleSave('receipt_email_delivery', val)}
+                value={localReceiptEmailMode}
+                onValueChange={setLocalReceiptEmailMode}
               >
                 <div className="flex items-start gap-3">
                   <RadioGroupItem value="always" id="rcpt-email-always" />
@@ -613,6 +623,10 @@ const PaymentModuleConfig: React.FC = () => {
                   </Label>
                 </div>
               </RadioGroup>
+              <Button size="sm" onClick={() => handleSave('receipt_email_delivery', localReceiptEmailMode)} disabled={updateConfig.isPending || localReceiptEmailMode === (configs?.find(c => c.config_key === 'receipt_email_delivery')?.config_value as string || 'never')}>
+                {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                Save Receipt Email Setting
+              </Button>
             </CardContent>
           </Card>
 
