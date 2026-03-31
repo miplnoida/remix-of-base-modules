@@ -133,5 +133,66 @@ export function useRiskRatingCalculator() {
 
   const getDeptRiskMethod = () => configMaster?.dept_risk_method || 'maximum';
 
-  return { getRiskRating, calculateScore, getDeptRiskMethod, bands, configMaster };
+  /**
+   * Maps text-based likelihood/impact labels ("Low", "Medium", "High") to numeric scores.
+   * Falls back to a sensible default if bands aren't loaded yet.
+   */
+  const likelihoodImpactTextToScore = (label: string): number => {
+    const defaults: Record<string, number> = { 'Very Low': 1, Low: 2, Medium: 3, High: 4, 'Very High': 5 };
+    return defaults[label] ?? 3;
+  };
+
+  /**
+   * Calculates department-level risk from an array of functions,
+   * using the configured dept_risk_method.
+   */
+  const calculateDeptRisk = (
+    functions: Array<{ likelihood?: string; impact?: string; weight_percentage?: number }>
+  ): { score: number; label: string; color: string; method: string } => {
+    const method = getDeptRiskMethod();
+    if (!functions.length) return { score: 0, label: 'N/A', color: '#6b7280', method };
+
+    const scores = functions.map(fn => {
+      const l = likelihoodImpactTextToScore(fn.likelihood || 'Medium');
+      const i = likelihoodImpactTextToScore(fn.impact || 'Medium');
+      return calculateScore(l, i);
+    });
+
+    let deptScore = 0;
+    switch (method) {
+      case 'maximum':
+        deptScore = Math.max(...scores);
+        break;
+      case 'average':
+        deptScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        break;
+      case 'weighted': {
+        deptScore = functions.reduce((sum, fn, idx) => {
+          const weight = Number(fn.weight_percentage) || 0;
+          return sum + scores[idx] * (weight / 100);
+        }, 0);
+        deptScore = Math.round(deptScore * 100) / 100;
+        break;
+      }
+      default:
+        deptScore = Math.max(...scores);
+    }
+
+    const rating = getRiskRating(deptScore);
+    return { score: deptScore, ...rating, method };
+  };
+
+  /**
+   * Calculates a single function's risk score from text-based likelihood/impact.
+   */
+  const calculateFunctionRiskScore = (likelihood: string, impact: string): number => {
+    const l = likelihoodImpactTextToScore(likelihood || 'Medium');
+    const i = likelihoodImpactTextToScore(impact || 'Medium');
+    return calculateScore(l, i);
+  };
+
+  return {
+    getRiskRating, calculateScore, getDeptRiskMethod, bands, configMaster,
+    likelihoodImpactTextToScore, calculateDeptRisk, calculateFunctionRiskScore,
+  };
 }

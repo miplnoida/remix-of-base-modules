@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Trash2, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowLeft, Building2, Mail, Phone, MapPin, Edit, Plus, Shield, Trash2, Loader2, Calculator, Info, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useProfiles } from '@/components/c3/ReceivedBySelect';
 
@@ -30,8 +32,18 @@ export default function DepartmentView() {
   const { data: departments = [], isLoading: deptLoading } = useIADepartments();
   const { data: functions = [], isLoading: funcLoading } = useIADepartmentFunctions(id);
   const { create: createFunc, update: updateFunc, remove: removeFunc } = useIADepartmentFunctionMutations();
+  const { getRiskRating, calculateFunctionRiskScore, calculateDeptRisk, getDeptRiskMethod } = useRiskRatingCalculator();
 
   const department = departments.find((d: any) => d.id === id);
+  const isWeightedMethod = getDeptRiskMethod() === 'weighted';
+  const totalWeight = functions.reduce((sum: number, f: any) => sum + (Number(f.weight_percentage) || 0), 0);
+  const deptRisk = calculateDeptRisk(functions);
+
+  const METHOD_LABELS: Record<string, string> = {
+    maximum: 'Highest Function Risk',
+    average: 'Average Function Risk',
+    weighted: 'Weighted Function Risk',
+  };
 
   const [functionForm, setFunctionForm] = useState({
     function_name: '',
@@ -41,12 +53,14 @@ export default function DepartmentView() {
     impact: 'Medium',
     control_effectiveness: 'Effective',
     responsible_person: '',
-    notes: ''
+    notes: '',
+    weight_percentage: '0',
   });
 
   const resetForm = () => setFunctionForm({
     function_name: '', description: '', risk_rating: 'Medium', likelihood: 'Medium',
-    impact: 'Medium', control_effectiveness: 'Effective', responsible_person: '', notes: ''
+    impact: 'Medium', control_effectiveness: 'Effective', responsible_person: '', notes: '',
+    weight_percentage: '0',
   });
 
   if (deptLoading || funcLoading) {
@@ -66,6 +80,9 @@ export default function DepartmentView() {
     );
   }
 
+  const getWeightExcluding = (excludeId?: string) =>
+    functions.filter((f: any) => f.id !== excludeId).reduce((s: number, f: any) => s + (Number(f.weight_percentage) || 0), 0);
+
   const getRiskBadge = (risk: string) => {
     const colors: Record<string, string> = { 'High': 'bg-red-500', 'Medium': 'bg-orange-600', 'Low': 'bg-green-500' };
     return <Badge className={colors[risk]}>{risk}</Badge>;
@@ -76,13 +93,34 @@ export default function DepartmentView() {
     return <Badge className={colors[effectiveness]}>{effectiveness}</Badge>;
   };
 
-  const handleAddFunction = () => {
+  const validateAndSave = (isEdit: boolean) => {
     if (!functionForm.function_name) {
       toast({ title: "Validation Error", description: "Function name is required.", variant: "destructive" });
       return;
     }
-    createFunc.mutate({ ...functionForm, department_id: id, created_by: userCode });
-    setIsAddFunctionOpen(false);
+    const weight = Number(functionForm.weight_percentage) || 0;
+    if (weight < 0 || weight > 100) {
+      toast({ title: "Validation Error", description: "Weight must be between 0 and 100.", variant: "destructive" });
+      return;
+    }
+    const existing = getWeightExcluding(isEdit ? selectedFunction?.id : undefined);
+    if (existing + weight > 100) {
+      toast({ title: "Validation Error", description: `Total department weight would be ${existing + weight}%, exceeding 100%.`, variant: "destructive" });
+      return;
+    }
+
+    const score = calculateFunctionRiskScore(functionForm.likelihood, functionForm.impact);
+    const rating = getRiskRating(score);
+    const payload = { ...functionForm, risk_rating: rating.label, weight_percentage: weight };
+
+    if (isEdit && selectedFunction) {
+      updateFunc.mutate({ id: selectedFunction.id, ...payload, updated_by: userCode });
+      setIsEditFunctionOpen(false);
+      setSelectedFunction(null);
+    } else {
+      createFunc.mutate({ ...payload, department_id: id, created_by: userCode });
+      setIsAddFunctionOpen(false);
+    }
     resetForm();
   };
 
@@ -96,18 +134,10 @@ export default function DepartmentView() {
       impact: func.impact || 'Medium',
       control_effectiveness: func.control_effectiveness || 'Effective',
       responsible_person: func.responsible_person || '',
-      notes: func.notes || ''
+      notes: func.notes || '',
+      weight_percentage: String(func.weight_percentage ?? 0),
     });
     setIsEditFunctionOpen(true);
-  };
-
-  const handleUpdateFunction = () => {
-    if (selectedFunction) {
-      updateFunc.mutate({ id: selectedFunction.id, ...functionForm, updated_by: userCode });
-    }
-    setIsEditFunctionOpen(false);
-    setSelectedFunction(null);
-    resetForm();
   };
 
   const handleDeleteFunction = (func: any) => {
@@ -115,6 +145,27 @@ export default function DepartmentView() {
       removeFunc.mutate(func.id);
     }
   };
+
+  const functionFormFields = (
+    <div className="space-y-4">
+      <div className="space-y-2"><Label>Function Name *</Label><Input value={functionForm.function_name} onChange={(e) => setFunctionForm({...functionForm, function_name: e.target.value})} placeholder="e.g., Claims Processing" /></div>
+      <div className="space-y-2"><Label>Description</Label><Textarea value={functionForm.description} onChange={(e) => setFunctionForm({...functionForm, description: e.target.value})} rows={3} /></div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2"><Label>Likelihood</Label><Select value={functionForm.likelihood} onValueChange={(v) => setFunctionForm({...functionForm, likelihood: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
+        <div className="space-y-2"><Label>Impact</Label><Select value={functionForm.impact} onValueChange={(v) => setFunctionForm({...functionForm, impact: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
+      </div>
+      <div className="space-y-2"><Label>Control Effectiveness</Label><Select value={functionForm.control_effectiveness} onValueChange={(v) => setFunctionForm({...functionForm, control_effectiveness: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label>Weightage %</Label>
+          <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent className="max-w-xs"><p>Relative importance of this function (0–100%). Total per department must not exceed 100%.</p></TooltipContent></Tooltip></TooltipProvider>
+        </div>
+        <Input type="number" min={0} max={100} value={functionForm.weight_percentage} onChange={(e) => setFunctionForm({...functionForm, weight_percentage: e.target.value})} />
+        <p className="text-xs text-muted-foreground">Current dept total (excl. this): {getWeightExcluding(selectedFunction?.id)}%</p>
+      </div>
+      <div className="space-y-2"><Label>Responsible Person</Label><Select value={functionForm.responsible_person} onValueChange={(v) => setFunctionForm({...functionForm, responsible_person: v})}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -155,6 +206,74 @@ export default function DepartmentView() {
         </CardContent>
       </Card>
 
+      {/* Calculated Department Risk Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" />Calculated Department Risk</CardTitle>
+          <CardDescription>
+            Risk score derived from functions using: <strong>{METHOD_LABELS[deptRisk.method] || deptRisk.method}</strong>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted/50">
+              <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
+              <div className="text-4xl font-bold" style={{ color: deptRisk.color }}>{deptRisk.score}</div>
+              <Badge className="mt-2 text-white" style={{ backgroundColor: deptRisk.color }}>{deptRisk.label}</Badge>
+            </div>
+            <div className="col-span-2 space-y-3">
+              <div className="text-sm space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Info className="h-4 w-4 shrink-0" />
+                  {deptRisk.method === 'maximum' && <span>Highest risk score among all functions in this department.</span>}
+                  {deptRisk.method === 'average' && <span>Average of all function risk scores in this department.</span>}
+                  {deptRisk.method === 'weighted' && <span>Sum of (function risk score × weight %) for each function.</span>}
+                </div>
+                {isWeightedMethod && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Weight Allocated</span>
+                      <span className={`font-semibold ${totalWeight > 100 ? 'text-destructive' : totalWeight === 100 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {totalWeight}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${totalWeight > 100 ? 'bg-destructive' : totalWeight === 100 ? 'bg-green-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(totalWeight, 100)}%` }}
+                      />
+                    </div>
+                    {totalWeight < 100 && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Total weight is below 100%. Some risk may be unaccounted for.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Function breakdown */}
+              <div className="text-xs space-y-1 mt-3">
+                <p className="font-medium text-muted-foreground mb-1">Function Breakdown:</p>
+                {functions.map((fn: any) => {
+                  const score = calculateFunctionRiskScore(fn.likelihood || 'Medium', fn.impact || 'Medium');
+                  const rating = getRiskRating(score);
+                  return (
+                    <div key={fn.id} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                      <span className="truncate max-w-[200px]">{fn.function_name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono">Score: {score}</span>
+                        {isWeightedMethod && <span className="font-mono text-muted-foreground">× {fn.weight_percentage ?? 0}%</span>}
+                        {isWeightedMethod && <span className="font-mono font-semibold">= {(score * (Number(fn.weight_percentage) || 0) / 100).toFixed(1)}</span>}
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: rating.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Functions Section */}
       <Card>
         <CardHeader>
@@ -167,19 +286,10 @@ export default function DepartmentView() {
               <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Function</Button></DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Add New Function to {department.name}</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2"><Label>Function Name *</Label><Input value={functionForm.function_name} onChange={(e) => setFunctionForm({...functionForm, function_name: e.target.value})} placeholder="e.g., Claims Processing" /></div>
-                  <div className="space-y-2"><Label>Description</Label><Textarea value={functionForm.description} onChange={(e) => setFunctionForm({...functionForm, description: e.target.value})} rows={3} /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Likelihood</Label><Select value={functionForm.likelihood} onValueChange={(v) => setFunctionForm({...functionForm, likelihood: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>Impact</Label><Select value={functionForm.impact} onValueChange={(v) => setFunctionForm({...functionForm, impact: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
-                  </div>
-                  <div className="space-y-2"><Label>Control Effectiveness</Label><Select value={functionForm.control_effectiveness} onValueChange={(v) => setFunctionForm({...functionForm, control_effectiveness: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
-                  <div className="space-y-2"><Label>Responsible Person</Label><Select value={functionForm.responsible_person} onValueChange={(v) => setFunctionForm({...functionForm, responsible_person: v})}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setIsAddFunctionOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddFunction} disabled={createFunc.isPending}>{createFunc.isPending ? 'Adding...' : 'Add Function'}</Button>
-                  </div>
+                {functionFormFields}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setIsAddFunctionOpen(false)}>Cancel</Button>
+                  <Button onClick={() => validateAndSave(false)} disabled={createFunc.isPending}>{createFunc.isPending ? 'Adding...' : 'Add Function'}</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -192,32 +302,38 @@ export default function DepartmentView() {
                 <TableRow>
                   <TableHead>Function Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Risk Rating</TableHead>
+                  <TableHead>Risk Score</TableHead>
                   <TableHead>Likelihood</TableHead>
                   <TableHead>Impact</TableHead>
+                  <TableHead>Weight %</TableHead>
                   <TableHead>Controls</TableHead>
-                  <TableHead>Last Audit</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {functions.map((func: any) => (
-                  <TableRow key={func.id}>
-                    <TableCell className="font-medium">{func.function_name}</TableCell>
-                    <TableCell className="max-w-xs truncate">{func.description}</TableCell>
-                    <TableCell>{getRiskBadge(func.risk_rating || 'Medium')}</TableCell>
-                    <TableCell>{getRiskBadge(func.likelihood || 'Medium')}</TableCell>
-                    <TableCell>{getRiskBadge(func.impact || 'Medium')}</TableCell>
-                    <TableCell>{getControlBadge(func.control_effectiveness || 'Effective')}</TableCell>
-                    <TableCell className="text-sm">{func.last_audit_date ? new Date(func.last_audit_date).toLocaleDateString() : 'Not audited'}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditFunction(func)}><Edit className="w-4 h-4" /></Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteFunction(func)}><Trash2 className="w-4 h-4 text-red-600" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {functions.map((func: any) => {
+                  const fScore = calculateFunctionRiskScore(func.likelihood || 'Medium', func.impact || 'Medium');
+                  const fRating = getRiskRating(fScore);
+                  return (
+                    <TableRow key={func.id}>
+                      <TableCell className="font-medium">{func.function_name}</TableCell>
+                      <TableCell className="max-w-xs truncate">{func.description}</TableCell>
+                      <TableCell>
+                        <Badge style={{ backgroundColor: fRating.color, color: 'white' }} className="text-xs">{fScore} — {fRating.label}</Badge>
+                      </TableCell>
+                      <TableCell>{getRiskBadge(func.likelihood || 'Medium')}</TableCell>
+                      <TableCell>{getRiskBadge(func.impact || 'Medium')}</TableCell>
+                      <TableCell><span className="font-mono text-sm">{func.weight_percentage ?? 0}%</span></TableCell>
+                      <TableCell>{getControlBadge(func.control_effectiveness || 'Effective')}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditFunction(func)}><Edit className="w-4 h-4" /></Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDeleteFunction(func)}><Trash2 className="w-4 h-4 text-red-600" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -230,19 +346,10 @@ export default function DepartmentView() {
       <Dialog open={isEditFunctionOpen} onOpenChange={setIsEditFunctionOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Function</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Function Name *</Label><Input value={functionForm.function_name} onChange={(e) => setFunctionForm({...functionForm, function_name: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Description</Label><Textarea value={functionForm.description} onChange={(e) => setFunctionForm({...functionForm, description: e.target.value})} rows={3} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Likelihood</Label><Select value={functionForm.likelihood} onValueChange={(v) => setFunctionForm({...functionForm, likelihood: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>Impact</Label><Select value={functionForm.impact} onValueChange={(v) => setFunctionForm({...functionForm, impact: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem></SelectContent></Select></div>
-            </div>
-            <div className="space-y-2"><Label>Control Effectiveness</Label><Select value={functionForm.control_effectiveness} onValueChange={(v) => setFunctionForm({...functionForm, control_effectiveness: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Effective">Effective</SelectItem><SelectItem value="Partially Effective">Partially Effective</SelectItem><SelectItem value="Ineffective">Ineffective</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label>Responsible Person</Label><Select value={functionForm.responsible_person} onValueChange={(v) => setFunctionForm({...functionForm, responsible_person: v})}><SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger><SelectContent>{profiles.map((p) => <SelectItem key={p.id} value={p.user_code}>{p.full_name} ({p.user_code})</SelectItem>)}</SelectContent></Select></div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsEditFunctionOpen(false)}>Cancel</Button>
-              <Button onClick={handleUpdateFunction} disabled={updateFunc.isPending}>{updateFunc.isPending ? 'Updating...' : 'Update Function'}</Button>
-            </div>
+          {functionFormFields}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setIsEditFunctionOpen(false)}>Cancel</Button>
+            <Button onClick={() => validateAndSave(true)} disabled={updateFunc.isPending}>{updateFunc.isPending ? 'Updating...' : 'Update Function'}</Button>
           </div>
         </DialogContent>
       </Dialog>

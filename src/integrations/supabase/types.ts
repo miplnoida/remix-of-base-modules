@@ -11516,6 +11516,7 @@ export type Database = {
           risk_rating: string | null
           updated_at: string | null
           updated_by: string | null
+          weight_percentage: number | null
         }
         Insert: {
           control_effectiveness?: string | null
@@ -11536,6 +11537,7 @@ export type Database = {
           risk_rating?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          weight_percentage?: number | null
         }
         Update: {
           control_effectiveness?: string | null
@@ -11556,6 +11558,7 @@ export type Database = {
           risk_rating?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          weight_percentage?: number | null
         }
         Relationships: [
           {

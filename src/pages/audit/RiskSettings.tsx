@@ -477,10 +477,9 @@ function DeptMethodTab() {
     },
     {
       value: 'weighted',
-      label: 'Weighted Risk (Future)',
-      desc: 'Department risk = weighted average based on function criticality. Requires weight assignment per function.',
+      label: 'Weighted Function Risk',
+      desc: 'Department risk = sum of (function risk score × weight %). Assign weight percentages per function in Function Master. Total per department must not exceed 100%.',
       icon: '⚖️',
-      disabled: true,
     },
   ];
 
@@ -503,11 +502,9 @@ function DeptMethodTab() {
           {METHODS.map(m => (
             <div
               key={m.value}
-              onClick={() => !m.disabled && setMethod(m.value)}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                m.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-              } ${
-                method === m.value && !m.disabled
+              onClick={() => setMethod(m.value)}
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                method === m.value
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-muted-foreground/30'
               }`}
@@ -515,10 +512,7 @@ function DeptMethodTab() {
               <div className="flex items-center gap-3">
                 <span className="text-xl">{m.icon}</span>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{m.label}</span>
-                    {m.disabled && <Badge variant="secondary" className="text-xs">Coming Soon</Badge>}
-                  </div>
+                  <span className="font-medium">{m.label}</span>
                   <p className="text-sm text-muted-foreground mt-0.5">{m.desc}</p>
                 </div>
               </div>
