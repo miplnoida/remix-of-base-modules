@@ -1,89 +1,47 @@
 
 
-# Fix: Email Delivery — End-to-End from Payer Resolution to Actual Send
+# Fix: Invoice Attachment in Email, Email Log Creation, and Email Template for Documents
 
 ## Root Cause Analysis
 
-### Why emails are not being sent
-The `sendDocumentEmail()` function in `useEmailDeliveryConfig.ts` **never calls the `send-notification` edge function**. It only inserts a row into `system_audit_trail` with status `'queued'` and shows a success toast — creating the illusion of success. No email is actually dispatched.
+### 1. Invoice/Receipt Missing from Email Attachment
+The `sendDocumentEmail()` in `useEmailDeliveryConfig.ts` sends a generic notification body ("Your invoice has been generated") but **never generates or attaches the actual invoice/receipt HTML**. The invoice rendering logic exists in `invoicePrinter.ts` (`fetchInvoiceTemplate` + `fetchInvoiceData`) but these functions are private and never called during email composition.
 
-### Why email resolution fails for non-AP payer types
-Both `CreateInvoice.tsx` (line 465-470) and `PaymentDataEntry.tsx` (line 261-266) resolve email by querying `cn_payer.email` for **all** payer types. This is incorrect:
-- **ER**: Email is in `er_master.email` (where `regno = payer_id`)
-- **IP/SE/VC**: Email is in `ip_master.email_addr` (where `ssn = payer_id`)
-- **AP**: Email is in `cn_payer.email` (correct as-is)
+### 2. Email Log Not Created in `notification_logs`
+The `notification_logs.triggered_by` column has a **foreign key constraint** referencing `auth.users(id)` (UUID). The edge function passes a user code string (e.g., `"JBarry"`) into this field, causing the insert to fail silently. The edge function's `logToSystem` helper swallows errors with a `try/catch`, so no error surfaces.
 
-### Why Email Logs page doesn't show invoice/receipt emails
-The `notification_logs` table is never written to during invoice/receipt email dispatch because the edge function is never called.
+### 3. Email Template for Invoices/Receipts
+Currently `sendDocumentEmail` uses a hardcoded HTML body. The user wants admin-editable email templates via the existing Email Template Manager screen. We will seed two templates (`invoice_email` and `receipt_email`) with appropriate placeholders and modify `sendDocumentEmail` to fetch the template from `notification_templates` by `template_code`.
 
 ---
 
-## Plan
+## Changes
 
-### 1. Create `resolve_payer_email` Database RPC (Migration)
+### 1. Database Migration
+- **Drop the FK constraint** `notification_logs_triggered_by_fkey` so the `triggered_by` column can accept user code strings instead of only UUIDs
+- **Seed two email templates** into `notification_templates` with `template_code = 'invoice_email'` and `template_code = 'receipt_email'`, including placeholders like `{{DOCUMENT_NUMBER}}`, `{{PAYER_NAME}}`, `{{TOTAL_AMOUNT}}`, `{{DOCUMENT_DATE}}`
 
-Centralizes payer email resolution server-side — no duplication across frontend pages.
+### 2. `supabase/functions/send-notification/index.ts`
+- Store `triggered_by` as-is (string) since the FK will be dropped
+- No other changes needed — the insert logic already works correctly when the FK doesn't block it
 
-```sql
-CREATE OR REPLACE FUNCTION public.resolve_payer_email(
-  p_payer_type TEXT,
-  p_payer_id TEXT
-) RETURNS TEXT
-LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE v_email TEXT;
-BEGIN
-  IF p_payer_type = 'ER' THEN
-    SELECT email INTO v_email FROM er_master WHERE regno = p_payer_id;
-  ELSIF p_payer_type IN ('IP', 'SE', 'VC') THEN
-    SELECT email_addr INTO v_email FROM ip_master WHERE ssn = p_payer_id;
-  ELSIF p_payer_type = 'AP' THEN
-    SELECT email INTO v_email FROM cn_payer WHERE payer_id = p_payer_id;
-  END IF;
-  RETURN COALESCE(v_email, '');
-END;
-$$;
-```
+### 3. `src/lib/invoicePrinter.ts`
+- **Export** `fetchInvoiceTemplate()` and `fetchInvoiceData()` so the email flow can reuse them
 
-### 2. Rewrite `sendDocumentEmail` in `useEmailDeliveryConfig.ts`
+### 4. `src/hooks/useEmailDeliveryConfig.ts`
+- Import exported functions from `invoicePrinter.ts`
+- Before sending, **fetch the email template** from `notification_templates` by `template_code` (`invoice_email` or `receipt_email`)
+- **Generate the resolved invoice/receipt HTML** using `fetchInvoiceTemplate` + `fetchInvoiceData`
+- Pass the resolved document HTML as a **base64-encoded attachment** (HTML file) to the edge function
+- Replace placeholders in the email template body with actual values (payer name, document number, amount, date)
+- Pass the `template_id` to the edge function so `notification_logs.template_id` is populated
 
-Replace the current placeholder with a function that:
-1. Validates the email address (basic format check)
-2. Calls the `send-notification` edge function via `supabase.functions.invoke()`
-3. Passes `payer_type`, `payer_id`, `document_type`, `document_number` as metadata so `notification_logs` captures full context
-4. Returns the actual send result (success/failure)
-5. Shows success toast **only** if the edge function returns `status: 'sent'`
-6. Shows warning toast if queued, error toast if failed
+### 5. `src/pages/admin/EmailLogs.tsx`
+- Remove the **duplicate "Retries" column** at lines 272-273 (rendered twice)
 
-### 3. Update `send-notification` Edge Function
-
-Add support for `metadata` field in the request payload so payer context (payer_type, payer_id, document_type, document_number) is stored in `notification_logs.metadata`. Also add:
-- `trigger_source` field set to `'invoice_creation'` or `'receipt_creation'`
-- Basic email format validation before attempting Resend API call
-- Retry logic: if Resend returns a transient error (429, 5xx), retry up to 2 times with exponential backoff
-
-### 4. Update Invoice and Receipt Email Resolution
-
-**`CreateInvoice.tsx`** and **`PaymentDataEntry.tsx`**: Replace the client-side `cn_payer` email lookup with a single RPC call:
-```typescript
-const { data: emailResult } = await supabase.rpc('resolve_payer_email', {
-  p_payer_type: payerType,
-  p_payer_id: payerId.trim(),
-});
-payerEmailAddr = emailResult || '';
-```
-
-### 5. Update `CreateInvoice.tsx` and `PaymentDataEntry.tsx` — Response-Based Confirmation
-
-Change `sendDocumentEmail` calls from fire-and-forget to awaited, and adjust toast messaging based on the actual result:
-- If `sendDocumentEmail` returns `{ success: true, status: 'sent' }` → show success
-- If `status: 'queued'` → show info toast "Email queued for delivery"
-- If failed → show error toast with failure reason
-
-### 6. Enhance `EmailLogs` Page
-
-Add `Payer Type`, `Payer ID`, and `Document #` columns by reading from `notification_logs.metadata`. The metadata JSONB already supports arbitrary fields — no schema change needed. Update the table headers, cell rendering, detail dialog, and CSV export to include these fields.
+### 6. `src/pages/admin/notifications/EmailTemplateManager.tsx`
+- Add invoice/receipt-specific placeholders to the `AVAILABLE_PLACEHOLDERS` list: `{{DOCUMENT_NUMBER}}`, `{{PAYER_NAME}}`, `{{PAYER_ID}}`, `{{TOTAL_AMOUNT}}`, `{{DOCUMENT_DATE}}`, `{{CURRENCY_CODE}}`
+- Add `invoice_email_sent` and `receipt_email_sent` to `TRIGGER_EVENTS`
 
 ---
 
@@ -91,10 +49,9 @@ Add `Payer Type`, `Payer ID`, and `Document #` columns by reading from `notifica
 
 | File | Change |
 |------|--------|
-| Migration SQL | Create `resolve_payer_email` RPC |
-| `src/hooks/useEmailDeliveryConfig.ts` | Rewrite `sendDocumentEmail` to invoke `send-notification` edge function |
-| `supabase/functions/send-notification/index.ts` | Add metadata support, email validation, retry logic |
-| `src/pages/cashier/CreateInvoice.tsx` | Use `resolve_payer_email` RPC, await `sendDocumentEmail` |
-| `src/pages/cashier/PaymentDataEntry.tsx` | Use `resolve_payer_email` RPC, await `sendDocumentEmail` |
-| `src/pages/admin/EmailLogs.tsx` | Add payer context columns from metadata |
+| Migration SQL | Drop `triggered_by` FK, seed invoice/receipt email templates |
+| `src/lib/invoicePrinter.ts` | Export `fetchInvoiceTemplate` and `fetchInvoiceData` |
+| `src/hooks/useEmailDeliveryConfig.ts` | Fetch email template, generate document HTML attachment, pass template_id |
+| `src/pages/admin/EmailLogs.tsx` | Remove duplicate Retries column |
+| `src/pages/admin/notifications/EmailTemplateManager.tsx` | Add document-related placeholders and trigger events |
 
