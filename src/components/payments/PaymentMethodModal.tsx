@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { useOfficeCardMachines } from '@/hooks/useOfficeCardMachines';
 
 /* ─── Types ─────────────────────────────────────── */
 
@@ -27,6 +28,8 @@ export interface MethodRow {
   expiration_date: string;
   card_desc: string;
   bank_desc: string;
+  card_machine_id: string | null;
+  card_machine_name: string | null;
 }
 
 interface PaymentMethodModalProps {
@@ -39,13 +42,14 @@ interface PaymentMethodModalProps {
   baseCurrCode: string;
   showChequeDetails?: boolean;
   showCardDetails?: boolean;
+  officeCode?: string;
 }
 
 /* ─── Component ─────────────────────────────────── */
 
 export function PaymentMethodModal({
   open, onOpenChange, onSave, editRow, mopTypes, enabledCurrencies, baseCurrCode,
-  showChequeDetails = true, showCardDetails = true,
+  showChequeDetails = true, showCardDetails = true, officeCode,
 }: PaymentMethodModalProps) {
   const [mopCode, setMopCode] = useState('');
   const [currencyCode, setCurrencyCode] = useState('');
@@ -65,7 +69,16 @@ export function PaymentMethodModal({
   const [expireDate, setExpireDate] = useState('');
   const [cardNotes, setCardNotes] = useState('');
 
+  // Card machine
+  const [cardMachineId, setCardMachineId] = useState('');
+
   const mopSelectRef = useRef<HTMLButtonElement>(null);
+
+  const isCard = mopCode === 'CRD' || mopCode === 'DRD';
+  const { machines: cardMachines, isLoading: machinesLoading } = useOfficeCardMachines(
+    isCard ? officeCode : undefined,
+    mopCode
+  );
 
   // Lookups
   const { data: banks = [], isLoading: banksLoading } = useQuery({
@@ -113,6 +126,7 @@ export function PaymentMethodModal({
         setCardNumber(((editRow.mop_code === 'CRD' || editRow.mop_code === 'DRD') ? editRow.mop_number : '') || '');
         setExpireDate(editRow.expiration_date || '');
         setCardNotes(((editRow.mop_code === 'CRD' || editRow.mop_code === 'DRD') ? editRow.mop_notes1 : '') || '');
+        setCardMachineId(editRow.card_machine_id || '');
       } else {
         setMopCode('');
         setCurrencyCode(baseCurrCode);
@@ -127,11 +141,17 @@ export function PaymentMethodModal({
         setCardNumber('');
         setExpireDate('');
         setCardNotes('');
+        setCardMachineId('');
       }
       // Auto-focus method select
       setTimeout(() => mopSelectRef.current?.focus(), 150);
     }
   }, [open, editRow, baseCurrCode]);
+
+  // Reset card machine when mop changes
+  useEffect(() => {
+    if (!isCard) setCardMachineId('');
+  }, [mopCode]);
 
   // Resolve exchange rate when currency changes
   const handleCurrencyChange = useCallback((code: string) => {
@@ -143,7 +163,11 @@ export function PaymentMethodModal({
   const baseAmount = Number((originalAmount * exchangeRate).toFixed(2));
   const isMainCurr = currencyCode === baseCurrCode;
   const isCheque = mopCode === 'CHQ' || mopCode === 'CHK';
-  const isCard = mopCode === 'CRD' || mopCode === 'DRD';
+
+  // Card machine validation
+  const noMachinesForOffice = isCard && !machinesLoading && cardMachines.length === 0;
+  const cardMachineRequired = isCard;
+  const cardMachineValid = !cardMachineRequired || (cardMachineId !== '');
 
   // Date auto-format DD/MM/YYYY
   const handleDateChange = (val: string) => {
@@ -186,13 +210,16 @@ export function PaymentMethodModal({
 
   const canSave = mopCode && originalAmount > 0
     && (!chequeEnabled || chequeNumber.trim())
-    && (!cardEnabled || (cardType && cardNumber.trim()));
+    && (!cardEnabled || (cardType && cardNumber.trim()))
+    && cardMachineValid
+    && !noMachinesForOffice;
 
   const handleSave = () => {
     if (!canSave) return;
     const mop = mopTypes.find(m => m.mop_code === mopCode);
     const bankObj = banks.find((b: any) => b.bank_code === bankCode);
     const merchant = merchants.find((m: any) => m.credit_card_code === cardType);
+    const selectedMachine = cardMachines.find(m => m.id === cardMachineId);
 
     const row: MethodRow = {
       id: editRow?.id || crypto.randomUUID(),
@@ -211,6 +238,8 @@ export function PaymentMethodModal({
       expiration_date: cardEnabled ? expireDate : '',
       card_desc: cardEnabled && merchant ? (merchant as any).credit_card_name : '',
       bank_desc: chequeEnabled && bankObj ? (bankObj as any).name : '',
+      card_machine_id: isCard && cardMachineId ? cardMachineId : null,
+      card_machine_name: isCard && selectedMachine ? selectedMachine.machine_name : null,
     };
     onSave(row);
     onOpenChange(false);
@@ -226,6 +255,7 @@ export function PaymentMethodModal({
       onSave={handleSave}
       onCancel={() => onOpenChange(false)}
       saveLabel={editRow ? 'Update Method' : 'Add Method'}
+      saveDisabled={!canSave}
     >
       <div className="space-y-4">
         {/* Method Select */}
@@ -244,6 +274,37 @@ export function PaymentMethodModal({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Card Machine Selection — mandatory for CRD/DRD */}
+        {isCard && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Card Machine *</Label>
+            {machinesLoading ? (
+              <div className="flex items-center h-10 px-3 border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            ) : noMachinesForOffice ? (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>No card machines configured for this office location. Card payment cannot be processed. Please contact your administrator to configure card machines for this branch.</span>
+              </div>
+            ) : (
+              <Select value={cardMachineId} onValueChange={setCardMachineId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select card machine..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cardMachines.map(m => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.machine_code} — {m.machine_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {isCard && !cardMachineId && !noMachinesForOffice && !machinesLoading && (
+              <p className="text-xs text-destructive">Card machine selection is mandatory for card payments.</p>
+            )}
+          </div>
+        )}
 
         {/* Currency + Amount row */}
         <div className="grid grid-cols-2 gap-4">
