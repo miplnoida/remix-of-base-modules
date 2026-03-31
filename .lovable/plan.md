@@ -1,102 +1,159 @@
 
 
-# Three Feature Implementation Plan
+# Payment Module Configuration Enhancements
 
-## Feature 1: Office IP Address Management + Auto-Detection on Batch Creation
+## Summary
+Six changes to the Payment Module Configuration screen at `/cashier/payment-module-config`, covering head cashier per-branch assignment, email delivery config for invoices/receipts, per-branch opening balances, office-linked card machines, and date-aware batch behavior toggles.
 
-### Database
-Create table `office_ip_addresses`:
+---
+
+## 1. Head Cashier Assignment — Separate Per-Branch Screen
+
+**Current**: Single global head cashier per date, embedded in Roles & Permissions tab.
+
+**Change**:
+- Remove `HeadCashierAssignmentSection` from the Roles & Permissions tab
+- Create a new dedicated page at `/cashier/head-cashier-assignment`
+- Add `office_code` column to `cn_head_cashier_assignment` table (VARCHAR, FK to `tb_office.code`)
+- Update `assign_head_cashier` and `get_active_head_cashier` RPCs to accept/return `office_code`
+- New UI: office selector (from `tb_office`) + date picker → shows current assignment for that branch/date → assign any eligible cashier regardless of their own office
+- Add route in `AppRoutes.tsx`
+
+**Database migration**:
 ```sql
-CREATE TABLE public.office_ip_addresses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
-  rule_type TEXT NOT NULL CHECK (rule_type IN ('single', 'range')),
-  single_ip TEXT,
-  range_start_ip TEXT,
-  range_end_ip TEXT,
-  description TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
-  entered_by VARCHAR,
-  entered_at TIMESTAMPTZ DEFAULT now(),
-  modified_by VARCHAR,
-  modified_at TIMESTAMPTZ DEFAULT now()
-);
+ALTER TABLE cn_head_cashier_assignment ADD COLUMN IF NOT EXISTS office_code VARCHAR REFERENCES tb_office(code);
 ```
+Plus update the two RPCs to include `p_office_code` parameter and filter by it.
 
-Create RPC function `resolve_office_by_ip` that takes an IP address and returns the matching `office_code` by checking single IPs and ranges in `office_ip_addresses` (same numeric comparison logic used in `check_ip_whitelist`).
-
-### New Admin Screen: `/admin/office-ip-management`
-- CRUD screen for managing IP addresses/ranges per office
-- Select office from `tb_office`, add single IP or range (start/end)
-- Table showing all rules grouped by office with edit/delete/toggle
-- Add route to `AppRoutes.tsx`
-
-### Batch Creation Auto-Detection
-In `OpenBatchDialog` (`src/pages/cashier/BatchManagement.tsx`):
-- On dialog open, call `getClientIP()` then invoke `resolve_office_by_ip` RPC
-- If a match is found, override the office location with the IP-matched office (show indicator "Detected from IP: x.x.x.x")
-- If no match found, fall back to existing logic (profile default / head cashier override)
-- The detected office code is what gets saved to `cn_batch.office_code`
-
-### Files Changed
+### Files
 | File | Change |
 |------|--------|
-| Migration SQL | Create `office_ip_addresses` table + `resolve_office_by_ip` RPC |
-| `src/pages/admin/OfficeIPManagement.tsx` | New CRUD screen |
+| Migration SQL | Add `office_code` to table + update RPCs |
+| `src/pages/cashier/HeadCashierAssignment.tsx` | New page |
 | `src/components/routing/AppRoutes.tsx` | Add route |
-| `src/pages/cashier/BatchManagement.tsx` | Add IP detection in `OpenBatchDialog` |
+| `src/pages/cashier/PaymentModuleConfig.tsx` | Remove `HeadCashierAssignmentSection` import/usage |
+| `src/hooks/useHeadCashier.ts` | Update to pass `office_code` to RPC |
 
 ---
 
-## Feature 2: Move Non-Working Days from 'Meeting' to 'General' Category
+## 2. Invoice Email Delivery Config (Always / Never / Ask)
 
-### Database
-Update the `system_settings` row for `non_working_days` to change its `category` from `'Meeting'` to `'General'`.
+**Change**: Add a new config key `invoice_email_delivery` to `payment_module_config` with value `'always'`, `'never'`, or `'ask'`.
 
-### Impact
-- The GlobalSettings page dynamically renders tabs from categories, so the setting will automatically appear under the General tab
-- The meeting dialogs (`ScheduleMeetingDialog`, `RescheduleMeetingDialog`) query by `setting_key` not category, so they are unaffected
-- The trigger `validate_meeting_non_working_day` queries by `setting_key`, also unaffected
+- Add a new section in Roles & Permissions tab with a RadioGroup (Always / Never / Ask) with descriptions
+- Seed config row via insert tool
 
-### Files Changed
+### Files
 | File | Change |
 |------|--------|
-| Data update (insert tool) | `UPDATE system_settings SET category = 'General' WHERE setting_key = 'non_working_days'` |
+| Insert tool | Seed `invoice_email_delivery` config row (default: `'never'`) |
+| `src/pages/cashier/PaymentModuleConfig.tsx` | Add RadioGroup section in Roles tab |
 
 ---
 
-## Feature 3: Public Holidays Management in Global Settings (General Tab)
+## 3. Receipt Email Delivery Config (Always / Never / Ask)
 
-### Database
-Create table `public_holidays`:
-```sql
-CREATE TABLE public.public_holidays (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
-  holiday_date DATE NOT NULL,
-  holiday_name TEXT NOT NULL,
-  year INTEGER NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE,
-  entered_by VARCHAR,
-  entered_at TIMESTAMPTZ DEFAULT now(),
-  modified_by VARCHAR,
-  modified_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(office_code, holiday_date)
-);
+Same pattern as #2 but for `receipt_email_delivery`.
+
+### Files
+| File | Change |
+|------|--------|
+| Insert tool | Seed `receipt_email_delivery` config row (default: `'never'`) |
+| `src/pages/cashier/PaymentModuleConfig.tsx` | Add RadioGroup section in Roles tab |
+
+---
+
+## 4. Per-Branch Opening Balances
+
+**Current**: Single global head_cashier / cashier balance stored in `payment_module_config`.
+
+**Change**:
+- Create new table `cn_office_opening_balance` with columns: `office_code` (FK tb_office), `head_cashier_balance` (NUMERIC), `cashier_balance` (NUMERIC), `updated_by`, `updated_at`. Unique on `office_code`.
+- Rewrite `DefaultOpeningBalanceTab` to show a list of offices, each with its own head cashier & cashier balance inputs
+- Keep the global default as fallback; per-office overrides take precedence
+- Update `useBatchBehaviorConfig.ts` → `useDefaultOpeningBalance` to accept `office_code` and check per-office first, then fall back to global
+
+### Files
+| File | Change |
+|------|--------|
+| Migration SQL | Create `cn_office_opening_balance` table |
+| `src/components/payments/DefaultOpeningBalanceTab.tsx` | Rewrite with office-level entries |
+| `src/hooks/useBatchBehaviorConfig.ts` | Update `useDefaultOpeningBalance` to accept `office_code` |
+
+---
+
+## 5. Card Machines — Office Location
+
+**Change**:
+- Add `office_code VARCHAR REFERENCES tb_office(code)` to `cn_card_machine` table
+- Update `CardMachineTab.tsx` form to include an office dropdown (from `tb_office`)
+- Show office column in the machine list table
+- Also update `CardMachineManagement.tsx` (standalone page) with same changes
+
+### Files
+| File | Change |
+|------|--------|
+| Migration SQL | Add `office_code` to `cn_card_machine` |
+| `src/components/payments/CardMachineTab.tsx` | Add office dropdown in form + column in table |
+| `src/pages/cashier/CardMachineManagement.tsx` | Same changes |
+
+---
+
+## 6. Batch Behavior Config — Date-Range / Working-Days Options
+
+**Current**: Simple ON/OFF toggle for each batch behavior config.
+
+**Change**: When a config is toggled ON, expand to show additional options:
+- **Mode**: "Always" (no time limit) or "Scheduled"
+- **If Scheduled**, sub-options:
+  - **Date Range**: from-date / to-date
+  - **Working Days After Month End**: number of working days + optional until month-year (or open-ended)
+- Working days calculation uses `non_working_days` from `system_settings` and `public_holidays` table
+
+**Data structure change**: Expand config value from `{ enabled: true }` to:
+```json
+{
+  "enabled": true,
+  "schedule_mode": "always" | "date_range" | "working_days_after_month",
+  "date_from": "2026-04-01",
+  "date_to": "2026-06-30",
+  "working_days_count": 5,
+  "until_month_year": "2026-12" | null
+}
 ```
 
-### UI: New Section in Global Settings > General Tab
-Add a `PublicHolidaysSection` component rendered inside the General tab:
-- **Year selector** (dropdown) + **Office selector** (from `tb_office`)
-- Table of holidays for selected year/office with Add, Edit, Delete
-- Each holiday: date, name, office
-- **Copy Year** button: select a source year and target year → copies all holidays from source to target for the same office (blocks if target year already has entries)
-- Validation: no duplicate date per office, date must fall within selected year
+- Update `BatchBehaviorConfigSection.tsx` to render schedule options when toggled ON
+- Update `useBatchBehaviorConfig.ts` to evaluate the schedule (check current date against range or compute working days from last day of previous month using holidays/NWD data)
 
-### Files Changed
+### Files
 | File | Change |
 |------|--------|
-| Migration SQL | Create `public_holidays` table |
-| `src/components/admin/PublicHolidaysSection.tsx` | New component with CRUD + copy-year |
-| `src/pages/systemAdmin/GlobalSettings.tsx` | Import and render `PublicHolidaysSection` in General tab content |
+| `src/components/payments/BatchBehaviorConfigSection.tsx` | Add schedule UI when ON |
+| `src/hooks/useBatchBehaviorConfig.ts` | Add schedule evaluation logic |
+
+---
+
+## Database Changes Summary
+
+| Change | Method |
+|--------|--------|
+| Add `office_code` to `cn_head_cashier_assignment` | Migration |
+| Update `assign_head_cashier` / `get_active_head_cashier` RPCs | Migration |
+| Create `cn_office_opening_balance` table | Migration |
+| Add `office_code` to `cn_card_machine` | Migration |
+| Seed `invoice_email_delivery` config | Insert tool |
+| Seed `receipt_email_delivery` config | Insert tool |
+
+## New Files
+- `src/pages/cashier/HeadCashierAssignment.tsx`
+
+## Modified Files
+- `src/pages/cashier/PaymentModuleConfig.tsx` — remove head cashier section, add email delivery configs
+- `src/components/payments/DefaultOpeningBalanceTab.tsx` — per-branch
+- `src/components/payments/CardMachineTab.tsx` — office dropdown
+- `src/pages/cashier/CardMachineManagement.tsx` — office dropdown
+- `src/components/payments/BatchBehaviorConfigSection.tsx` — schedule options
+- `src/hooks/useBatchBehaviorConfig.ts` — schedule evaluation + per-office balance
+- `src/hooks/useHeadCashier.ts` — office_code parameter
+- `src/components/routing/AppRoutes.tsx` — new route
 
