@@ -453,7 +453,7 @@ function RiskBandsTab() {
 
 // ============= Department Risk Method Tab =============
 function DeptMethodTab() {
-  const { data: config } = useRiskConfigMaster();
+  const { data: config, isLoading } = useRiskConfigMaster();
   const { update } = useRiskConfigMasterMutations();
   const { userCode } = useUserCode();
   const [method, setMethod] = useState('maximum');
@@ -461,6 +461,8 @@ function DeptMethodTab() {
   useEffect(() => {
     if (config) setMethod(config.dept_risk_method);
   }, [config]);
+
+  const hasUnsavedChanges = config && method !== config.dept_risk_method;
 
   const METHODS = [
     {
