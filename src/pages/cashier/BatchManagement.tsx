@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getClientIP } from '@/services/securityPolicyService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
