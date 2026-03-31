@@ -473,6 +473,9 @@ export default function EmailTemplateManager() {
       '{{REJECTION_REASON}}': 'Incomplete documentation provided.', '{{AMOUNT}}': 'XCD 2,500.00',
       '{{SSN}}': '123-456-789', '{{TODAY}}': new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       '{{EMPLOYER_NAME}}': 'ABC Construction Ltd.', '{{CLAIM_NUMBER}}': 'CLM-2024-567',
+      '{{DOCUMENT_NUMBER}}': 'INV-2026-001234', '{{PAYER_NAME}}': 'John Smith',
+      '{{PAYER_ID}}': '123456', '{{TOTAL_AMOUNT}}': '2,500.00',
+      '{{CURRENCY_CODE}}': 'XCD', '{{DOCUMENT_DATE}}': 'March 31, 2026',
     };
     let result = merged;
     Object.entries(samples).forEach(([k, v]) => { result = result.split(k).join(v); });
