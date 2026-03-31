@@ -464,8 +464,21 @@ const CreateInvoice: React.FC = () => {
         toast.error('Print failed', { description: printErr.message });
       }
 
-      // Email delivery logic
-      const payerEmailAddr = isAP ? payerEmail : '';
+      // Email delivery logic — resolve payer email for all payer types
+      let payerEmailAddr = isAP ? payerEmail : '';
+      if (!payerEmailAddr && !isAP && payerId && invoiceEmailMode !== 'never') {
+        try {
+          // Try cn_payer first
+          const { data: payerRow } = await supabase
+            .from('cn_payer')
+            .select('email')
+            .eq('payer_id', payerId.trim())
+            .maybeSingle();
+          payerEmailAddr = payerRow?.email || '';
+        } catch (emailLookupErr) {
+          console.error('[CreateInvoice] Payer email lookup error:', emailLookupErr);
+        }
+      }
       if (invoiceEmailMode === 'always' && payerEmailAddr) {
         sendDocumentEmail({
           documentType: 'invoice',
@@ -474,7 +487,8 @@ const CreateInvoice: React.FC = () => {
           recipientEmail: payerEmailAddr,
           userCode: userCode || 'SYSTEM',
         });
-      } else if (invoiceEmailMode === 'ask' && payerEmailAddr) {
+      } else if (invoiceEmailMode === 'ask') {
+        // Show the prompt even if no email — prompt will disable Send if no email on file
         setPendingEmailDoc({ id: result.invoice_id, number: result.invoice_number, email: payerEmailAddr });
         setShowEmailPrompt(true);
       }

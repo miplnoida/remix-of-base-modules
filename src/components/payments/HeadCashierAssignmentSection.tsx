@@ -29,19 +29,45 @@ const HeadCashierAssignmentSection: React.FC = () => {
 
   const handleAssign = async () => {
     if (!selectedUserId || !profile?.user_code) return;
+
+    // Look up the selected cashier's office_code so the assignment is per-office
+    const selectedCashier = (cashierUsers || []).find((u: CashierUser) => u.id === selectedUserId);
+    const officeCode = selectedCashier?.office_code || null;
+
+    if (!officeCode) {
+      toast.error('Cannot assign Head Cashier: no office location found for the selected user.');
+      return;
+    }
+
     setAssigning(true);
     try {
       const { data, error } = await supabase.rpc('assign_head_cashier' as any, {
         p_user_id: selectedUserId,
         p_date: dateStr,
         p_assigned_by: profile.user_code,
+        p_office_code: officeCode,
       });
       if (error) throw error;
       const result = typeof data === 'string' ? JSON.parse(data) : data;
       if (!result?.success) {
         toast.error(result?.message || 'Assignment failed');
       } else {
-        toast.success(`Head Cashier assigned: ${result.user_code}`);
+        // Verify persistence by re-reading
+        const { data: verifyData, error: verifyErr } = await supabase.rpc('get_active_head_cashier' as any, {
+          p_date: dateStr,
+          p_office_code: officeCode,
+        });
+        if (verifyErr || !verifyData) {
+          console.error('[HeadCashier] Post-assignment verification failed:', verifyErr);
+          toast.error('Assignment may not have been saved. Please refresh and check.');
+        } else {
+          const verified = typeof verifyData === 'string' ? JSON.parse(verifyData) : verifyData;
+          if (verified?.found) {
+            toast.success(`Head Cashier assigned: ${result.user_code} for office ${officeCode}`);
+          } else {
+            toast.error('Assignment was not persisted. Please try again.');
+          }
+        }
         setSelectedUserId('');
         queryClient.invalidateQueries({ queryKey: ['head-cashier'] });
       }
