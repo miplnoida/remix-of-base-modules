@@ -41,7 +41,7 @@ export async function fetchReceiptTemplate(): Promise<string> {
 /**
  * Fetch all data needed to render a receipt
  */
-async function fetchReceiptData(paymentId: number) {
+export async function fetchReceiptData(paymentId: number) {
   const [headerRes, receiptRes, linesRes, ptRes, mopRes] = await Promise.all([
     supabase.from('cn_payment_header').select('*').eq('payment_id', paymentId).single(),
     supabase.from('cn_receipt').select('*').eq('payment_id', paymentId).maybeSingle(),
