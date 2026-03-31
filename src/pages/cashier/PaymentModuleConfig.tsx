@@ -533,7 +533,89 @@ const PaymentModuleConfig: React.FC = () => {
             </CardContent>
           </Card>
           <Separator />
-          <HeadCashierAssignmentSection />
+
+          {/* Email Delivery Config - Invoice */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                Invoice Email Delivery
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Controls whether a copy of the invoice is automatically emailed to the payer after generation.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup
+                value={configs?.find(c => c.config_key === 'invoice_email_delivery')?.config_value as string || 'never'}
+                onValueChange={(val) => handleSave('invoice_email_delivery', val)}
+              >
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="always" id="inv-email-always" />
+                  <Label htmlFor="inv-email-always" className="cursor-pointer">
+                    <span className="font-medium">Always</span>
+                    <p className="text-xs text-muted-foreground">Automatically send invoice to payer's email without asking.</p>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="never" id="inv-email-never" />
+                  <Label htmlFor="inv-email-never" className="cursor-pointer">
+                    <span className="font-medium">Never</span>
+                    <p className="text-xs text-muted-foreground">Do not send invoice copies via email.</p>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="ask" id="inv-email-ask" />
+                  <Label htmlFor="inv-email-ask" className="cursor-pointer">
+                    <span className="font-medium">Ask</span>
+                    <p className="text-xs text-muted-foreground">Prompt the cashier to decide whether to email the invoice to the payer.</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
+          {/* Email Delivery Config - Receipt */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Receipt className="h-4 w-4" />
+                Receipt Email Delivery
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Controls whether a copy of the receipt is automatically emailed to the payer after generation.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup
+                value={configs?.find(c => c.config_key === 'receipt_email_delivery')?.config_value as string || 'never'}
+                onValueChange={(val) => handleSave('receipt_email_delivery', val)}
+              >
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="always" id="rcpt-email-always" />
+                  <Label htmlFor="rcpt-email-always" className="cursor-pointer">
+                    <span className="font-medium">Always</span>
+                    <p className="text-xs text-muted-foreground">Automatically send receipt to payer's email without asking.</p>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="never" id="rcpt-email-never" />
+                  <Label htmlFor="rcpt-email-never" className="cursor-pointer">
+                    <span className="font-medium">Never</span>
+                    <p className="text-xs text-muted-foreground">Do not send receipt copies via email.</p>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-3">
+                  <RadioGroupItem value="ask" id="rcpt-email-ask" />
+                  <Label htmlFor="rcpt-email-ask" className="cursor-pointer">
+                    <span className="font-medium">Ask</span>
+                    <p className="text-xs text-muted-foreground">Prompt the cashier to decide whether to email the receipt to the payer.</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
           <Separator />
           <BatchBehaviorConfigSection />
         </TabsContent>
