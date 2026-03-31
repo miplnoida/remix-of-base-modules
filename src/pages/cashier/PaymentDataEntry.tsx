@@ -255,18 +255,10 @@ const PaymentDataEntry = () => {
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
       // Email delivery logic — defer print until after email prompt resolves for 'ask' mode
+      // Email delivery logic — resolve payer email via centralized RPC
       let payerEmailAddr = '';
       if (receiptEmailMode !== 'never') {
-        try {
-          const { data: payerData } = await supabase
-            .from('cn_payer')
-            .select('email')
-            .eq('payer_id', payerId.trim())
-            .maybeSingle();
-          payerEmailAddr = payerData?.email || '';
-        } catch (emailErr) {
-          console.error('[PaymentDataEntry] Email lookup error:', emailErr);
-        }
+        payerEmailAddr = await resolvePayerEmail(payerType, payerId);
       }
 
       if (receiptEmailMode === 'ask') {
