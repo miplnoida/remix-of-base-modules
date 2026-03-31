@@ -109,8 +109,8 @@ export function useBatchBehaviorConfig() {
   // Parse non-working days (array of day-of-week numbers: 0=Sun, 6=Sat)
   const nonWorkingDays: number[] = (() => {
     if (!nwdConfig) return [0, 6]; // default: weekends
-    if (Array.isArray(nwdConfig)) return nwdConfig.map(Number);
-    if (typeof nwdConfig === 'object' && nwdConfig.days) return nwdConfig.days.map(Number);
+    if (Array.isArray(nwdConfig)) return (nwdConfig as any[]).map(Number);
+    if (typeof nwdConfig === 'object' && (nwdConfig as any).days) return ((nwdConfig as any).days as any[]).map(Number);
     return [0, 6];
   })();
 
