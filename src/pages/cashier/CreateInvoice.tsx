@@ -170,6 +170,8 @@ const CreateInvoice: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [createdInvoice, setCreatedInvoice] = useState<{ id: number; invoice_number: string } | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [pendingEmailDoc, setPendingEmailDoc] = useState<{ id: number; number: string; email: string } | null>(null);
 
   // errors
   const [errors, setErrors] = useState<Record<string, string>>({});
