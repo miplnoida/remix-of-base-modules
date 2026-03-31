@@ -660,12 +660,10 @@ export default function AuditConfig() {
     </>
   );
 
-  if (embedded) return pageContent;
-
   return (
     <PageShell
       title="System Configuration"
-      subtitle="Configure Internal Audit system settings"
+      subtitle="Configure Internal Audit system settings — workflow defaults, notifications, SLA, and general module behavior"
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
       isLoading={isLoading}
     >
