@@ -78,13 +78,6 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
       },
-      {
-        title: "Auto Plan Config",
-        url: "/audit/config",
-        icon: Settings,
-        requiresPermission: "configure_audit_system",
-        description: "Configure Auto Plan rules, weights, and thresholds"
-      },
       // ── Settings ──
       {
         title: "Settings",
