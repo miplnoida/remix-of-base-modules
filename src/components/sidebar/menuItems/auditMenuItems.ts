@@ -91,11 +91,11 @@ export const auditMenuItems = [
         isGroupLabel: true,
       },
       {
-        title: "Risk Configuration",
-        url: "/audit/risk-settings",
-        icon: Shield,
+        title: "Audit Settings",
+        url: "/audit/settings",
+        icon: Settings,
         requiresPermission: "configure_audit_system",
-        description: "Centralized risk parameters, formula, and rating bands"
+        description: "Risk configuration and system settings"
       },
       // ── Resources ──
       {
