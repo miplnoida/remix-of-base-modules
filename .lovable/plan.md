@@ -1,99 +1,67 @@
+# Fix: ER & SE Validation APIs — Return Complete Registration Data
+
+## Problem
+
+Comparing the C3-Wizard registration form fields (screenshots) with the current API responses reveals several missing or incorrectly mapped fields.
+
+### ER Endpoint Gaps (`getERMasterDetails`)
 
 
-# Plan: Clean Up Audit Settings — Remove Combined Screen, Separate Risk & System
+| Registration Form Field | Current API Response                    | Issue                                                                                                       |
+| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Contact Person**      | `contactPerson` = `name` (company name) | Wrong — should be a contact person, but `er_master` has no dedicated column. Current mapping is misleading. |
+| **Mobile Number**       | `mobile` = `fax`                        | Wrong — `er_master` has a `mobile` column; should use that instead of `fax`                                 |
+| **Name of Company**     | `companyName` = `name`                  | Correct                                                                                                     |
+| **Is Levy Exempt**      | Hardcoded `false`                       | No source column exists — acceptable default                                                                |
+| **Country**             | Not returned                            | Missing — needs to be added (default "St. Kitts and Nevis" or derive from `village_code`)                   |
+| **Postal Code**         | Returns `''`                            | No source column — acceptable                                                                               |
+| **City**                | Returns `''`                            | Could derive from `village_code`                                                                            |
 
-## Summary
 
-Currently there are 3 settings screens in the Audit Module:
-1. **`/audit/settings`** — Combined `AuditSettings.tsx` (tabs wrapper embedding both RiskSettings and AuditConfig) — **TO BE DELETED**
-2. **`/audit/config`** — `AuditConfig.tsx` (System Configuration) — **KEEP, rename, remove risk tabs**
-3. **`/audit/risk-settings`** — `RiskSettings.tsx` (Risk Configuration) — **KEEP as-is**
+### SE Endpoint Gaps (`getSEMasterDetails`)
 
-After cleanup, only 2 screens remain with distinct purposes.
 
----
+| Registration Form Field | Current API Response              | Issue                                                     |
+| ----------------------- | --------------------------------- | --------------------------------------------------------- |
+| **Date of Birth**       | `dateOfBirth` ✓                   | Correct                                                   |
+| **Wage Category**       | `wageCategory` ✓                  | Correct                                                   |
+| **Mobile Number**       | `mobile` = `''`                   | Missing — should use `ip_master.phone_mobile`             |
+| **Phone Number**        | `phone` = `ip_self_employ.phone`  | Correct                                                   |
+| **TIN Number**          | `tin` = `''`                      | No source — acceptable                                    |
+| **Country**             | Not returned                      | Missing — needs to be added                               |
+| **Address fields**      | From `ip_master.resident_addr1/2` | Correct                                                   |
+| **City**                | Returns `''`                      | Could derive from `ip_master.district`                    |
+| **Self Ref No**         | Not returned                      | Missing — `ip_self_employ.self_ref_no` should be included |
 
-## Step 1: Delete the Combined Settings Screen
 
-- **Delete** `src/pages/audit/AuditSettings.tsx`
-- **Remove** the `/audit/settings` route from `AppRoutes.tsx`
-- **Remove** the lazy import for `AuditSettings`
-- **Remove** `embedded` prop usage from `RiskSettings.tsx` and `AuditConfig.tsx` (they'll always render standalone with their own `PageShell`)
+## Plan
 
-## Step 2: Remove Risk Tabs from AuditConfig (System Configuration)
+### Single Database Migration
 
-`AuditConfig.tsx` currently has 8 tabs. Two are risk-related and must be removed:
-- **"Risk Assessment"** tab (`value="risk"`, lines ~212–325) — risk criteria & weights, frequency mapping
-- **"Risk Management"** tab (`value="riskMgmt"`, lines ~327–506) — likelihood levels, impact levels, control effectiveness, classification thresholds
+Update both RPCs to fix the identified gaps:
 
-After removal, the remaining 6 tabs are all system-related:
-- Config Approvals
-- Notifications & SLA
-- Feature Flags
-- Reference Settings
-- Activity Types
-- Planning Engine
+#### 1. `public_api_er_master_details` fixes:
 
-Change the default tab from `"risk"` to `"configApprovals"` (or another system tab).
+- `**mobile**`: Change from `v_rec.fax` → `v_rec.mobile` (use the actual mobile column)
+- `**fax**`: Add as separate field using `v_rec.fax`
+- `**country**`: Add field, default `'St. Kitts and Nevis'`
+- `**contactPerson**`: Keep as company name (no better source exists) — document this
 
-## Step 3: Rename "System Settings" to "System Configuration"
+#### 2. `public_api_se_master_details` fixes:
 
-In `AuditConfig.tsx`:
-- Update `PageShell` title from any "System Settings" / "Auto Plan Config" references to **"System Configuration"**
-- Update breadcrumbs to `Internal Audit → System Configuration`
-- Update subtitle to describe general audit module behavior
+- `**mobile**`: Change from `''` → `v_ip.phone_mobile`
+- `**country**`: Add field, default `'St. Kitts and Nevis'`
+- `**selfRefNo**`: Add field from `v_se.self_ref_no`
+- `**city**`: Map from `v_ip.district` (return the district code; wizard can resolve)
 
-In `auditRouteConfig.ts`:
-- Change `system-config` entry label from `"Auto Plan Config"` to `"System Configuration"`
+### Files Changed
 
-## Step 4: Update Sidebar Menu
+- **1 new migration**: Updates both RPC functions with corrected field mappings
 
-In `auditMenuItems.ts`, replace the single "Audit Settings" entry with two separate entries under the Settings group:
+### No Edge Function Changes
 
-```
-Settings (group label)
-├── System Configuration  → /audit/config
-└── Risk Configuration    → /audit/risk-settings
-```
-
-## Step 5: Update Route Config
-
-In `auditRouteConfig.ts`:
-- **Remove** the `audit-settings` entry (path `/audit/settings`)
-- **Keep** `system-config` entry (path `/audit/config`, label → "System Configuration")
-- **Keep** `risk-settings` entry (path `/audit/risk-settings`, label stays "Risk Configuration")
-
-## Step 6: Update Dynamic Navigation
-
-In `useDynamicNavigation.ts`:
-- **Remove** the `ia-audit-settings` entry from `SIMPLIFIED_INTERNAL_AUDIT_MENU` (which has aliases for `/audit/settings`, `/audit/config`, `/audit/risk-settings`)
-- **Add** two separate entries:
-  - `ia-system-config` → path `/audit/config`, title "System Configuration"
-  - `ia-risk-config` → path `/audit/risk-settings`, title "Risk Configuration"
-
-## Step 7: Clean Up Embedded Prop
-
-In both `AuditConfig.tsx` and `RiskSettings.tsx`:
-- Remove the `embedded` prop and conditional `PageShell` logic
-- Always render with their own `PageShell`
-
-## Step 8: Database Migration
-
-- Disable/remove the `audit_settings` module row from `app_modules` (the combined screen)
-- Ensure `system-config` and `risk-settings` module rows remain enabled and visible
-
----
-
-## Files Changed
-
-| File | Action |
-|------|--------|
-| `src/pages/audit/AuditSettings.tsx` | **Delete** |
-| `src/pages/audit/AuditConfig.tsx` | Remove risk tabs, remove `embedded` prop, rename to "System Configuration" |
-| `src/pages/audit/RiskSettings.tsx` | Remove `embedded` prop (always standalone) |
-| `src/components/routing/AppRoutes.tsx` | Remove `/audit/settings` route and `AuditSettings` import |
-| `src/components/sidebar/menuItems/auditMenuItems.ts` | Replace single "Audit Settings" with two entries |
-| `src/config/auditRouteConfig.ts` | Remove `audit-settings` entry, rename `system-config` label |
-| `src/hooks/useDynamicNavigation.ts` | Split combined override into two separate entries |
-| New migration | Disable `audit_settings` module in `app_modules` |
-
+The `public-api/index.ts` passes through RPC JSON responses — no handler changes needed.  
+  
+Important note: After doing this, please create a proper message for the C3-wizard to do all the chnages required there by these changes in this project to make the c3-wizard working properly according to the changes in this project.  
+  
+Aslo, in the SE , wage category is not returning or showing , if error from myour side please fix it otherwise add this in the message to check from the C3-wizard side.
