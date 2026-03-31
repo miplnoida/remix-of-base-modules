@@ -2,6 +2,7 @@ import { usePaymentConfig } from '@/hooks/usePaymentModuleConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { fetchInvoiceTemplate, fetchInvoiceData } from '@/lib/invoicePrinter';
+import { fetchReceiptTemplate, fetchReceiptData } from '@/lib/receiptPrinter';
 
 type DeliveryMode = 'always' | 'ask' | 'never';
 
@@ -82,6 +83,23 @@ function replacePlaceholders(template: string, values: Record<string, string>): 
   return result;
 }
 
+/** Safe base64 encode that handles Unicode */
+function safeBase64Encode(str: string): string {
+  try {
+    // Use TextEncoder for proper UTF-8 handling
+    const encoder = new TextEncoder();
+    const uint8Array = encoder.encode(str);
+    let binary = '';
+    uint8Array.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  } catch {
+    // Fallback
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+}
+
 /** Generate the full invoice HTML for attachment */
 async function generateInvoiceHtml(documentId: string | number): Promise<string | null> {
   try {
@@ -100,6 +118,28 @@ async function generateInvoiceHtml(documentId: string | number): Promise<string 
     return resolvedHtml;
   } catch (err) {
     console.error('[EmailDelivery] Failed to generate invoice HTML:', err);
+    return null;
+  }
+}
+
+/** Generate the full receipt HTML for attachment */
+async function generateReceiptHtml(paymentId: string | number): Promise<string | null> {
+  try {
+    const id = typeof paymentId === 'string' ? parseInt(paymentId, 10) : paymentId;
+    if (isNaN(id)) return null;
+
+    const [templateHtml, placeholders] = await Promise.all([
+      fetchReceiptTemplate(),
+      fetchReceiptData(id),
+    ]);
+
+    let resolvedHtml = templateHtml;
+    for (const [key, value] of Object.entries(placeholders)) {
+      resolvedHtml = resolvedHtml.split(key).join(value);
+    }
+    return resolvedHtml;
+  } catch (err) {
+    console.error('[EmailDelivery] Failed to generate receipt HTML:', err);
     return null;
   }
 }
@@ -163,30 +203,43 @@ export async function sendDocumentEmail(params: {
     // Fallback if template not found in DB
     subject = `${label} ${documentNumber} — SSBM`;
     body = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>${label} Notification</h2>
-        <p>Dear ${payerName || 'Payer'},</p>
-        <p>Your ${label.toLowerCase()} <strong>${documentNumber}</strong> has been generated.</p>
-        <p>Please contact our office for any queries.</p>
-        <br/>
-        <p>Regards,<br/>SSBM Cashier Department</p>
+      <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px 0;">Dear <strong>${payerName || 'Payer'}</strong>,</p>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px 0;">Please find attached your ${label.toLowerCase()}. Details are summarized below:</p>
+      <div style="background:#f0faf4;border:1px solid #b7dfc8;border-radius:8px;padding:20px;margin-bottom:20px;">
+        <h3 style="color:#0E5F3A;margin:0 0 12px 0;font-size:15px;">${label} Details</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="color:#555;font-size:13px;padding:4px 0;width:40%;">${label} Number:</td><td style="color:#222;font-size:13px;padding:4px 0;font-weight:bold;">${documentNumber}</td></tr>
+          <tr><td style="color:#555;font-size:13px;padding:4px 0;">Payer ID:</td><td style="color:#222;font-size:13px;padding:4px 0;">${payerId || ''}</td></tr>
+          <tr><td style="color:#555;font-size:13px;padding:4px 0;">Total Amount:</td><td style="color:#222;font-size:13px;padding:4px 0;font-weight:bold;">${currencyCode || 'XCD'} ${totalAmount || '0.00'}</td></tr>
+        </table>
       </div>
+      <p style="color:#777;font-size:13px;margin-top:24px;">If you have any questions, please contact our office.</p>
     `;
   }
 
-  // Generate document HTML for attachment (invoice only for now)
+  // Generate document HTML for attachment
   let attachments: { filename: string; content: string; contentType: string }[] = [];
-  if (documentType === 'invoice') {
-    const invoiceHtml = await generateInvoiceHtml(documentId);
-    if (invoiceHtml) {
-      // Base64 encode the HTML for attachment
-      const base64Content = btoa(unescape(encodeURIComponent(invoiceHtml)));
+  try {
+    let documentHtml: string | null = null;
+
+    if (documentType === 'invoice') {
+      documentHtml = await generateInvoiceHtml(documentId);
+    } else if (documentType === 'receipt') {
+      documentHtml = await generateReceiptHtml(documentId);
+    }
+
+    if (documentHtml) {
+      const base64Content = safeBase64Encode(documentHtml);
       attachments.push({
         filename: `${documentNumber}.html`,
         content: base64Content,
         contentType: 'text/html',
       });
+    } else {
+      console.warn(`[EmailDelivery] Could not generate ${documentType} HTML for attachment. Document ID: ${documentId}`);
     }
+  } catch (attErr) {
+    console.error('[EmailDelivery] Attachment generation error:', attErr);
   }
 
   try {

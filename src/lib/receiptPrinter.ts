@@ -25,7 +25,7 @@ export interface ReceiptPrintData {
 /**
  * Fetch the HTML receipt template from the database
  */
-async function fetchReceiptTemplate(): Promise<string> {
+export async function fetchReceiptTemplate(): Promise<string> {
   const { data, error } = await supabase
     .from('payment_module_config')
     .select('config_value')
@@ -41,7 +41,7 @@ async function fetchReceiptTemplate(): Promise<string> {
 /**
  * Fetch all data needed to render a receipt
  */
-async function fetchReceiptData(paymentId: number) {
+export async function fetchReceiptData(paymentId: number) {
   const [headerRes, receiptRes, linesRes, ptRes, mopRes] = await Promise.all([
     supabase.from('cn_payment_header').select('*').eq('payment_id', paymentId).single(),
     supabase.from('cn_receipt').select('*').eq('payment_id', paymentId).maybeSingle(),
