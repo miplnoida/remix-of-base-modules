@@ -292,20 +292,20 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     description: 'Generate audit reports',
   },
   {
-    id: 'ia-reports',
-    title: 'Reports',
-    icon: FileBarChart,
-    path: '/audit/audit-reports',
-    aliases: ['/audit/audit-reports', '/audit/reports'],
-    description: 'Generate audit reports',
-  },
-  {
     id: 'ia-auditor-profiles',
     title: 'Auditor Profiles',
     icon: UserCheck,
     path: '/audit/auditor-profiles',
     aliases: ['/audit/auditor-profiles'],
     description: 'Manage auditor registry and roles',
+  },
+  {
+    id: 'ia-audit-settings',
+    title: 'Audit Settings',
+    icon: Settings,
+    path: '/audit/settings',
+    aliases: ['/audit/settings', '/audit/config', '/audit/risk-settings'],
+    description: 'Risk configuration and system settings',
   },
 ];
 
