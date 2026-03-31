@@ -472,12 +472,14 @@ const CreateInvoice: React.FC = () => {
       } else {
         // For 'always' mode, send email then print
         if (invoiceEmailMode === 'always' && payerEmailAddr) {
-          sendDocumentEmail({
+          await sendDocumentEmail({
             documentType: 'invoice',
             documentId: result.invoice_id,
             documentNumber: result.invoice_number,
             recipientEmail: payerEmailAddr,
             userCode: userCode || 'SYSTEM',
+            payerType,
+            payerId,
           });
         }
         // Print immediately for 'always' and 'never' modes
