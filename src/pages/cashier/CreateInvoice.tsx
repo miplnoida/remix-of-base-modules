@@ -970,6 +970,28 @@ const CreateInvoice: React.FC = () => {
         isLoading={invoiceActions.isLoading}
         invoiceNumber={createdInvoice?.invoice_number}
       />
+
+      {/* Email Delivery Prompt */}
+      <EmailDeliveryPrompt
+        open={showEmailPrompt}
+        onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+        onConfirm={() => {
+          if (pendingEmailDoc) {
+            sendDocumentEmail({
+              documentType: 'invoice',
+              documentId: pendingEmailDoc.id,
+              documentNumber: pendingEmailDoc.number,
+              recipientEmail: pendingEmailDoc.email,
+              userCode: userCode || 'SYSTEM',
+            });
+          }
+          setShowEmailPrompt(false);
+          setPendingEmailDoc(null);
+        }}
+        recipientEmail={pendingEmailDoc?.email || ''}
+        documentType="invoice"
+        documentNumber={pendingEmailDoc?.number}
+      />
     </div>
   );
 };

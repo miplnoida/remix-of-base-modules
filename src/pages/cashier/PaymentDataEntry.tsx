@@ -35,6 +35,7 @@ const PaymentDataEntry = () => {
   const receipt = useReceiptActions();
   const { userCode } = useUserCode();
   const { showChequeDetails, showCardDetails, isLoading: mopConfigLoading } = useMopDetailConfig();
+  const { receiptEmailMode } = useEmailDeliveryConfig();
 
   // Sync batch
   React.useEffect(() => {
