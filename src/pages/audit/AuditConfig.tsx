@@ -29,7 +29,7 @@ import { usePlanningWeights, useFrequencyPolicies, usePlanningParameters } from 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
-export default function AuditConfig() {
+export default function AuditConfig({ embedded = false }: { embedded?: boolean }) {
   
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
@@ -189,13 +189,8 @@ export default function AuditConfig() {
 
   const isLoading = settingsLoading || riskLoading || typesLoading || modelLoading;
 
-  return (
-    <PageShell
-      title="System Configuration"
-      subtitle="Configure Internal Audit system settings"
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
-      isLoading={isLoading}
-    >
+  const pageContent = (
+    <>
       <Tabs defaultValue="risk" className="space-y-4">
         <TabsList className="flex-wrap">
           <TabsTrigger value="risk"><Shield className="w-4 h-4 mr-2" />Risk Assessment</TabsTrigger>
@@ -959,6 +954,19 @@ export default function AuditConfig() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (embedded) return pageContent;
+
+  return (
+    <PageShell
+      title="System Configuration"
+      subtitle="Configure Internal Audit system settings"
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
+      isLoading={isLoading}
+    >
+      {pageContent}
     </PageShell>
   );
 }

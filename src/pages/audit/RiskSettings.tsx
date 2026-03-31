@@ -698,39 +698,45 @@ function PreviewPanel() {
 }
 
 // ============= Main Component =============
-export default function RiskSettings() {
+export default function RiskSettings({ embedded = false }: { embedded?: boolean }) {
   const [activeTab, setActiveTab] = useState('parameters');
+
+  const content = (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="parameters">
+          <Target className="h-4 w-4 mr-1.5" /> Parameters
+        </TabsTrigger>
+        <TabsTrigger value="formula">
+          <Calculator className="h-4 w-4 mr-1.5" /> Formula
+        </TabsTrigger>
+        <TabsTrigger value="bands">
+          <BarChart3 className="h-4 w-4 mr-1.5" /> Rating Bands
+        </TabsTrigger>
+        <TabsTrigger value="dept-method">
+          <Building2 className="h-4 w-4 mr-1.5" /> Dept Method
+        </TabsTrigger>
+        <TabsTrigger value="preview">
+          <Eye className="h-4 w-4 mr-1.5" /> Preview
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="parameters"><RiskParametersTab /></TabsContent>
+      <TabsContent value="formula"><RiskFormulaTab /></TabsContent>
+      <TabsContent value="bands"><RiskBandsTab /></TabsContent>
+      <TabsContent value="dept-method"><DeptMethodTab /></TabsContent>
+      <TabsContent value="preview"><PreviewPanel /></TabsContent>
+    </Tabs>
+  );
+
+  if (embedded) return content;
 
   return (
     <PageShell
       title="Risk Configuration"
       subtitle="Centralized risk settings for the Internal Audit module"
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="parameters">
-            <Target className="h-4 w-4 mr-1.5" /> Parameters
-          </TabsTrigger>
-          <TabsTrigger value="formula">
-            <Calculator className="h-4 w-4 mr-1.5" /> Formula
-          </TabsTrigger>
-          <TabsTrigger value="bands">
-            <BarChart3 className="h-4 w-4 mr-1.5" /> Rating Bands
-          </TabsTrigger>
-          <TabsTrigger value="dept-method">
-            <Building2 className="h-4 w-4 mr-1.5" /> Dept Method
-          </TabsTrigger>
-          <TabsTrigger value="preview">
-            <Eye className="h-4 w-4 mr-1.5" /> Preview
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="parameters"><RiskParametersTab /></TabsContent>
-        <TabsContent value="formula"><RiskFormulaTab /></TabsContent>
-        <TabsContent value="bands"><RiskBandsTab /></TabsContent>
-        <TabsContent value="dept-method"><DeptMethodTab /></TabsContent>
-        <TabsContent value="preview"><PreviewPanel /></TabsContent>
-      </Tabs>
+      {content}
     </PageShell>
   );
 }

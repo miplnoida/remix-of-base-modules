@@ -78,24 +78,17 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
       },
-      {
-        title: "Auto Plan Config",
-        url: "/audit/config",
-        icon: Settings,
-        requiresPermission: "configure_audit_system",
-        description: "Configure Auto Plan rules, weights, and thresholds"
-      },
       // ── Settings ──
       {
         title: "Settings",
         isGroupLabel: true,
       },
       {
-        title: "Risk Configuration",
-        url: "/audit/risk-settings",
-        icon: Shield,
+        title: "Audit Settings",
+        url: "/audit/settings",
+        icon: Settings,
         requiresPermission: "configure_audit_system",
-        description: "Centralized risk parameters, formula, and rating bands"
+        description: "Risk configuration and system settings"
       },
       // ── Resources ──
       {
