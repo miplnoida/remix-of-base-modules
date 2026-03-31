@@ -25462,6 +25462,10 @@ export type Database = {
         Returns: string
       }
       resolve_office_by_ip: { Args: { p_ip_address: string }; Returns: Json }
+      resolve_payer_email: {
+        Args: { p_payer_id: string; p_payer_type: string }
+        Returns: string
+      }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
