@@ -253,6 +253,35 @@ const PaymentDataEntry = () => {
 
       toast({ title: 'Receipt Generated', description: `Receipt #${generatedReceiptId} created successfully.` });
 
+      // Email delivery logic for receipt
+      // For receipts, we would need the payer's email — look it up from cn_payer if available
+      if (receiptEmailMode !== 'never') {
+        try {
+          const { data: payerData } = await supabase
+            .from('cn_payer')
+            .select('email')
+            .eq('payer_id', payerId.trim())
+            .maybeSingle();
+          const payerEmailAddr = payerData?.email || '';
+          if (payerEmailAddr) {
+            if (receiptEmailMode === 'always') {
+              sendDocumentEmail({
+                documentType: 'receipt',
+                documentId: generatedPaymentId,
+                documentNumber: generatedReceiptId,
+                recipientEmail: payerEmailAddr,
+                userCode: uCode,
+              });
+            } else if (receiptEmailMode === 'ask') {
+              setPendingEmailDoc({ id: generatedPaymentId, number: generatedReceiptId, email: payerEmailAddr });
+              setShowEmailPrompt(true);
+            }
+          }
+        } catch (emailErr) {
+          console.error('[PaymentDataEntry] Email lookup error:', emailErr);
+        }
+      }
+
       // Trigger configured receipt print
       setTimeout(() => printConfiguredReceipt(generatedPaymentId).catch(e => console.error('Receipt print error:', e)), 300);
     } catch (err: any) {
