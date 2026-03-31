@@ -1,85 +1,89 @@
 
-Goal
 
-Unblock publish by fixing the real first failing database migration in the ER/SE RPC chain.
+# Implement Weighted Function Risk for Audit Module
 
-What I re-checked
+## Summary
+The `ia_department_functions` table currently lacks a `weight_percentage` column, and the "Weighted Risk" option in Risk Settings is disabled with a "Coming Soon" badge. This plan adds the column, implements the weighted calculation logic, and updates all affected UI screens.
 
-- The publish error is still the same PostgreSQL default-parameter conflict:
-  `cannot remove parameter defaults from existing function`
-- I traced every migration that touches these two RPCs:
-  - `20260330094856` creates the original 1-parameter functions
-  - `20260330105738` recreates them with `p_email TEXT DEFAULT NULL`
-  - `20260330122507` keeps `DEFAULT NULL`
-  - `20260330153501` drops both forms and recreates with `DEFAULT NULL`
-  - `20260331061827` drops both forms and recreates with `DEFAULT NULL`
-  - `20260331110159` recreates strict 2-parameter versions, but only drops `(TEXT, TEXT)`
-  - `20260331135011` and `20260331142631` already defensively drop both callable forms before recreating
-- The current repo still shows `20260331110159` in the unsafe state, so that migration is still the first blocker.
-- I did not find another ER/SE RPC migration after that which would block publish before this one is fixed.
+## 1. Database Migration
 
-Root cause
-
-`20260331110159_a034a2be-5015-4c23-a9c5-9762e0b6792f.sql` still tries to switch from the older defaulted signature to the strict 2-parameter signature without fully clearing the prior callable form first.
-
-Even though later migrations already contain the defensive drop logic, Live never reaches them because publish stops at `20260331110159`.
-
-Required fix
-
-Edit this file:
-
-`supabase/migrations/20260331110159_a034a2be-5015-4c23-a9c5-9762e0b6792f.sql`
-
-Change the top of the file from:
+Add `weight_percentage` column to `ia_department_functions`:
 
 ```sql
--- Drop existing functions to allow recreation with updated return fields
-DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT, TEXT);
+ALTER TABLE public.ia_department_functions
+  ADD COLUMN IF NOT EXISTS weight_percentage NUMERIC(5,2) DEFAULT 0;
 ```
 
-to:
+No additional tables are needed. The `ia_departments` table already has `risk_rating`; the calculated department risk score/rating will be derived in the frontend from function data + risk config (consistent with existing architecture where risk scoring is done client-side via `useRiskRatingCalculator`).
 
-```sql
--- Drop existing functions (all callable forms) to allow recreation with updated return fields
-DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT);
-DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT);
-DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT, TEXT);
-```
+## 2. Update `useRiskRatingCalculator` Hook (`src/hooks/useRiskConfig.ts`)
 
-What not to change
+Add a `calculateDeptRisk` function that takes an array of functions and returns the department risk score based on the configured method:
 
-- Do not change the function bodies in `20260331110159`
-- Do not change the later fix migrations `20260331135011` or `20260331142631`
-- Do not change the edge function or frontend contract; they already expect identifier + email
+- **maximum**: highest function risk score
+- **average**: mean of all function risk scores
+- **weighted**: sum of (function_risk_score * weight_percentage / 100)
 
-Why this is the correct publish fix
+Each function's risk score is calculated using the existing `calculateScore(likelihood, impact)` method. The likelihood/impact currently stored as text ("Low"/"Medium"/"High") will need a mapping to numeric values (Low=1, Medium=3, High=5 — matching the 1-5 scale in risk config).
 
-- This is the earliest migration in the chain that attempts to remove the defaulted parameter behavior
-- Fixing later migrations is not enough, because publish never reaches them
-- The later migrations are already consistent with the final desired state
-- I did not find any other ER/SE signature conflict in the repo that would block publish before this one
+Also add a `getLikelihoodImpactScore` helper that maps text labels to the configured parameter scores from `ia_risk_likelihood_params` / `ia_risk_impact_params`.
 
-Expected outcome
+## 3. Update Function Master (`src/pages/audit/FunctionMaster.tsx`)
 
-After updating `20260331110159` as above:
+### Form Changes
+- Add **Weightage %** numeric input field (0-100) to the function add/edit form
+- Show a **Department Total Weight** indicator below the field showing current total for the selected department
+- Validation: block save if adding this weight would push department total above 100%
+- Warning: if weighted method is active and department total is below 100%, show amber warning
 
-- publish should get past the current `cannot remove parameter defaults` failure
-- Live can continue through the later repair migrations
-- both RPCs should converge to the latest strict 2-parameter contract already used by the app
+### Table/Grouped View Changes
+- Add **Weight %** column to the grouped table and flat list
+- Add **Risk Score** column (calculated from likelihood × impact using centralized calculator)
+- Show department total weight in the collapsible header (e.g., "5 functions • 85% allocated")
 
-Technical details
+### View Modal Changes
+- Display Weight %, Risk Score, and Risk Rating (from centralized bands)
 
-```text
-First real blocker:
-  20260331110159_a034a2be-5015-4c23-a9c5-9762e0b6792f.sql
+### Risk Calculation
+- Replace the local `calculateInherentRisk` function with the centralized `useRiskRatingCalculator` hook
+- Map existing text-based likelihood/impact ("Low"/"Medium"/"High") to numeric scores
 
-Required SQL at top:
-  DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT);
-  DROP FUNCTION IF EXISTS public.public_api_er_master_details(TEXT, TEXT);
-  DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT);
-  DROP FUNCTION IF EXISTS public.public_api_se_master_details(TEXT, TEXT);
+## 4. Update Department View (`src/pages/audit/DepartmentView.tsx`)
 
-No additional ER/SE publish blockers found in later migrations.
-```
+- Add a **Calculated Department Risk** card showing:
+  - Current calculation method (from risk config)
+  - Calculated risk score and rating (using `calculateDeptRisk`)
+  - Breakdown showing how the score was derived
+  - Total allocated weight % (when weighted method is active)
+- Add weight % column to the functions table
+- Add tooltip/help text explaining the active formula
+
+## 5. Update Risk Settings — Department Method Tab (`src/pages/audit/RiskSettings.tsx`)
+
+- Remove `disabled: true` and "Coming Soon" badge from the Weighted Risk option
+- Update the description to reflect that it is now fully functional
+- Change value from `'weighted'` to remain `'weighted'` (already matches the config)
+
+## 6. Update `useAuditData.ts` — Function Mutations
+
+- Include `weight_percentage` in create/update mutations
+- Invalidate department-level risk queries when functions change
+
+## 7. Validation Logic
+
+Implemented in the Function Master form:
+- `weight_percentage` must be >= 0 and <= 100
+- Sum of all `weight_percentage` values for the same `department_id` must not exceed 100
+- Before save: query existing functions for the department, sum their weights (excluding the current function if editing), add the new value, reject if > 100
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `ia_department_functions` (migration) | Add `weight_percentage` column |
+| `src/hooks/useRiskConfig.ts` | Add `calculateDeptRisk`, likelihood/impact text-to-score mapping |
+| `src/pages/audit/FunctionMaster.tsx` | Add weight field, risk score column, department weight totals, centralized risk calc |
+| `src/pages/audit/DepartmentView.tsx` | Add calculated department risk card with method-aware scoring |
+| `src/pages/audit/RiskSettings.tsx` | Enable weighted method option, remove "Coming Soon" |
+| `src/hooks/useAuditData.ts` | Include `weight_percentage` in function mutations |
+
