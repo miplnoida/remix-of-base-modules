@@ -342,6 +342,18 @@ const CardMachineManagement: React.FC = () => {
             </div>
 
             <div className="space-y-1">
+              <Label>Office Location</Label>
+              <Select value={form.office_code} onValueChange={v => setForm(f => ({ ...f, office_code: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select office..." /></SelectTrigger>
+                <SelectContent>
+                  {offices.map((o: any) => (
+                    <SelectItem key={o.code} value={o.code}>{o.description} ({o.code})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
               <Label>Bank *</Label>
               <Select value={form.bank_code} onValueChange={v => { setForm(f => ({ ...f, bank_code: v })); setErrors(e2 => ({ ...e2, bank_code: '' })); }}>
                 <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
