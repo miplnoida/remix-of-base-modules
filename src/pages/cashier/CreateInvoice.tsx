@@ -187,6 +187,9 @@ const CreateInvoice: React.FC = () => {
   const { userCode } = useUserCode();
   const invoiceActions = useInvoiceActions();
 
+  // Email delivery config
+  const { invoiceEmailMode } = useEmailDeliveryConfig();
+
   // AP search
   const { data: apResults = [], isLoading: apSearching } = useAPPayerSearch(
     payerType === 'AP' ? apSearchTerm : ''
