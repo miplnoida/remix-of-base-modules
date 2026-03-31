@@ -269,12 +269,14 @@ const PaymentDataEntry = () => {
       } else {
         // For 'always' mode, send email then print
         if (receiptEmailMode === 'always' && payerEmailAddr) {
-          sendDocumentEmail({
+          await sendDocumentEmail({
             documentType: 'receipt',
             documentId: generatedPaymentId,
             documentNumber: generatedReceiptId,
             recipientEmail: payerEmailAddr,
             userCode: uCode,
+            payerType,
+            payerId,
           });
         }
         // Print immediately for 'always' and 'never' modes
