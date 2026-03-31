@@ -25054,7 +25054,7 @@ export type Database = {
         Returns: Json
       }
       public_api_er_master_details: {
-        Args: { p_email?: string; p_reg_no: string }
+        Args: { p_email: string; p_reg_no: string }
         Returns: Json
       }
       public_api_get_receipt: { Args: { p_receipt_no: string }; Returns: Json }
@@ -25168,7 +25168,7 @@ export type Database = {
         Returns: Json
       }
       public_api_se_master_details: {
-        Args: { p_email?: string; p_ssn: string }
+        Args: { p_email: string; p_ssn: string }
         Returns: Json
       }
       public_api_update_user: { Args: { p_payload: Json }; Returns: Json }
