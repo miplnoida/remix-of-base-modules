@@ -86,13 +86,12 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'system-config', label: 'Auto Plan Config', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'planning', component: 'AuditConfig' },
 
   // ===== Execution =====
+  { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
 
   // ===== Resources =====
   { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
   { moduleKey: 'leave-management', label: 'Auditor Leave', path: '/audit/leave', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_LEAVE_MANAGEMENT, category: 'planning', component: 'AuditorLeaveManagement' },
 
-  // ===== Follow-up =====
-  { moduleKey: 'action-tracking', label: 'Action Tracker', path: '/audit/actions', permission: 'manage_audit_followups', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ACTION_TRACKING, category: 'followup', component: 'ActionTracking' },
 
   // ===== Reports =====
   { moduleKey: 'reports', label: 'Reports', path: '/audit/audit-reports', permission: 'generate_reports', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS, category: 'reports', component: 'AuditReports' },
