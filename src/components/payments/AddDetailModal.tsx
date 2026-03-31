@@ -66,7 +66,7 @@ const FUND_LABELS: Record<string, string> = {
   LV: 'Levy',
 };
 
-export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeeded }: AddDetailModalProps) {
+export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeeded, officeCode }: AddDetailModalProps) {
   const [paymentCode, setPaymentCode] = useState('');
   const [fundCode, setFundCode] = useState('');
   const [amount, setAmount] = useState('');
