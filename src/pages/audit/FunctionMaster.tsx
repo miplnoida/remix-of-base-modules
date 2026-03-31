@@ -369,6 +369,7 @@ export default function FunctionMaster() {
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {functions.length} function{functions.length !== 1 ? 's' : ''}
                               {' • '}{deptTotalWeight}% allocated
+                              {' • '}{deptRisk.method === 'weighted' ? 'Weighted' : deptRisk.method === 'average' ? 'Average' : 'Maximum'} method
                               {highCount > 0 && <span className="text-destructive ml-2">• {highCount} high risk</span>}
                             </p>
                           </div>
