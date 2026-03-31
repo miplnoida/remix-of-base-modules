@@ -473,6 +473,26 @@ const PaymentDataEntry = () => {
           isLoading={receipt.isLoading}
           receiptId={receipt.currentReceipt?.receipt_id}
         />
+        <EmailDeliveryPrompt
+          open={showEmailPrompt}
+          onClose={() => { setShowEmailPrompt(false); setPendingEmailDoc(null); }}
+          onConfirm={() => {
+            if (pendingEmailDoc) {
+              sendDocumentEmail({
+                documentType: 'receipt',
+                documentId: pendingEmailDoc.id,
+                documentNumber: pendingEmailDoc.number,
+                recipientEmail: pendingEmailDoc.email,
+                userCode: userCode || 'SYS',
+              });
+            }
+            setShowEmailPrompt(false);
+            setPendingEmailDoc(null);
+          }}
+          recipientEmail={pendingEmailDoc?.email || ''}
+          documentType="receipt"
+          documentNumber={pendingEmailDoc?.number}
+        />
       </div>
     </BatchSelectionGuard>
   );
