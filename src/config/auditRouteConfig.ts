@@ -86,8 +86,6 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'system-config', label: 'Auto Plan Config', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'planning', component: 'AuditConfig' },
 
   // ===== Execution =====
-  { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
-  { moduleKey: 'findings', label: 'Findings', path: '/audit/findings', permission: 'enter_audit_findings', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FINDINGS, category: 'execution', component: 'FindingsManagement' },
 
   // ===== Resources =====
   { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
