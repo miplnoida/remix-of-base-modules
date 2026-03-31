@@ -257,6 +257,7 @@ import RolePermissionManagement from '@/pages/admin/RolePermissionManagement';
 import AuditLogViewer from '@/pages/admin/AuditLogViewer';
 import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
+import OfficeIPManagement from '@/pages/admin/OfficeIPManagement';
 import DepartmentManagement from '@/pages/admin/DepartmentManagement';
 import ModuleManagement from '@/pages/admin/ModuleManagement';
 import DesignationManagement from '@/pages/admin/DesignationManagement';
