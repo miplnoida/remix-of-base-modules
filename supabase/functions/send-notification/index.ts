@@ -275,6 +275,7 @@ const handler = async (req: Request): Promise<Response> => {
         metadata: metadata || null,
         trigger_source: trigger_source || null,
         triggered_by: triggered_by || null,
+        template_id: template_id || null,
         created_at: new Date().toISOString(),
       } as Record<string, unknown>);
     }
