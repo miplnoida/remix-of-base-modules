@@ -953,6 +953,19 @@ export default function AuditConfig({ embedded = false }: { embedded?: boolean }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (embedded) return pageContent;
+
+  return (
+    <PageShell
+      title="System Configuration"
+      subtitle="Configure Internal Audit system settings"
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
+      isLoading={isLoading}
+    >
+      {pageContent}
     </PageShell>
   );
 }
