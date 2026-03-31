@@ -458,19 +458,10 @@ const CreateInvoice: React.FC = () => {
       }
       await invoiceActions.loadInvoice(result.invoice_id);
       toast.success(`Invoice ${result.invoice_number} created successfully (Status: Original)`);
-      // Email delivery logic — resolve payer email for all payer types
+      // Email delivery logic — resolve payer email via centralized RPC
       let payerEmailAddr = isAP ? payerEmail : '';
-      if (!payerEmailAddr && !isAP && payerId && invoiceEmailMode !== 'never') {
-        try {
-          const { data: payerRow } = await supabase
-            .from('cn_payer')
-            .select('email')
-            .eq('payer_id', payerId.trim())
-            .maybeSingle();
-          payerEmailAddr = payerRow?.email || '';
-        } catch (emailLookupErr) {
-          console.error('[CreateInvoice] Payer email lookup error:', emailLookupErr);
-        }
+      if (!payerEmailAddr && payerId && invoiceEmailMode !== 'never') {
+        payerEmailAddr = await resolvePayerEmail(payerType, payerId);
       }
 
       if (invoiceEmailMode === 'ask') {
