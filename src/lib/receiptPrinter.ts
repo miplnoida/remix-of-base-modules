@@ -25,7 +25,7 @@ export interface ReceiptPrintData {
 /**
  * Fetch the HTML receipt template from the database
  */
-async function fetchReceiptTemplate(): Promise<string> {
+export async function fetchReceiptTemplate(): Promise<string> {
   const { data, error } = await supabase
     .from('payment_module_config')
     .select('config_value')
