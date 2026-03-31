@@ -157,6 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
       metadata,
       trigger_source,
       triggered_by,
+      template_id,
     }: SendNotificationRequest = await req.json();
 
     console.log("Sending email notification to:", recipient_email);
