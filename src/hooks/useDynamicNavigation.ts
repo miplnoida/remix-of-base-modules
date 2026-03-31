@@ -329,26 +329,31 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 
     if (!isInternalAuditRoot || children.length === 0) return item;
 
-    const childrenByPath = new Map(children.map((child) => [normalizePath(child.url), child]));
+    // Build a lookup of simplified overrides by path
+    const overrideByPath = new Map<string, typeof SIMPLIFIED_INTERNAL_AUDIT_MENU[number]>();
+    SIMPLIFIED_INTERNAL_AUDIT_MENU.forEach((config) => {
+      config.aliases.forEach((alias) => {
+        overrideByPath.set(normalizePath(alias), config);
+      });
+    });
 
-    const simplifiedChildren = SIMPLIFIED_INTERNAL_AUDIT_MENU.map((config) => {
-      const matchedChild = config.aliases
-        .map((alias) => childrenByPath.get(normalizePath(alias)))
-        .find(Boolean);
-
-      return {
-        id: matchedChild?.id || config.id,
-        title: config.title,
-        url: config.path,
-        icon: config.icon,
-        description: matchedChild?.description || config.description,
-        subItems: matchedChild?.subItems,
-      } as MenuItem;
+    // Apply display overrides from the simplified list but keep ALL children from DB
+    const enhancedChildren = children.map((child) => {
+      const override = overrideByPath.get(normalizePath(child.url));
+      if (override) {
+        return {
+          ...child,
+          title: override.title,
+          icon: override.icon,
+          description: child.description || override.description,
+        } as MenuItem;
+      }
+      return child;
     });
 
     return {
       ...item,
-      subItems: simplifiedChildren,
+      subItems: enhancedChildren,
     };
   });
 }
