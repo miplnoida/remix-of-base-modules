@@ -1150,6 +1150,7 @@ export const AppRoutes = () => {
       <Route path="/admin/email-campaigns" element={<ProtectedLayout><EmailCampaigns /></ProtectedLayout>} />
       <Route path="/admin/email-logs" element={<ProtectedLayout><EmailLogs /></ProtectedLayout>} />
       <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
+      <Route path="/admin/office-ip-management" element={<ProtectedLayout><OfficeIPManagement /></ProtectedLayout>} />
       <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
       <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
       <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />

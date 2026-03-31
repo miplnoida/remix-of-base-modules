@@ -263,7 +263,7 @@ const GlobalSettings = () => {
           </TabsContent>
           
           {categories.map(category => (
-            <TabsContent key={category} value={category} className="mt-4">
+            <TabsContent key={category} value={category} className="mt-4 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>{category} Settings</CardTitle>
