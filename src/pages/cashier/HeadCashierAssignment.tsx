@@ -40,7 +40,7 @@ const HeadCashierAssignment: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cn_head_cashier_assignment')
-        .select('*, profiles:user_id(full_name, user_code, office_code)')
+        .select('id, user_id, user_code, assignment_date, office_code, is_active, assigned_by')
         .eq('assignment_date', dateStr)
         .eq('is_active', true);
       if (error) throw error;
