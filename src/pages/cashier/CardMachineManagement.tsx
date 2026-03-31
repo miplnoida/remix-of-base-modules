@@ -271,6 +271,7 @@ const CardMachineManagement: React.FC = () => {
                     <TableRow key={m.id} className={!m.is_active ? 'opacity-50' : ''}>
                       <TableCell className="font-mono font-semibold">{m.machine_code}</TableCell>
                       <TableCell>{m.machine_name}</TableCell>
+                      <TableCell className="text-sm">{getOfficeName(m.office_code)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{getCardTypeLabel(m.card_type_support)}</Badge>
                       </TableCell>
