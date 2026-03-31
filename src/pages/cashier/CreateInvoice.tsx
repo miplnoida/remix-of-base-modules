@@ -994,14 +994,16 @@ const CreateInvoice: React.FC = () => {
             setPendingPrintInvoiceId(null);
           }
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (pendingEmailDoc) {
-            sendDocumentEmail({
+            await sendDocumentEmail({
               documentType: 'invoice',
               documentId: pendingEmailDoc.id,
               documentNumber: pendingEmailDoc.number,
               recipientEmail: pendingEmailDoc.email,
               userCode: userCode || 'SYSTEM',
+              payerType,
+              payerId,
             });
           }
           setShowEmailPrompt(false);
