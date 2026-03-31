@@ -239,8 +239,11 @@ export default function EmailLogs() {
                   <TableHead>Timestamp</TableHead>
                   <TableHead>Recipient</TableHead>
                   <TableHead>Subject</TableHead>
+                  <TableHead>Payer Type</TableHead>
+                  <TableHead>Payer ID</TableHead>
+                  <TableHead>Document #</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Resend ID</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Retries</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
