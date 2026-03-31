@@ -218,6 +218,7 @@ import EngagementDetail from '@/pages/audit/EngagementDetail';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import PlanApproval from '@/pages/audit/PlanApproval';
 import AuditConfig from '@/pages/audit/AuditConfig';
+const RiskSettings = lazy(() => import('@/pages/audit/RiskSettings'));
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
 const HolidayCalendar = lazy(() => import('@/pages/audit/HolidayCalendar'));
@@ -956,6 +957,7 @@ export const AppRoutes = () => {
       <Route path="/audit/report-builder" element={<ProtectedLayout><Suspense fallback={<div />}><ReportBuilder /></Suspense></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/risk-settings" element={<ProtectedLayout><Suspense fallback={<div />}><RiskSettings /></Suspense></ProtectedLayout>} />
       <Route path="/audit/queries" element={<ProtectedLayout><Suspense fallback={<div />}><AuditQueries /></Suspense></ProtectedLayout>} />
       <Route path="/audit/auditor-profiles" element={<ProtectedLayout><Suspense fallback={<div />}><AuditorProfiles /></Suspense></ProtectedLayout>} />
       <Route path="/audit/holidays" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_HOLIDAY_MANAGEMENT"><Suspense fallback={<div />}><HolidayCalendar /></Suspense></AuditFeatureGate></ProtectedLayout>} />

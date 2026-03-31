@@ -109,6 +109,9 @@ export type Permission =
   | 'view_audit_readonly'
   | 'approve_audit_closeouts'
   | 'configure_audit_system'
+  | 'view_risk_settings'
+  | 'edit_risk_settings'
+  | 'configure_risk_bands'
   // Compliance permissions
   | 'view_compliance_cases'
   | 'create_compliance_cases'
