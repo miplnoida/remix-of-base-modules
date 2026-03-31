@@ -416,7 +416,26 @@ function OpenBatchDialog({
         : 0;
 
       const now = new Date();
-      const officeCode = effectiveOffice?.code || selectedCashier.office_code || 'HQ';
+
+      // Server-side office enforcement via resolve_batch_office RPC
+      let officeCode = effectiveOffice?.code || selectedCashier.office_code || 'HQ';
+      try {
+        const clientIp = await getClientIP();
+        const { data: officeResult, error: officeErr } = await supabase.rpc('resolve_batch_office' as any, {
+          p_cashier_user_id: selectedCashier.id,
+          p_ip_address: clientIp,
+          p_date: batchDateStr,
+        });
+        if (!officeErr && officeResult) {
+          const officeRes = typeof officeResult === 'string' ? JSON.parse(officeResult) : officeResult;
+          if (officeRes.office_code) {
+            officeCode = officeRes.office_code;
+          }
+        }
+      } catch (e) {
+        console.error('[BatchManagement] Server-side office resolution fallback:', e);
+      }
+
       const batchNumber = `${officeCode}-${format(now, 'yyyyMMdd')}-${format(now, 'HHmmss')}`;
 
       const { error } = await supabase.from('cn_batch').insert({
