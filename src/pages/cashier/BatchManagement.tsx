@@ -285,8 +285,34 @@ function OpenBatchDialog({
   // Office resolution state
   const [resolvedOffice, setResolvedOffice] = useState<{ code: string; description: string; isOverride: boolean } | null>(null);
   const [officeLoading, setOfficeLoading] = useState(false);
+  const [ipDetectedOffice, setIpDetectedOffice] = useState<{ code: string; description: string; ip: string } | null>(null);
+  const [ipChecking, setIpChecking] = useState(false);
 
-  // Resolve office when cashier changes
+  // Detect office from IP when dialog opens
+  useEffect(() => {
+    if (!open) { setIpDetectedOffice(null); return; }
+    let cancelled = false;
+    (async () => {
+      setIpChecking(true);
+      try {
+        const ip = await getClientIP();
+        const { data, error } = await supabase.rpc('resolve_office_by_ip' as any, { p_ip_address: ip });
+        if (!error && data) {
+          const res = typeof data === 'string' ? JSON.parse(data) : data;
+          if (res.matched && !cancelled) {
+            setIpDetectedOffice({ code: res.office_code, description: res.office_description, ip });
+          }
+        }
+      } catch (e) {
+        console.error('[BatchManagement] IP office detection error:', e);
+      } finally {
+        if (!cancelled) setIpChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
+  // Resolve office when cashier changes (fallback to profile default)
   React.useEffect(() => {
     if (!effectiveCashierId) { setResolvedOffice(null); return; }
     setOfficeLoading(true);
