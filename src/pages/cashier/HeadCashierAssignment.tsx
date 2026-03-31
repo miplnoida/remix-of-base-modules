@@ -147,16 +147,16 @@ const HeadCashierAssignment: React.FC = () => {
               <TableBody>
                 {(offices || []).map((office: any) => {
                   const assignment = getAssignmentForOffice(office.code);
-                  const assignedProfile = assignment?.profiles;
+                  const matchedUser = cashierUsers?.find((u: CashierUser) => u.user_code === assignment?.user_code);
                   return (
                     <TableRow key={office.code}>
                       <TableCell className="font-mono font-semibold">{office.code}</TableCell>
                       <TableCell>{office.description}</TableCell>
                       <TableCell>
-                        {assignedProfile ? (
+                        {assignment ? (
                           <Badge variant="default" className="text-xs">
                             <Crown className="h-3 w-3 mr-1" />
-                            {assignedProfile.full_name}
+                            {matchedUser?.full_name || assignment.user_code}
                           </Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">Not assigned</span>
