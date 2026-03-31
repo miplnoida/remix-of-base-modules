@@ -168,6 +168,11 @@ export function AddDetailModal({ open, onClose, onAdd, editData, onMopPopupNeede
     setMopSearch('');
   }, [open, editData]);
 
+  // Reset card machine when mop changes
+  useEffect(() => {
+    if (!isCard) setCardMachineId('');
+  }, [mopCode]);
+
   // Auto-focus Payment Code dropdown when modal opens
   useEffect(() => {
     if (open) {
