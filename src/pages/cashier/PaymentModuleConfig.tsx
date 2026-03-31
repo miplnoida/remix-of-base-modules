@@ -153,6 +153,10 @@ const PaymentModuleConfig: React.FC = () => {
     if (dm?.mode) setDuplicateMode(dm.mode);
     const c3pt = getVal('c3_payment_types');
     if (Array.isArray(c3pt)) setC3PaymentTypes(c3pt);
+    const iem = getVal('invoice_email_delivery');
+    if (typeof iem === 'string') setLocalInvoiceEmailMode(iem);
+    const rem = getVal('receipt_email_delivery');
+    if (typeof rem === 'string') setLocalReceiptEmailMode(rem);
 
     // Number formats — segments
     const invFmt = getVal('invoice_number_format');
