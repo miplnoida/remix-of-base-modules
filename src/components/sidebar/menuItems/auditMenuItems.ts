@@ -87,6 +87,18 @@ export const auditMenuItems = [
         requiresPermission: "configure_audit_system",
         description: "Configure Auto Plan rules, weights, and thresholds"
       },
+      // ── Settings ──
+      {
+        title: "Settings",
+        isGroupLabel: true,
+      },
+      {
+        title: "Risk Configuration",
+        url: "/audit/risk-settings",
+        icon: Shield,
+        requiresPermission: "configure_audit_system",
+        description: "Centralized risk parameters, formula, and rating bands"
+      },
       // ── Resources ──
       {
         title: "Resources",
