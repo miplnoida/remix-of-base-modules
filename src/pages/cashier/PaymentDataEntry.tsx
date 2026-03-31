@@ -482,14 +482,16 @@ const PaymentDataEntry = () => {
               setPendingPrintPaymentId(null);
             }
           }}
-          onConfirm={() => {
+          onConfirm={async () => {
             if (pendingEmailDoc) {
-              sendDocumentEmail({
+              await sendDocumentEmail({
                 documentType: 'receipt',
                 documentId: pendingEmailDoc.id,
                 documentNumber: pendingEmailDoc.number,
                 recipientEmail: pendingEmailDoc.email,
                 userCode: userCode || 'SYS',
+                payerType,
+                payerId,
               });
             }
             setShowEmailPrompt(false);
