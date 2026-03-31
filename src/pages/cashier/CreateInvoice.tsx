@@ -24,7 +24,7 @@ import { validateEmail, validatePhone } from '@/lib/contactValidation';
 import { cn } from '@/lib/utils';
 import { printConfiguredInvoice } from '@/lib/invoicePrinter';
 import { EmailDeliveryPrompt } from '@/components/payments/EmailDeliveryPrompt';
-import { useEmailDeliveryConfig, sendDocumentEmail } from '@/hooks/useEmailDeliveryConfig';
+import { useEmailDeliveryConfig, sendDocumentEmail, resolvePayerEmail } from '@/hooks/useEmailDeliveryConfig';
 
 // ---------- types ----------
 interface InvoiceLine {
