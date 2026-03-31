@@ -175,6 +175,7 @@ const CardMachineManagement: React.FC = () => {
             settlement_account_no: form.settlement_account_no.trim() || null,
             settlement_account_name: form.settlement_account_name.trim() || null,
             notes: form.notes.trim() || null,
+            office_code: form.office_code || null,
             created_by: userCode || null,
           });
         if (error) throw error;
