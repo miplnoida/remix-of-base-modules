@@ -105,11 +105,25 @@ export const auditMenuItems = [
         isGroupLabel: true,
       },
       {
-        title: "Holiday Calendar",
-        url: "/audit/holidays",
-        icon: Calendar,
+        title: "Auditor Profiles",
+        url: "/audit/auditors",
+        icon: UserCheck,
         requiresPermission: "view_audit_assignments",
-        description: "Public holidays and non-working days"
+        description: "Manage auditor registry and roles"
+      },
+      {
+        title: "Workload & Capacity",
+        url: "/audit/workload",
+        icon: BarChart3,
+        requiresPermission: "view_audit_assignments",
+        description: "View auditor workload and capacity"
+      },
+      {
+        title: "Time Tracking",
+        url: "/audit/time-tracking",
+        icon: Timer,
+        requiresPermission: "view_audit_assignments",
+        description: "Track audit time spent"
       },
       {
         title: "Auditor Leave",
@@ -117,6 +131,13 @@ export const auditMenuItems = [
         icon: Clock,
         requiresPermission: "view_audit_assignments",
         description: "Manage auditor leave schedules"
+      },
+      {
+        title: "Holiday Calendar",
+        url: "/audit/holidays",
+        icon: Calendar,
+        requiresPermission: "view_audit_assignments",
+        description: "Public holidays and non-working days"
       },
       // ── Execution ──
       {
