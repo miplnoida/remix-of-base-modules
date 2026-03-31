@@ -452,6 +452,7 @@ const PaymentDataEntry = () => {
           onClose={() => { setShowAddDetail(false); setEditIndex(null); }}
           onAdd={handleAddDetail}
           editData={editIndex !== null ? detailLines[editIndex] : null}
+          officeCode={batchSel.selectedBatch?.office_code || undefined}
         />
         <ChequeDetailModal
           open={showChequeModal}

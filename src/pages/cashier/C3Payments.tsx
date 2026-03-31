@@ -380,6 +380,7 @@ const C3Payments: React.FC = () => {
         mop_notes1: m.mop_notes1 || null,
         credit_card_code: m.credit_card_code || null,
         expiration_date: m.expiration_date || null,
+        card_machine_id: m.card_machine_id || null,
         sort_order: i,
       }));
 
