@@ -17,13 +17,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { PageShell } from '@/components/common';
 import {
   useIAAuditSettings, useIAAuditSettingMutations,
-  useIARiskCriteria, useIARiskCriteriaMutations,
   useIAActivityTypes, useIAActivityTypeMutations,
-  useIARiskScoringModel, useIARiskScoringModelMutations,
-  useIARiskCriteriaWeights, useIARiskCriteriaWeightMutations,
-  useIAFrequencyMapping,
-  useIALikelihoodLevels, useIAImpactLevels,
-  useIAControlEffectivenessLevels, useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
 import { usePlanningWeights, useFrequencyPolicies, usePlanningParameters } from '@/hooks/useAutoPlanEngine';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
