@@ -12,6 +12,8 @@ import {
   Calendar,
   Clock,
   Settings,
+  UserCheck,
+  Timer,
 } from "lucide-react";
 
 export const auditMenuItems = [
