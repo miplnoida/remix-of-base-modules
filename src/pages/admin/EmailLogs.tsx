@@ -254,16 +254,22 @@ export default function EmailLogs() {
                     <TableCell className="text-sm text-muted-foreground">
                       {formatAuditDateTime(log.created_at, true)}
                     </TableCell>
-                    <TableCell className="max-w-[180px] truncate">{log.recipient_address}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                    <TableCell className="max-w-[160px] truncate">{log.recipient_address}</TableCell>
+                    <TableCell className="max-w-[160px] truncate text-muted-foreground">
                       {log.subject || "—"}
                     </TableCell>
                     <TableCell>
+                      {log.metadata?.payer_type ? (
+                        <Badge variant="outline">{String(log.metadata.payer_type)}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{log.metadata?.payer_id || "—"}</TableCell>
+                    <TableCell className="text-xs">{log.metadata?.document_number || "—"}</TableCell>
+                    <TableCell>
                       <Badge variant={statusBadge(log.status)}>{log.status}</Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {log.resend_message_id ? log.resend_message_id.slice(0, 20) + "…" : "—"}
-                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{log.trigger_source || "—"}</TableCell>
+                    <TableCell>{log.retry_count ?? 0}</TableCell>
                     <TableCell>{log.retry_count ?? 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
