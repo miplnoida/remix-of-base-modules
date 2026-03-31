@@ -30,12 +30,14 @@ export interface DetailLineData {
   mop_notes1: string | null;
   credit_card_code: string | null;
   expiration_date: string | null;
+  card_machine_id: string | null;
   // Display descriptions (client-side only, not saved to DB)
   payment_code_desc?: string;
   fund_code_desc?: string;
   mop_desc?: string;
   bank_desc?: string;
   card_desc?: string;
+  card_machine_name?: string | null;
 }
 
 interface AddDetailModalProps {
@@ -44,6 +46,7 @@ interface AddDetailModalProps {
   onAdd: (detail: DetailLineData) => void;
   editData?: DetailLineData | null;
   onMopPopupNeeded?: (mopCode: string) => void;
+  officeCode?: string;
 }
 
 const MONTHS = [

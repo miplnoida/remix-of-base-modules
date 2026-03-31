@@ -252,10 +252,9 @@ export function PaymentMethodModal({
       title={editRow ? 'Edit Payment Method' : 'Add Payment Method'}
       mode="edit"
       size="lg"
-      onSave={handleSave}
+      onSave={canSave ? handleSave : undefined}
       onCancel={() => onOpenChange(false)}
       saveLabel={editRow ? 'Update Method' : 'Add Method'}
-      saveDisabled={!canSave}
     >
       <div className="space-y-4">
         {/* Method Select */}
