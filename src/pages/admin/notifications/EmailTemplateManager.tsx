@@ -102,6 +102,8 @@ const TRIGGER_EVENTS = [
   // Finance / BEMA
   'payment_received', 'payment_overdue', 'payment_plan_created',
   'waiver_approved', 'waiver_rejected', 'c3_submission_confirmed',
+  // Cashier / Invoices & Receipts
+  'invoice_email_sent', 'receipt_email_sent',
   // System / Admin
   'user_account_created', 'password_reset_requested', 'api_key_generated',
   'system_lockdown_activated', 'role_assigned', 'security_alert',
