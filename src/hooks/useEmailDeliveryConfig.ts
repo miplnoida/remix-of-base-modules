@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { fetchInvoiceTemplate, fetchInvoiceData } from '@/lib/invoicePrinter';
 import { fetchReceiptTemplate, fetchReceiptData } from '@/lib/receiptPrinter';
+import { htmlToPdfBase64 } from '@/lib/htmlToPdf';
 
 type DeliveryMode = 'always' | 'ask' | 'never';
 
@@ -217,7 +218,7 @@ export async function sendDocumentEmail(params: {
     `;
   }
 
-  // Generate document HTML for attachment
+  // Generate document PDF for attachment
   let attachments: { filename: string; content: string; contentType: string }[] = [];
   try {
     let documentHtml: string | null = null;
@@ -229,17 +230,18 @@ export async function sendDocumentEmail(params: {
     }
 
     if (documentHtml) {
-      const base64Content = safeBase64Encode(documentHtml);
+      // Convert HTML to PDF base64
+      const pdfBase64 = await htmlToPdfBase64(documentHtml);
       attachments.push({
-        filename: `${documentNumber}.html`,
-        content: base64Content,
-        contentType: 'text/html',
+        filename: `${documentNumber}.pdf`,
+        content: pdfBase64,
+        contentType: 'application/pdf',
       });
     } else {
-      console.warn(`[EmailDelivery] Could not generate ${documentType} HTML for attachment. Document ID: ${documentId}`);
+      console.warn(`[EmailDelivery] Could not generate ${documentType} HTML for PDF attachment. Document ID: ${documentId}`);
     }
   } catch (attErr) {
-    console.error('[EmailDelivery] Attachment generation error:', attErr);
+    console.error('[EmailDelivery] PDF attachment generation error:', attErr);
   }
 
   try {
