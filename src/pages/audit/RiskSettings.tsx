@@ -521,9 +521,12 @@ function DeptMethodTab() {
             </div>
           ))}
 
+          {hasUnsavedChanges && (
+            <p className="text-sm text-amber-600 font-medium">⚠ You have unsaved changes</p>
+          )}
           <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={update.isPending}>
-              <Save className="h-4 w-4 mr-2" /> Save Method
+            <Button onClick={handleSave} disabled={update.isPending || !hasUnsavedChanges || isLoading}>
+              <Save className="h-4 w-4 mr-2" /> {update.isPending ? 'Saving...' : 'Save Method'}
             </Button>
           </div>
         </CardContent>
