@@ -12,126 +12,71 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Building2, Plus, Search, Edit, MapPin, Users, Trash2 } from "lucide-react";
-import { useOfficeLocations, useCreateOfficeLocation, useUpdateOfficeLocation, useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/useAdminData";
-import { useOfficeDepartments } from "@/hooks/useOfficeDepartments";
-import type { OfficeLocation, Department } from "@/hooks/useAdminData";
+import { Building2, Plus, Search, Edit, MapPin } from "lucide-react";
+import { useTbOffices, useCreateTbOffice, useUpdateTbOffice } from "@/hooks/useAdminData";
+import type { TbOffice } from "@/hooks/useAdminData";
 
 const OfficeManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showOfficeDialog, setShowOfficeDialog] = useState(false);
-  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
-  const [selectedOffice, setSelectedOffice] = useState<OfficeLocation | null>(null);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [selectedOffice, setSelectedOffice] = useState<TbOffice | null>(null);
   const [officeForm, setOfficeForm] = useState({
-    branch_name: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "",
-    is_active: true,
-  });
-  const [departmentForm, setDepartmentForm] = useState({
-    name: "",
+    code: "",
     description: "",
+    address1: "",
+    address2: "",
+    office_email: "",
+    office_phone: "",
     is_active: true,
   });
 
-  const { data: offices = [], isLoading } = useOfficeLocations();
-  // Get departments for selected office (for accordion display)
-  const { data: selectedOfficeDepts = [] } = useOfficeDepartments(selectedOffice?.id);
-  const createOffice = useCreateOfficeLocation();
-  const updateOffice = useUpdateOfficeLocation();
-  const createDepartment = useCreateDepartment();
-  const updateDepartment = useUpdateDepartment();
-  const deleteDepartment = useDeleteDepartment();
-  
-  // We need to fetch departments for each office for display
-  // Using useDepartments with undefined fetches all departments
-  const { data: allDepartments = [] } = useDepartments(undefined);
-  
-  // Group departments by office_code
-  const getDepartmentsForOffice = (officeId: string) => {
-    // Note: office_locations use uuid id, but tb_office_departments use office_code
-    // For now, departments are linked to tb_office, not office_locations
-    return allDepartments;
-  };
+  const { data: offices = [], isLoading } = useTbOffices();
+  const createOffice = useCreateTbOffice();
+  const updateOffice = useUpdateTbOffice();
 
   const filteredOffices = offices.filter((office) =>
-    office.branch_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    office.city?.toLowerCase().includes(searchQuery.toLowerCase())
+    office.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    office.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    office.address1?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleOpenOfficeDialog = (office?: OfficeLocation) => {
+  const handleOpenOfficeDialog = (office?: TbOffice) => {
     if (office) {
       setSelectedOffice(office);
       setOfficeForm({
-        branch_name: office.branch_name,
-        address: office.address || "",
-        city: office.city || "",
-        state: office.state || "",
-        country: office.country || "",
-        is_active: office.is_active,
+        code: office.code,
+        description: office.description || "",
+        address1: office.address1 || "",
+        address2: office.address2 || "",
+        office_email: (office as any).office_email || "",
+        office_phone: (office as any).office_phone || "",
+        is_active: office.is_active ?? true,
       });
     } else {
       setSelectedOffice(null);
-      setOfficeForm({ branch_name: "", address: "", city: "", state: "", country: "", is_active: true });
+      setOfficeForm({ code: "", description: "", address1: "", address2: "", office_email: "", office_phone: "", is_active: true });
     }
     setShowOfficeDialog(true);
   };
 
   const handleSaveOffice = async () => {
     if (selectedOffice) {
-      await updateOffice.mutateAsync({ id: selectedOffice.id, ...officeForm });
+      const { code, ...updateData } = officeForm;
+      await updateOffice.mutateAsync({ code: selectedOffice.code, ...updateData });
     } else {
       await createOffice.mutateAsync(officeForm);
     }
     setShowOfficeDialog(false);
   };
 
-  const handleOpenDepartmentDialog = (dept?: Department) => {
-    if (dept) {
-      setEditingDepartment(dept);
-      setDepartmentForm({ name: dept.name, description: dept.description || "", is_active: dept.is_active });
-    } else {
-      setEditingDepartment(null);
-      setDepartmentForm({ name: "", description: "", is_active: true });
-    }
-    setShowDepartmentDialog(true);
-  };
-
-  const handleSaveDepartment = async () => {
-    if (editingDepartment) {
-      await updateDepartment.mutateAsync({ 
-        id: editingDepartment.id, 
-        name: departmentForm.name,
-        description: departmentForm.description,
-        is_active: departmentForm.is_active,
-      });
-    } else {
-      // Default to first office code - this page manages office_locations, not tb_office
-      // Departments are now managed via DepartmentManagement page
-      return;
-    }
-    setShowDepartmentDialog(false);
-    setEditingDepartment(null);
-  };
-
-  const handleDeleteDepartment = async (deptId: string) => {
-    if (confirm("Are you sure you want to delete this department?")) {
-      await deleteDepartment.mutateAsync(deptId);
-    }
-  };
+  const activeCount = offices.filter((o) => o.is_active !== false).length;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Office Management</h1>
-          <p className="text-muted-foreground mt-1">Manage office locations</p>
+          <p className="text-muted-foreground mt-1">Manage office locations (tb_office)</p>
         </div>
         <Button onClick={() => handleOpenOfficeDialog()}>
           <Plus className="mr-2 h-4 w-4" />
@@ -153,23 +98,18 @@ const OfficeManagement = () => {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Total Departments
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Active Offices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{allDepartments.length}</div>
+            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active Offices</CardTitle>
+            <CardTitle className="text-sm font-medium">Inactive Offices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {offices.filter((o) => o.is_active).length}
-            </div>
+            <div className="text-2xl font-bold text-muted-foreground">{offices.length - activeCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -182,7 +122,7 @@ const OfficeManagement = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search offices..."
+                placeholder="Search by code, name or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -197,22 +137,28 @@ const OfficeManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Branch Name</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Address</TableHead>
-                  <TableHead>City</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOffices.map((office) => (
-                  <TableRow key={office.id}>
-                    <TableCell className="font-medium">{office.branch_name}</TableCell>
-                    <TableCell className="text-muted-foreground">{office.address || '-'}</TableCell>
-                    <TableCell>{[office.city, office.state].filter(Boolean).join(", ") || '-'}</TableCell>
+                  <TableRow key={office.code}>
+                    <TableCell className="font-medium">{office.code}</TableCell>
+                    <TableCell>{office.description || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {[office.address1, office.address2].filter(Boolean).join(", ") || '-'}
+                    </TableCell>
+                    <TableCell>{(office as any).office_email || '-'}</TableCell>
+                    <TableCell>{(office as any).office_phone || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={office.is_active ? "default" : "secondary"}>
-                        {office.is_active ? "Active" : "Inactive"}
+                      <Badge variant={office.is_active !== false ? "default" : "secondary"}>
+                        {office.is_active !== false ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -233,55 +179,73 @@ const OfficeManagement = () => {
       <Dialog open={showOfficeDialog} onOpenChange={setShowOfficeDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedOffice ? "Edit Office" : "Add Office Location"}</DialogTitle>
+            <DialogTitle>{selectedOffice ? "Edit Office" : "Add Office"}</DialogTitle>
             <DialogDescription>
               {selectedOffice ? "Update office details" : "Create a new office location"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="branch_name">Branch Name *</Label>
+              <Label htmlFor="code">Office Code *</Label>
               <Input
-                id="branch_name"
-                value={officeForm.branch_name}
-                onChange={(e) => setOfficeForm({ ...officeForm, branch_name: e.target.value })}
+                id="code"
+                value={officeForm.code}
+                onChange={(e) => setOfficeForm({ ...officeForm, code: e.target.value.toUpperCase() })}
+                placeholder="e.g. HQ, SKB, NEV"
+                disabled={!!selectedOffice}
+                maxLength={10}
+              />
+              {selectedOffice && (
+                <p className="text-xs text-muted-foreground">Code cannot be changed after creation</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description / Name *</Label>
+              <Input
+                id="description"
+                value={officeForm.description}
+                onChange={(e) => setOfficeForm({ ...officeForm, description: e.target.value })}
                 placeholder="Head Office"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address1">Address Line 1</Label>
               <Textarea
-                id="address"
-                value={officeForm.address}
-                onChange={(e) => setOfficeForm({ ...officeForm, address: e.target.value })}
+                id="address1"
+                value={officeForm.address1}
+                onChange={(e) => setOfficeForm({ ...officeForm, address1: e.target.value })}
                 placeholder="Street address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address2">Address Line 2</Label>
+              <Input
+                id="address2"
+                value={officeForm.address2}
+                onChange={(e) => setOfficeForm({ ...officeForm, address2: e.target.value })}
+                placeholder="City, State, Country"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="office_email">Email</Label>
                 <Input
-                  id="city"
-                  value={officeForm.city}
-                  onChange={(e) => setOfficeForm({ ...officeForm, city: e.target.value })}
+                  id="office_email"
+                  type="email"
+                  value={officeForm.office_email}
+                  onChange={(e) => setOfficeForm({ ...officeForm, office_email: e.target.value })}
+                  placeholder="office@example.com"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State/Province</Label>
+                <Label htmlFor="office_phone">Phone</Label>
                 <Input
-                  id="state"
-                  value={officeForm.state}
-                  onChange={(e) => setOfficeForm({ ...officeForm, state: e.target.value })}
+                  id="office_phone"
+                  value={officeForm.office_phone}
+                  onChange={(e) => setOfficeForm({ ...officeForm, office_phone: e.target.value })}
+                  placeholder="+1-869-XXX-XXXX"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                value={officeForm.country}
-                onChange={(e) => setOfficeForm({ ...officeForm, country: e.target.value })}
-              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="is_active">Active</Label>
@@ -294,8 +258,11 @@ const OfficeManagement = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowOfficeDialog(false)}>Cancel</Button>
-            <Button onClick={handleSaveOffice} disabled={!officeForm.branch_name || createOffice.isPending || updateOffice.isPending}>
-              {selectedOffice ? "Update" : "Create"}
+            <Button
+              onClick={handleSaveOffice}
+              disabled={!officeForm.code || !officeForm.description || createOffice.isPending || updateOffice.isPending}
+            >
+              {createOffice.isPending || updateOffice.isPending ? "Saving..." : selectedOffice ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

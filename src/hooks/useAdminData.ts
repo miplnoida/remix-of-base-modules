@@ -6,22 +6,14 @@ import { Database } from '@/integrations/supabase/types';
 // Types
 export type AppRole = Database['public']['Enums']['app_role'];
 
-export interface OfficeLocation {
-  id: string;
-  branch_name: string;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
 export interface TbOffice {
   code: string;
   description: string;
   address1: string;
   address2: string;
+  office_email?: string;
+  office_phone?: string;
+  is_active?: boolean;
 }
 
 export interface Department {
@@ -148,24 +140,6 @@ export interface PasswordPolicy {
   is_active: boolean;
 }
 
-// Office Locations
-export function useOfficeLocations() {
-  return useQuery({
-    queryKey: ['office-locations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('office_locations')
-        .select('*')
-        .order('branch_name');
-      if (error) {
-        console.error('Error fetching office locations:', error);
-        throw error;
-      }
-      return (data || []) as OfficeLocation[];
-    },
-  });
-}
-
 // tb_office master table
 export function useTbOffices() {
   return useQuery({
@@ -181,13 +155,13 @@ export function useTbOffices() {
   });
 }
 
-export function useCreateOfficeLocation() {
+export function useCreateTbOffice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['Admin', 'admin_data', 'create'],
-    mutationFn: async (data: { branch_name: string; address?: string; city?: string; state?: string; country?: string; is_active?: boolean }) => {
+    mutationKey: ['Admin', 'tb_office', 'create'],
+    mutationFn: async (data: { code: string; description: string; address1?: string; address2?: string; office_email?: string; office_phone?: string; is_active?: boolean }) => {
       const { data: result, error } = await supabase
-        .from('office_locations')
+        .from('tb_office')
         .insert(data)
         .select()
         .single();
@@ -195,30 +169,32 @@ export function useCreateOfficeLocation() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
-      toast.success('Office location created successfully');
+      queryClient.invalidateQueries({ queryKey: ['tb-offices'] });
+      queryClient.invalidateQueries({ queryKey: ['tb-office-list'] });
+      toast.success('Office created successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
 }
 
-export function useUpdateOfficeLocation() {
+export function useUpdateTbOffice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ['Admin', 'admin_data', 'update'],
-    mutationFn: async ({ id, ...data }: Partial<OfficeLocation> & { id: string }) => {
+    mutationKey: ['Admin', 'tb_office', 'update'],
+    mutationFn: async ({ code, ...data }: Partial<TbOffice> & { code: string }) => {
       const { data: result, error } = await supabase
-        .from('office_locations')
+        .from('tb_office')
         .update(data)
-        .eq('id', id)
+        .eq('code', code)
         .select()
         .single();
       if (error) throw error;
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['office-locations'] });
-      toast.success('Office location updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['tb-offices'] });
+      queryClient.invalidateQueries({ queryKey: ['tb-office-list'] });
+      toast.success('Office updated successfully');
     },
     onError: (error: Error) => toast.error(error.message),
   });
