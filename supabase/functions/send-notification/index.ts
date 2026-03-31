@@ -258,6 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
           metadata: metadata || null,
           trigger_source: trigger_source || null,
           triggered_by: triggered_by || null,
+          template_id: template_id || null,
         } as Record<string, unknown>)
         .eq("id", notification_log_id);
     } else {
