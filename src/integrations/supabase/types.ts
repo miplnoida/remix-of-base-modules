@@ -5735,6 +5735,7 @@ export type Database = {
           modified_at: string | null
           modified_by: string | null
           notes: string | null
+          office_code: string | null
           settlement_account_name: string | null
           settlement_account_no: string | null
         }
@@ -5750,6 +5751,7 @@ export type Database = {
           modified_at?: string | null
           modified_by?: string | null
           notes?: string | null
+          office_code?: string | null
           settlement_account_name?: string | null
           settlement_account_no?: string | null
         }
@@ -5765,10 +5767,19 @@ export type Database = {
           modified_at?: string | null
           modified_by?: string | null
           notes?: string | null
+          office_code?: string | null
           settlement_account_name?: string | null
           settlement_account_no?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cn_card_machine_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       cn_cash_count: {
         Row: {
@@ -5843,6 +5854,7 @@ export type Database = {
           assignment_date: string
           id: string
           is_active: boolean | null
+          office_code: string | null
           user_code: string
           user_id: string
         }
@@ -5852,6 +5864,7 @@ export type Database = {
           assignment_date: string
           id?: string
           is_active?: boolean | null
+          office_code?: string | null
           user_code: string
           user_id: string
         }
@@ -5861,10 +5874,19 @@ export type Database = {
           assignment_date?: string
           id?: string
           is_active?: boolean | null
+          office_code?: string | null
           user_code?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cn_head_cashier_assignment_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       cn_invoice_lines: {
         Row: {
@@ -6073,6 +6095,41 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      cn_office_opening_balance: {
+        Row: {
+          cashier_balance: number
+          head_cashier_balance: number
+          id: string
+          office_code: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          cashier_balance?: number
+          head_cashier_balance?: number
+          id?: string
+          office_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          cashier_balance?: number
+          head_cashier_balance?: number
+          id?: string
+          office_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cn_office_opening_balance_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: true
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       cn_payer: {
         Row: {
@@ -24033,7 +24090,12 @@ export type Database = {
         Returns: Json
       }
       assign_head_cashier: {
-        Args: { p_assigned_by: string; p_date: string; p_user_id: string }
+        Args: {
+          p_assigned_by: string
+          p_date: string
+          p_office_code?: string
+          p_user_id: string
+        }
         Returns: Json
       }
       calculate_c3_contributions: {
@@ -24513,7 +24575,10 @@ export type Database = {
         Args: { p_first_name: string; p_last_name: string }
         Returns: string
       }
-      get_active_head_cashier: { Args: { p_date: string }; Returns: Json }
+      get_active_head_cashier: {
+        Args: { p_date: string; p_office_code?: string }
+        Returns: Json
+      }
       get_all_public_tables: {
         Args: never
         Returns: {
