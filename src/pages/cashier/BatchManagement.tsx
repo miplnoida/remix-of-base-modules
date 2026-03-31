@@ -337,7 +337,17 @@ function OpenBatchDialog({
     setSelectedCashierId('');
     setDuplicateWarning(null);
     setResolvedOffice(null);
+    setIpDetectedOffice(null);
   };
+
+  // Effective office: IP-detected takes priority, then head-cashier override, then profile default
+  const effectiveOffice = ipDetectedOffice
+    ? { code: ipDetectedOffice.code, description: ipDetectedOffice.description }
+    : resolvedOffice
+      ? { code: resolvedOffice.code, description: resolvedOffice.description }
+      : selectedCashier
+        ? { code: selectedCashier.office_code || 'HQ', description: selectedCashier.office_description || selectedCashier.office_code || 'HQ' }
+        : null;
 
   const handleCreate = async (force = false) => {
     if (!selectedCashier) return;
