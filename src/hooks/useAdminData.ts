@@ -6,22 +6,14 @@ import { Database } from '@/integrations/supabase/types';
 // Types
 export type AppRole = Database['public']['Enums']['app_role'];
 
-export interface OfficeLocation {
-  id: string;
-  branch_name: string;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
 export interface TbOffice {
   code: string;
   description: string;
   address1: string;
   address2: string;
+  office_email?: string;
+  office_phone?: string;
+  is_active?: boolean;
 }
 
 export interface Department {
