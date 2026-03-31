@@ -12,16 +12,18 @@ export interface HeadCashierInfo {
   assigned_at: string;
 }
 
-export function useHeadCashier(date?: string) {
+export function useHeadCashier(date?: string, officeCode?: string) {
   const { user } = useSupabaseAuth();
   const dateStr = date || format(new Date(), 'yyyy-MM-dd');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['head-cashier', dateStr],
+    queryKey: ['head-cashier', dateStr, officeCode],
     queryFn: async () => {
-      const { data: result, error } = await supabase.rpc('get_active_head_cashier' as any, {
-        p_date: dateStr,
-      });
+      const params: any = { p_date: dateStr };
+      if (officeCode) {
+        params.p_office_code = officeCode;
+      }
+      const { data: result, error } = await supabase.rpc('get_active_head_cashier' as any, params);
       if (error) throw error;
       const parsed = typeof result === 'string' ? JSON.parse(result) : result;
       if (!parsed?.found) return null;
