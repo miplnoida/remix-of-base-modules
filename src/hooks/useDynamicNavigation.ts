@@ -276,14 +276,6 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     description: 'Execute audits for department functions',
   },
   {
-    id: 'ia-findings',
-    title: 'Findings',
-    icon: AlertTriangle,
-    path: '/audit/findings',
-    aliases: ['/audit/findings'],
-    description: 'Record audit findings and issues',
-  },
-  {
     id: 'ia-queries',
     title: 'Queries',
     icon: Send,
@@ -292,12 +284,12 @@ const SIMPLIFIED_INTERNAL_AUDIT_MENU: Array<{
     description: 'Department communication during audits',
   },
   {
-    id: 'ia-actions',
-    title: 'Action Tracker',
-    icon: CheckCircle,
-    path: '/audit/actions',
-    aliases: ['/audit/actions'],
-    description: 'Track remediation actions',
+    id: 'ia-reports',
+    title: 'Reports',
+    icon: FileBarChart,
+    path: '/audit/audit-reports',
+    aliases: ['/audit/audit-reports', '/audit/reports'],
+    description: 'Generate audit reports',
   },
   {
     id: 'ia-reports',

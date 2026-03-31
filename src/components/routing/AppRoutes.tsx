@@ -205,9 +205,6 @@ import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
 import AuditReports from '@/pages/audit/AuditReports';
-const ReportBuilder = lazy(() => import('@/pages/audit/ReportBuilder'));
-import FindingsManagement from '@/pages/audit/FindingsManagement';
-import ActionTracking from '@/pages/audit/ActionTracking';
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
@@ -951,10 +948,7 @@ export const AppRoutes = () => {
       <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense></ProtectedLayout>} />
       <Route path="/audit/audits" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audits/:id" element={<ProtectedLayout><EngagementDetail /></ProtectedLayout>} />
-      <Route path="/audit/findings" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FINDINGS"><FindingsManagement /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/actions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ACTION_TRACKING"><ActionTracking /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/report-builder" element={<ProtectedLayout><Suspense fallback={<div />}><ReportBuilder /></Suspense></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/risk-settings" element={<ProtectedLayout><Suspense fallback={<div />}><RiskSettings /></Suspense></ProtectedLayout>} />
