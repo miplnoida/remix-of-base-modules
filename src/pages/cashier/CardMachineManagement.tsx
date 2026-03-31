@@ -42,6 +42,7 @@ const emptyForm = {
   settlement_account_no: '',
   settlement_account_name: '',
   notes: '',
+  office_code: '',
 };
 
 const CardMachineManagement: React.FC = () => {
