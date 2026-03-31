@@ -102,6 +102,8 @@ const TRIGGER_EVENTS = [
   // Finance / BEMA
   'payment_received', 'payment_overdue', 'payment_plan_created',
   'waiver_approved', 'waiver_rejected', 'c3_submission_confirmed',
+  // Cashier / Invoices & Receipts
+  'invoice_email_sent', 'receipt_email_sent',
   // System / Admin
   'user_account_created', 'password_reset_requested', 'api_key_generated',
   'system_lockdown_activated', 'role_assigned', 'security_alert',
@@ -145,6 +147,13 @@ const AVAILABLE_PLACEHOLDERS = [
   { key: '{{TASK_NAME}}', description: 'Workflow task name' },
   { key: '{{ASSIGNED_TO}}', description: 'Person task is assigned to' },
   { key: '{{SLA_DEADLINE}}', description: 'SLA deadline datetime' },
+  // Document / Invoice / Receipt placeholders
+  { key: '{{DOCUMENT_NUMBER}}', description: 'Invoice or receipt number' },
+  { key: '{{PAYER_NAME}}', description: 'Name of the payer' },
+  { key: '{{PAYER_ID}}', description: 'Payer identifier (SSN/RegNo)' },
+  { key: '{{TOTAL_AMOUNT}}', description: 'Total document amount' },
+  { key: '{{CURRENCY_CODE}}', description: 'Currency code (e.g. XCD)' },
+  { key: '{{DOCUMENT_DATE}}', description: 'Document creation date' },
 ];
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
@@ -464,6 +473,9 @@ export default function EmailTemplateManager() {
       '{{REJECTION_REASON}}': 'Incomplete documentation provided.', '{{AMOUNT}}': 'XCD 2,500.00',
       '{{SSN}}': '123-456-789', '{{TODAY}}': new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       '{{EMPLOYER_NAME}}': 'ABC Construction Ltd.', '{{CLAIM_NUMBER}}': 'CLM-2024-567',
+      '{{DOCUMENT_NUMBER}}': 'INV-2026-001234', '{{PAYER_NAME}}': 'John Smith',
+      '{{PAYER_ID}}': '123456', '{{TOTAL_AMOUNT}}': '2,500.00',
+      '{{CURRENCY_CODE}}': 'XCD', '{{DOCUMENT_DATE}}': 'March 31, 2026',
     };
     let result = merged;
     Object.entries(samples).forEach(([k, v]) => { result = result.split(k).join(v); });

@@ -36,6 +36,7 @@ interface SendNotificationRequest {
   metadata?: Record<string, unknown>;
   trigger_source?: string;
   triggered_by?: string;
+  template_id?: string;
 }
 
 async function logToSystem(
@@ -156,6 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
       metadata,
       trigger_source,
       triggered_by,
+      template_id,
     }: SendNotificationRequest = await req.json();
 
     console.log("Sending email notification to:", recipient_email);
@@ -176,6 +178,7 @@ const handler = async (req: Request): Promise<Response> => {
         failure_reason: errorMsg,
         trigger_source: trigger_source || null,
         triggered_by: triggered_by || null,
+        template_id: template_id || null,
         metadata: metadata || null,
         created_at: new Date().toISOString(),
       } as Record<string, unknown>);
@@ -255,6 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
           metadata: metadata || null,
           trigger_source: trigger_source || null,
           triggered_by: triggered_by || null,
+          template_id: template_id || null,
         } as Record<string, unknown>)
         .eq("id", notification_log_id);
     } else {
@@ -272,6 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
         metadata: metadata || null,
         trigger_source: trigger_source || null,
         triggered_by: triggered_by || null,
+        template_id: template_id || null,
         created_at: new Date().toISOString(),
       } as Record<string, unknown>);
     }
