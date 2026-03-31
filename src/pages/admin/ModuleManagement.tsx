@@ -409,6 +409,16 @@ const ModuleManagementContent = () => {
   };
 
   const handleSaveModule = async () => {
+    // Validate parent module doesn't have a route
+    if (moduleForm.parent_id) {
+      const parentModule = modules.find(m => m.id === moduleForm.parent_id);
+      if (parentModule && parentModule.route) {
+        toast.error("A module with a route cannot be used as a parent module.", {
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+        });
+        return;
+      }
+    }
     if (selectedModule) {
       await updateModule.mutateAsync({ id: selectedModule.id, ...moduleForm });
     } else {
