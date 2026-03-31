@@ -40,7 +40,7 @@ const HeadCashierAssignment: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cn_head_cashier_assignment')
-        .select('*, profiles:user_id(full_name, user_code, office_code)')
+        .select('id, user_id, user_code, assignment_date, office_code, is_active, assigned_by')
         .eq('assignment_date', dateStr)
         .eq('is_active', true);
       if (error) throw error;
@@ -147,16 +147,16 @@ const HeadCashierAssignment: React.FC = () => {
               <TableBody>
                 {(offices || []).map((office: any) => {
                   const assignment = getAssignmentForOffice(office.code);
-                  const assignedProfile = assignment?.profiles;
+                  const matchedUser = cashierUsers?.find((u: CashierUser) => u.user_code === assignment?.user_code);
                   return (
                     <TableRow key={office.code}>
                       <TableCell className="font-mono font-semibold">{office.code}</TableCell>
                       <TableCell>{office.description}</TableCell>
                       <TableCell>
-                        {assignedProfile ? (
+                        {assignment ? (
                           <Badge variant="default" className="text-xs">
                             <Crown className="h-3 w-3 mr-1" />
-                            {assignedProfile.full_name}
+                            {matchedUser?.full_name || assignment.user_code}
                           </Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">Not assigned</span>
