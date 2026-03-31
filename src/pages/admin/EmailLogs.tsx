@@ -108,13 +108,17 @@ export default function EmailLogs() {
 
   const handleExport = () => {
     const csv = [
-      ["Timestamp", "Recipient", "Subject", "Status", "Resend ID", "Retries", "Failure Reason"].join(","),
+      ["Timestamp", "Recipient", "Subject", "Status", "Payer Type", "Payer ID", "Document #", "Source", "Resend ID", "Retries", "Failure Reason"].join(","),
       ...filtered.map((l) =>
         [
           l.created_at,
           l.recipient_address,
           l.subject || "",
           l.status,
+          l.metadata?.payer_type || "",
+          l.metadata?.payer_id || "",
+          l.metadata?.document_number || "",
+          l.trigger_source || "",
           l.resend_message_id || "",
           l.retry_count ?? 0,
           l.failure_reason || "",
