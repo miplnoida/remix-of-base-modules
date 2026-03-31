@@ -29,7 +29,7 @@ import { usePlanningWeights, useFrequencyPolicies, usePlanningParameters } from 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
-export default function AuditConfig() {
+export default function AuditConfig({ embedded = false }: { embedded?: boolean }) {
   
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
