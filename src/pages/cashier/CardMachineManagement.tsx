@@ -76,6 +76,21 @@ const CardMachineManagement: React.FC = () => {
     },
   });
 
+  const { data: offices = [] } = useQuery({
+    queryKey: ['tb-office-list'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tb_office').select('code, description').eq('is_active', true).order('code');
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getOfficeName = (code: string | null) => {
+    if (!code) return '—';
+    const o = offices.find((x: any) => x.code === code);
+    return o ? `${(o as any).description} (${code})` : code;
+  };
+
   const getBankName = (code: string | null) => {
     if (!code) return '—';
     const bank = banks.find((b: any) => b.bank_code === code);
