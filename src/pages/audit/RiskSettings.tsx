@@ -477,10 +477,9 @@ function DeptMethodTab() {
     },
     {
       value: 'weighted',
-      label: 'Weighted Risk (Future)',
-      desc: 'Department risk = weighted average based on function criticality. Requires weight assignment per function.',
+      label: 'Weighted Function Risk',
+      desc: 'Department risk = sum of (function risk score × weight %). Assign weight percentages per function in Function Master. Total per department must not exceed 100%.',
       icon: '⚖️',
-      disabled: true,
     },
   ];
 
