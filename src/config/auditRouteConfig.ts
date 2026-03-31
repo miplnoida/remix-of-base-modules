@@ -98,6 +98,9 @@ export const auditRouteConfig: AuditRouteEntry[] = [
 
   // ===== Reports =====
   { moduleKey: 'reports', label: 'Reports', path: '/audit/audit-reports', permission: 'generate_reports', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS, category: 'reports', component: 'AuditReports' },
+
+  // ===== Settings =====
+  { moduleKey: 'risk-settings', label: 'Risk Configuration', path: '/audit/risk-settings', permission: 'configure_audit_system', enabled: true, category: 'master', component: 'RiskSettings' },
 ];
 
 export function getAuditRouteByPath(path: string): AuditRouteEntry | undefined {
