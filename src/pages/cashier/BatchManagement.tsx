@@ -260,7 +260,6 @@ function OpenBatchDialog({
 
   // Head cashier & opening balance hooks
   const { headCashier, isLoading: hcLoading } = useHeadCashier();
-  const { headCashierBalance, cashierBalance, isLoading: obLoading } = useDefaultOpeningBalance();
 
   // Determine current user's cashier record
   const currentUserCashier = useMemo(
@@ -280,7 +279,6 @@ function OpenBatchDialog({
 
   // Is selected cashier the head cashier for today?
   const isSelectedHeadCashier = !!headCashier && !!selectedCashier && headCashier.user_code === selectedCashier.user_code;
-  const computedOpeningBalance = isSelectedHeadCashier ? headCashierBalance : cashierBalance;
 
   // Office resolution state
   const [resolvedOffice, setResolvedOffice] = useState<{ code: string; description: string; isOverride: boolean } | null>(null);
@@ -348,6 +346,13 @@ function OpenBatchDialog({
       : selectedCashier
         ? { code: selectedCashier.office_code || 'HQ', description: selectedCashier.office_description || selectedCashier.office_code || 'HQ' }
         : null;
+
+  // Derive effective office code for opening balance lookup
+  const effectiveOfficeCode = effectiveOffice?.code || undefined;
+
+  // Fetch per-branch opening balance based on resolved office
+  const { headCashierBalance, cashierBalance, isOfficeSpecific, isLoading: obLoading } = useDefaultOpeningBalance(effectiveOfficeCode);
+  const computedOpeningBalance = isSelectedHeadCashier ? headCashierBalance : cashierBalance;
 
   const handleCreate = async (force = false) => {
     if (!selectedCashier) return;
@@ -550,7 +555,11 @@ function OpenBatchDialog({
               disabled
             />
             <p className="text-xs text-muted-foreground">
-              {isSelectedHeadCashier ? 'Head Cashier rate' : 'Regular Cashier rate'} — configured in Opening Balances tab.
+              {isSelectedHeadCashier ? 'Head Cashier' : 'Cashier'} rate
+              {isOfficeSpecific && effectiveOfficeCode
+                ? ` • ${effectiveOfficeCode} branch`
+                : ' • Default'}
+              {obLoading && ' (loading...)'}
             </p>
           </div>
 
