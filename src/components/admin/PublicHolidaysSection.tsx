@@ -295,7 +295,7 @@ const PublicHolidaysSection: React.FC = () => {
               </TableRow>
             ) : holidays.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                   No holidays declared for {selectedYear}{selectedOffice !== 'all' ? ` at ${officeMap[selectedOffice] || selectedOffice}` : ''}.
                 </TableCell>
               </TableRow>
