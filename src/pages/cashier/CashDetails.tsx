@@ -13,7 +13,6 @@ import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSe
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useUserCode } from '@/hooks/useUserCode';
-import { CardTransactionEntry, CardTransaction } from '@/components/payments/CardTransactionEntry';
 import { ChequeVerificationList } from '@/components/payments/ChequeVerificationList';
 
 const CashDetails: React.FC = () => {
@@ -23,42 +22,8 @@ const CashDetails: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
 
-  // Card transactions (machine-based)
-  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
-  const [loadingCards, setLoadingCards] = useState(false);
-
   // Verified cheque total from ChequeVerificationList
   const [verifiedChequeTotal, setVerifiedChequeTotal] = useState(0);
-
-  // Load card transactions from DB
-  useEffect(() => {
-    const loadCards = async () => {
-      const batchNumber = batchSel.selectedBatch?.batch_number;
-      if (!batchNumber) { setCardTransactions([]); return; }
-      setLoadingCards(true);
-      try {
-        const { data, error } = await supabase
-          .from('cn_batch_card_transaction')
-          .select('id, batch_number, machine_id, card_type, amount, cn_card_machine(machine_code, machine_name)')
-          .eq('batch_number', batchNumber)
-          .order('created_at');
-        if (error) throw error;
-        setCardTransactions((data || []).map((r: any) => ({
-          id: r.id,
-          machine_id: r.machine_id,
-          card_type: r.card_type,
-          amount: Number(r.amount),
-          machine_code: r.cn_card_machine?.machine_code,
-          machine_name: r.cn_card_machine?.machine_name,
-        })));
-      } catch (err) {
-        console.error('Failed to load card transactions:', err);
-      } finally {
-        setLoadingCards(false);
-      }
-    };
-    loadCards();
-  }, [batchSel.selectedBatch?.batch_number]);
 
   // Denomination counts
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<string, number>>>({});
@@ -130,10 +95,8 @@ const CashDetails: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabledCurrencies, mainCurrency, denomCounts, allDenominations]);
 
-  const creditCardTotal = useMemo(() => cardTransactions.filter(t => t.card_type === 'CRD').reduce((s, t) => s + t.amount, 0), [cardTransactions]);
-  const debitCardTotal = useMemo(() => cardTransactions.filter(t => t.card_type === 'DRD').reduce((s, t) => s + t.amount, 0), [cardTransactions]);
   const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
-  const physicalCountInMain = openingBalance + cashPhysicalTotal + verifiedChequeTotal + creditCardTotal + debitCardTotal;
+  const physicalCountInMain = openingBalance + cashPhysicalTotal + verifiedChequeTotal;
 
   const getDenominationLabel = (d: DenominationConfig) => {
     return d.label || (d.denomination_value >= 1 ? `$${d.denomination_value}` : `${(d.denomination_value * 100).toFixed(0)}¢`);
@@ -143,14 +106,13 @@ const CashDetails: React.FC = () => {
     setVerifiedChequeTotal(total);
   }, []);
 
-  // Save all: cash counts + card transactions (cheques are verified in-place, no save needed)
+  // Save cash counts (cheques are verified in-place, no save needed)
   const saveAll = async () => {
     const batchNumber = batchSel.selectedBatch?.batch_number;
     if (!batchNumber) return;
 
     setSaving(true);
     try {
-      // 1. Save cash counts
       const rows: any[] = [];
       const zeroDenomIds: string[] = [];
 
@@ -191,19 +153,6 @@ const CashDetails: React.FC = () => {
         if (delErr) throw delErr;
       }
 
-      // 2. Save card transactions via RPC
-      const txnPayload = cardTransactions.map(t => ({
-        machine_id: t.machine_id,
-        card_type: t.card_type,
-        amount: t.amount,
-      }));
-      const { error: cardErr } = await supabase.rpc('save_batch_card_transactions', {
-        p_batch_number: batchNumber,
-        p_transactions: txnPayload,
-        p_user_code: userCode || 'SYSTEM',
-      });
-      if (cardErr) throw cardErr;
-
       toast({
         title: 'Cash Details Saved',
         description: `Physical count: ${mainCurrency?.symbol || ''}${physicalCountInMain.toFixed(2)}`,
@@ -241,7 +190,7 @@ const CashDetails: React.FC = () => {
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold">Cash Details Entry</h1>
-            <p className="text-muted-foreground text-sm">Enter physical cash, verify cheques, and record card machine totals</p>
+            <p className="text-muted-foreground text-sm">Enter physical cash and verify cheques</p>
           </div>
           <Button size="sm" onClick={saveAll} disabled={saving || loadingCounts}>
             {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
@@ -254,7 +203,7 @@ const CashDetails: React.FC = () => {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-3 text-center">
               <span className="text-xs text-muted-foreground block">Opening Balance</span>
@@ -271,18 +220,6 @@ const CashDetails: React.FC = () => {
             <CardContent className="p-3 text-center">
               <span className="text-xs text-muted-foreground block">Cheques (CHQ)</span>
               <p className="text-lg font-bold">{formatCurrency(verifiedChequeTotal)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <span className="text-xs text-muted-foreground block">Credit Card (CRD)</span>
-              <p className="text-lg font-bold">{formatCurrency(creditCardTotal)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <span className="text-xs text-muted-foreground block">Debit Card (DRD)</span>
-              <p className="text-lg font-bold">{formatCurrency(debitCardTotal)}</p>
             </CardContent>
           </Card>
           <Card className="border-primary">
@@ -373,14 +310,6 @@ const CashDetails: React.FC = () => {
         <ChequeVerificationList
           batchNumber={batchSel.selectedBatch?.batch_number || null}
           onTotalChange={handleChequeVerifiedTotalChange}
-        />
-
-        {/* Card Machine Transactions Section */}
-        <CardTransactionEntry
-          batchNumber={batchSel.selectedBatch?.batch_number || null}
-          transactions={cardTransactions}
-          onChange={setCardTransactions}
-          loading={loadingCards}
         />
       </div>
     </BatchSelectionGuard>
