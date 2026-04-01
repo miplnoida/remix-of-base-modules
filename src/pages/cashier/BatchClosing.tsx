@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -14,6 +15,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
+import { useOfficeCardMachines } from '@/hooks/useOfficeCardMachines';
 
 const PHYSICAL_MOP_CODES = ['CSH', 'CHQ', 'CRD', 'DRD'];
 
@@ -37,9 +39,21 @@ interface ChequeInfo {
 }
 
 interface PaymentMethodDetail {
+  id: string;
   mop_code: string;
   mop_label: string;
   amount: number;
+  card_machine_id: string | null;
+  card_machine_name: string | null;
+}
+
+interface CardMachineTotalRow {
+  card_machine_id: string;
+  machine_code: string;
+  machine_name: string;
+  card_type_support: string;
+  txn_count: number;
+  total_amount: number;
 }
 
 const BatchClosing: React.FC = () => {
@@ -61,11 +75,20 @@ const BatchClosing: React.FC = () => {
   const [batchPayments, setBatchPayments] = useState<BatchPaymentRow[]>([]);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
 
+  // Card machine totals section
+  const [cardMachineTotals, setCardMachineTotals] = useState<CardMachineTotalRow[]>([]);
+  const [cardMachineSectionOpen, setCardMachineSectionOpen] = useState(false);
+
   // Payment method detail modal
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [methodModalPayment, setMethodModalPayment] = useState<BatchPaymentRow | null>(null);
   const [methodModalDetails, setMethodModalDetails] = useState<PaymentMethodDetail[]>([]);
   const [methodModalLoading, setMethodModalLoading] = useState(false);
+  const [updatingMachineId, setUpdatingMachineId] = useState<string | null>(null);
+
+  // Office card machines for dropdowns
+  const officeCode = batchSel.selectedBatch?.office_code;
+  const { allMachines } = useOfficeCardMachines(officeCode);
 
   useEffect(() => {
     const fetchMops = async () => {
@@ -153,13 +176,16 @@ const BatchClosing: React.FC = () => {
 
       const sysTotals: Record<string, number> = {};
 
+      // Card machine totals accumulator
+      const cmTotalsMap: Record<string, { machine_code: string; machine_name: string; card_type_support: string; txn_count: number; total_amount: number }> = {};
+
       if (headers && headers.length > 0) {
         const paymentIds = headers.map(h => h.payment_id);
 
-        // Fetch receipts and payments in parallel
+        // Fetch receipts and payments in parallel (include card_machine_id)
         const [receiptsRes, paymentsRes] = await Promise.all([
           supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
-          supabase.from('cn_payment').select('payment_id, mop_code, payment_amount').in('payment_id', paymentIds),
+          supabase.from('cn_payment').select('payment_id, mop_code, payment_amount, card_machine_id').in('payment_id', paymentIds),
         ]);
 
         const receiptMap = new Map((receiptsRes.data || []).map(r => [r.payment_id, r]));
@@ -186,11 +212,20 @@ const BatchClosing: React.FC = () => {
           });
         setBatchPayments(paymentRows);
 
-        // System totals: only from cn_payment rows with active receipts
+        // System totals & card machine totals: only from cn_payment rows with active receipts
         (paymentsRes.data || []).forEach(p => {
           if (!activePaymentIds.has(p.payment_id)) return;
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
+
+          // Accumulate card machine totals
+          if (p.card_machine_id) {
+            if (!cmTotalsMap[p.card_machine_id]) {
+              cmTotalsMap[p.card_machine_id] = { machine_code: '', machine_name: '', card_type_support: '', txn_count: 0, total_amount: 0 };
+            }
+            cmTotalsMap[p.card_machine_id].txn_count += 1;
+            cmTotalsMap[p.card_machine_id].total_amount += Number(p.payment_amount || 0);
+          }
         });
       } else {
         setBatchPayments([]);
@@ -209,6 +244,27 @@ const BatchClosing: React.FC = () => {
       const physDrd = sysTotals['DRD'] || 0;
 
       setPhysical({ CSH: physCsh, CHQ: physChq, CRD: physCrd, DRD: physDrd });
+
+      // Enrich card machine totals with machine info from allMachines or fetch directly
+      if (Object.keys(cmTotalsMap).length > 0) {
+        const cmIds = Object.keys(cmTotalsMap);
+        const { data: cmData } = await supabase
+          .from('cn_card_machine')
+          .select('id, machine_code, machine_name, card_type_support')
+          .in('id', cmIds);
+
+        const cmRows: CardMachineTotalRow[] = (cmData || []).map(cm => ({
+          card_machine_id: cm.id,
+          machine_code: cm.machine_code,
+          machine_name: cm.machine_name,
+          card_type_support: cm.card_type_support,
+          txn_count: cmTotalsMap[cm.id]?.txn_count || 0,
+          total_amount: cmTotalsMap[cm.id]?.total_amount || 0,
+        }));
+        setCardMachineTotals(cmRows);
+      } else {
+        setCardMachineTotals([]);
+      }
     } catch (err) {
       console.error('Failed to fetch totals:', err);
     } finally {
@@ -260,20 +316,27 @@ const BatchClosing: React.FC = () => {
     try {
       const { data: cnData } = await supabase
         .from('cn_payment')
-        .select('mop_code, payment_amount')
+        .select('id, mop_code, payment_amount, card_machine_id')
         .eq('payment_id', payment.payment_id);
 
-      const methodMap: Record<string, number> = {};
+      // Collect card machine ids to fetch names
+      const cmIds = [...new Set((cnData || []).map(p => p.card_machine_id).filter(Boolean))] as string[];
+      let cmNameMap: Record<string, string> = {};
+      if (cmIds.length > 0) {
+        const { data: cmData } = await supabase
+          .from('cn_card_machine')
+          .select('id, machine_name')
+          .in('id', cmIds);
+        cmNameMap = Object.fromEntries((cmData || []).map(cm => [cm.id, cm.machine_name]));
+      }
 
-      (cnData || []).forEach(p => {
-        const code = p.mop_code || '';
-        methodMap[code] = (methodMap[code] || 0) + Number(p.payment_amount || 0);
-      });
-
-      const details: PaymentMethodDetail[] = Object.entries(methodMap).map(([code, amount]) => ({
-        mop_code: code,
-        mop_label: allMops.find(m => m.mop_code === code)?.short_description || code,
-        amount,
+      const details: PaymentMethodDetail[] = (cnData || []).map(p => ({
+        id: p.id,
+        mop_code: p.mop_code || '',
+        mop_label: allMops.find(m => m.mop_code === p.mop_code)?.short_description || p.mop_code || '',
+        amount: Number(p.payment_amount || 0),
+        card_machine_id: p.card_machine_id || null,
+        card_machine_name: p.card_machine_id ? (cmNameMap[p.card_machine_id] || null) : null,
       }));
 
       setMethodModalDetails(details);
@@ -282,6 +345,41 @@ const BatchClosing: React.FC = () => {
     } finally {
       setMethodModalLoading(false);
     }
+  };
+
+  // Handle card machine change for a payment row
+  const handleCardMachineChange = async (paymentRowId: string, newMachineId: string) => {
+    setUpdatingMachineId(paymentRowId);
+    try {
+      const { error } = await supabase
+        .from('cn_payment')
+        .update({ card_machine_id: newMachineId })
+        .eq('id', paymentRowId);
+
+      if (error) throw error;
+
+      // Update local modal state
+      const machineName = allMachines.find(m => m.id === newMachineId)?.machine_name || null;
+      setMethodModalDetails(prev =>
+        prev.map(d => d.id === paymentRowId ? { ...d, card_machine_id: newMachineId, card_machine_name: machineName } : d)
+      );
+
+      toast({ title: 'Card Machine Updated', description: 'The card machine assignment has been saved.' });
+
+      // Refresh batch totals
+      if (batchSel.selectedBatch?.batch_number) {
+        fetchTotals(batchSel.selectedBatch.batch_number);
+      }
+    } catch (err: any) {
+      toast({ title: 'Update Failed', description: err.message || 'Failed to update card machine.', variant: 'destructive' });
+    } finally {
+      setUpdatingMachineId(null);
+    }
+  };
+
+  // Get compatible machines for a given mop_code
+  const getCompatibleMachines = (mopCode: string) => {
+    return allMachines.filter(m => m.card_type_support === mopCode || m.card_type_support === 'BOTH');
   };
 
   // Build unified MOP rows for reconciliation table
@@ -322,6 +420,9 @@ const BatchClosing: React.FC = () => {
     }
     return null;
   };
+
+  const cardMachineGrandTotal = cardMachineTotals.reduce((s, r) => s + r.total_amount, 0);
+  const cardMachineTxnCount = cardMachineTotals.reduce((s, r) => s + r.txn_count, 0);
 
   return (
     <BatchSelectionGuard
@@ -476,6 +577,63 @@ const BatchClosing: React.FC = () => {
               </CardContent>
             </Card>
 
+            {/* Card Machine Totals Section */}
+            <Collapsible open={cardMachineSectionOpen} onOpenChange={setCardMachineSectionOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/40 transition-colors">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      Card Machine Totals
+                      {cardMachineTotals.length > 0 && (
+                        <Badge variant="secondary" className="ml-auto">{cardMachineTxnCount} txns</Badge>
+                      )}
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${cardMachineSectionOpen ? 'rotate-180' : ''}`} />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent>
+                    {cardMachineTotals.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No card machine transactions in this batch.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Machine Code</TableHead>
+                            <TableHead>Machine Name</TableHead>
+                            <TableHead>Card Type</TableHead>
+                            <TableHead className="text-right">Transactions</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cardMachineTotals.map(row => (
+                            <TableRow key={row.card_machine_id}>
+                              <TableCell className="font-mono text-xs">{row.machine_code}</TableCell>
+                              <TableCell className="text-sm">{row.machine_name}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {row.card_type_support === 'BOTH' ? 'CRD / DRD' : row.card_type_support}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-mono">{row.txn_count}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(row.total_amount)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2 font-semibold">
+                            <TableCell colSpan={3}>Grand Total</TableCell>
+                            <TableCell className="text-right font-mono">{cardMachineTxnCount}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(cardMachineGrandTotal)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
             {/* Batch Transactions Breakdown */}
             {batchPayments.length > 0 && (
               <Collapsible open={paymentSectionOpen} onOpenChange={setPaymentSectionOpen}>
@@ -578,7 +736,7 @@ const BatchClosing: React.FC = () => {
 
         {/* Payment Methods Detail Modal */}
         <Dialog open={methodModalOpen} onOpenChange={setMethodModalOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 Payment Methods
@@ -603,26 +761,59 @@ const BatchClosing: React.FC = () => {
                     <TableRow>
                       <TableHead>Method</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Card Machine</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {methodModalDetails.map(d => (
-                      <TableRow key={d.mop_code}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-xs">{d.mop_code}</Badge>
-                            <span className="text-sm">{d.mop_label}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(d.amount)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {methodModalDetails.map(d => {
+                      const isCard = d.mop_code === 'CRD' || d.mop_code === 'DRD';
+                      const compatibleMachines = isCard ? getCompatibleMachines(d.mop_code) : [];
+                      const isUpdating = updatingMachineId === d.id;
+
+                      return (
+                        <TableRow key={d.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="font-mono text-xs">{d.mop_code}</Badge>
+                              <span className="text-sm">{d.mop_label}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(d.amount)}</TableCell>
+                          <TableCell>
+                            {isCard ? (
+                              <div className="flex items-center gap-1">
+                                {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                <Select
+                                  value={d.card_machine_id || ''}
+                                  onValueChange={(val) => handleCardMachineChange(d.id, val)}
+                                  disabled={isUpdating || batchClosed}
+                                >
+                                  <SelectTrigger className="h-8 text-xs w-[180px]">
+                                    <SelectValue placeholder="Select machine" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {compatibleMachines.map(m => (
+                                      <SelectItem key={m.id} value={m.id} className="text-xs">
+                                        {m.machine_code} — {m.machine_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {methodModalDetails.length > 1 && (
                       <TableRow className="border-t-2 font-semibold">
                         <TableCell>Total</TableCell>
                         <TableCell className="text-right font-mono">
                           {formatCurrency(methodModalDetails.reduce((s, d) => s + d.amount, 0))}
                         </TableCell>
+                        <TableCell />
                       </TableRow>
                     )}
                   </TableBody>
