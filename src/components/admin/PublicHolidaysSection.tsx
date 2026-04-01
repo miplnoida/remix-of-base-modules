@@ -310,6 +310,7 @@ const PublicHolidaysSection: React.FC = () => {
                       {h.is_ssb_specific ? 'SSB Specific' : 'Public Holiday'}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center">
                     <div className="flex justify-center gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(h)}>
                         <Pencil className="h-3.5 w-3.5" />
