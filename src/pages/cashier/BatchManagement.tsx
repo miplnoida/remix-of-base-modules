@@ -279,7 +279,6 @@ function OpenBatchDialog({
 
   // Is selected cashier the head cashier for today?
   const isSelectedHeadCashier = !!headCashier && !!selectedCashier && headCashier.user_code === selectedCashier.user_code;
-  const computedOpeningBalance = isSelectedHeadCashier ? headCashierBalance : cashierBalance;
 
   // Office resolution state
   const [resolvedOffice, setResolvedOffice] = useState<{ code: string; description: string; isOverride: boolean } | null>(null);
