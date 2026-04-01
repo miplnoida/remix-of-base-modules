@@ -216,6 +216,7 @@ const PublicHolidaysSection: React.FC = () => {
       holiday_date: dateStr,
       holiday_name: formName.trim(),
       year,
+      is_ssb_specific: formSsbSpecific,
     });
   };
 
