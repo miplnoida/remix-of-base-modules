@@ -16,6 +16,7 @@ interface RecordDiff {
 
 interface TableAnalysis {
   tableName: string;
+  pkField: string;
   testCount: number;
   liveCount: number;
   missingInLive: number;
