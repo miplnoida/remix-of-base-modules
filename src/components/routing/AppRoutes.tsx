@@ -220,7 +220,7 @@ const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
 const WorkloadCapacity = lazy(() => import('@/pages/audit/WorkloadCapacity'));
 const TimeTracking = lazy(() => import('@/pages/audit/TimeTracking'));
-const HolidayCalendar = lazy(() => import('@/pages/audit/HolidayCalendar'));
+
 const AuditorLeaveManagement = lazy(() => import('@/pages/audit/AuditorLeaveManagement'));
 
 // Reports
