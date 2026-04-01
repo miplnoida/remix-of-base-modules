@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, Copy, CalendarDays, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,6 +25,7 @@ interface PublicHoliday {
   holiday_name: string;
   year: number;
   is_active: boolean;
+  is_ssb_specific: boolean;
   entered_by: string | null;
   entered_at: string;
 }
@@ -44,6 +46,7 @@ const PublicHolidaysSection: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formDate, setFormDate] = useState<Date | undefined>();
   const [formOffice, setFormOffice] = useState('');
+  const [formSsbSpecific, setFormSsbSpecific] = useState(false);
 
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copySourceYear, setCopySourceYear] = useState(String(currentYear));
@@ -70,7 +73,7 @@ const PublicHolidaysSection: React.FC = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (holiday: { id?: string; office_code: string; holiday_date: string; holiday_name: string; year: number }) => {
+    mutationFn: async (holiday: { id?: string; office_code: string; holiday_date: string; holiday_name: string; year: number; is_ssb_specific: boolean }) => {
       if (holiday.id) {
         const { error } = await supabase
           .from('public_holidays')
@@ -79,6 +82,7 @@ const PublicHolidaysSection: React.FC = () => {
             holiday_date: holiday.holiday_date,
             office_code: holiday.office_code,
             year: holiday.year,
+            is_ssb_specific: holiday.is_ssb_specific,
             modified_by: userCode || 'SYSTEM',
             modified_at: new Date().toISOString(),
           })
@@ -92,6 +96,7 @@ const PublicHolidaysSection: React.FC = () => {
             holiday_date: holiday.holiday_date,
             holiday_name: holiday.holiday_name,
             year: holiday.year,
+            is_ssb_specific: holiday.is_ssb_specific,
             entered_by: userCode || 'SYSTEM',
             modified_by: userCode || 'SYSTEM',
           });
@@ -179,6 +184,7 @@ const PublicHolidaysSection: React.FC = () => {
     setFormName('');
     setFormDate(undefined);
     setFormOffice(selectedOffice !== 'all' ? selectedOffice : '');
+    setFormSsbSpecific(false);
     setDialogOpen(true);
   };
 
@@ -187,6 +193,7 @@ const PublicHolidaysSection: React.FC = () => {
     setFormName(h.holiday_name);
     setFormDate(new Date(h.holiday_date));
     setFormOffice(h.office_code);
+    setFormSsbSpecific(h.is_ssb_specific ?? false);
     setDialogOpen(true);
   };
 
@@ -209,6 +216,7 @@ const PublicHolidaysSection: React.FC = () => {
       holiday_date: dateStr,
       holiday_name: formName.trim(),
       year,
+      is_ssb_specific: formSsbSpecific,
     });
   };
 
@@ -274,19 +282,20 @@ const PublicHolidaysSection: React.FC = () => {
               <TableHead>Date</TableHead>
               <TableHead>Holiday Name</TableHead>
               <TableHead>Office</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6">
+                <TableCell colSpan={5} className="text-center py-6">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : holidays.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                   No holidays declared for {selectedYear}{selectedOffice !== 'all' ? ` at ${officeMap[selectedOffice] || selectedOffice}` : ''}.
                 </TableCell>
               </TableRow>
@@ -296,6 +305,11 @@ const PublicHolidaysSection: React.FC = () => {
                   <TableCell className="font-mono text-sm">{formatDisplayDate(h.holiday_date)}</TableCell>
                   <TableCell className="font-medium">{h.holiday_name}</TableCell>
                   <TableCell>{officeMap[h.office_code] || h.office_code}</TableCell>
+                  <TableCell>
+                    <Badge variant={h.is_ssb_specific ? 'default' : 'secondary'}>
+                      {h.is_ssb_specific ? 'SSB Specific' : 'Public Holiday'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(h)}>
@@ -346,6 +360,14 @@ const PublicHolidaysSection: React.FC = () => {
             <div className="space-y-1.5">
               <Label className="text-xs">Holiday Name</Label>
               <Input placeholder="e.g. New Year's Day" value={formName} onChange={e => setFormName(e.target.value)} maxLength={100} />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="ssb_specific"
+                checked={formSsbSpecific}
+                onCheckedChange={(checked) => setFormSsbSpecific(checked === true)}
+              />
+              <Label htmlFor="ssb_specific" className="text-xs cursor-pointer">SSB-Specific Holiday</Label>
             </div>
           </div>
           <DialogFooter>

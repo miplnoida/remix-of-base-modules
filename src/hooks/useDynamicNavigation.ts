@@ -240,7 +240,6 @@ const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
       '/audit/workload',
       '/audit/time-tracking',
       '/audit/leave',
-      '/audit/holidays',
     ],
   },
   {
@@ -278,7 +277,7 @@ const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; des
   '/audit/workload':         { title: 'Workload & Capacity',     icon: BarChart3,       description: 'View auditor workload and capacity' },
   '/audit/time-tracking':    { title: 'Time Tracking',           icon: Clock,           description: 'Track audit time spent' },
   '/audit/leave':            { title: 'Leave & Vacation',        icon: Calendar,        description: 'Manage auditor leave schedules' },
-  '/audit/holidays':         { title: 'Holiday Calendar',        icon: Flag,            description: 'Public holidays and non-working days' },
+  
   '/audit/departments':      { title: 'Departments',             icon: Building2,       description: 'Manage department information' },
   '/audit/functions':        { title: 'Functions',               icon: FolderTree,      description: 'Manage department functions' },
   '/audit/templates':        { title: 'Templates',               icon: FileText,        description: 'Manage audit templates' },

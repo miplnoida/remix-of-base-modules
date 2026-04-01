@@ -220,7 +220,7 @@ const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
 const WorkloadCapacity = lazy(() => import('@/pages/audit/WorkloadCapacity'));
 const TimeTracking = lazy(() => import('@/pages/audit/TimeTracking'));
-const HolidayCalendar = lazy(() => import('@/pages/audit/HolidayCalendar'));
+
 const AuditorLeaveManagement = lazy(() => import('@/pages/audit/AuditorLeaveManagement'));
 
 // Reports
@@ -961,7 +961,7 @@ export const AppRoutes = () => {
       <Route path="/audit/auditor-profiles" element={<ProtectedLayout><Navigate to="/audit/auditors" replace /></ProtectedLayout>} />
       <Route path="/audit/workload" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_WORKLOAD_CAPACITY"><Suspense fallback={<div />}><WorkloadCapacity /></Suspense></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/time-tracking" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_TIME_TRACKING"><Suspense fallback={<div />}><TimeTracking /></Suspense></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/holidays" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_HOLIDAY_MANAGEMENT"><Suspense fallback={<div />}><HolidayCalendar /></Suspense></AuditFeatureGate></ProtectedLayout>} />
+      
       <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><Suspense fallback={<div />}><AuditorLeaveManagement /></Suspense></AuditFeatureGate></ProtectedLayout>} />
 
       {/* Legacy redirects */}

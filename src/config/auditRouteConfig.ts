@@ -30,7 +30,7 @@ export const AUDIT_FEATURE_FLAGS = {
   FEATURE_AUDIT_AUDITOR_PROFILES: true,
   FEATURE_AUDIT_WORKLOAD_CAPACITY: true,
   FEATURE_AUDIT_LEAVE_MANAGEMENT: true,
-  FEATURE_AUDIT_HOLIDAY_MANAGEMENT: true,
+  FEATURE_AUDIT_HOLIDAY_MANAGEMENT: false, // consolidated into Global Settings
   FEATURE_AUDIT_PLAN_APPROVAL: true,
   FEATURE_AUDIT_ACTIVITY_CALENDAR: false,
   FEATURE_AUDIT_ACTIVITY_WORKBENCH: false,
@@ -93,7 +93,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'workload-capacity', label: 'Workload & Capacity', path: '/audit/workload', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_WORKLOAD_CAPACITY, category: 'planning', component: 'WorkloadCapacity' },
   { moduleKey: 'time-tracking', label: 'Time Tracking', path: '/audit/time-tracking', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_TIME_TRACKING, category: 'planning', component: 'TimeTracking' },
   { moduleKey: 'leave-management', label: 'Auditor Leave', path: '/audit/leave', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_LEAVE_MANAGEMENT, category: 'planning', component: 'AuditorLeaveManagement' },
-  { moduleKey: 'holiday-management', label: 'Holiday Calendar', path: '/audit/holidays', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_HOLIDAY_MANAGEMENT, category: 'planning', component: 'HolidayCalendar' },
+  
 
 
   // ===== Reports =====

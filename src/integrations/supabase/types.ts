@@ -19453,6 +19453,7 @@ export type Database = {
           holiday_name: string
           id: string
           is_active: boolean | null
+          is_ssb_specific: boolean
           modified_at: string | null
           modified_by: string | null
           office_code: string
@@ -19465,6 +19466,7 @@ export type Database = {
           holiday_name: string
           id?: string
           is_active?: boolean | null
+          is_ssb_specific?: boolean
           modified_at?: string | null
           modified_by?: string | null
           office_code: string
@@ -19477,6 +19479,7 @@ export type Database = {
           holiday_name?: string
           id?: string
           is_active?: boolean | null
+          is_ssb_specific?: boolean
           modified_at?: string | null
           modified_by?: string | null
           office_code?: string
