@@ -46,6 +46,7 @@ const PublicHolidaysSection: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formDate, setFormDate] = useState<Date | undefined>();
   const [formOffice, setFormOffice] = useState('');
+  const [formSsbSpecific, setFormSsbSpecific] = useState(false);
 
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copySourceYear, setCopySourceYear] = useState(String(currentYear));
