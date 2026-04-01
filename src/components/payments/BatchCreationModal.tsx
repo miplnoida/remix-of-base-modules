@@ -18,7 +18,7 @@ import { useHeadCashier } from '@/hooks/useHeadCashier';
 interface BatchCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onCreateBatch: (batchDate: string, officeCode: string) => Promise<void>;
+  onCreateBatch: (batchDate: string, officeCode: string, openingBalance: number) => Promise<void>;
   balanceForward: number;
   isLoading?: boolean;
   isHistorical?: boolean;
