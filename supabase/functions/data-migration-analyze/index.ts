@@ -224,6 +224,7 @@ serve(async (req) => {
 
         results.push({
           tableName,
+          pkField,
           testCount: testData.length,
           liveCount: liveData.length,
           missingInLive: diffs.filter(d => d.type === "missing_in_live").length,
