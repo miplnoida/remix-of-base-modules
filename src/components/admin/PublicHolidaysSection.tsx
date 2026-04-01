@@ -305,7 +305,11 @@ const PublicHolidaysSection: React.FC = () => {
                   <TableCell className="font-mono text-sm">{formatDisplayDate(h.holiday_date)}</TableCell>
                   <TableCell className="font-medium">{h.holiday_name}</TableCell>
                   <TableCell>{officeMap[h.office_code] || h.office_code}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
+                    <Badge variant={h.is_ssb_specific ? 'default' : 'secondary'}>
+                      {h.is_ssb_specific ? 'SSB Specific' : 'Public Holiday'}
+                    </Badge>
+                  </TableCell>
                     <div className="flex justify-center gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(h)}>
                         <Pencil className="h-3.5 w-3.5" />
