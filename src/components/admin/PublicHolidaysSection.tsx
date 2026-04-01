@@ -184,6 +184,7 @@ const PublicHolidaysSection: React.FC = () => {
     setFormName('');
     setFormDate(undefined);
     setFormOffice(selectedOffice !== 'all' ? selectedOffice : '');
+    setFormSsbSpecific(false);
     setDialogOpen(true);
   };
 
@@ -192,6 +193,7 @@ const PublicHolidaysSection: React.FC = () => {
     setFormName(h.holiday_name);
     setFormDate(new Date(h.holiday_date));
     setFormOffice(h.office_code);
+    setFormSsbSpecific(h.is_ssb_specific ?? false);
     setDialogOpen(true);
   };
 
