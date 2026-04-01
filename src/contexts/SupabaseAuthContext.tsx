@@ -32,6 +32,8 @@ const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
 const DEFAULT_IDLE_TIMEOUT_MINUTES = 15;
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000; // Refresh 2 minutes before expiry
 const SESSION_CHECK_INTERVAL_MS = 30_000; // Check every 30 seconds
+const IDLE_WARNING_BEFORE_MINUTES = 2; // Warn 2 minutes before idle logout
+const ACTIVITY_THROTTLE_MS = 10_000; // Throttle activity updates to once per 10 seconds
 
 interface SupabaseAuthContextType {
   user: User | null;
@@ -73,11 +75,23 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     autoRefreshEnabled: true,
   });
 
+  // Flag to track if policy has been loaded from DB at least once
+  const policyLoadedRef = useRef(false);
+
   // Track activity and session start without triggering rerenders
   const lastActivityRef = useRef<number>(Date.now());
   const sessionStartRef = useRef<number>(Date.now());
   const isLoggingOutRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Ref-based logout so the timeout useEffect doesn't depend on the logout callback
+  const logoutRef = useRef<() => Promise<void>>(async () => {});
+
+  // Track whether idle warning has been shown (to avoid spamming)
+  const idleWarningShownRef = useRef(false);
+
+  // Throttle tracking for activity updates
+  const lastActivityUpdateRef = useRef<number>(0);
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -122,9 +136,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user, fetchProfile, fetchRoles]);
 
-  // Update last activity timestamp
+  // Throttled activity update — only updates ref at most once per ACTIVITY_THROTTLE_MS
   const updateActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    if (now - lastActivityUpdateRef.current >= ACTIVITY_THROTTLE_MS) {
+      lastActivityRef.current = now;
+      lastActivityUpdateRef.current = now;
+      // Reset warning flag when user becomes active again
+      idleWarningShownRef.current = false;
+    }
   }, []);
 
   // Graceful logout (prevents duplicate logouts)
@@ -169,6 +189,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       isLoggingOutRef.current = false;
     }
   }, [user, profile]);
+
+  // Keep logoutRef in sync with the latest logout callback
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
 
   // Schedule proactive token refresh before expiry
   const scheduleTokenRefresh = useCallback((currentSession: Session | null) => {
@@ -235,12 +260,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : DEFAULT_IDLE_TIMEOUT_MINUTES,
         autoRefreshEnabled: data?.auto_refresh_enabled !== false,
       };
+
+      // Mark policy as loaded
+      policyLoadedRef.current = true;
     } catch {
       // Fall back to defaults
     }
   }, []);
 
-  // Idle & session timeout checker
+  // Idle & session timeout checker — depends only on [session], NOT on logout
   useEffect(() => {
     if (!session) return;
 
@@ -250,26 +278,42 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const checkTimeouts = () => {
       if (isLoggingOutRef.current) return;
 
+      // Don't check timeouts until policy has been loaded from DB
+      if (!policyLoadedRef.current) return;
+
       const now = Date.now();
       const idleMinutes = (now - lastActivityRef.current) / 60_000;
       const sessionMinutes = (now - sessionStartRef.current) / 60_000;
 
-      if (idleMinutes >= policyRef.current.idleTimeoutMinutes) {
+      const idleLimit = policyRef.current.idleTimeoutMinutes;
+      const warningThreshold = idleLimit - IDLE_WARNING_BEFORE_MINUTES;
+
+      // Show idle warning before logout
+      if (idleMinutes >= warningThreshold && idleMinutes < idleLimit && !idleWarningShownRef.current) {
+        idleWarningShownRef.current = true;
+        const remainingSeconds = Math.ceil((idleLimit - idleMinutes) * 60);
+        toast.warning(
+          `Your session will expire in ${remainingSeconds > 60 ? Math.ceil(remainingSeconds / 60) + ' minute(s)' : remainingSeconds + ' seconds'} due to inactivity. Move your mouse or press any key to stay logged in.`,
+          { duration: 10000 }
+        );
+      }
+
+      if (idleMinutes >= idleLimit) {
         toast.warning('Session expired due to inactivity');
-        void logout();
+        void logoutRef.current();
         return;
       }
 
       if (sessionMinutes >= policyRef.current.sessionTimeoutMinutes) {
         toast.warning('Session expired');
-        void logout();
+        void logoutRef.current();
         return;
       }
     };
 
     const interval = setInterval(checkTimeouts, SESSION_CHECK_INTERVAL_MS);
 
-    // Activity listeners
+    // Activity listeners — mousemove is throttled via updateActivity
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
     events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
 
@@ -277,7 +321,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       clearInterval(interval);
       events.forEach(event => window.removeEventListener(event, updateActivity));
     };
-  }, [session, logout, updateActivity, loadSessionPolicy]);
+    // IMPORTANT: removed `logout` from deps — uses logoutRef instead
+  }, [session, updateActivity, loadSessionPolicy]);
 
   // Handle tab visibility change - refresh session when tab becomes visible
   useEffect(() => {
@@ -287,6 +332,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (document.visibilityState === 'visible' && !isLoggingOutRef.current) {
         // Update activity on return
         lastActivityRef.current = Date.now();
+        lastActivityUpdateRef.current = Date.now();
+        idleWarningShownRef.current = false;
 
         // Check if session is still valid by refreshing
         try {
@@ -294,7 +341,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           if (error || !data.session) {
             console.warn('Session invalid after tab switch');
             toast.warning('Session expired. Please log in again.');
-            void logout();
+            void logoutRef.current();
           } else {
             // Reload policy in case admin changed it
             await loadSessionPolicy();
@@ -309,7 +356,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [session, logout, loadSessionPolicy, scheduleTokenRefresh]);
+    // Uses logoutRef — no need for logout in deps
+  }, [session, loadSessionPolicy, scheduleTokenRefresh]);
 
   // Initialize auth state
   useEffect(() => {
@@ -326,11 +374,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (event === 'SIGNED_IN' && currentSession) {
           sessionStartRef.current = Date.now();
           lastActivityRef.current = Date.now();
+          lastActivityUpdateRef.current = Date.now();
+          idleWarningShownRef.current = false;
           scheduleTokenRefresh(currentSession);
         }
 
         if (event === 'TOKEN_REFRESHED' && currentSession) {
           lastActivityRef.current = Date.now();
+          lastActivityUpdateRef.current = Date.now();
+          // Also reset session start so active users aren't hit by absolute timeout
+          sessionStartRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
           console.info('Auth token refreshed successfully');
         }
@@ -365,8 +418,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (currentSession) {
           sessionStartRef.current = Date.now();
           lastActivityRef.current = Date.now();
+          lastActivityUpdateRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
-          loadSessionPolicy();
+          // Await policy load so timeout checker doesn't use defaults
+          await loadSessionPolicy();
         }
 
         if (currentSession?.user) {
@@ -461,7 +516,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Reset timers on fresh login
         sessionStartRef.current = Date.now();
         lastActivityRef.current = Date.now();
+        lastActivityUpdateRef.current = Date.now();
         isLoggingOutRef.current = false;
+        idleWarningShownRef.current = false;
 
         // Load session policy for the new session
         await loadSessionPolicy();
