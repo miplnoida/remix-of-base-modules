@@ -347,6 +347,13 @@ function OpenBatchDialog({
         ? { code: selectedCashier.office_code || 'HQ', description: selectedCashier.office_description || selectedCashier.office_code || 'HQ' }
         : null;
 
+  // Derive effective office code for opening balance lookup
+  const effectiveOfficeCode = effectiveOffice?.code || undefined;
+
+  // Fetch per-branch opening balance based on resolved office
+  const { headCashierBalance, cashierBalance, isOfficeSpecific, isLoading: obLoading } = useDefaultOpeningBalance(effectiveOfficeCode);
+  const computedOpeningBalance = isSelectedHeadCashier ? headCashierBalance : cashierBalance;
+
   const handleCreate = async (force = false) => {
     if (!selectedCashier) return;
     setIsCreating(true);
