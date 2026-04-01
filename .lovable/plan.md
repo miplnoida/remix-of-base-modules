@@ -1,72 +1,64 @@
 
 
-# Card Machine Selection for CRD/DRD Payments
+# Remove Card Machine Transactions from Cash Details & Update Batch Closing Card Totals
 
 ## Overview
 
-When a cashier selects Credit Card (CRD) or Debit Card (DRD) as payment method, a mandatory card-machine dropdown must appear, filtered by the office location of the selected batch. If no machines are configured for that office, payment submission is blocked with a clear error.
+Two changes: (1) Remove the entire "Card Machine Transactions" section from the Cash Details Entry screen since card payments are now tracked per-payment via `card_machine_id` on `cn_payment`. (2) On Batch Closing, derive CRD/DRD physical totals directly from `cn_payment` (the payments received) instead of from the manual `cn_batch_card_total` table.
 
-This affects three screens (PaymentDataEntry, SearchPayInvoices, C3Payments) and two modal components (PaymentMethodModal, AddDetailModal).
+The net effect: CRD/DRD reconciliation becomes automatic — physical count equals system total because both come from the same source (`cn_payment`).
 
 ---
 
 ## Technical Details
 
-### 1. Database Migration — Add `card_machine_id` to `cn_payment`
+### 1. Update `src/pages/cashier/CashDetails.tsx`
 
-Add a nullable `card_machine_id` column (UUID) to `cn_payment` referencing `cn_card_machine(id)`. This stores which card machine was used for each CRD/DRD payment line.
+**Remove:**
+- Import of `CardTransactionEntry` and `CardTransaction`
+- State variables: `cardTransactions`, `loadingCards`
+- The `useEffect` that loads card transactions from `cn_batch_card_transaction`
+- `creditCardTotal` and `debitCardTotal` computed values
+- The card transaction RPC save call (`save_batch_card_transactions`) from `saveAll()`
+- The CRD and DRD summary cards from the grid
+- The `<CardTransactionEntry>` component at the bottom
+
+**Update:**
+- `physicalCountInMain` calculation: remove `creditCardTotal + debitCardTotal`
+- Summary grid: reduce from 7 columns to 5 (Opening Balance, Cash, Cheques, Physical Count)
+- Page subtitle: remove "record card machine totals" text
+
+### 2. Update `src/pages/cashier/BatchClosing.tsx`
+
+**Remove:**
+- `CardTransaction` interface (lines 25-32)
+- `cardTransactions` state and `cardSectionOpen` state
+- The `cn_batch_card_total` query block (lines 158-168) that fetches `physCrd`/`physDrd`
+- The `cn_batch_card_transaction` query block (lines 172-193)
+- The entire "Card Machine Transactions" collapsible section (lines 525-574)
+
+**Update:**
+- CRD/DRD physical totals: derive from `cn_payment` system totals instead of `cn_batch_card_total`. After computing `sysTotals`, set `physical.CRD = sysTotals.CRD` and `physical.DRD = sysTotals.DRD`. This makes card payment reconciliation automatic.
+
+### 3. Database Migration — Update `close_batch` RPC
+
+Replace the CRD/DRD physical count section (currently reading from `cn_batch_card_total`) to instead read from `cn_payment` directly:
 
 ```sql
-ALTER TABLE public.cn_payment
-  ADD COLUMN card_machine_id UUID REFERENCES cn_card_machine(id);
+-- Replace cn_batch_card_total lookup with cn_payment-based calculation
+SELECT
+  COALESCE(SUM(CASE WHEN p.mop_code = 'CRD' THEN p.payment_amount ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN p.mop_code = 'DRD' THEN p.payment_amount ELSE 0 END), 0)
+INTO v_physical_crd, v_physical_drd
+FROM cn_payment p
+JOIN cn_payment_header h ON h.payment_id = p.payment_id
+JOIN cn_receipt r ON r.payment_id = h.payment_id AND r.status != 'C'
+WHERE h.batch_number = p_batch_number
+  AND p.mop_code IN ('CRD', 'DRD')
+  AND COALESCE(h.status, 'active') != 'cancelled';
 ```
 
-### 2. Create Shared Hook — `useOfficeCardMachines(officeCode)`
-
-New file: `src/hooks/useOfficeCardMachines.ts`
-
-Fetches active card machines from `cn_card_machine` filtered by `office_code` and `is_active = true`. Also filters by `card_type_support` compatibility (CRD, DRD, or BOTH). Returns `{ machines, isLoading }`.
-
-### 3. Update `PaymentMethodModal` Component
-
-- Accept new props: `officeCode` (from the selected batch) and `onCardMachineError` callback
-- When `mopCode` is CRD or DRD, call `useOfficeCardMachines(officeCode)` and filter by card type compatibility (`card_type_support` = mopCode or 'BOTH')
-- Render a **Card Machine** dropdown (mandatory) below the Method of Payment select
-- If no machines available for the office, show inline error: "No card machines configured for this office location. Card payment cannot be processed."
-- Block the Save button when card machine is required but not selected
-- Add `card_machine_id` to the `MethodRow` interface
-
-### 4. Update `AddDetailModal` Component (PaymentDataEntry)
-
-- Accept new prop: `officeCode`
-- When `mopCode` is CRD or DRD, show the card machine dropdown using the same hook
-- Add `card_machine_id` to `DetailLineData` interface
-- Block the Add/Update button if card machine is required but not selected or unavailable
-
-### 5. Update `PaymentDataEntry.tsx`
-
-- Pass `officeCode` from `batchSel.selectedBatch.office_code` to `AddDetailModal`
-- Include `card_machine_id` in the detail lines JSON sent to `create_payment_with_receipt` RPC
-- Add pre-submission validation: if any detail line has CRD/DRD without `card_machine_id`, block submission with error toast
-
-### 6. Update `SearchPayInvoices.tsx`
-
-- Pass `officeCode` to `PaymentMethodModal`
-- Include `card_machine_id` in the methods JSON sent to `pay_invoices_with_receipt` RPC
-- Add pre-submission validation for card machine
-
-### 7. Update `C3Payments.tsx`
-
-- Pass `officeCode` to `PaymentMethodModal`
-- Include `card_machine_id` in the methods JSON sent to `create_c3_payment_with_receipt` RPC
-- Add pre-submission validation for card machine
-
-### 8. Update RPCs (3 functions)
-
-Each of the three RPCs (`create_payment_with_receipt`, `pay_invoices_with_receipt`, `create_c3_payment_with_receipt`) needs to:
-- Read `card_machine_id` from the JSON detail/method lines
-- Persist it to the `cn_payment.card_machine_id` column
-- Validate server-side: if `mop_code` is CRD/DRD, `card_machine_id` must not be null
+This makes physical CRD/DRD = system CRD/DRD, so reconciliation always passes for card payments.
 
 ---
 
@@ -74,12 +66,7 @@ Each of the three RPCs (`create_payment_with_receipt`, `pay_invoices_with_receip
 
 | File | Change |
 |------|--------|
-| Migration SQL | Add `card_machine_id` column to `cn_payment` |
-| Migration SQL | Update 3 RPCs to handle `card_machine_id` |
-| `src/hooks/useOfficeCardMachines.ts` (new) | Shared hook to fetch office-filtered card machines |
-| `src/components/payments/PaymentMethodModal.tsx` | Add card machine dropdown for CRD/DRD, new props |
-| `src/components/payments/AddDetailModal.tsx` | Add card machine dropdown for CRD/DRD, new props |
-| `src/pages/cashier/PaymentDataEntry.tsx` | Pass officeCode, include card_machine_id in submission |
-| `src/pages/cashier/SearchPayInvoices.tsx` | Pass officeCode, include card_machine_id in submission |
-| `src/pages/cashier/C3Payments.tsx` | Pass officeCode, include card_machine_id in submission |
+| `src/pages/cashier/CashDetails.tsx` | Remove CardTransactionEntry section, related state, save logic, and summary cards |
+| `src/pages/cashier/BatchClosing.tsx` | Remove card transaction detail section; derive CRD/DRD physical from cn_payment |
+| Migration SQL | Update `close_batch` RPC to source CRD/DRD physical from `cn_payment` instead of `cn_batch_card_total` |
 
