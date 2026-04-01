@@ -361,6 +361,14 @@ const PublicHolidaysSection: React.FC = () => {
               <Label className="text-xs">Holiday Name</Label>
               <Input placeholder="e.g. New Year's Day" value={formName} onChange={e => setFormName(e.target.value)} maxLength={100} />
             </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="ssb_specific"
+                checked={formSsbSpecific}
+                onCheckedChange={(checked) => setFormSsbSpecific(checked === true)}
+              />
+              <Label htmlFor="ssb_specific" className="text-xs cursor-pointer">SSB-Specific Holiday</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
