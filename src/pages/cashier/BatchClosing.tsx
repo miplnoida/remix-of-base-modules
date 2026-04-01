@@ -350,20 +350,23 @@ const BatchClosing: React.FC = () => {
   };
 
   // Handle card machine change for a payment row
-  const handleCardMachineChange = async (paymentRowId: string, newMachineId: string) => {
-    setUpdatingMachineId(paymentRowId);
+  const handleCardMachineChange = async (paymentId: number, seqNo: number, newMachineId: string) => {
+    const rowKey = `${paymentId}_${seqNo}`;
+    setUpdatingMachineId(rowKey);
     try {
       const { error } = await supabase
         .from('cn_payment')
         .update({ card_machine_id: newMachineId })
-        .eq('id', paymentRowId);
+        .eq('payment_id', paymentId)
+        .eq('payment_sequence_no', seqNo);
 
       if (error) throw error;
 
       // Update local modal state
       const machineName = allMachines.find(m => m.id === newMachineId)?.machine_name || null;
       setMethodModalDetails(prev =>
-        prev.map(d => d.id === paymentRowId ? { ...d, card_machine_id: newMachineId, card_machine_name: machineName } : d)
+        prev.map(d => (d.payment_id === paymentId && d.payment_sequence_no === seqNo)
+          ? { ...d, card_machine_id: newMachineId, card_machine_name: machineName } : d)
       );
 
       toast({ title: 'Card Machine Updated', description: 'The card machine assignment has been saved.' });
