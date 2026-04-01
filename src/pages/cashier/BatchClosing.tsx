@@ -39,7 +39,8 @@ interface ChequeInfo {
 }
 
 interface PaymentMethodDetail {
-  id: string;
+  payment_id: number;
+  payment_sequence_no: number;
   mop_code: string;
   mop_label: string;
   amount: number;
