@@ -1,64 +1,72 @@
 
 
-# Remove Card Machine Transactions from Cash Details & Update Batch Closing Card Totals
+# Card Machine Totals Section & Enhanced Transaction Modal on Batch Closing
 
 ## Overview
 
-Two changes: (1) Remove the entire "Card Machine Transactions" section from the Cash Details Entry screen since card payments are now tracked per-payment via `card_machine_id` on `cn_payment`. (2) On Batch Closing, derive CRD/DRD physical totals directly from `cn_payment` (the payments received) instead of from the manual `cn_batch_card_total` table.
+Two enhancements to the Batch Closing screen:
 
-The net effect: CRD/DRD reconciliation becomes automatic — physical count equals system total because both come from the same source (`cn_payment`).
+1. **New "Card Machine Totals" section** — shows total payment amount per card machine for the batch, dynamically fetched from `cn_payment` joined with `cn_card_machine`.
+
+2. **Enhanced Payment Methods modal** — when clicking a transaction row, CRD/DRD lines now show the assigned card machine name and a dropdown to reassign it. Changes save immediately to `cn_payment` and refresh batch data.
 
 ---
 
 ## Technical Details
 
-### 1. Update `src/pages/cashier/CashDetails.tsx`
+### 1. New Card Machine Totals Section (`BatchClosing.tsx`)
 
-**Remove:**
-- Import of `CardTransactionEntry` and `CardTransaction`
-- State variables: `cardTransactions`, `loadingCards`
-- The `useEffect` that loads card transactions from `cn_batch_card_transaction`
-- `creditCardTotal` and `debitCardTotal` computed values
-- The card transaction RPC save call (`save_batch_card_transactions`) from `saveAll()`
-- The CRD and DRD summary cards from the grid
-- The `<CardTransactionEntry>` component at the bottom
+Add a new collapsible `<Card>` section (between MOP Reconciliation and Batch Transactions) titled "Card Machine Totals".
 
-**Update:**
-- `physicalCountInMain` calculation: remove `creditCardTotal + debitCardTotal`
-- Summary grid: reduce from 7 columns to 5 (Opening Balance, Cash, Cheques, Physical Count)
-- Page subtitle: remove "record card machine totals" text
-
-### 2. Update `src/pages/cashier/BatchClosing.tsx`
-
-**Remove:**
-- `CardTransaction` interface (lines 25-32)
-- `cardTransactions` state and `cardSectionOpen` state
-- The `cn_batch_card_total` query block (lines 158-168) that fetches `physCrd`/`physDrd`
-- The `cn_batch_card_transaction` query block (lines 172-193)
-- The entire "Card Machine Transactions" collapsible section (lines 525-574)
-
-**Update:**
-- CRD/DRD physical totals: derive from `cn_payment` system totals instead of `cn_batch_card_total`. After computing `sysTotals`, set `physical.CRD = sysTotals.CRD` and `physical.DRD = sysTotals.DRD`. This makes card payment reconciliation automatic.
-
-### 3. Database Migration — Update `close_batch` RPC
-
-Replace the CRD/DRD physical count section (currently reading from `cn_batch_card_total`) to instead read from `cn_payment` directly:
-
+**Data fetching** — inside `fetchTotals()`, after fetching `cn_payment` rows, add a query:
 ```sql
--- Replace cn_batch_card_total lookup with cn_payment-based calculation
-SELECT
-  COALESCE(SUM(CASE WHEN p.mop_code = 'CRD' THEN p.payment_amount ELSE 0 END), 0),
-  COALESCE(SUM(CASE WHEN p.mop_code = 'DRD' THEN p.payment_amount ELSE 0 END), 0)
-INTO v_physical_crd, v_physical_drd
+SELECT p.card_machine_id, cm.machine_code, cm.machine_name, cm.card_type_support,
+       SUM(p.payment_amount) as total_amount, COUNT(*) as txn_count
 FROM cn_payment p
+JOIN cn_card_machine cm ON cm.id = p.card_machine_id
 JOIN cn_payment_header h ON h.payment_id = p.payment_id
 JOIN cn_receipt r ON r.payment_id = h.payment_id AND r.status != 'C'
-WHERE h.batch_number = p_batch_number
-  AND p.mop_code IN ('CRD', 'DRD')
-  AND COALESCE(h.status, 'active') != 'cancelled';
+WHERE h.batch_number = ? AND p.card_machine_id IS NOT NULL
+  AND COALESCE(h.status, 'active') != 'cancelled'
+GROUP BY p.card_machine_id, cm.machine_code, cm.machine_name, cm.card_type_support
 ```
 
-This makes physical CRD/DRD = system CRD/DRD, so reconciliation always passes for card payments.
+This can be done client-side by enriching the already-fetched `cn_payment` data with a separate `cn_card_machine` lookup for the office. Store result in new state `cardMachineTotals`.
+
+**UI** — A table with columns: Machine Code, Machine Name, Card Type (CRD/DRD/BOTH), Transactions, Total Amount. Shows "No card machine transactions in this batch" if empty.
+
+### 2. Enhanced Payment Methods Detail Modal
+
+**Fetch changes** — In `handlePaymentRowClick`, expand the `cn_payment` select to include `card_machine_id`:
+```ts
+.select('id, mop_code, payment_amount, card_machine_id')
+```
+
+**Updated `PaymentMethodDetail` interface**:
+```ts
+interface PaymentMethodDetail {
+  id: string;           // cn_payment row id (for updates)
+  mop_code: string;
+  mop_label: string;
+  amount: number;
+  card_machine_id: string | null;
+  card_machine_name: string | null;
+}
+```
+
+Note: Instead of grouping by `mop_code`, show individual `cn_payment` rows so each CRD/DRD line can have its own card machine assignment.
+
+**Card machine dropdown** — For CRD/DRD rows, render a `<Select>` populated from `useOfficeCardMachines(officeCode)` (already exists), filtered by compatibility. Show current machine name. On change:
+1. Call `supabase.from('cn_payment').update({ card_machine_id }).eq('id', paymentRowId)`
+2. Show success/error toast
+3. Re-fetch batch totals via `fetchTotals()` to refresh card machine totals section and reconciliation
+4. Update the modal detail in local state
+
+**Non-card rows** — Show as before (method + amount, no dropdown).
+
+### 3. Office Code Extraction
+
+Use `batchSel.selectedBatch?.office_code` to pass to `useOfficeCardMachines`. The hook is already built and handles filtering by card type support.
 
 ---
 
@@ -66,7 +74,7 @@ This makes physical CRD/DRD = system CRD/DRD, so reconciliation always passes fo
 
 | File | Change |
 |------|--------|
-| `src/pages/cashier/CashDetails.tsx` | Remove CardTransactionEntry section, related state, save logic, and summary cards |
-| `src/pages/cashier/BatchClosing.tsx` | Remove card transaction detail section; derive CRD/DRD physical from cn_payment |
-| Migration SQL | Update `close_batch` RPC to source CRD/DRD physical from `cn_payment` instead of `cn_batch_card_total` |
+| `src/pages/cashier/BatchClosing.tsx` | Add card machine totals section, enhance payment modal with per-row card machine display and editable dropdown, add state for card machine totals, update fetchTotals and handlePaymentRowClick |
+
+No database migrations needed — all data already exists in `cn_payment.card_machine_id` and `cn_card_machine`.
 
