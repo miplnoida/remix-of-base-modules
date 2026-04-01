@@ -240,7 +240,6 @@ const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
       '/audit/workload',
       '/audit/time-tracking',
       '/audit/leave',
-      '/audit/leave',
     ],
   },
   {
