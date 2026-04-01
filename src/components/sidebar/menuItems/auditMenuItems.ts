@@ -132,13 +132,6 @@ export const auditMenuItems = [
         requiresPermission: "view_audit_assignments",
         description: "Manage auditor leave schedules"
       },
-      {
-        title: "Holiday Calendar",
-        url: "/audit/holidays",
-        icon: Calendar,
-        requiresPermission: "view_audit_assignments",
-        description: "Public holidays and non-working days"
-      },
       // ── Execution ──
       {
         title: "Execution",

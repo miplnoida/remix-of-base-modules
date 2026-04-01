@@ -1,0 +1,1 @@
+ALTER TABLE public.public_holidays ADD COLUMN IF NOT EXISTS is_ssb_specific boolean NOT NULL DEFAULT false;

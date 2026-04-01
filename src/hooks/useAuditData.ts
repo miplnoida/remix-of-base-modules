@@ -157,66 +157,30 @@ export function useIADepartmentFunctionMutations() {
   return { create, update, remove };
 }
 
-// ============= HOLIDAYS =============
+// ============= HOLIDAYS (consolidated — reads from public_holidays) =============
 export function useIAHolidays(year?: number) {
+  const targetYear = year ?? new Date().getFullYear();
   return useQuery({
-    queryKey: ['ia_holidays', year],
+    queryKey: ['public-holidays-audit', targetYear],
     queryFn: async () => {
-      let query = supabase.from('ia_holidays').select('*').eq('is_active', true).order('date');
-      if (year) query = query.eq('year', year);
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('public_holidays')
+        .select('*')
+        .eq('year', targetYear)
+        .order('holiday_date');
       if (error) throw error;
-      return data;
+      // Map public_holidays columns to the shape audit consumers expect
+      return (data || []).map((h: any) => ({
+        id: h.id,
+        name: h.holiday_name,
+        date: h.holiday_date,
+        year: h.year,
+        country: h.office_code || 'Saint Kitts and Nevis',
+        is_ssb_specific: h.is_ssb_specific ?? false,
+        is_active: h.is_active ?? true,
+      }));
     },
   });
-}
-
-export function useIAHolidayMutations() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const create = useMutation({
-    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
-    mutationFn: async (holiday: any) => {
-      const { data, error } = await supabase.from('ia_holidays').insert(holiday).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ia_holidays'] });
-      toast({ title: 'Holiday Added', description: 'New holiday has been added to the calendar' });
-    },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
-  });
-
-  const update = useMutation({
-    mutationKey: ['InternalAudit', 'ia_audit_universe', 'create'],
-    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
-      const { data, error } = await supabase.from('ia_holidays').update(updates).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ia_holidays'] });
-      toast({ title: 'Holiday Updated' });
-    },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
-  });
-
-  const remove = useMutation({
-    mutationKey: ['InternalAudit', 'ia_audit_universe', 'update'],
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('ia_holidays').update({ is_active: false }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ia_holidays'] });
-      toast({ title: 'Holiday Removed', description: 'Holiday has been removed from the calendar', variant: 'destructive' });
-    },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
-  });
-
-  return { create, update, remove };
 }
 
 // ============= AUDITORS =============
