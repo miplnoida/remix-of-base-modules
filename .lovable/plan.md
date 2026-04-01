@@ -1,47 +1,74 @@
 
 
-# Fix: Opening Balance Not Reflecting Per-Branch Configuration
+# Fix Data Migration Errors (Test → Live Sync)
 
-## Root Cause
+## Root Cause Analysis
 
-In `src/pages/cashier/BatchManagement.tsx` line 263:
-```typescript
-const { headCashierBalance, cashierBalance } = useDefaultOpeningBalance();
-```
+Three categories of errors found:
 
-`useDefaultOpeningBalance()` is called **without an `officeCode`**, so it never queries the `cn_office_opening_balance` table. It always returns the global defaults (`head_cashier: 1000`, `cashier: 500`).
+### Category 1: Missing Columns on Live (schema not yet published)
+| Table | Missing Column | Exists in Test |
+|-------|---------------|----------------|
+| `cn_card_machine` | `office_code` | Yes |
+| `tb_office` | `is_active` | Yes |
 
-The effective office code IS resolved later (line 344 via IP detection / cashier profile), but it's never fed back into the opening balance hook.
+These columns exist in Test via migrations but haven't been published to Live yet. **Fix: Publish the project** to apply pending schema migrations to Live.
 
-**Database is correct**: STK has `head_cashier_balance: 950, cashier_balance: 450`. The problem is purely in the UI wiring.
+### Category 2: Wrong Primary Key in Upsert — `column "id" does not exist`
+The sync edge function hardcodes `onConflict: "id"`, but these tables use `code` (or composite keys) as their PK:
 
-## Fix
+| Table | Actual PK | Configured `primary_key_field` |
+|-------|-----------|-------------------------------|
+| `cn_payer` | `(payer_id, payer_type)` | `id` ← wrong |
+| `tb_invoice_status` | `code` | `id` ← wrong |
+| `tb_pay_periods` | `code` | `id` ← wrong |
+| `tb_payer_type` | `code` | `id` ← wrong |
+| `tb_receipt_status` | `code` | `id` ← wrong |
 
-### File: `src/pages/cashier/BatchManagement.tsx`
+**Also**: the `data-migration-sync` edge function ignores the `primary_key_field` from config — it always uses `onConflict: "id"`.
 
-1. **Move `effectiveOffice` computation before the opening balance hook** — extract the office code from `selectedCashier.office_code` (and IP-detected office) so it's available as a parameter.
+### Category 3: Foreign Key Violations — Parent Records Missing on Live
+| Table | FK | Issue |
+|-------|-----|-------|
+| `notification_template_versions` | `template_id → notification_templates(id)` | Parent template not on Live yet |
+| `workflow_step_actions` | `step_id → workflow_steps(id)` | Parent step not on Live yet |
 
-2. **Pass `effectiveOfficeCode` to `useDefaultOpeningBalance(effectiveOfficeCode)`** so the hook queries `cn_office_opening_balance` for the selected cashier's branch.
+These records depend on parent rows being synced first. The sync function doesn't enforce table ordering.
 
-3. Since `ipDetectedOffice` and `resolvedOffice` are set asynchronously via `useEffect`, derive `effectiveOfficeCode` as a memo:
-   ```
-   const effectiveOfficeCode = ipDetectedOffice?.code 
-     || resolvedOffice?.code 
-     || selectedCashier?.office_code 
-     || undefined;
-   ```
+---
 
-4. Update the hook call:
-   ```
-   const { headCashierBalance, cashierBalance, isOfficeSpecific } = 
-     useDefaultOpeningBalance(effectiveOfficeCode);
-   ```
+## Fix Plan
 
-5. Add a visual indicator in the dialog showing whether the balance is branch-specific or default (similar to `BatchCreationModal.tsx`).
+### 1. Update `migration_analysis_tables` — correct PK fields
+Update 5 rows in `migration_analysis_tables` to set the correct `primary_key_field`:
+- `tb_invoice_status` → `code`
+- `tb_pay_periods` → `code`
+- `tb_payer_type` → `code`
+- `tb_receipt_status` → `code`
+- `cn_payer` → `payer_id` (composite key — needs special handling)
 
-### No database or edge function changes needed — this is purely a UI wiring fix.
+### 2. Update `data-migration-sync` edge function
+Modify the sync function to:
+- Accept `primaryKeyField` per item (passed from the frontend)
+- Use the correct `onConflict` value per table instead of hardcoded `"id"`
+
+### 3. Update `DataMigration.tsx` — pass PK field to sync
+Include the `primaryKeyField` from `migration_analysis_tables` config when building sync items, so the edge function knows which column to use for conflict resolution.
+
+### 4. Update `data-migration-analyze` edge function
+Ensure the analysis function passes PK info through to the diff results so the frontend can relay it to sync.
+
+### 5. Publish to apply schema migrations
+After code changes, the user must **publish** to apply the pending `office_code` and `is_active` column migrations to Live. Then re-run the sync.
+
+---
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/cashier/BatchManagement.tsx` | Pass resolved office code to `useDefaultOpeningBalance()` hook; add branch indicator in dialog |
+| `migration_analysis_tables` data | Update `primary_key_field` for 5 tables |
+| `supabase/functions/data-migration-sync/index.ts` | Use per-table PK field from request body instead of hardcoded `"id"` |
+| `supabase/functions/data-migration-analyze/index.ts` | Include `pkField` in diff results |
+| `src/pages/admin/DataMigration.tsx` | Pass `primaryKeyField` per item to sync function |
 
