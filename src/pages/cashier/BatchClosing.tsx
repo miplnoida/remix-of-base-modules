@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, CreditCard, FileText, Landmark } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -20,15 +20,6 @@ const PHYSICAL_MOP_CODES = ['CSH', 'CHQ', 'CRD', 'DRD'];
 interface MopMaster {
   mop_code: string;
   short_description: string;
-}
-
-interface CardTransaction {
-  id: string;
-  machine_id: string;
-  card_type: string;
-  amount: number;
-  machine_code?: string;
-  machine_name?: string;
 }
 
 interface BatchPaymentRow {
@@ -67,9 +58,7 @@ const BatchClosing: React.FC = () => {
 
   // Enhanced data
   const [chequeInfo, setChequeInfo] = useState<ChequeInfo>({ total: 0, verified: 0, unverified: 0 });
-  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
   const [batchPayments, setBatchPayments] = useState<BatchPaymentRow[]>([]);
-  const [cardSectionOpen, setCardSectionOpen] = useState(false);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
 
   // Payment method detail modal
@@ -155,43 +144,6 @@ const BatchClosing: React.FC = () => {
       }
       setChequeInfo({ total: chqTotal, verified: chqVerified, unverified: chqUnverified });
 
-      // ---- Physical CRD / DRD ----
-      const { data: cardRows } = await supabase
-        .from('cn_batch_card_total')
-        .select('mop_code, amount')
-        .eq('batch_number', batchNumber);
-      let physCrd = 0, physDrd = 0;
-      (cardRows || []).forEach(r => {
-        if (r.mop_code === 'CRD') physCrd = Number(r.amount);
-        if (r.mop_code === 'DRD') physDrd = Number(r.amount);
-      });
-
-      setPhysical({ CSH: physCsh, CHQ: physChq, CRD: physCrd, DRD: physDrd });
-
-      // ---- Card transactions detail ----
-      const { data: cardTxns } = await supabase
-        .from('cn_batch_card_transaction')
-        .select('id, machine_id, card_type, amount')
-        .eq('batch_number', batchNumber)
-        .order('created_at', { ascending: true });
-
-      if (cardTxns && cardTxns.length > 0) {
-        const machineIds = [...new Set(cardTxns.map(t => t.machine_id))];
-        const { data: machines } = await supabase
-          .from('cn_card_machine')
-          .select('id, machine_code, machine_name')
-          .in('id', machineIds);
-        const machineMap = new Map((machines || []).map(m => [m.id, m]));
-
-        setCardTransactions(cardTxns.map(t => ({
-          ...t,
-          machine_code: machineMap.get(t.machine_id)?.machine_code || '',
-          machine_name: machineMap.get(t.machine_id)?.machine_name || '',
-        })));
-      } else {
-        setCardTransactions([]);
-      }
-
       // ---- System totals for ALL MOPs (single source: cn_payment) ----
       const { data: headers } = await supabase
         .from('cn_payment_header')
@@ -251,6 +203,12 @@ const BatchClosing: React.FC = () => {
       }
 
       setSystem(sysTotals);
+
+      // CRD/DRD physical = system (auto-reconciled from cn_payment)
+      const physCrd = sysTotals['CRD'] || 0;
+      const physDrd = sysTotals['DRD'] || 0;
+
+      setPhysical({ CSH: physCsh, CHQ: physChq, CRD: physCrd, DRD: physDrd });
     } catch (err) {
       console.error('Failed to fetch totals:', err);
     } finally {
@@ -300,7 +258,6 @@ const BatchClosing: React.FC = () => {
     setMethodModalDetails([]);
 
     try {
-      // Fetch from cn_payment only (single source of truth)
       const { data: cnData } = await supabase
         .from('cn_payment')
         .select('mop_code, payment_amount')
@@ -328,7 +285,6 @@ const BatchClosing: React.FC = () => {
   };
 
   // Build unified MOP rows for reconciliation table
-  // All MOPs with either physical or system amounts
   const allMopCodes = new Set([
     ...PHYSICAL_MOP_CODES,
     ...Object.keys(system),
@@ -339,14 +295,12 @@ const BatchClosing: React.FC = () => {
   const grandPhysicalTotal = reconMops.reduce((s, m) => s + (physical[m.mop_code] || 0), 0);
   const grandSystemTotal = reconMops.reduce((s, m) => s + (system[m.mop_code] || 0), 0);
 
-  // Validation: physical MOPs must match system; system-only MOPs always pass (physical=0 matches expected 0)
   const allMatch = reconMops.every(m => {
     const phys = physical[m.mop_code] || 0;
     const sys = system[m.mop_code] || 0;
     if (PHYSICAL_MOP_CODES.includes(m.mop_code)) {
       return Math.round(phys * 100) === Math.round(sys * 100);
     }
-    // System-only MOPs: no physical count needed, always valid
     return true;
   });
 
@@ -469,7 +423,7 @@ const BatchClosing: React.FC = () => {
                       const variance = phys - sys;
                       const match = isPhysical
                         ? Math.round(phys * 100) === Math.round(sys * 100)
-                        : true; // system-only MOPs always pass
+                        : true;
                       return (
                         <TableRow key={mop.mop_code} className={!isPhysical ? 'bg-muted/30' : ''}>
                           <TableCell>
@@ -521,57 +475,6 @@ const BatchClosing: React.FC = () => {
                 </Table>
               </CardContent>
             </Card>
-
-            {/* Card Transaction Details */}
-            {cardTransactions.length > 0 && (
-              <Collapsible open={cardSectionOpen} onOpenChange={setCardSectionOpen}>
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/40 transition-colors">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        Card Machine Transactions
-                        <Badge variant="secondary" className="ml-auto">{cardTransactions.length}</Badge>
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${cardSectionOpen ? 'rotate-180' : ''}`} />
-                      </CardTitle>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Machine</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {cardTransactions.map(txn => (
-                            <TableRow key={txn.id}>
-                              <TableCell>
-                                <div>
-                                  <span className="font-mono text-xs">{txn.machine_code}</span>
-                                  {txn.machine_name && (
-                                    <span className="text-xs text-muted-foreground ml-2">{txn.machine_name}</span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={txn.card_type === 'CRD' ? 'default' : 'secondary'} className="text-xs">
-                                  {txn.card_type === 'CRD' ? 'Credit' : 'Debit'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right font-mono">{formatCurrency(txn.amount)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            )}
 
             {/* Batch Transactions Breakdown */}
             {batchPayments.length > 0 && (
