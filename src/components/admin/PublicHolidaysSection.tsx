@@ -73,7 +73,7 @@ const PublicHolidaysSection: React.FC = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (holiday: { id?: string; office_code: string; holiday_date: string; holiday_name: string; year: number }) => {
+    mutationFn: async (holiday: { id?: string; office_code: string; holiday_date: string; holiday_name: string; year: number; is_ssb_specific: boolean }) => {
       if (holiday.id) {
         const { error } = await supabase
           .from('public_holidays')
