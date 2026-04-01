@@ -16,6 +16,7 @@ interface RecordDiff {
 
 interface TableAnalysis {
   tableName: string;
+  pkField: string;
   testCount: number;
   liveCount: number;
   missingInLive: number;
@@ -171,14 +172,14 @@ serve(async (req) => {
         try {
           testData = await fetchAllRows(testClient, tableName);
         } catch (e: any) {
-          results.push({ tableName, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Test DB error: ${e.message}` });
+          results.push({ tableName, pkField: tableConfig.pkField, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Test DB error: ${e.message}` });
           continue;
         }
 
         try {
           liveData = await fetchAllRows(liveClient, tableName);
         } catch (e: any) {
-          results.push({ tableName, testCount: testData.length, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Live DB error: ${e.message}` });
+          results.push({ tableName, pkField: tableConfig.pkField, testCount: testData.length, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: `Live DB error: ${e.message}` });
           continue;
         }
 
@@ -223,6 +224,7 @@ serve(async (req) => {
 
         results.push({
           tableName,
+          pkField,
           testCount: testData.length,
           liveCount: liveData.length,
           missingInLive: diffs.filter(d => d.type === "missing_in_live").length,
@@ -231,7 +233,7 @@ serve(async (req) => {
           diffs,
         });
       } catch (e: any) {
-        results.push({ tableName, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: e.message });
+        results.push({ tableName, pkField: tableConfig.pkField, testCount: 0, liveCount: 0, missingInLive: 0, missingInTest: 0, mismatches: 0, diffs: [], error: e.message });
       }
     }
 

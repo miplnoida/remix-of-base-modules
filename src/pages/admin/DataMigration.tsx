@@ -74,6 +74,7 @@ interface RecordDiff {
 
 interface TableAnalysis {
   tableName: string;
+  pkField?: string;
   testCount: number;
   liveCount: number;
   missingInLive: number;
@@ -558,7 +559,7 @@ const EnvironmentSyncTab = () => {
     try {
       if (!analysisResult) throw new Error("No analysis data");
 
-      const items: { tableName: string; recordId: string; type: string; testRecord: Record<string, unknown> }[] = [];
+      const items: { tableName: string; recordId: string; type: string; testRecord: Record<string, unknown>; primaryKeyField?: string }[] = [];
 
       for (const table of analysisResult.results) {
         for (const diff of table.diffs) {
@@ -569,6 +570,7 @@ const EnvironmentSyncTab = () => {
               recordId: diff.id,
               type: diff.type,
               testRecord: diff.testRecord,
+              primaryKeyField: table.pkField || "id",
             });
           }
         }
