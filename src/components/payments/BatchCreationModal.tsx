@@ -55,7 +55,7 @@ export function BatchCreationModal({
 
   const handleCreate = async () => {
     if (!batchDate) return;
-    await onCreateBatch(batchDate.toISOString(), officeCode);
+    await onCreateBatch(batchDate.toISOString(), officeCode, resolvedOpeningBalance);
   };
 
   return (
