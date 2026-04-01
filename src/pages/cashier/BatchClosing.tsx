@@ -317,11 +317,11 @@ const BatchClosing: React.FC = () => {
     try {
       const { data: cnData } = await supabase
         .from('cn_payment')
-        .select('id, mop_code, payment_amount, card_machine_id')
+        .select('payment_id, payment_sequence_no, mop_code, payment_amount, card_machine_id')
         .eq('payment_id', payment.payment_id);
 
       // Collect card machine ids to fetch names
-      const cmIds = [...new Set((cnData || []).map(p => p.card_machine_id).filter(Boolean))] as string[];
+      const cmIds = [...new Set((cnData || []).map((p: any) => p.card_machine_id).filter(Boolean))] as string[];
       let cmNameMap: Record<string, string> = {};
       if (cmIds.length > 0) {
         const { data: cmData } = await supabase
@@ -331,8 +331,9 @@ const BatchClosing: React.FC = () => {
         cmNameMap = Object.fromEntries((cmData || []).map(cm => [cm.id, cm.machine_name]));
       }
 
-      const details: PaymentMethodDetail[] = (cnData || []).map(p => ({
-        id: p.id,
+      const details: PaymentMethodDetail[] = (cnData || []).map((p: any) => ({
+        payment_id: p.payment_id,
+        payment_sequence_no: p.payment_sequence_no,
         mop_code: p.mop_code || '',
         mop_label: allMops.find(m => m.mop_code === p.mop_code)?.short_description || p.mop_code || '',
         amount: Number(p.payment_amount || 0),
