@@ -43,8 +43,8 @@ const PaymentHistoricalEntry = () => {
     setShowBatchModal(true);
   }, [batch]);
 
-  const handleCreateBatch = useCallback(async (batchDate: string, officeCode: string) => {
-    await batch.createBatch(batchDate, officeCode, 'USR', true);
+  const handleCreateBatch = useCallback(async (batchDate: string, officeCode: string, openingBalance?: number) => {
+    await batch.createBatch(batchDate, officeCode, 'USR', true, openingBalance);
     setShowBatchModal(false);
     resetPaymentForm();
   }, [batch]);
