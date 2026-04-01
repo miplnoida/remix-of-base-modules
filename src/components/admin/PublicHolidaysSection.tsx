@@ -282,6 +282,7 @@ const PublicHolidaysSection: React.FC = () => {
               <TableHead>Date</TableHead>
               <TableHead>Holiday Name</TableHead>
               <TableHead>Office</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
