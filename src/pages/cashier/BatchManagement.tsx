@@ -555,7 +555,11 @@ function OpenBatchDialog({
               disabled
             />
             <p className="text-xs text-muted-foreground">
-              {isSelectedHeadCashier ? 'Head Cashier rate' : 'Regular Cashier rate'} — configured in Opening Balances tab.
+              {isSelectedHeadCashier ? 'Head Cashier' : 'Cashier'} rate
+              {isOfficeSpecific && effectiveOfficeCode
+                ? ` • ${effectiveOfficeCode} branch`
+                : ' • Default'}
+              {obLoading && ' (loading...)'}
             </p>
           </div>
 
