@@ -290,31 +290,85 @@ const PublicHolidaysSection: React.FC = () => {
           <Badge variant="secondary">{holidays.length} holidays</Badge>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Holiday Name</TableHead>
-              <TableHead>Office</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : holidays.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No holidays declared for {selectedYear}{selectedOffice !== 'all' ? ` at ${officeMap[selectedOffice] || selectedOffice}` : ''}.
+          </div>
+        ) : groupedByOffice ? (
+          /* Grouped by office view */
+          <div className="space-y-3">
+            {groupedByOffice.map(([officeCode, officeHolidays]) => (
+              <Collapsible key={officeCode} defaultOpen>
+                <div className="rounded-md border">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors group">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium text-sm">{officeMap[officeCode] || officeCode}</span>
+                        <Badge variant="secondary" className="text-xs">{officeHolidays.length}</Badge>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Holiday Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-center">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {officeHolidays.map(h => (
+                            <TableRow key={h.id}>
+                              <TableCell className="font-mono text-sm">{formatDisplayDate(h.holiday_date)}</TableCell>
+                              <TableCell className="font-medium">{h.holiday_name}</TableCell>
+                              <TableCell>
+                                <Badge variant={h.is_ssb_specific ? 'default' : 'secondary'}>
+                                  {h.is_ssb_specific ? 'SSB Specific' : 'Public Holiday'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center gap-1">
+                                  <Button size="sm" variant="ghost" onClick={() => openEdit(h)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete this holiday?')) deleteMutation.mutate(h.id); }}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            ))}
+          </div>
+        ) : (
+          /* Single office flat table */
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-                </TableCell>
+                <TableHead>Date</TableHead>
+                <TableHead>Holiday Name</TableHead>
+                <TableHead>Office</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
-            ) : holidays.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                  No holidays declared for {selectedYear}{selectedOffice !== 'all' ? ` at ${officeMap[selectedOffice] || selectedOffice}` : ''}.
-                </TableCell>
-              </TableRow>
-            ) : (
-              holidays.map(h => (
+            </TableHeader>
+            <TableBody>
+              {holidays.map(h => (
                 <TableRow key={h.id}>
                   <TableCell className="font-mono text-sm">{formatDisplayDate(h.holiday_date)}</TableCell>
                   <TableCell className="font-medium">{h.holiday_name}</TableCell>
@@ -329,23 +383,16 @@ const PublicHolidaysSection: React.FC = () => {
                       <Button size="sm" variant="ghost" onClick={() => openEdit(h)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => {
-                          if (confirm('Delete this holiday?')) deleteMutation.mutate(h.id);
-                        }}
-                      >
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Delete this holiday?')) deleteMutation.mutate(h.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
 
       {/* Add / Edit Dialog */}
