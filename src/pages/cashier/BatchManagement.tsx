@@ -260,7 +260,6 @@ function OpenBatchDialog({
 
   // Head cashier & opening balance hooks
   const { headCashier, isLoading: hcLoading } = useHeadCashier();
-  const { headCashierBalance, cashierBalance, isLoading: obLoading } = useDefaultOpeningBalance();
 
   // Determine current user's cashier record
   const currentUserCashier = useMemo(
