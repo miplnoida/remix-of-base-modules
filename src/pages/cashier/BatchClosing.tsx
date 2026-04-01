@@ -773,10 +773,11 @@ const BatchClosing: React.FC = () => {
                     {methodModalDetails.map(d => {
                       const isCard = d.mop_code === 'CRD' || d.mop_code === 'DRD';
                       const compatibleMachines = isCard ? getCompatibleMachines(d.mop_code) : [];
-                      const isUpdating = updatingMachineId === d.id;
+                      const rowKey = `${d.payment_id}_${d.payment_sequence_no}`;
+                      const isUpdating = updatingMachineId === rowKey;
 
                       return (
-                        <TableRow key={d.id}>
+                        <TableRow key={rowKey}>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="font-mono text-xs">{d.mop_code}</Badge>
@@ -790,7 +791,7 @@ const BatchClosing: React.FC = () => {
                                 {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                                 <Select
                                   value={d.card_machine_id || ''}
-                                  onValueChange={(val) => handleCardMachineChange(d.id, val)}
+                                  onValueChange={(val) => handleCardMachineChange(d.payment_id, d.payment_sequence_no, val)}
                                   disabled={isUpdating || batchClosed}
                                 >
                                   <SelectTrigger className="h-8 text-xs w-[180px]">
