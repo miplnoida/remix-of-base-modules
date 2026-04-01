@@ -82,6 +82,7 @@ const PublicHolidaysSection: React.FC = () => {
             holiday_date: holiday.holiday_date,
             office_code: holiday.office_code,
             year: holiday.year,
+            is_ssb_specific: holiday.is_ssb_specific,
             modified_by: userCode || 'SYSTEM',
             modified_at: new Date().toISOString(),
           })
@@ -95,6 +96,7 @@ const PublicHolidaysSection: React.FC = () => {
             holiday_date: holiday.holiday_date,
             holiday_name: holiday.holiday_name,
             year: holiday.year,
+            is_ssb_specific: holiday.is_ssb_specific,
             entered_by: userCode || 'SYSTEM',
             modified_by: userCode || 'SYSTEM',
           });
