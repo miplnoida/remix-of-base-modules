@@ -134,7 +134,8 @@ export function usePaymentBatch() {
     batchDate: string,
     officeCode: string,
     enteredBy: string,
-    isHistorical: boolean = false
+    isHistorical: boolean = false,
+    openingBalance?: number
   ): Promise<BatchData | null> => {
     setIsLoading(true);
     try {
@@ -148,7 +149,7 @@ export function usePaymentBatch() {
         batch_status: 'O',
         balance_status: isHistorical ? 'H' : 'N',
         balance_forward: balanceForward,
-        offset_amount: 0,
+        offset_amount: openingBalance ?? 0,
         office_code: officeCode,
         entered_by: enteredBy,
         date_entered: now,

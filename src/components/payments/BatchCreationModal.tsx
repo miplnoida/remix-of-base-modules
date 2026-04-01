@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,12 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
+import { useDefaultOpeningBalance } from '@/hooks/useBatchBehaviorConfig';
+import { useHeadCashier } from '@/hooks/useHeadCashier';
 
 interface BatchCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onCreateBatch: (batchDate: string, officeCode: string) => Promise<void>;
+  onCreateBatch: (batchDate: string, officeCode: string, openingBalance: number) => Promise<void>;
   balanceForward: number;
   isLoading?: boolean;
   isHistorical?: boolean;
@@ -33,9 +35,27 @@ export function BatchCreationModal({
   const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
   const [officeCode, setOfficeCode] = useState('HQ');
 
+  // Fetch per-branch opening balance based on selected office
+  const {
+    headCashierBalance,
+    cashierBalance,
+    isLoading: balanceLoading,
+    isOfficeSpecific,
+  } = useDefaultOpeningBalance(officeCode.trim() || undefined);
+
+  // Check if current user is head cashier for selected office
+  const { isCurrentUserHeadCashier, isLoading: hcLoading } = useHeadCashier(
+    undefined,
+    officeCode.trim() || undefined
+  );
+
+  const resolvedOpeningBalance = isCurrentUserHeadCashier
+    ? headCashierBalance
+    : cashierBalance;
+
   const handleCreate = async () => {
     if (!batchDate) return;
-    await onCreateBatch(batchDate.toISOString(), officeCode);
+    await onCreateBatch(batchDate.toISOString(), officeCode, resolvedOpeningBalance);
   };
 
   return (
@@ -64,6 +84,28 @@ export function BatchCreationModal({
               maxLength={3}
               placeholder="e.g. HQ"
             />
+          </div>
+
+          <div className="p-3 rounded-md bg-muted text-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Opening Balance:</span>
+              <span className="font-mono font-semibold">
+                {balanceLoading || hcLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin inline" />
+                ) : (
+                  `$${resolvedOpeningBalance.toFixed(2)}`
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Info className="h-3 w-3" />
+              <span>
+                {isCurrentUserHeadCashier ? 'Head Cashier' : 'Cashier'}
+                {isOfficeSpecific
+                  ? ` • ${officeCode} branch rate`
+                  : ' • Default rate'}
+              </span>
+            </div>
           </div>
 
           <div className="p-3 rounded-md bg-muted text-sm">

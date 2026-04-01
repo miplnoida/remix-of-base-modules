@@ -72,8 +72,8 @@ const VCPaymentUpdate = () => {
     setShowBatchModal(true);
   }, [batch]);
 
-  const handleCreateBatch = useCallback(async (batchDate: string, officeCode: string) => {
-    await batch.createBatch(batchDate, officeCode, 'USR');
+  const handleCreateBatch = useCallback(async (batchDate: string, officeCode: string, openingBalance?: number) => {
+    await batch.createBatch(batchDate, officeCode, 'USR', false, openingBalance);
     setShowBatchModal(false);
     resetPaymentForm();
   }, [batch]);
