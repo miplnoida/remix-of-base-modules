@@ -227,6 +227,19 @@ const PublicHolidaysSection: React.FC = () => {
     return m;
   }, [offices]);
 
+  const groupedByOffice = useMemo(() => {
+    if (selectedOffice !== 'all') return null;
+    const groups: Record<string, PublicHoliday[]> = {};
+    holidays.forEach(h => {
+      if (!groups[h.office_code]) groups[h.office_code] = [];
+      groups[h.office_code].push(h);
+    });
+    // Sort office codes by office name
+    return Object.entries(groups).sort(([a], [b]) =>
+      (officeMap[a] || a).localeCompare(officeMap[b] || b)
+    );
+  }, [holidays, selectedOffice, officeMap]);
+
   return (
     <Card>
       <CardHeader>
