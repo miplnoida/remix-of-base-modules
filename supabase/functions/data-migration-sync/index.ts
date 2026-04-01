@@ -11,6 +11,7 @@ interface SyncItem {
   recordId: string;
   type: "missing_in_live" | "mismatch";
   testRecord: Record<string, unknown>;
+  primaryKeyField?: string;
 }
 
 interface SyncResult {
@@ -68,21 +69,25 @@ serve(async (req) => {
     for (const [tableName, tableItems] of byTable) {
       syncedTables.add(tableName);
 
+      // Resolve the PK field for this table — use per-item field or fallback to "id"
+      const pkField = tableItems[0]?.primaryKeyField || "id";
+
       // Batch upsert per table
       const records = tableItems.map(item => item.testRecord);
       
       try {
         const { error } = await liveClient
           .from(tableName)
-          .upsert(records as any[], { onConflict: "id", ignoreDuplicates: false });
+          .upsert(records as any[], { onConflict: pkField, ignoreDuplicates: false });
 
         if (error) {
           // Fall back to individual upserts
           for (const item of tableItems) {
             try {
+              const itemPk = item.primaryKeyField || pkField;
               const { error: itemError } = await liveClient
                 .from(tableName)
-                .upsert(item.testRecord as any, { onConflict: "id", ignoreDuplicates: false });
+                .upsert(item.testRecord as any, { onConflict: itemPk, ignoreDuplicates: false });
 
               results.push({
                 tableName,
