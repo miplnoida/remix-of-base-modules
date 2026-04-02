@@ -239,6 +239,26 @@ const C3Payments: React.FC = () => {
         }
 
         if (components.length > 0) {
+          // Pro-rate components if navigated from a Partial payment
+          const pending = navState.pendingAmount ? parseFloat(navState.pendingAmount) : null;
+          if (pending != null && pending > 0) {
+            const fullTotal = components.reduce((s, c) => s + c.amount, 0);
+            if (fullTotal > 0 && pending < fullTotal) {
+              const ratio = pending / fullTotal;
+              let runningTotal = 0;
+              for (let i = 0; i < components.length; i++) {
+                if (i < components.length - 1) {
+                  const prorated = Math.round(components[i].amount * ratio * 100) / 100;
+                  components[i].amount = prorated;
+                  runningTotal += prorated;
+                } else {
+                  // Last component gets the remainder to avoid rounding drift
+                  components[i].amount = Math.round((pending - runningTotal) * 100) / 100;
+                }
+              }
+            }
+          }
+
           setSelectedComponents(components);
           setIsPreloaded(true);
           const maxMap: Record<string, number> = {};
