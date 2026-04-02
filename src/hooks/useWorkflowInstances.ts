@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkflowInstanceFilters {
@@ -363,4 +363,73 @@ export function useWorkflowNames() {
 // Get workflow instance status options
 export function useWorkflowStatusOptions() {
   return ['Pending', 'InProgress', 'Completed', 'Approved', 'Rejected', 'Query', 'Cancelled'];
+}
+
+// Fetch all active users for task assignment
+export function useActiveUsers() {
+  return useQuery({
+    queryKey: ['active-users-for-assignment'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_code')
+        .eq('is_active', true)
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+// Assign a workflow task to a user
+export function useAssignWorkflowTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      assignToUserId,
+      assignToUserName,
+      instanceId,
+      stepName,
+      assignedByUserCode,
+    }: {
+      taskId: string;
+      assignToUserId: string;
+      assignToUserName: string;
+      instanceId: string;
+      stepName: string;
+      assignedByUserCode: string;
+    }) => {
+      // Update the task
+      const { error: updateError } = await supabase
+        .from('workflow_tasks')
+        .update({
+          assigned_to: assignToUserId,
+          assigned_to_name: assignToUserName,
+        })
+        .eq('id', taskId);
+
+      if (updateError) throw updateError;
+
+      // Insert audit log entry
+      const { error: logError } = await supabase
+        .from('workflow_logs')
+        .insert({
+          instance_id: instanceId,
+          step_name: stepName,
+          action: 'Task Assigned',
+          user_name: assignedByUserCode,
+          comments: `Assigned to ${assignToUserName}`,
+          created_at: new Date().toISOString(),
+        });
+
+      if (logError) throw logError;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance-tasks', variables.instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance-history', variables.instanceId] });
+    },
+  });
 }

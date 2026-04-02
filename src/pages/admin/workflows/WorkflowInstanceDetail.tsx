@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -8,6 +8,7 @@ import {
   Clock, 
   XCircle,
   User,
+  UserPlus,
   Calendar,
   FileText,
   Loader2,
@@ -17,19 +18,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
 import { 
   useWorkflowInstanceDetail, 
   useWorkflowInstanceHistory,
-  useWorkflowInstanceTasks 
+  useWorkflowInstanceTasks,
+  useActiveUsers,
+  useAssignWorkflowTask
 } from '@/hooks/useWorkflowInstances';
 
 const WorkflowInstanceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { userCode } = useUserCode();
   
   const { data: instance, isLoading: instanceLoading } = useWorkflowInstanceDetail(id || null);
   const { data: history, isLoading: historyLoading } = useWorkflowInstanceHistory(id || null);
   const { data: tasks } = useWorkflowInstanceTasks(id || null);
+  const { data: activeUsers } = useActiveUsers();
+  const assignTask = useAssignWorkflowTask();
+
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [assigningTask, setAssigningTask] = useState<{ id: string; stepName: string } | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -46,6 +60,39 @@ const WorkflowInstanceDetail: React.FC = () => {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const handleOpenAssignDialog = (taskId: string, stepName: string) => {
+    setAssigningTask({ id: taskId, stepName });
+    setSelectedUserId('');
+    setAssignDialogOpen(true);
+  };
+
+  const handleConfirmAssign = () => {
+    if (!assigningTask || !selectedUserId || !id) return;
+    const user = activeUsers?.find((u) => u.id === selectedUserId);
+    if (!user) return;
+
+    assignTask.mutate(
+      {
+        taskId: assigningTask.id,
+        assignToUserId: user.id,
+        assignToUserName: user.full_name || 'Unknown',
+        instanceId: id,
+        stepName: assigningTask.stepName,
+        assignedByUserCode: userCode || 'SYSTEM',
+      },
+      {
+        onSuccess: () => {
+          toast.success('Task assigned successfully');
+          setAssignDialogOpen(false);
+          setAssigningTask(null);
+        },
+        onError: (err: any) => {
+          toast.error('Failed to assign task', { description: err.message });
+        },
+      }
+    );
   };
 
   const getActionIcon = (action: string) => {
@@ -371,6 +418,19 @@ const WorkflowInstanceDetail: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                    {/* Assign button for pending unassigned tasks */}
+                    {task.status === 'Pending' && !task.assigned_to && (
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenAssignDialog(task.id, task.step_name)}
+                        >
+                          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                          Assign
+                        </Button>
+                      </div>
+                    )}
                     {task.action_taken && (
                       <div className="mt-2 text-sm">
                         <span className="font-medium">Action:</span> {task.action_taken}
@@ -388,6 +448,47 @@ const WorkflowInstanceDetail: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Assign Task Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Task</DialogTitle>
+            <DialogDescription>
+              Select an active user to assign this task to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <SearchableSelect
+              options={(activeUsers || []).map((u) => ({
+                value: u.id,
+                label: u.full_name || 'Unknown',
+                searchText: u.user_code || '',
+              }))}
+              value={selectedUserId}
+              onValueChange={setSelectedUserId}
+              placeholder="Select a user..."
+              searchPlaceholder="Search by name or code..."
+              emptyMessage="No active users found."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmAssign}
+              disabled={!selectedUserId || assignTask.isPending}
+            >
+              {assignTask.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Assigning...</>
+              ) : (
+                'Confirm'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
