@@ -1,30 +1,52 @@
 
 
-# Fix: Type Mismatch in `create_c3_payment_with_receipt` — `date_received` Column
+# Existing Payments Popup on "Payment" Button Click
 
 ## Problem
+When a cashier clicks the "Payment" button on a C3 Contribution row (for `Partial` or `$ Pay` status), they navigate directly to the cashier screen without seeing any prior payment history. The user wants an intermediate popup showing existing payments before continuing.
 
-The `cn_payment_header.date_received` column is `timestamp without time zone`, but the function inserts `p_date_received` (TEXT, e.g. `"2026-04-02"`) without casting. PostgreSQL rejects this on Live with:
+## Solution
 
-> column "date_received" is of type timestamp without time zone but expression is of type text
+### 1. Create `ExistingPaymentsPopup` Component
+**New file**: `src/components/c3/ExistingPaymentsPopup.tsx`
 
-## Fix
+A dialog that:
+- Accepts `headerId`, `companyId`, `record` (the C3ContributionRecord), and callbacks
+- On open, calls `getPaymentDetailsList` from `wizPaymentService.ts` filtered by `company_id` and matching period (month/year) to fetch existing payments for that C3 record
+- Displays a table of existing payments with columns: Transaction ID, Date, Amount, Mode, Receipt #, Status
+- Shows a summary: Total Paid so far, Pending Amount
+- Has two action buttons:
+  - **"Continue to Payment"** — navigates to `/cashier/c3-payments` with the pending amount (same as current `handlePayment` logic)
+  - **"Close"** — dismisses the popup
+- If no existing payments are found, shows a message "No previous payments found" and the continue button still works
 
-**Single migration** that drops and recreates `create_c3_payment_with_receipt`, changing only line 97:
+### 2. Update `C3ContributionList.tsx`
+- Add state for the popup: `paymentHistoryOpen`, `paymentHistoryRecord`
+- Modify `handlePayment` to:
+  - First open the `ExistingPaymentsPopup` instead of navigating directly
+  - The popup's "Continue to Payment" button triggers the actual navigation
+- This applies to both `Partial` and `$ Pay` payment status rows
 
-```sql
--- Before (line 97):
-p_date_received
-
--- After:
-p_date_received::timestamp
+### 3. Data Flow
+```text
+User clicks "Payment" button
+  → Open ExistingPaymentsPopup dialog
+  → Fetch payments via getPaymentDetailsList({ company_id, types: "Company" })
+  → Filter results by matching period month/year and header_id
+  → Display existing payment records in a table
+  → User clicks "Continue to Payment"
+  → Navigate to /cashier/c3-payments with existing state (regNo, month, year, schedule, payerType, pendingAmount)
 ```
 
-The rest of the function body remains identical. The explicit `::timestamp` cast converts the text date string (e.g. `"2026-04-02"`) to a valid timestamp.
+### Technical Details
+- **API**: Uses the existing `getPaymentDetailsList` from `wizPaymentService.ts` — no new backend/edge function needed
+- **Filtering**: Match `period_month_number` and `period_year` from the C3 record against the payment records, plus filter by `pay_details` array for transaction-level info
+- **UI Pattern**: Follows the existing `PaymentReceiptModal` dialog pattern (same max-width, loading spinner, error handling)
+- **No database changes required**
 
-## Technical Details
-
-- File: New migration SQL
-- Scope: Drop existing function, recreate with the single-line cast fix
-- No frontend code changes needed — `C3Payments.tsx` already sends a text date via `formatDateForStorage()`
+### Files Changed
+| File | Action |
+|------|--------|
+| `src/components/c3/ExistingPaymentsPopup.tsx` | **Create** — new popup component |
+| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | **Edit** — intercept Payment button to show popup first |
 
