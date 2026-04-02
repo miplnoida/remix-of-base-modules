@@ -55,6 +55,10 @@ const C3ContributionList: React.FC = () => {
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptModalRecord, setReceiptModalRecord] = useState<C3ContributionRecord | null>(null);
 
+  // Existing payments popup
+  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
+  const [paymentHistoryRecord, setPaymentHistoryRecord] = useState<C3ContributionRecord | null>(null);
+
   useEffect(() => {
     getCompaniesDropdown().then(res => {
       setCompanies(res.data?.companies || []);
