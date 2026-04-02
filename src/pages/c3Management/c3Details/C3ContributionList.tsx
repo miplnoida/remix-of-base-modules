@@ -20,6 +20,7 @@ import {
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import C3ContributionPreview from './previews/C3ContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
+import { ExistingPaymentsPopup } from '@/components/c3/ExistingPaymentsPopup';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
