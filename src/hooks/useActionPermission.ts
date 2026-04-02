@@ -80,6 +80,7 @@ export const MODULE_NAMES = {
   APPLICATIONS_REVIEW: 'applications_review',
   WORKFLOW_INSTANCES: 'workflow_instances',
   // Sample Application module
+  BATCH_DETAIL_CHANGE_REQUESTS: 'batch_detail_change_requests',
   SAMPLE_APPLICATION: 'sample_application',
   INCOME_CATEGORY: 'income_category_management',
   SEP_CONTRIB_RATE: 'self_employed_contrib_rates',
