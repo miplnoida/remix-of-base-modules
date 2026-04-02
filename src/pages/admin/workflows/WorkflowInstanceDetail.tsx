@@ -33,10 +33,17 @@ import {
 const WorkflowInstanceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { userCode } = useUserCode();
   
   const { data: instance, isLoading: instanceLoading } = useWorkflowInstanceDetail(id || null);
   const { data: history, isLoading: historyLoading } = useWorkflowInstanceHistory(id || null);
   const { data: tasks } = useWorkflowInstanceTasks(id || null);
+  const { data: activeUsers } = useActiveUsers();
+  const assignTask = useAssignWorkflowTask();
+
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [assigningTask, setAssigningTask] = useState<{ id: string; stepName: string } | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
