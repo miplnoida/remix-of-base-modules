@@ -383,6 +383,8 @@ const C3ContributionList: React.FC = () => {
           onClose={() => { setPaymentHistoryOpen(false); setPaymentHistoryRecord(null); }}
           record={paymentHistoryRecord}
           companyId={Number(selectedCompanyId)}
+          regNo={companies.find(c => String(c.id) === selectedCompanyId)?.registration_number || ''}
+          payerType="ER"
           onContinueToPayment={navigateToPayment}
         />
       )}
