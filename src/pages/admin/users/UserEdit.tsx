@@ -96,9 +96,8 @@ const UserEdit = () => {
         full_name: fullName,
         department_id: formData.department_id || null,
         designation_id: formData.designation_id || null,
-        reporting_to_user_id: formData.reporting_to_user_id || null,
         date_of_birth: formData.date_of_birth || null,
-      });
+      } as any);
       toast.success("User updated successfully");
       navigate(`/admin/users/${userId}`);
     } catch (error: any) {
