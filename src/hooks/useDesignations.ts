@@ -82,8 +82,8 @@ export function useDeleteDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'delete'],
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('designations')
+      const { error } = await (supabase as any)
+        .from('tb_designations')
         .delete()
         .eq('id', id);
       if (error) throw error;
