@@ -314,7 +314,7 @@ const C3ContributionList: React.FC = () => {
                               Payment
                             </Button>
                             <span className="text-[10px] text-orange-600 font-medium">
-                              Pending: {formatCurrency(c.pending_amount ?? 0)}
+                              {formatCurrency(c.pending_amount ?? 0)}
                             </span>
                           </div>
                         ) : c.payment_status === '$ Pay' ? (
