@@ -178,8 +178,8 @@ function RequestDetailModal({
                       key={action.id}
                       variant={action.action_type === 'Reject' ? 'destructive' : 'default'}
                       size="sm"
-                      disabled={actionLoading || (action.remarks_required && !remarks.trim())}
-                      onClick={() => handleWorkflowAction(action.id, action.action_type)}
+                      disabled={executeAction.isPending || (action.remarks_required && !remarks.trim())}
+                      onClick={() => handleWorkflowAction(action.id)}
                     >
                       {action.action_name}
                     </Button>
