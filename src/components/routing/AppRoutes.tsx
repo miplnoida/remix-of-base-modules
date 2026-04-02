@@ -543,6 +543,7 @@ import CashierReports from '@/pages/cashier/CashierReports';
 import CreateInvoice from '@/pages/cashier/CreateInvoice';
 import SearchPayInvoices from '@/pages/cashier/SearchPayInvoices';
 import BatchClosing from '@/pages/cashier/BatchClosing';
+import CardMachineChangeRequests from '@/pages/cashier/CardMachineChangeRequests';
 import CashierBatchManagement from '@/pages/cashier/BatchManagement';
 import PaymentModuleConfig from '@/pages/cashier/PaymentModuleConfig';
 import HeadCashierOfficeAssignment from '@/pages/cashier/HeadCashierOfficeAssignment';
