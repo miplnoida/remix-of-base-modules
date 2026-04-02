@@ -1,52 +1,33 @@
 
 
-# Sync C3 Detail Screens with C3-Wizard API Changes
+# Fix: C3 Payments Screen Ignoring Pending Amount for Partial Payments
 
-## Summary
+## Problem
 
-The C3-Wizard team added partial payment detection. The API now returns a new `Partial` status (alongside existing `Paid`, `$ Pay`, `BEMA`) plus new fields: `payment_amount`, `pending_amount`, `is_partially_paid`. All three C3 Detail screens need to handle this new status.
+When navigating from a `Partial` status record in C3 Details, the `pendingAmount` ($11.44) is passed via navigation state but the C3 Payments screen ignores it completely. It loads the **full** C3 amounts from `get_c3_payment_components` RPC ($244.64 + $144.56 + $22.24 = $411.44) and displays those as the amounts to pay.
 
-## Current Behavior
+## Root Cause
 
-All three screens (C3 Contribution, NW Director, Self-Employed) handle three payment statuses:
-- `Paid` → Green badge with print icon
-- `$ Pay` → Blue "Payment" button
-- `BEMA` → Static badge
+In `C3Payments.tsx`, line 57 reads `navState` but never extracts or uses `pendingAmount`. The auto-load logic (lines 194–253) populates components with full RPC amounts and caps `maxAmounts` to those full values.
 
-They do NOT handle `Partial`, so partially-paid records show nothing in the Payment column.
+## Fix (single file: `src/pages/cashier/C3Payments.tsx`)
 
-## Changes
+After the components are loaded from the RPC (around line 241), check if `navState.pendingAmount` exists. If so:
 
-### 1. Update TypeScript Types (`wizC3DetailsService.ts`)
+1. Parse the pending amount from navState
+2. Pro-rate each component proportionally: `component.amount = fullAmount × (pendingAmount / totalFullAmount)`, with rounding correction on the last component
+3. Set `maxAmounts` to the **pro-rated** values (not the full values), so the user cannot exceed the pending balance
+4. The C3 Amount, footer totals, and difference will then correctly show $11.44
 
-Add new fields to all three record interfaces:
-- `C3ContributionRecord`: add `payment_amount`, `pending_amount`, `is_partially_paid`
-- `NwdContributionRecord`: add `payment_amount`, `pending_amount`, `is_partially_paid`
-- `SeContributionRecord`: add `payment_amount`, `pending_amount`, `is_partially_paid`
+### Pro-ration Example
 
-### 2. Update Payment Column Logic (all 3 screens)
+For payer 658852 with `pendingAmount = 11.44` and full total = $411.44:
+- SSC: 244.64 × (11.44 / 411.44) = **6.80**
+- LVC: 144.56 × (11.44 / 411.44) = **4.02**
+- PEC: 22.24 × (11.44 / 411.44) = **0.62**
+- Total: **11.44** ✓
 
-Add `Partial` status handling between the existing `Paid` and `$ Pay` checks:
+### No other files change
 
-```
-Paid    → Green "Paid" badge + print icon (no change)
-Partial → Blue "Payment" button + orange "Pending: $XX.XX" text below
-$ Pay   → Blue "Payment" button (no change)
-BEMA    → Static badge (no change)
-```
-
-For `Partial`, the "Payment" button navigates to the same C3 Payments cashier screen (same as `$ Pay`), but passes `pendingAmount` in the navigation state so the payment form can pre-fill with the remaining balance instead of the full total.
-
-### 3. Files Modified
-
-| File | Change |
-|------|--------|
-| `src/services/wizC3DetailsService.ts` | Add `payment_amount`, `pending_amount`, `is_partially_paid` to 3 interfaces |
-| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Add `Partial` status rendering in Payment column |
-| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Same `Partial` handling |
-| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Same `Partial` handling |
-
-### 4. No Backend Changes
-
-The API changes are already deployed by C3-Wizard. This is frontend-only sync work.
+The RPC, navigation state passing, and payment processing logic remain untouched.
 
