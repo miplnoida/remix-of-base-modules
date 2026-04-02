@@ -1,33 +1,44 @@
 
 
-# Fix: C3 Payments Screen Ignoring Pending Amount for Partial Payments
+# Fix: Duplicate Function Overload for `create_c3_payment_with_receipt`
 
 ## Problem
 
-When navigating from a `Partial` status record in C3 Details, the `pendingAmount` ($11.44) is passed via navigation state but the C3 Payments screen ignores it completely. It loads the **full** C3 amounts from `get_c3_payment_components` RPC ($244.64 + $144.56 + $22.24 = $411.44) and displays those as the amounts to pay.
+The error message says PostgREST **"could not choose the best candidate function"** between two overloads of `create_c3_payment_with_receipt`. Both have `p_date_received` as TEXT, but one has parameter defaults and one does not. PostgreSQL treats these as separate functions because the default-vs-no-default signatures differ, and PostgREST cannot disambiguate.
 
-## Root Cause
+This was caused by successive migrations using `CREATE OR REPLACE` without first dropping the prior overload — PostgreSQL silently kept both versions.
 
-In `C3Payments.tsx`, line 57 reads `navState` but never extracts or uses `pendingAmount`. The auto-load logic (lines 194–253) populates components with full RPC amounts and caps `maxAmounts` to those full values.
+## Fix
 
-## Fix (single file: `src/pages/cashier/C3Payments.tsx`)
+**Single migration** that:
 
-After the components are loaded from the RPC (around line 241), check if `navState.pendingAmount` exists. If so:
+1. **Drops ALL existing overloads** of `create_c3_payment_with_receipt` (both the version with defaults and the version without)
+2. **Recreates a single canonical version** using the latest logic from the most recent migration (`20260331235340`), which includes card machine handling, sequential allocation, and all current features
 
-1. Parse the pending amount from navState
-2. Pro-rate each component proportionally: `component.amount = fullAmount × (pendingAmount / totalFullAmount)`, with rounding correction on the last component
-3. Set `maxAmounts` to the **pro-rated** values (not the full values), so the user cannot exceed the pending balance
-4. The C3 Amount, footer totals, and difference will then correctly show $11.44
+### Migration SQL (summary)
 
-### Pro-ration Example
+```sql
+-- Drop all overloads
+DROP FUNCTION IF EXISTS public.create_c3_payment_with_receipt(text,text,text,text,text,jsonb,jsonb,numeric,text);
+DROP FUNCTION IF EXISTS public.create_c3_payment_with_receipt(text,text,text,date,text,jsonb,jsonb,numeric,text);
 
-For payer 658852 with `pendingAmount = 11.44` and full total = $411.44:
-- SSC: 244.64 × (11.44 / 411.44) = **6.80**
-- LVC: 144.56 × (11.44 / 411.44) = **4.02**
-- PEC: 22.24 × (11.44 / 411.44) = **0.62**
-- Total: **11.44** ✓
+-- Recreate single version with defaults (from latest migration 20260331)
+CREATE FUNCTION public.create_c3_payment_with_receipt(
+  p_batch_number TEXT,
+  p_payer_type TEXT,
+  p_payer_id TEXT,
+  p_date_received TEXT,
+  p_remarks TEXT DEFAULT NULL,
+  p_components JSONB DEFAULT '[]'::jsonb,
+  p_methods JSONB DEFAULT '[]'::jsonb,
+  p_receipt_total NUMERIC DEFAULT 0,
+  p_user_code TEXT DEFAULT 'SYSTEM'
+) RETURNS JSONB ...
+```
 
-### No other files change
+The function body will be copied exactly from the latest migration (`20260331235340`, lines 452–696).
 
-The RPC, navigation state passing, and payment processing logic remain untouched.
+### No code changes
+
+The frontend call in `C3Payments.tsx` already passes `p_date_received` as a TEXT string via `formatDateForStorage()`. Once the duplicate overload is removed, PostgREST will resolve to the single remaining function without ambiguity.
 
