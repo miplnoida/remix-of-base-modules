@@ -417,6 +417,19 @@ const WorkflowInstanceDetail: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                    {/* Assign button for pending unassigned tasks */}
+                    {task.status === 'Pending' && !task.assigned_to && (
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenAssignDialog(task.id, task.step_name)}
+                        >
+                          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                          Assign
+                        </Button>
+                      </div>
+                    )}
                     {task.action_taken && (
                       <div className="mt-2 text-sm">
                         <span className="font-medium">Action:</span> {task.action_taken}
