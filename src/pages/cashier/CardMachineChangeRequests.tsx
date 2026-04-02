@@ -81,6 +81,7 @@ function RequestDetailModal({
     return m ? `${m.machine_code} — ${m.machine_name}` : id;
   };
 
+  const [remarks, setRemarks] = useState('');
   const { userCode } = useUserCode();
   const executeAction = useExecuteWorkflowAction();
   const queryClient = useQueryClient();
