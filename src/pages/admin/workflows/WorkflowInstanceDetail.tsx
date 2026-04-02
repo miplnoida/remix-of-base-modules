@@ -447,6 +447,47 @@ const WorkflowInstanceDetail: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Assign Task Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Task</DialogTitle>
+            <DialogDescription>
+              Select an active user to assign this task to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <SearchableSelect
+              options={(activeUsers || []).map((u) => ({
+                value: u.id,
+                label: u.full_name || 'Unknown',
+                searchText: u.user_code || '',
+              }))}
+              value={selectedUserId}
+              onValueChange={setSelectedUserId}
+              placeholder="Select a user..."
+              searchPlaceholder="Search by name or code..."
+              emptyMessage="No active users found."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmAssign}
+              disabled={!selectedUserId || assignTask.isPending}
+            >
+              {assignTask.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Assigning...</>
+              ) : (
+                'Confirm'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
