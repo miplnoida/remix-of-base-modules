@@ -760,6 +760,7 @@ import VcContribRateManagement from '@/pages/admin/master-data/VcContribRateMana
 import VcEligibilityConfigManagement from '@/pages/admin/master-data/VcEligibilityConfigManagement';
 import VerifyManagement from '@/pages/admin/master-data/VerifyManagement';
 import VillagesManagement from '@/pages/admin/master-data/VillagesManagement';
+import DesignationMasterManagement from '@/pages/admin/master-data/DesignationMasterManagement';
 
 // Contribution Payments Module
 import PaymentDataEntry from '@/pages/cashier/PaymentDataEntry';
