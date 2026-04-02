@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -8,6 +8,7 @@ import {
   Clock, 
   XCircle,
   User,
+  UserPlus,
   Calendar,
   FileText,
   Loader2,
@@ -17,10 +18,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
 import { 
   useWorkflowInstanceDetail, 
   useWorkflowInstanceHistory,
-  useWorkflowInstanceTasks 
+  useWorkflowInstanceTasks,
+  useActiveUsers,
+  useAssignWorkflowTask
 } from '@/hooks/useWorkflowInstances';
 
 const WorkflowInstanceDetail: React.FC = () => {
