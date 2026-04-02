@@ -5,17 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Filter, CheckCircle2, XCircle, Clock, Eye } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useCardMachineChangeRequestsForApprover, CardMachineChangeRequest } from '@/hooks/useCardMachineChangeRequests';
-import { useWorkflowActions } from '@/hooks/useWorkflowActions';
+import { useWorkflowActions, useExecuteWorkflowAction } from '@/hooks/useWorkflowActions';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const ALL_STATUSES = ['Pending', 'InProgress', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
 
@@ -79,22 +81,29 @@ function RequestDetailModal({
     return m ? `${m.machine_code} — ${m.machine_name}` : id;
   };
 
-  // Workflow action remarks
   const [remarks, setRemarks] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const { userCode } = useUserCode();
+  const executeAction = useExecuteWorkflowAction();
+  const queryClient = useQueryClient();
 
-  const handleWorkflowAction = async (actionId: string, actionType: string) => {
-    if (!workflowCtx.taskId || !workflowCtx.instanceId) return;
-    setActionLoading(true);
+  const handleWorkflowAction = async (actionId: string) => {
+    if (!workflowCtx.taskId || !workflowCtx.instanceId || !request) return;
     try {
-      // Use the executeWorkflowAction from the hook - we need to import the mutation
-      // For now, call directly via supabase updates following the same pattern
-      // The useWorkflowActions hook exposes actions but execution is via useExecuteWorkflowAction
-      // We'll re-use the existing hook pattern by rendering action buttons
-    } catch (err) {
-      console.error('Workflow action error:', err);
-    } finally {
-      setActionLoading(false);
+      await executeAction.mutateAsync({
+        taskId: workflowCtx.taskId,
+        actionId,
+        comments: remarks || undefined,
+        sourceModule: 'batch_card_machine_change',
+        sourceRecordId: request.id,
+      });
+      toast.success('Workflow action completed successfully');
+      setRemarks('');
+      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ['card-machine-change-requests-approver'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-logs-for-request'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to execute workflow action');
     }
   };
 
@@ -108,6 +117,7 @@ function RequestDetailModal({
             Change Request Details
             <Badge variant={statusVariant(request.status)}>{request.status}</Badge>
           </DialogTitle>
+          <DialogDescription className="sr-only">View and manage card machine change request details</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -169,8 +179,8 @@ function RequestDetailModal({
                       key={action.id}
                       variant={action.action_type === 'Reject' ? 'destructive' : 'default'}
                       size="sm"
-                      disabled={actionLoading || (action.remarks_required && !remarks.trim())}
-                      onClick={() => handleWorkflowAction(action.id, action.action_type)}
+                      disabled={executeAction.isPending || (action.remarks_required && !remarks.trim())}
+                      onClick={() => handleWorkflowAction(action.id)}
                     >
                       {action.action_name}
                     </Button>
