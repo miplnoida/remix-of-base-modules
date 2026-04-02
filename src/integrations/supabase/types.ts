@@ -19197,6 +19197,7 @@ export type Database = {
           middle_name: string | null
           office_code: string | null
           phone: string | null
+          reporting_to_user_id: string | null
           title: string | null
           updated_at: string | null
           updated_by: string | null
@@ -19225,6 +19226,7 @@ export type Database = {
           middle_name?: string | null
           office_code?: string | null
           phone?: string | null
+          reporting_to_user_id?: string | null
           title?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -19253,6 +19255,7 @@ export type Database = {
           middle_name?: string | null
           office_code?: string | null
           phone?: string | null
+          reporting_to_user_id?: string | null
           title?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -19279,6 +19282,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }

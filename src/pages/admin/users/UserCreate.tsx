@@ -9,9 +9,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Save, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTbOffices, useDepartments } from "@/hooks/useAdminData";
-import { useDesignations } from "@/hooks/useDesignations";
+import { useDesignations, useHigherDesignationUsers } from "@/hooks/useDesignations";
 import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 const UserCreate = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const UserCreate = () => {
     office_code: "",
     department_id: "",
     designation_id: "",
+    reporting_to_user_id: "",
     password: "",
     confirm_password: "",
   });
@@ -38,6 +40,7 @@ const UserCreate = () => {
   const { data: offices = [] } = useTbOffices();
   const { data: departments = [] } = useDepartments(selectedOfficeCode);
   const { data: designations = [] } = useDesignations();
+  const { data: higherUsers = [], isLoading: isLoadingHigherUsers } = useHigherDesignationUsers(formData.designation_id || undefined);
   const { data: passwordPolicy } = usePasswordPolicy();
 
   const passwordValidation = validatePassword(formData.password, passwordPolicy);
@@ -47,6 +50,10 @@ const UserCreate = () => {
 
   const clearError = (field: string) => {
     setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  const handleDesignationChange = (v: string) => {
+    setFormData(prev => ({ ...prev, designation_id: v, reporting_to_user_id: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,6 +114,7 @@ const UserCreate = () => {
             office_code: formData.office_code || null,
             department_id: formData.department_id || null,
             designation_id: formData.designation_id || null,
+            reporting_to_user_id: formData.reporting_to_user_id || null,
           }),
         }
       );
@@ -126,6 +134,12 @@ const UserCreate = () => {
       setIsSubmitting(false);
     }
   };
+
+  const higherUserOptions = higherUsers.map(u => ({
+    value: u.id,
+    label: `${u.full_name} (${u.designation_name})`,
+    searchText: u.designation_name,
+  }));
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -245,17 +259,33 @@ const UserCreate = () => {
               </div>
             </div>
 
-            {/* Designation */}
-            <div className="space-y-2">
-              <Label htmlFor="designation_id">Designation</Label>
-              <Select value={formData.designation_id} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
-                <SelectContent>
-                  {designations.filter(d => d.is_active).map(designation => (
-                    <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Designation & Reporting To */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="designation_id">Designation</Label>
+                <Select value={formData.designation_id} onValueChange={handleDesignationChange}>
+                  <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                  <SelectContent>
+                    {designations.filter(d => d.is_active).map(designation => (
+                      <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {higherUsers.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="reporting_to_user_id">Reporting To</Label>
+                  <SearchableSelect
+                    options={higherUserOptions}
+                    value={formData.reporting_to_user_id}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, reporting_to_user_id: v }))}
+                    placeholder="Select supervisor (optional)"
+                    searchPlaceholder="Search by name or designation..."
+                    emptyMessage="No users found."
+                    disabled={isLoadingHigherUsers}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Password */}

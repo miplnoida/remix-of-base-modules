@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { useUserProfile, useUpdateUserProfile, useTbOffices, useDepartments } from "@/hooks/useAdminData";
-import { useDesignations } from "@/hooks/useDesignations";
+import { useDesignations, useHigherDesignationUsers } from "@/hooks/useDesignations";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 const UserEdit = () => {
   const navigate = useNavigate();
@@ -36,7 +37,10 @@ const UserEdit = () => {
     office_code: "",
     department_id: "",
     designation_id: "",
+    reporting_to_user_id: "",
   });
+
+  const { data: higherUsers = [], isLoading: isLoadingHigherUsers } = useHigherDesignationUsers(formData.designation_id || undefined);
 
   useEffect(() => {
     if (user) {
@@ -54,6 +58,7 @@ const UserEdit = () => {
         office_code: officeCode,
         department_id: user.department_id || "",
         designation_id: (user as any).designation_id || "",
+        reporting_to_user_id: (user as any).reporting_to_user_id || "",
       });
       setSelectedOfficeId(officeCode);
       setIsFormReady(true);
@@ -62,6 +67,10 @@ const UserEdit = () => {
 
   const clearError = (field: string) => {
     setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  const handleDesignationChange = (v: string) => {
+    setFormData(prev => ({ ...prev, designation_id: v, reporting_to_user_id: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,7 +97,7 @@ const UserEdit = () => {
         department_id: formData.department_id || null,
         designation_id: formData.designation_id || null,
         date_of_birth: formData.date_of_birth || null,
-      });
+      } as any);
       toast.success("User updated successfully");
       navigate(`/admin/users/${userId}`);
     } catch (error: any) {
@@ -115,6 +124,12 @@ const UserEdit = () => {
   if (!isFormReady) {
     return <div className="flex items-center justify-center h-64">Preparing form...</div>;
   }
+
+  const higherUserOptions = higherUsers.map(u => ({
+    value: u.id,
+    label: `${u.full_name} (${u.designation_name})`,
+    searchText: u.designation_name,
+  }));
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -248,18 +263,35 @@ const UserEdit = () => {
               </div>
             </div>
 
-            {/* Designation */}
-            <div className="space-y-2">
-              <Label htmlFor="designation_id">Designation</Label>
-              <Select value={formData.designation_id || undefined} onValueChange={(v) => setFormData({...formData, designation_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
-                <SelectContent>
-                  {designations.filter(d => d.is_active).map(designation => (
-                    <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Designation & Reporting To */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="designation_id">Designation</Label>
+                <Select value={formData.designation_id || undefined} onValueChange={handleDesignationChange}>
+                  <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                  <SelectContent>
+                    {designations.filter(d => d.is_active).map(designation => (
+                      <SelectItem key={designation.id} value={designation.id}>{designation.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {higherUsers.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="reporting_to_user_id">Reporting To</Label>
+                  <SearchableSelect
+                    options={higherUserOptions}
+                    value={formData.reporting_to_user_id}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, reporting_to_user_id: v }))}
+                    placeholder="Select supervisor (optional)"
+                    searchPlaceholder="Search by name or designation..."
+                    emptyMessage="No users found."
+                    disabled={isLoadingHigherUsers}
+                  />
+                </div>
+              )}
             </div>
+
             <div className="flex justify-end gap-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => navigate(`/admin/users/${userId}`)}>Cancel</Button>
               <Button type="submit" disabled={updateUser.isPending}>
