@@ -95,6 +95,7 @@ const WorkflowInstanceDetail: React.FC = () => {
     );
   };
 
+  const getActionIcon = (action: string) => {
     const actionLower = action.toLowerCase();
     if (actionLower.includes('approve') || actionLower.includes('complete')) {
       return <CheckCircle2 className="h-4 w-4 text-green-600" />;
