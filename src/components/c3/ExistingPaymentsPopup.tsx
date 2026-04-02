@@ -63,7 +63,8 @@ export const ExistingPaymentsPopup: React.FC<ExistingPaymentsPopupProps> = ({
         const matching = records.filter(
           (r) =>
             r.period_month_number === record.month_number &&
-            r.period_year === record.year
+            r.period_year === record.year &&
+            r.schedule_no === record.schedule
         );
 
         // Flatten all pay_details from matching records
