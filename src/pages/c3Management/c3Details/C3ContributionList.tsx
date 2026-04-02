@@ -375,6 +375,17 @@ const C3ContributionList: React.FC = () => {
           transactionId={receiptModalRecord.transaction_id}
         />
       )}
+
+      {/* Existing Payments Popup */}
+      {paymentHistoryRecord && (
+        <ExistingPaymentsPopup
+          open={paymentHistoryOpen}
+          onClose={() => { setPaymentHistoryOpen(false); setPaymentHistoryRecord(null); }}
+          record={paymentHistoryRecord}
+          companyId={Number(selectedCompanyId)}
+          onContinueToPayment={navigateToPayment}
+        />
+      )}
     </div>
   );
 };
