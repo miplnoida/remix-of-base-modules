@@ -5781,6 +5781,85 @@ export type Database = {
           },
         ]
       }
+      cn_card_machine_change_requests: {
+        Row: {
+          batch_number: string
+          comment: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          current_card_machine_id: string | null
+          id: string
+          payment_id: number
+          payment_sequence_no: number
+          requested_at: string
+          requested_by: string
+          requested_card_machine_id: string | null
+          skip_comment: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          batch_number: string
+          comment: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_card_machine_id?: string | null
+          id?: string
+          payment_id: number
+          payment_sequence_no: number
+          requested_at?: string
+          requested_by: string
+          requested_card_machine_id?: string | null
+          skip_comment?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          batch_number?: string
+          comment?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_card_machine_id?: string | null
+          id?: string
+          payment_id?: number
+          payment_sequence_no?: number
+          requested_at?: string
+          requested_by?: string
+          requested_card_machine_id?: string | null
+          skip_comment?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cn_card_machine_change_requests_current_card_machine_id_fkey"
+            columns: ["current_card_machine_id"]
+            isOneToOne: false
+            referencedRelation: "cn_card_machine"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cn_card_machine_change_requests_requested_card_machine_id_fkey"
+            columns: ["requested_card_machine_id"]
+            isOneToOne: false
+            referencedRelation: "cn_card_machine"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cn_card_machine_change_requests_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cn_cash_count: {
         Row: {
           batch_number: string
