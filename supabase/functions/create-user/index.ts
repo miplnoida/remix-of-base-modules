@@ -191,6 +191,7 @@ Deno.serve(async (req: Request) => {
         office_code: resolvedOfficeCode,
         department_id: department_id || null,
         designation_id: designation_id || null,
+        reporting_to_user_id: reporting_to_user_id || null,
         is_active: true,
         force_password_change: true,
       });

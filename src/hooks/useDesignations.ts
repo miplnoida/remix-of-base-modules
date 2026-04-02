@@ -154,3 +154,78 @@ export function useDeleteDesignationHierarchy() {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
+// Higher Designation Users — returns users with designations above the given one
+export interface HigherDesignationUser {
+  id: string;
+  full_name: string;
+  designation_id: string;
+  designation_name: string;
+}
+
+export function useHigherDesignationUsers(designationId: string | undefined) {
+  return useQuery({
+    queryKey: ['higher-designation-users', designationId],
+    queryFn: async (): Promise<HigherDesignationUser[]> => {
+      if (!designationId) return [];
+
+      // Step 1: Get the hierarchy entry for the selected designation
+      const { data: hierarchyEntry, error: hError } = await supabase
+        .from('designation_hierarchy')
+        .select('parent_designation_id')
+        .eq('designation_id', designationId)
+        .maybeSingle();
+
+      if (hError) throw hError;
+      if (!hierarchyEntry?.parent_designation_id) return [];
+
+      // Step 2: Walk up the hierarchy to collect all ancestor designation IDs
+      const ancestorIds: string[] = [];
+      let currentParentId: string | null = hierarchyEntry.parent_designation_id;
+
+      while (currentParentId) {
+        ancestorIds.push(currentParentId);
+        const { data: parentEntry, error: pError } = await supabase
+          .from('designation_hierarchy')
+          .select('parent_designation_id')
+          .eq('designation_id', currentParentId)
+          .maybeSingle();
+
+        if (pError) break;
+        currentParentId = parentEntry?.parent_designation_id || null;
+        // Safety: prevent infinite loops
+        if (currentParentId && ancestorIds.includes(currentParentId)) break;
+      }
+
+      if (ancestorIds.length === 0) return [];
+
+      // Step 3: Get all active users with those designations
+      const { data: users, error: uError } = await (supabase as any)
+        .from('profiles')
+        .select('id, full_name, designation_id')
+        .in('designation_id', ancestorIds)
+        .eq('is_active', true);
+
+      if (uError) throw uError;
+      if (!users || users.length === 0) return [];
+
+      // Step 4: Get designation names for these users
+      const { data: desigs, error: dError } = await (supabase as any)
+        .from('tb_designations')
+        .select('id, name')
+        .in('id', ancestorIds);
+
+      if (dError) throw dError;
+
+      const desigMap = new Map((desigs || []).map((d: any) => [d.id, d.name]));
+
+      return users.map((u: any) => ({
+        id: u.id,
+        full_name: u.full_name || 'Unknown',
+        designation_id: u.designation_id,
+        designation_name: desigMap.get(u.designation_id) || 'Unknown',
+      }));
+    },
+    enabled: !!designationId,
+  });
+}
