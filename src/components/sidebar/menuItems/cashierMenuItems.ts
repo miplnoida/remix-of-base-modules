@@ -134,7 +134,7 @@ export const cashierMenuItems = [
         title: "Card Machine Change Requests",
         url: "/cashier/card-machine-change-requests",
         icon: CreditCard,
-        requiresPermission: "cashier_operations"
+        requiresPermission: "batch_detail_change_requests"
       },
       {
         title: "GL Posting Summary",

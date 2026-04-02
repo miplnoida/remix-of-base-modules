@@ -222,7 +222,7 @@ const CardMachineChangeRequests: React.FC = () => {
   const { data: requests, isLoading } = useCardMachineChangeRequestsForApprover(filters);
 
   return (
-    <PermissionWrapper moduleName="cashier_operations">
+    <PermissionWrapper moduleName="batch_detail_change_requests">
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Card Machine Change Requests</h1>
