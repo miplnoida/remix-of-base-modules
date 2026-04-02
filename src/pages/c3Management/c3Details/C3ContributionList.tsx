@@ -20,6 +20,7 @@ import {
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import C3ContributionPreview from './previews/C3ContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
+import { ExistingPaymentsPopup } from '@/components/c3/ExistingPaymentsPopup';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
@@ -53,6 +54,10 @@ const C3ContributionList: React.FC = () => {
   // Receipt modal (Paid button)
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptModalRecord, setReceiptModalRecord] = useState<C3ContributionRecord | null>(null);
+
+  // Existing payments popup
+  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
+  const [paymentHistoryRecord, setPaymentHistoryRecord] = useState<C3ContributionRecord | null>(null);
 
   useEffect(() => {
     getCompaniesDropdown().then(res => {
@@ -114,8 +119,14 @@ const C3ContributionList: React.FC = () => {
     navigate(`/c3-management/offline-payment/c3/${record.header_id}?companyId=${selectedCompanyId}`);
   };
 
-  // "Payment" → navigate to C3 Payments cashier screen
-  const handlePayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
+  // "Payment" → open existing payments popup first
+  const handlePayment = (record: C3ContributionRecord) => {
+    setPaymentHistoryRecord(record);
+    setPaymentHistoryOpen(true);
+  };
+
+  // Actual navigation to cashier screen (called from popup)
+  const navigateToPayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
     navigate('/cashier/c3-payments', {
@@ -298,7 +309,7 @@ const C3ContributionList: React.FC = () => {
                               variant="outline"
                               size="sm"
                               className="border-blue-500 text-blue-600 text-xs h-7"
-                              onClick={() => handlePayment(c, c.pending_amount)}
+                              onClick={() => handlePayment(c)}
                             >
                               Payment
                             </Button>
@@ -362,6 +373,17 @@ const C3ContributionList: React.FC = () => {
           headerId={receiptModalRecord.header_id}
           entityType="c3"
           transactionId={receiptModalRecord.transaction_id}
+        />
+      )}
+
+      {/* Existing Payments Popup */}
+      {paymentHistoryRecord && (
+        <ExistingPaymentsPopup
+          open={paymentHistoryOpen}
+          onClose={() => { setPaymentHistoryOpen(false); setPaymentHistoryRecord(null); }}
+          record={paymentHistoryRecord}
+          companyId={Number(selectedCompanyId)}
+          onContinueToPayment={navigateToPayment}
         />
       )}
     </div>
