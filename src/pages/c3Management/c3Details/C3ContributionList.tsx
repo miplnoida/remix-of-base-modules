@@ -119,8 +119,14 @@ const C3ContributionList: React.FC = () => {
     navigate(`/c3-management/offline-payment/c3/${record.header_id}?companyId=${selectedCompanyId}`);
   };
 
-  // "Payment" → navigate to C3 Payments cashier screen
-  const handlePayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
+  // "Payment" → open existing payments popup first
+  const handlePayment = (record: C3ContributionRecord) => {
+    setPaymentHistoryRecord(record);
+    setPaymentHistoryOpen(true);
+  };
+
+  // Actual navigation to cashier screen (called from popup)
+  const navigateToPayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
     navigate('/cashier/c3-payments', {
