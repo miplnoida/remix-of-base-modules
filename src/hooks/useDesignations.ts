@@ -60,8 +60,8 @@ export function useUpdateDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'update'],
     mutationFn: async ({ id, ...data }: Partial<Designation> & { id: string }) => {
-      const { data: result, error } = await supabase
-        .from('designations')
+      const { data: result, error } = await (supabase as any)
+        .from('tb_designations')
         .update(data)
         .eq('id', id)
         .select()
