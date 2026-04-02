@@ -62,7 +62,39 @@ const WorkflowInstanceDetail: React.FC = () => {
     }
   };
 
-  const getActionIcon = (action: string) => {
+  const handleOpenAssignDialog = (taskId: string, stepName: string) => {
+    setAssigningTask({ id: taskId, stepName });
+    setSelectedUserId('');
+    setAssignDialogOpen(true);
+  };
+
+  const handleConfirmAssign = () => {
+    if (!assigningTask || !selectedUserId || !id) return;
+    const user = activeUsers?.find((u) => u.id === selectedUserId);
+    if (!user) return;
+
+    assignTask.mutate(
+      {
+        taskId: assigningTask.id,
+        assignToUserId: user.id,
+        assignToUserName: user.full_name || 'Unknown',
+        instanceId: id,
+        stepName: assigningTask.stepName,
+        assignedByUserCode: userCode || 'SYSTEM',
+      },
+      {
+        onSuccess: () => {
+          toast.success('Task assigned successfully');
+          setAssignDialogOpen(false);
+          setAssigningTask(null);
+        },
+        onError: (err: any) => {
+          toast.error('Failed to assign task', { description: err.message });
+        },
+      }
+    );
+  };
+
     const actionLower = action.toLowerCase();
     if (actionLower.includes('approve') || actionLower.includes('complete')) {
       return <CheckCircle2 className="h-4 w-4 text-green-600" />;
