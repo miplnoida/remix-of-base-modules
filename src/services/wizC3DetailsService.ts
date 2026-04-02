@@ -97,6 +97,9 @@ export interface SeContributionRecord {
   payment_status: string;
   payment_id: number | null;
   transaction_id?: string | null;
+  payment_amount?: number | null;
+  pending_amount?: number | null;
+  is_partially_paid?: boolean;
 }
 
 export interface SelfEmployedDropdownItem {
