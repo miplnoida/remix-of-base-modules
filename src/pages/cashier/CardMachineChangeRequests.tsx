@@ -80,22 +80,28 @@ function RequestDetailModal({
     return m ? `${m.machine_code} — ${m.machine_name}` : id;
   };
 
-  // Workflow action remarks
-  const [remarks, setRemarks] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const { userCode } = useUserCode();
+  const executeAction = useExecuteWorkflowAction();
+  const queryClient = useQueryClient();
 
-  const handleWorkflowAction = async (actionId: string, actionType: string) => {
-    if (!workflowCtx.taskId || !workflowCtx.instanceId) return;
-    setActionLoading(true);
+  const handleWorkflowAction = async (actionId: string) => {
+    if (!workflowCtx.taskId || !workflowCtx.instanceId || !request) return;
     try {
-      // Use the executeWorkflowAction from the hook - we need to import the mutation
-      // For now, call directly via supabase updates following the same pattern
-      // The useWorkflowActions hook exposes actions but execution is via useExecuteWorkflowAction
-      // We'll re-use the existing hook pattern by rendering action buttons
-    } catch (err) {
-      console.error('Workflow action error:', err);
-    } finally {
-      setActionLoading(false);
+      await executeAction.mutateAsync({
+        taskId: workflowCtx.taskId,
+        actionId,
+        comments: remarks || undefined,
+        sourceModule: 'batch_card_machine_change',
+        sourceRecordId: request.id,
+      });
+      toast.success('Workflow action completed successfully');
+      setRemarks('');
+      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ['card-machine-change-requests-approver'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-logs-for-request'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to execute workflow action');
     }
   };
 
