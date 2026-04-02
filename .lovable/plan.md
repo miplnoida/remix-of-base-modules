@@ -1,72 +1,68 @@
 
 
-# Rename `designations` → `tb_designations` and Create Master Data Screen
+# Add "Reporting To" Dropdown Based on Designation Hierarchy
 
-## Current Usage Analysis
+## Overview
+When a user selects a Designation on the Create/Edit User screens, the system checks the `designation_hierarchy` table. If the selected designation has a parent (higher) designation, a "Reporting To" dropdown appears next to it showing all users who hold that higher designation. Selection is optional. If no parent designation exists or no users hold the parent designation, the dropdown stays hidden.
 
-The `designations` table **IS actively used** across the application:
+## Database Migration
 
-| Location | Usage |
-|----------|-------|
-| `profiles.designation_id` | FK column referencing designations |
-| `designation_hierarchy` table | FK columns `designation_id`, `parent_designation_id` |
-| `workflow_tasks.assigned_designation` | References designation |
-| `workflow_steps.assigned_designation` | References designation |
-| `workflow_steps.approver_designation_ids` | References designation |
-| `ia_distribution_recipients.designation` | References designation |
-| `UserEdit.tsx`, `UserCreate.tsx` | Dropdown for designation selection |
-| `DesignationManagement.tsx` | Existing CRUD screen (non-standard, at `/admin/designations`) |
-| `DesignationHierarchy.tsx` | Hierarchy management screen |
-| `useDesignations.ts` | Data hook for all CRUD operations |
-| `AppRoutes.tsx` | Routes for both screens |
-
-Despite being used, the table does not follow the `tb_` naming convention. The existing CRUD screen is also not in the master data section.
-
----
-
-## Plan
-
-### 1. Database Migration — Rename Table
-Rename `designations` → `tb_designations` (the `designation_hierarchy` table stays as-is since the user only asked about the designations table; its FKs will be updated to point to the renamed table).
+Add a `reporting_to_user_id` column to the `profiles` table:
 
 ```sql
-ALTER TABLE designations RENAME TO tb_designations;
+ALTER TABLE profiles ADD COLUMN reporting_to_user_id uuid REFERENCES profiles(id);
 ```
 
-### 2. Update Hook — `useDesignations.ts`
-Change all `.from('designations')` calls to `.from('tb_designations')` (using `as any` cast for type safety until types regenerate). Keep all hook names and exports the same for backward compatibility.
+## New Hook — `useHigherDesignationUsers`
 
-### 3. Create Master Data Screen — `src/pages/admin/master-data/DesignationManagement.tsx`
-Create a new master data page following the existing pattern (like `ActivityManagement.tsx`):
-- Uses `PermissionWrapper` and `useActionPermissions` with module `"md_designations"`
-- Full CRUD: View, Add, Edit, Delete with proper dialogs
-- Uses `PageShell` for consistent layout
-- Queries `tb_designations` directly via Supabase client
-- Columns: Name, Description, Status (Active/Inactive), Actions
-- Audit fields: `created_by`/`updated_by` populated via `useUserCode()`
+**File: `src/hooks/useDesignations.ts`** — Add a new hook:
 
-### 4. Add to Master Data Menu — `masterDataMenuItems.ts`
-Add a "Designations" entry under the General sub-group:
 ```typescript
-{ title: "Designations", url: "/admin/master-data/designations", icon: Award, requiresPermission: "master_data" }
+export function useHigherDesignationUsers(designationId: string | undefined)
 ```
 
-### 5. Update Routes — `AppRoutes.tsx`
-- Add new route: `/admin/master-data/designations` → new `DesignationManagement` page
-- Keep existing `/admin/designations` route pointing to old page (or redirect) to avoid breaking `DesignationHierarchy` and user management flows
-- Update old `DesignationManagement` import if needed
+Logic:
+1. Query `designation_hierarchy` to find the `parent_designation_id` for the given `designation_id`
+2. If a parent exists, walk UP the hierarchy collecting all ancestor designation IDs
+3. Query `profiles` where `designation_id` is in the ancestor designation IDs AND `is_active = true`
+4. Return `{ users, isLoading }` — users array with `id`, `full_name`, `designation_id`, and the designation name
+5. If no parent or no users found, return empty array
 
-### 6. Update Dependent Files
-- **`UserEdit.tsx`** and **`UserCreate.tsx`**: Already use `useDesignations()` hook — no change needed since hook API stays the same
-- **`DesignationHierarchy.tsx`**: Uses `useDesignations()` and `useDesignationHierarchy()` hooks — the hierarchy hook queries `designation_hierarchy` table which still references `tb_designations` via FK; update the join references in the hook
+## UI Changes — Both `UserCreate.tsx` and `UserEdit.tsx`
 
-### Files Changed
+### Form State
+- Add `reporting_to_user_id: ""` to `formData`
+
+### Designation Section
+Replace the single Designation field with a 2-column grid:
+
+```
+| Designation (dropdown)          | Reporting To (dropdown, conditional) |
+```
+
+- When `designation_id` changes, call `useHigherDesignationUsers(designation_id)`
+- Clear `reporting_to_user_id` when designation changes
+- If `higherUsers.length > 0`, show the "Reporting To" `SearchableSelect` with user names
+- If `higherUsers.length === 0`, hide the "Reporting To" dropdown entirely
+- Selection is NOT mandatory
+
+### Data Submission
+- **UserCreate.tsx**: Add `reporting_to_user_id` to the edge function request body
+- **UserEdit.tsx**: Include `reporting_to_user_id` in the update payload (already handled by `useUpdateUserProfile` generic spread)
+
+## Edge Function Update
+
+**File: `supabase/functions/create-user/index.ts`**
+- Accept `reporting_to_user_id` from request body
+- Include it in the profile insert: `reporting_to_user_id: reporting_to_user_id || null`
+
+## Files Changed
 
 | File | Action |
 |------|--------|
-| Database migration | Rename `designations` → `tb_designations` |
-| `src/hooks/useDesignations.ts` | Update table name from `'designations'` to `'tb_designations'` |
-| `src/pages/admin/master-data/DesignationManagement.tsx` | **Create** — new master data CRUD page |
-| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add Designations menu entry |
-| `src/components/routing/AppRoutes.tsx` | Add master data route |
+| Database migration | Add `reporting_to_user_id` column to `profiles` |
+| `src/hooks/useDesignations.ts` | Add `useHigherDesignationUsers` hook |
+| `src/pages/admin/users/UserCreate.tsx` | Add reporting-to dropdown logic |
+| `src/pages/admin/users/UserEdit.tsx` | Add reporting-to dropdown logic + load existing value |
+| `supabase/functions/create-user/index.ts` | Accept and store `reporting_to_user_id` |
 
