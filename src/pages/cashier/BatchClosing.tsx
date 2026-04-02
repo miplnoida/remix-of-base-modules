@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark, CreditCard } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark, CreditCard, Send, SkipForward } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -16,6 +18,16 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
 import { useOfficeCardMachines } from '@/hooks/useOfficeCardMachines';
+import {
+  useCardMachineChangeRequests,
+  useCreateCardMachineChangeRequest,
+  useApplyCardMachineChange,
+  useSkipApprovedChange,
+  getActiveRequest,
+  hasBlockingRequests,
+  getApprovedPendingRequests,
+  CardMachineChangeRequest,
+} from '@/hooks/useCardMachineChangeRequests';
 
 const PHYSICAL_MOP_CODES = ['CSH', 'CHQ', 'CRD', 'DRD'];
 
@@ -57,6 +69,17 @@ interface CardMachineTotalRow {
   total_amount: number;
 }
 
+const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' | 'success' => {
+  switch (status) {
+    case 'Pending': case 'InProgress': return 'warning';
+    case 'Approved': return 'success';
+    case 'Rejected': return 'destructive';
+    case 'Completed': return 'secondary';
+    case 'Cancelled': return 'outline';
+    default: return 'secondary';
+  }
+};
+
 const BatchClosing: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -71,25 +94,45 @@ const BatchClosing: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [batchClosed, setBatchClosed] = useState(false);
 
-  // Enhanced data
   const [chequeInfo, setChequeInfo] = useState<ChequeInfo>({ total: 0, verified: 0, unverified: 0 });
   const [batchPayments, setBatchPayments] = useState<BatchPaymentRow[]>([]);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
 
-  // Card machine totals section
   const [cardMachineTotals, setCardMachineTotals] = useState<CardMachineTotalRow[]>([]);
   const [cardMachineSectionOpen, setCardMachineSectionOpen] = useState(false);
 
-  // Payment method detail modal
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [methodModalPayment, setMethodModalPayment] = useState<BatchPaymentRow | null>(null);
   const [methodModalDetails, setMethodModalDetails] = useState<PaymentMethodDetail[]>([]);
   const [methodModalLoading, setMethodModalLoading] = useState(false);
-  const [updatingMachineId, setUpdatingMachineId] = useState<string | null>(null);
 
-  // Office card machines for dropdowns
+  // Change request dialog state
+  const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
+  const [changeRequestTarget, setChangeRequestTarget] = useState<PaymentMethodDetail | null>(null);
+  const [changeRequestComment, setChangeRequestComment] = useState('');
+
+  // Apply change dialog state
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
+  const [applyTarget, setApplyTarget] = useState<{ request: CardMachineChangeRequest; detail: PaymentMethodDetail } | null>(null);
+  const [applyMachineId, setApplyMachineId] = useState('');
+
+  // Skip approval dialog state
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  const [skipTarget, setSkipTarget] = useState<CardMachineChangeRequest | null>(null);
+  const [skipComment, setSkipComment] = useState('');
+
+  // Batch close guard dialog
+  const [batchCloseGuardOpen, setBatchCloseGuardOpen] = useState(false);
+
   const officeCode = batchSel.selectedBatch?.office_code;
   const { allMachines } = useOfficeCardMachines(officeCode);
+
+  // Change requests for this batch
+  const batchNumber = batchSel.selectedBatch?.batch_number;
+  const { data: changeRequests = [], refetch: refetchChangeRequests } = useCardMachineChangeRequests(batchNumber);
+  const createChangeRequest = useCreateCardMachineChangeRequest();
+  const applyChange = useApplyCardMachineChange();
+  const skipApproval = useSkipApprovedChange();
 
   useEffect(() => {
     const fetchMops = async () => {
@@ -109,7 +152,6 @@ const BatchClosing: React.FC = () => {
   const fetchTotals = useCallback(async (batchNumber: string) => {
     setLoading(true);
     try {
-      // ---- Physical CSH ----
       const { data: cashRows } = await supabase
         .from('cn_cash_count')
         .select('count, denomination_id, currency_id')
@@ -136,7 +178,6 @@ const BatchClosing: React.FC = () => {
         }
       }
 
-      // ---- Physical CHQ from verified cheques + cheque info ----
       let physChq = 0;
       let chqTotal = 0, chqVerified = 0, chqUnverified = 0;
       const { data: chqData } = await supabase.rpc('get_batch_cheques_for_verification' as any, {
@@ -168,7 +209,6 @@ const BatchClosing: React.FC = () => {
       }
       setChequeInfo({ total: chqTotal, verified: chqVerified, unverified: chqUnverified });
 
-      // ---- System totals for ALL MOPs (single source: cn_payment) ----
       const { data: headers } = await supabase
         .from('cn_payment_header')
         .select('payment_id, payer_id, status')
@@ -176,29 +216,23 @@ const BatchClosing: React.FC = () => {
         .or('status.is.null,status.eq.active');
 
       const sysTotals: Record<string, number> = {};
-
-      // Card machine totals accumulator
       const cmTotalsMap: Record<string, { machine_code: string; machine_name: string; card_type_support: string; txn_count: number; total_amount: number }> = {};
 
       if (headers && headers.length > 0) {
         const paymentIds = headers.map(h => h.payment_id);
 
-        // Fetch receipts and payments in parallel (include card_machine_id)
         const [receiptsRes, paymentsRes] = await Promise.all([
           supabase.from('cn_receipt').select('payment_id, receipt_number, receipt_total, status').in('payment_id', paymentIds),
           supabase.from('cn_payment').select('payment_id, mop_code, payment_amount, card_machine_id').in('payment_id', paymentIds),
         ]);
 
         const receiptMap = new Map((receiptsRes.data || []).map(r => [r.payment_id, r]));
-
-        // Only include payment_ids that have an active (non-cancelled) receipt
         const activePaymentIds = new Set(
           (receiptsRes.data || [])
             .filter(r => r.status !== 'C')
             .map(r => r.payment_id)
         );
 
-        // Build batch payment rows for display — only active receipt-backed transactions
         const paymentRows: BatchPaymentRow[] = headers
           .filter(h => activePaymentIds.has(h.payment_id))
           .map(h => {
@@ -213,13 +247,11 @@ const BatchClosing: React.FC = () => {
           });
         setBatchPayments(paymentRows);
 
-        // System totals & card machine totals: only from cn_payment rows with active receipts
         (paymentsRes.data || []).forEach(p => {
           if (!activePaymentIds.has(p.payment_id)) return;
           const code = p.mop_code || '';
           sysTotals[code] = (sysTotals[code] || 0) + Number(p.payment_amount || 0);
 
-          // Accumulate card machine totals
           if (p.card_machine_id) {
             if (!cmTotalsMap[p.card_machine_id]) {
               cmTotalsMap[p.card_machine_id] = { machine_code: '', machine_name: '', card_type_support: '', txn_count: 0, total_amount: 0 };
@@ -232,7 +264,6 @@ const BatchClosing: React.FC = () => {
         setBatchPayments([]);
       }
 
-      // Add opening balance (offset_amount) to CSH system total so physical cash count matches
       const openingBalance = Number(batchSel.selectedBatch?.offset_amount || 0);
       if (openingBalance !== 0) {
         sysTotals['CSH'] = (sysTotals['CSH'] || 0) + openingBalance;
@@ -240,13 +271,10 @@ const BatchClosing: React.FC = () => {
 
       setSystem(sysTotals);
 
-      // CRD/DRD physical = system (auto-reconciled from cn_payment)
       const physCrd = sysTotals['CRD'] || 0;
       const physDrd = sysTotals['DRD'] || 0;
-
       setPhysical({ CSH: physCsh, CHQ: physChq, CRD: physCrd, DRD: physDrd });
 
-      // Enrich card machine totals with machine info from allMachines or fetch directly
       if (Object.keys(cmTotalsMap).length > 0) {
         const cmIds = Object.keys(cmTotalsMap);
         const { data: cmData } = await supabase
@@ -282,6 +310,28 @@ const BatchClosing: React.FC = () => {
     }
   }, [batchSel.selectedBatch?.batch_number, batchSel.selectedBatch?.batch_status, fetchTotals]);
 
+  // Batch close guard logic
+  const handleCloseBatchAttempt = () => {
+    const blocking = hasBlockingRequests(changeRequests);
+    const approvedPending = getApprovedPendingRequests(changeRequests);
+
+    if (blocking) {
+      toast({
+        title: 'Cannot Close Batch',
+        description: 'There are pending or in-progress card machine change requests. Please wait for approval decisions before closing.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (approvedPending.length > 0) {
+      setBatchCloseGuardOpen(true);
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
   const handleCloseBatch = async () => {
     const batchNumber = batchSel.selectedBatch?.batch_number;
     if (!batchNumber || !userCode) return;
@@ -307,7 +357,6 @@ const BatchClosing: React.FC = () => {
     }
   };
 
-  // Handle clicking a batch transaction row to view payment method breakdown
   const handlePaymentRowClick = async (payment: BatchPaymentRow) => {
     setMethodModalPayment(payment);
     setMethodModalOpen(true);
@@ -320,7 +369,6 @@ const BatchClosing: React.FC = () => {
         .select('payment_id, payment_sequence_no, mop_code, payment_amount, card_machine_id')
         .eq('payment_id', payment.payment_id);
 
-      // Collect card machine ids to fetch names
       const cmIds = [...new Set((cnData || []).map((p: any) => p.card_machine_id).filter(Boolean))] as string[];
       let cmNameMap: Record<string, string> = {};
       if (cmIds.length > 0) {
@@ -349,49 +397,59 @@ const BatchClosing: React.FC = () => {
     }
   };
 
-  // Handle card machine change for a payment row
-  const handleCardMachineChange = async (paymentId: number, seqNo: number, newMachineId: string) => {
-    const rowKey = `${paymentId}_${seqNo}`;
-    setUpdatingMachineId(rowKey);
-    try {
-      const { error } = await supabase
-        .from('cn_payment')
-        .update({ card_machine_id: newMachineId })
-        .eq('payment_id', paymentId)
-        .eq('payment_sequence_no', seqNo);
-
-      if (error) throw error;
-
-      // Update local modal state
-      const machineName = allMachines.find(m => m.id === newMachineId)?.machine_name || null;
-      setMethodModalDetails(prev =>
-        prev.map(d => (d.payment_id === paymentId && d.payment_sequence_no === seqNo)
-          ? { ...d, card_machine_id: newMachineId, card_machine_name: machineName } : d)
-      );
-
-      toast({ title: 'Card Machine Updated', description: 'The card machine assignment has been saved.' });
-
-      // Refresh batch totals
-      if (batchSel.selectedBatch?.batch_number) {
-        fetchTotals(batchSel.selectedBatch.batch_number);
-      }
-    } catch (err: any) {
-      toast({ title: 'Update Failed', description: err.message || 'Failed to update card machine.', variant: 'destructive' });
-    } finally {
-      setUpdatingMachineId(null);
-    }
-  };
-
-  // Get compatible machines for a given mop_code
   const getCompatibleMachines = (mopCode: string) => {
     return allMachines.filter(m => m.card_type_support === mopCode || m.card_type_support === 'BOTH');
   };
 
-  // Build unified MOP rows for reconciliation table
-  const allMopCodes = new Set([
-    ...PHYSICAL_MOP_CODES,
-    ...Object.keys(system),
-  ]);
+  // Change request submission
+  const handleSubmitChangeRequest = async () => {
+    if (!changeRequestTarget || !batchNumber) return;
+    await createChangeRequest.mutateAsync({
+      batchNumber,
+      paymentId: changeRequestTarget.payment_id,
+      paymentSequenceNo: changeRequestTarget.payment_sequence_no,
+      currentCardMachineId: changeRequestTarget.card_machine_id,
+      comment: changeRequestComment,
+    });
+    setChangeRequestDialogOpen(false);
+    setChangeRequestComment('');
+    setChangeRequestTarget(null);
+    refetchChangeRequests();
+  };
+
+  // Apply approved change
+  const handleApplyChange = async () => {
+    if (!applyTarget || !applyMachineId || !batchNumber) return;
+    await applyChange.mutateAsync({
+      requestId: applyTarget.request.id,
+      paymentId: applyTarget.detail.payment_id,
+      paymentSequenceNo: applyTarget.detail.payment_sequence_no,
+      newCardMachineId: applyMachineId,
+      batchNumber,
+    });
+    setApplyDialogOpen(false);
+    setApplyTarget(null);
+    setApplyMachineId('');
+    refetchChangeRequests();
+    if (batchNumber) fetchTotals(batchNumber);
+  };
+
+  // Skip approved change
+  const handleSkipApproval = async (request: CardMachineChangeRequest) => {
+    if (!batchNumber) return;
+    await skipApproval.mutateAsync({
+      requestId: request.id,
+      batchNumber,
+      skipComment,
+    });
+    setSkipDialogOpen(false);
+    setSkipTarget(null);
+    setSkipComment('');
+    refetchChangeRequests();
+  };
+
+  // Build unified MOP rows
+  const allMopCodes = new Set([...PHYSICAL_MOP_CODES, ...Object.keys(system)]);
   const reconMops = allMops.filter(m => allMopCodes.has(m.mop_code));
   const mopLabel = (code: string) => allMops.find(m => m.mop_code === code)?.short_description || code;
 
@@ -466,7 +524,6 @@ const BatchClosing: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Cheque verification warning */}
             {chequeInfo.unverified > 0 && (
               <Card className="border-accent">
                 <CardContent className="p-4 flex items-center gap-3">
@@ -490,7 +547,6 @@ const BatchClosing: React.FC = () => {
               </Card>
             )}
 
-            {/* Opening Balance Info */}
             {openingBalance > 0 && (
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-4 flex items-center gap-3">
@@ -505,7 +561,24 @@ const BatchClosing: React.FC = () => {
               </Card>
             )}
 
-            {/* Unified MOP Reconciliation */}
+            {/* Change Requests Warning */}
+            {hasBlockingRequests(changeRequests) && (
+              <Card className="border-destructive">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-destructive">
+                      Card machine change requests pending approval
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Batch cannot be closed until all change requests are resolved (approved or rejected).
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* MOP Reconciliation */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">MOP Reconciliation</CardTitle>
@@ -582,7 +655,7 @@ const BatchClosing: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Card Machine Totals Section */}
+            {/* Card Machine Totals */}
             <Collapsible open={cardMachineSectionOpen} onOpenChange={setCardMachineSectionOpen}>
               <Card>
                 <CollapsibleTrigger asChild>
@@ -639,7 +712,7 @@ const BatchClosing: React.FC = () => {
               </Card>
             </Collapsible>
 
-            {/* Batch Transactions Breakdown */}
+            {/* Batch Transactions */}
             {batchPayments.length > 0 && (
               <Collapsible open={paymentSectionOpen} onOpenChange={setPaymentSectionOpen}>
                 <Card>
@@ -706,7 +779,6 @@ const BatchClosing: React.FC = () => {
                         </Badge>
                       ))}
                     </div>
-                    {/* Specific CHQ guidance */}
                     {Math.round((physical['CHQ'] || 0) * 100) !== Math.round((system['CHQ'] || 0) * 100) && chequeInfo.unverified > 0 && (
                       <p className="text-xs text-accent-foreground mt-2">
                         <AlertTriangle className="h-3 w-3 inline mr-1" />
@@ -718,7 +790,7 @@ const BatchClosing: React.FC = () => {
                   <div className="text-center space-y-4">
                     <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
                     <p className="font-semibold text-primary">All Physical Totals Match — Ready to Close</p>
-                    <Button size="lg" onClick={() => setConfirmOpen(true)} disabled={closing}>
+                    <Button size="lg" onClick={handleCloseBatchAttempt} disabled={closing}>
                       {closing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Close & Post Batch
                     </Button>
@@ -739,7 +811,7 @@ const BatchClosing: React.FC = () => {
           isLoading={closing}
         />
 
-        {/* Payment Methods Detail Modal */}
+        {/* Payment Methods Detail Modal — with workflow-controlled card machine */}
         <Dialog open={methodModalOpen} onOpenChange={setMethodModalOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -767,14 +839,14 @@ const BatchClosing: React.FC = () => {
                       <TableHead>Method</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Card Machine</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {methodModalDetails.map(d => {
                       const isCard = d.mop_code === 'CRD' || d.mop_code === 'DRD';
-                      const compatibleMachines = isCard ? getCompatibleMachines(d.mop_code) : [];
                       const rowKey = `${d.payment_id}_${d.payment_sequence_no}`;
-                      const isUpdating = updatingMachineId === rowKey;
+                      const activeReq = isCard ? getActiveRequest(changeRequests, d.payment_id, d.payment_sequence_no) : undefined;
 
                       return (
                         <TableRow key={rowKey}>
@@ -787,27 +859,52 @@ const BatchClosing: React.FC = () => {
                           <TableCell className="text-right font-mono">{formatCurrency(d.amount)}</TableCell>
                           <TableCell>
                             {isCard ? (
-                              <div className="flex items-center gap-1">
-                                {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                                <Select
-                                  value={d.card_machine_id || ''}
-                                  onValueChange={(val) => handleCardMachineChange(d.payment_id, d.payment_sequence_no, val)}
-                                  disabled={isUpdating || batchClosed}
-                                >
-                                  <SelectTrigger className="h-8 text-xs w-[180px]">
-                                    <SelectValue placeholder="Select machine" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {compatibleMachines.map(m => (
-                                      <SelectItem key={m.id} value={m.id} className="text-xs">
-                                        {m.machine_code} — {m.machine_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              <span className="text-xs">{d.card_machine_name || '—'}</span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {isCard && (
+                              <div className="flex flex-col items-center gap-1">
+                                {activeReq ? (
+                                  <>
+                                    <Badge variant={statusVariant(activeReq.status)} className="text-[10px]">
+                                      {activeReq.status === 'InProgress' ? 'Approval Pending' : activeReq.status}
+                                    </Badge>
+                                    {activeReq.status === 'Approved' && !batchClosed && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 text-[10px] px-2"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setApplyTarget({ request: activeReq, detail: d });
+                                          setApplyMachineId('');
+                                          setApplyDialogOpen(true);
+                                        }}
+                                      >
+                                        Apply Change
+                                      </Button>
+                                    )}
+                                  </>
+                                ) : !batchClosed ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-[10px] px-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChangeRequestTarget(d);
+                                      setChangeRequestComment('');
+                                      setChangeRequestDialogOpen(true);
+                                    }}
+                                  >
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Request Change
+                                  </Button>
+                                ) : null}
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>
@@ -820,12 +917,180 @@ const BatchClosing: React.FC = () => {
                           {formatCurrency(methodModalDetails.reduce((s, d) => s + d.amount, 0))}
                         </TableCell>
                         <TableCell />
+                        <TableCell />
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Request Card Machine Change Dialog */}
+        <Dialog open={changeRequestDialogOpen} onOpenChange={setChangeRequestDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Request Card Machine Change</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Payment ID: <span className="font-mono">{changeRequestTarget?.payment_id}</span></p>
+                <p>Current Machine: <span className="font-medium">{changeRequestTarget?.card_machine_name || '—'}</span></p>
+              </div>
+              <div>
+                <Label>Reason for Change <span className="text-destructive">*</span></Label>
+                <Textarea
+                  placeholder="Enter reason for requesting card machine change..."
+                  value={changeRequestComment}
+                  onChange={e => setChangeRequestComment(e.target.value)}
+                  className="min-h-[80px] mt-1"
+                />
+                {changeRequestComment.trim().length === 0 && (
+                  <p className="text-xs text-destructive mt-1">A comment is required to submit this request.</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setChangeRequestDialogOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleSubmitChangeRequest}
+                disabled={!changeRequestComment.trim() || createChangeRequest.isPending}
+              >
+                {createChangeRequest.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Submit Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Apply Approved Change Dialog */}
+        <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Apply Card Machine Change</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This change request has been approved. Select the new card machine to apply.
+              </p>
+              <div>
+                <Label>New Card Machine</Label>
+                <Select value={applyMachineId} onValueChange={setApplyMachineId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select card machine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {applyTarget && getCompatibleMachines(applyTarget.detail.mop_code).map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.machine_code} — {m.machine_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApplyDialogOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleApplyChange}
+                disabled={!applyMachineId || applyChange.isPending}
+              >
+                {applyChange.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Apply Change
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Skip Approval Dialog */}
+        <Dialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Skip Approved Change</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will disregard the approved card machine change. The approver will be notified.
+              </p>
+              <div>
+                <Label>Reason for Skipping <span className="text-destructive">*</span></Label>
+                <Textarea
+                  placeholder="Enter reason for skipping this approved change..."
+                  value={skipComment}
+                  onChange={e => setSkipComment(e.target.value)}
+                  className="min-h-[80px] mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSkipDialogOpen(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => skipTarget && handleSkipApproval(skipTarget)}
+                disabled={!skipComment.trim() || skipApproval.isPending}
+              >
+                {skipApproval.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Skip & Notify Approver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Batch Close Guard — approved but unapplied changes */}
+        <Dialog open={batchCloseGuardOpen} onOpenChange={setBatchCloseGuardOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Approved Changes Pending</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                The following card machine change requests have been approved but not yet applied. You can apply them or skip them before closing the batch.
+              </p>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {getApprovedPendingRequests(changeRequests).map(req => (
+                  <div key={req.id} className="flex items-center justify-between border rounded p-3">
+                    <div className="text-sm">
+                      <p className="font-mono text-xs">Payment {req.payment_id}/{req.payment_sequence_no}</p>
+                      <p className="text-xs text-muted-foreground">{req.comment}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const detail = methodModalDetails.find(d => d.payment_id === req.payment_id && d.payment_sequence_no === req.payment_sequence_no);
+                          if (detail) {
+                            setApplyTarget({ request: req, detail });
+                            setApplyMachineId('');
+                            setApplyDialogOpen(true);
+                            setBatchCloseGuardOpen(false);
+                          }
+                        }}
+                      >
+                        Apply
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSkipTarget(req);
+                          setSkipComment('');
+                          setSkipDialogOpen(true);
+                          setBatchCloseGuardOpen(false);
+                        }}
+                      >
+                        <SkipForward className="h-3 w-3 mr-1" />
+                        Skip
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBatchCloseGuardOpen(false)}>Cancel</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
