@@ -24,8 +24,8 @@ export function useDesignations() {
   return useQuery({
     queryKey: ['designations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('designations')
+      const { data, error } = await (supabase as any)
+        .from('tb_designations')
         .select('*')
         .order('name');
       if (error) throw error;
@@ -39,8 +39,8 @@ export function useCreateDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'create'],
     mutationFn: async (data: { name: string; description?: string; is_active?: boolean }) => {
-      const { data: result, error } = await supabase
-        .from('designations')
+      const { data: result, error } = await (supabase as any)
+        .from('tb_designations')
         .insert(data)
         .select()
         .single();
@@ -60,8 +60,8 @@ export function useUpdateDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'update'],
     mutationFn: async ({ id, ...data }: Partial<Designation> & { id: string }) => {
-      const { data: result, error } = await supabase
-        .from('designations')
+      const { data: result, error } = await (supabase as any)
+        .from('tb_designations')
         .update(data)
         .eq('id', id)
         .select()
@@ -82,8 +82,8 @@ export function useDeleteDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'delete'],
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('designations')
+      const { error } = await (supabase as any)
+        .from('tb_designations')
         .delete()
         .eq('id', id);
       if (error) throw error;
@@ -101,12 +101,12 @@ export function useDesignationHierarchy() {
   return useQuery({
     queryKey: ['designation-hierarchy'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('designation_hierarchy')
         .select(`
           *,
-          designation:designations!designation_hierarchy_designation_id_fkey(*),
-          parent_designation:designations!designation_hierarchy_parent_designation_id_fkey(*)
+          designation:tb_designations!designation_hierarchy_designation_id_fkey(*),
+          parent_designation:tb_designations!designation_hierarchy_parent_designation_id_fkey(*)
         `)
         .order('level');
       if (error) throw error;

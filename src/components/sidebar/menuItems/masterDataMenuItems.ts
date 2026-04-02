@@ -1,7 +1,7 @@
 import {
   Database, Globe, MapPin, Eye, Heart, Mail, Users, Shield, Building2,
   Factory, UserCheck, Briefcase, Landmark, CreditCard, Wallet, Receipt,
-  FileText, AlertTriangle, Percent, Settings, Layers, CheckSquare
+  FileText, AlertTriangle, Percent, Settings, Layers, CheckSquare, Award
 } from "lucide-react";
 
 export const masterDataMenuItems = [
@@ -11,6 +11,7 @@ export const masterDataMenuItems = [
     subItems: [
       // General
       { title: "Activity Types", url: "/admin/master-data/activity-types", icon: Layers, requiresPermission: "master_data" },
+      { title: "Designations", url: "/admin/master-data/designations", icon: Award, requiresPermission: "master_data" },
       { title: "Countries", url: "/admin/master-data/countries", icon: Globe, requiresPermission: "master_data" },
       { title: "Districts", url: "/admin/master-data/districts", icon: MapPin, requiresPermission: "master_data" },
       { title: "Eye Colors", url: "/admin/master-data/eye-colors", icon: Eye, requiresPermission: "master_data" },

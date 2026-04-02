@@ -760,6 +760,7 @@ import VcContribRateManagement from '@/pages/admin/master-data/VcContribRateMana
 import VcEligibilityConfigManagement from '@/pages/admin/master-data/VcEligibilityConfigManagement';
 import VerifyManagement from '@/pages/admin/master-data/VerifyManagement';
 import VillagesManagement from '@/pages/admin/master-data/VillagesManagement';
+import DesignationMasterManagement from '@/pages/admin/master-data/DesignationMasterManagement';
 
 // Contribution Payments Module
 import PaymentDataEntry from '@/pages/cashier/PaymentDataEntry';
@@ -1081,6 +1082,7 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/income-codes" element={<ProtectedLayout><IncomeCodeManagement /></ProtectedLayout>} />
       {/* Master Data CRUD Routes */}
       <Route path="/admin/master-data/activity-types" element={<ProtectedLayout><ActivityManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/designations" element={<ProtectedLayout><DesignationMasterManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/bank-codes" element={<ProtectedLayout><BankCodeManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/batch-status" element={<ProtectedLayout><BatchStatusManagement /></ProtectedLayout>} />
       <Route path="/admin/master-data/pay-periods" element={<ProtectedLayout><PayPeriodManagement /></ProtectedLayout>} />
