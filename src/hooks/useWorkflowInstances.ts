@@ -268,8 +268,8 @@ export function useWorkflowInstanceTasks(instanceId: string | null) {
       // Fetch designation names
       let designationMap: Record<string, string> = {};
       if (designationIds.size > 0) {
-        const { data: designations } = await supabase
-          .from('designations')
+        const { data: designations } = await (supabase as any)
+          .from('tb_designations')
           .select('id, name')
           .in('id', Array.from(designationIds));
         if (designations) {

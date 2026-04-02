@@ -101,12 +101,12 @@ export function useDesignationHierarchy() {
   return useQuery({
     queryKey: ['designation-hierarchy'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('designation_hierarchy')
         .select(`
           *,
-          designation:designations!designation_hierarchy_designation_id_fkey(*),
-          parent_designation:designations!designation_hierarchy_parent_designation_id_fkey(*)
+          designation:tb_designations!designation_hierarchy_designation_id_fkey(*),
+          parent_designation:tb_designations!designation_hierarchy_parent_designation_id_fkey(*)
         `)
         .order('level');
       if (error) throw error;
