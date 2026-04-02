@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Filter, CheckCircle2, XCircle, Clock, Eye } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useCardMachineChangeRequestsForApprover, CardMachineChangeRequest } from '@/hooks/useCardMachineChangeRequests';
-import { useWorkflowActions } from '@/hooks/useWorkflowActions';
+import { useWorkflowActions, useExecuteWorkflowAction } from '@/hooks/useWorkflowActions';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useUserCode } from '@/hooks/useUserCode';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
