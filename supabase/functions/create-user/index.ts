@@ -119,6 +119,7 @@ Deno.serve(async (req: Request) => {
       office_code,
       department_id,
       designation_id,
+      reporting_to_user_id,
       roles: assignRoles = []
     } = await req.json();
 
