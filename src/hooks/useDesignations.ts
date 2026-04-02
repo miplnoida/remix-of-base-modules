@@ -24,8 +24,8 @@ export function useDesignations() {
   return useQuery({
     queryKey: ['designations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('designations')
+      const { data, error } = await (supabase as any)
+        .from('tb_designations')
         .select('*')
         .order('name');
       if (error) throw error;

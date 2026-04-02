@@ -7633,50 +7633,17 @@ export type Database = {
             foreignKeyName: "designation_hierarchy_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: true
-            referencedRelation: "designations"
+            referencedRelation: "tb_designations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "designation_hierarchy_parent_designation_id_fkey"
             columns: ["parent_designation_id"]
             isOneToOne: false
-            referencedRelation: "designations"
+            referencedRelation: "tb_designations"
             referencedColumns: ["id"]
           },
         ]
-      }
-      designations: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
       }
       dev_info_access_log: {
         Row: {
@@ -19303,7 +19270,7 @@ export type Database = {
             foreignKeyName: "profiles_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: false
-            referencedRelation: "designations"
+            referencedRelation: "tb_designations"
             referencedColumns: ["id"]
           },
           {
@@ -21309,6 +21276,39 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+        }
+        Relationships: []
+      }
+      tb_designations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
