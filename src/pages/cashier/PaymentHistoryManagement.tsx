@@ -196,7 +196,7 @@ const PaymentHistoryManagement = () => {
       const { data: headers, error: hErr } = await supabase
         .from('cn_payment_header')
         .select('payment_id, batch_number, payer_type, payer_id, date_received, remarks, status')
-        .or('status.is.null,status.eq.active')
+        .or('status.is.null,status.eq.active,status.eq.P')
         .order('payment_id', { ascending: false })
         .limit(500);
 
