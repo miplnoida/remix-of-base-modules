@@ -1,26 +1,47 @@
 
 
-# Fix: Access Denied on Card Machine Change Requests Screen
+# Add Task Assignment on Workflow Instance Detail Screen
 
-## Root Cause
-The `CardMachineChangeRequests.tsx` page wraps its content in `<PermissionWrapper moduleName="cashier_operations">`. However, in the Roles & Permissions admin, the module is registered as **"Batch Detail Change Requests"** (or a similar dedicated module name). Since the user's role has permission for that specific module — not `cashier_operations` — the permission check fails and shows "Access Denied".
+## Summary
+On the `/admin/workflow-instances/:id` page, when a task is `Pending` and unassigned (`assigned_to` is null), show an "Assign" button. Clicking it opens a dialog with a searchable dropdown of all active users. On selection and confirmation, the task's `assigned_to` and `assigned_to_name` fields are updated via Supabase, and a workflow log entry is created for audit.
 
-## Fix
+---
 
-### 1. Update `src/pages/cashier/CardMachineChangeRequests.tsx`
-Change the `PermissionWrapper` module name from `"cashier_operations"` to `"batch_detail_change_requests"` (matching the module slug used in the permissions system). Also update any `useActionPermissions` calls if present.
+## Changes
 
-### 2. Update `src/components/sidebar/menuItems/cashierMenuItems.ts`
-Change `requiresPermission: "cashier_operations"` to `requiresPermission: "batch_detail_change_requests"` for the "Card Machine Change Requests" menu entry.
+### 1. New Mutation Hook — `src/hooks/useWorkflowInstances.ts`
 
-### 3. Add to `MODULE_NAMES` in `src/hooks/useActionPermission.ts`
-Add a constant: `BATCH_DETAIL_CHANGE_REQUESTS: 'batch_detail_change_requests'`
+Add a `useAssignWorkflowTask` mutation hook:
 
-### Files Changed
+- Accepts `taskId`, `assignToUserId`, `assignToUserName`, `instanceId`, `stepName`, `assignedByUserCode`
+- Updates `workflow_tasks` set `assigned_to = userId`, `assigned_to_name = userName` where `id = taskId`
+- Inserts a `workflow_logs` entry with action `"Task Assigned"`, `user_name = assignedByUserCode`, `comments = "Assigned to {userName}"`, linked to the instance and step
+- Invalidates `workflow-instance-tasks` and `workflow-instance-history` query keys
 
-| File | Change |
+### 2. UI — `src/pages/admin/workflows/WorkflowInstanceDetail.tsx`
+
+In the Tasks Summary section, for each task card:
+
+- **Condition**: If `task.status === 'Pending'` and `task.assigned_to` is null
+- **Show**: An "Assign" button (UserPlus icon)
+- **On click**: Opens a `Dialog` with:
+  - A `SearchableSelect` populated from `profiles` table (active users: `is_active = true`), showing `full_name`
+  - A "Confirm" button that calls the `useAssignWorkflowTask` mutation
+- After successful assignment, the task card updates to show the newly assigned user name
+- Uses `useUserCode()` to record who performed the assignment
+
+### 3. Active Users Query
+
+Add a `useActiveUsers` query in the same file or hook file:
+- Queries `profiles` where `is_active = true`, selects `id, full_name, user_code`
+- Used to populate the assignment dropdown
+
+---
+
+## Files Changed
+
+| File | Action |
 |------|--------|
-| `src/pages/cashier/CardMachineChangeRequests.tsx` | Update `moduleName` in `PermissionWrapper` |
-| `src/components/sidebar/menuItems/cashierMenuItems.ts` | Update `requiresPermission` for menu item |
-| `src/hooks/useActionPermission.ts` | Add module name constant |
+| `src/hooks/useWorkflowInstances.ts` | Add `useAssignWorkflowTask` mutation + `useActiveUsers` query |
+| `src/pages/admin/workflows/WorkflowInstanceDetail.tsx` | Add assign dialog UI for unassigned pending tasks |
 
