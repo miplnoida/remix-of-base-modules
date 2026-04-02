@@ -1222,6 +1222,34 @@ async function updateSourceRecordStatus(
 
       console.log(`C3 record ${sourceRecordId} posting_status updated to ${newPostingStatus}`);
     }
+  } else if (sourceModule === 'batch_card_machine_change') {
+    // Card machine change request workflow
+    let newStatus: string | null = null;
+
+    if (configuredResultStatus) {
+      newStatus = configuredResultStatus;
+    } else if (endState === 'Approved') {
+      newStatus = 'Approved';
+    } else if (endState === 'Rejected') {
+      newStatus = 'Rejected';
+    }
+
+    if (newStatus) {
+      const { error } = await supabase
+        .from('cn_card_machine_change_requests')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', sourceRecordId);
+
+      if (error) {
+        console.error('Error updating card machine change request status:', error);
+        throw error;
+      }
+
+      console.log(`Card machine change request ${sourceRecordId} status updated to ${newStatus}`);
+    }
   }
   // Add other module handlers as needed
 }
