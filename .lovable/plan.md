@@ -1,44 +1,30 @@
 
 
-# Fix: Duplicate Function Overload for `create_c3_payment_with_receipt`
+# Fix: Type Mismatch in `create_c3_payment_with_receipt` — `date_received` Column
 
 ## Problem
 
-The error message says PostgREST **"could not choose the best candidate function"** between two overloads of `create_c3_payment_with_receipt`. Both have `p_date_received` as TEXT, but one has parameter defaults and one does not. PostgreSQL treats these as separate functions because the default-vs-no-default signatures differ, and PostgREST cannot disambiguate.
+The `cn_payment_header.date_received` column is `timestamp without time zone`, but the function inserts `p_date_received` (TEXT, e.g. `"2026-04-02"`) without casting. PostgreSQL rejects this on Live with:
 
-This was caused by successive migrations using `CREATE OR REPLACE` without first dropping the prior overload — PostgreSQL silently kept both versions.
+> column "date_received" is of type timestamp without time zone but expression is of type text
 
 ## Fix
 
-**Single migration** that:
-
-1. **Drops ALL existing overloads** of `create_c3_payment_with_receipt` (both the version with defaults and the version without)
-2. **Recreates a single canonical version** using the latest logic from the most recent migration (`20260331235340`), which includes card machine handling, sequential allocation, and all current features
-
-### Migration SQL (summary)
+**Single migration** that drops and recreates `create_c3_payment_with_receipt`, changing only line 97:
 
 ```sql
--- Drop all overloads
-DROP FUNCTION IF EXISTS public.create_c3_payment_with_receipt(text,text,text,text,text,jsonb,jsonb,numeric,text);
-DROP FUNCTION IF EXISTS public.create_c3_payment_with_receipt(text,text,text,date,text,jsonb,jsonb,numeric,text);
+-- Before (line 97):
+p_date_received
 
--- Recreate single version with defaults (from latest migration 20260331)
-CREATE FUNCTION public.create_c3_payment_with_receipt(
-  p_batch_number TEXT,
-  p_payer_type TEXT,
-  p_payer_id TEXT,
-  p_date_received TEXT,
-  p_remarks TEXT DEFAULT NULL,
-  p_components JSONB DEFAULT '[]'::jsonb,
-  p_methods JSONB DEFAULT '[]'::jsonb,
-  p_receipt_total NUMERIC DEFAULT 0,
-  p_user_code TEXT DEFAULT 'SYSTEM'
-) RETURNS JSONB ...
+-- After:
+p_date_received::timestamp
 ```
 
-The function body will be copied exactly from the latest migration (`20260331235340`, lines 452–696).
+The rest of the function body remains identical. The explicit `::timestamp` cast converts the text date string (e.g. `"2026-04-02"`) to a valid timestamp.
 
-### No code changes
+## Technical Details
 
-The frontend call in `C3Payments.tsx` already passes `p_date_received` as a TEXT string via `formatDateForStorage()`. Once the duplicate overload is removed, PostgREST will resolve to the single remaining function without ambiguity.
+- File: New migration SQL
+- Scope: Drop existing function, recreate with the single-line cast fix
+- No frontend code changes needed — `C3Payments.tsx` already sends a text date via `formatDateForStorage()`
 
