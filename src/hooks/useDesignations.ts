@@ -39,8 +39,8 @@ export function useCreateDesignation() {
   return useMutation({
     mutationKey: ['Admin', 'designations', 'create'],
     mutationFn: async (data: { name: string; description?: string; is_active?: boolean }) => {
-      const { data: result, error } = await supabase
-        .from('designations')
+      const { data: result, error } = await (supabase as any)
+        .from('tb_designations')
         .insert(data)
         .select()
         .single();
