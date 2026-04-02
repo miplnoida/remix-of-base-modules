@@ -115,7 +115,7 @@ const C3ContributionList: React.FC = () => {
   };
 
   // "Payment" → navigate to C3 Payments cashier screen
-  const handlePayment = (record: C3ContributionRecord) => {
+  const handlePayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
     navigate('/cashier/c3-payments', {
@@ -125,6 +125,7 @@ const C3ContributionList: React.FC = () => {
         year: record.year,
         schedule: String(record.schedule),
         payerType: 'ER',
+        ...(pendingAmount != null ? { pendingAmount } : {}),
       },
     });
   };
@@ -291,6 +292,20 @@ const C3ContributionList: React.FC = () => {
                           >
                             Paid <Printer className="h-3 w-3 text-green-600" />
                           </span>
+                        ) : c.payment_status === 'Partial' ? (
+                          <div className="flex flex-col items-start gap-0.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-blue-500 text-blue-600 text-xs h-7"
+                              onClick={() => handlePayment(c, c.pending_amount)}
+                            >
+                              Payment
+                            </Button>
+                            <span className="text-[10px] text-orange-600 font-medium">
+                              Pending: {formatCurrency(c.pending_amount ?? 0)}
+                            </span>
+                          </div>
                         ) : c.payment_status === '$ Pay' ? (
                           <Button
                             variant="outline"
