@@ -1,7 +1,7 @@
 import {
   Database, Globe, MapPin, Eye, Heart, Mail, Users, Shield, Building2,
   Factory, UserCheck, Briefcase, Landmark, CreditCard, Wallet, Receipt,
-  FileText, AlertTriangle, Percent, Settings, Layers, CheckSquare
+  FileText, AlertTriangle, Percent, Settings, Layers, CheckSquare, Award
 } from "lucide-react";
 
 export const masterDataMenuItems = [
