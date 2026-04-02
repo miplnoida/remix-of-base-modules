@@ -1,49 +1,72 @@
 
 
-# Fix: Payment History Showing Duplicate Rows
+# Rename `designations` → `tb_designations` and Create Master Data Screen
 
-## Problem
-The `ExistingPaymentsPopup` uses the external `getPaymentDetailsList` wiz-admin-api, which returns broadly-matched payment records. Client-side filtering by `period_month_number`, `period_year`, and `schedule_no` is insufficient — it still picks up duplicates (e.g., multiple payment detail lines from the same header, or records that should be excluded by status).
+## Current Usage Analysis
 
-## Solution
-Replace the wiz-admin-api call with a direct Supabase query that precisely joins `cn_payment_header` → `cn_payment` → `cn_receipt`, filtering by all required criteria.
+The `designations` table **IS actively used** across the application:
 
-### Query Logic
+| Location | Usage |
+|----------|-------|
+| `profiles.designation_id` | FK column referencing designations |
+| `designation_hierarchy` table | FK columns `designation_id`, `parent_designation_id` |
+| `workflow_tasks.assigned_designation` | References designation |
+| `workflow_steps.assigned_designation` | References designation |
+| `workflow_steps.approver_designation_ids` | References designation |
+| `ia_distribution_recipients.designation` | References designation |
+| `UserEdit.tsx`, `UserCreate.tsx` | Dropdown for designation selection |
+| `DesignationManagement.tsx` | Existing CRUD screen (non-standard, at `/admin/designations`) |
+| `DesignationHierarchy.tsx` | Hierarchy management screen |
+| `useDesignations.ts` | Data hook for all CRUD operations |
+| `AppRoutes.tsx` | Routes for both screens |
+
+Despite being used, the table does not follow the `tb_` naming convention. The existing CRUD screen is also not in the master data section.
+
+---
+
+## Plan
+
+### 1. Database Migration — Rename Table
+Rename `designations` → `tb_designations` (the `designation_hierarchy` table stays as-is since the user only asked about the designations table; its FKs will be updated to point to the renamed table).
+
 ```sql
-cn_payment_header (payer_id = reg_no, payer_type = 'ER', status != 'deleted')
-  → cn_payment (payment_id, period matches month/year, payment_code in ALLOWED_CODES)
-  → cn_receipt (payment_id, status != 'C')
+ALTER TABLE designations RENAME TO tb_designations;
 ```
 
-### Changes
+### 2. Update Hook — `useDesignations.ts`
+Change all `.from('designations')` calls to `.from('tb_designations')` (using `as any` cast for type safety until types regenerate). Keep all hook names and exports the same for backward compatibility.
 
-**File: `src/components/c3/ExistingPaymentsPopup.tsx`**
+### 3. Create Master Data Screen — `src/pages/admin/master-data/DesignationManagement.tsx`
+Create a new master data page following the existing pattern (like `ActivityManagement.tsx`):
+- Uses `PermissionWrapper` and `useActionPermissions` with module `"md_designations"`
+- Full CRUD: View, Add, Edit, Delete with proper dialogs
+- Uses `PageShell` for consistent layout
+- Queries `tb_designations` directly via Supabase client
+- Columns: Name, Description, Status (Active/Inactive), Actions
+- Audit fields: `created_by`/`updated_by` populated via `useUserCode()`
 
-1. Replace `getPaymentDetailsList` import with `supabase` client import
-2. Add `regNo` and `payerType` props (passed from parent alongside `companyId`)
-3. Rewrite the `useEffect` data-fetch to:
-   - Query `cn_payment_header` filtered by `payer_id = regNo`, `payer_type = payerType`, and `status` not equal to `'deleted'`
-   - Get matching `payment_id`s
-   - Query `cn_receipt` for those `payment_id`s where `status != 'C'` (not cancelled) — get receipt info (receipt_number, created_at)
-   - Query `cn_payment` for valid `payment_id`s, filter by `period` matching the C3 month/year, restrict `payment_code` to allowed codes (`CON`, `LVC`, `LVF`, `PEC`, `PEF`, `SSE`, `SSF`, `SSC`, `VOC`, `VOL`)
-   - Aggregate payment amounts and build display rows
-4. Display table with: Payment ID, Date, Amount, Payment Code, MOP, Receipt #, Status
+### 4. Add to Master Data Menu — `masterDataMenuItems.ts`
+Add a "Designations" entry under the General sub-group:
+```typescript
+{ title: "Designations", url: "/admin/master-data/designations", icon: Award, requiresPermission: "master_data" }
+```
 
-**File: `src/pages/c3Management/c3Details/C3ContributionList.tsx`**
+### 5. Update Routes — `AppRoutes.tsx`
+- Add new route: `/admin/master-data/designations` → new `DesignationManagement` page
+- Keep existing `/admin/designations` route pointing to old page (or redirect) to avoid breaking `DesignationHierarchy` and user management flows
+- Update old `DesignationManagement` import if needed
 
-- Pass `regNo={company.registration_number}` and `payerType="ER"` as new props to `ExistingPaymentsPopup`
+### 6. Update Dependent Files
+- **`UserEdit.tsx`** and **`UserCreate.tsx`**: Already use `useDesignations()` hook — no change needed since hook API stays the same
+- **`DesignationHierarchy.tsx`**: Uses `useDesignations()` and `useDesignationHierarchy()` hooks — the hierarchy hook queries `designation_hierarchy` table which still references `tb_designations` via FK; update the join references in the hook
 
-### Key Filter Criteria
-| Field | Source | Filter |
-|-------|--------|--------|
-| `payer_id` | `company.registration_number` | exact match |
-| `payer_type` | `'ER'` | exact match |
-| `period` | C3 `month_number` + `year` | date range for that month |
-| `schedule_no` | Not on payment tables — filter by header matching | via period precision |
-| `status` (header) | `cn_payment_header.status` | `!= 'deleted'` |
-| `status` (receipt) | `cn_receipt.status` | `!= 'C'` |
-| `payment_code` | `cn_payment.payment_code` | in allowed codes list |
+### Files Changed
 
-### No Database Changes Required
-All needed tables and columns already exist.
+| File | Action |
+|------|--------|
+| Database migration | Rename `designations` → `tb_designations` |
+| `src/hooks/useDesignations.ts` | Update table name from `'designations'` to `'tb_designations'` |
+| `src/pages/admin/master-data/DesignationManagement.tsx` | **Create** — new master data CRUD page |
+| `src/components/sidebar/menuItems/masterDataMenuItems.ts` | Add Designations menu entry |
+| `src/components/routing/AppRoutes.tsx` | Add master data route |
 
