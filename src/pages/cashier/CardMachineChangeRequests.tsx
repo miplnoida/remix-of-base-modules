@@ -118,7 +118,6 @@ function RequestDetailModal({
             <Badge variant={statusVariant(request.status)}>{request.status}</Badge>
           </DialogTitle>
           <DialogDescription className="sr-only">View and manage card machine change request details</DialogDescription>
-          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
