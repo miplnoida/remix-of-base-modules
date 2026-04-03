@@ -420,14 +420,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           lastActivityRef.current = Date.now();
           lastActivityUpdateRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
-          // Await policy load so timeout checker doesn't use defaults
-          await loadSessionPolicy();
         }
 
         if (currentSession?.user) {
+          // Parallelize profile, roles, AND policy load — don't block on policy
           const [profileData, rolesData] = await Promise.all([
             fetchProfile(currentSession.user.id),
             fetchRoles(currentSession.user.id),
+            // Fire policy load in parallel but don't block on it
+            loadSessionPolicy().catch(() => {}),
           ]);
           setProfile(profileData);
           setRoles(rolesData);

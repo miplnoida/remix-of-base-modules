@@ -231,13 +231,26 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
         }
 
         // Module permission check (skip for admins)
+        // Uses React Query cache (staleTime: 5min in useCanAccessModule) to avoid per-route RPCs
         if (!isAdmin && matchedRule.module_name) {
-          const { data: canAccess, error } = await (supabase.rpc as any)('can_access_module', {
-            _user_id: user?.id,
-            _module_name: matchedRule.module_name,
-          });
+          // Check queryClient cache first before making an RPC
+          const cacheKey = ['can-access-module', user?.id, matchedRule.module_name];
+          const cachedAccess = queryClient.getQueryData<boolean>(cacheKey);
 
-          if (error || !canAccess) {
+          let canAccess: boolean;
+          if (cachedAccess !== undefined) {
+            canAccess = cachedAccess;
+          } else {
+            const { data, error } = await (supabase.rpc as any)('can_access_module', {
+              _user_id: user?.id,
+              _module_name: matchedRule.module_name,
+            });
+            canAccess = error ? false : !!data;
+            // Store in React Query cache so subsequent checks for same module skip RPC
+            queryClient.setQueryData(cacheKey, canAccess);
+          }
+
+          if (!canAccess) {
             setLastDeniedRoute(path);
             await logUnauthorizedAccess({
               route: path,
