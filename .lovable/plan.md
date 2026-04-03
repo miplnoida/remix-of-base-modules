@@ -1,79 +1,82 @@
-# Fix: 403 "Endpoint not authorized" for Range, Detail, and Employee APIs
+# Fix: SE Detail API NOT_FOUND + Employer Empty ipWages
 
-## Root Cause
+## Bug 1: SE SSN 100039 — Detail API Period Mismatch
 
-The `checkScopeAuthorization` function in `supabase/functions/public-api/index.ts` uses a Supabase PostgREST nested join:
+**Root Cause:** The `cn_c3_reported` record for SSN 100039 stores `period = 2026-03-31` (last day of month). The Detail API constructs `v_period := make_date(2026, 3, 1)` and does an exact match (`r.period = v_period`). Since `2026-03-31 ≠ 2026-03-01`, it returns NOT_FOUND.
 
-```typescript
-.select("api_registry_id, api_registry:api_registry!api_key_scope_assignments_api_registry_id_fkey(endpoint_path, http_method, category)")
-```
+The Range API works because it uses `>=` / `<=` comparisons, catching any day within the month.
 
-This join relies on a **foreign key constraint** named `api_key_scope_assignments_api_registry_id_fkey` — but **no foreign key exists** on the `api_key_scope_assignments` table. The join silently returns `null` for every row's `api_registry` field. Since the code checks `reg && reg.category === "c3-history"`, it always evaluates to `false`, returning a 403 for every scoped endpoint.
-
-The Reported/Wages/Verify endpoints (`C3 Ingestion` category) work because they use **exact path matching** (line 250) — they don't go through the category-based checks. But those also fail silently on the join; they just happen to match via the fallback path comparison against a null `reg`, which also shouldn't work. More likely, the ingestion endpoints aren't dynamic routes so they pass through a different code path entirely.
-
-**Secondary issue**: The Employee scope check (line 211-215) only checks for `category === "employee-sync"` but some Employee endpoints use `category === "employee-lookup"`.
-
-## Solution
-
-### 1. Database Migration — Add Foreign Key Constraint
-
-Add the missing FK so the Supabase PostgREST join works:
+**Fix:** Change the Detail API's period matching from exact date to month-range matching, consistent with the Range API:
 
 ```sql
-ALTER TABLE public.api_key_scope_assignments
-  ADD CONSTRAINT api_key_scope_assignments_api_registry_id_fkey
-  FOREIGN KEY (api_registry_id) REFERENCES public.api_registry(id)
-  ON DELETE CASCADE;
+-- Instead of: AND r.period = v_period
+-- Use:
+AND r.period >= v_period
+AND r.period < (v_period + interval '1 month')::DATE
 ```
 
-### 2. Edge Function Fix — Employee Category Check
+Apply the same fix to the `ip_wages` query within `public_api_c3_detail` (line 174).
 
-In `checkScopeAuthorization`, update the Employee route check to accept both `employee-sync` and `employee-lookup` categories:
+**Additionally:** Fix the underlying data inconsistency — SE records stored via the C3 save flow should use `date_trunc('month', period)` (first of month) for consistency. This is a secondary fix in `c3Service.ts` to prevent future mismatches.
 
-```typescript
-// Before (line 211-215):
-if (isEmployeeRoute(endpointPath)) {
-  return scopes.some((s: any) => {
-    const reg = s.api_registry;
-    return reg && reg.category === "employee-sync";
-  });
-}
+---
 
-// After:
-if (isEmployeeRoute(endpointPath)) {
-  return scopes.some((s: any) => {
-    const reg = s.api_registry;
-    return reg && (reg.category === "employee-sync" || reg.category === "employee-lookup");
-  });
-}
-```
+## Bug 2: Employer 658852 — Empty ipWages (Data Issue)
 
-Also update the `checkApiRegistry` function's Employee route check (line 82-91) to query for both categories:
+**Root Cause:** This is NOT a code bug. The `cn_c3_reported` headers for 658852 are correctly at `VAC` status, but the corresponding `ip_wages` rows are all `DEL` (deleted) — except for Feb 2026 seq 5 which has one VAC wage row.
 
-```typescript
-if (isEmployeeRoute(endpointPath)) {
-  const { data, error } = await supabase
-    .from("api_registry")
-    .select("*")
-    .in("category", ["employee-sync", "employee-lookup"])
-    .eq("is_enabled", true)
-    .limit(1);
-  ...
-}
-```
+Current data state:
+
+- April 2026, seq 1: Header=VAC, Wages=4 rows all DEL
+- March 2026, seq 1: Header=VAC, Wages=1 row DEL
+- Feb 2026, seq 1-4: Headers=VAC, Wages=all DEL
+- Feb 2026, seq 5: Header=VAC, Wages=1 row VAC ← only working one
+
+**Resolution Options:**
+
+1. **Data fix** — Update ip_wages posting_status to 'VAC' for records that have a corresponding VAC header (recommended for test data)
+2. **Code investigation** — Check why the C3 acceptance/verification workflow promotes headers to VAC but leaves wages at DEL
+
+---
+
+## Plan
+
+### Step 1: Database Migration — Fix Period Matching in Detail RPC
+
+Update `public_api_c3_detail` to use month-range matching instead of exact date match for both the header lookup and wages query. Also apply the same fix to `public_api_employees_by_last_c3` and `public_api_c3_last_submitted` for consistency.
+
+### Step 2: Data Fix — Promote Employer 658852 Wages to VAC
+
+Run a targeted UPDATE to set `posting_status = 'VAC'` on ip_wages rows where a corresponding VAC header exists for payer 658852, so the C3-Wizard team can validate their integration.
+
+### Step 3: Preventive Fix — Normalize SE Period Storage
+
+In `c3Service.ts`, ensure SE/VC C3 saves always store period as first-of-month (`date_trunc`) to prevent future period mismatches.  
+  
+  
+important Note: Please create a proper message to share with the c3-wizard for this fixes and correct the required things their side.
+
+also, please attach this information asked by the C3-wizard team in the same response.
+
+- Please share the raw JSON response for:
+  1. `GET /api/v1/C3/100039/C3Submitted/SE/range/{start}/{end},EE`
+  2. `GET /api/v1/C3/100039/C3Submitted/{month},{year},{seq},SE,EE`
+  3. `GET /api/v1/Employee/employeesByLastC3/658852`
+- We need the exact values/field names for:
+  - `payerType`
+  - `month`
+  - `year`
+  - `seqNo`
+  - `c3Status`
+  - `receivedBy`
+  - whether employee rows are expected only under detail `ipWages` when the employee endpoint is empty
+
+---
 
 ## Files Changed
 
 
-| File                                     | Change                                                             |
-| ---------------------------------------- | ------------------------------------------------------------------ |
-| Database migration                       | Add FK constraint `api_key_scope_assignments_api_registry_id_fkey` |
-| `supabase/functions/public-api/index.ts` | Fix Employee scope to include `employee-lookup` category           |
-
-
-## Expected Outcome
-
-After deployment, the active API key `pk_live_sFFJ...` will correctly authorize Range, Detail, and Employee endpoints — all of which already have scope assignments in the database.  
-  
-Important note: make sure existing functionality should not be impact by this change.
+| File                        | Change                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Database migration          | Fix period matching in `public_api_c3_detail`, `public_api_employees_by_last_c3`; data fix for 658852 wages |
+| `src/services/c3Service.ts` | Normalize SE/VC period to first-of-month                                                                    |
