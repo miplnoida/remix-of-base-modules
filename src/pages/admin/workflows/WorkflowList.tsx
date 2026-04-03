@@ -39,6 +39,7 @@ import {
   useToggleWorkflowStatus,
   useCloneWorkflow,
 } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
