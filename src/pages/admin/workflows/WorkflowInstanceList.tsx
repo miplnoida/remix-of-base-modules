@@ -36,6 +36,7 @@ import {
   useWorkflowStatusOptions,
   WorkflowInstanceFilters 
 } from '@/hooks/useWorkflowInstances';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 
 const WorkflowInstanceList: React.FC = () => {
   const navigate = useNavigate();
