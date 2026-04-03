@@ -310,6 +310,12 @@ async function checkUserPermissionOptimized(
     return false;
   }
 
+  // For reporting_manager, the task is assigned to the resolved manager at task creation time.
+  // The existing assigned_to check at line 228 handles this case.
+  if (approverType === 'reporting_manager') {
+    return false; // If not matched via assigned_to above, user is not the reporting manager
+  }
+
   return false;
 }
 
