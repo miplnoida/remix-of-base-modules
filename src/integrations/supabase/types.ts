@@ -436,6 +436,54 @@ export type Database = {
           },
         ]
       }
+      app_themes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          css_vars: Json
+          dark_css_vars: Json
+          description: string | null
+          id: string
+          is_enabled: boolean
+          is_system: boolean
+          label: string
+          sort_order: number
+          theme_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          css_vars?: Json
+          dark_css_vars?: Json
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          is_system?: boolean
+          label: string
+          sort_order?: number
+          theme_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          css_vars?: Json
+          dark_css_vars?: Json
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          is_system?: boolean
+          label?: string
+          sort_order?: number
+          theme_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       au_ip_last_self_emp: {
         Row: {
           action: string | null
@@ -22802,6 +22850,30 @@ export type Database = {
           last_activity?: string | null
           session_token?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_theme_preferences: {
+        Row: {
+          id: string
+          is_dark: boolean
+          theme_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_dark?: boolean
+          theme_key?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_dark?: boolean
+          theme_key?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
