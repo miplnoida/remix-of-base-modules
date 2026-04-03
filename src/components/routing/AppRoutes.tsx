@@ -1189,6 +1189,7 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-analytics" element={<ProtectedLayout><WorkflowAnalytics /></ProtectedLayout>} />
       <Route path="/admin/workflow-security" element={<ProtectedLayout><WorkflowSecuritySettings /></ProtectedLayout>} />
       <Route path="/admin/workflow-secured-approvals" element={<ProtectedLayout><SecuredWorkflowApprovals /></ProtectedLayout>} />
+      <Route path="/admin/workflow-role-assignment" element={<ProtectedLayout><WorkflowRoleAssignment /></ProtectedLayout>} />
       <Route path="/workflow/my-tasks" element={<ProtectedLayout><MyWorkflowTasks /></ProtectedLayout>} />
       
       <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />

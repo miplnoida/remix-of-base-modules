@@ -118,6 +118,12 @@ export const systemAdminMenuItems = [
             url: "/admin/workflow-secured-approvals",
             icon: CheckSquare,
             requiresPermission: "system_administration"
+          },
+          {
+            title: "Workflow Role Assignment",
+            url: "/admin/workflow-role-assignment",
+            icon: Shield,
+            requiresPermission: "system_administration"
           }
         ]
       },
