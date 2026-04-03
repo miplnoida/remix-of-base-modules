@@ -75,6 +75,7 @@ export default function WorkflowTriggers() {
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_TRIGGERS);
   const { data: triggers, isLoading } = useWorkflowTriggers();
   const { data: workflows } = useWorkflowDefinitions();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
   const { data: modules } = useQuery({
     queryKey: ['app-modules-with-root'],
     queryFn: async () => {
@@ -86,6 +87,12 @@ export default function WorkflowTriggers() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Role-based filtering for triggers
+  const filteredTriggers = triggers?.filter((t: any) => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(t.workflow_id);
   });
 
   // Get selected module's Business Object Root info
