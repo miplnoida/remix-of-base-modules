@@ -282,6 +282,7 @@ import WorkflowAnalytics from '@/pages/admin/workflows/WorkflowAnalytics';
 import WorkflowSecuritySettings from '@/pages/admin/workflows/WorkflowSecuritySettings';
 import SecuredWorkflowApprovals from '@/pages/admin/workflows/SecuredWorkflowApprovals';
 import WorkflowInstanceList from '@/pages/admin/workflows/WorkflowInstanceList';
+import WorkflowRoleAssignment from '@/pages/admin/workflows/WorkflowRoleAssignment';
 import WorkflowInstanceDetail from '@/pages/admin/workflows/WorkflowInstanceDetail';
 import MyWorkflowTasks from '@/pages/workflow/MyWorkflowTasks';
 import ApplicationsReview from '@/pages/workflow/ApplicationsReview';
