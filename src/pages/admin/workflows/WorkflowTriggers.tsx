@@ -196,14 +196,14 @@ export default function WorkflowTriggers() {
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   </TableRow>
                 ))
-              ) : triggers?.length === 0 ? (
+              ) : filteredTriggers?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No triggers configured. Click "Add Trigger" to bind a workflow to a module action.
                   </TableCell>
                 </TableRow>
               ) : (
-                triggers?.map((trigger: any) => (
+                filteredTriggers?.map((trigger: any) => (
                   <TableRow key={trigger.id}>
                     <TableCell>{trigger.module?.display_name || 'Unknown'}</TableCell>
                     <TableCell>{trigger.action_name}</TableCell>
