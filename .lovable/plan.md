@@ -1,99 +1,77 @@
 
 
-# Fix: Component-Level Payment Balance Reconciliation for C3 Contributions
+# Payment Save API Migration: Flat Endpoint + Component Persistence
 
-## Problem
+## Summary
 
-When a cashier navigates to `C3 Payments` from the contribution list with a partial payment scenario, the system **pro-rates** the pending amount proportionally across all components (lines 243-260 in `C3Payments.tsx`). For example, if SSC=1000, LVC=500, PEC=300 and the pending amount is 900, it distributes 900 proportionally as SSC=500, LVC=250, PEC=150 — regardless of which components were actually paid in prior transactions.
+Migrate the external Payment Save API from `/api/v1/api/payment/save/{payerId}/{payerType}` to `/api/v1/api/payment/save` (flat POST). Move `payerId`/`payerType` into the request body. Add `periodMonth`, `periodYear`, `scheduleNumber` handling and persist `c3_payment_components` records.
 
-The correct behavior: look up `cn_payment` records by `payment_code` for the same payer/period/sequence and subtract what was **already paid per component** from the original reported amount.
+## Changes
 
-## Root Cause
+### 1. Database Migration — Recreate `public_api_payment_save(JSONB)`
 
-1. **`get_c3_payment_components` RPC** returns full reported amounts from `cn_c3_reported` with zero awareness of prior payments.
-2. **Frontend pro-ration** (lines 243-260) distributes a lump `pendingAmount` proportionally — a financial inaccuracy.
+Drop the old 3-param signature `(TEXT, TEXT, JSONB)` and create a single-param version `(JSONB)`:
 
-## Solution
+- Extract `payerId`, `payerType`, `periodMonth`, `periodYear`, `scheduleNumber` from `p_payload`
+- Validate: return error JSON if `payerId`, `payerType`, `periodMonth` (1-12), or `periodYear` (4-digit) are missing/invalid
+- **cn_payment.period**: Change from `date_trunc('month', NOW())` to `make_date(periodYear, periodMonth, 1)` — a proper DATE
+- **New block after each cn_payment insert**: Insert into `c3_payment_components` for each paymentHeaders object:
 
-### Step 1: New RPC — `get_c3_component_balances`
+| c3_payment_components column | Source |
+|---|---|
+| `payment_id` | Newly created `v_payment_id` |
+| `payment_code` | `paymentCode` from header object |
+| `fund_code` | `fundCode` from header object |
+| `component_amount` | `paymentAmount` from header object |
+| `period` | `LPAD(periodMonth, 2, '0') || '/' || periodYear` (TEXT, e.g. `01/2026`) |
+| `sequence_no` | `scheduleNumber` from request body |
+| `sort_order` | Loop iteration index |
 
-Create a single PostgreSQL function that:
-1. Fetches original component amounts from `cn_c3_reported` (same as current RPC)
-2. Queries `cn_payment` joined with `cn_payment_header` and `cn_receipt` to aggregate **already-paid amounts per payment_code** for the same `payer_id`, `payer_type`, period, and `sequence_no` (from `c3_payment_components`)
-3. Only counts payments where: `cn_payment_header.status != 'deleted'` AND `cn_receipt.status != 'C'`
-4. Returns each component with: `original_amount`, `paid_amount`, `balance_amount`
-5. Components with `balance_amount = 0` are still returned but marked as fully paid
+All inserts remain inside the existing advisory-lock transaction block — atomic, no partial failures.
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_c3_component_balances(
-  p_payer_id TEXT, p_payer_type TEXT, p_period TEXT, p_sequence_no INTEGER
-) RETURNS JSONB ...
+### 2. Edge Function — `supabase/functions/public-api/index.ts`
+
+**Route match** (line ~900-904): Replace the regex with a flat path check:
+```
+// OLD: const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
+// NEW: if (path === "/api/v1/api/payment/save" && method === "POST")
+//        → { handler: "paymentSave", params: {} }
 ```
 
-The paid-amount query logic:
-```sql
--- Get valid payment_ids for this payer with non-cancelled receipts and non-deleted headers
-SELECT cp.payment_code, SUM(cp.payment_amount) as total_paid
-FROM cn_payment cp
-JOIN cn_payment_header h ON h.payment_id = cp.payment_id
-JOIN cn_receipt r ON r.payment_id = cp.payment_id
-WHERE h.payer_id = p_payer_id AND h.payer_type = p_payer_type
-  AND h.status IS DISTINCT FROM 'deleted'
-  AND r.status != 'C'
-  AND cp.period = p_period::timestamp
-  AND cp.payment_code IN (component codes for this payer type)
-GROUP BY cp.payment_code
-```
+**Handler** (`handlePaymentSave`, lines 754-769):
+- Remove `params` argument entirely
+- Extract and validate `payerId`, `payerType` from `payload` (required strings)
+- Validate `periodMonth` (integer 1-12), `periodYear` (4-digit integer)
+- `scheduleNumber` — optional integer
+- Call RPC with single param: `public_api_payment_save({ p_payload: payload })`
 
-Additionally, cross-reference `c3_payment_components.sequence_no` to ensure payments are matched to the correct schedule number for Employer/NWD payers.
+**Switch case** (line 960): Update to `handlePaymentSave(supabase, _payload as Record<string, unknown>)` — no `routeParams`.
 
-### Step 2: Update `C3Payments.tsx` — Replace Pro-Ration with Balance Lookup
+### 3. No Frontend Changes
 
-**Remove** the proportional distribution block (lines 241-260).
-
-**Replace** the call from `get_c3_payment_components` to `get_c3_component_balances`. The new RPC returns balance amounts directly, so the frontend simply uses `balance_amount` as the component amount.
-
-Components with `balance_amount <= 0` are excluded from the payment screen (fully paid).
-
-The `maxAmounts` map is set to `balance_amount` per component (not original amount), preventing overpayment.
-
-### Step 3: Update `ExistingPaymentsPopup.tsx` — Remove `pendingAmount` Pass-Through
-
-Since the new RPC handles per-component reconciliation server-side, the `pendingAmount` parameter is no longer needed. The `onContinueToPayment` callback no longer passes a lump pending amount. The C3 Payments screen will always call the balance RPC to get accurate per-component outstanding amounts.
-
-Update the navigation state from all three list screens (`C3ContributionList`, `NwDirectorList`, `SelfEmployedContributionList`) to stop passing `pendingAmount`.
-
-### Step 4: Backend Validation in `create_c3_payment_with_receipt`
-
-Add a pre-save validation check inside the existing RPC: before inserting payment lines, verify that each component's amount does not exceed its outstanding balance. This prevents overpayment at the database level even if the frontend is bypassed.
-
-```sql
--- For each component in p_components:
--- Calculate current balance = original - already_paid
--- If component amount > balance, RAISE EXCEPTION
-```
+This API is consumed exclusively by the external C3-Wizard portal. No `src/` files reference `/payment/save`. Internal cashier payments use `create_c3_payment_with_receipt` RPC directly.
 
 ## Files Changed
 
 | File | Change |
-|------|--------|
-| New migration | `get_c3_component_balances` RPC |
-| Updated migration | `create_c3_payment_with_receipt` — add overpayment guard |
-| `src/pages/cashier/C3Payments.tsx` | Replace `get_c3_payment_components` call with `get_c3_component_balances`; remove pro-ration logic; use `balance_amount` for component amounts and `maxAmounts` |
-| `src/components/c3/ExistingPaymentsPopup.tsx` | Remove `pendingAmount` from `onContinueToPayment` callback |
-| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Stop passing `pendingAmount` to navigation state |
-| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Stop passing `pendingAmount` to navigation state |
-| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Stop passing `pendingAmount` to navigation state |
+|---|---|
+| New migration SQL | Drop `public_api_payment_save(TEXT,TEXT,JSONB)`, create `public_api_payment_save(JSONB)` with body-sourced params, computed period, c3_payment_components inserts |
+| `supabase/functions/public-api/index.ts` | Flat route match, refactored handler signature, updated switch case |
 
-## Edge Cases Handled
+## Validation & Error Responses
 
-| Scenario | Behavior |
-|----------|----------|
-| No prior payments | Balance = full original amount per component |
-| Partial payment on one component | Only that component's balance is reduced |
-| Fully paid component | Component excluded from payment screen |
-| All components fully paid | Toast: "All components fully paid" — no entry possible |
-| Multiple prior transactions | All non-cancelled payments summed correctly |
-| Overpayment attempt | Blocked at frontend (maxAmounts) AND backend (RPC validation) |
-| Cancelled receipt payments | Excluded from paid total — balance restored |
+| Condition | Response |
+|---|---|
+| Missing `payerId` | 400: "payerId is required in request body" |
+| Missing `payerType` | 400: "payerType is required in request body" |
+| Missing/invalid `periodMonth` | 400: "periodMonth must be an integer between 1 and 12" |
+| Missing/invalid `periodYear` | 400: "periodYear must be a valid 4-digit year" |
+| Empty `paymentHeaders` | 400: "paymentHeaders array is required" |
+
+## Period Column Formats
+
+| Table | Column Type | Format |
+|---|---|---|
+| `cn_payment.period` | DATE | `2026-01-01` (via `make_date`) |
+| `c3_payment_components.period` | TEXT | `01/2026` (MM/YYYY) |
 
