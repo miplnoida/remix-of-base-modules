@@ -24779,6 +24779,15 @@ export type Database = {
           week_start: string
         }[]
       }
+      get_c3_component_balances: {
+        Args: {
+          p_payer_id: string
+          p_payer_type: string
+          p_period: string
+          p_sequence_no: number
+        }
+        Returns: Json
+      }
       get_c3_config_for_period: {
         Args: { p_period_date: string }
         Returns: {
