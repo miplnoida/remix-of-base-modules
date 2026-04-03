@@ -950,6 +950,13 @@ export function useProcessWorkflowTask() {
               if (userIds.length === 1) {
                 taskAssignment.assigned_to = userIds[0];
               }
+            } else if (approverType === 'reporting_manager') {
+              const { data: inst } = await supabase.from('workflow_instances').select('started_by').eq('id', task.instance_id).single();
+              if (inst?.started_by) {
+                const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
+                const resolved = await resolveReportingManagerForTask(inst.started_by, task.instance_id, nextStep.id, nextStep.step_name);
+                if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
+              }
             }
 
             await supabase
