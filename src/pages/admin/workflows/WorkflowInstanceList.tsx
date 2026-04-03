@@ -228,7 +228,7 @@ const WorkflowInstanceList: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.instances.map((instance) => (
+                  {roleFilteredInstances.instances.map((instance) => (
                     <TableRow 
                       key={instance.id} 
                       className="cursor-pointer hover:bg-muted/50"
