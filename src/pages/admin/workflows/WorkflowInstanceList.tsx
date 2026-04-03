@@ -300,8 +300,8 @@ const WorkflowInstanceList: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page === data.totalPages}
+                      onClick={() => setPage(p => Math.min(data?.totalPages || 1, p + 1))}
+                      disabled={page === (data?.totalPages || 1)}
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
