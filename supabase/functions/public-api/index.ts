@@ -78,12 +78,12 @@ async function checkApiRegistry(
     return { allowed: true, registryEntry: data[0] };
   }
 
-  // For Employee Sync dynamic routes, check by category
+  // For Employee dynamic routes, check by category (sync + lookup)
   if (isEmployeeRoute(endpointPath)) {
     const { data, error } = await supabase
       .from("api_registry")
       .select("*")
-      .eq("category", "employee-sync")
+      .in("category", ["employee-sync", "employee-lookup"])
       .eq("is_enabled", true)
       .limit(1);
     if (error || !data || data.length === 0) return { allowed: false };
@@ -207,11 +207,11 @@ async function checkScopeAuthorization(
     });
   }
 
-  // For Employee Sync dynamic routes, check by category
+  // For Employee dynamic routes, check by category (sync + lookup)
   if (isEmployeeRoute(endpointPath)) {
     return scopes.some((s: any) => {
       const reg = s.api_registry;
-      return reg && reg.category === "employee-sync";
+      return reg && (reg.category === "employee-sync" || reg.category === "employee-lookup");
     });
   }
 
