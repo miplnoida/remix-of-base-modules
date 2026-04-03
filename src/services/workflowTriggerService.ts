@@ -6,6 +6,7 @@
  * (useConvertToIPRegistration) to ensure consistency.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 interface WorkflowTrigger {
   id: string;
