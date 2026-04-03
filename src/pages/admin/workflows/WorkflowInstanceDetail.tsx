@@ -382,6 +382,13 @@ const WorkflowInstanceDetail: React.FC = () => {
                       return { type: 'User', value: userNames.join(', ') };
                     }
                   }
+
+                  if (task.approver_type === 'reporting_manager') {
+                    if (task.assigned_to_name) {
+                      return { type: 'Reporting Manager', value: task.assigned_to_name };
+                    }
+                    return { type: 'Reporting Manager', value: 'Pending Resolution' };
+                  }
                   
                   // Fallback to task-level assignment
                   if (task.assigned_role) {
