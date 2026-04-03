@@ -53,14 +53,21 @@ export default function WorkflowList() {
   
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_MANAGEMENT);
   const { data: workflows, isLoading } = useWorkflowDefinitions();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
   const deleteWorkflowMutation = useDeleteWorkflow();
   const toggleStatus = useToggleWorkflowStatus();
   const cloneWorkflowMutation = useCloneWorkflow();
+
+  // Apply role-based filtering
+  const roleFilteredWorkflows = workflows?.filter(w => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(w.id);
+  }) || [];
   
-  const filteredWorkflows = workflows?.filter(w =>
+  const filteredWorkflows = roleFilteredWorkflows.filter(w =>
     w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.process_type.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
   
   const handleDelete = async () => {
     if (deleteId) {
