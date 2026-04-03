@@ -920,10 +920,9 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
       return { handler: "updateUser", params: {} };
     }
 
-    // Payment Save: /api/v1/api/payment/save/{payerId}/{payerType}
-    const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
-    if (paymentMatch) {
-      return { handler: "paymentSave", params: { payerId: paymentMatch[1], payerType: paymentMatch[2] } };
+    // Payment Save: /api/v1/api/payment/save (flat POST, params in body)
+    if (path === "/api/v1/api/payment/save") {
+      return { handler: "paymentSave", params: {} };
     }
   }
 
