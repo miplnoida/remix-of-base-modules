@@ -272,8 +272,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!session) return;
 
-    // Load policy once when session becomes available
-    loadSessionPolicy();
+    // Policy is already loaded by initializeAuth — only load here if it wasn't
+    if (!policyLoadedRef.current) {
+      loadSessionPolicy();
+    }
 
     const checkTimeouts = () => {
       if (isLoggingOutRef.current) return;

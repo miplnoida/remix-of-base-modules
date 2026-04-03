@@ -239,14 +239,25 @@ export async function unblockIP(ipAddress: string, userId: string): Promise<bool
  * Get client IP address (best effort from client side)
  */
 let cachedIP: string | null = null;
+let ipFetchPromise: Promise<string> | null = null;
+
 export async function getClientIP(): Promise<string> {
   if (cachedIP) return cachedIP;
-  try {
-    const res = await fetch('https://api.ipify.org?format=json');
-    const data = await res.json();
-    cachedIP = data.ip || 'unknown';
-    return cachedIP!;
-  } catch {
-    return 'unknown';
-  }
+  // Share a single in-flight request across concurrent callers
+  if (ipFetchPromise) return ipFetchPromise;
+
+  ipFetchPromise = (async () => {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      cachedIP = data.ip || 'unknown';
+      return cachedIP!;
+    } catch {
+      return 'unknown';
+    } finally {
+      ipFetchPromise = null;
+    }
+  })();
+
+  return ipFetchPromise;
 }

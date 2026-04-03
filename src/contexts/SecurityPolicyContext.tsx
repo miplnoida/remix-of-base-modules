@@ -100,10 +100,12 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
   const lastCheckedPath = useRef<string>('');
   const clientIPRef = useRef<string>('unknown');
 
-  // Fetch client IP once
+  // Fetch client IP only when user is authenticated (skip for public routes)
   useEffect(() => {
-    getClientIP().then(ip => { clientIPRef.current = ip; });
-  }, []);
+    if (isAuthenticated) {
+      getClientIP().then(ip => { clientIPRef.current = ip; });
+    }
+  }, [isAuthenticated]);
 
   // 1. Check lockdown state
   const { data: lockdownState } = useQuery({
