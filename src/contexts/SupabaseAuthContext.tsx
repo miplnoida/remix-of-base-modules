@@ -412,6 +412,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // INITIAL load — fetch profile before setting loading false
     const initializeAuth = async () => {
+      initializingRef.current = true;
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
@@ -425,17 +426,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (currentSession?.user) {
-          // Parallelize profile, roles, AND policy load — don't block on policy
           const [profileData, rolesData] = await Promise.all([
             fetchProfile(currentSession.user.id),
             fetchRoles(currentSession.user.id),
-            // Fire policy load in parallel but don't block on it
             loadSessionPolicy().catch(() => {}),
           ]);
           setProfile(profileData);
           setRoles(rolesData);
         }
       } finally {
+        initializingRef.current = false;
         setIsLoading(false);
       }
     };
