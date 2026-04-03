@@ -979,7 +979,7 @@ async function executeHandler(
     case "updateUser":
       return handleUpdateUser(supabase, _payload as Record<string, unknown>);
     case "paymentSave":
-      return handlePaymentSave(supabase, routeParams, _payload as Record<string, unknown>);
+      return handlePaymentSave(supabase, _payload as Record<string, unknown>);
     case "receiptLookup":
       return handleReceiptLookup(supabase, routeParams);
     default:
