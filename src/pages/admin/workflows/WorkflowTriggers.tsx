@@ -150,7 +150,11 @@ export default function WorkflowTriggers() {
     }
   };
 
-  const activeWorkflows = workflows?.filter(w => w.is_active) || [];
+  const activeWorkflows = (workflows || []).filter(w => {
+    if (!w.is_active) return false;
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(w.id);
+  });
 
   return (
     <PermissionWrapper moduleName={MODULE_NAMES.WORKFLOW_TRIGGERS}>
