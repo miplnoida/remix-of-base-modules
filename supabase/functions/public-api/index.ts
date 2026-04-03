@@ -207,11 +207,11 @@ async function checkScopeAuthorization(
     });
   }
 
-  // For Employee Sync dynamic routes, check by category
+  // For Employee dynamic routes, check by category (sync + lookup)
   if (isEmployeeRoute(endpointPath)) {
     return scopes.some((s: any) => {
       const reg = s.api_registry;
-      return reg && reg.category === "employee-sync";
+      return reg && (reg.category === "employee-sync" || reg.category === "employee-lookup");
     });
   }
 
