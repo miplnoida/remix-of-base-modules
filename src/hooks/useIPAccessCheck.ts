@@ -1,11 +1,48 @@
 /**
  * Hook to check if the current user's IP is whitelisted.
- * Calls edge function which does server-side validation.
+ * Uses sessionStorage cache to avoid re-checking on every navigation.
+ * Renders children immediately (non-blocking) and only redirects on denial.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getClientIP } from '@/services/securityPolicyService';
+
+const IP_CACHE_KEY = 'ip_access_check_result';
+const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CachedResult {
+  ip: string;
+  allowed: boolean;
+  timestamp: number;
+}
+
+function getCachedResult(): CachedResult | null {
+  try {
+    const raw = sessionStorage.getItem(IP_CACHE_KEY);
+    if (!raw) return null;
+    const parsed: CachedResult = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > IP_CACHE_TTL) {
+      sessionStorage.removeItem(IP_CACHE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedResult(ip: string, allowed: boolean) {
+  try {
+    sessionStorage.setItem(IP_CACHE_KEY, JSON.stringify({
+      ip,
+      allowed,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // sessionStorage unavailable
+  }
+}
 
 interface IPCheckResult {
   isChecking: boolean;
@@ -15,9 +52,11 @@ interface IPCheckResult {
 }
 
 export function useIPAccessCheck(): IPCheckResult {
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
-  const [clientIP, setClientIP] = useState<string | null>(null);
+  // Check cache first — if cached as allowed, skip the loading spinner entirely
+  const cached = getCachedResult();
+  const [isChecking, setIsChecking] = useState(cached?.allowed !== true);
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(cached?.allowed ?? null);
+  const [clientIP, setClientIP] = useState<string | null>(cached?.ip ?? null);
 
   const checkWhitelistDirectly = useCallback(async (ip: string) => {
     const { data, error } = await (supabase.rpc as any)('check_ip_whitelist', {
@@ -33,6 +72,15 @@ export function useIPAccessCheck(): IPCheckResult {
   }, []);
 
   const checkAccess = useCallback(async () => {
+    // If we have a valid cache hit, skip network calls
+    const cachedNow = getCachedResult();
+    if (cachedNow) {
+      setClientIP(cachedNow.ip);
+      setIsAllowed(cachedNow.allowed);
+      setIsChecking(false);
+      return;
+    }
+
     setIsChecking(true);
     try {
       const ip = await getClientIP();
@@ -45,23 +93,25 @@ export function useIPAccessCheck(): IPCheckResult {
       if (error) {
         console.error('[IPAccessCheck] Edge function error:', error);
         const directResult = await checkWhitelistDirectly(ip);
-        setIsAllowed(directResult ?? true);
+        const result = directResult ?? true;
+        setIsAllowed(result);
+        setCachedResult(ip, result);
         return;
       }
 
       if (data?.allowed === false && ip && ip !== 'unknown') {
         const directResult = await checkWhitelistDirectly(ip);
         if (directResult === true) {
-          console.warn('[IPAccessCheck] Edge function denied a whitelisted IP, using direct RPC fallback.', {
-            ip,
-            edgeReason: data?.reason,
-          });
+          console.warn('[IPAccessCheck] Edge function denied a whitelisted IP, using direct RPC fallback.');
           setIsAllowed(true);
+          setCachedResult(ip, true);
           return;
         }
       }
 
-      setIsAllowed(data?.allowed ?? true);
+      const result = data?.allowed ?? true;
+      setIsAllowed(result);
+      setCachedResult(ip, result);
     } catch (err) {
       console.error('[IPAccessCheck] Unexpected error:', err);
       setIsAllowed(true);

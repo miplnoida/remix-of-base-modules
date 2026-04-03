@@ -172,52 +172,65 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [getBaseLogData]);
 
-  // Log navigation changes as business events AND audit trail
+  // Log navigation changes as business events AND audit trail — deferred to avoid blocking render
   useEffect(() => {
     if (user && previousPath.current !== location.pathname) {
       const currentTime = performance.now();
       const timeOnPreviousPage = previousPath.current 
         ? Math.round(currentTime - pageLoadTime.current) 
         : 0;
+      const currentPath = location.pathname;
+      const prevPath = previousPath.current;
 
-      // Start new correlation for new page
-      startNewCorrelation();
-
-      // Resolve correct user identity — prefer user_code, never fall back to full_name
-      const userName = profile?.user_code || user?.email || 'ANONYMOUS';
-
-      // Log the navigation as a business event
-      logBusinessEvent({
-        module: 'Navigation',
-        action: 'page_view',
-        entity_type: 'page',
-        entity_id: location.pathname,
-        description: `Navigated to ${location.pathname}`,
-      });
-
-      // Write to system_audit_trail with correct user_code (not full_name)
-      logAudit({
-        module: 'Navigation',
-        action: 'page_view',
-        entity_type: 'page',
-        entity_id: location.pathname,
-        description: `Opened screen: ${location.pathname}`,
-        user_name: userName,
-      });
-
-      // Log performance metric for previous page if applicable
-      if (previousPath.current && timeOnPreviousPage > 0) {
-        logPerformance({
-          api_name: 'page_session',
-          module: previousPath.current,
-          execution_time_ms: timeOnPreviousPage,
-          status: 'success',
-        });
-      }
-
-      previousPath.current = location.pathname;
-      sessionStorage.setItem('audit_last_route', location.pathname);
+      // Update tracking refs immediately (synchronous)
+      previousPath.current = currentPath;
+      sessionStorage.setItem('audit_last_route', currentPath);
       pageLoadTime.current = currentTime;
+
+      // Defer all DB writes to idle time so they don't block rendering
+      const deferredLog = () => {
+        // Start new correlation for new page
+        startNewCorrelation();
+
+        // Resolve correct user identity
+        const userName = profile?.user_code || user?.email || 'ANONYMOUS';
+
+        // Fire-and-forget: log navigation as business event
+        logBusinessEvent({
+          module: 'Navigation',
+          action: 'page_view',
+          entity_type: 'page',
+          entity_id: currentPath,
+          description: `Navigated to ${currentPath}`,
+        });
+
+        // Fire-and-forget: audit trail
+        logAudit({
+          module: 'Navigation',
+          action: 'page_view',
+          entity_type: 'page',
+          entity_id: currentPath,
+          description: `Opened screen: ${currentPath}`,
+          user_name: userName,
+        });
+
+        // Log performance metric for previous page if applicable
+        if (prevPath && timeOnPreviousPage > 0) {
+          logPerformance({
+            api_name: 'page_session',
+            module: prevPath,
+            execution_time_ms: timeOnPreviousPage,
+            status: 'success',
+          });
+        }
+      };
+
+      // Use requestIdleCallback if available, otherwise queueMicrotask
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(deferredLog);
+      } else {
+        setTimeout(deferredLog, 0);
+      }
     }
   }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
 
