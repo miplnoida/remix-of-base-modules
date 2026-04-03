@@ -69,7 +69,7 @@ interface StepFormData {
   is_final_step: boolean;
   isOpen: boolean;
   // New fields for PART 4
-  approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy';
+  approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy' | 'reporting_manager';
   approver_role_ids: string[];
   approver_designation_ids: string[];
   approver_user_ids: string[];
