@@ -69,7 +69,7 @@ interface StepFormData {
   is_final_step: boolean;
   isOpen: boolean;
   // New fields for PART 4
-  approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy';
+  approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy' | 'reporting_manager';
   approver_role_ids: string[];
   approver_designation_ids: string[];
   approver_user_ids: string[];
@@ -136,6 +136,7 @@ const APPROVER_TYPES = [
   { value: 'specific_users', label: 'Specific Users' },
   { value: 'department_head', label: 'Department Head' },
   { value: 'designation_hierarchy', label: 'Higher level in Designation Hierarchy' },
+  { value: 'reporting_manager', label: 'Reporting Manager' },
 ];
 
 // Fallback action types - used when database data isn't loaded yet
@@ -1051,6 +1052,17 @@ export default function WorkflowForm() {
                             <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                               Approvers will be resolved from higher levels in the applicant's designation hierarchy.
                             </p>
+                          )}
+
+                          {step.approver_type === 'reporting_manager' && (
+                            <div className="bg-muted p-3 rounded-md space-y-1">
+                              <p className="text-sm text-muted-foreground">
+                                The reporting manager of the user who initiated this workflow will be automatically resolved at runtime based on the reporting hierarchy.
+                              </p>
+                              <p className="text-xs text-amber-600">
+                                Note: If the initiator has no reporting manager assigned, the task will remain unassigned for admin manual assignment.
+                              </p>
+                            </div>
                           )}
                         </div>
 

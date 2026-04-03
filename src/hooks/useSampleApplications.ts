@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export interface SampleApplication {
   id: string;
@@ -262,6 +263,14 @@ export function useSubmitSampleApplication() {
             const userIds = firstStep.approver_user_ids as string[];
             if (userIds.length === 1) {
               taskAssignment.assigned_to = userIds[0];
+            }
+          } else if (approverType === 'reporting_manager') {
+            const currentUserId = user.user?.id;
+            if (currentUserId) {
+              const resolved = await resolveReportingManagerForTask(currentUserId, instance.id, firstStep.id, firstStep.step_name);
+              if (resolved) {
+                taskAssignment.assigned_to = resolved.managerId;
+              }
             }
           }
           

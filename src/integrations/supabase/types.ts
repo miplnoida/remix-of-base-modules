@@ -25582,6 +25582,14 @@ export type Database = {
         Args: { p_payer_id: string; p_payer_type: string }
         Returns: string
       }
+      resolve_reporting_manager: {
+        Args: { p_user_id: string }
+        Returns: {
+          error_message: string
+          manager_id: string
+          manager_name: string
+        }[]
+      }
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string

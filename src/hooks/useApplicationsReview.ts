@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;
@@ -331,6 +332,12 @@ export function useProcessReviewAction() {
                   if (userIds.length === 1) {
                     taskAssignment.assigned_to = userIds[0];
                   }
+                } else if (approverType === 'reporting_manager') {
+                  const { data: inst } = await supabase.from('workflow_instances').select('started_by').eq('id', task.instance_id).single();
+                  if (inst?.started_by) {
+                    const resolved = await resolveReportingManagerForTask(inst.started_by, task.instance_id, nextStep.id, nextStep.step_name);
+                    if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
+                  }
                 }
 
                 await supabase
@@ -419,6 +426,12 @@ export function useProcessReviewAction() {
                   const userIds = nextStep.approver_user_ids as string[];
                   if (userIds.length === 1) {
                     taskAssignment.assigned_to = userIds[0];
+                  }
+                } else if (approverType === 'reporting_manager') {
+                  const { data: inst } = await supabase.from('workflow_instances').select('started_by').eq('id', task.instance_id).single();
+                  if (inst?.started_by) {
+                    const resolved = await resolveReportingManagerForTask(inst.started_by, task.instance_id, nextStep.id, nextStep.step_name);
+                    if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
                   }
                 }
 

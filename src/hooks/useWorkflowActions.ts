@@ -5,6 +5,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { applyBusinessObjectFieldUpdates } from '@/hooks/useBusinessObjectRoot';
 import { getCorrelationId } from '@/services/correlationIdService';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;
@@ -307,6 +308,12 @@ async function checkUserPermissionOptimized(
       return (step.approver_designation_ids as string[]).includes(profile.designation_id);
     }
     return false;
+  }
+
+  // For reporting_manager, the task is assigned to the resolved manager at task creation time.
+  // The existing assigned_to check at line 228 handles this case.
+  if (approverType === 'reporting_manager') {
+    return false; // If not matched via assigned_to above, user is not the reporting manager
   }
 
   return false;
@@ -993,6 +1000,19 @@ async function createNextStepTask(instanceId: string, stepId: string) {
     const userIds = step.approver_user_ids as string[];
     if (userIds.length === 1) {
       taskAssignment.assigned_to = userIds[0];
+    }
+  } else if (approverType === 'reporting_manager') {
+    // Resolve the reporting manager of the workflow initiator
+    const { data: inst } = await supabase
+      .from('workflow_instances')
+      .select('started_by')
+      .eq('id', instanceId)
+      .single();
+    if (inst?.started_by) {
+      const resolved = await resolveReportingManagerForTask(inst.started_by, instanceId, stepId, step.step_name);
+      if (resolved) {
+        taskAssignment.assigned_to = resolved.managerId;
+      }
     }
   }
 

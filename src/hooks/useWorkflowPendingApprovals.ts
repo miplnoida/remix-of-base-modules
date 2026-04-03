@@ -170,6 +170,8 @@ export function useMyPendingApprovals() {
               canAct = userRoleIds.some(roleId => step.approver_role_ids?.includes(roleId));
             } else if (approverType === 'designation' && step.approver_designation_ids && userDesignationId) {
               canAct = step.approver_designation_ids.includes(userDesignationId);
+            } else if (approverType === 'reporting_manager' && task.assigned_to === user.id) {
+              canAct = true;
             }
           }
         }
