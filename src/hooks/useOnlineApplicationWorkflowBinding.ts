@@ -174,6 +174,12 @@ async function bindWorkflowToApplication(
       if (userIds.length === 1) {
         taskAssignment.assigned_to = userIds[0];
       }
+    } else if (approverType === 'reporting_manager') {
+      const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
+      if (userId) {
+        const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
+        if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
+      }
     }
 
     const { data: taskData, error: taskError } = await supabase

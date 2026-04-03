@@ -1159,6 +1159,13 @@ export function useStartWorkflow() {
         if (userIds.length === 1) {
           taskAssignment.assigned_to = userIds[0];
         }
+      } else if (approverType === 'reporting_manager') {
+        const currentUserId = user.user?.id;
+        if (currentUserId && instance) {
+          const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
+          const resolved = await resolveReportingManagerForTask(currentUserId, instance.id, firstStep.id, firstStep.step_name);
+          if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
+        }
       }
 
       await supabase
