@@ -40,7 +40,7 @@ interface ExistingPaymentsPopupProps {
   companyId: number;
   regNo: string;
   payerType: string;
-  onContinueToPayment: (record: C3ContributionRecord, pendingAmount?: number | null) => void;
+  onContinueToPayment: (record: C3ContributionRecord) => void;
 }
 
 export const ExistingPaymentsPopup: React.FC<ExistingPaymentsPopupProps> = ({
