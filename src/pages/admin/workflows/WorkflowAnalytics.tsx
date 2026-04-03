@@ -38,9 +38,10 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function WorkflowAnalytics() {
-  const { data: analytics, isLoading: analyticsLoading } = useWorkflowAnalytics();
-  const { data: workflows } = useWorkflowDefinitions();
   const { data: assignedData } = useUserAssignedWorkflowIds();
+  const analyticsFilter = assignedData?.isAdmin ? null : assignedData?.ids;
+  const { data: analytics, isLoading: analyticsLoading } = useWorkflowAnalytics(analyticsFilter ?? undefined);
+  const { data: workflows } = useWorkflowDefinitions();
 
   // Get workflow instances grouped by workflow (role-filtered)
   const { data: instancesByWorkflow } = useQuery({
