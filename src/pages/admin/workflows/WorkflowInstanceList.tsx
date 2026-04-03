@@ -295,7 +295,7 @@ const WorkflowInstanceList: React.FC = () => {
                       Previous
                     </Button>
                     <span className="text-sm">
-                      Page {page} of {data.totalPages}
+                      Page {page} of {data?.totalPages || 1}
                     </span>
                     <Button
                       variant="outline"
