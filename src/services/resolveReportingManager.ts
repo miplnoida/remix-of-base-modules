@@ -75,9 +75,9 @@ async function logReportingManagerResolution(
       step_id: stepId,
       step_name: stepName,
       action,
-      performed_by: initiatorUserId,
-      performed_by_name: 'System',
-      details,
+      user_id: initiatorUserId,
+      user_name: 'System',
+      comments: details,
       metadata: {
         approver_type: 'reporting_manager',
         initiator_user_id: initiatorUserId,
