@@ -93,6 +93,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Throttle tracking for activity updates
   const lastActivityUpdateRef = useRef<number>(0);
 
+  // Guard to prevent onAuthStateChange from duplicating initializeAuth fetches
+  const initializingRef = useRef(false);
+
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -272,8 +275,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!session) return;
 
-    // Load policy once when session becomes available
-    loadSessionPolicy();
+    // Policy is already loaded by initializeAuth — only load here if it wasn't
+    if (!policyLoadedRef.current) {
+      loadSessionPolicy();
+    }
 
     const checkTimeouts = () => {
       if (isLoggingOutRef.current) return;
@@ -389,15 +394,17 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (currentSession?.user) {
-          // Fetch profile/roles then mark loading done — prevents "Redirecting" hang
+          // Skip if initializeAuth is already handling this (prevents duplicate fetches)
+          if (initializingRef.current) {
+            return;
+          }
           const userId = currentSession.user.id;
-          setTimeout(async () => {
-            const profileData = await fetchProfile(userId);
-            const rolesData = await fetchRoles(userId);
+          // Parallelize profile + roles fetch
+          Promise.all([fetchProfile(userId), fetchRoles(userId)]).then(([profileData, rolesData]) => {
             setProfile(profileData);
             setRoles(rolesData);
             setIsLoading(false);
-          }, 0);
+          });
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
@@ -410,6 +417,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // INITIAL load — fetch profile before setting loading false
     const initializeAuth = async () => {
+      initializingRef.current = true;
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
@@ -423,17 +431,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (currentSession?.user) {
-          // Parallelize profile, roles, AND policy load — don't block on policy
           const [profileData, rolesData] = await Promise.all([
             fetchProfile(currentSession.user.id),
             fetchRoles(currentSession.user.id),
-            // Fire policy load in parallel but don't block on it
             loadSessionPolicy().catch(() => {}),
           ]);
           setProfile(profileData);
           setRoles(rolesData);
         }
       } finally {
+        initializingRef.current = false;
         setIsLoading(false);
       }
     };

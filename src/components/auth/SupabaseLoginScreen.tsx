@@ -106,13 +106,8 @@ export const SupabaseLoginScreen = () => {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Don't block the login form while auth is loading — it's a public route.
+  // Redirect is handled by useEffect above.
 
   if (isAuthenticated) {
     return (
