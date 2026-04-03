@@ -258,7 +258,7 @@ const SelfEmployedContributionList: React.FC = () => {
                               variant="outline"
                               size="sm"
                               className="border-blue-500 text-blue-600 text-xs h-7"
-                              onClick={() => handlePayment(c, c.pending_amount)}
+                              onClick={() => handlePayment(c)}
                             >
                               Payment
                             </Button>
