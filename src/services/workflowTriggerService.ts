@@ -182,6 +182,11 @@ export async function triggerIPRegistrationWorkflow({
       if (firstStep.approver_user_ids.length === 1) {
         taskAssignment.assigned_to = firstStep.approver_user_ids[0];
       }
+    } else if (approverType === 'reporting_manager' && userId) {
+      const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
+      if (resolved) {
+        taskAssignment.assigned_to = resolved.managerId;
+      }
     }
 
     const { data: taskData } = await supabase
