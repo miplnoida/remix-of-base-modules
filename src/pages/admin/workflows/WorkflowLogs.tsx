@@ -49,12 +49,12 @@ export default function WorkflowLogs() {
     return wfId ? assignedData.ids.includes(wfId) : false;
   }) || [];
 
-  const filteredLogs = logs?.filter(log =>
+  const filteredLogs = roleFilteredLogs.filter(log =>
     log.step_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instanceMap.get(log.instance_id)?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   const getActionColor = (action: string) => {
     switch (action.toLowerCase()) {
