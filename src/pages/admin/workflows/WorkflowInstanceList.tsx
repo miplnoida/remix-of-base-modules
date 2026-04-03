@@ -279,7 +279,7 @@ const WorkflowInstanceList: React.FC = () => {
               </Table>
 
               {/* Pagination */}
-              {data.totalPages > 1 && (
+              {data && data.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
                     Showing {((page - 1) * 25) + 1} to {Math.min(page * 25, data.total)} of {data.total}
