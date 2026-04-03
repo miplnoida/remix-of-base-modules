@@ -204,7 +204,7 @@ const WorkflowInstanceList: React.FC = () => {
         <CardHeader>
           <CardTitle>All Instances</CardTitle>
           <CardDescription>
-            {isLoading ? 'Loading...' : `${data?.total || 0} total workflow instance(s)`}
+            {isLoading ? 'Loading...' : `${roleFilteredInstances?.instances.length || 0} total workflow instance(s)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
