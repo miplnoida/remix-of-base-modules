@@ -126,7 +126,7 @@ const C3ContributionList: React.FC = () => {
   };
 
   // Actual navigation to cashier screen (called from popup)
-  const navigateToPayment = (record: C3ContributionRecord, pendingAmount?: number | null) => {
+  const navigateToPayment = (record: C3ContributionRecord) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
     navigate('/cashier/c3-payments', {
@@ -136,7 +136,6 @@ const C3ContributionList: React.FC = () => {
         year: record.year,
         schedule: String(record.schedule),
         payerType: 'ER',
-        ...(pendingAmount != null ? { pendingAmount } : {}),
       },
     });
   };

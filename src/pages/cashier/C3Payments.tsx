@@ -190,7 +190,8 @@ const C3Payments: React.FC = () => {
     }
   }, [navState, initialParamsApplied, payerType, payment, payerInfo]);
 
-  // Auto-load C3 payment components from cn_c3_reported when navigated from C3 detail screens
+  // Auto-load C3 payment component BALANCES from get_c3_component_balances RPC
+  // This replaces the old pro-ration logic with accurate per-component reconciliation
   useEffect(() => {
     if (c3ComponentsLoaded) return;
     const regNo = navState.regNo;
@@ -206,7 +207,7 @@ const C3Payments: React.FC = () => {
 
     (async () => {
       try {
-        const { data, error } = await supabase.rpc('get_c3_payment_components' as any, {
+        const { data, error } = await supabase.rpc('get_c3_component_balances' as any, {
           p_payer_id: regNo,
           p_payer_type: pType,
           p_period: periodDate,
@@ -214,8 +215,8 @@ const C3Payments: React.FC = () => {
         });
 
         if (error) {
-          console.error('Error fetching C3 components:', error);
-          toast({ title: 'Error', description: 'Failed to load C3 payment components.', variant: 'destructive' });
+          console.error('Error fetching C3 component balances:', error);
+          toast({ title: 'Error', description: 'Failed to load C3 payment component balances.', variant: 'destructive' });
           return;
         }
 
@@ -227,47 +228,34 @@ const C3Payments: React.FC = () => {
 
         const components: PaymentComponent[] = [];
         for (const comp of result.components || []) {
+          // Skip fully paid components (balance_amount <= 0)
+          const balanceAmount = Number(comp.balance_amount || 0);
+          if (balanceAmount <= 0) continue;
+
           const pt = paymentTypesAll.find((p: any) => p.payment_code === comp.payment_code);
-          if (pt && comp.amount > 0) {
+          if (pt) {
             components.push({
               payment_code: comp.payment_code,
               fund_code: pt.fund_code || '',
               description: pt.payment_type_description || comp.payment_code,
-              amount: Number(comp.amount),
+              amount: balanceAmount,
             });
           }
         }
 
         if (components.length > 0) {
-          // Pro-rate components if navigated from a Partial payment
-          const pending = navState.pendingAmount ? parseFloat(navState.pendingAmount) : null;
-          if (pending != null && pending > 0) {
-            const fullTotal = components.reduce((s, c) => s + c.amount, 0);
-            if (fullTotal > 0 && pending < fullTotal) {
-              const ratio = pending / fullTotal;
-              let runningTotal = 0;
-              for (let i = 0; i < components.length; i++) {
-                if (i < components.length - 1) {
-                  const prorated = Math.round(components[i].amount * ratio * 100) / 100;
-                  components[i].amount = prorated;
-                  runningTotal += prorated;
-                } else {
-                  // Last component gets the remainder to avoid rounding drift
-                  components[i].amount = Math.round((pending - runningTotal) * 100) / 100;
-                }
-              }
-            }
-          }
-
           setSelectedComponents(components);
           setIsPreloaded(true);
+          // maxAmounts is set to the balance_amount (outstanding) per component
           const maxMap: Record<string, number> = {};
           components.forEach(c => { maxMap[c.payment_code] = c.amount; });
           setMaxAmounts(maxMap);
-          toast({ title: 'Components Loaded', description: `${components.length} payment component(s) auto-populated from C3 record.` });
+          toast({ title: 'Components Loaded', description: `${components.length} payment component(s) with outstanding balances loaded.` });
+        } else {
+          toast({ title: 'Fully Paid', description: 'All components for this C3 period are fully paid. No payment is due.', variant: 'destructive' });
         }
       } catch (err: any) {
-        console.error('Error auto-loading C3 components:', err);
+        console.error('Error auto-loading C3 component balances:', err);
       }
     })();
   }, [navState, c3ComponentsLoaded, paymentTypesAll, ptLoading]);

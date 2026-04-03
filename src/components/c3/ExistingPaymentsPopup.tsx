@@ -166,7 +166,7 @@ export const ExistingPaymentsPopup: React.FC<ExistingPaymentsPopupProps> = ({
           <Button
             onClick={() => {
               onClose();
-              onContinueToPayment(record, pendingAmount > 0 ? pendingAmount : null);
+              onContinueToPayment(record);
             }}
             className="gap-1"
           >

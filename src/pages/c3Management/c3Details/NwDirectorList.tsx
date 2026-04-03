@@ -101,7 +101,7 @@ const NwDirectorList: React.FC = () => {
   };
 
   // "Payment" → navigate to C3 Payments cashier screen
-  const handlePayment = (record: NwdContributionRecord, pendingAmount?: number | null) => {
+  const handlePayment = (record: NwdContributionRecord) => {
     const company = companies.find(c => String(c.id) === selectedCompanyId);
     if (!company) return;
     navigate('/cashier/c3-payments', {
@@ -111,7 +111,6 @@ const NwDirectorList: React.FC = () => {
         year: record.year,
         schedule: String(record.schedule),
         payerType: 'NW',
-        ...(pendingAmount != null ? { pendingAmount } : {}),
       },
     });
   };
