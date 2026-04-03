@@ -753,14 +753,37 @@ async function handleUpdateUser(
 // ── Payment Handlers ──
 async function handlePaymentSave(
   supabase: ReturnType<typeof createClient>,
-  params: Record<string, string>,
   payload: Record<string, unknown>
 ) {
-  const { payerId, payerType } = params;
-  if (!payerId || !payerType) throw { code: "BAD_REQUEST", message: "payerId and payerType are required" };
+  if (!payload || Object.keys(payload).length === 0) {
+    throw { code: "BAD_REQUEST", message: "Request body is required" };
+  }
+
+  // Validate required fields from body
+  const payerId = payload.payerId;
+  const payerType = payload.payerType;
+  if (!payerId || typeof payerId !== "string" || !payerId.trim()) {
+    throw { code: "BAD_REQUEST", message: "payerId is required in request body" };
+  }
+  if (!payerType || typeof payerType !== "string" || !payerType.trim()) {
+    throw { code: "BAD_REQUEST", message: "payerType is required in request body" };
+  }
+
+  const periodMonth = Number(payload.periodMonth);
+  if (!Number.isInteger(periodMonth) || periodMonth < 1 || periodMonth > 12) {
+    throw { code: "BAD_REQUEST", message: "periodMonth must be an integer between 1 and 12" };
+  }
+
+  const periodYear = Number(payload.periodYear);
+  if (!Number.isInteger(periodYear) || periodYear < 1900 || periodYear > 9999) {
+    throw { code: "BAD_REQUEST", message: "periodYear must be a valid 4-digit year" };
+  }
+
+  if (!Array.isArray(payload.paymentHeaders) || payload.paymentHeaders.length === 0) {
+    throw { code: "BAD_REQUEST", message: "paymentHeaders array is required" };
+  }
+
   const { data, error } = await supabase.rpc("public_api_payment_save", {
-    p_payer_id: payerId,
-    p_payer_type: payerType,
     p_payload: payload,
   });
   if (error) throw error;
@@ -897,10 +920,9 @@ function matchRoute(path: string, method: string): { handler: string; params: Re
       return { handler: "updateUser", params: {} };
     }
 
-    // Payment Save: /api/v1/api/payment/save/{payerId}/{payerType}
-    const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
-    if (paymentMatch) {
-      return { handler: "paymentSave", params: { payerId: paymentMatch[1], payerType: paymentMatch[2] } };
+    // Payment Save: /api/v1/api/payment/save (flat POST, params in body)
+    if (path === "/api/v1/api/payment/save") {
+      return { handler: "paymentSave", params: {} };
     }
   }
 
@@ -957,7 +979,7 @@ async function executeHandler(
     case "updateUser":
       return handleUpdateUser(supabase, _payload as Record<string, unknown>);
     case "paymentSave":
-      return handlePaymentSave(supabase, routeParams, _payload as Record<string, unknown>);
+      return handlePaymentSave(supabase, _payload as Record<string, unknown>);
     case "receiptLookup":
       return handleReceiptLookup(supabase, routeParams);
     default:
