@@ -239,6 +239,10 @@ const GlobalSettings = () => {
               <Shield className="h-3.5 w-3.5 mr-1" />
               Cloudflare Verification
             </TabsTrigger>
+            <TabsTrigger value="themes" className="px-4">
+              <Palette className="h-3.5 w-3.5 mr-1" />
+              Themes
+            </TabsTrigger>
             {categories.map(category => (
               <TabsTrigger key={category} value={category} className="px-4">
                 {category}
