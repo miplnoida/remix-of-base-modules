@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from '@/hooks/useActionPermission';
 import { useWorkflowLogs } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,7 @@ export default function WorkflowLogs() {
 
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_LOGS);
   const { data: logs, isLoading } = useWorkflowLogs();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
 
   // Get workflow instances for reference
   const { data: instances } = useQuery({
@@ -31,20 +33,28 @@ export default function WorkflowLogs() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workflow_instances')
-        .select('id, workflow_name');
+        .select('id, workflow_id, workflow_name');
       if (error) throw error;
       return data || [];
     },
   });
 
   const instanceMap = new Map(instances?.map(i => [i.id, i.workflow_name]) || []);
+  const instanceWorkflowMap = new Map(instances?.map(i => [i.id, i.workflow_id]) || []);
 
-  const filteredLogs = logs?.filter(log =>
+  // Role-filter logs
+  const roleFilteredLogs = logs?.filter(log => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    const wfId = instanceWorkflowMap.get(log.instance_id);
+    return wfId ? assignedData.ids.includes(wfId) : false;
+  }) || [];
+
+  const filteredLogs = roleFilteredLogs.filter(log =>
     log.step_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instanceMap.get(log.instance_id)?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   const getActionColor = (action: string) => {
     switch (action.toLowerCase()) {

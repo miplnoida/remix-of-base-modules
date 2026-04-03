@@ -47,6 +47,7 @@ import {
   useSaveWorkflowTrigger,
   useDeleteWorkflowTrigger,
 } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -74,6 +75,7 @@ export default function WorkflowTriggers() {
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_TRIGGERS);
   const { data: triggers, isLoading } = useWorkflowTriggers();
   const { data: workflows } = useWorkflowDefinitions();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
   const { data: modules } = useQuery({
     queryKey: ['app-modules-with-root'],
     queryFn: async () => {
@@ -85,6 +87,12 @@ export default function WorkflowTriggers() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Role-based filtering for triggers
+  const filteredTriggers = triggers?.filter((t: any) => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(t.workflow_id);
   });
 
   // Get selected module's Business Object Root info
@@ -142,7 +150,11 @@ export default function WorkflowTriggers() {
     }
   };
 
-  const activeWorkflows = workflows?.filter(w => w.is_active) || [];
+  const activeWorkflows = (workflows || []).filter(w => {
+    if (!w.is_active) return false;
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(w.id);
+  });
 
   return (
     <PermissionWrapper moduleName={MODULE_NAMES.WORKFLOW_TRIGGERS}>
@@ -184,14 +196,14 @@ export default function WorkflowTriggers() {
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   </TableRow>
                 ))
-              ) : triggers?.length === 0 ? (
+              ) : filteredTriggers?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No triggers configured. Click "Add Trigger" to bind a workflow to a module action.
                   </TableCell>
                 </TableRow>
               ) : (
-                triggers?.map((trigger: any) => (
+                filteredTriggers?.map((trigger: any) => (
                   <TableRow key={trigger.id}>
                     <TableCell>{trigger.module?.display_name || 'Unknown'}</TableCell>
                     <TableCell>{trigger.action_name}</TableCell>

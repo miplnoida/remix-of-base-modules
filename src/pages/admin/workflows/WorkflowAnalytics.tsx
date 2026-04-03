@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { MODULE_NAMES } from '@/hooks/useActionPermission';
 import { useWorkflowAnalytics, useWorkflowDefinitions } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -37,23 +38,31 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function WorkflowAnalytics() {
-  const { data: analytics, isLoading: analyticsLoading } = useWorkflowAnalytics();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
+  const analyticsFilter = assignedData?.isAdmin ? null : assignedData?.ids;
+  const { data: analytics, isLoading: analyticsLoading } = useWorkflowAnalytics(analyticsFilter ?? undefined);
   const { data: workflows } = useWorkflowDefinitions();
 
-  // Get workflow instances grouped by workflow
+  // Get workflow instances grouped by workflow (role-filtered)
   const { data: instancesByWorkflow } = useQuery({
-    queryKey: ['instances-by-workflow'],
+    queryKey: ['instances-by-workflow', assignedData],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workflow_instances')
-        .select('workflow_name, status');
+        .select('workflow_id, workflow_name, status');
       
       if (error) throw error;
+      
+      // Role-based filter
+      const filtered = (data || []).filter(inst => {
+        if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+        return assignedData.ids.includes(inst.workflow_id);
+      });
       
       // Group by workflow
       const grouped: Record<string, { name: string; total: number; completed: number; pending: number }> = {};
       
-      data?.forEach(instance => {
+      filtered.forEach(instance => {
         if (!grouped[instance.workflow_name]) {
           grouped[instance.workflow_name] = {
             name: instance.workflow_name,

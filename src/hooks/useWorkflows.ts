@@ -1017,35 +1017,40 @@ export function useWorkflowLogs(instanceId?: string) {
 }
 
 // Workflow analytics
-export function useWorkflowAnalytics() {
+export function useWorkflowAnalytics(allowedWorkflowIds?: string[] | null) {
   return useQuery({
-    queryKey: ['workflow-analytics'],
+    queryKey: ['workflow-analytics', allowedWorkflowIds],
     queryFn: async () => {
       const { data: instances, error } = await supabase
         .from('workflow_instances')
         .select('*');
       
       if (error) throw error;
+
+      // Apply role-based filter if provided (null = admin/no filter, [] = no access)
+      const filtered = allowedWorkflowIds === null || allowedWorkflowIds === undefined
+        ? instances || []
+        : (instances || []).filter(i => allowedWorkflowIds.includes(i.workflow_id));
       
-      const total = instances?.length || 0;
-      const pending = instances?.filter(i => i.status === 'Pending' || i.status === 'InProgress').length || 0;
-      const completed = instances?.filter(i => i.status === 'Completed').length || 0;
-      const rejected = instances?.filter(i => i.status === 'Rejected').length || 0;
+      const total = filtered.length;
+      const pending = filtered.filter(i => i.status === 'Pending' || i.status === 'InProgress').length;
+      const completed = filtered.filter(i => i.status === 'Completed').length;
+      const rejected = filtered.filter(i => i.status === 'Rejected').length;
       
       // Calculate SLA violations
       const now = new Date();
-      const slaViolations = instances?.filter(i => 
+      const slaViolations = filtered.filter(i => 
         i.due_at && new Date(i.due_at) < now && i.status !== 'Completed'
-      ).length || 0;
+      ).length;
       
       // Calculate average completion time
-      const completedInstances = instances?.filter(i => i.completed_at) || [];
+      const completedInstances = filtered.filter(i => i.completed_at);
       const avgCompletionTime = completedInstances.length > 0
         ? completedInstances.reduce((sum, i) => {
             const start = new Date(i.started_at).getTime();
             const end = new Date(i.completed_at!).getTime();
             return sum + (end - start);
-          }, 0) / completedInstances.length / (1000 * 60 * 60) // Convert to hours
+          }, 0) / completedInstances.length / (1000 * 60 * 60)
         : 0;
       
       return {

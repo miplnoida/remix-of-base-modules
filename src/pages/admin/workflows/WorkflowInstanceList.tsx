@@ -36,15 +36,31 @@ import {
   useWorkflowStatusOptions,
   WorkflowInstanceFilters 
 } from '@/hooks/useWorkflowInstances';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 
 const WorkflowInstanceList: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<WorkflowInstanceFilters>({});
   
+  const { data: assignedData } = useUserAssignedWorkflowIds();
   const { data, isLoading } = useWorkflowInstances(filters, page, 25);
   const { data: workflowNames } = useWorkflowNames();
   const statusOptions = useWorkflowStatusOptions();
+
+  // Filter instances and workflow names by role
+  const roleFilteredInstances = data ? {
+    ...data,
+    instances: data.instances.filter(inst => {
+      if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+      return assignedData.ids.includes(inst.workflow_id);
+    }),
+  } : data;
+
+  const filteredWorkflowNames = workflowNames?.filter(wf => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(wf.id);
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -126,7 +142,7 @@ const WorkflowInstanceList: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Workflows</SelectItem>
-                {workflowNames?.map((wf) => (
+                {filteredWorkflowNames?.map((wf) => (
                   <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -188,7 +204,7 @@ const WorkflowInstanceList: React.FC = () => {
         <CardHeader>
           <CardTitle>All Instances</CardTitle>
           <CardDescription>
-            {isLoading ? 'Loading...' : `${data?.total || 0} total workflow instance(s)`}
+            {isLoading ? 'Loading...' : `${roleFilteredInstances?.instances.length || 0} total workflow instance(s)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -196,7 +212,7 @@ const WorkflowInstanceList: React.FC = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : data && data.instances.length > 0 ? (
+          ) : roleFilteredInstances && roleFilteredInstances.instances.length > 0 ? (
             <>
               <Table>
                 <TableHeader>
@@ -212,7 +228,7 @@ const WorkflowInstanceList: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.instances.map((instance) => (
+                  {roleFilteredInstances.instances.map((instance) => (
                     <TableRow 
                       key={instance.id} 
                       className="cursor-pointer hover:bg-muted/50"
@@ -263,7 +279,7 @@ const WorkflowInstanceList: React.FC = () => {
               </Table>
 
               {/* Pagination */}
-              {data.totalPages > 1 && (
+              {data && data.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
                     Showing {((page - 1) * 25) + 1} to {Math.min(page * 25, data.total)} of {data.total}
@@ -279,13 +295,13 @@ const WorkflowInstanceList: React.FC = () => {
                       Previous
                     </Button>
                     <span className="text-sm">
-                      Page {page} of {data.totalPages}
+                      Page {page} of {data?.totalPages || 1}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page === data.totalPages}
+                      onClick={() => setPage(p => Math.min(data?.totalPages || 1, p + 1))}
+                      disabled={page === (data?.totalPages || 1)}
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
