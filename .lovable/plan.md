@@ -1,82 +1,160 @@
-# Fix: SE Detail API NOT_FOUND + Employer Empty ipWages
 
-## Bug 1: SE SSN 100039 — Detail API Period Mismatch
 
-**Root Cause:** The `cn_c3_reported` record for SSN 100039 stores `period = 2026-03-31` (last day of month). The Detail API constructs `v_period := make_date(2026, 3, 1)` and does an exact match (`r.period = v_period`). Since `2026-03-31 ≠ 2026-03-01`, it returns NOT_FOUND.
+# Enhance Workflow Engine with "Reporting Manager" Approver Type
 
-The Range API works because it uses `>=` / `<=` comparisons, catching any day within the month.
+## Summary
 
-**Fix:** Change the Detail API's period matching from exact date to month-range matching, consistent with the Range API:
+Add a new `reporting_manager` approver type to the workflow step configuration. When selected, the system dynamically resolves the approver at runtime by looking up the initiator's `reporting_to_user_id` from the `profiles` table. The `profiles.reporting_to_user_id` column already exists and is populated via User Create/Edit.
+
+---
+
+## Existing Infrastructure (No Schema Changes Needed)
+
+- `profiles.reporting_to_user_id` (uuid, FK to profiles.id) — already exists
+- User Create/Edit flows already populate this field via designation hierarchy
+- `workflow_steps.approver_type` is a text column — no enum constraint; adding `'reporting_manager'` is safe
+
+---
+
+## Step 1: Database Migration — Add `resolve_reporting_manager` RPC
+
+Create a Supabase RPC function that:
+1. Accepts `p_user_id uuid` (the workflow initiator)
+2. Queries `profiles` for `reporting_to_user_id`
+3. Validates the resolved manager is **active** (`is_active = true`)
+4. Returns the manager's `id` and `full_name`, or NULL with an error message if:
+   - No reporting manager is set
+   - Reporting manager is inactive
+   - Circular reference detected (manager = self)
 
 ```sql
--- Instead of: AND r.period = v_period
--- Use:
-AND r.period >= v_period
-AND r.period < (v_period + interval '1 month')::DATE
+CREATE OR REPLACE FUNCTION public.resolve_reporting_manager(p_user_id uuid)
+RETURNS TABLE(manager_id uuid, manager_name text, error_message text)
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$ ... $$;
 ```
 
-Apply the same fix to the `ip_wages` query within `public_api_c3_detail` (line 174).
+---
 
-**Additionally:** Fix the underlying data inconsistency — SE records stored via the C3 save flow should use `date_trunc('month', period)` (first of month) for consistency. This is a secondary fix in `c3Service.ts` to prevent future mismatches.
+## Step 2: Update Workflow Design UI (`WorkflowForm.tsx`)
+
+**2a. Add to `APPROVER_TYPES` constant:**
+```typescript
+{ value: 'reporting_manager', label: 'Reporting Manager' },
+```
+
+**2b. Update `StepFormData` type:**
+```typescript
+approver_type: 'role' | 'designation' | 'specific_users' | 'department_head' | 'designation_hierarchy' | 'reporting_manager';
+```
+
+**2c. Add UI hint when selected** (similar to `department_head`):
+```tsx
+{step.approver_type === 'reporting_manager' && (
+  <div className="bg-muted p-3 rounded-md space-y-1">
+    <p className="text-sm text-muted-foreground">
+      The reporting manager of the user who initiated this workflow step will be automatically resolved at runtime.
+    </p>
+    <p className="text-xs text-amber-600">
+      Note: If the initiator has no reporting manager assigned, the workflow will block with a validation error.
+    </p>
+  </div>
+)}
+```
+
+No manual user/role selection fields are shown — fully dynamic.
 
 ---
 
-## Bug 2: Employer 658852 — Empty ipWages (Data Issue)
+## Step 3: Update Workflow Execution Engine
 
-**Root Cause:** This is NOT a code bug. The `cn_c3_reported` headers for 658852 are correctly at `VAC` status, but the corresponding `ip_wages` rows are all `DEL` (deleted) — except for Feb 2026 seq 5 which has one VAC wage row.
+### 3a. `workflowTriggerService.ts` — First step task creation
 
-Current data state:
+Add a new branch for `approverType === 'reporting_manager'`:
+- Call `resolve_reporting_manager` RPC with the `userId` (workflow initiator)
+- If resolved, set `taskAssignment.assigned_to = manager_id`
+- If not resolved, log a `workflow_logs` entry with action `reporting_manager_not_found` and either:
+  - Block the workflow (set instance status to `Blocked`)
+  - Or skip assignment (task stays unassigned for admin manual assignment)
 
-- April 2026, seq 1: Header=VAC, Wages=4 rows all DEL
-- March 2026, seq 1: Header=VAC, Wages=1 row DEL
-- Feb 2026, seq 1-4: Headers=VAC, Wages=all DEL
-- Feb 2026, seq 5: Header=VAC, Wages=1 row VAC ← only working one
+### 3b. `useWorkflowActions.ts` — `createNextStepTask()`
 
-**Resolution Options:**
+Same logic: when `approverType === 'reporting_manager'`:
+- Determine the initiator: query `workflow_instances.started_by` for the instance
+- Call `resolve_reporting_manager` with that user ID
+- Assign the resolved manager as `assigned_to`
+- If unresolved, create task as unassigned + log warning
 
-1. **Data fix** — Update ip_wages posting_status to 'VAC' for records that have a corresponding VAC header (recommended for test data)
-2. **Code investigation** — Check why the C3 acceptance/verification workflow promotes headers to VAC but leaves wages at DEL
+### 3c. `useWorkflowActions.ts` — `canUserActOnTask()`
+
+Add branch for `approverType === 'reporting_manager'`:
+- The task will have `assigned_to` set to the resolved manager ID
+- The existing `assigned_to` check at line 228 already handles this: `if (assignedTo && assignedTo === userId) return true`
+- No additional logic needed since the resolution happens at task creation time
+
+### 3d. `useSampleApplications.ts` and `useApplicationsReview.ts`
+
+Add the same `reporting_manager` branch to the approver resolution logic in these files (they duplicate the task creation pattern).
 
 ---
 
-## Plan
+## Step 4: Audit Trail Integration
 
-### Step 1: Database Migration — Fix Period Matching in Detail RPC
+When a reporting manager is resolved, log an entry in `workflow_logs`:
+```json
+{
+  "action": "approver_resolved",
+  "details": {
+    "approver_type": "reporting_manager",
+    "initiator_user_id": "<user-id>",
+    "resolved_manager_id": "<manager-id>",
+    "resolved_manager_name": "John Doe",
+    "resolved_at": "<timestamp>"
+  }
+}
+```
 
-Update `public_api_c3_detail` to use month-range matching instead of exact date match for both the header lookup and wages query. Also apply the same fix to `public_api_employees_by_last_c3` and `public_api_c3_last_submitted` for consistency.
+When resolution fails:
+```json
+{
+  "action": "reporting_manager_not_found",
+  "details": {
+    "initiator_user_id": "<user-id>",
+    "reason": "No reporting manager assigned"
+  }
+}
+```
 
-### Step 2: Data Fix — Promote Employer 658852 Wages to VAC
+---
 
-Run a targeted UPDATE to set `posting_status = 'VAC'` on ip_wages rows where a corresponding VAC header exists for payer 658852, so the C3-Wizard team can validate their integration.
+## Step 5: WorkflowInstanceDetail Display
 
-### Step 3: Preventive Fix — Normalize SE Period Storage
+Update `WorkflowInstanceDetail.tsx` approver info display to show "Reporting Manager" as the type label and the resolved user name.
 
-In `c3Service.ts`, ensure SE/VC C3 saves always store period as first-of-month (`date_trunc`) to prevent future period mismatches.  
-  
-  
-important Note: Please create a proper message to share with the c3-wizard for this fixes and correct the required things their side.
+---
 
-also, please attach this information asked by the C3-wizard team in the same response.
+## Step 6: Edge Cases Handled
 
-- Please share the raw JSON response for:
-  1. `GET /api/v1/C3/100039/C3Submitted/SE/range/{start}/{end},EE`
-  2. `GET /api/v1/C3/100039/C3Submitted/{month},{year},{seq},SE,EE`
-  3. `GET /api/v1/Employee/employeesByLastC3/658852`
-- We need the exact values/field names for:
-  - `payerType`
-  - `month`
-  - `year`
-  - `seqNo`
-  - `c3Status`
-  - `receivedBy`
-  - whether employee rows are expected only under detail `ipWages` when the employee endpoint is empty
+| Scenario | Behavior |
+|----------|----------|
+| No reporting manager set | Task created as unassigned; warning logged; admin can manually assign |
+| Reporting manager is inactive | Same as above — treated as unresolved |
+| Circular reference (self) | RPC rejects; same fallback |
+| Hierarchy changes after task created | No impact — assignment is point-in-time at task creation |
+| Existing workflows | Unaffected — `reporting_manager` is a new opt-in value |
 
 ---
 
 ## Files Changed
 
+| File | Change |
+|------|--------|
+| Database migration | New `resolve_reporting_manager` RPC |
+| `src/pages/admin/workflows/WorkflowForm.tsx` | Add `reporting_manager` to `APPROVER_TYPES`, `StepFormData` type, and UI hint |
+| `src/services/workflowTriggerService.ts` | Add `reporting_manager` branch in first-step task creation |
+| `src/hooks/useWorkflowActions.ts` | Add `reporting_manager` branch in `createNextStepTask()` |
+| `src/hooks/useSampleApplications.ts` | Add `reporting_manager` branch |
+| `src/hooks/useApplicationsReview.ts` | Add `reporting_manager` branch |
+| `src/pages/admin/workflows/WorkflowInstanceDetail.tsx` | Display "Reporting Manager" label |
 
-| File                        | Change                                                                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Database migration          | Fix period matching in `public_api_c3_detail`, `public_api_employees_by_last_c3`; data fix for 658852 wages |
-| `src/services/c3Service.ts` | Normalize SE/VC period to first-of-month                                                                    |
