@@ -136,6 +136,7 @@ const APPROVER_TYPES = [
   { value: 'specific_users', label: 'Specific Users' },
   { value: 'department_head', label: 'Department Head' },
   { value: 'designation_hierarchy', label: 'Higher level in Designation Hierarchy' },
+  { value: 'reporting_manager', label: 'Reporting Manager' },
 ];
 
 // Fallback action types - used when database data isn't loaded yet
