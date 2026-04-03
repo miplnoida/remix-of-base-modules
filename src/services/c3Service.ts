@@ -1145,7 +1145,8 @@ export async function saveSelfContributorC3(
       payer_id: record.payer_id,
       payer_type: 'SE', // Self-Employed
       sequence_no: record.sequence_no,
-      period: record.period,
+      // Normalize SE period to first-of-month to prevent date mismatch in Detail API lookups
+      period: record.period ? (typeof record.period === 'string' ? record.period.split('T')[0].substring(0, 8) + '01' : record.period) : record.period,
       number_employed: 1, // Always 1 for self-contributor
       emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
       emp_levy_amt_calc: 0, // No levy for self-contributors
@@ -1425,7 +1426,8 @@ export async function saveVoluntaryContributorC3(
       payer_id: record.payer_id,
       payer_type: 'VC', // Voluntary Contributor
       sequence_no: record.sequence_no,
-      period: record.period,
+      // Normalize VC period to first-of-month to prevent date mismatch in Detail API lookups
+      period: record.period ? (typeof record.period === 'string' ? record.period.split('T')[0].substring(0, 8) + '01' : record.period) : record.period,
       number_employed: 1, // Always 1 for voluntary contributor
       emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
       emp_levy_amt_calc: 0, // No levy for voluntary contributors
