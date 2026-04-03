@@ -43,9 +43,24 @@ const WorkflowInstanceList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<WorkflowInstanceFilters>({});
   
+  const { data: assignedData } = useUserAssignedWorkflowIds();
   const { data, isLoading } = useWorkflowInstances(filters, page, 25);
   const { data: workflowNames } = useWorkflowNames();
   const statusOptions = useWorkflowStatusOptions();
+
+  // Filter instances and workflow names by role
+  const roleFilteredInstances = data ? {
+    ...data,
+    instances: data.instances.filter(inst => {
+      if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+      return assignedData.ids.includes(inst.workflow_id);
+    }),
+  } : data;
+
+  const filteredWorkflowNames = workflowNames?.filter(wf => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    return assignedData.ids.includes(wf.id);
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
