@@ -102,13 +102,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch first component for period and sequence_no
-    const { data: component } = await supabase
-      .from("c3_payment_components")
-      .select("period, sequence_no")
-      .eq("payment_id", payment_id)
-      .limit(1)
-      .maybeSingle();
+    // Fetch all components for period, sequence_no, and payment_components
+    let components: Array<{ fund_code: string; payment_code: string; component_amount: number; period: string; sequence_no: string | null }> | null = null;
+    let compFetchErr: string | null = null;
+    try {
+      const { data: compData, error: compErr } = await supabase
+        .from("c3_payment_components")
+        .select("fund_code, payment_code, component_amount, period, sequence_no")
+        .eq("payment_id", payment_id)
+        .order("sort_order", { ascending: true });
+      if (compErr) {
+        compFetchErr = compErr.message;
+      } else {
+        components = compData;
+      }
+    } catch (e: unknown) {
+      compFetchErr = e instanceof Error ? e.message : "Component fetch error";
+    }
+
+    const component = components?.[0] ?? null;
 
     // Parse period (MM/YYYY)
     let periodMonth = "";
@@ -192,10 +204,24 @@ Deno.serve(async (req) => {
         : undefined;
     }
 
-    // Remove undefined keys
-    const cleanPayload = Object.fromEntries(
+    // Build payment_components array from all fetched components
+    const payment_components = (components || []).map((c) => ({
+      fund_code: c.fund_code,
+      payment_code: c.payment_code,
+      amount: Number(c.component_amount) || 0,
+    }));
+
+    if (compFetchErr) {
+      console.error("Failed to fetch payment components:", compFetchErr);
+    }
+
+    // Remove undefined keys and add payment_components
+    const cleanPayload: Record<string, unknown> = Object.fromEntries(
       Object.entries(payload).filter(([, v]) => v !== undefined)
     );
+    if (payment_components.length > 0) {
+      cleanPayload.payment_components = payment_components;
+    }
 
     // Retry logic with exponential backoff
     const MAX_RETRIES = 3;
