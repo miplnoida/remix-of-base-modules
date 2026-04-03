@@ -93,6 +93,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Throttle tracking for activity updates
   const lastActivityUpdateRef = useRef<number>(0);
 
+  // Guard to prevent onAuthStateChange from duplicating initializeAuth fetches
+  const initializingRef = useRef(false);
+
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
     try {
