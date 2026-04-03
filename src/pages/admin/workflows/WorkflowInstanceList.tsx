@@ -142,7 +142,7 @@ const WorkflowInstanceList: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Workflows</SelectItem>
-                {workflowNames?.map((wf) => (
+                {filteredWorkflowNames?.map((wf) => (
                   <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
                 ))}
               </SelectContent>
