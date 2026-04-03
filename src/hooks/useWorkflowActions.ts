@@ -5,6 +5,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { applyBusinessObjectFieldUpdates } from '@/hooks/useBusinessObjectRoot';
 import { getCorrelationId } from '@/services/correlationIdService';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;
