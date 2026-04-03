@@ -1,77 +1,97 @@
 
 
-# Payment Save API Migration: Flat Endpoint + Component Persistence
+# Performance Analysis: Why Most Screens Load Slowly
 
-## Summary
+## Root Cause: Waterfall of Sequential Blocking Operations at Startup
 
-Migrate the external Payment Save API from `/api/v1/api/payment/save/{payerId}/{payerType}` to `/api/v1/api/payment/save` (flat POST). Move `payerId`/`payerType` into the request body. Add `periodMonth`, `periodYear`, `scheduleNumber` handling and persist `c3_payment_components` records.
+The app wraps content in **10+ nested context providers**, several of which perform **blocking async operations** that must complete sequentially before any screen renders. Here is the critical path:
 
-## Changes
-
-### 1. Database Migration — Recreate `public_api_payment_save(JSONB)`
-
-Drop the old 3-param signature `(TEXT, TEXT, JSONB)` and create a single-param version `(JSONB)`:
-
-- Extract `payerId`, `payerType`, `periodMonth`, `periodYear`, `scheduleNumber` from `p_payload`
-- Validate: return error JSON if `payerId`, `payerType`, `periodMonth` (1-12), or `periodYear` (4-digit) are missing/invalid
-- **cn_payment.period**: Change from `date_trunc('month', NOW())` to `make_date(periodYear, periodMonth, 1)` — a proper DATE
-- **New block after each cn_payment insert**: Insert into `c3_payment_components` for each paymentHeaders object:
-
-| c3_payment_components column | Source |
-|---|---|
-| `payment_id` | Newly created `v_payment_id` |
-| `payment_code` | `paymentCode` from header object |
-| `fund_code` | `fundCode` from header object |
-| `component_amount` | `paymentAmount` from header object |
-| `period` | `LPAD(periodMonth, 2, '0') || '/' || periodYear` (TEXT, e.g. `01/2026`) |
-| `sequence_no` | `scheduleNumber` from request body |
-| `sort_order` | Loop iteration index |
-
-All inserts remain inside the existing advisory-lock transaction block — atomic, no partial failures.
-
-### 2. Edge Function — `supabase/functions/public-api/index.ts`
-
-**Route match** (line ~900-904): Replace the regex with a flat path check:
-```
-// OLD: const paymentMatch = path.match(/^\/api\/v1\/api\/payment\/save\/([^/]+)\/([^/]+)$/);
-// NEW: if (path === "/api/v1/api/payment/save" && method === "POST")
-//        → { handler: "paymentSave", params: {} }
+```text
+App renders
+ └─ SupabaseAuthProvider
+     ├─ getSession()                         ~200-500ms
+     ├─ fetchProfile()                       ~200-400ms
+     ├─ fetchRoles()                         ~200-400ms
+     ├─ loadSessionPolicy() (system_settings + password_policies)  ~400-800ms
+     └─ resolve-auth-email edge function     (on login)
+ └─ IPAccessGate  ← BLOCKS ALL CHILDREN
+     ├─ getClientIP() → fetch ipify.org      ~300-800ms (external API)
+     ├─ check-ip-access edge function        ~500-1500ms (cold start)
+     └─ Fallback: check_ip_whitelist RPC     ~200-400ms (if edge fn fails)
+ └─ SystemSettingsProvider
+     └─ useSystemSettings() query            ~200-400ms
+ └─ LegalAuthProvider
+     ├─ getSession() (DUPLICATE)             ~200-400ms
+     └─ fetchUserRoles() (DUPLICATE)         ~200-400ms
+ └─ SecurityPolicyProvider
+     ├─ getAppLockdownState()                ~200-400ms
+     ├─ route_security_config query          ~200-400ms
+     └─ can_access_module RPC (per route)    ~200-400ms
+ └─ PIIMaskingProvider
+     └─ getSecurityConfig()                  ~200-400ms
+ └─ SystemLoggingProvider
+     └─ logBusinessEvent + logAudit (per navigation) ~200ms each
 ```
 
-**Handler** (`handlePaymentSave`, lines 754-769):
-- Remove `params` argument entirely
-- Extract and validate `payerId`, `payerType` from `payload` (required strings)
-- Validate `periodMonth` (integer 1-12), `periodYear` (4-digit integer)
-- `scheduleNumber` — optional integer
-- Call RPC with single param: `public_api_payment_save({ p_payload: payload })`
+**Total estimated startup waterfall: 3-6+ seconds** before the user sees any content.
 
-**Switch case** (line 960): Update to `handlePaymentSave(supabase, _payload as Record<string, unknown>)` — no `routeParams`.
+## Key Problems Identified
 
-### 3. No Frontend Changes
+### Problem 1: IPAccessGate Blocks Entire App (~1-2 seconds)
+The `IPAccessGate` component calls an external API (`api.ipify.org`) and then an edge function (`check-ip-access`), both of which are slow. During this time, the user sees only a spinner. The edge function also has cold-start latency (~1-2s on first call).
 
-This API is consumed exclusively by the external C3-Wizard portal. No `src/` files reference `/payment/save`. Internal cashier payments use `create_c3_payment_with_receipt` RPC directly.
+### Problem 2: Duplicate Auth State Initialization
+`SupabaseAuthProvider`, `LegalAuthProvider`, and `AuthProvider` each independently call `supabase.auth.getSession()` and set up `onAuthStateChange` listeners. `LegalAuthProvider` also re-fetches user roles that `SupabaseAuthProvider` already fetched.
+
+### Problem 3: Sequential Policy Loads Block Auth Resolution
+`SupabaseAuthProvider.initializeAuth()` awaits `loadSessionPolicy()` which makes 2 sequential DB queries (`system_settings` + `password_policies`) before setting `isLoading = false`. This delays the entire app.
+
+### Problem 4: Navigation Logging on Every Route Change
+`SystemLoggingProvider` fires 3 database writes (business event, audit trail, performance metric) on every route change — synchronously in the render cycle.
+
+### Problem 5: SecurityPolicyProvider RPC Per Route
+Each route change triggers a `can_access_module` RPC call to the database, adding 200-400ms latency.
+
+### Problem 6: No Query Deduplication
+Several providers and hooks query the same tables (`system_settings`, `profiles`, `user_roles`) independently without sharing results via React Query's cache effectively.
+
+## Proposed Fixes
+
+### Fix 1: Make IPAccessGate Non-Blocking
+Render children immediately while IP check runs in background. Only block/redirect if check returns `false`. This alone saves 1-2 seconds on every page load.
+
+### Fix 2: Parallelize Auth Initialization
+In `SupabaseAuthProvider.initializeAuth()`, run `fetchProfile`, `fetchRoles`, and `loadSessionPolicy` in parallel using `Promise.all` instead of sequentially. The session policy load should not block `isLoading`.
+
+### Fix 3: Remove Duplicate Auth Providers
+`LegalAuthProvider` duplicates `SupabaseAuthProvider`. Refactor it to consume `useSupabaseAuth()` instead of independently calling `getSession()` and fetching roles again.
+
+### Fix 4: Debounce Navigation Logging
+Move navigation logging to fire-and-forget with `queueMicrotask` or `requestIdleCallback` so it doesn't block rendering.
+
+### Fix 5: Cache Module Permissions Client-Side
+Batch-fetch all module permissions on login and cache them, instead of making an RPC call per route change.
+
+### Fix 6: Lazy-Load Session Policy
+Don't await `loadSessionPolicy()` during auth init. Load it in background after `isLoading` is set to `false` — it's only needed for timeout checks that happen 30s later.
 
 ## Files Changed
 
 | File | Change |
-|---|---|
-| New migration SQL | Drop `public_api_payment_save(TEXT,TEXT,JSONB)`, create `public_api_payment_save(JSONB)` with body-sourced params, computed period, c3_payment_components inserts |
-| `supabase/functions/public-api/index.ts` | Flat route match, refactored handler signature, updated switch case |
+|------|--------|
+| `src/components/security/IPAccessGate.tsx` | Render children immediately, check IP in background |
+| `src/contexts/SupabaseAuthContext.tsx` | Parallelize init; don't block on policy load |
+| `src/contexts/LegalAuthContext.tsx` | Remove duplicate auth calls, consume SupabaseAuthContext |
+| `src/contexts/SecurityPolicyContext.tsx` | Batch-cache module permissions instead of per-route RPC |
+| `src/providers/SystemLoggingProvider.tsx` | Use `requestIdleCallback` for navigation logs |
+| `src/hooks/useIPAccessCheck.ts` | Add result caching to `sessionStorage` to skip recheck on navigation |
 
-## Validation & Error Responses
+## Expected Impact
 
-| Condition | Response |
-|---|---|
-| Missing `payerId` | 400: "payerId is required in request body" |
-| Missing `payerType` | 400: "payerType is required in request body" |
-| Missing/invalid `periodMonth` | 400: "periodMonth must be an integer between 1 and 12" |
-| Missing/invalid `periodYear` | 400: "periodYear must be a valid 4-digit year" |
-| Empty `paymentHeaders` | 400: "paymentHeaders array is required" |
-
-## Period Column Formats
-
-| Table | Column Type | Format |
-|---|---|---|
-| `cn_payment.period` | DATE | `2026-01-01` (via `make_date`) |
-| `c3_payment_components.period` | TEXT | `01/2026` (MM/YYYY) |
+| Before | After |
+|--------|-------|
+| 3-6s spinner on initial load | < 1s to first meaningful content |
+| 1-2s spinner on IP check | Instant render, background check |
+| Duplicate DB calls on every auth init | Single set of parallel calls |
+| RPC per route change | Cached permission lookup |
 
