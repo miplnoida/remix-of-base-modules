@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, Save, RefreshCw, Clock, User, Info, Calendar, Eye, Globe, ImageIcon, Bell, Shield } from 'lucide-react';
+import { Settings, Save, RefreshCw, Clock, User, Info, Calendar, Eye, Globe, ImageIcon, Bell, Shield, Palette } from 'lucide-react';
+import ThemeManagementSection from '@/components/admin/ThemeManagementSection';
 import { useSystemSettings, useUpdateSystemSetting, SystemSetting } from '@/hooks/useSystemSettings';
 import { useUserCode } from '@/hooks/useUserCode';
 import { formatDisplayDate } from '@/lib/dateFormat';
@@ -238,6 +239,10 @@ const GlobalSettings = () => {
               <Shield className="h-3.5 w-3.5 mr-1" />
               Cloudflare Verification
             </TabsTrigger>
+            <TabsTrigger value="themes" className="px-4">
+              <Palette className="h-3.5 w-3.5 mr-1" />
+              Themes
+            </TabsTrigger>
             {categories.map(category => (
               <TabsTrigger key={category} value={category} className="px-4">
                 {category}
@@ -261,6 +266,11 @@ const GlobalSettings = () => {
           {/* ─── Cloudflare Verification Tab ─── */}
           <TabsContent value="cloudflare" className="mt-4 space-y-6">
             <CloudflareSettingsSection />
+          </TabsContent>
+
+          {/* ─── Themes Tab ─── */}
+          <TabsContent value="themes" className="mt-4 space-y-6">
+            <ThemeManagementSection />
           </TabsContent>
           
           {categories.map(category => (

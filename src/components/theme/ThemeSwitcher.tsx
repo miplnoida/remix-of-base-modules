@@ -1,6 +1,5 @@
-import { useTheme, ThemeName } from '@/contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Check, Sun, Moon, Palette } from 'lucide-react';
 import {
   DropdownMenu,
@@ -11,9 +10,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-/** Compact dropdown for the header */
+/** Compact dropdown for the header — only shows enabled themes from DB */
 export function ThemeSwitcher() {
-  const { currentTheme, setTheme, themes, isDark, toggleDark } = useTheme();
+  const { currentTheme, setTheme, enabledThemes, isDark, toggleDark } = useTheme();
 
   return (
     <DropdownMenu>
@@ -29,20 +28,20 @@ export function ThemeSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {(Object.keys(themes) as ThemeName[]).map((key) => {
-          const t = themes[key];
-          const isActive = currentTheme === key;
+        {enabledThemes.map((t) => {
+          const isActive = currentTheme === t.theme_key;
+          const cssVars = t.css_vars as Record<string, string>;
           return (
             <DropdownMenuItem
-              key={key}
-              onClick={() => setTheme(key)}
+              key={t.theme_key}
+              onClick={() => setTheme(t.theme_key)}
               className={`flex items-center gap-3 cursor-pointer py-2.5 ${isActive ? 'bg-primary/5' : ''}`}
             >
               {/* Color swatches */}
               <div className="flex gap-0.5 flex-shrink-0">
-                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${t.cssVars['--sidebar-background']})` }} />
-                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${t.cssVars['--primary']})` }} />
-                <div className="w-4 h-4 rounded-sm border" style={{ background: `hsl(${t.cssVars['--accent']})` }} />
+                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${cssVars['--sidebar-background']})` }} />
+                <div className="w-4 h-4 rounded-sm" style={{ background: `hsl(${cssVars['--primary']})` }} />
+                <div className="w-4 h-4 rounded-sm border" style={{ background: `hsl(${cssVars['--accent']})` }} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{t.label}</p>
@@ -60,57 +59,5 @@ export function ThemeSwitcher() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/** Full-page theme settings panel (for a settings page) */
-export function ThemeSettingsPanel() {
-  const { currentTheme, setTheme, themes, isDark, toggleDark } = useTheme();
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">Application Theme</h3>
-        <p className="text-sm text-muted-foreground">Choose a visual theme for the application</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {(Object.keys(themes) as ThemeName[]).map((key) => {
-          const t = themes[key];
-          const isActive = currentTheme === key;
-          return (
-            <Card
-              key={key}
-              className={`cursor-pointer transition-all hover:shadow-md ${isActive ? 'ring-2 ring-primary border-primary' : ''}`}
-              onClick={() => setTheme(key)}
-            >
-              <CardContent className="pt-6 space-y-3">
-                {/* Preview swatches */}
-                <div className="flex gap-1.5">
-                  <div className="w-8 h-8 rounded" style={{ background: `hsl(${t.cssVars['--sidebar-background']})` }} />
-                  <div className="w-8 h-8 rounded" style={{ background: `hsl(${t.cssVars['--primary']})` }} />
-                  <div className="w-8 h-8 rounded" style={{ background: `hsl(${t.cssVars['--accent']})` }} />
-                  <div className="w-8 h-8 rounded border" style={{ background: `hsl(${t.cssVars['--background']})` }} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm">{t.label}</p>
-                    {isActive && <Check className="h-4 w-4 text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.description}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-3 pt-2">
-        <Button variant="outline" onClick={toggleDark} className="gap-2">
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        </Button>
-      </div>
-    </div>
   );
 }
