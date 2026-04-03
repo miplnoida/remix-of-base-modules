@@ -272,7 +272,6 @@ const GlobalSettings = () => {
           <TabsContent value="themes" className="mt-4 space-y-6">
             <ThemeManagementSection />
           </TabsContent>
-          </TabsContent>
           
           {categories.map(category => (
             <TabsContent key={category} value={category} className="mt-4 space-y-6">
