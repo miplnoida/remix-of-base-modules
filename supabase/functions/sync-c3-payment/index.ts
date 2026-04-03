@@ -102,13 +102,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch first component for period and sequence_no
-    const { data: component } = await supabase
-      .from("c3_payment_components")
-      .select("period, sequence_no")
-      .eq("payment_id", payment_id)
-      .limit(1)
-      .maybeSingle();
+    // Fetch all components for period, sequence_no, and payment_components
+    let components: Array<{ fund_code: string; payment_code: string; component_amount: number; period: string; sequence_no: string | null }> | null = null;
+    let compFetchErr: string | null = null;
+    try {
+      const { data: compData, error: compErr } = await supabase
+        .from("c3_payment_components")
+        .select("fund_code, payment_code, component_amount, period, sequence_no")
+        .eq("payment_id", payment_id)
+        .order("sort_order", { ascending: true });
+      if (compErr) {
+        compFetchErr = compErr.message;
+      } else {
+        components = compData;
+      }
+    } catch (e: unknown) {
+      compFetchErr = e instanceof Error ? e.message : "Component fetch error";
+    }
+
+    const component = components?.[0] ?? null;
 
     // Parse period (MM/YYYY)
     let periodMonth = "";
