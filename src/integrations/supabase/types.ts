@@ -25624,10 +25624,7 @@ export type Database = {
         Args: { p_registration_number: string }
         Returns: Json
       }
-      public_api_payment_save: {
-        Args: { p_payer_id: string; p_payer_type: string; p_payload: Json }
-        Returns: Json
-      }
+      public_api_payment_save: { Args: { p_payload: Json }; Returns: Json }
       public_api_se_master_details: {
         Args: { p_email?: string; p_ssn: string }
         Returns: Json
