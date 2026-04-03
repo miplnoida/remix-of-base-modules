@@ -132,7 +132,28 @@ export function useCreateCardMachineChangeRequest() {
 
       if (instError) throw instError;
 
-      // 3. Create first workflow task
+      // 3. Resolve approver before creating task
+      let assignedTo: string | null = null;
+      let assignedToName: string | null = null;
+
+      const { data: stepConfig } = await supabase
+        .from('workflow_steps')
+        .select('approver_type')
+        .eq('id', FIRST_STEP_ID)
+        .single();
+
+      if (stepConfig?.approver_type === 'reporting_manager' && user.id) {
+        const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
+        const resolved = await resolveReportingManagerForTask(
+          user.id, instance.id, FIRST_STEP_ID, FIRST_STEP_NAME
+        );
+        if (resolved) {
+          assignedTo = resolved.managerId;
+          assignedToName = resolved.managerName;
+        }
+      }
+
+      // 4. Create first workflow task
       const { error: taskError } = await supabase
         .from('workflow_tasks')
         .insert({
@@ -140,6 +161,8 @@ export function useCreateCardMachineChangeRequest() {
           step_id: FIRST_STEP_ID,
           step_name: FIRST_STEP_NAME,
           status: 'Pending',
+          assigned_to: assignedTo,
+          assigned_to_name: assignedToName,
           started_at: new Date().toISOString(),
         });
 
