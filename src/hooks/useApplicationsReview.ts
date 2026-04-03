@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export type NextStepType = 'next_step' | 'specific_step' | 'end_workflow' | 'send_back_to_applicant';
 export type EndState = 'Approved' | 'Rejected' | null;

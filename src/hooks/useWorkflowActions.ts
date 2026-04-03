@@ -1001,6 +1001,19 @@ async function createNextStepTask(instanceId: string, stepId: string) {
     if (userIds.length === 1) {
       taskAssignment.assigned_to = userIds[0];
     }
+  } else if (approverType === 'reporting_manager') {
+    // Resolve the reporting manager of the workflow initiator
+    const { data: inst } = await supabase
+      .from('workflow_instances')
+      .select('started_by')
+      .eq('id', instanceId)
+      .single();
+    if (inst?.started_by) {
+      const resolved = await resolveReportingManagerForTask(inst.started_by, instanceId, stepId, step.step_name);
+      if (resolved) {
+        taskAssignment.assigned_to = resolved.managerId;
+      }
+    }
   }
 
   // Get instance info for notification
