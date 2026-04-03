@@ -47,6 +47,7 @@ import {
   useSaveWorkflowTrigger,
   useDeleteWorkflowTrigger,
 } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
