@@ -25,6 +25,7 @@ export default function WorkflowLogs() {
 
   const { can } = useActionPermissions(MODULE_NAMES.WORKFLOW_LOGS);
   const { data: logs, isLoading } = useWorkflowLogs();
+  const { data: assignedData } = useUserAssignedWorkflowIds();
 
   // Get workflow instances for reference
   const { data: instances } = useQuery({
@@ -32,13 +33,21 @@ export default function WorkflowLogs() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workflow_instances')
-        .select('id, workflow_name');
+        .select('id, workflow_id, workflow_name');
       if (error) throw error;
       return data || [];
     },
   });
 
   const instanceMap = new Map(instances?.map(i => [i.id, i.workflow_name]) || []);
+  const instanceWorkflowMap = new Map(instances?.map(i => [i.id, i.workflow_id]) || []);
+
+  // Role-filter logs
+  const roleFilteredLogs = logs?.filter(log => {
+    if (!assignedData || assignedData.isAdmin || assignedData.ids === null) return true;
+    const wfId = instanceWorkflowMap.get(log.instance_id);
+    return wfId ? assignedData.ids.includes(wfId) : false;
+  }) || [];
 
   const filteredLogs = logs?.filter(log =>
     log.step_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
