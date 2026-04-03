@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useActionPermissions, MODULE_NAMES, ACTION_NAMES } from '@/hooks/useActionPermission';
 import { useWorkflowLogs } from '@/hooks/useWorkflows';
+import { useUserAssignedWorkflowIds } from '@/hooks/useWorkflowRoleAssignments';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
