@@ -24315,6 +24315,14 @@ export type Database = {
         }
         Returns: Json
       }
+      bn_get_contribution_summary: {
+        Args: { p_from_date?: string; p_ssn: string; p_to_date?: string }
+        Returns: {
+          avg_weekly_wages: number
+          total_wages: number
+          total_weeks: number
+        }[]
+      }
       calculate_c3_contributions: {
         Args: {
           p_employee_data: Json
