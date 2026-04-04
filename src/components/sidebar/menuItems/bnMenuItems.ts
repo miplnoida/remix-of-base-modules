@@ -27,6 +27,7 @@ import {
   Package,
   Banknote,
   ListChecks,
+  History,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -94,6 +95,13 @@ export const bnMenuItems = [
         icon: ListChecks,
         requiresPermission: "benefits_management",
         description: "Complete claim-side updates after payment issue",
+      },
+      {
+        title: "Historical Inquiry",
+        url: "/bn/history",
+        icon: History,
+        requiresPermission: "benefits_management",
+        description: "Search and view legacy claims and disbursement history",
       },
       {
         title: "Register New Claim",
