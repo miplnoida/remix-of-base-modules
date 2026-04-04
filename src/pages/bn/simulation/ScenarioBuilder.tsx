@@ -38,6 +38,7 @@ export default function ScenarioBuilder() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const { canCreate } = useSimPermission();
 
   // --- Data hooks ---
   const { data: existingScenario, isLoading: loadingScenario } = useBnSimScenario(id);
