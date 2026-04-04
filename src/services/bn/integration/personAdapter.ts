@@ -61,17 +61,17 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async getPersonAddress(ssn: string): Promise<AddressRecord | null> {
     const { data, error } = await db
       .from('ip_master')
-      .select('address_1, address_2, city, parish, country_code')
+      .select('resident_addr1, resident_addr2, district, place_of_residence')
       .eq('ssn', ssn.trim())
       .maybeSingle();
     if (error) throw error;
-    if (!data?.address_1) return null;
+    if (!data?.resident_addr1) return null;
     return {
-      line1: data.address_1,
-      line2: data.address_2,
-      city: data.city,
-      parish: data.parish,
-      country: data.country_code || 'KN',
+      line1: data.resident_addr1,
+      line2: data.resident_addr2,
+      city: data.district,
+      parish: data.district,
+      country: data.place_of_residence || 'KN',
     };
   },
 
