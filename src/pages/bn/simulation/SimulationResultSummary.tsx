@@ -10,10 +10,13 @@ import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import SimRuleTraceView from '@/components/bn/simulation/SimRuleTraceView';
 import SimFormulaTraceView from '@/components/bn/simulation/SimFormulaTraceView';
 import SimConfigSnapshotViewer from '@/components/bn/simulation/SimConfigSnapshotViewer';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 export default function SimulationResultSummary() {
   const { id: scenarioId, runId } = useParams<{ id: string; runId: string }>();
   const navigate = useNavigate();
+  const { canViewTraces } = useSimPermission();
   const { data: run, isLoading } = useBnSimRun(runId);
   const { data: outputs } = useBnSimRunOutputs(runId);
   const { data: inputs } = useBnSimRunInputs(runId);
@@ -21,6 +24,7 @@ export default function SimulationResultSummary() {
   const { data: formulaTrace } = useBnSimFormulaTrace(runId);
   const { data: snapshot } = useBnSimConfigSnapshot(run?.config_snapshot_id || undefined);
 
+  if (!canViewTraces) return <SimAccessDenied />;
   if (isLoading) return <BnEmptyState type="loading" />;
   if (!run) return <BnEmptyState type="error" title="Run not found" />;
 

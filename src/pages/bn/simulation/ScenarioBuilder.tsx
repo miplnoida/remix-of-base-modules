@@ -169,6 +169,8 @@ export default function ScenarioBuilder() {
     }
   };
 
+  if (!canCreate) return <SimAccessDenied title="Cannot Create Scenarios" message="You do not have permission to create or edit simulation scenarios." />;
+
   if (isEditMode && loadingScenario) {
     return (
       <div className="flex items-center justify-center h-64">
