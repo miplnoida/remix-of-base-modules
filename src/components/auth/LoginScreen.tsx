@@ -37,21 +37,24 @@ export const LoginScreen = () => {
   const navigate = useNavigate();
   const { token: turnstileToken, error: turnstileError, isAvailable: turnstileAvailable, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated.
+  // Important: do not require profile to exist before redirecting,
+  // otherwise the public login page can get stuck forever on a stale session.
   useEffect(() => {
-    if (authLoading || hasRedirected.current) return;
-    
-    if (isAuthenticated && profile) {
-      hasRedirected.current = true;
-      if (profile.force_password_change) {
-        navigate('/change-password', { state: { required: true }, replace: true });
-      } else if (profile.mfa_enabled) {
-        navigate('/mfa-verify', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+    if (authLoading || hasRedirected.current || !isAuthenticated) return;
+
+    hasRedirected.current = true;
+
+    if (profile?.force_password_change) {
+      navigate('/change-password', { state: { required: true }, replace: true });
+    } else if (profile?.mfa_enabled) {
+      navigate('/mfa-verify', { replace: true });
+    } else {
+      navigate('/', { replace: true });
     }
   }, [isAuthenticated, profile, authLoading, navigate]);
+
+  const shouldShowRedirectingState = !authLoading && isAuthenticated;
 
   // When turnstile token arrives and we have a pending submit, proceed
   useEffect(() => {
