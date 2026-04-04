@@ -620,6 +620,7 @@ import BnProductCatalog from '@/pages/bn/config/ProductCatalog';
 import BnProductEditor from '@/pages/bn/config/ProductEditor';
 import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
 import BnClaim360 from '@/pages/bn/claims/Claim360';
+import BnCalculationEngine from '@/pages/bn/engine/CalculationEngine';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 
 // SSB Legal Module - already imported above
