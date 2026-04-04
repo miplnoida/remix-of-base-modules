@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isEvidenceComplete } from '@/services/bn/evidenceService';
 import type {
   BnClaimTransitionRule,
   BnAvailableAction,
