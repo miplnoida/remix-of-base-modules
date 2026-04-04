@@ -12,6 +12,7 @@ import {
   Tag,
   AlertTriangle,
   Layers,
+  FileCheck,
 } from "lucide-react";
 
 export const bnMenuItems = [
