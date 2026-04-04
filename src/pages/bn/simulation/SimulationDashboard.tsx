@@ -106,7 +106,7 @@ export default function SimulationDashboard() {
                     <Button variant="outline" size="sm" onClick={() => navigate(`/bn/simulation/${s.id}`)}>
                       <Play className="h-3 w-3 mr-1" /> Open
                     </Button>
-                    {s.status === 'DRAFT' && (
+                    {canDelete && s.status === 'DRAFT' && (
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(s.id)}>
                         Delete
                       </Button>
