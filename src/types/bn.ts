@@ -1,5 +1,5 @@
 // ============================================================
-// Benefit Management Module - Phase 1 Types
+// Benefit Management Module - Types
 // ============================================================
 
 // --- Enums ---
@@ -10,20 +10,64 @@ export type BnClaimStatus =
   | 'DENIED' | 'AWARD_SETUP' | 'PAYMENT_QUEUE' | 'IN_PAYMENT'
   | 'SUSPENDED' | 'CLOSED' | 'PENDING_INFO' | 'WITHDRAWN';
 
-export type BnProductStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
-
-export type BnProductCategory = 'SHORT_TERM' | 'LONG_TERM' | 'NON_CONTRIBUTORY' | 'GRANT';
-
+export type BnProductStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+export type BnProductCategory = 'SHORT_TERM' | 'LONG_TERM' | 'NON_CONTRIBUTORY' | 'GRANT' | 'PENSION' | 'INJURY' | 'SURVIVOR' | 'ASSISTANCE';
 export type BnPaymentType = 'PERIODIC' | 'LUMP_SUM' | 'BOTH';
-
 export type BnClaimPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-
 export type BnClaimSource = 'WALK_IN' | 'PAPER' | 'ONLINE' | 'LEGACY';
+
+// --- Reference / Core ---
+
+export interface BnCountry {
+  country_code: string;
+  country_name: string;
+  currency_code: string;
+  currency_symbol: string | null;
+  fiscal_year_start_month: number;
+  contribution_ceiling_weekly: number | null;
+  contribution_ceiling_annual: number | null;
+  default_retirement_age: number;
+  parameters: Record<string, unknown>;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+  modified_by: string | null;
+  modified_at: string;
+}
+
+export interface BnScheme {
+  id: string;
+  scheme_code: string;
+  scheme_name: string;
+  description: string | null;
+  country_code: string;
+  governing_legislation: string | null;
+  status: string;
+  sort_order: number;
+  entered_by: string | null;
+  modified_by: string | null;
+  entered_at: string;
+  modified_at: string;
+}
+
+export interface BnBranch {
+  id: string;
+  scheme_id: string;
+  branch_code: string;
+  branch_name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
 
 // --- Product Catalog ---
 
 export interface BnProduct {
   id: string;
+  scheme_id: string | null;
+  branch_id: string | null;
   benefit_code: string;
   benefit_name: string;
   description: string | null;
@@ -49,6 +93,9 @@ export interface BnProductVersion {
   eligibility_config: Record<string, unknown>;
   calculation_config: Record<string, unknown>;
   timeline_config: Record<string, unknown>;
+  workflow_template_id: string | null;
+  document_profile_id: string | null;
+  screen_template_id: string | null;
   workflow_scheme: string | null;
   requires_employer_verification: boolean;
   requires_medical_board_review: boolean;
@@ -61,16 +108,47 @@ export interface BnProductVersion {
   modified_at: string;
 }
 
+// --- Configuration ---
+
+export interface BnRuleGroup {
+  id: string;
+  group_code: string;
+  group_name: string;
+  description: string | null;
+  country_code: string | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
 export interface BnEligibilityRule {
   id: string;
   product_version_id: string;
+  rule_group_id: string | null;
   rule_code: string;
   rule_name: string;
   rule_type: string;
   rule_group: string;
   rule_definition: Record<string, unknown>;
+  data_source: string | null;
   fail_message: string | null;
+  fail_action: string;
   sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnFormulaTemplate {
+  id: string;
+  template_code: string;
+  template_name: string;
+  description: string | null;
+  formula_expression: string;
+  input_variables: unknown[];
+  output_type: string;
+  country_code: string | null;
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
@@ -79,6 +157,7 @@ export interface BnEligibilityRule {
 export interface BnCalculationRule {
   id: string;
   product_version_id: string;
+  formula_template_id: string | null;
   rule_code: string;
   rule_name: string;
   calc_type: string;
@@ -108,18 +187,119 @@ export interface BnTimelineRule {
   entered_at: string;
 }
 
+export interface BnDocumentProfile {
+  id: string;
+  profile_code: string;
+  profile_name: string;
+  description: string | null;
+  country_code: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
 export interface BnDocumentRule {
   id: string;
   product_id: string;
+  document_profile_id: string | null;
   document_type_code: string;
   document_name: string;
   description: string | null;
   is_mandatory: boolean;
   stage: string;
+  allowed_extensions: string[] | null;
+  max_file_size_mb: number;
   sort_order: number;
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+}
+
+export interface BnWorkflowTemplate {
+  id: string;
+  template_code: string;
+  template_name: string;
+  description: string | null;
+  workflow_definition_id: string | null;
+  steps_config: unknown[];
+  sla_config: Record<string, unknown>;
+  escalation_config: Record<string, unknown>;
+  country_code: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnScreenTemplate {
+  id: string;
+  template_code: string;
+  template_name: string;
+  description: string | null;
+  sections: unknown[];
+  layout_type: string;
+  country_code: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnFieldMetadata {
+  id: string;
+  screen_template_id: string;
+  field_code: string;
+  field_label: string;
+  field_type: string;
+  section_code: string;
+  is_required: boolean;
+  validation_rules: Record<string, unknown>;
+  options_source: string | null;
+  default_value: string | null;
+  help_text: string | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnInteractionRule {
+  id: string;
+  primary_product_id: string;
+  related_product_id: string;
+  interaction_type: string;
+  rule_definition: Record<string, unknown>;
+  effective_from: string;
+  effective_to: string | null;
+  description: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnOverridePolicy {
+  id: string;
+  product_id: string | null;
+  override_target: string;
+  field_path: string;
+  allowed_role: string;
+  requires_justification: boolean;
+  requires_maker_checker: boolean;
+  max_override_amount: number | null;
+  effective_from: string;
+  effective_to: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnVersionApproval {
+  id: string;
+  product_version_id: string;
+  action: string;
+  from_status: string | null;
+  to_status: string;
+  comments: string | null;
+  performed_by: string;
+  performed_at: string;
 }
 
 // --- Claim ---
@@ -150,7 +330,6 @@ export interface BnClaim {
   modified_by: string | null;
   entered_at: string;
   modified_at: string;
-  // Joined fields
   bn_product?: BnProduct;
 }
 
@@ -284,7 +463,65 @@ export const BN_CLAIM_STATUS_LABELS: Record<BnClaimStatus, string> = {
 
 export const BN_PRODUCT_STATUS_LABELS: Record<BnProductStatus, string> = {
   DRAFT: 'Draft',
+  PENDING_APPROVAL: 'Pending Approval',
   ACTIVE: 'Active',
   SUSPENDED: 'Suspended',
   ARCHIVED: 'Archived',
 };
+
+export const BN_CATEGORY_LABELS: Record<string, string> = {
+  SHORT_TERM: 'Short-Term',
+  LONG_TERM: 'Long-Term',
+  NON_CONTRIBUTORY: 'Non-Contributory',
+  GRANT: 'Grant',
+  PENSION: 'Pension',
+  INJURY: 'Employment Injury',
+  SURVIVOR: 'Survivor',
+  ASSISTANCE: 'Assistance',
+};
+
+export const BN_RULE_TYPES = [
+  { value: 'CONTRIBUTION', label: 'Contribution Check' },
+  { value: 'AGE', label: 'Age Requirement' },
+  { value: 'EMPLOYMENT', label: 'Employment Status' },
+  { value: 'RESIDENCY', label: 'Residency' },
+  { value: 'MEDICAL', label: 'Medical' },
+  { value: 'INCOME', label: 'Income/Means Test' },
+  { value: 'CUSTOM', label: 'Custom Rule' },
+];
+
+export const BN_CALC_TYPES = [
+  { value: 'FORMULA', label: 'Formula' },
+  { value: 'TIER_TABLE', label: 'Tier/Rate Table' },
+  { value: 'FLAT_RATE', label: 'Flat Rate' },
+  { value: 'PERCENTAGE', label: 'Percentage' },
+  { value: 'LOOKUP', label: 'Lookup Table' },
+];
+
+export const BN_TIMELINE_TYPES = [
+  { value: 'WAITING_PERIOD', label: 'Waiting Period' },
+  { value: 'MAX_DURATION', label: 'Maximum Duration' },
+  { value: 'FILING_DEADLINE', label: 'Filing Deadline' },
+  { value: 'REVIEW_INTERVAL', label: 'Review Interval' },
+];
+
+export const BN_FAIL_ACTIONS = [
+  { value: 'REJECT', label: 'Reject Claim' },
+  { value: 'WARN', label: 'Warning Only' },
+  { value: 'REFER', label: 'Refer for Review' },
+];
+
+export const BN_INTERACTION_TYPES = [
+  { value: 'SUSPENDS', label: 'Suspends' },
+  { value: 'BLOCKS', label: 'Blocks' },
+  { value: 'OFFSETS', label: 'Offsets' },
+  { value: 'SUPPLEMENTS', label: 'Supplements' },
+  { value: 'REPLACES', label: 'Replaces' },
+];
+
+export const BN_OVERRIDE_TARGETS = [
+  { value: 'ELIGIBILITY', label: 'Eligibility' },
+  { value: 'CALCULATION', label: 'Calculation' },
+  { value: 'TIMELINE', label: 'Timeline' },
+  { value: 'PAYMENT', label: 'Payment' },
+];
