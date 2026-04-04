@@ -4865,44 +4865,65 @@ export type Database = {
       }
       bn_sim_scenario: {
         Row: {
+          base_claim_ref: string | null
           country_code: string | null
           description: string | null
           entered_at: string
           entered_by: string | null
           id: string
+          input_payload: Json | null
           modified_at: string
           modified_by: string | null
+          notes: string | null
           product_id: string | null
           product_version_id: string | null
+          scenario_code: string | null
           scenario_name: string
+          scenario_type: string
+          scheme_id: string | null
+          source_type: string
           status: string
           tags: string[] | null
         }
         Insert: {
+          base_claim_ref?: string | null
           country_code?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
+          input_payload?: Json | null
           modified_at?: string
           modified_by?: string | null
+          notes?: string | null
           product_id?: string | null
           product_version_id?: string | null
+          scenario_code?: string | null
           scenario_name: string
+          scenario_type?: string
+          scheme_id?: string | null
+          source_type?: string
           status?: string
           tags?: string[] | null
         }
         Update: {
+          base_claim_ref?: string | null
           country_code?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
+          input_payload?: Json | null
           modified_at?: string
           modified_by?: string | null
+          notes?: string | null
           product_id?: string | null
           product_version_id?: string | null
+          scenario_code?: string | null
           scenario_name?: string
+          scenario_type?: string
+          scheme_id?: string | null
+          source_type?: string
           status?: string
           tags?: string[] | null
         }
