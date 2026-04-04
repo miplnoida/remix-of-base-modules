@@ -4562,6 +4562,352 @@ export type Database = {
           },
         ]
       }
+      bn_sim_config_snapshot: {
+        Row: {
+          captured_at: string
+          captured_by: string | null
+          config_data: Json
+          id: string
+          product_version_id: string | null
+          scenario_id: string
+          snapshot_type: string
+        }
+        Insert: {
+          captured_at?: string
+          captured_by?: string | null
+          config_data?: Json
+          id?: string
+          product_version_id?: string | null
+          scenario_id: string
+          snapshot_type: string
+        }
+        Update: {
+          captured_at?: string
+          captured_by?: string | null
+          config_data?: Json
+          id?: string
+          product_version_id?: string | null
+          scenario_id?: string
+          snapshot_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_config_snapshot_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_scenario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_formula_trace: {
+        Row: {
+          duration_ms: number | null
+          engine_layer: string
+          entered_at: string
+          formula_expression: string | null
+          id: string
+          inputs: Json | null
+          output_text: string | null
+          output_value: number | null
+          sim_run_id: string
+          step_code: string
+          step_label: string
+          step_number: number
+        }
+        Insert: {
+          duration_ms?: number | null
+          engine_layer: string
+          entered_at?: string
+          formula_expression?: string | null
+          id?: string
+          inputs?: Json | null
+          output_text?: string | null
+          output_value?: number | null
+          sim_run_id: string
+          step_code: string
+          step_label: string
+          step_number: number
+        }
+        Update: {
+          duration_ms?: number | null
+          engine_layer?: string
+          entered_at?: string
+          formula_expression?: string | null
+          id?: string
+          inputs?: Json | null
+          output_text?: string | null
+          output_value?: number | null
+          sim_run_id?: string
+          step_code?: string
+          step_label?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_formula_trace_sim_run_id_fkey"
+            columns: ["sim_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_rule_trace: {
+        Row: {
+          duration_ms: number | null
+          engine_layer: string
+          entered_at: string
+          id: string
+          inputs: Json | null
+          message: string | null
+          passed: boolean | null
+          rule_code: string | null
+          rule_label: string | null
+          severity: string | null
+          sim_run_id: string
+          step_number: number
+        }
+        Insert: {
+          duration_ms?: number | null
+          engine_layer: string
+          entered_at?: string
+          id?: string
+          inputs?: Json | null
+          message?: string | null
+          passed?: boolean | null
+          rule_code?: string | null
+          rule_label?: string | null
+          severity?: string | null
+          sim_run_id: string
+          step_number: number
+        }
+        Update: {
+          duration_ms?: number | null
+          engine_layer?: string
+          entered_at?: string
+          id?: string
+          inputs?: Json | null
+          message?: string | null
+          passed?: boolean | null
+          rule_code?: string | null
+          rule_label?: string | null
+          severity?: string | null
+          sim_run_id?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_rule_trace_sim_run_id_fkey"
+            columns: ["sim_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_run: {
+        Row: {
+          completed_at: string | null
+          config_snapshot_id: string | null
+          country_code: string | null
+          duration_ms: number | null
+          entered_at: string
+          error_message: string | null
+          id: string
+          modified_at: string
+          product_version_id: string | null
+          run_mode: string
+          run_number: number
+          run_status: string
+          scenario_id: string
+          started_at: string | null
+          triggered_by: string | null
+          warnings: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          config_snapshot_id?: string | null
+          country_code?: string | null
+          duration_ms?: number | null
+          entered_at?: string
+          error_message?: string | null
+          id?: string
+          modified_at?: string
+          product_version_id?: string | null
+          run_mode?: string
+          run_number?: number
+          run_status?: string
+          scenario_id: string
+          started_at?: string | null
+          triggered_by?: string | null
+          warnings?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          config_snapshot_id?: string | null
+          country_code?: string | null
+          duration_ms?: number | null
+          entered_at?: string
+          error_message?: string | null
+          id?: string
+          modified_at?: string
+          product_version_id?: string | null
+          run_mode?: string
+          run_number?: number
+          run_status?: string
+          scenario_id?: string
+          started_at?: string | null
+          triggered_by?: string | null
+          warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_run_config_snapshot_id_fkey"
+            columns: ["config_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_config_snapshot"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_sim_run_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_scenario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_run_input: {
+        Row: {
+          entered_at: string
+          id: string
+          input_json: Json | null
+          input_key: string
+          input_type: string | null
+          input_value: string | null
+          sim_run_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          entered_at?: string
+          id?: string
+          input_json?: Json | null
+          input_key: string
+          input_type?: string | null
+          input_value?: string | null
+          sim_run_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          entered_at?: string
+          id?: string
+          input_json?: Json | null
+          input_key?: string
+          input_type?: string | null
+          input_value?: string | null
+          sim_run_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_run_input_sim_run_id_fkey"
+            columns: ["sim_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_run_output: {
+        Row: {
+          entered_at: string
+          id: string
+          output_json: Json | null
+          output_key: string
+          output_numeric: number | null
+          output_type: string | null
+          output_value: string | null
+          sim_run_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          entered_at?: string
+          id?: string
+          output_json?: Json | null
+          output_key: string
+          output_numeric?: number | null
+          output_type?: string | null
+          output_value?: string | null
+          sim_run_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          entered_at?: string
+          id?: string
+          output_json?: Json | null
+          output_key?: string
+          output_numeric?: number | null
+          output_type?: string | null
+          output_value?: string | null
+          sim_run_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_sim_run_output_sim_run_id_fkey"
+            columns: ["sim_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_sim_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_sim_scenario: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          product_id: string | null
+          product_version_id: string | null
+          scenario_name: string
+          status: string
+          tags: string[] | null
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          scenario_name: string
+          status?: string
+          tags?: string[] | null
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          scenario_name?: string
+          status?: string
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
       bn_timeline_rule: {
         Row: {
           days_value: number | null
