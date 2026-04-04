@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isEvidenceComplete } from '@/services/bn/evidenceService';
 import type {
   BnClaimTransitionRule,
   BnAvailableAction,
@@ -39,16 +40,14 @@ export async function getAvailableTransitions(
   if (rulesErr) throw rulesErr;
 
   // 3. Check preconditions in parallel
-  const [eligResults, calcResults, docResults] = await Promise.all([
+  const [eligResults, calcResults, evidenceComplete] = await Promise.all([
     db.from('bn_claim_eligibility').select('overall_result').eq('claim_id', claimId).order('check_date', { ascending: false }).limit(1),
     db.from('bn_claim_calculation').select('id').eq('claim_id', claimId).limit(1),
-    db.from('bn_claim_document').select('id, verified').eq('claim_id', claimId),
+    isEvidenceComplete(claimId),
   ]);
 
   const hasEligibilityPass = eligResults.data?.[0]?.overall_result === true;
   const hasCalculation = (calcResults.data?.length || 0) > 0;
-  const allDocsVerified = (docResults.data || []).length > 0 &&
-    (docResults.data || []).every((d: any) => d.verified);
 
   // 4. Evaluate each rule
   const isAdmin = userRoles.some(r => r.toLowerCase() === 'admin');
@@ -77,8 +76,8 @@ export async function getAvailableTransitions(
     if (rule.requires_calculation && !hasCalculation) {
       return { rule, blocked: true, blockedReason: 'Calculation must be completed first' };
     }
-    if (rule.requires_evidence_complete && !allDocsVerified) {
-      return { rule, blocked: true, blockedReason: 'All documents must be verified first' };
+    if (rule.requires_evidence_complete && !evidenceComplete) {
+      return { rule, blocked: true, blockedReason: 'All mandatory documents must be verified first' };
     }
 
     return { rule, blocked: false, blockedReason: null };
@@ -134,17 +133,18 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
     throw new Error('A narrative justification is required for this action');
   }
 
-  // 6. Build evidence snapshot
+  // 6. Build evidence snapshot from bn_claim_evidence
   const { data: docs } = await db
-    .from('bn_claim_document')
-    .select('id, document_type_code, verified')
+    .from('bn_claim_evidence')
+    .select('id, document_type_code, status, document_name')
     .eq('claim_id', claimId);
 
   const evidenceSnapshot = {
     documents: (docs || []).map((d: any) => ({
       id: d.id,
       type: d.document_type_code,
-      verified: d.verified,
+      name: d.document_name,
+      status: d.status,
     })),
     snapshot_at: new Date().toISOString(),
   };

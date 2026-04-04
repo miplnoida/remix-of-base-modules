@@ -701,3 +701,106 @@ export interface BnAvailableAction {
   blocked: boolean;
   blockedReason: string | null;
 }
+
+// ── Evidence & Documents ──
+
+export interface BnServiceDocType {
+  id: string;
+  type_code: string;
+  type_name: string;
+  category: string;
+  default_expiry_days: number | null;
+  requires_witness: boolean;
+  description: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+  modified_by: string | null;
+  modified_at: string;
+}
+
+export interface BnDocRequirement {
+  id: string;
+  product_version_id: string | null;
+  product_id: string | null;
+  document_type_code: string;
+  stage: string;
+  requirement_level: string;
+  allowed_extensions: string[];
+  max_file_size_mb: number;
+  expiry_days: number | null;
+  requires_notarization: boolean;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+  modified_by: string | null;
+  modified_at: string;
+}
+
+export interface BnClaimEvidence {
+  id: string;
+  claim_id: string;
+  requirement_id: string | null;
+  document_type_code: string;
+  document_name: string;
+  file_name: string | null;
+  file_path: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  storage_bucket: string | null;
+  checksum_sha256: string | null;
+  source: string;
+  status: string;
+  status_reason: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  waived_by: string | null;
+  waived_at: string | null;
+  waiver_reason: string | null;
+  waiver_authority_level: number | null;
+  expires_at: string | null;
+  metadata: Record<string, unknown>;
+  entered_by: string | null;
+  entered_at: string;
+  modified_by: string | null;
+  modified_at: string;
+}
+
+export interface BnEvidenceAudit {
+  id: string;
+  evidence_id: string;
+  claim_id: string;
+  action: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  performed_by: string;
+  performed_at: string;
+  // Joined
+  bn_claim_evidence?: { document_name: string; document_type_code: string };
+}
+
+export interface BnEvidenceChecklist {
+  id: string;
+  claim_id: string;
+  requirement_id: string;
+  evidence_id: string | null;
+  status: string;
+  is_blocking: boolean;
+  entered_at: string;
+  modified_at: string;
+  // Joined
+  bn_doc_requirement?: BnDocRequirement;
+  bn_claim_evidence?: BnClaimEvidence;
+}
+
+export const BN_EVIDENCE_STATUSES = ['RECEIVED', 'VERIFIED', 'REJECTED', 'WAIVED', 'PENDING_INFO', 'EXPIRED'] as const;
+export const BN_EVIDENCE_ACTIONS = ['UPLOAD', 'VERIFY', 'REJECT', 'WAIVE', 'REQUEST_INFO', 'EXPIRE', 'REPLACE', 'DELETE'] as const;
+export const BN_DOC_CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'] as const;
+export const BN_REQUIREMENT_LEVELS = ['MANDATORY', 'OPTIONAL', 'WAIVABLE'] as const;
+export const BN_EVIDENCE_STAGES = ['INTAKE', 'EVIDENCE_REVIEW', 'DECISION', 'POST_AWARD', 'PERIODIC_REVIEW'] as const;

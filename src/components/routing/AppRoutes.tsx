@@ -627,6 +627,7 @@ import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
 import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
 import BnWorkbasketConfig from '@/pages/bn/config/WorkbasketConfig';
 import BnEscalationConfig from '@/pages/bn/config/EscalationConfig';
+import BnServiceDocTypes from '@/pages/bn/config/ServiceDocTypes';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
@@ -1336,6 +1337,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
       <Route path="/bn/config/escalation" element={<ProtectedLayout><BnEscalationConfig /></ProtectedLayout>} />
+      <Route path="/bn/config/service-doc-types" element={<ProtectedLayout><BnServiceDocTypes /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}

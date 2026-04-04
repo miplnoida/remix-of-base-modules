@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, User, FileText, Calculator, CheckCircle2, Clock, MessageSquare, Shield } from 'lucide-react';
-import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, useBnClaimCalculations, useBnClaimDocuments } from '@/hooks/bn/useBnClaim';
+import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, useBnClaimCalculations } from '@/hooks/bn/useBnClaim';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ClaimDecisionPanel } from '@/components/bn/claim/ClaimDecisionPanel';
 import { ClaimDecisionTimeline } from '@/components/bn/claim/ClaimDecisionTimeline';
+import { EvidenceChecklist } from '@/components/bn/evidence/EvidenceChecklist';
+import { EvidenceAuditTimeline } from '@/components/bn/evidence/EvidenceAuditTimeline';
 
 export default function Claim360() {
   const { id } = useParams();
@@ -18,7 +20,6 @@ export default function Claim360() {
   const { data: notes = [] } = useBnClaimNotes(id);
   const { data: eligibility = [] } = useBnClaimEligibility(id);
   const { data: calculations = [] } = useBnClaimCalculations(id);
-  const { data: documents = [] } = useBnClaimDocuments(id);
 
   // TODO: Replace with actual user roles from auth context
   const userRoles = ['Admin'];
@@ -83,7 +84,7 @@ export default function Claim360() {
             <FileText className="h-8 w-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Documents</p>
-              <p className="text-lg font-semibold">{documents.length}</p>
+              <p className="text-lg font-semibold">—</p>
             </div>
           </CardContent>
         </Card>
@@ -231,30 +232,10 @@ export default function Claim360() {
           </Card>
         </TabsContent>
 
-        {/* Documents */}
-        <TabsContent value="documents" className="mt-6">
-          <Card>
-            <CardHeader><CardTitle>Claim Documents ({documents.length})</CardTitle></CardHeader>
-            <CardContent>
-              {documents.length === 0 ? (
-                <p className="text-muted-foreground">No documents attached.</p>
-              ) : (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <p className="font-medium">{doc.document_name || doc.file_name}</p>
-                        <p className="text-sm text-muted-foreground">{doc.document_type_code}</p>
-                      </div>
-                      <Badge variant={doc.verified ? 'default' : 'outline'}>
-                        {doc.verified ? 'Verified' : 'Pending'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Documents / Evidence */}
+        <TabsContent value="documents" className="mt-6 space-y-6">
+          <EvidenceChecklist claimId={claim.id} userRoles={userRoles} />
+          <EvidenceAuditTimeline claimId={claim.id} />
         </TabsContent>
 
         {/* Notes */}
