@@ -100,13 +100,18 @@ export const LoginScreen = () => {
     }
   };
 
+  // Detect preview/dev environment where Turnstile and edge functions may not work
+  const isDevPreview = window.location.hostname.includes('preview--') || 
+                       window.location.hostname.includes('localhost');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setAttemptsRemaining(null);
 
-    if (!turnstileAvailable) {
+    // In dev preview, skip Turnstile entirely to avoid proxy issues
+    if (isDevPreview || !turnstileAvailable) {
       void performLogin(null);
       return;
     }
