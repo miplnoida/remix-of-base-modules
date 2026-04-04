@@ -98,6 +98,15 @@ const mockUsers: User[] = [
     lastName: 'Auditor',
     email: 'patricia@ssb.gov.kn',
     active: true
+  },
+  {
+    id: '10',
+    username: 'config_analyst1',
+    role: 'CONFIG_ANALYST',
+    firstName: 'Karen',
+    lastName: 'Analyst',
+    email: 'karen@ssb.gov.kn',
+    active: true
   }
 ];
 
@@ -128,7 +137,12 @@ const rolePermissions: Record<UserRole, string[]> = {
     'make_decisions',
     'approve_claims',
     'view_team_queues',
-    'reassign_claims'
+    'reassign_claims',
+    'view_simulations',
+    'create_scenarios',
+    'run_simulations',
+    'view_sim_traces',
+    'view_sim_audit'
   ],
   PAYMENTS_OFFICER: [
     'view_payments',
@@ -185,13 +199,31 @@ const rolePermissions: Record<UserRole, string[]> = {
     'system_administration',
     'view_all_claims',
     'view_all_payments',
-    'generate_audit_reports'
+    'generate_audit_reports',
+    'view_simulations',
+    'create_scenarios',
+    'run_simulations',
+    'view_sim_traces',
+    'delete_scenarios',
+    'view_sim_audit'
+  ],
+  CONFIG_ANALYST: [
+    'view_claims',
+    'view_simulations',
+    'create_scenarios',
+    'run_simulations',
+    'view_sim_traces',
+    'configure_rates',
+    'view_contribution_records'
   ],
   AUDITOR: [
     'view_all_claims',
     'view_all_payments',
     'view_audit_logs',
-    'generate_audit_reports'
+    'generate_audit_reports',
+    'view_simulations',
+    'view_sim_traces',
+    'view_sim_audit'
   ]
 };
 

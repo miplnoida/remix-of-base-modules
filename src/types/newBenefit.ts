@@ -232,6 +232,7 @@ export type UserRole =
   | 'PAYMENTS_OFFICER'
   | 'MEDICAL_COORDINATOR'
   | 'EMPLOYER_LIAISON'
+  | 'CONFIG_ANALYST'
   | 'ADMIN'
   | 'AUDITOR';
 

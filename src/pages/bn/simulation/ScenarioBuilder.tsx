@@ -14,6 +14,8 @@ import { useBnCountries, useBnSchemes } from '@/hooks/bn/useBnConfig';
 import { useCreateSimScenario, useUpdateSimScenario, useBnSimScenario } from '@/hooks/bn/useBnSimulation';
 import { toast } from 'sonner';
 import type { BnSimScenarioType, BnSimSourceType } from '@/types/bnSimulation';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const SCENARIO_TYPES: { value: BnSimScenarioType; label: string; desc: string }[] = [
   { value: 'STANDARD', label: 'Standard', desc: 'Normal test scenario for a benefit product' },
@@ -36,6 +38,7 @@ export default function ScenarioBuilder() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const { canCreate } = useSimPermission();
 
   // --- Data hooks ---
   const { data: existingScenario, isLoading: loadingScenario } = useBnSimScenario(id);
@@ -165,6 +168,8 @@ export default function ScenarioBuilder() {
       toast.error(err?.message || 'Failed to save scenario');
     }
   };
+
+  if (!canCreate) return <SimAccessDenied title="Cannot Create Scenarios" message="You do not have permission to create or edit simulation scenarios." />;
 
   if (isEditMode && loadingScenario) {
     return (

@@ -11,6 +11,8 @@ import { useBnSimScenario, useBnSimRuns, useExecuteSimulation } from '@/hooks/bn
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import type { BnSimInputParam, BnSimRun } from '@/types/bnSimulation';
 import { toast } from 'sonner';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const RUN_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PENDING: 'outline',
@@ -23,6 +25,7 @@ const RUN_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'
 export default function RunSimulation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canView, canRun } = useSimPermission();
   const { data: scenario, isLoading } = useBnSimScenario(id);
   const { data: runs } = useBnSimRuns(id);
   const executeSim = useExecuteSimulation();
@@ -33,6 +36,7 @@ export default function RunSimulation() {
   const [age, setAge] = useState('');
   const [totalWeeks, setTotalWeeks] = useState('');
 
+  if (!canView) return <SimAccessDenied />;
   if (isLoading) return <BnEmptyState type="loading" />;
   if (!scenario) return <BnEmptyState type="error" title="Scenario not found" />;
 
@@ -119,7 +123,7 @@ export default function RunSimulation() {
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button onClick={handleRun} disabled={executeSim.isPending} className="gap-2">
+                <Button onClick={handleRun} disabled={executeSim.isPending || !canRun} className="gap-2">
                   {executeSim.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   Run Simulation
                 </Button>

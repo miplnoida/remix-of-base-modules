@@ -9,6 +9,8 @@ import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import { BnStatCard } from '@/components/bn/shared/BnStatCard';
 import type { BnSimScenario } from '@/types/bnSimulation';
 import { toast } from 'sonner';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'outline',
@@ -20,8 +22,11 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
 
 export default function SimulationDashboard() {
   const navigate = useNavigate();
+  const { canView, canCreate, canDelete } = useSimPermission();
   const { data: scenarios, isLoading, isError } = useBnSimScenarios();
   const deleteMut = useDeleteSimScenario();
+
+  if (!canView) return <SimAccessDenied />;
 
   if (isLoading) return <BnEmptyState type="loading" />;
   if (isError) return <BnEmptyState type="error" />;
@@ -58,9 +63,11 @@ export default function SimulationDashboard() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Test benefit products using existing configurations safely</p>
         </div>
-        <Button onClick={() => navigate('/bn/simulation/new')} className="gap-2">
-          <Plus className="h-4 w-4" /> New Scenario
-        </Button>
+        {canCreate && (
+          <Button onClick={() => navigate('/bn/simulation/new')} className="gap-2">
+            <Plus className="h-4 w-4" /> New Scenario
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -99,7 +106,7 @@ export default function SimulationDashboard() {
                     <Button variant="outline" size="sm" onClick={() => navigate(`/bn/simulation/${s.id}`)}>
                       <Play className="h-3 w-3 mr-1" /> Open
                     </Button>
-                    {s.status === 'DRAFT' && (
+                    {canDelete && s.status === 'DRAFT' && (
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(s.id)}>
                         Delete
                       </Button>
