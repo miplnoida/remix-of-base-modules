@@ -634,6 +634,10 @@ import BnCountryAddressModel from '@/pages/bn/config/country/CountryAddressModel
 import BnCountryParticipantTypes from '@/pages/bn/config/country/CountryParticipantTypes';
 import BnCountryPaymentConfig from '@/pages/bn/config/country/CountryPaymentConfig';
 import BnCountryLegalRefs from '@/pages/bn/config/country/CountryLegalRefs';
+import BnRuleConfiguration from '@/pages/bn/config/RuleConfiguration';
+import BnFormulaConfiguration from '@/pages/bn/config/FormulaConfiguration';
+import BnDocumentSetup from '@/pages/bn/config/DocumentSetup';
+import BnScreenMetadataSetup from '@/pages/bn/config/ScreenMetadataSetup';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
