@@ -645,6 +645,7 @@ import BnCountryParticipantTypes from '@/pages/bn/config/country/CountryParticip
 import BnCountryPaymentConfig from '@/pages/bn/config/country/CountryPaymentConfig';
 import BnCountryLegalRefs from '@/pages/bn/config/country/CountryLegalRefs';
 import BnRuleConfiguration from '@/pages/bn/config/RuleConfiguration';
+import BnRulesAdministration from '@/pages/bn/config/RulesAdministration';
 import BnFormulaConfiguration from '@/pages/bn/config/FormulaConfiguration';
 import BnDocumentSetup from '@/pages/bn/config/DocumentSetup';
 import BnScreenMetadataSetup from '@/pages/bn/config/ScreenMetadataSetup';
@@ -1381,6 +1382,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/country/payment-config" element={<ProtectedLayout><BnCountryPaymentConfig /></ProtectedLayout>} />
       <Route path="/bn/config/country/legal-refs" element={<ProtectedLayout><BnCountryLegalRefs /></ProtectedLayout>} />
       <Route path="/bn/config/rules" element={<ProtectedLayout><BnRuleConfiguration /></ProtectedLayout>} />
+      <Route path="/bn/config/rules-admin" element={<ProtectedLayout><BnRulesAdministration /></ProtectedLayout>} />
       <Route path="/bn/config/formulas" element={<ProtectedLayout><BnFormulaConfiguration /></ProtectedLayout>} />
       <Route path="/bn/config/document-setup" element={<ProtectedLayout><BnDocumentSetup /></ProtectedLayout>} />
       <Route path="/bn/config/screen-setup" element={<ProtectedLayout><BnScreenMetadataSetup /></ProtectedLayout>} />

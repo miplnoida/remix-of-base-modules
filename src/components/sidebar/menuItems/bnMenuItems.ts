@@ -129,6 +129,13 @@ export const bnMenuItems = [
             description: "Eligibility, calculation, and timeline rules",
           },
           {
+            title: "Rules Administration",
+            url: "/bn/config/rules-admin",
+            icon: Shield,
+            requiresPermission: "benefits_management",
+            description: "Version governance, compare, approve, and publish rules",
+          },
+          {
             title: "Formula Templates",
             url: "/bn/config/formulas",
             icon: Calculator,
