@@ -30,7 +30,7 @@ import {
   useBnRejectVersion,
   useBnPublishVersion,
 } from '@/hooks/bn/useBnRulesAdmin';
-import { useBnProducts } from '@/hooks/bn/useBnConfig';
+
 import type { RuleVersionSummary } from '@/services/bn/rulesAdminService';
 
 const STATUS_COLORS: Record<string, string> = {
