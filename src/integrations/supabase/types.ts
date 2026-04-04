@@ -3991,6 +3991,45 @@ export type Database = {
           },
         ]
       }
+      bn_module_events: {
+        Row: {
+          consumed: boolean
+          consumed_at: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          payload: Json | null
+          published_at: string
+          published_by: string | null
+        }
+        Insert: {
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          published_at?: string
+          published_by?: string | null
+        }
+        Update: {
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          published_at?: string
+          published_by?: string | null
+        }
+        Relationships: []
+      }
       bn_override_policy: {
         Row: {
           allowed_role: string
@@ -4046,6 +4085,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_payment_instruction: {
+        Row: {
+          account_number: string | null
+          amount: number
+          award_id: string | null
+          bank_code: string | null
+          cancel_reason: string | null
+          claim_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          due_date: string
+          frequency: string
+          id: string
+          paid_date: string | null
+          payment_method: string
+          payment_reference: string | null
+          ssn: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          award_id?: string | null
+          bank_code?: string | null
+          cancel_reason?: string | null
+          claim_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date: string
+          frequency?: string
+          id?: string
+          paid_date?: string | null
+          payment_method?: string
+          payment_reference?: string | null
+          ssn: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          award_id?: string | null
+          bank_code?: string | null
+          cancel_reason?: string | null
+          claim_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string
+          frequency?: string
+          id?: string
+          paid_date?: string | null
+          payment_method?: string
+          payment_reference?: string | null
+          ssn?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       bn_product: {
         Row: {
