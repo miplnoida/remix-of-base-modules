@@ -65,10 +65,10 @@ export default function SimulationDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <BnStatCard label="Total Scenarios" value={list.length} icon={<FlaskConical className="h-4 w-4" />} />
-        <BnStatCard label="Completed" value={completed} icon={<CheckCircle className="h-4 w-4 text-emerald-600" />} />
-        <BnStatCard label="Failed" value={failed} icon={<XCircle className="h-4 w-4 text-destructive" />} />
-        <BnStatCard label="Drafts" value={draft} icon={<Clock className="h-4 w-4 text-muted-foreground" />} />
+        <BnStatCard title="Total Scenarios" value={list.length} icon={FlaskConical} />
+        <BnStatCard title="Completed" value={completed} icon={CheckCircle} />
+        <BnStatCard title="Failed" value={failed} icon={XCircle} />
+        <BnStatCard title="Drafts" value={draft} icon={Clock} />
       </div>
 
       {/* Scenario list */}
