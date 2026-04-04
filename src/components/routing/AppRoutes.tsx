@@ -1360,6 +1360,7 @@ export const AppRoutes = () => {
       <Route path="/bn/approval" element={<ProtectedLayout><BnApprovalConsole /></ProtectedLayout>} />
       <Route path="/bn/entitlements" element={<ProtectedLayout><BnEntitlementManagement /></ProtectedLayout>} />
       <Route path="/bn/payables" element={<ProtectedLayout><BnPayablesQueue /></ProtectedLayout>} />
+      <Route path="/bn/schedules" element={<ProtectedLayout><BnPaymentSchedule /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />

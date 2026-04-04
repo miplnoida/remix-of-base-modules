@@ -45,6 +45,25 @@ const STATUS_SCHEMES: Record<string, BadgeColorScheme> = {
   REJECTED:          { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
   WAIVED:            { bg: 'bg-violet-500/10',     text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-500/20' },
   EXPIRED:           { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  // Payable statuses
+  READY:             { bg: 'bg-emerald-500/10',    text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20' },
+  BLOCKED:           { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
+  HELD:              { bg: 'bg-amber-500/10',      text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-500/20' },
+  EXCEPTION:         { bg: 'bg-orange-500/10',     text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-500/20' },
+  SCHEDULED:         { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
+  ISSUED_PENDING:    { bg: 'bg-teal-500/10',       text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-500/20' },
+  CANCELLED:         { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  REISSUE_PENDING:   { bg: 'bg-violet-500/10',     text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-500/20' },
+  // Schedule statuses
+  PROJECTED:         { bg: 'bg-sky-500/10',        text: 'text-sky-700 dark:text-sky-400', border: 'border-sky-500/20' },
+  DUE:               { bg: 'bg-amber-500/10',      text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-500/20' },
+  GENERATED:         { bg: 'bg-emerald-500/10',    text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20' },
+  SKIPPED:           { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  ARREARS:           { bg: 'bg-violet-500/10',     text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-500/20' },
+  ADJUSTED:          { bg: 'bg-cyan-500/10',       text: 'text-cyan-700 dark:text-cyan-400', border: 'border-cyan-500/20' },
+  EXHAUSTED:         { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  TERMINATED:        { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
+  REOPENED:          { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
 };
 
 const DEFAULT_SCHEME: BadgeColorScheme = {
