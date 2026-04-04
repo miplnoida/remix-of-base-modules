@@ -622,6 +622,7 @@ import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
 import BnClaim360 from '@/pages/bn/claims/Claim360';
 import BnClaimWorkbench from '@/pages/bn/claims/ClaimWorkbench';
 import BnCalculationEngine from '@/pages/bn/engine/CalculationEngine';
+import BnBenefitDetermination from '@/pages/bn/claims/BenefitDetermination';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
 import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
