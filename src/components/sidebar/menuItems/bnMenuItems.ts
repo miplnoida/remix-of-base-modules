@@ -21,6 +21,7 @@ import {
   Monitor,
   FolderOpen,
   TestTube2,
+  ClipboardCheck,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -39,6 +40,13 @@ export const bnMenuItems = [
         url: "/bn/queue",
         icon: Inbox,
         requiresPermission: "benefits_management",
+      },
+      {
+        title: "Approval Console",
+        url: "/bn/approval",
+        icon: ClipboardCheck,
+        requiresPermission: "benefits_management",
+        description: "Review and approve benefit decisions",
       },
       {
         title: "Register New Claim",
