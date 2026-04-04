@@ -69,7 +69,7 @@ export default function BenefitDetermination() {
           productId: ctx.claim.product_id || '',
           productVersionId: ctx.claim.product_version_id || '',
           claimDate: ctx.claim.claim_date,
-          countryCode: ctx.claim.country_code || 'KN',
+          countryCode: (ctx.claim as any).country_code || 'KN',
           mode: 'LIVE',
         },
         performedBy: userCode,
