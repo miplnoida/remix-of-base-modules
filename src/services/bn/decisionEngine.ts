@@ -76,8 +76,8 @@ export async function getAvailableTransitions(
     if (rule.requires_calculation && !hasCalculation) {
       return { rule, blocked: true, blockedReason: 'Calculation must be completed first' };
     }
-    if (rule.requires_evidence_complete && !allDocsVerified) {
-      return { rule, blocked: true, blockedReason: 'All documents must be verified first' };
+    if (rule.requires_evidence_complete && !evidenceComplete) {
+      return { rule, blocked: true, blockedReason: 'All mandatory documents must be verified first' };
     }
 
     return { rule, blocked: false, blockedReason: null };
