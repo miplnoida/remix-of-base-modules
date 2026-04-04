@@ -615,6 +615,13 @@ import LettersCommunications from '@/pages/newBenefit/LettersCommunications';
 import AdminConfig from '@/pages/newBenefit/AdminConfig';
 import AuditorView from '@/pages/newBenefit/AuditorView';
 
+// Benefit Management Module (bn_)
+import BnProductCatalog from '@/pages/bn/config/ProductCatalog';
+import BnProductEditor from '@/pages/bn/config/ProductEditor';
+import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
+import BnClaim360 from '@/pages/bn/claims/Claim360';
+import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
+
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
 
@@ -1310,6 +1317,13 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/communications" element={<ProtectedLayout><LettersCommunications /></ProtectedLayout>} />
           <Route path="/newbenefit/admin" element={<ProtectedLayout><AdminConfig /></ProtectedLayout>} />
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
+
+      {/* Benefit Management Module (bn_) */}
+      <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
+      <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
+      <Route path="/bn/claims" element={<ProtectedLayout><BnClaimWorklist /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
+      <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}
