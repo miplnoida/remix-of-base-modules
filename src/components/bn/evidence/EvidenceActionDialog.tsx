@@ -27,7 +27,7 @@ const ACTION_CONFIG: Record<ActionType, { title: string; reasonRequired: boolean
 
 export function EvidenceActionDialog({ open, onOpenChange, action, evidenceId, documentName }: Props) {
   const { toast } = useToast();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const [reason, setReason] = useState('');
   const [authorityLevel, setAuthorityLevel] = useState(1);
 
