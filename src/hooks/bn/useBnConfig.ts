@@ -14,7 +14,7 @@ export const useBnBranches = (schemeId?: string) => useQuery({
 });
 
 // Rule Groups
-export const useBnRuleGroups = () => useQuery({ queryKey: ['bn', 'rule-groups'], queryFn: configService.fetchRuleGroups });
+export const useBnRuleGroups = (countryCode?: string) => useQuery({ queryKey: ['bn', 'rule-groups', countryCode], queryFn: () => configService.fetchRuleGroups(countryCode) });
 export const useUpsertBnRuleGroup = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.upsertRuleGroup, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'rule-groups'] }) });
