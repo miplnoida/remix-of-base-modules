@@ -127,23 +127,81 @@ async function captureConfigSnapshot(
   snapshotType: BnSimSnapshotType,
   capturedBy?: string
 ): Promise<BnSimConfigSnapshot> {
-  // Load all rule categories in parallel
-  const [eligRules, calcRules, timelineRules, docRules, interactionRules] = await Promise.all([
+  // Load product version metadata + all rule categories + templates in parallel
+  const [
+    versionMeta,
+    productMeta,
+    eligRules,
+    calcRules,
+    timelineRules,
+    docRules,
+    interactionRules,
+    formulaTemplates,
+    overridePolicies,
+  ] = await Promise.all([
+    loadSingle('bn_product_version', productVersionId),
+    loadProductForVersion(productVersionId),
     loadRules('bn_eligibility_rule', productVersionId),
     loadRules('bn_calculation_rule', productVersionId),
     loadRules('bn_timeline_rule', productVersionId),
     loadRules('bn_document_rule', productVersionId),
     loadRules('bn_interaction_rule', productVersionId),
+    loadFormulaTemplatesForCalcRules(productVersionId),
+    loadOverridePolicies(productVersionId),
   ]);
 
   const configData = {
-    product_version_id: productVersionId,
+    // --- Metadata ---
+    snapshot_version: '2.0',
     captured_at: new Date().toISOString(),
+
+    // --- Product & Version ---
+    product: productMeta ? {
+      id: productMeta.id,
+      benefit_name: productMeta.benefit_name,
+      benefit_code: productMeta.benefit_code,
+      scheme_id: productMeta.scheme_id,
+    } : null,
+    product_version: versionMeta ? {
+      id: versionMeta.id,
+      version_number: versionMeta.version_number,
+      status: versionMeta.status,
+      effective_from: versionMeta.effective_from,
+      effective_to: versionMeta.effective_to,
+      requires_employer_verification: versionMeta.requires_employer_verification,
+      requires_medical_board_review: versionMeta.requires_medical_board_review,
+      requires_means_test: versionMeta.requires_means_test,
+      max_concurrent_claims: versionMeta.max_concurrent_claims,
+      workflow_template_id: versionMeta.workflow_template_id,
+      document_profile_id: versionMeta.document_profile_id,
+      eligibility_config: versionMeta.eligibility_config,
+      calculation_config: versionMeta.calculation_config,
+      timeline_config: versionMeta.timeline_config,
+    } : null,
+
+    // --- Rules (active at snapshot time) ---
     eligibility_rules: eligRules,
     calculation_rules: calcRules,
     timeline_rules: timelineRules,
     document_rules: docRules,
     interaction_rules: interactionRules,
+
+    // --- Formula Templates (referenced by calc rules) ---
+    formula_templates: formulaTemplates,
+
+    // --- Override Policies ---
+    override_policies: overridePolicies,
+
+    // --- Summary counts ---
+    _summary: {
+      eligibility_rule_count: eligRules.length,
+      calculation_rule_count: calcRules.length,
+      timeline_rule_count: timelineRules.length,
+      document_rule_count: docRules.length,
+      interaction_rule_count: interactionRules.length,
+      formula_template_count: formulaTemplates.length,
+      override_policy_count: overridePolicies.length,
+    },
   };
 
   const { data, error } = await db
@@ -162,6 +220,8 @@ async function captureConfigSnapshot(
   return data as BnSimConfigSnapshot;
 }
 
+// ── Snapshot data loaders ────────────────────────────────
+
 async function loadRules(table: string, productVersionId: string) {
   const { data, error } = await db
     .from(table)
@@ -169,6 +229,46 @@ async function loadRules(table: string, productVersionId: string) {
     .eq('product_version_id', productVersionId)
     .eq('is_active', true)
     .order('sort_order');
+  if (error) return [];
+  return data ?? [];
+}
+
+async function loadSingle(table: string, id: string) {
+  const { data, error } = await db.from(table).select('*').eq('id', id).maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+async function loadProductForVersion(productVersionId: string) {
+  const version = await loadSingle('bn_product_version', productVersionId);
+  if (!version?.product_id) return null;
+  const { data, error } = await db.from('bn_product').select('id, benefit_name, benefit_code, scheme_id').eq('id', version.product_id).maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+async function loadFormulaTemplatesForCalcRules(productVersionId: string) {
+  // Get formula_template_ids from calc rules, then load those templates
+  const calcRules = await loadRules('bn_calculation_rule', productVersionId);
+  const templateIds = [...new Set(
+    calcRules
+      .map((r: any) => r.formula_template_id)
+      .filter(Boolean)
+  )];
+  if (templateIds.length === 0) return [];
+  const { data, error } = await db.from('bn_formula_template').select('*').in('id', templateIds);
+  if (error) return [];
+  return data ?? [];
+}
+
+async function loadOverridePolicies(productVersionId: string) {
+  const version = await loadSingle('bn_product_version', productVersionId);
+  if (!version?.product_id) return [];
+  const { data, error } = await db
+    .from('bn_override_policy')
+    .select('*')
+    .eq('product_id', version.product_id)
+    .eq('is_active', true);
   if (error) return [];
   return data ?? [];
 }
