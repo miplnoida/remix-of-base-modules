@@ -1,0 +1,109 @@
+/**
+ * Batch Operations Management Page
+ *
+ * Business Purpose: Group payable instructions into controlled payment batches
+ * before issue to cl_cheques.
+ */
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import {
+  Package, Plus, CheckCircle2, ShieldCheck, Rocket,
+  AlertTriangle, XCircle, RotateCcw, Loader2,
+} from 'lucide-react';
+import { useBnBatches, useBnBatchSummary, useExecuteBatchAction } from '@/hooks/bn/useBnBatchOperations';
+import { BatchListTable } from '@/components/bn/batch/BatchListTable';
+import { BatchDetailDrawer } from '@/components/bn/batch/BatchDetailDrawer';
+import { BatchFiltersBar } from '@/components/bn/batch/BatchFiltersBar';
+import { BatchCreateDialog } from '@/components/bn/batch/BatchCreateDialog';
+import type { BatchFilters, BnPaymentBatch } from '@/services/bn/batchOperationsService';
+
+const STAT_CARDS = [
+  { key: 'TOTAL', label: 'Total', icon: Package, color: 'text-foreground' },
+  { key: 'OPEN', label: 'Open', icon: Plus, color: 'text-blue-600' },
+  { key: 'VALIDATED', label: 'Validated', icon: CheckCircle2, color: 'text-amber-600' },
+  { key: 'APPROVED', label: 'Approved', icon: ShieldCheck, color: 'text-emerald-600' },
+  { key: 'RELEASED', label: 'Released', icon: Rocket, color: 'text-teal-600' },
+  { key: 'ISSUED', label: 'Issued', icon: CheckCircle2, color: 'text-green-600' },
+  { key: 'PARTIALLY_ISSUED', label: 'Partial', icon: AlertTriangle, color: 'text-orange-600' },
+  { key: 'CANCELLED', label: 'Cancelled', icon: XCircle, color: 'text-muted-foreground' },
+];
+
+export default function BatchOperations() {
+  const [filters, setFilters] = useState<BatchFilters>({});
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const { data: batches = [], isLoading } = useBnBatches(filters);
+  const { data: summary = {} } = useBnBatchSummary();
+  const executeMutation = useExecuteBatchAction();
+
+  const handleAction = async (params: any) => {
+    try {
+      await executeMutation.mutateAsync(params);
+      toast.success(`Batch action "${params.action}" completed`);
+    } catch (err: any) {
+      toast.error(err.message || 'Action failed');
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Batch Operations</h1>
+          <p className="text-sm text-muted-foreground">
+            Group payable instructions into controlled payment batches before issue
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Create Batch
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        {STAT_CARDS.map(({ key, label, icon: Icon, color }) => (
+          <Card key={key} className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setFilters(f => ({ ...f, status: key === 'TOTAL' ? undefined : key as any }))}>
+            <CardContent className="p-3 text-center">
+              <Icon className={`h-5 w-5 mx-auto mb-1 ${color}`} />
+              <div className="text-lg font-bold">{summary[key] || 0}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <BatchFiltersBar filters={filters} onChange={setFilters} />
+
+      {/* Table */}
+      <BatchListTable
+        batches={batches}
+        isLoading={isLoading}
+        onSelect={(b) => setSelectedBatchId(b.id)}
+      />
+
+      {/* Detail Drawer */}
+      <BatchDetailDrawer
+        batchId={selectedBatchId}
+        open={!!selectedBatchId}
+        onClose={() => setSelectedBatchId(null)}
+        onAction={handleAction}
+        isActing={executeMutation.isPending}
+      />
+
+      {/* Create Dialog */}
+      <BatchCreateDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onAction={handleAction}
+        isActing={executeMutation.isPending}
+      />
+    </div>
+  );
+}
