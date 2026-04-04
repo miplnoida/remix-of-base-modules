@@ -1863,6 +1863,50 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_branch: {
+        Row: {
+          branch_code: string
+          branch_name: string
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          scheme_id: string
+          sort_order: number
+        }
+        Insert: {
+          branch_code: string
+          branch_name: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          scheme_id: string
+          sort_order?: number
+        }
+        Update: {
+          branch_code?: string
+          branch_name?: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          scheme_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_branch_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "bn_scheme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_calc_legacy_snapshot: {
         Row: {
           captured_at: string | null
@@ -2194,6 +2238,72 @@ export type Database = {
           },
         ]
       }
+      bn_calculation_rule: {
+        Row: {
+          calc_type: string
+          entered_at: string
+          entered_by: string | null
+          formula_definition: Json
+          formula_template_id: string | null
+          id: string
+          is_active: boolean
+          limits: Json
+          product_version_id: string
+          rounding_rule: string
+          rule_code: string
+          rule_name: string
+          sort_order: number
+          variables: Json
+        }
+        Insert: {
+          calc_type: string
+          entered_at?: string
+          entered_by?: string | null
+          formula_definition?: Json
+          formula_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          limits?: Json
+          product_version_id: string
+          rounding_rule?: string
+          rule_code: string
+          rule_name: string
+          sort_order?: number
+          variables?: Json
+        }
+        Update: {
+          calc_type?: string
+          entered_at?: string
+          entered_by?: string | null
+          formula_definition?: Json
+          formula_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          limits?: Json
+          product_version_id?: string
+          rounding_rule?: string
+          rule_code?: string
+          rule_name?: string
+          sort_order?: number
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_calculation_rule_formula_template_id_fkey"
+            columns: ["formula_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_formula_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_calculation_rule_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_claim: {
         Row: {
           assigned_to: string | null
@@ -2210,6 +2320,7 @@ export type Database = {
           entered_at: string
           entered_by: string | null
           id: string
+          legacy_benefit_type: string | null
           legacy_claim_ref: string | null
           modified_at: string
           modified_by: string | null
@@ -2237,6 +2348,7 @@ export type Database = {
           entered_at?: string
           entered_by?: string | null
           id?: string
+          legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
           modified_at?: string
           modified_by?: string | null
@@ -2264,6 +2376,7 @@ export type Database = {
           entered_at?: string
           entered_by?: string | null
           id?: string
+          legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
           modified_at?: string
           modified_by?: string | null
@@ -2968,6 +3081,57 @@ export type Database = {
           },
         ]
       }
+      bn_country: {
+        Row: {
+          contribution_ceiling_annual: number | null
+          contribution_ceiling_weekly: number | null
+          country_code: string
+          country_name: string
+          currency_code: string
+          currency_symbol: string | null
+          default_retirement_age: number
+          entered_at: string
+          entered_by: string | null
+          fiscal_year_start_month: number
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          parameters: Json
+        }
+        Insert: {
+          contribution_ceiling_annual?: number | null
+          contribution_ceiling_weekly?: number | null
+          country_code: string
+          country_name: string
+          currency_code?: string
+          currency_symbol?: string | null
+          default_retirement_age?: number
+          entered_at?: string
+          entered_by?: string | null
+          fiscal_year_start_month?: number
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          parameters?: Json
+        }
+        Update: {
+          contribution_ceiling_annual?: number | null
+          contribution_ceiling_weekly?: number | null
+          country_code?: string
+          country_name?: string
+          currency_code?: string
+          currency_symbol?: string | null
+          default_retirement_age?: number
+          entered_at?: string
+          entered_by?: string | null
+          fiscal_year_start_month?: number
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          parameters?: Json
+        }
+        Relationships: []
+      }
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
@@ -3027,6 +3191,108 @@ export type Database = {
           stage?: string
         }
         Relationships: []
+      }
+      bn_document_profile: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          profile_code: string
+          profile_name: string
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          profile_code: string
+          profile_name: string
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          profile_code?: string
+          profile_name?: string
+        }
+        Relationships: []
+      }
+      bn_eligibility_rule: {
+        Row: {
+          data_source: string | null
+          entered_at: string
+          entered_by: string | null
+          fail_action: string
+          fail_message: string | null
+          id: string
+          is_active: boolean
+          product_version_id: string
+          rule_code: string
+          rule_definition: Json
+          rule_group: string
+          rule_group_id: string | null
+          rule_name: string
+          rule_type: string
+          sort_order: number
+        }
+        Insert: {
+          data_source?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          fail_action?: string
+          fail_message?: string | null
+          id?: string
+          is_active?: boolean
+          product_version_id: string
+          rule_code: string
+          rule_definition?: Json
+          rule_group?: string
+          rule_group_id?: string | null
+          rule_name: string
+          rule_type: string
+          sort_order?: number
+        }
+        Update: {
+          data_source?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          fail_action?: string
+          fail_message?: string | null
+          id?: string
+          is_active?: boolean
+          product_version_id?: string
+          rule_code?: string
+          rule_definition?: Json
+          rule_group?: string
+          rule_group_id?: string | null
+          rule_name?: string
+          rule_type?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_eligibility_rule_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_eligibility_rule_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_group"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_escalation_event: {
         Row: {
@@ -3256,6 +3522,399 @@ export type Database = {
           },
         ]
       }
+      bn_field_metadata: {
+        Row: {
+          default_value: string | null
+          entered_at: string
+          entered_by: string | null
+          field_code: string
+          field_label: string
+          field_type: string
+          help_text: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          options_source: string | null
+          screen_template_id: string
+          section_code: string
+          sort_order: number
+          validation_rules: Json
+        }
+        Insert: {
+          default_value?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          field_code: string
+          field_label: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options_source?: string | null
+          screen_template_id: string
+          section_code?: string
+          sort_order?: number
+          validation_rules?: Json
+        }
+        Update: {
+          default_value?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          field_code?: string
+          field_label?: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options_source?: string | null
+          screen_template_id?: string
+          section_code?: string
+          sort_order?: number
+          validation_rules?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_field_metadata_screen_template_id_fkey"
+            columns: ["screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_formula_template: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          formula_expression: string
+          id: string
+          input_variables: Json
+          is_active: boolean
+          output_type: string
+          template_code: string
+          template_name: string
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_expression?: string
+          id?: string
+          input_variables?: Json
+          is_active?: boolean
+          output_type?: string
+          template_code: string
+          template_name: string
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_expression?: string
+          id?: string
+          input_variables?: Json
+          is_active?: boolean
+          output_type?: string
+          template_code?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      bn_interaction_rule: {
+        Row: {
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          interaction_type: string
+          is_active: boolean
+          primary_product_id: string
+          related_product_id: string
+          rule_definition: Json
+        }
+        Insert: {
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          interaction_type: string
+          is_active?: boolean
+          primary_product_id: string
+          related_product_id: string
+          rule_definition?: Json
+        }
+        Update: {
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          interaction_type?: string
+          is_active?: boolean
+          primary_product_id?: string
+          related_product_id?: string
+          rule_definition?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_interaction_rule_primary_product_id_fkey"
+            columns: ["primary_product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_interaction_rule_related_product_id_fkey"
+            columns: ["related_product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_override_policy: {
+        Row: {
+          allowed_role: string
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          field_path: string
+          id: string
+          is_active: boolean
+          max_override_amount: number | null
+          override_target: string
+          product_id: string | null
+          requires_justification: boolean
+          requires_maker_checker: boolean
+        }
+        Insert: {
+          allowed_role: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          field_path: string
+          id?: string
+          is_active?: boolean
+          max_override_amount?: number | null
+          override_target: string
+          product_id?: string | null
+          requires_justification?: boolean
+          requires_maker_checker?: boolean
+        }
+        Update: {
+          allowed_role?: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          field_path?: string
+          id?: string
+          is_active?: boolean
+          max_override_amount?: number | null
+          override_target?: string
+          product_id?: string | null
+          requires_justification?: boolean
+          requires_maker_checker?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_override_policy_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product: {
+        Row: {
+          benefit_code: string
+          benefit_name: string
+          branch: string
+          branch_id: string | null
+          category: string
+          country_code: string
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          payment_type: string
+          scheme_id: string | null
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          benefit_code: string
+          benefit_name: string
+          branch?: string
+          branch_id?: string | null
+          category: string
+          country_code?: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          payment_type?: string
+          scheme_id?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          benefit_code?: string
+          benefit_name?: string
+          branch?: string
+          branch_id?: string | null
+          category?: string
+          country_code?: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          payment_type?: string
+          scheme_id?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_branch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "bn_scheme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_version: {
+        Row: {
+          calculation_config: Json
+          description: string | null
+          document_profile_id: string | null
+          effective_from: string
+          effective_to: string | null
+          eligibility_config: Json
+          entered_at: string
+          entered_by: string | null
+          id: string
+          max_concurrent_claims: number
+          modified_at: string
+          modified_by: string | null
+          product_id: string
+          requires_employer_verification: boolean
+          requires_means_test: boolean
+          requires_medical_board_review: boolean
+          screen_template_id: string | null
+          status: string
+          timeline_config: Json
+          version_number: number
+          workflow_scheme: string | null
+          workflow_template_id: string | null
+        }
+        Insert: {
+          calculation_config?: Json
+          description?: string | null
+          document_profile_id?: string | null
+          effective_from: string
+          effective_to?: string | null
+          eligibility_config?: Json
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          max_concurrent_claims?: number
+          modified_at?: string
+          modified_by?: string | null
+          product_id: string
+          requires_employer_verification?: boolean
+          requires_means_test?: boolean
+          requires_medical_board_review?: boolean
+          screen_template_id?: string | null
+          status?: string
+          timeline_config?: Json
+          version_number?: number
+          workflow_scheme?: string | null
+          workflow_template_id?: string | null
+        }
+        Update: {
+          calculation_config?: Json
+          description?: string | null
+          document_profile_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          eligibility_config?: Json
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          max_concurrent_claims?: number
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string
+          requires_employer_verification?: boolean
+          requires_means_test?: boolean
+          requires_medical_board_review?: boolean
+          screen_template_id?: string | null
+          status?: string
+          timeline_config?: Json
+          version_number?: number
+          workflow_scheme?: string | null
+          workflow_template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_version_document_profile_id_fkey"
+            columns: ["document_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bn_document_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_screen_template_id_fkey"
+            columns: ["screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_workflow_template_id_fkey"
+            columns: ["workflow_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workflow_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_reason_code: {
         Row: {
           applicable_actions: string[]
@@ -3295,6 +3954,134 @@ export type Database = {
           reason_code?: string
           reason_label?: string
           requires_narrative?: boolean
+        }
+        Relationships: []
+      }
+      bn_rule_group: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          group_code: string
+          group_name: string
+          id: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          group_code: string
+          group_name: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          group_code?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      bn_scheme: {
+        Row: {
+          country_code: string
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          governing_legislation: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          scheme_code: string
+          scheme_name: string
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          country_code: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          governing_legislation?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          scheme_code: string
+          scheme_name: string
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          country_code?: string
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          governing_legislation?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          scheme_code?: string
+          scheme_name?: string
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_scheme_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
+      bn_screen_template: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          layout_type: string
+          sections: Json
+          template_code: string
+          template_name: string
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          layout_type?: string
+          sections?: Json
+          template_code: string
+          template_name: string
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          layout_type?: string
+          sections?: Json
+          template_code?: string
+          template_name?: string
         }
         Relationships: []
       }
@@ -3342,6 +4129,103 @@ export type Database = {
           type_name?: string
         }
         Relationships: []
+      }
+      bn_timeline_rule: {
+        Row: {
+          days_value: number | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          months_value: number | null
+          product_version_id: string
+          rule_code: string
+          rule_name: string
+          sort_order: number
+          timeline_type: string
+          weeks_value: number | null
+        }
+        Insert: {
+          days_value?: number | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          months_value?: number | null
+          product_version_id: string
+          rule_code: string
+          rule_name: string
+          sort_order?: number
+          timeline_type: string
+          weeks_value?: number | null
+        }
+        Update: {
+          days_value?: number | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          months_value?: number | null
+          product_version_id?: string
+          rule_code?: string
+          rule_name?: string
+          sort_order?: number
+          timeline_type?: string
+          weeks_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_timeline_rule_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_version_approval: {
+        Row: {
+          action: string
+          comments: string | null
+          from_status: string | null
+          id: string
+          performed_at: string
+          performed_by: string
+          product_version_id: string
+          to_status: string
+        }
+        Insert: {
+          action: string
+          comments?: string | null
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by: string
+          product_version_id: string
+          to_status: string
+        }
+        Update: {
+          action?: string
+          comments?: string | null
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by?: string
+          product_version_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_version_approval_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_workbasket: {
         Row: {
@@ -3391,6 +4275,51 @@ export type Database = {
           modified_by?: string | null
           priority_rules?: Json | null
           product_category?: string | null
+        }
+        Relationships: []
+      }
+      bn_workflow_template: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          escalation_config: Json
+          id: string
+          is_active: boolean
+          sla_config: Json
+          steps_config: Json
+          template_code: string
+          template_name: string
+          workflow_definition_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          escalation_config?: Json
+          id?: string
+          is_active?: boolean
+          sla_config?: Json
+          steps_config?: Json
+          template_code: string
+          template_name: string
+          workflow_definition_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          escalation_config?: Json
+          id?: string
+          is_active?: boolean
+          sla_config?: Json
+          steps_config?: Json
+          template_code?: string
+          template_name?: string
+          workflow_definition_id?: string | null
         }
         Relationships: []
       }
