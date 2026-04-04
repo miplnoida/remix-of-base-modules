@@ -25,6 +25,7 @@ import {
   Shield,
   CalendarDays,
   Package,
+  Banknote,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -78,6 +79,13 @@ export const bnMenuItems = [
         icon: Package,
         requiresPermission: "benefits_management",
         description: "Group payables into controlled payment batches",
+      },
+      {
+        title: "Payment Issue",
+        url: "/bn/issue",
+        icon: Banknote,
+        requiresPermission: "benefits_management",
+        description: "Issue outbound benefit disbursements to cl_cheques",
       },
       {
         title: "Register New Claim",

@@ -74,6 +74,12 @@ const STATUS_SCHEMES: Record<string, BadgeColorScheme> = {
   FAILED_VALIDATION: { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
   ISSUE_FAILED:      { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
   REMOVED:           { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  // Issue statuses
+  ISSUING:           { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
+  STOPPED:           { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
+  STALE_DATED:       { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
+  PENDING:           { bg: 'bg-amber-500/10',      text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-500/20' },
+  FAILED:            { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
 };
 
 const DEFAULT_SCHEME: BadgeColorScheme = {
