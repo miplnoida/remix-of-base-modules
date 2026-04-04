@@ -25,6 +25,7 @@ import {
   Shield,
   CalendarDays,
   Package,
+  Banknote,
 } from "lucide-react";
 
 export const bnMenuItems = [
