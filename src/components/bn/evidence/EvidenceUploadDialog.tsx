@@ -28,7 +28,7 @@ export function EvidenceUploadDialog({
 }: Props) {
   const { toast } = useToast();
   const uploadMutation = useUploadEvidence();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
