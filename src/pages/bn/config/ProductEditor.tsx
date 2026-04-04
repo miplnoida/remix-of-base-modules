@@ -197,9 +197,10 @@ export default function ProductEditor() {
               </div>
               <div className="space-y-2">
                 <Label>Scheme</Label>
-                <Select value={form.scheme_id || ''} onValueChange={v => updateField('scheme_id', v)}>
+                <Select value={form.scheme_id || '__none__'} onValueChange={v => updateField('scheme_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select scheme" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
                     {schemes.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.scheme_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
