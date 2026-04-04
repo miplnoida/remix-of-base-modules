@@ -628,6 +628,12 @@ import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
 import BnWorkbasketConfig from '@/pages/bn/config/WorkbasketConfig';
 import BnEscalationConfig from '@/pages/bn/config/EscalationConfig';
 import BnServiceDocTypes from '@/pages/bn/config/ServiceDocTypes';
+import BnCountryPackPage from '@/pages/bn/config/country/CountryPackPage';
+import BnCountryIdRules from '@/pages/bn/config/country/CountryIdRules';
+import BnCountryAddressModel from '@/pages/bn/config/country/CountryAddressModel';
+import BnCountryParticipantTypes from '@/pages/bn/config/country/CountryParticipantTypes';
+import BnCountryPaymentConfig from '@/pages/bn/config/country/CountryPaymentConfig';
+import BnCountryLegalRefs from '@/pages/bn/config/country/CountryLegalRefs';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
