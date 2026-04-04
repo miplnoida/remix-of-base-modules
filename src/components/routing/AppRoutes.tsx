@@ -622,6 +622,11 @@ import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
 import BnClaim360 from '@/pages/bn/claims/Claim360';
 import BnCalculationEngine from '@/pages/bn/engine/CalculationEngine';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
+import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
+import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
+import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
+import BnWorkbasketConfig from '@/pages/bn/config/WorkbasketConfig';
+import BnEscalationConfig from '@/pages/bn/config/EscalationConfig';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
