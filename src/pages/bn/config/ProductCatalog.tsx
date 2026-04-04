@@ -12,6 +12,7 @@ import type { BnProduct, BnProductStatus } from '@/types/bn';
 
 const statusVariant: Record<BnProductStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary',
+  PENDING_APPROVAL: 'outline',
   ACTIVE: 'default',
   SUSPENDED: 'destructive',
   ARCHIVED: 'outline',
