@@ -21,6 +21,7 @@ import {
   Monitor,
   FolderOpen,
   TestTube2,
+  ClipboardCheck,
 } from "lucide-react";
 
 export const bnMenuItems = [
