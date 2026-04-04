@@ -1863,6 +1863,337 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_calc_legacy_snapshot: {
+        Row: {
+          captured_at: string | null
+          captured_by: string | null
+          claim_id: string
+          id: string
+          legacy_claim_ref: string | null
+          legacy_lump_sum: number | null
+          legacy_monthly_rate: number | null
+          legacy_raw_output: Json | null
+          legacy_system: string | null
+          legacy_weekly_rate: number | null
+          notes: string | null
+        }
+        Insert: {
+          captured_at?: string | null
+          captured_by?: string | null
+          claim_id: string
+          id?: string
+          legacy_claim_ref?: string | null
+          legacy_lump_sum?: number | null
+          legacy_monthly_rate?: number | null
+          legacy_raw_output?: Json | null
+          legacy_system?: string | null
+          legacy_weekly_rate?: number | null
+          notes?: string | null
+        }
+        Update: {
+          captured_at?: string | null
+          captured_by?: string | null
+          claim_id?: string
+          id?: string
+          legacy_claim_ref?: string | null
+          legacy_lump_sum?: number | null
+          legacy_monthly_rate?: number | null
+          legacy_raw_output?: Json | null
+          legacy_system?: string | null
+          legacy_weekly_rate?: number | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      bn_calc_override: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calc_run_id: string
+          field_path: string
+          id: string
+          original_value: string | null
+          override_target: string
+          override_value: string
+          reason: string
+          rejection_reason: string | null
+          requested_at: string | null
+          requested_by: string
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calc_run_id: string
+          field_path: string
+          id?: string
+          original_value?: string | null
+          override_target: string
+          override_value: string
+          reason: string
+          rejection_reason?: string | null
+          requested_at?: string | null
+          requested_by: string
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calc_run_id?: string
+          field_path?: string
+          id?: string
+          original_value?: string | null
+          override_target?: string
+          override_value?: string
+          reason?: string
+          rejection_reason?: string | null
+          requested_at?: string | null
+          requested_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_calc_override_calc_run_id_fkey"
+            columns: ["calc_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_calc_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_calc_run: {
+        Row: {
+          annual_amount: number | null
+          beneficiary_splits: Json | null
+          claim_id: string
+          comparison_diff: Json | null
+          comparison_match: boolean | null
+          completed_at: string | null
+          contribution_window: Json | null
+          country_code: string | null
+          eligibility_passed: boolean | null
+          eligibility_results: Json | null
+          entered_at: string | null
+          entered_by: string | null
+          errors: Json | null
+          id: string
+          legacy_result: Json | null
+          lump_sum: number | null
+          modified_at: string | null
+          modified_by: string | null
+          monthly_rate: number | null
+          override_applied: boolean | null
+          override_approved_at: string | null
+          override_approved_by: string | null
+          override_by: string | null
+          override_reason: string | null
+          payment_end_date: string | null
+          payment_frequency: string | null
+          payment_schedule: Json | null
+          payment_start_date: string | null
+          product_version_id: string | null
+          run_mode: string
+          run_status: string
+          started_at: string | null
+          triggered_by: string | null
+          variables_snapshot: Json | null
+          wage_summary: Json | null
+          warnings: Json | null
+          weekly_rate: number | null
+        }
+        Insert: {
+          annual_amount?: number | null
+          beneficiary_splits?: Json | null
+          claim_id: string
+          comparison_diff?: Json | null
+          comparison_match?: boolean | null
+          completed_at?: string | null
+          contribution_window?: Json | null
+          country_code?: string | null
+          eligibility_passed?: boolean | null
+          eligibility_results?: Json | null
+          entered_at?: string | null
+          entered_by?: string | null
+          errors?: Json | null
+          id?: string
+          legacy_result?: Json | null
+          lump_sum?: number | null
+          modified_at?: string | null
+          modified_by?: string | null
+          monthly_rate?: number | null
+          override_applied?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          payment_end_date?: string | null
+          payment_frequency?: string | null
+          payment_schedule?: Json | null
+          payment_start_date?: string | null
+          product_version_id?: string | null
+          run_mode?: string
+          run_status?: string
+          started_at?: string | null
+          triggered_by?: string | null
+          variables_snapshot?: Json | null
+          wage_summary?: Json | null
+          warnings?: Json | null
+          weekly_rate?: number | null
+        }
+        Update: {
+          annual_amount?: number | null
+          beneficiary_splits?: Json | null
+          claim_id?: string
+          comparison_diff?: Json | null
+          comparison_match?: boolean | null
+          completed_at?: string | null
+          contribution_window?: Json | null
+          country_code?: string | null
+          eligibility_passed?: boolean | null
+          eligibility_results?: Json | null
+          entered_at?: string | null
+          entered_by?: string | null
+          errors?: Json | null
+          id?: string
+          legacy_result?: Json | null
+          lump_sum?: number | null
+          modified_at?: string | null
+          modified_by?: string | null
+          monthly_rate?: number | null
+          override_applied?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          payment_end_date?: string | null
+          payment_frequency?: string | null
+          payment_schedule?: Json | null
+          payment_start_date?: string | null
+          product_version_id?: string | null
+          run_mode?: string
+          run_status?: string
+          started_at?: string | null
+          triggered_by?: string | null
+          variables_snapshot?: Json | null
+          wage_summary?: Json | null
+          warnings?: Json | null
+          weekly_rate?: number | null
+        }
+        Relationships: []
+      }
+      bn_calc_simulation_preset: {
+        Row: {
+          country_code: string | null
+          description: string | null
+          entered_at: string | null
+          entered_by: string | null
+          expected_output: Json | null
+          id: string
+          input_parameters: Json | null
+          is_active: boolean | null
+          modified_at: string | null
+          modified_by: string | null
+          preset_name: string
+          product_id: string | null
+          product_version_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          expected_output?: Json | null
+          id?: string
+          input_parameters?: Json | null
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          preset_name: string
+          product_id?: string | null
+          product_version_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          expected_output?: Json | null
+          id?: string
+          input_parameters?: Json | null
+          is_active?: boolean | null
+          modified_at?: string | null
+          modified_by?: string | null
+          preset_name?: string
+          product_id?: string | null
+          product_version_id?: string | null
+        }
+        Relationships: []
+      }
+      bn_calc_trace: {
+        Row: {
+          calc_run_id: string
+          duration_ms: number | null
+          engine_layer: string
+          entered_at: string | null
+          formula_expression: string | null
+          id: string
+          inputs: Json | null
+          message: string | null
+          output_text: string | null
+          output_value: number | null
+          passed: boolean | null
+          rule_code: string | null
+          severity: string | null
+          step_code: string
+          step_label: string
+          step_number: number
+        }
+        Insert: {
+          calc_run_id: string
+          duration_ms?: number | null
+          engine_layer: string
+          entered_at?: string | null
+          formula_expression?: string | null
+          id?: string
+          inputs?: Json | null
+          message?: string | null
+          output_text?: string | null
+          output_value?: number | null
+          passed?: boolean | null
+          rule_code?: string | null
+          severity?: string | null
+          step_code: string
+          step_label: string
+          step_number: number
+        }
+        Update: {
+          calc_run_id?: string
+          duration_ms?: number | null
+          engine_layer?: string
+          entered_at?: string | null
+          formula_expression?: string | null
+          id?: string
+          inputs?: Json | null
+          message?: string | null
+          output_text?: string | null
+          output_value?: number | null
+          passed?: boolean | null
+          rule_code?: string | null
+          severity?: string | null
+          step_code?: string
+          step_label?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_calc_trace_calc_run_id_fkey"
+            columns: ["calc_run_id"]
+            isOneToOne: false
+            referencedRelation: "bn_calc_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c3_api_keys: {
         Row: {
           client_email: string | null
