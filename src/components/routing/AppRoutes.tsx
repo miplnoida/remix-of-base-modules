@@ -642,6 +642,7 @@ import BnSimulationDashboard from '@/pages/bn/simulation/SimulationDashboard';
 import BnScenarioBuilder from '@/pages/bn/simulation/ScenarioBuilder';
 import BnRunSimulation from '@/pages/bn/simulation/RunSimulation';
 import BnSimulationResult from '@/pages/bn/simulation/SimulationResultSummary';
+import BnPerson360 from '@/pages/bn/person360/BnPerson360';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
