@@ -125,6 +125,13 @@ export const bnMenuItems = [
         description: "Complete claim-side updates after payment issue",
       },
       {
+        title: "Historical Inquiry",
+        url: "/bn/history",
+        icon: History,
+        requiresPermission: "benefits_management",
+        description: "Search and view legacy claims and disbursement history",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
