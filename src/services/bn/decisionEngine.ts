@@ -133,17 +133,18 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
     throw new Error('A narrative justification is required for this action');
   }
 
-  // 6. Build evidence snapshot
+  // 6. Build evidence snapshot from bn_claim_evidence
   const { data: docs } = await db
-    .from('bn_claim_document')
-    .select('id, document_type_code, verified')
+    .from('bn_claim_evidence')
+    .select('id, document_type_code, status, document_name')
     .eq('claim_id', claimId);
 
   const evidenceSnapshot = {
     documents: (docs || []).map((d: any) => ({
       id: d.id,
       type: d.document_type_code,
-      verified: d.verified,
+      name: d.document_name,
+      status: d.status,
     })),
     snapshot_at: new Date().toISOString(),
   };
