@@ -1368,6 +1368,7 @@ export const AppRoutes = () => {
       <Route path="/bn/batches" element={<ProtectedLayout><BnBatchOperations /></ProtectedLayout>} />
       <Route path="/bn/issue" element={<ProtectedLayout><BnPaymentIssue /></ProtectedLayout>} />
       <Route path="/bn/post-issue" element={<ProtectedLayout><BnPostIssueReview /></ProtectedLayout>} />
+      <Route path="/bn/history" element={<ProtectedLayout><BnHistoricalInquiry /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
