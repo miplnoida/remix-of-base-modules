@@ -7,6 +7,7 @@ import {
   Calculator,
   Globe,
   Inbox,
+  FlaskConical,
 } from "lucide-react";
 
 export const bnMenuItems = [
