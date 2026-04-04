@@ -64,6 +64,13 @@ export const bnMenuItems = [
         description: "Manage payable instructions before payment issue",
       },
       {
+        title: "Payment Schedules",
+        url: "/bn/schedules",
+        icon: CalendarDays,
+        requiresPermission: "benefits_management",
+        description: "Plan one-time and recurring benefit disbursements",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
