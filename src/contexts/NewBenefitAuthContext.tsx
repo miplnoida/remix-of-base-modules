@@ -187,11 +187,23 @@ const rolePermissions: Record<UserRole, string[]> = {
     'view_all_payments',
     'generate_audit_reports'
   ],
+  CONFIG_ANALYST: [
+    'view_claims',
+    'view_simulations',
+    'create_scenarios',
+    'run_simulations',
+    'view_sim_traces',
+    'configure_rates',
+    'view_contribution_records'
+  ],
   AUDITOR: [
     'view_all_claims',
     'view_all_payments',
     'view_audit_logs',
-    'generate_audit_reports'
+    'generate_audit_reports',
+    'view_simulations',
+    'view_sim_traces',
+    'view_sim_audit'
   ]
 };
 
