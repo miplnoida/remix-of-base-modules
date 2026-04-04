@@ -14,14 +14,14 @@ interface PersonSummaryCardsProps {
   summary: Person360Summary;
 }
 
-const cards = [
+const cards: Array<{ key: keyof Person360Summary; label: string; icon: any; color: string; isCurrency?: boolean }> = [
   { key: 'totalClaims', label: 'Total Claims', icon: FileText, color: 'text-blue-600' },
   { key: 'activeClaims', label: 'Active Claims', icon: Clock, color: 'text-amber-600' },
   { key: 'activeEntitlements', label: 'Active Entitlements', icon: CheckCircle2, color: 'text-emerald-600' },
   { key: 'pendingPayables', label: 'Pending Payables', icon: CreditCard, color: 'text-violet-600' },
   { key: 'totalContributionWeeks', label: 'Contribution Weeks', icon: CalendarCheck, color: 'text-primary' },
   { key: 'totalDisbursed', label: 'Total Disbursed', icon: Wallet, color: 'text-teal-600', isCurrency: true },
-] as const;
+];
 
 export const PersonSummaryCards: React.FC<PersonSummaryCardsProps> = ({ summary }) => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
