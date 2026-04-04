@@ -80,6 +80,13 @@ export const bnMenuItems = [
         description: "Group payables into controlled payment batches",
       },
       {
+        title: "Payment Issue",
+        url: "/bn/issue",
+        icon: Banknote,
+        requiresPermission: "benefits_management",
+        description: "Issue outbound benefit disbursements to cl_cheques",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
