@@ -629,6 +629,7 @@ import BnEntitlementManagement from '@/pages/bn/entitlement/EntitlementManagemen
 import BnPayablesQueue from '@/pages/bn/payables/PayablesQueue';
 import BnPaymentSchedule from '@/pages/bn/schedule/PaymentScheduleManagement';
 import BnBatchOperations from '@/pages/bn/batch/BatchOperations';
+import BnPaymentIssue from '@/pages/bn/issue/PaymentIssue';
 import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
 import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
 import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
