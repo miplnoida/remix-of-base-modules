@@ -1354,6 +1354,10 @@ export const AppRoutes = () => {
       <Route path="/bn/config/country/participant-types" element={<ProtectedLayout><BnCountryParticipantTypes /></ProtectedLayout>} />
       <Route path="/bn/config/country/payment-config" element={<ProtectedLayout><BnCountryPaymentConfig /></ProtectedLayout>} />
       <Route path="/bn/config/country/legal-refs" element={<ProtectedLayout><BnCountryLegalRefs /></ProtectedLayout>} />
+      <Route path="/bn/config/rules" element={<ProtectedLayout><BnRuleConfiguration /></ProtectedLayout>} />
+      <Route path="/bn/config/formulas" element={<ProtectedLayout><BnFormulaConfiguration /></ProtectedLayout>} />
+      <Route path="/bn/config/document-setup" element={<ProtectedLayout><BnDocumentSetup /></ProtectedLayout>} />
+      <Route path="/bn/config/screen-setup" element={<ProtectedLayout><BnScreenMetadataSetup /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}
