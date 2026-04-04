@@ -1311,6 +1311,13 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/admin" element={<ProtectedLayout><AdminConfig /></ProtectedLayout>} />
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
 
+      {/* Benefit Management Module (bn_) */}
+      <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
+      <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
+      <Route path="/bn/claims" element={<ProtectedLayout><BnClaimWorklist /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
+      <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
+
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}
       <Route path="/nbenefit/application/:benefitType" element={<BenefitApplicationFormPage />} />
