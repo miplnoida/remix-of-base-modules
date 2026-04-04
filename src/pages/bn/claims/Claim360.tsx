@@ -20,7 +20,6 @@ export default function Claim360() {
   const { data: notes = [] } = useBnClaimNotes(id);
   const { data: eligibility = [] } = useBnClaimEligibility(id);
   const { data: calculations = [] } = useBnClaimCalculations(id);
-  const { data: calculations = [] } = useBnClaimCalculations(id);
 
   // TODO: Replace with actual user roles from auth context
   const userRoles = ['Admin'];
