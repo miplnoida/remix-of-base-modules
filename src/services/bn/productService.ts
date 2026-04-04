@@ -1,7 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { BnProduct, BnProductVersion, BnEligibilityRule, BnCalculationRule, BnTimelineRule, BnDocumentRule } from '@/types/bn';
+import type { BnProduct, BnProductVersion, BnEligibilityRule, BnCalculationRule, BnTimelineRule } from '@/types/bn';
 
-// Cast helper - new bn_ tables not yet in auto-generated types
 const db = supabase as any;
 
 // ---- Product CRUD ----
@@ -36,6 +35,12 @@ export async function fetchVersionsByProduct(productId: string): Promise<BnProdu
   const { data, error } = await db.from('bn_product_version').select('*').eq('product_id', productId).order('version_number', { ascending: false });
   if (error) throw error;
   return (data ?? []) as BnProductVersion[];
+}
+
+export async function fetchVersionById(id: string): Promise<BnProductVersion | null> {
+  const { data, error } = await db.from('bn_product_version').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data as BnProductVersion | null;
 }
 
 export async function createProductVersion(version: Partial<BnProductVersion>): Promise<BnProductVersion> {
@@ -102,16 +107,7 @@ export async function upsertTimelineRule(rule: Partial<BnTimelineRule>): Promise
   return data as BnTimelineRule;
 }
 
-// ---- Document Rules ----
-
-export async function fetchDocumentRules(productId: string): Promise<BnDocumentRule[]> {
-  const { data, error } = await db.from('bn_document_rule').select('*').eq('product_id', productId).order('sort_order');
+export async function deleteTimelineRule(id: string): Promise<void> {
+  const { error } = await db.from('bn_timeline_rule').delete().eq('id', id);
   if (error) throw error;
-  return (data ?? []) as BnDocumentRule[];
-}
-
-export async function upsertDocumentRule(rule: Partial<BnDocumentRule>): Promise<BnDocumentRule> {
-  const { data, error } = await db.from('bn_document_rule').upsert(rule).select().single();
-  if (error) throw error;
-  return data as BnDocumentRule;
 }
