@@ -1,12 +1,18 @@
 // ============================================================
 // BN Simulation Service — Orchestrator
 // ============================================================
-// This service wraps the existing production calculation engine
-// in a SIMULATION-safe execution context. It:
-//   1. Snapshots configuration before the run
-//   2. Invokes the existing engine with mode = 'SIMULATION'
-//   3. Persists ALL results ONLY into bn_sim_* tables
-//   4. NEVER writes to bn_claim, bn_award, bn_payment_instruction
+// ISOLATION CONTRACT (see docs/BN-SIMULATION-ISOLATION-MANIFEST.md)
+//
+// ✅ READS from: bn_product, bn_product_version, bn_*_rule,
+//    bn_formula_template, bn_override_policy (SELECT only)
+// ✅ WRITES to:  bn_sim_scenario, bn_sim_run, bn_sim_run_input,
+//    bn_sim_run_output, bn_sim_rule_trace, bn_sim_formula_trace,
+//    bn_sim_config_snapshot
+// ❌ NEVER writes to: bn_claim, bn_claim_detail, bn_award,
+//    bn_payment_instruction, bn_calc_run, bn_calc_trace,
+//    bn_calc_override, bn_service_case
+// ❌ NEVER calls: publishBnEvent(), claimService, decisionEngine,
+//    paymentAdapter.submitPayment()
 // ============================================================
 
 import { supabase } from '@/integrations/supabase/client';
