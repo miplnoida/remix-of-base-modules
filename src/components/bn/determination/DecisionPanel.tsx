@@ -42,7 +42,7 @@ export const DecisionPanel: React.FC<Props> = ({ decisions }) => {
                   <TableCell><BnStatusBadge status={d.from_status} /></TableCell>
                   <TableCell><BnStatusBadge status={d.to_status} /></TableCell>
                   <TableCell className="text-sm max-w-48 truncate">
-                    {d.reason_code?.reason_name || d.narrative || '—'}
+                    {d.reason_code?.reason_label || d.narrative || '—'}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{d.performed_by}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">

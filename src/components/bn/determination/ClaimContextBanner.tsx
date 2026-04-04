@@ -34,7 +34,7 @@ export const ClaimContextBanner: React.FC<Props> = ({ claim, product }) => {
           <Building2 className="h-5 w-5 text-muted-foreground" />
           <div>
             <p className="text-xs text-muted-foreground">Benefit</p>
-            <p className="text-sm">{product?.benefit_name || claim.legacy_benefit_type || '—'}</p>
+            <p className="text-sm">{product?.benefit_name || (claim as any).legacy_benefit_type || '—'}</p>
           </div>
         </div>
 
