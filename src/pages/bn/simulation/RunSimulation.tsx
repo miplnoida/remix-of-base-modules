@@ -30,14 +30,13 @@ export default function RunSimulation() {
   const { data: runs } = useBnSimRuns(id);
   const executeSim = useExecuteSimulation();
 
-  if (!canView) return <SimAccessDenied />;
-
   // Simulation inputs
   const [ssn, setSSN] = useState('');
   const [claimDate, setClaimDate] = useState(new Date().toISOString().substring(0, 10));
   const [age, setAge] = useState('');
   const [totalWeeks, setTotalWeeks] = useState('');
 
+  if (!canView) return <SimAccessDenied />;
   if (isLoading) return <BnEmptyState type="loading" />;
   if (!scenario) return <BnEmptyState type="error" title="Scenario not found" />;
 
