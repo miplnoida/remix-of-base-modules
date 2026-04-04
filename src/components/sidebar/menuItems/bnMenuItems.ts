@@ -22,26 +22,6 @@ import {
   FolderOpen,
   TestTube2,
 } from "lucide-react";
-  FileText,
-  ClipboardList,
-  Users,
-  Calculator,
-  Globe,
-  Inbox,
-  FlaskConical,
-  GitBranch,
-  Tag,
-  AlertTriangle,
-  Layers,
-  FileCheck,
-  MapPin,
-  CreditCard,
-  Scale,
-  Flag,
-  BookOpen,
-  Monitor,
-  FolderOpen,
-} from "lucide-react";
 
 export const bnMenuItems = [
   {
