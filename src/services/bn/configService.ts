@@ -82,19 +82,49 @@ export const upsertDocumentProfile = async (dp: Partial<BnDocumentProfile>): Pro
 
 // ---- Document Rules (by product) ----
 export const fetchDocumentRulesByProduct = async (productId: string): Promise<BnDocumentRule[]> => {
-  const { data, error } = await db.from('bn_document_rule').select('*').eq('product_id', productId).order('sort_order');
+  const { data, error } = await db.from('bn_doc_requirement').select('*').eq('product_id', productId).order('sort_order');
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    product_id: r.product_id,
+    product_version_id: r.product_version_id,
+    document_type_code: r.document_type_code,
+    document_name: r.description || r.document_type_code,
+    description: r.description,
+    is_mandatory: r.requirement_level === 'MANDATORY',
+    stage: r.stage,
+    allowed_extensions: r.allowed_extensions,
+    max_file_size_mb: r.max_file_size_mb,
+    sort_order: r.sort_order,
+    is_active: r.is_active,
+    entered_by: r.entered_by,
+    entered_at: r.entered_at,
+  }));
 };
 
 export const upsertDocumentRule = async (rule: Partial<BnDocumentRule>): Promise<BnDocumentRule> => {
-  const { data, error } = await db.from('bn_document_rule').upsert(rule).select().single();
+  const payload: any = {
+    product_id: rule.product_id,
+    document_type_code: rule.document_type_code,
+    description: rule.document_name || rule.description,
+    requirement_level: rule.is_mandatory ? 'MANDATORY' : 'OPTIONAL',
+    stage: rule.stage || 'INTAKE',
+    max_file_size_mb: rule.max_file_size_mb ?? 10,
+    sort_order: rule.sort_order ?? 0,
+    is_active: rule.is_active ?? true,
+  };
+  if (rule.id) payload.id = rule.id;
+  const { data, error } = await db.from('bn_doc_requirement').upsert(payload).select().single();
   if (error) throw error;
-  return data;
+  return {
+    ...data,
+    document_name: data.description || data.document_type_code,
+    is_mandatory: data.requirement_level === 'MANDATORY',
+  } as unknown as BnDocumentRule;
 };
 
 export const deleteDocumentRule = async (id: string): Promise<void> => {
-  const { error } = await db.from('bn_document_rule').delete().eq('id', id);
+  const { error } = await db.from('bn_doc_requirement').delete().eq('id', id);
   if (error) throw error;
 };
 
