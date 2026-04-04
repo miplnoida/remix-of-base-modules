@@ -2637,6 +2637,110 @@ export type Database = {
           },
         ]
       }
+      bn_claim_evidence: {
+        Row: {
+          checksum_sha256: string | null
+          claim_id: string
+          document_name: string
+          document_type_code: string
+          entered_at: string
+          entered_by: string | null
+          expires_at: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          modified_at: string
+          modified_by: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requirement_id: string | null
+          source: string
+          status: string
+          status_reason: string | null
+          storage_bucket: string | null
+          verified_at: string | null
+          verified_by: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_authority_level: number | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          checksum_sha256?: string | null
+          claim_id: string
+          document_name: string
+          document_type_code: string
+          entered_at?: string
+          entered_by?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requirement_id?: string | null
+          source?: string
+          status?: string
+          status_reason?: string | null
+          storage_bucket?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_authority_level?: number | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          checksum_sha256?: string | null
+          claim_id?: string
+          document_name?: string
+          document_type_code?: string
+          entered_at?: string
+          entered_by?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requirement_id?: string | null
+          source?: string
+          status?: string
+          status_reason?: string | null
+          storage_bucket?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_authority_level?: number | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_evidence_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_claim_note: {
         Row: {
           body: string
@@ -2864,6 +2968,66 @@ export type Database = {
           },
         ]
       }
+      bn_doc_requirement: {
+        Row: {
+          allowed_extensions: string[] | null
+          description: string | null
+          document_type_code: string
+          entered_at: string
+          entered_by: string | null
+          expiry_days: number | null
+          id: string
+          is_active: boolean
+          max_file_size_mb: number
+          modified_at: string
+          modified_by: string | null
+          product_id: string | null
+          product_version_id: string | null
+          requirement_level: string
+          requires_notarization: boolean
+          sort_order: number
+          stage: string
+        }
+        Insert: {
+          allowed_extensions?: string[] | null
+          description?: string | null
+          document_type_code: string
+          entered_at?: string
+          entered_by?: string | null
+          expiry_days?: number | null
+          id?: string
+          is_active?: boolean
+          max_file_size_mb?: number
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          requirement_level?: string
+          requires_notarization?: boolean
+          sort_order?: number
+          stage?: string
+        }
+        Update: {
+          allowed_extensions?: string[] | null
+          description?: string | null
+          document_type_code?: string
+          entered_at?: string
+          entered_by?: string | null
+          expiry_days?: number | null
+          id?: string
+          is_active?: boolean
+          max_file_size_mb?: number
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          requirement_level?: string
+          requires_notarization?: boolean
+          sort_order?: number
+          stage?: string
+        }
+        Relationships: []
+      }
       bn_escalation_event: {
         Row: {
           claim_id: string
@@ -2986,6 +3150,112 @@ export type Database = {
           },
         ]
       }
+      bn_evidence_audit: {
+        Row: {
+          action: string
+          claim_id: string
+          evidence_id: string
+          from_status: string | null
+          id: string
+          performed_at: string
+          performed_by: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          action: string
+          claim_id: string
+          evidence_id: string
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          action?: string
+          claim_id?: string
+          evidence_id?: string
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_evidence_audit_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_evidence_audit_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_evidence_checklist: {
+        Row: {
+          claim_id: string
+          entered_at: string
+          evidence_id: string | null
+          id: string
+          is_blocking: boolean
+          modified_at: string
+          requirement_id: string
+          status: string
+        }
+        Insert: {
+          claim_id: string
+          entered_at?: string
+          evidence_id?: string | null
+          id?: string
+          is_blocking?: boolean
+          modified_at?: string
+          requirement_id: string
+          status?: string
+        }
+        Update: {
+          claim_id?: string
+          entered_at?: string
+          evidence_id?: string | null
+          id?: string
+          is_blocking?: boolean
+          modified_at?: string
+          requirement_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_evidence_checklist_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_evidence_checklist_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_evidence_checklist_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "bn_doc_requirement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_reason_code: {
         Row: {
           applicable_actions: string[]
@@ -3025,6 +3295,51 @@ export type Database = {
           reason_code?: string
           reason_label?: string
           requires_narrative?: boolean
+        }
+        Relationships: []
+      }
+      bn_service_doc_type: {
+        Row: {
+          category: string
+          default_expiry_days: number | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          requires_witness: boolean
+          type_code: string
+          type_name: string
+        }
+        Insert: {
+          category?: string
+          default_expiry_days?: number | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          requires_witness?: boolean
+          type_code: string
+          type_name: string
+        }
+        Update: {
+          category?: string
+          default_expiry_days?: number | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          requires_witness?: boolean
+          type_code?: string
+          type_name?: string
         }
         Relationships: []
       }
