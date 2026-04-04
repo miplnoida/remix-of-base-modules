@@ -141,11 +141,12 @@ export default function ProductEditor() {
           <CardContent className="flex items-center gap-4 py-3">
             <History className="h-4 w-4 text-muted-foreground" />
             <Label className="text-sm font-medium">Active Version:</Label>
-            <Select value={selectedVersionId || ''} onValueChange={setSelectedVersionId}>
+            <Select value={selectedVersionId || '__none__'} onValueChange={v => setSelectedVersionId(v === '__none__' ? undefined : v)}>
               <SelectTrigger className="w-[300px]">
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__">Select version</SelectItem>
                 {versions.map((v: BnProductVersion) => (
                   <SelectItem key={v.id} value={v.id}>
                     V{v.version_number} — {v.effective_from} {v.effective_to ? `to ${v.effective_to}` : '(open)'} [{v.status}]
@@ -196,18 +197,20 @@ export default function ProductEditor() {
               </div>
               <div className="space-y-2">
                 <Label>Scheme</Label>
-                <Select value={form.scheme_id || ''} onValueChange={v => updateField('scheme_id', v)}>
+                <Select value={form.scheme_id || '__none__'} onValueChange={v => updateField('scheme_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select scheme" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
                     {schemes.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.scheme_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Branch</Label>
-                <Select value={form.branch_id || ''} onValueChange={v => updateField('branch_id', v)}>
+                <Select value={form.branch_id || '__none__'} onValueChange={v => updateField('branch_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
                     {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}
                   </SelectContent>
                 </Select>

@@ -85,9 +85,12 @@ export function InteractionRulesTab({ productId }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
               <Label>Related Product *</Label>
-              <Select value={editing.related_product_id || ''} onValueChange={v => update('related_product_id', v)}>
+              <Select value={editing.related_product_id || '__none__'} onValueChange={v => update('related_product_id', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                <SelectContent>{products.filter((p: BnProduct) => p.id !== productId).map((p: BnProduct) => <SelectItem key={p.id} value={p.id}>{p.benefit_name} ({p.benefit_code})</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__none__">Select product</SelectItem>
+                  {products.filter((p: BnProduct) => p.id !== productId).map((p: BnProduct) => <SelectItem key={p.id} value={p.id}>{p.benefit_name} ({p.benefit_code})</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">

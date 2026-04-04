@@ -115,16 +115,20 @@ export function EligibilityRulesTab({ versionId }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Rule Group</Label>
-              <Select value={editing.rule_group_id || ''} onValueChange={v => updateEditing('rule_group_id', v)}>
+              <Select value={editing.rule_group_id || '__none__'} onValueChange={v => updateEditing('rule_group_id', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
-                <SelectContent>{ruleGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.group_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {ruleGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.group_name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Data Source</Label>
-              <Select value={editing.data_source || ''} onValueChange={v => updateEditing('data_source', v)}>
+              <Select value={editing.data_source || '__none__'} onValueChange={v => updateEditing('data_source', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
                   <SelectItem value="ip_wages">ip_wages (Contributions)</SelectItem>
                   <SelectItem value="ip_master">ip_master (Person)</SelectItem>
                   <SelectItem value="er_master">er_master (Employer)</SelectItem>
