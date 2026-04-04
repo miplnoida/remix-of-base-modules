@@ -178,6 +178,13 @@ export const bnMenuItems = [
           },
         ],
       },
+      {
+        title: "Simulation Engine",
+        url: "/bn/simulation",
+        icon: TestTube2,
+        requiresPermission: "benefits_management",
+        description: "Test benefit products in an isolated sandbox",
+      },
     ],
   },
 ];
