@@ -141,7 +141,7 @@ export default function ProductEditor() {
           <CardContent className="flex items-center gap-4 py-3">
             <History className="h-4 w-4 text-muted-foreground" />
             <Label className="text-sm font-medium">Active Version:</Label>
-            <Select value={selectedVersionId || ''} onValueChange={setSelectedVersionId}>
+            <Select value={selectedVersionId || '__none__'} onValueChange={v => setSelectedVersionId(v === '__none__' ? undefined : v)}>
               <SelectTrigger className="w-[300px]">
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
