@@ -13,7 +13,7 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async lookupPerson(ssn: string): Promise<PersonSummary | null> {
     const { data, error } = await db
       .from('ip_master')
-      .select('ssn, first_name, surname, date_of_birth, gender, status, email, phone_home, address_1, address_2, city, parish, country_code')
+      .select('ssn, firstname, surname, dob, sex, status, email_addr, phone, resident_addr1, resident_addr2, district, place_of_residence')
       .eq('ssn', ssn.trim())
       .maybeSingle();
 
@@ -22,18 +22,18 @@ export const bnPersonAdapter: IBnPersonAdapter = {
 
     return {
       ssn: data.ssn,
-      fullName: `${data.first_name || ''} ${data.surname || ''}`.trim(),
-      dateOfBirth: data.date_of_birth,
-      gender: data.gender || 'N',
+      fullName: `${data.firstname || ''} ${data.surname || ''}`.trim(),
+      dateOfBirth: data.dob,
+      gender: data.sex || 'N',
       status: mapPersonStatus(data.status),
-      email: data.email,
-      phone: data.phone_home,
-      address: data.address_1 ? {
-        line1: data.address_1,
-        line2: data.address_2,
-        city: data.city,
-        parish: data.parish,
-        country: data.country_code || 'KN',
+      email: data.email_addr,
+      phone: data.phone,
+      address: data.resident_addr1 ? {
+        line1: data.resident_addr1,
+        line2: data.resident_addr2,
+        city: data.district,
+        parish: data.district,
+        country: data.place_of_residence || 'KN',
       } : undefined,
     };
   },
@@ -41,11 +41,11 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async getPersonDOB(ssn: string): Promise<string | null> {
     const { data, error } = await db
       .from('ip_master')
-      .select('date_of_birth')
+      .select('dob')
       .eq('ssn', ssn.trim())
       .maybeSingle();
     if (error) throw error;
-    return data?.date_of_birth ?? null;
+    return data?.dob ?? null;
   },
 
   async getPersonStatus(ssn: string): Promise<string> {
@@ -61,32 +61,32 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async getPersonAddress(ssn: string): Promise<AddressRecord | null> {
     const { data, error } = await db
       .from('ip_master')
-      .select('address_1, address_2, city, parish, country_code')
+      .select('resident_addr1, resident_addr2, district, place_of_residence')
       .eq('ssn', ssn.trim())
       .maybeSingle();
     if (error) throw error;
-    if (!data?.address_1) return null;
+    if (!data?.resident_addr1) return null;
     return {
-      line1: data.address_1,
-      line2: data.address_2,
-      city: data.city,
-      parish: data.parish,
-      country: data.country_code || 'KN',
+      line1: data.resident_addr1,
+      line2: data.resident_addr2,
+      city: data.district,
+      parish: data.district,
+      country: data.place_of_residence || 'KN',
     };
   },
 
   async getDependants(ssn: string): Promise<Dependant[]> {
     const { data, error } = await db
       .from('ip_dependants')
-      .select('ssn, first_name, surname, relationship, date_of_birth, gender')
-      .eq('parent_ssn', ssn.trim());
+      .select('dep_ssn, dep_firstname, dep_surname, relationship, dep_dob, dep_sex')
+      .eq('ssn', ssn.trim());
     if (error) throw error;
     return (data ?? []).map((d: any) => ({
-      ssn: d.ssn,
-      fullName: `${d.first_name || ''} ${d.surname || ''}`.trim(),
+      ssn: d.dep_ssn,
+      fullName: `${d.dep_firstname || ''} ${d.dep_surname || ''}`.trim(),
       relationship: d.relationship,
-      dateOfBirth: d.date_of_birth,
-      gender: d.gender || 'N',
+      dateOfBirth: d.dep_dob,
+      gender: d.dep_sex || 'N',
     }));
   },
 };
