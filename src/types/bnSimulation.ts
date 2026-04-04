@@ -17,13 +17,23 @@ import type {
 
 export type BnSimScenarioStatus = 'DRAFT' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'ARCHIVED';
 
+export type BnSimScenarioType = 'STANDARD' | 'EDGE_CASE' | 'REGRESSION' | 'COMPARATIVE';
+export type BnSimSourceType = 'MANUAL' | 'REPLAY' | 'IMPORT';
+
 export interface BnSimScenario {
   id: string;
+  scenario_code: string | null;
   scenario_name: string;
   description: string | null;
   product_id: string | null;
   product_version_id: string | null;
+  scheme_id: string | null;
   country_code: string;
+  scenario_type: BnSimScenarioType;
+  source_type: BnSimSourceType;
+  input_payload: Record<string, unknown> | null;
+  base_claim_ref: string | null;
+  notes: string | null;
   status: BnSimScenarioStatus;
   tags: string[] | null;
   entered_by: string | null;

@@ -1366,6 +1366,7 @@ export const AppRoutes = () => {
       {/* Benefit Simulation Engine */}
       <Route path="/bn/simulation" element={<ProtectedLayout><BnSimulationDashboard /></ProtectedLayout>} />
       <Route path="/bn/simulation/new" element={<ProtectedLayout><BnScenarioBuilder /></ProtectedLayout>} />
+      <Route path="/bn/simulation/edit/:id" element={<ProtectedLayout><BnScenarioBuilder /></ProtectedLayout>} />
       <Route path="/bn/simulation/:id" element={<ProtectedLayout><BnRunSimulation /></ProtectedLayout>} />
       <Route path="/bn/simulation/:id/run/:runId" element={<ProtectedLayout><BnSimulationResult /></ProtectedLayout>} />
 
