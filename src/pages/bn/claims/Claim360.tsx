@@ -233,30 +233,10 @@ export default function Claim360() {
           </Card>
         </TabsContent>
 
-        {/* Documents */}
-        <TabsContent value="documents" className="mt-6">
-          <Card>
-            <CardHeader><CardTitle>Claim Documents ({documents.length})</CardTitle></CardHeader>
-            <CardContent>
-              {documents.length === 0 ? (
-                <p className="text-muted-foreground">No documents attached.</p>
-              ) : (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <p className="font-medium">{doc.document_name || doc.file_name}</p>
-                        <p className="text-sm text-muted-foreground">{doc.document_type_code}</p>
-                      </div>
-                      <Badge variant={doc.verified ? 'default' : 'outline'}>
-                        {doc.verified ? 'Verified' : 'Pending'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Documents / Evidence */}
+        <TabsContent value="documents" className="mt-6 space-y-6">
+          <EvidenceChecklist claimId={claim.id} userRoles={userRoles} />
+          <EvidenceAuditTimeline claimId={claim.id} />
         </TabsContent>
 
         {/* Notes */}
