@@ -64,6 +64,16 @@ const STATUS_SCHEMES: Record<string, BadgeColorScheme> = {
   EXHAUSTED:         { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
   TERMINATED:        { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
   REOPENED:          { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
+  // Batch statuses
+  OPEN:              { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
+  RELEASED:          { bg: 'bg-teal-500/10',       text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-500/20' },
+  ISSUED:            { bg: 'bg-green-500/10',      text: 'text-green-700 dark:text-green-400', border: 'border-green-500/20' },
+  PARTIALLY_ISSUED:  { bg: 'bg-orange-500/10',     text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-500/20' },
+  // Batch item statuses
+  INCLUDED:          { bg: 'bg-blue-500/10',       text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-500/20' },
+  FAILED_VALIDATION: { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
+  ISSUE_FAILED:      { bg: 'bg-destructive/10',    text: 'text-destructive', border: 'border-destructive/20' },
+  REMOVED:           { bg: 'bg-muted',             text: 'text-muted-foreground', border: 'border-border' },
 };
 
 const DEFAULT_SCHEME: BadgeColorScheme = {

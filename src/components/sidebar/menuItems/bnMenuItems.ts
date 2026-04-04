@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   Shield,
   CalendarDays,
+  Package,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -70,6 +71,13 @@ export const bnMenuItems = [
         icon: CalendarDays,
         requiresPermission: "benefits_management",
         description: "Plan one-time and recurring benefit disbursements",
+      },
+      {
+        title: "Batch Operations",
+        url: "/bn/batches",
+        icon: Package,
+        requiresPermission: "benefits_management",
+        description: "Group payables into controlled payment batches",
       },
       {
         title: "Register New Claim",
