@@ -169,7 +169,7 @@ export default function Claim360() {
                         <div className="mt-3 space-y-2">
                           {check.rule_results.map((r: any, i: number) => (
                             <div key={i} className="flex items-center gap-2 text-sm">
-                              <span className={r.passed ? 'text-green-600' : 'text-red-600'}>{r.passed ? '✓' : '✗'}</span>
+                              <span className={r.passed ? 'text-primary' : 'text-destructive'}>{r.passed ? '✓' : '✗'}</span>
                               <span>{r.rule_name}: {r.message}</span>
                             </div>
                           ))}
