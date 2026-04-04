@@ -25,9 +25,12 @@ const RUN_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'
 export default function RunSimulation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canView, canRun } = useSimPermission();
   const { data: scenario, isLoading } = useBnSimScenario(id);
   const { data: runs } = useBnSimRuns(id);
   const executeSim = useExecuteSimulation();
+
+  if (!canView) return <SimAccessDenied />;
 
   // Simulation inputs
   const [ssn, setSSN] = useState('');
