@@ -42,6 +42,13 @@ export const bnMenuItems = [
         requiresPermission: "benefits_management",
       },
       {
+        title: "Approval Console",
+        url: "/bn/approval",
+        icon: ClipboardCheck,
+        requiresPermission: "benefits_management",
+        description: "Review and approve benefit decisions",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
