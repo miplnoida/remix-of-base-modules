@@ -1331,6 +1331,11 @@ export const AppRoutes = () => {
       <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
       <Route path="/bn/engine" element={<ProtectedLayout><BnCalculationEngine /></ProtectedLayout>} />
       <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
+      <Route path="/bn/queue" element={<ProtectedLayout><BnClaimQueue /></ProtectedLayout>} />
+      <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
+      <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
+      <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
+      <Route path="/bn/config/escalation" element={<ProtectedLayout><BnEscalationConfig /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}

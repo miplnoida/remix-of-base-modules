@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, FileText, Calculator, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
+import { ArrowLeft, User, FileText, Calculator, CheckCircle2, Clock, MessageSquare, Shield } from 'lucide-react';
 import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, useBnClaimCalculations, useBnClaimDocuments } from '@/hooks/bn/useBnClaim';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { ClaimDecisionPanel } from '@/components/bn/claim/ClaimDecisionPanel';
+import { ClaimDecisionTimeline } from '@/components/bn/claim/ClaimDecisionTimeline';
 
 export default function Claim360() {
   const { id } = useParams();
@@ -18,6 +19,9 @@ export default function Claim360() {
   const { data: eligibility = [] } = useBnClaimEligibility(id);
   const { data: calculations = [] } = useBnClaimCalculations(id);
   const { data: documents = [] } = useBnClaimDocuments(id);
+
+  // TODO: Replace with actual user roles from auth context
+  const userRoles = ['Admin'];
 
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Loading claim...</p></div>;
@@ -55,6 +59,13 @@ export default function Claim360() {
           </div>
         </div>
       </div>
+
+      {/* Decision Panel */}
+      <ClaimDecisionPanel
+        claimId={claim.id}
+        userRoles={userRoles}
+        productCategory={product?.category}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">
@@ -101,14 +112,20 @@ export default function Claim360() {
       </div>
 
       {/* Detail Tabs */}
-      <Tabs defaultValue="timeline" className="w-full">
+      <Tabs defaultValue="decisions" className="w-full">
         <TabsList>
+          <TabsTrigger value="decisions" className="gap-2"><Shield className="h-4 w-4" /> Decisions</TabsTrigger>
           <TabsTrigger value="timeline" className="gap-2"><Clock className="h-4 w-4" /> Timeline</TabsTrigger>
           <TabsTrigger value="eligibility" className="gap-2"><CheckCircle2 className="h-4 w-4" /> Eligibility</TabsTrigger>
           <TabsTrigger value="calculation" className="gap-2"><Calculator className="h-4 w-4" /> Calculation</TabsTrigger>
           <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documents</TabsTrigger>
           <TabsTrigger value="notes" className="gap-2"><MessageSquare className="h-4 w-4" /> Notes</TabsTrigger>
         </TabsList>
+
+        {/* Decisions */}
+        <TabsContent value="decisions" className="mt-6">
+          <ClaimDecisionTimeline claimId={claim.id} />
+        </TabsContent>
 
         {/* Timeline */}
         <TabsContent value="timeline" className="mt-6">
