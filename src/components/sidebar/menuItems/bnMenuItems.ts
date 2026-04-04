@@ -39,6 +39,13 @@ export const bnMenuItems = [
             requiresPermission: "benefits_management",
             description: "Manage benefit types and versions",
           },
+          {
+            title: "Calculation Engine",
+            url: "/bn/engine",
+            icon: FlaskConical,
+            requiresPermission: "benefits_management",
+            description: "Run, simulate, and audit benefit calculations",
+          },
         ],
       },
     ],
