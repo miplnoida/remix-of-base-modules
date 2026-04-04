@@ -620,6 +620,7 @@ import BnProductCatalog from '@/pages/bn/config/ProductCatalog';
 import BnProductEditor from '@/pages/bn/config/ProductEditor';
 import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
 import BnClaim360 from '@/pages/bn/claims/Claim360';
+import BnClaimWorkbench from '@/pages/bn/claims/ClaimWorkbench';
 import BnCalculationEngine from '@/pages/bn/engine/CalculationEngine';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
@@ -1345,7 +1346,8 @@ export const AppRoutes = () => {
       <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
       <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
       <Route path="/bn/claims" element={<ProtectedLayout><BnClaimWorklist /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaimWorkbench /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id/legacy" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
       <Route path="/bn/engine" element={<ProtectedLayout><BnCalculationEngine /></ProtectedLayout>} />
       <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
       <Route path="/bn/queue" element={<ProtectedLayout><BnClaimQueue /></ProtectedLayout>} />
