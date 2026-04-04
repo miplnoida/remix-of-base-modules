@@ -5,7 +5,8 @@ import {
   Shield, 
   FileText,
   Globe,
-  Settings
+  Settings,
+  UserCircle
 } from "lucide-react";
 
 export const benefitsMenuItems = [
