@@ -161,7 +161,7 @@ export default function Claim360() {
                         <span className="text-sm text-muted-foreground">{formatDateForDisplay(check.check_date)}</span>
                       </div>
                       {check.override_applied && (
-                        <p className="mt-2 text-sm text-amber-600">
+                        <p className="mt-2 text-sm text-destructive">
                           Override by {check.override_by}: {check.override_reason}
                         </p>
                       )}
