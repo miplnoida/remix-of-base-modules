@@ -49,6 +49,15 @@ export default function ProductEditor() {
   });
   const [selectedVersionId, setSelectedVersionId] = useState<string | undefined>();
 
+  // Reset form and version when product id changes
+  useEffect(() => {
+    setForm({
+      benefit_code: '', benefit_name: '', description: '', category: 'SHORT_TERM',
+      branch: 'GENERAL', payment_type: 'PERIODIC', country_code: 'KN', status: 'DRAFT', sort_order: 0,
+    });
+    setSelectedVersionId(undefined);
+  }, [id]);
+
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);
   }, [existingProduct]);
