@@ -13,7 +13,7 @@ import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryIdRules, useUpsertCountryIdRule, useDeleteCountryIdRule } from '@/hooks/bn/useBnCountryPack';
 import type { BnCountryIdRule } from '@/types/bn';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const emptyRule = (): Partial<BnCountryIdRule> => ({
   id_type: '', id_label: '', format_pattern: '', format_mask: '', digit_length: 6,

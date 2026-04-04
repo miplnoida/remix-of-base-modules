@@ -15,7 +15,7 @@ import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryPaymentConfig, useUpsertCountryPaymentConfig, useDeleteCountryPaymentConfig } from '@/hooks/bn/useBnCountryPack';
 import { BN_PAYMENT_METHODS, BN_PAYMENT_CYCLES } from '@/types/bn';
 import type { BnCountryPaymentConfig } from '@/types/bn';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const empty = (): Partial<BnCountryPaymentConfig> => ({
   payment_method: '', method_label: '', is_default: false, requires_bank_account: false, requires_mobile_number: false,

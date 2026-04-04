@@ -1,7 +1,7 @@
 import React from 'react';
 import { BnCountryProvider } from '@/contexts/BnCountryContext';
 import CountryPackDashboard from '@/components/bn/country/CountryPackDashboard';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const CountryPackPage: React.FC = () => (
   <BnCountryProvider>

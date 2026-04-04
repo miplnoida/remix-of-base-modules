@@ -14,7 +14,7 @@ import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryLegalRefs, useUpsertCountryLegalRef, useDeleteCountryLegalRef } from '@/hooks/bn/useBnCountryPack';
 import type { BnCountryLegalRef } from '@/types/bn';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const empty = (): Partial<BnCountryLegalRef> => ({
   ref_code: '', ref_title: '', ref_section: null, ref_url: null, applicable_products: null,

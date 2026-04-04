@@ -15,7 +15,7 @@ import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryParticipantTypes, useUpsertCountryParticipantType, useDeleteCountryParticipantType } from '@/hooks/bn/useBnCountryPack';
 import { BN_PARTICIPANT_ROLES } from '@/types/bn';
 import type { BnCountryParticipantType } from '@/types/bn';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: 'CLAIMANT', requires_id: true, requires_relationship_proof: false,

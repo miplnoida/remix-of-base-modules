@@ -14,7 +14,7 @@ import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryAddressModel, useUpsertCountryAddressField, useDeleteCountryAddressField } from '@/hooks/bn/useBnCountryPack';
 import type { BnCountryAddressField } from '@/types/bn';
-import PageHeader from '@/components/common/PageHeader';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const empty = (): Partial<BnCountryAddressField> => ({
   field_code: '', field_label: '', field_type: 'TEXT', is_required: false, options_source: null, validation_pattern: null, sort_order: 0, is_active: true,
