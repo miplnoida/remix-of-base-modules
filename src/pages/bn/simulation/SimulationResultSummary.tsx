@@ -9,6 +9,7 @@ import { useBnSimRun, useBnSimRunOutputs, useBnSimRunInputs, useBnSimRuleTrace, 
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import SimRuleTraceView from '@/components/bn/simulation/SimRuleTraceView';
 import SimFormulaTraceView from '@/components/bn/simulation/SimFormulaTraceView';
+import SimConfigSnapshotViewer from '@/components/bn/simulation/SimConfigSnapshotViewer';
 
 export default function SimulationResultSummary() {
   const { id: scenarioId, runId } = useParams<{ id: string; runId: string }>();
@@ -153,29 +154,7 @@ export default function SimulationResultSummary() {
         </TabsContent>
 
         <TabsContent value="config">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                Configuration Snapshot
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {snapshot ? (
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Snapshot Type</span><Badge variant="outline">{snapshot.snapshot_type}</Badge></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Captured At</span><span>{new Date(snapshot.captured_at).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Version ID</span><span className="font-mono text-xs">{snapshot.product_version_id?.substring(0, 8)}…</span></div>
-                  <details className="mt-3">
-                    <summary className="text-xs text-muted-foreground cursor-pointer">View raw config data</summary>
-                    <pre className="mt-2 p-3 bg-muted rounded text-xs overflow-auto max-h-64">{JSON.stringify(snapshot.config_data, null, 2)}</pre>
-                  </details>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No snapshot available.</p>
-              )}
-            </CardContent>
-          </Card>
+          <SimConfigSnapshotViewer snapshot={snapshot} />
         </TabsContent>
       </Tabs>
     </div>
