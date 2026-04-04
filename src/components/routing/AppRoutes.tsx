@@ -645,6 +645,7 @@ import BnCountryParticipantTypes from '@/pages/bn/config/country/CountryParticip
 import BnCountryPaymentConfig from '@/pages/bn/config/country/CountryPaymentConfig';
 import BnCountryLegalRefs from '@/pages/bn/config/country/CountryLegalRefs';
 import BnRuleConfiguration from '@/pages/bn/config/RuleConfiguration';
+import BnRulesAdministration from '@/pages/bn/config/RulesAdministration';
 import BnFormulaConfiguration from '@/pages/bn/config/FormulaConfiguration';
 import BnDocumentSetup from '@/pages/bn/config/DocumentSetup';
 import BnScreenMetadataSetup from '@/pages/bn/config/ScreenMetadataSetup';
