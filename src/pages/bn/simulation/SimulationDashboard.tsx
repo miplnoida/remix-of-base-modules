@@ -9,6 +9,8 @@ import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import { BnStatCard } from '@/components/bn/shared/BnStatCard';
 import type { BnSimScenario } from '@/types/bnSimulation';
 import { toast } from 'sonner';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'outline',
