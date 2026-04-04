@@ -627,6 +627,7 @@ import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
 import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
 import BnWorkbasketConfig from '@/pages/bn/config/WorkbasketConfig';
 import BnEscalationConfig from '@/pages/bn/config/EscalationConfig';
+import BnServiceDocTypes from '@/pages/bn/config/ServiceDocTypes';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
