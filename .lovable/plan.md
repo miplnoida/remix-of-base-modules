@@ -1,344 +1,292 @@
 
 
-# Enterprise Benefit Management Module -- Architecture and Build Plan
+# Benefit Module -- Workflow, Approval & Decision Engine
 
-## 1. Current State Assessment
+## Overview
 
-The existing system has **three overlapping benefit code paths**, none fully production-ready:
+Build a benefit-specific workflow orchestration layer that wraps the existing generic workflow engine (`workflow_definitions`, `workflow_instances`, `workflow_tasks`, `workflow_logs`) with benefit-domain concepts: configurable status transitions, reason codes, narrative requirements, escalation rules, queue/workbasket routing, and an auditable decision timeline.
 
-| Path | Location | State |
-|------|----------|-------|
-| **Legacy Benefits** | `src/pages/benefits/` | Static forms (AgeBenefitForm, SicknessBenefitForm, etc.) with hardcoded fields. No database tables, no workflow. |
-| **NBenefit** | `src/pages/nbenefit/` | Config-driven rule editor with `BenefitRuleSet` types, mock data service (`benefitRulesConfigService`), eligibility/calculation engine stubs. No DB tables. |
-| **NewBenefit** | `src/pages/newBenefit/` | Claim 360, Intake Console, Medical Board Hub, Payments Module. All mock-data-driven (`newBenefitService.ts` uses `MockDataStore`). Separate auth context (`NewBenefitAuthContext`) with hardcoded users. |
-
-**Existing infrastructure that the module must integrate with:**
-- `ip_master` / `tmp_ip_master` -- Insured Person registry (SSN-based)
-- `er_master` -- Employer registry
-- `ip_wages` / `c3_*` tables -- Contribution and wage data
-- `workflow_definitions` / `workflow_instances` / `workflow_steps` -- Generic workflow engine with maker-checker
-- `system_audit_trail` with `fn_audit_row_change` triggers
-- `notification_templates` -- Claim notification templates already seeded
-- `cn_receipt` / `cn_batch` -- Cash/payment infrastructure
-- Entity resolution RPCs (`resolve_entity_type`, `validate_entity`)
-- Document Configuration system (`module_doc_config`, `module_doc_child_docs`)
-- Role-based permissions via `user_roles` table and `PermissionWrapper`
-
-**Key finding**: No benefit/claim database tables exist yet. Everything is mock data.
+The generic engine handles step sequencing, task assignment, and maker-checker. This module adds the **domain policy layer** on top.
 
 ---
 
-## 2. Target Module Architecture
+## Architecture
 
 ```text
-+-----------------------------------------------------------------------+
-|                     BENEFIT MANAGEMENT MODULE                          |
-|-----------------------------------------------------------------------|
-|  CONFIGURATION LAYER (Admin-managed, effective-dated)                  |
-|  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  |
-|  │ Benefit      │ │ Eligibility  │ │ Calculation  │ │ Document     │  |
-|  │ Products     │ │ Rules        │ │ Rules        │ │ Rules        │  |
-|  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘  |
-|  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                   |
-|  │ Workflow     │ │ Timeline     │ │ Country      │                   |
-|  │ Bindings     │ │ Rules        │ │ Packs        │                   |
-|  └──────────────┘ └──────────────┘ └──────────────┘                   |
-|-----------------------------------------------------------------------|
-|  OPERATIONAL LAYER                                                     |
-|  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  |
-|  │ Intake &     │ │ Claim        │ │ Eligibility  │ │ Calculation  │  |
-|  │ Registration │ │ Processing   │ │ Engine       │ │ Engine       │  |
-|  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘  |
-|  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  |
-|  │ Award        │ │ Payment      │ │ Post-Award   │ │ Medical      │  |
-|  │ Management   │ │ Processing   │ │ Servicing    │ │ Board        │  |
-|  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘  |
-|-----------------------------------------------------------------------|
-|  INTEGRATION LAYER                                                     |
-|  ip_master ←→ Claims | er_master ←→ Verification | Workflows ←→ Steps|
-|  cn_receipt ←→ Payments | Audit Trail | Notifications | Documents     |
-+-----------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────┐
+│               BENEFIT DECISION ENGINE                │
+│                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │ Status Model │  │ Transition   │  │ Reason     │ │
+│  │ (bn_claim_   │  │ Rules        │  │ Code       │ │
+│  │  status_def) │  │ (bn_claim_   │  │ Registry   │ │
+│  │              │  │  transition) │  │            │ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │ Queue /      │  │ Escalation   │  │ Override   │ │
+│  │ Workbasket   │  │ Policy       │  │ Checkpoint │ │
+│  │              │  │              │  │            │ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+│                                                      │
+│  Uses: workflow_instances, workflow_tasks,            │
+│        workflow_logs, workflow_step_actions           │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Bounded Contexts / Submodules
+## Database Tables (8 new tables)
 
-| # | Submodule | Responsibility |
-|---|-----------|---------------|
-| 1 | **Benefit Product Catalog** | Define benefit types, versions, country packs. Config-driven master for all downstream logic. |
-| 2 | **Eligibility Engine** | Evaluate rules from catalog against contributor data (`ip_master`, `ip_wages`, `c3_*`). Produce explainable pass/fail results. |
-| 3 | **Claim Lifecycle** | Intake (paper/walk-in/online), claim registration, status tracking, document collection, workflow progression. |
-| 4 | **Calculation Engine** | Compute benefit amounts using formula/tier/table rules from catalog. Produce audit-traceable calculation sheets. |
-| 5 | **Award Management** | Create awards from approved claims. Manage start/end dates, suspensions, cessations, reviews, COLA adjustments. |
-| 6 | **Payment Processing** | Generate payment instructions from active awards. Batch processing, bank file export, reconciliation. Integrates with existing `cn_*` tables. |
-| 7 | **Post-Award Servicing** | Life certificates, medical reviews, proof-of-life, student certifications, overpayment recovery. |
-| 8 | **Medical Board** | Referrals, scheduling, assessments, disability ratings. Links to claim workflow. |
-| 9 | **Service Cases** | Cross-benefit inquiries, complaints, change requests, appeals. |
+### 1. `bn_claim_status_def` -- Status Registry
+Configurable status definitions per country/product category.
 
----
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| status_code | varchar(30) UNIQUE | e.g. SUBMITTED, APPROVED |
+| status_label | varchar(100) | Display name |
+| status_group | varchar(30) | INTAKE, PROCESSING, DECISION, POST_DECISION, TERMINAL |
+| is_terminal | boolean | No further transitions allowed |
+| requires_effective_date | boolean | Status change needs a specific effective date |
+| display_order | int | Sort for dropdowns/timelines |
+| color_code | varchar(20) | Badge color |
+| is_active | boolean | |
+| entered_by / entered_at | audit | |
 
-## 4. Database Schema (Table Prefix: `bn_`)
+### 2. `bn_claim_transition_rule` -- Transition Rules
+Which status changes are permitted, under what conditions.
 
-### Core Tables
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| from_status | varchar(30) FK | |
+| to_status | varchar(30) FK | |
+| action_code | varchar(50) | SUBMIT, VERIFY, APPROVE, DENY, SUSPEND, SEND_BACK, ESCALATE, HOLD, RELEASE, REOPEN, DISCONTINUE, DISALLOW, WITHDRAW |
+| action_label | varchar(100) | Display text |
+| allowed_roles | text[] | Roles that can execute |
+| product_category | varchar(30) NULL | NULL = all categories |
+| country_code | varchar(10) NULL | NULL = all countries |
+| requires_reason | boolean | Must select a reason code |
+| requires_narrative | boolean | Free-text justification mandatory |
+| requires_maker_checker | boolean | Needs second approver |
+| requires_evidence_complete | boolean | All mandatory docs must be verified |
+| requires_eligibility_pass | boolean | Eligibility check must pass |
+| requires_calculation | boolean | Calculation must exist |
+| min_override_level | int NULL | Minimum override authority level needed |
+| sort_order | int | Button display order |
+| is_active | boolean | |
+| entered_by / entered_at | audit | |
 
-```sql
--- Benefit Product Catalog (config-driven, effective-dated)
-bn_product                -- Benefit type definitions (versioned)
-bn_product_version        -- Version history with effective dates
-bn_eligibility_rule       -- Rules per product version (JSON rule definition)
-bn_calculation_rule       -- Formulas, tiers, rate tables per version
-bn_timeline_rule          -- Waiting periods, durations, deadlines per version
-bn_document_rule          -- Required docs per product (links to module_doc_config)
-bn_country_pack           -- Country-specific parameter overrides
+### 3. `bn_reason_code` -- Reason Code Registry
 
--- Claim Lifecycle
-bn_claim                  -- Main claim record (SSN, product_id, status, dates)
-bn_claim_detail           -- Benefit-specific data as JSONB (not per-type tables)
-bn_claim_document         -- Documents attached to claim
-bn_claim_event            -- Status transitions, actions, audit trail
-bn_claim_eligibility      -- Eligibility check snapshots (explainable)
-bn_claim_calculation      -- Calculation snapshots (explainable)
-bn_claim_note             -- Officer notes, correspondence log
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| reason_code | varchar(30) UNIQUE | |
+| reason_label | varchar(200) | |
+| reason_category | varchar(50) | DENIAL, SUSPENSION, SEND_BACK, ESCALATION, OVERRIDE, DISCONTINUATION |
+| applicable_actions | text[] | Which action_codes this reason applies to |
+| requires_narrative | boolean | Additional free text needed |
+| is_active | boolean | |
+| entered_by / entered_at | audit | |
 
--- Award & Payment
-bn_award                  -- Approved benefit awards (amount, period, status)
-bn_award_beneficiary      -- Beneficiaries on an award (survivors, dependents)
-bn_award_review           -- Scheduled reviews (medical, proof-of-life)
-bn_payment_instruction    -- Individual payment records from awards
-bn_payment_batch          -- Batch grouping for payment runs
-bn_overpayment            -- Overpayment tracking and recovery
+### 4. `bn_claim_decision` -- Decision Audit Log
+Immutable record of every status transition (supplements `bn_claim_event` with richer decision context).
 
--- Medical Board
-bn_medical_referral       -- Referral from claim to medical board
-bn_medical_assessment     -- Assessment results, disability ratings
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| claim_id | uuid FK | |
+| transition_rule_id | uuid FK NULL | Links to the rule that authorized this |
+| action_code | varchar(50) | |
+| from_status | varchar(30) | |
+| to_status | varchar(30) | |
+| reason_code_id | uuid FK NULL | |
+| narrative | text NULL | Officer's justification |
+| effective_date | date NULL | When the status takes effect (can differ from performed_at) |
+| override_id | uuid FK NULL | If an override was applied |
+| workflow_instance_id | uuid NULL | Generic workflow instance if applicable |
+| workflow_task_id | uuid NULL | |
+| evidence_snapshot | jsonb | Document verification state at decision time |
+| eligibility_snapshot_id | uuid NULL | FK to bn_claim_eligibility |
+| calculation_snapshot_id | uuid NULL | FK to bn_claim_calculation |
+| performed_by | varchar(50) | user_code |
+| performed_at | timestamptz | |
+| ip_address | varchar(45) NULL | |
 
--- Service Cases
-bn_service_case           -- Cross-cutting inquiries, appeals, complaints
-bn_service_case_event     -- Case progression history
-```
+### 5. `bn_workbasket` -- Queue / Workbasket Definitions
 
-### Key Design Decisions
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| basket_code | varchar(50) UNIQUE | |
+| basket_name | varchar(100) | |
+| description | text NULL | |
+| assigned_role | varchar(100) | Role that owns this queue |
+| product_category | varchar(30) NULL | Filter by category |
+| country_code | varchar(10) NULL | |
+| priority_rules | jsonb | Auto-priority logic (e.g., claim age, SLA proximity) |
+| max_capacity | int NULL | Soft limit for load balancing |
+| is_active | boolean | |
+| entered_by / entered_at | audit | |
 
-- **`bn_claim_detail`** uses a single table with `detail_json JSONB` rather than per-benefit-type child tables. The schema for `detail_json` is driven by the `bn_product` configuration. This makes it country-extensible.
-- **Effective dating**: `bn_product_version` has `effective_from` / `effective_to`. When processing a claim, the system resolves the version active at `claim_date`.
-- **All audit fields**: `entered_by VARCHAR(50)` (user_code), `modified_by`, `entered_at`, `modified_at` on every table.
-- **No RLS** per project standards. Role-based security via `PermissionWrapper` and `useActionPermissions`.
-- **Workflow integration**: `bn_claim` references `workflow_instances` via `source_module = 'bn_claim'` and `source_record_id = claim_id`. No custom workflow tables -- reuse existing engine.
+### 6. `bn_claim_queue_assignment` -- Claim-to-Queue Mapping
 
-### Legacy Compatibility
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| claim_id | uuid FK | |
+| workbasket_id | uuid FK | |
+| assigned_to | varchar(50) NULL | Specific officer user_code |
+| assigned_at | timestamptz | |
+| priority | int DEFAULT 5 | 1=highest |
+| due_at | timestamptz NULL | SLA deadline |
+| picked_at | timestamptz NULL | When officer opened it |
+| completed_at | timestamptz NULL | |
+| is_active | boolean DEFAULT true | |
 
-- `bn_claim.ssn` joins to `ip_master.ssn` for contributor data
-- `bn_claim.employer_regno` joins to `er_master.regno` for employer verification
-- Contribution lookups query `ip_wages` for wage history and `c3_*` for contribution records
-- Existing `cn_receipt` / `cn_batch` tables used for actual payment settlement
-- Legacy claims (if any exist in external systems) can be imported into `bn_claim` with `source = 'LEGACY'` and `legacy_ref` fields
+### 7. `bn_escalation_policy` -- Escalation Rules
 
----
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| policy_code | varchar(50) | |
+| policy_name | varchar(100) | |
+| trigger_type | varchar(30) | SLA_BREACH, MANUAL, THRESHOLD, EXCEPTION |
+| trigger_config | jsonb | e.g. { "hours_overdue": 48 } |
+| escalation_target_role | varchar(100) | |
+| escalation_target_basket_id | uuid NULL | |
+| auto_reassign | boolean | Move claim to escalation queue automatically |
+| notification_template_id | uuid NULL | |
+| severity | varchar(20) | LOW, MEDIUM, HIGH, CRITICAL |
+| product_category | varchar(30) NULL | |
+| country_code | varchar(10) NULL | |
+| is_active | boolean | |
+| entered_by / entered_at | audit | |
 
-## 5. Folder / Module Structure
+### 8. `bn_escalation_event` -- Escalation Audit
 
-```text
-src/
-├── pages/
-│   └── bn/                              -- All benefit screens
-│       ├── config/                      -- Admin configuration
-│       │   ├── ProductCatalog.tsx        -- List/manage benefit products
-│       │   ├── ProductEditor.tsx         -- Edit product with tabbed config
-│       │   ├── CountryPacks.tsx          -- Country parameter packs
-│       │   └── CalculationSimulator.tsx  -- Test calculations
-│       ├── intake/                      -- Claim intake
-│       │   ├── IntakeConsole.tsx         -- Paper/walk-in intake
-│       │   ├── ClaimRegistration.tsx     -- Register new claim
-│       │   └── OnlineApplications.tsx   -- Online submissions queue
-│       ├── claims/                      -- Claim processing
-│       │   ├── ClaimWorklist.tsx         -- Officer worklist
-│       │   ├── Claim360.tsx             -- Full claim view
-│       │   ├── EligibilityReview.tsx    -- Eligibility check screen
-│       │   └── CalculationReview.tsx    -- Calculation review screen
-│       ├── awards/                      -- Award management
-│       │   ├── AwardRegistry.tsx        -- Active awards list
-│       │   ├── AwardDetail.tsx          -- Single award detail
-│       │   ├── PensionAdmin.tsx         -- Long-term pension management
-│       │   └── ReviewSchedule.tsx       -- Upcoming reviews
-│       ├── payments/                    -- Benefit payments
-│       │   ├── PaymentBatch.tsx         -- Batch creation and processing
-│       │   ├── PaymentHistory.tsx       -- Payment history search
-│       │   └── Overpayments.tsx         -- Overpayment recovery
-│       ├── medical/                     -- Medical board
-│       │   ├── ReferralQueue.tsx
-│       │   └── AssessmentForm.tsx
-│       └── service/                     -- Service cases
-│           ├── CaseList.tsx
-│           └── CaseDetail.tsx
-├── components/
-│   └── bn/                              -- Reusable benefit components
-│       ├── config/                      -- Config tab components
-│       │   ├── EligibilityRuleBuilder.tsx
-│       │   ├── CalculationRuleBuilder.tsx
-│       │   ├── FormulaEditor.tsx
-│       │   └── TimelineRuleEditor.tsx
-│       ├── claim/                       -- Claim UI components
-│       │   ├── ClaimHeader.tsx
-│       │   ├── ClaimTimeline.tsx
-│       │   ├── EligibilityResultCard.tsx
-│       │   ├── CalculationSheet.tsx
-│       │   └── DynamicClaimForm.tsx      -- Form generated from product config
-│       ├── award/
-│       │   ├── AwardSummaryCard.tsx
-│       │   └── BeneficiaryTable.tsx
-│       └── shared/
-│           ├── BenefitBadge.tsx
-│           ├── ContributorLookup.tsx     -- SSN lookup using ip_master
-│           └── ContributionSummary.tsx   -- Contribution history from ip_wages
-├── services/
-│   └── bn/
-│       ├── claimService.ts              -- CRUD for bn_claim via Supabase
-│       ├── productService.ts            -- CRUD for bn_product catalog
-│       ├── eligibilityEngine.ts         -- Client-side eligibility evaluation
-│       ├── calculationEngine.ts         -- Client-side calculation evaluation
-│       ├── awardService.ts              -- Award CRUD
-│       └── paymentService.ts            -- Payment batch operations
-├── hooks/
-│   └── bn/
-│       ├── useBnClaim.ts                -- React Query hooks for claims
-│       ├── useBnProduct.ts              -- Product catalog hooks
-│       ├── useBnEligibility.ts          -- Eligibility check hook
-│       ├── useBnCalculation.ts          -- Calculation hook
-│       └── useBnAward.ts               -- Award hooks
-└── types/
-    └── bn.ts                            -- All benefit module types
-```
-
-### Cleanup Plan for Existing Code
-
-| Existing Path | Action |
-|---|---|
-| `src/pages/benefits/` | Keep temporarily. Add redirect banners to new module. Deprecate in Phase 3. |
-| `src/pages/nbenefit/` | Migrate config editor patterns into `src/pages/bn/config/`. Types from `benefitRulesConfig.ts` become the basis for `bn_product` schema. |
-| `src/pages/newBenefit/` | Migrate Claim360, IntakeConsole, MedicalBoardHub patterns. Replace mock services with Supabase queries. Remove `NewBenefitAuthContext` -- use main auth. |
-| `src/services/newBenefitService.ts` | Delete after migration. Replace with `src/services/bn/claimService.ts`. |
-| `src/types/newBenefit.ts` | Consolidate into `src/types/bn.ts`. |
-| `src/types/benefitRulesConfig.ts` | Merge into `src/types/bn.ts` under product config types. |
-| `src/types/benefitsWorkflow.ts` | Delete. Use generic workflow engine types. |
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| claim_id | uuid FK | |
+| policy_id | uuid FK | |
+| trigger_reason | text | |
+| escalated_from_user | varchar(50) NULL | |
+| escalated_to_role | varchar(100) | |
+| escalated_at | timestamptz | |
+| resolved_at | timestamptz NULL | |
+| resolution_notes | text NULL | |
+| resolved_by | varchar(50) NULL | |
 
 ---
 
-## 6. Main Screens and Capabilities
+## Implementation Plan
 
-### Configuration (Admin)
+### Step 1: Database Migration
+Create all 8 tables above with audit triggers (`fn_audit_row_change`). Seed `bn_claim_status_def` with the 16 existing statuses from `BnClaimStatus`. Seed `bn_reason_code` with standard codes (Incomplete Evidence, Contribution Shortfall, Age Ineligible, Medical Pending, etc.). Seed `bn_claim_transition_rule` with the full transition matrix covering all 13 action codes.
 
-| Screen | Capability |
-|--------|-----------|
-| Product Catalog | List all benefit products with status, category, version. Add/clone/archive. |
-| Product Editor | 7-tab editor: Definition, Eligibility Rules, Calculation Rules, Timelines, Documents, Workflow, Test/Preview. Evolved from existing `BenefitRuleEditor`. |
-| Country Packs | Manage country-specific parameter sets (rates, thresholds, currencies). SKN as first pack. |
-| Calculation Simulator | Test calculation formulas against sample data before activation. |
+### Step 2: Types & Services
+- Add types to `src/types/bn.ts`: `BnClaimStatusDef`, `BnClaimTransitionRule`, `BnReasonCode`, `BnClaimDecision`, `BnWorkbasket`, `BnClaimQueueAssignment`, `BnEscalationPolicy`, `BnEscalationEvent`
+- Add action code enum and label map
+- Create `src/services/bn/decisionEngine.ts`:
+  - `getAvailableTransitions(claimId, userRoles, productCategory, countryCode)` -- returns permitted actions based on current status + role + evidence state
+  - `executeTransition(claimId, actionCode, { reasonCodeId, narrative, effectiveDate, overrideId })` -- validates preconditions, updates `bn_claim.status`, writes `bn_claim_decision`, writes `bn_claim_event`, updates queue assignment
+  - `validateTransitionPreconditions(claim, rule)` -- checks evidence, eligibility, calculation requirements
+- Create `src/services/bn/workbasketService.ts`: queue CRUD, claim assignment, pick/release, priority recalculation
 
-### Operations (Staff)
+### Step 3: React Query Hooks
+- `src/hooks/bn/useBnDecisionEngine.ts`:
+  - `useBnAvailableActions(claimId)` -- fetches permitted transitions for current user
+  - `useBnExecuteAction()` -- mutation for executing a transition
+  - `useBnClaimDecisions(claimId)` -- decision audit trail
+  - `useBnReasonCodes(actionCode)` -- filtered reason codes for a given action
+- `src/hooks/bn/useBnWorkbasket.ts`:
+  - `useBnWorkbaskets()` -- list all queues
+  - `useBnMyQueue()` -- claims assigned to current user
+  - `useBnQueueClaims(basketId)` -- claims in a specific queue
 
-| Screen | Capability |
-|--------|-----------|
-| Intake Console | Receive paper/walk-in/online applications. Scan, index, create claim record. |
-| Claim Registration | SSN lookup, product selection, dynamic form based on product config, document checklist. |
-| Claim Worklist | Role-filtered queue of claims requiring action. Sort by SLA, priority, benefit type. |
-| Claim 360 | Complete claim view: contributor profile, contribution history, eligibility result, calculation sheet, documents, workflow timeline, notes. |
-| Eligibility Review | Detailed pass/fail breakdown with explainable rule evaluation. Override capability with maker-checker. |
-| Calculation Review | Step-by-step calculation breakdown. Variables, formula, result. Officer can adjust with justification. |
-| Award Registry | All active awards. Filter by benefit type, status, payment method. |
-| Award Detail | Award lifecycle: activation, suspension, cessation, COLA adjustment, beneficiary management. |
-| Payment Batch | Create payment runs, generate bank files, mark as paid. Links to existing `cn_*` tables. |
-| Medical Board | Referral queue, assessment forms, disability rating entry. |
-| Service Cases | Cross-benefit inquiries, appeals, change requests. |
+### Step 4: Decision Action Panel (Component)
+`src/components/bn/claim/ClaimDecisionPanel.tsx` -- renders inside Claim360:
+- Shows available action buttons based on `useBnAvailableActions`
+- Clicking an action opens a modal with: reason code dropdown (filtered by action), narrative textarea (required/optional per rule), effective date picker (if required), confirmation
+- Blocked transitions show tooltip explaining why (e.g., "Documents incomplete", "Eligibility check required")
+- Maker-checker actions show "Pending Second Approval" badge after first action
 
-### Self-Service (Contributor Portal -- future)
+### Step 5: Decision Audit Timeline
+`src/components/bn/claim/ClaimDecisionTimeline.tsx` -- read-only chronological view:
+- Each decision entry shows: action taken, from/to status, reason, narrative, officer, timestamp, effective date
+- Override decisions highlighted with amber indicator
+- Escalation events shown inline
+- Export button generates JSON/CSV snapshot of full decision history
 
-| Screen | Capability |
-|--------|-----------|
-| Apply for Benefit | Online application with product-driven dynamic form. |
-| My Claims | Track claim status, upload documents. |
-| My Payments | View payment history. |
+### Step 6: Workbasket / Queue UI
+`src/pages/bn/claims/ClaimQueue.tsx`:
+- Left sidebar: list of workbaskets the user has access to (role-filtered)
+- Main area: claims in selected queue with priority sorting, SLA countdown, overdue highlighting
+- Pick/release buttons for claim assignment
+- Bulk reassignment for supervisors
 
----
+### Step 7: Escalation & SLA Configuration (Admin)
+`src/components/bn/config/EscalationPolicyTab.tsx` -- added to Product Editor or standalone admin page:
+- CRUD for escalation policies
+- Trigger type configuration (SLA breach hours, manual thresholds)
+- Target role/queue selection
+- Notification template binding
 
-## 7. Technical Approach for Legacy Integration
+### Step 8: Integration with Existing Workflow Engine
+- Register `bn_claim` as a source module in `updateSourceRecordStatus()` inside `useWorkflowActions.ts`
+- Map generic workflow end states (Approved/Rejected) to benefit-specific status codes via `bn_claim_transition_rule`
+- When generic workflow completes an action, call `executeTransition()` to maintain the BN decision audit trail in parallel
 
-### Contributor Data
-- All claims reference `ip_master.ssn`. No duplication of person data.
-- `ContributorLookup` component queries `ip_master` for SSN search.
-- `ContributionSummary` component queries `ip_wages` grouped by period for eligibility checks.
+### Step 9: Admin Configuration Screens
+- Reason Code Management: CRUD page at `/bn/config/reason-codes`
+- Status Definition Management: CRUD page at `/bn/config/statuses`
+- Transition Rule Matrix: Visual grid showing from/to status combinations with role assignments
+- Workbasket Management: CRUD at `/bn/config/workbaskets`
 
-### Contribution Verification
-- Eligibility engine queries `ip_wages` directly:
-  - Total weeks: `SELECT COUNT(*) FROM ip_wages WHERE ssn = ?`
-  - Recent weeks: `SELECT COUNT(*) FROM ip_wages WHERE ssn = ? AND week_ending >= ?`
-  - Average earnings: `SELECT AVG(wages) FROM ip_wages WHERE ssn = ? AND week_ending BETWEEN ? AND ?`
-- These become RPCs: `bn_get_contribution_summary(p_ssn, p_from_date, p_to_date)`
-
-### Employer Verification
-- `bn_claim.employer_regno` links to `er_master.regno`
-- Employment verification requests create workflow tasks for employer liaison role
-
-### Payment Settlement
-- `bn_payment_instruction` generates records that feed into existing `cn_receipt` / `cn_batch` for actual disbursement
-- Alternatively, benefit payments use their own `bn_payment_batch` with bank file export, reconciled separately
-
-### Legacy Data Import
-- `bn_claim` includes `source VARCHAR DEFAULT 'NEW'` and `legacy_claim_ref TEXT`
-- Import script can populate historical claims with `source = 'LEGACY'` for continuity reporting
-
----
-
-## 8. Phased Build Plan
-
-### Phase 1: Foundation (Database + Product Catalog + Claim Registration)
-**Tables**: `bn_product`, `bn_product_version`, `bn_eligibility_rule`, `bn_calculation_rule`, `bn_timeline_rule`, `bn_document_rule`, `bn_claim`, `bn_claim_detail`, `bn_claim_document`, `bn_claim_event`, `bn_claim_eligibility`, `bn_claim_calculation`, `bn_claim_note`
-
-**Screens**: Product Catalog, Product Editor (migrate from `BenefitRuleEditor`), Claim Registration, Claim Worklist, Claim 360 (migrate from `Claim360View`)
-
-**Engines**: Eligibility Engine (client-side evaluation against rules from `bn_eligibility_rule`), Calculation Engine (formula/tier evaluation)
-
-**Integration**: `ip_master` lookup, `ip_wages` contribution queries, workflow binding for claim approval, audit triggers on all `bn_*` tables
-
-### Phase 2: Awards + Payments + Medical Board
-**Tables**: `bn_award`, `bn_award_beneficiary`, `bn_award_review`, `bn_payment_instruction`, `bn_payment_batch`, `bn_medical_referral`, `bn_medical_assessment`
-
-**Screens**: Award Registry, Award Detail, Payment Batch, Medical Board Queue, Assessment Form
-
-**Integration**: Payment batch to `cn_*` tables, notification triggers for award activation/suspension
-
-### Phase 3: Post-Award Servicing + Service Cases + Cleanup
-**Tables**: `bn_overpayment`, `bn_service_case`, `bn_service_case_event`, `bn_country_pack`
-
-**Screens**: Post-Award Review Schedule, Overpayment Recovery, Service Cases, Country Pack Manager
-
-**Cleanup**: Deprecate `src/pages/benefits/`, `src/pages/nbenefit/`, `src/pages/newBenefit/`. Remove `NewBenefitAuthContext`, `newBenefitService.ts`, mock data files.
-
-### Phase 4: Self-Service Portal + Analytics
-**Screens**: Online application portal, contributor claim tracking, payment history dashboard, benefit analytics/reporting
+### Step 10: Navigation & Permissions
+- Add Queue, Escalation, Decision Config to `bnMenuItems.ts`
+- Gate admin config screens with `PermissionWrapper`
+- Gate action buttons with role checks from `bn_claim_transition_rule.allowed_roles`
 
 ---
 
-## 9. Assumptions and Open Questions
+## Key Design Decisions
 
-### Assumptions
-1. No existing benefit/claim data in the database -- all current screens use mock data. We are building the persistence layer from scratch.
-2. The existing workflow engine (`workflow_definitions`, `workflow_steps`, `workflow_instances`) is mature enough to handle benefit claim workflows via workflow bindings.
-3. `ip_wages` contains accurate contribution history sufficient for eligibility checks. No secondary contribution source.
-4. The `cn_*` (cashier/payment) tables can be used for benefit disbursement, or benefit payments will be tracked separately with bank file export.
-5. SKN Social Security Act rules as defined in existing `benefitRulesConfig.ts` types are the correct rule model for Phase 1.
-6. All benefit rules are stored as configuration data -- no hardcoded business rules in screens.
-7. `user_code` (VARCHAR 50) is used for all audit fields per existing standards.
+1. **No silent status changes**: Every `bn_claim.status` update MUST go through `executeTransition()` which writes a `bn_claim_decision` record. Direct updates to the status column are prohibited in application code.
 
-### Open Questions
+2. **Dual audit**: `bn_claim_decision` provides the rich domain audit (reason, narrative, snapshots). The DB trigger `fn_audit_row_change` on `bn_claim` provides the technical field-level audit. Both coexist.
 
-| # | Question | Impact |
-|---|----------|--------|
-| 1 | **Are there legacy claim records in an external system (MS-SQL) that need to be imported?** If yes, we need an import script and `legacy_claim_ref` mapping. |
-| 2 | **Should benefit payments go through the existing `cn_receipt`/`cn_batch` cashier flow, or have a separate payment channel?** This affects whether we create `bn_payment_batch` or integrate with `cn_batch`. |
-| 3 | **Is the Medical Board module a standalone bounded context or embedded within benefits?** Current `MedicalBoardHub` is under `newBenefit` -- should it be its own top-level module? |
-| 4 | **What is the intended claim numbering scheme?** e.g., `BN-SICK-2026-00001` or a flat sequence? |
-| 5 | **Are there specific SKN legislative amendments that require versioned rules retroactively?** This determines whether the version-resolution logic needs backdating support. |
-| 6 | **Should the online application portal be public (unauthenticated) or require contributor login?** Affects route placement and security model. |
-| 7 | **What is the expected volume?** (claims/month, active awards) -- affects pagination strategy and whether we need materialized views for dashboards. |
+3. **Effective date vs performed date**: Some decisions (e.g., suspension) take effect on a future date. `effective_date` captures this; `performed_at` is always the actual action timestamp.
+
+4. **Blocked transition handling**: `getAvailableTransitions()` returns all potentially valid actions but marks blocked ones with a `blocked: true` flag and `blockedReason` string. The UI renders these as disabled buttons with tooltips.
+
+5. **Generic workflow bridge**: The existing `useWorkflowActions` / `useExecuteWorkflowAction` hook is used for step routing. The BN decision engine is called as a side-effect to maintain benefit-specific audit. This avoids duplicating the workflow step machinery.
+
+6. **Exportable audit snapshot**: The decision timeline export includes `bn_claim_decision` rows plus the referenced `bn_claim_eligibility` and `bn_claim_calculation` snapshots, producing a self-contained audit package.
+
+---
+
+## Files to Create / Modify
+
+| Action | File |
+|--------|------|
+| Create | `supabase/migrations/..._bn_decision_engine.sql` (8 tables + seeds) |
+| Create | `src/services/bn/decisionEngine.ts` |
+| Create | `src/services/bn/workbasketService.ts` |
+| Create | `src/hooks/bn/useBnDecisionEngine.ts` |
+| Create | `src/hooks/bn/useBnWorkbasket.ts` |
+| Create | `src/components/bn/claim/ClaimDecisionPanel.tsx` |
+| Create | `src/components/bn/claim/ClaimDecisionTimeline.tsx` |
+| Create | `src/pages/bn/claims/ClaimQueue.tsx` |
+| Create | `src/pages/bn/config/ReasonCodes.tsx` |
+| Create | `src/pages/bn/config/TransitionMatrix.tsx` |
+| Create | `src/pages/bn/config/WorkbasketConfig.tsx` |
+| Create | `src/pages/bn/config/EscalationConfig.tsx` |
+| Modify | `src/types/bn.ts` -- add 8 new interfaces + action enum |
+| Modify | `src/pages/bn/claims/Claim360.tsx` -- integrate DecisionPanel + DecisionTimeline |
+| Modify | `src/hooks/useWorkflowActions.ts` -- add `bn_claim` to `updateSourceRecordStatus` |
+| Modify | `src/components/routing/AppRoutes.tsx` -- add new routes |
+| Modify | `src/components/sidebar/menuItems/bnMenuItems.ts` -- add nav items |
 
