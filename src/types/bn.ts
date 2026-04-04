@@ -804,3 +804,108 @@ export const BN_EVIDENCE_ACTIONS = ['UPLOAD', 'VERIFY', 'REJECT', 'WAIVE', 'REQU
 export const BN_DOC_CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'] as const;
 export const BN_REQUIREMENT_LEVELS = ['MANDATORY', 'OPTIONAL', 'WAIVABLE'] as const;
 export const BN_EVIDENCE_STAGES = ['INTAKE', 'EVIDENCE_REVIEW', 'DECISION', 'POST_AWARD', 'PERIODIC_REVIEW'] as const;
+
+// ── Multi-Country Platform Types ──
+
+export interface BnCountryIdRule {
+  id: string;
+  country_code: string;
+  id_type: string;
+  id_label: string;
+  format_pattern: string;
+  format_mask: string;
+  digit_length: number;
+  has_check_digit: boolean;
+  check_digit_algorithm: string | null;
+  example_value: string | null;
+  is_primary: boolean;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnCountryAddressField {
+  id: string;
+  country_code: string;
+  field_code: string;
+  field_label: string;
+  field_type: string;
+  is_required: boolean;
+  options_source: string | null;
+  validation_pattern: string | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnCountryParticipantType {
+  id: string;
+  country_code: string;
+  type_code: string;
+  type_name: string;
+  participant_role: string;
+  min_age: number | null;
+  max_age: number | null;
+  requires_id: boolean;
+  requires_relationship_proof: boolean;
+  allowed_products: string[] | null;
+  sort_order: number;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnCountryPaymentConfig {
+  id: string;
+  country_code: string;
+  payment_method: string;
+  method_label: string;
+  is_default: boolean;
+  requires_bank_account: boolean;
+  requires_mobile_number: boolean;
+  processing_days: number;
+  cut_off_day: number | null;
+  payment_cycle: string;
+  calendar_config: Record<string, unknown>;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnCountryLegalRef {
+  id: string;
+  country_code: string;
+  ref_code: string;
+  ref_title: string;
+  ref_section: string | null;
+  ref_url: string | null;
+  applicable_products: string[] | null;
+  effective_from: string;
+  effective_to: string | null;
+  version_number: number;
+  supersedes_id: string | null;
+  notes: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnCountryPack {
+  country: BnCountry;
+  idRules: BnCountryIdRule[];
+  addressModel: BnCountryAddressField[];
+  participantTypes: BnCountryParticipantType[];
+  paymentConfig: BnCountryPaymentConfig[];
+  legalRefs: BnCountryLegalRef[];
+  schemes: BnScheme[];
+  products: BnProduct[];
+  docTypes: BnServiceDocType[];
+  reasonCodes: BnReasonCode[];
+}
+
+export const BN_PARTICIPANT_ROLES = ['CLAIMANT', 'BENEFICIARY', 'EMPLOYER', 'WITNESS', 'GUARANTOR'] as const;
+export const BN_ID_TYPES = ['SSN', 'NATIONAL_ID', 'TAX_ID', 'PASSPORT'] as const;
+export const BN_ADDRESS_FIELD_TYPES = ['TEXT', 'SELECT', 'POSTAL'] as const;
+export const BN_PAYMENT_METHODS = ['EFT', 'CHEQUE', 'CASH', 'MOBILE_MONEY'] as const;
+export const BN_PAYMENT_CYCLES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
