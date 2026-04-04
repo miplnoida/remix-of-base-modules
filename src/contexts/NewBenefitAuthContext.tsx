@@ -128,7 +128,12 @@ const rolePermissions: Record<UserRole, string[]> = {
     'make_decisions',
     'approve_claims',
     'view_team_queues',
-    'reassign_claims'
+    'reassign_claims',
+    'view_simulations',
+    'create_scenarios',
+    'run_simulations',
+    'view_sim_traces',
+    'view_sim_audit'
   ],
   PAYMENTS_OFFICER: [
     'view_payments',
