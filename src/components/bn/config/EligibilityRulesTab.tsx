@@ -125,9 +125,10 @@ export function EligibilityRulesTab({ versionId }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Data Source</Label>
-              <Select value={editing.data_source || ''} onValueChange={v => updateEditing('data_source', v)}>
+              <Select value={editing.data_source || '__none__'} onValueChange={v => updateEditing('data_source', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
                   <SelectItem value="ip_wages">ip_wages (Contributions)</SelectItem>
                   <SelectItem value="ip_master">ip_master (Person)</SelectItem>
                   <SelectItem value="er_master">er_master (Employer)</SelectItem>

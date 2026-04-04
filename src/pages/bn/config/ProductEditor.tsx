@@ -207,9 +207,10 @@ export default function ProductEditor() {
               </div>
               <div className="space-y-2">
                 <Label>Branch</Label>
-                <Select value={form.branch_id || ''} onValueChange={v => updateField('branch_id', v)}>
+                <Select value={form.branch_id || '__none__'} onValueChange={v => updateField('branch_id', v === '__none__' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
                     {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
