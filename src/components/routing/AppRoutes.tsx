@@ -638,6 +638,10 @@ import BnRuleConfiguration from '@/pages/bn/config/RuleConfiguration';
 import BnFormulaConfiguration from '@/pages/bn/config/FormulaConfiguration';
 import BnDocumentSetup from '@/pages/bn/config/DocumentSetup';
 import BnScreenMetadataSetup from '@/pages/bn/config/ScreenMetadataSetup';
+import BnSimulationDashboard from '@/pages/bn/simulation/SimulationDashboard';
+import BnScenarioBuilder from '@/pages/bn/simulation/ScenarioBuilder';
+import BnRunSimulation from '@/pages/bn/simulation/RunSimulation';
+import BnSimulationResult from '@/pages/bn/simulation/SimulationResultSummary';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
