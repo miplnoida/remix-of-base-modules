@@ -5,7 +5,7 @@ import * as configService from '@/services/bn/configService';
 export const useBnCountries = () => useQuery({ queryKey: ['bn', 'countries'], queryFn: configService.fetchCountries });
 
 // Schemes
-export const useBnSchemes = () => useQuery({ queryKey: ['bn', 'schemes'], queryFn: configService.fetchSchemes });
+export const useBnSchemes = (countryCode?: string) => useQuery({ queryKey: ['bn', 'schemes', countryCode], queryFn: () => configService.fetchSchemes(countryCode) });
 
 // Branches
 export const useBnBranches = (schemeId?: string) => useQuery({
