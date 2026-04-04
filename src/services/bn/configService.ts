@@ -48,8 +48,10 @@ export const upsertRuleGroup = async (rg: Partial<BnRuleGroup>): Promise<BnRuleG
 };
 
 // ---- Formula Templates ----
-export const fetchFormulaTemplates = async (): Promise<BnFormulaTemplate[]> => {
-  const { data, error } = await db.from('bn_formula_template').select('*').order('template_name');
+export const fetchFormulaTemplates = async (countryCode?: string): Promise<BnFormulaTemplate[]> => {
+  let q = db.from('bn_formula_template').select('*').order('template_name');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };
