@@ -627,8 +627,8 @@ export async function saveCalculationSnapshot(
     const lines = calcOutput.formulaResult.steps.map((step, i) => ({
       calculation_id: data.id,
       line_number: i + 1,
-      line_code: step.stepCode || `STEP_${i + 1}`,
-      line_label: step.description || step.stepCode || `Step ${i + 1}`,
+      line_code: `STEP_${step.stepNumber ?? i + 1}`,
+      line_label: step.description || `Step ${i + 1}`,
       formula_expression: step.formula || null,
       input_values: step.inputs ?? {},
       output_value: step.result ?? 0,
