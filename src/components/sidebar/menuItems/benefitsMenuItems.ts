@@ -15,6 +15,12 @@ export const benefitsMenuItems = [
     icon: Heart,
     subItems: [
       {
+        title: "Person 360",
+        url: "/bn/person-360",
+        icon: UserCircle,
+        requiresPermission: "benefits_management"
+      },
+      {
         title: "All Benefits",
         url: "/benefits/all",
         icon: Heart,
