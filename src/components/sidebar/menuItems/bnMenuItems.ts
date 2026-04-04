@@ -13,6 +13,10 @@ import {
   AlertTriangle,
   Layers,
   FileCheck,
+  MapPin,
+  CreditCard,
+  Scale,
+  Flag,
 } from "lucide-react";
 
 export const bnMenuItems = [
