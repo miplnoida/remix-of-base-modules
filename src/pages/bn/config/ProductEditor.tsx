@@ -146,6 +146,7 @@ export default function ProductEditor() {
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__">Select version</SelectItem>
                 {versions.map((v: BnProductVersion) => (
                   <SelectItem key={v.id} value={v.id}>
                     V{v.version_number} — {v.effective_from} {v.effective_to ? `to ${v.effective_to}` : '(open)'} [{v.status}]
