@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, User, FileText, Calculator, CheckCircle2, Clock, MessageSquare, Shield } from 'lucide-react';
-import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, useBnClaimCalculations, useBnClaimDocuments } from '@/hooks/bn/useBnClaim';
+import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, useBnClaimCalculations } from '@/hooks/bn/useBnClaim';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ClaimDecisionPanel } from '@/components/bn/claim/ClaimDecisionPanel';
 import { ClaimDecisionTimeline } from '@/components/bn/claim/ClaimDecisionTimeline';
+import { EvidenceChecklist } from '@/components/bn/evidence/EvidenceChecklist';
+import { EvidenceAuditTimeline } from '@/components/bn/evidence/EvidenceAuditTimeline';
 
 export default function Claim360() {
   const { id } = useParams();
