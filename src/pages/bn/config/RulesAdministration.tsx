@@ -186,7 +186,7 @@ export default function RulesAdministration() {
             <Card>
               <CardContent className="p-0">
                 {filtered.length === 0 ? (
-                  <BnEmptyState title="No rule versions found" description="Create a new product version to get started." />
+                  <BnEmptyState type="no-data" title="No rule versions found" description="Create a new product version to get started." />
                 ) : (
                   <Table>
                     <TableHeader>

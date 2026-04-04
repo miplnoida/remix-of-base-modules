@@ -533,6 +533,7 @@ export async function simulateVersionRules(
     ssn: string;
     claimDate: string;
     productId: string;
+    countryCode?: string;
     contributionWeeks?: number;
     averageWeeklyWage?: number;
   }
@@ -545,6 +546,7 @@ export async function simulateVersionRules(
     productId: simulationInput.productId,
     productVersionId: versionId,
     claimDate: simulationInput.claimDate,
+    countryCode: simulationInput.countryCode || 'KN',
     mode: 'SIMULATION',
   });
 }
