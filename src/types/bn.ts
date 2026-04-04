@@ -525,3 +525,179 @@ export const BN_OVERRIDE_TARGETS = [
   { value: 'TIMELINE', label: 'Timeline' },
   { value: 'PAYMENT', label: 'Payment' },
 ];
+
+// --- Decision Engine Types ---
+
+export type BnActionCode =
+  | 'SUBMIT' | 'VERIFY' | 'APPROVE' | 'DENY' | 'SUSPEND'
+  | 'SEND_BACK' | 'ESCALATE' | 'HOLD' | 'RELEASE' | 'REOPEN'
+  | 'DISCONTINUE' | 'DISALLOW' | 'WITHDRAW';
+
+export const BN_ACTION_LABELS: Record<BnActionCode, string> = {
+  SUBMIT: 'Submit',
+  VERIFY: 'Verify / Advance',
+  APPROVE: 'Approve',
+  DENY: 'Deny',
+  SUSPEND: 'Suspend',
+  SEND_BACK: 'Send Back',
+  ESCALATE: 'Escalate',
+  HOLD: 'Hold',
+  RELEASE: 'Release',
+  REOPEN: 'Reopen',
+  DISCONTINUE: 'Discontinue',
+  DISALLOW: 'Disallow',
+  WITHDRAW: 'Withdraw',
+};
+
+export const BN_ACTION_VARIANTS: Record<string, 'default' | 'destructive' | 'outline' | 'secondary'> = {
+  SUBMIT: 'default',
+  VERIFY: 'default',
+  APPROVE: 'default',
+  DENY: 'destructive',
+  SUSPEND: 'destructive',
+  SEND_BACK: 'outline',
+  ESCALATE: 'secondary',
+  HOLD: 'outline',
+  RELEASE: 'default',
+  REOPEN: 'secondary',
+  DISCONTINUE: 'destructive',
+  DISALLOW: 'destructive',
+  WITHDRAW: 'outline',
+};
+
+export interface BnClaimStatusDef {
+  id: string;
+  status_code: string;
+  status_label: string;
+  status_group: string;
+  is_terminal: boolean;
+  requires_effective_date: boolean;
+  display_order: number;
+  color_code: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnClaimTransitionRule {
+  id: string;
+  from_status: string;
+  to_status: string;
+  action_code: string;
+  action_label: string;
+  allowed_roles: string[];
+  product_category: string | null;
+  country_code: string | null;
+  requires_reason: boolean;
+  requires_narrative: boolean;
+  requires_maker_checker: boolean;
+  requires_evidence_complete: boolean;
+  requires_eligibility_pass: boolean;
+  requires_calculation: boolean;
+  min_override_level: number | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface BnReasonCode {
+  id: string;
+  reason_code: string;
+  reason_label: string;
+  reason_category: string;
+  applicable_actions: string[];
+  requires_narrative: boolean;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnClaimDecision {
+  id: string;
+  claim_id: string;
+  transition_rule_id: string | null;
+  action_code: string;
+  from_status: string;
+  to_status: string;
+  reason_code_id: string | null;
+  narrative: string | null;
+  effective_date: string | null;
+  override_id: string | null;
+  workflow_instance_id: string | null;
+  workflow_task_id: string | null;
+  evidence_snapshot: Record<string, unknown>;
+  eligibility_snapshot_id: string | null;
+  calculation_snapshot_id: string | null;
+  performed_by: string;
+  performed_at: string;
+  ip_address: string | null;
+  // Joined
+  reason_code?: BnReasonCode;
+}
+
+export interface BnWorkbasket {
+  id: string;
+  basket_code: string;
+  basket_name: string;
+  description: string | null;
+  assigned_role: string;
+  product_category: string | null;
+  country_code: string | null;
+  priority_rules: Record<string, unknown>;
+  max_capacity: number | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnClaimQueueAssignment {
+  id: string;
+  claim_id: string;
+  workbasket_id: string;
+  assigned_to: string | null;
+  assigned_at: string;
+  priority: number;
+  due_at: string | null;
+  picked_at: string | null;
+  completed_at: string | null;
+  is_active: boolean;
+  // Joined
+  bn_claim?: BnClaim;
+  bn_workbasket?: BnWorkbasket;
+}
+
+export interface BnEscalationPolicy {
+  id: string;
+  policy_code: string;
+  policy_name: string;
+  trigger_type: string;
+  trigger_config: Record<string, unknown>;
+  escalation_target_role: string;
+  escalation_target_basket_id: string | null;
+  auto_reassign: boolean;
+  notification_template_id: string | null;
+  severity: string;
+  product_category: string | null;
+  country_code: string | null;
+  is_active: boolean;
+  entered_by: string | null;
+  entered_at: string;
+}
+
+export interface BnEscalationEvent {
+  id: string;
+  claim_id: string;
+  policy_id: string;
+  trigger_reason: string;
+  escalated_from_user: string | null;
+  escalated_to_role: string;
+  escalated_at: string;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+}
+
+export interface BnAvailableAction {
+  rule: BnClaimTransitionRule;
+  blocked: boolean;
+  blockedReason: string | null;
+}

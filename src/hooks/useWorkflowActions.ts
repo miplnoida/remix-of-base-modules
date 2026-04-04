@@ -1270,6 +1270,38 @@ async function updateSourceRecordStatus(
 
       console.log(`Card machine change request ${sourceRecordId} status updated to ${newStatus}`);
     }
+  } else if (sourceModule === 'bn_claim') {
+    // Benefit claim workflow
+    let newStatus: string | null = null;
+
+    if (configuredResultStatus) {
+      newStatus = configuredResultStatus;
+    } else if (endState === 'Approved') {
+      newStatus = 'APPROVED';
+    } else if (endState === 'Rejected') {
+      newStatus = 'DENIED';
+    } else if (endState === 'Query') {
+      newStatus = 'PENDING_INFO';
+    }
+
+    if (newStatus) {
+      const { error } = await (supabase as any)
+        .from('bn_claim')
+        .update({
+          status: newStatus,
+          modified_by: userId,
+          modified_at: new Date().toISOString(),
+          ...(endState === 'Approved' ? { decision_date: new Date().toISOString() } : {}),
+        })
+        .eq('id', sourceRecordId);
+
+      if (error) {
+        console.error('Error updating bn_claim status:', error);
+        throw error;
+      }
+
+      console.log(`BN claim ${sourceRecordId} status updated to ${newStatus}`);
+    }
   }
   // Add other module handlers as needed
 }

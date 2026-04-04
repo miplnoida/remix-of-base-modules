@@ -2194,6 +2194,891 @@ export type Database = {
           },
         ]
       }
+      bn_claim: {
+        Row: {
+          assigned_to: string | null
+          bank_account: string | null
+          bank_routing_number: string | null
+          claim_date: string
+          claim_number: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          decision_date: string | null
+          declaration: boolean
+          digital_signature: string | null
+          employer_regno: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          legacy_claim_ref: string | null
+          modified_at: string
+          modified_by: string | null
+          priority: string
+          product_id: string
+          product_version_id: string | null
+          source: string
+          ssn: string
+          status: string
+          submission_date: string | null
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          bank_account?: string | null
+          bank_routing_number?: string | null
+          claim_date?: string
+          claim_number?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          decision_date?: string | null
+          declaration?: boolean
+          digital_signature?: string | null
+          employer_regno?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          legacy_claim_ref?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          priority?: string
+          product_id: string
+          product_version_id?: string | null
+          source?: string
+          ssn: string
+          status?: string
+          submission_date?: string | null
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          bank_account?: string | null
+          bank_routing_number?: string | null
+          claim_date?: string
+          claim_number?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          decision_date?: string | null
+          declaration?: boolean
+          digital_signature?: string | null
+          employer_regno?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          legacy_claim_ref?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          priority?: string
+          product_id?: string
+          product_version_id?: string | null
+          source?: string
+          ssn?: string
+          status?: string
+          submission_date?: string | null
+          workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
+      bn_claim_calculation: {
+        Row: {
+          annual_rate: number | null
+          average_weekly_wage: number | null
+          calc_date: string
+          claim_id: string
+          daily_rate: number | null
+          entered_at: string
+          entered_by: string | null
+          formula_code: string | null
+          formula_version: number | null
+          id: string
+          inputs: Json | null
+          lump_sum: number | null
+          monthly_rate: number | null
+          outputs: Json | null
+          override_applied: boolean
+          override_by: string | null
+          override_reason: string | null
+          product_version_id: string | null
+          qualifying_weeks: number | null
+          total_contributions: number | null
+          weekly_rate: number | null
+        }
+        Insert: {
+          annual_rate?: number | null
+          average_weekly_wage?: number | null
+          calc_date?: string
+          claim_id: string
+          daily_rate?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_code?: string | null
+          formula_version?: number | null
+          id?: string
+          inputs?: Json | null
+          lump_sum?: number | null
+          monthly_rate?: number | null
+          outputs?: Json | null
+          override_applied?: boolean
+          override_by?: string | null
+          override_reason?: string | null
+          product_version_id?: string | null
+          qualifying_weeks?: number | null
+          total_contributions?: number | null
+          weekly_rate?: number | null
+        }
+        Update: {
+          annual_rate?: number | null
+          average_weekly_wage?: number | null
+          calc_date?: string
+          claim_id?: string
+          daily_rate?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_code?: string | null
+          formula_version?: number | null
+          id?: string
+          inputs?: Json | null
+          lump_sum?: number | null
+          monthly_rate?: number | null
+          outputs?: Json | null
+          override_applied?: boolean
+          override_by?: string | null
+          override_reason?: string | null
+          product_version_id?: string | null
+          qualifying_weeks?: number | null
+          total_contributions?: number | null
+          weekly_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_calculation_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_decision: {
+        Row: {
+          action_code: string
+          calculation_snapshot_id: string | null
+          claim_id: string
+          effective_date: string | null
+          eligibility_snapshot_id: string | null
+          evidence_snapshot: Json | null
+          from_status: string
+          id: string
+          ip_address: string | null
+          narrative: string | null
+          override_id: string | null
+          performed_at: string
+          performed_by: string
+          reason_code_id: string | null
+          to_status: string
+          transition_rule_id: string | null
+          workflow_instance_id: string | null
+          workflow_task_id: string | null
+        }
+        Insert: {
+          action_code: string
+          calculation_snapshot_id?: string | null
+          claim_id: string
+          effective_date?: string | null
+          eligibility_snapshot_id?: string | null
+          evidence_snapshot?: Json | null
+          from_status: string
+          id?: string
+          ip_address?: string | null
+          narrative?: string | null
+          override_id?: string | null
+          performed_at?: string
+          performed_by: string
+          reason_code_id?: string | null
+          to_status: string
+          transition_rule_id?: string | null
+          workflow_instance_id?: string | null
+          workflow_task_id?: string | null
+        }
+        Update: {
+          action_code?: string
+          calculation_snapshot_id?: string | null
+          claim_id?: string
+          effective_date?: string | null
+          eligibility_snapshot_id?: string | null
+          evidence_snapshot?: Json | null
+          from_status?: string
+          id?: string
+          ip_address?: string | null
+          narrative?: string | null
+          override_id?: string | null
+          performed_at?: string
+          performed_by?: string
+          reason_code_id?: string | null
+          to_status?: string
+          transition_rule_id?: string | null
+          workflow_instance_id?: string | null
+          workflow_task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_decision_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_claim_decision_reason_code_id_fkey"
+            columns: ["reason_code_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reason_code"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_claim_decision_transition_rule_id_fkey"
+            columns: ["transition_rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_transition_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_detail: {
+        Row: {
+          claim_id: string
+          detail_json: Json
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          detail_json?: Json
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          detail_json?: Json
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_detail_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: true
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_document: {
+        Row: {
+          claim_id: string
+          document_name: string | null
+          document_type_code: string
+          entered_at: string
+          entered_by: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          verified: boolean
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          document_name?: string | null
+          document_type_code: string
+          entered_at?: string
+          entered_by?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          document_name?: string | null
+          document_type_code?: string
+          entered_at?: string
+          entered_by?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_document_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_eligibility: {
+        Row: {
+          check_date: string
+          claim_id: string
+          contribution_summary: Json | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          overall_result: boolean
+          override_applied: boolean
+          override_by: string | null
+          override_reason: string | null
+          product_version_id: string | null
+          rule_results: Json
+        }
+        Insert: {
+          check_date?: string
+          claim_id: string
+          contribution_summary?: Json | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          overall_result?: boolean
+          override_applied?: boolean
+          override_by?: string | null
+          override_reason?: string | null
+          product_version_id?: string | null
+          rule_results?: Json
+        }
+        Update: {
+          check_date?: string
+          claim_id?: string
+          contribution_summary?: Json | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          overall_result?: boolean
+          override_applied?: boolean
+          override_by?: string | null
+          override_reason?: string | null
+          product_version_id?: string | null
+          rule_results?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_eligibility_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_event: {
+        Row: {
+          claim_id: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          performed_at: string
+          performed_by: string
+          to_status: string | null
+        }
+        Insert: {
+          claim_id: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          performed_at?: string
+          performed_by: string
+          to_status?: string | null
+        }
+        Update: {
+          claim_id?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_event_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_note: {
+        Row: {
+          body: string
+          claim_id: string
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_internal: boolean
+          subject: string | null
+        }
+        Insert: {
+          body: string
+          claim_id: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_internal?: boolean
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          claim_id?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_internal?: boolean
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_note_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_queue_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_to: string | null
+          claim_id: string
+          completed_at: string | null
+          due_at: string | null
+          id: string
+          is_active: boolean
+          picked_at: string | null
+          priority: number
+          workbasket_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_to?: string | null
+          claim_id: string
+          completed_at?: string | null
+          due_at?: string | null
+          id?: string
+          is_active?: boolean
+          picked_at?: string | null
+          priority?: number
+          workbasket_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_to?: string | null
+          claim_id?: string
+          completed_at?: string | null
+          due_at?: string | null
+          id?: string
+          is_active?: boolean
+          picked_at?: string | null
+          priority?: number
+          workbasket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_queue_assignment_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_claim_queue_assignment_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_status_def: {
+        Row: {
+          color_code: string | null
+          display_order: number
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          is_terminal: boolean
+          modified_at: string
+          modified_by: string | null
+          requires_effective_date: boolean
+          status_code: string
+          status_group: string
+          status_label: string
+        }
+        Insert: {
+          color_code?: string | null
+          display_order?: number
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          requires_effective_date?: boolean
+          status_code: string
+          status_group: string
+          status_label: string
+        }
+        Update: {
+          color_code?: string | null
+          display_order?: number
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          requires_effective_date?: boolean
+          status_code?: string
+          status_group?: string
+          status_label?: string
+        }
+        Relationships: []
+      }
+      bn_claim_transition_rule: {
+        Row: {
+          action_code: string
+          action_label: string
+          allowed_roles: string[]
+          country_code: string | null
+          entered_at: string
+          entered_by: string | null
+          from_status: string
+          id: string
+          is_active: boolean
+          min_override_level: number | null
+          modified_at: string
+          modified_by: string | null
+          product_category: string | null
+          requires_calculation: boolean
+          requires_eligibility_pass: boolean
+          requires_evidence_complete: boolean
+          requires_maker_checker: boolean
+          requires_narrative: boolean
+          requires_reason: boolean
+          sort_order: number
+          to_status: string
+        }
+        Insert: {
+          action_code: string
+          action_label: string
+          allowed_roles?: string[]
+          country_code?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          from_status: string
+          id?: string
+          is_active?: boolean
+          min_override_level?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          product_category?: string | null
+          requires_calculation?: boolean
+          requires_eligibility_pass?: boolean
+          requires_evidence_complete?: boolean
+          requires_maker_checker?: boolean
+          requires_narrative?: boolean
+          requires_reason?: boolean
+          sort_order?: number
+          to_status: string
+        }
+        Update: {
+          action_code?: string
+          action_label?: string
+          allowed_roles?: string[]
+          country_code?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          from_status?: string
+          id?: string
+          is_active?: boolean
+          min_override_level?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          product_category?: string | null
+          requires_calculation?: boolean
+          requires_eligibility_pass?: boolean
+          requires_evidence_complete?: boolean
+          requires_maker_checker?: boolean
+          requires_narrative?: boolean
+          requires_reason?: boolean
+          sort_order?: number
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_transition_rule_from_status_fkey"
+            columns: ["from_status"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_status_def"
+            referencedColumns: ["status_code"]
+          },
+          {
+            foreignKeyName: "bn_claim_transition_rule_to_status_fkey"
+            columns: ["to_status"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_status_def"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      bn_escalation_event: {
+        Row: {
+          claim_id: string
+          escalated_at: string
+          escalated_from_user: string | null
+          escalated_to_role: string
+          id: string
+          policy_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          trigger_reason: string
+        }
+        Insert: {
+          claim_id: string
+          escalated_at?: string
+          escalated_from_user?: string | null
+          escalated_to_role: string
+          id?: string
+          policy_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          trigger_reason: string
+        }
+        Update: {
+          claim_id?: string
+          escalated_at?: string
+          escalated_from_user?: string | null
+          escalated_to_role?: string
+          id?: string
+          policy_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          trigger_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_escalation_event_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_escalation_event_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "bn_escalation_policy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_escalation_policy: {
+        Row: {
+          auto_reassign: boolean
+          country_code: string | null
+          entered_at: string
+          entered_by: string | null
+          escalation_target_basket_id: string | null
+          escalation_target_role: string
+          id: string
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          notification_template_id: string | null
+          policy_code: string
+          policy_name: string
+          product_category: string | null
+          severity: string
+          trigger_config: Json
+          trigger_type: string
+        }
+        Insert: {
+          auto_reassign?: boolean
+          country_code?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          escalation_target_basket_id?: string | null
+          escalation_target_role: string
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          notification_template_id?: string | null
+          policy_code: string
+          policy_name: string
+          product_category?: string | null
+          severity?: string
+          trigger_config?: Json
+          trigger_type: string
+        }
+        Update: {
+          auto_reassign?: boolean
+          country_code?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          escalation_target_basket_id?: string | null
+          escalation_target_role?: string
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          notification_template_id?: string | null
+          policy_code?: string
+          policy_name?: string
+          product_category?: string | null
+          severity?: string
+          trigger_config?: Json
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_escalation_policy_escalation_target_basket_id_fkey"
+            columns: ["escalation_target_basket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_reason_code: {
+        Row: {
+          applicable_actions: string[]
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          reason_category: string
+          reason_code: string
+          reason_label: string
+          requires_narrative: boolean
+        }
+        Insert: {
+          applicable_actions?: string[]
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          reason_category: string
+          reason_code: string
+          reason_label: string
+          requires_narrative?: boolean
+        }
+        Update: {
+          applicable_actions?: string[]
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          reason_category?: string
+          reason_code?: string
+          reason_label?: string
+          requires_narrative?: boolean
+        }
+        Relationships: []
+      }
+      bn_workbasket: {
+        Row: {
+          assigned_role: string
+          basket_code: string
+          basket_name: string
+          country_code: string | null
+          description: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          max_capacity: number | null
+          modified_at: string
+          modified_by: string | null
+          priority_rules: Json | null
+          product_category: string | null
+        }
+        Insert: {
+          assigned_role: string
+          basket_code: string
+          basket_name: string
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_capacity?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          priority_rules?: Json | null
+          product_category?: string | null
+        }
+        Update: {
+          assigned_role?: string
+          basket_code?: string
+          basket_name?: string
+          country_code?: string | null
+          description?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_capacity?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          priority_rules?: Json | null
+          product_category?: string | null
+        }
+        Relationships: []
+      }
       c3_api_keys: {
         Row: {
           client_email: string | null
