@@ -311,10 +311,10 @@ const ExternalApiManagement: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Execution Logs</CardTitle>
-              <Select value={selectedApiId || ''} onValueChange={setSelectedApiId}>
+              <Select value={selectedApiId || '__all__'} onValueChange={(v) => setSelectedApiId(v === '__all__' ? null : v)}>
                 <SelectTrigger className="w-80"><SelectValue placeholder="Filter by API" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All APIs</SelectItem>
+                  <SelectItem value="__all__">All APIs</SelectItem>
                   {(apis || []).map((a) => <SelectItem key={a.id} value={a.id}>{a.api_name}</SelectItem>)}
                 </SelectContent>
               </Select>

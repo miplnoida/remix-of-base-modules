@@ -46,10 +46,10 @@ export function WorkflowTab({ versionId }: Props) {
       <CardContent className="space-y-6">
         <div className="space-y-2 max-w-md">
           <Label>Workflow Template</Label>
-          <Select value={form.workflow_template_id} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v }))}>
+          <Select value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
             <SelectTrigger><SelectValue placeholder="Select workflow template" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name} ({t.template_code})</SelectItem>)}
             </SelectContent>
           </Select>

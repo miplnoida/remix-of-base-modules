@@ -42,10 +42,10 @@ export function ScreenTemplateTab({ versionId }: Props) {
       <CardContent className="space-y-6">
         <div className="space-y-2 max-w-md">
           <Label>Screen Template</Label>
-          <Select value={selectedId} onValueChange={setSelectedId}>
+          <Select value={selectedId || '__none__'} onValueChange={(v) => setSelectedId(v === '__none__' ? '' : v)}>
             <SelectTrigger><SelectValue placeholder="Select screen template" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name} ({t.template_code})</SelectItem>)}
             </SelectContent>
           </Select>

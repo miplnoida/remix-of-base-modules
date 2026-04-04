@@ -163,15 +163,15 @@ function EditSecurityDialog({ workflow, onClose }: EditDialogProps) {
           <div className="space-y-2">
             <Label>Secured Table</Label>
             <Select
-              value={selectedTable}
-              onValueChange={setSelectedTable}
+              value={selectedTable || '__none__'}
+              onValueChange={(v) => setSelectedTable(v === '__none__' ? '' : v)}
               disabled={!selectedModuleId}
             >
               <SelectTrigger>
                 <SelectValue placeholder={selectedModuleId ? 'Select table' : 'Select a module first'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {tables?.map((t) => (
                   <SelectItem key={t.table_name} value={t.table_name}>
                     {t.display_name}

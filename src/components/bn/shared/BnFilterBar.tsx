@@ -52,13 +52,13 @@ export const BnFilterBar: React.FC<BnFilterBarProps> = ({
       </div>
 
       {filters.map((filter) => (
-        <Select key={filter.key} value={filter.value} onValueChange={filter.onChange}>
+        <Select key={filter.key} value={filter.value || '__all__'} onValueChange={(v) => filter.onChange(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-[160px]">
             <SlidersHorizontal className="mr-2 h-3.5 w-3.5" />
             <SelectValue placeholder={filter.label} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All {filter.label}</SelectItem>
+            <SelectItem value="__all__">All {filter.label}</SelectItem>
             {filter.options.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
