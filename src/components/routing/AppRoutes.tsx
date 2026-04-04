@@ -626,6 +626,7 @@ import BnBenefitDetermination from '@/pages/bn/claims/BenefitDetermination';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 import BnApprovalConsole from '@/pages/bn/approval/ApprovalConsole';
 import BnEntitlementManagement from '@/pages/bn/entitlement/EntitlementManagement';
+import BnPayablesQueue from '@/pages/bn/payables/PayablesQueue';
 import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
 import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
 import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
