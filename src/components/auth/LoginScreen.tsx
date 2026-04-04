@@ -212,7 +212,7 @@ export const LoginScreen = () => {
   // Don't block the login form while auth is loading — it's a public route.
   // Only redirect after auth resolves (handled by useEffect above).
 
-  if (isAuthenticated && !hasRedirected.current) {
+  if (shouldShowRedirectingState) {
     return (
       <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
         <div className="text-center">
