@@ -50,6 +50,13 @@ export const bnMenuItems = [
         description: "Review and approve benefit decisions",
       },
       {
+        title: "Entitlements",
+        url: "/bn/entitlements",
+        icon: Shield,
+        requiresPermission: "benefits_management",
+        description: "Manage approved benefit rights and lifecycle",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
