@@ -45,7 +45,7 @@ export function EvidenceActionDialog({ open, onOpenChange, action, evidenceId, d
       return;
     }
 
-    const code = userCode || 'SYSTEM';
+    const code = userCode ?? 'SYSTEM';
 
     try {
       switch (action) {

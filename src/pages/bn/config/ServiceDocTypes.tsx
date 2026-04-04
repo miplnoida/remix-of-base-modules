@@ -19,7 +19,7 @@ const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYM
 
 export default function ServiceDocTypes() {
   const { toast } = useToast();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const { data: types = [], isLoading } = useBnServiceDocTypes();
   const upsertMutation = useUpsertServiceDocType();
   const deleteMutation = useDeleteServiceDocType();

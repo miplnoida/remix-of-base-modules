@@ -1337,6 +1337,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
       <Route path="/bn/config/escalation" element={<ProtectedLayout><BnEscalationConfig /></ProtectedLayout>} />
+      <Route path="/bn/config/service-doc-types" element={<ProtectedLayout><BnServiceDocTypes /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}

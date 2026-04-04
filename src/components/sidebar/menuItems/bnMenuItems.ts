@@ -85,6 +85,13 @@ export const bnMenuItems = [
             requiresPermission: "benefits_management",
             description: "Configure SLA breach and manual escalation rules",
           },
+          {
+            title: "Service Document Types",
+            url: "/bn/config/service-doc-types",
+            icon: FileCheck,
+            requiresPermission: "benefits_management",
+            description: "Manage special document types for benefit claims",
+          },
         ],
       },
     ],

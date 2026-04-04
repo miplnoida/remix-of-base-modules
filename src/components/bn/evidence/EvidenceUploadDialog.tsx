@@ -74,7 +74,7 @@ export function EvidenceUploadDialog({
         requirementId: requirementId || null,
         source,
         notes: notes.trim() || undefined,
-        enteredBy: userCode || 'SYSTEM',
+        enteredBy: userCode ?? 'SYSTEM',
       });
       toast({ title: 'Document uploaded successfully' });
       onOpenChange(false);
