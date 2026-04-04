@@ -248,11 +248,15 @@ export async function getClientIP(): Promise<string> {
 
   ipFetchPromise = (async () => {
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+      clearTimeout(timeout);
       const data = await res.json();
       cachedIP = data.ip || 'unknown';
       return cachedIP!;
     } catch {
+      cachedIP = 'unknown';
       return 'unknown';
     } finally {
       ipFetchPromise = null;
