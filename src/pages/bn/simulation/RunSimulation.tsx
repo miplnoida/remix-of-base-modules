@@ -11,6 +11,8 @@ import { useBnSimScenario, useBnSimRuns, useExecuteSimulation } from '@/hooks/bn
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import type { BnSimInputParam, BnSimRun } from '@/types/bnSimulation';
 import { toast } from 'sonner';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const RUN_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PENDING: 'outline',
