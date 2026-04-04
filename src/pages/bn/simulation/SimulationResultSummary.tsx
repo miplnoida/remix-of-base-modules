@@ -9,6 +9,7 @@ import { useBnSimRun, useBnSimRunOutputs, useBnSimRunInputs, useBnSimRuleTrace, 
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import SimRuleTraceView from '@/components/bn/simulation/SimRuleTraceView';
 import SimFormulaTraceView from '@/components/bn/simulation/SimFormulaTraceView';
+import SimConfigSnapshotViewer from '@/components/bn/simulation/SimConfigSnapshotViewer';
 
 export default function SimulationResultSummary() {
   const { id: scenarioId, runId } = useParams<{ id: string; runId: string }>();
