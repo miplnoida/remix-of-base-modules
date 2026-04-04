@@ -1,0 +1,238 @@
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Upload, CheckCircle2, XCircle, ShieldOff, HelpCircle, AlertTriangle, FileText } from 'lucide-react';
+import { useBnClaimEvidence, useBnEvidenceChecklist, useBnIsEvidenceComplete } from '@/hooks/bn/useBnEvidence';
+import { EvidenceStatusBadge } from './EvidenceStatusBadge';
+import { EvidenceUploadDialog } from './EvidenceUploadDialog';
+import { EvidenceActionDialog } from './EvidenceActionDialog';
+import type { BnClaimEvidence, BnEvidenceChecklist as ChecklistType } from '@/types/bn';
+
+interface Props {
+  claimId: string;
+  userRoles?: string[];
+}
+
+export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
+  const { data: evidence = [], isLoading: loadingEvidence } = useBnClaimEvidence(claimId);
+  const { data: checklist = [], isLoading: loadingChecklist } = useBnEvidenceChecklist(claimId);
+  const { data: isComplete } = useBnIsEvidenceComplete(claimId);
+
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadContext, setUploadContext] = useState<{ typeCode?: string; name?: string; requirementId?: string; extensions?: string[]; maxSize?: number }>({});
+  const [actionOpen, setActionOpen] = useState(false);
+  const [actionType, setActionType] = useState<'VERIFY' | 'REJECT' | 'WAIVE' | 'REQUEST_INFO'>('VERIFY');
+  const [selectedEvidence, setSelectedEvidence] = useState<BnClaimEvidence | null>(null);
+
+  const canVerify = userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r));
+  const canWaive = userRoles.some(r => ['Admin', 'SUPERVISOR', 'MANAGER'].includes(r));
+
+  const blockingCount = checklist.filter((c: ChecklistType) => c.is_blocking).length;
+
+  const openUpload = (ctx?: typeof uploadContext) => {
+    setUploadContext(ctx || {});
+    setUploadOpen(true);
+  };
+
+  const openAction = (type: typeof actionType, ev: BnClaimEvidence) => {
+    setActionType(type);
+    setSelectedEvidence(ev);
+    setActionOpen(true);
+  };
+
+  const isLoading = loadingEvidence || loadingChecklist;
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" /> Evidence & Documents
+            </CardTitle>
+            <CardDescription>
+              {isComplete === true
+                ? 'All mandatory documents have been verified'
+                : isComplete === false
+                  ? `${blockingCount} mandatory document(s) still outstanding`
+                  : 'Loading evidence status...'}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {isComplete === true ? (
+              <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Evidence Complete</Badge>
+            ) : isComplete === false ? (
+              <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> {blockingCount} Blocking</Badge>
+            ) : null}
+            <Button onClick={() => openUpload()} className="gap-2"><Upload className="h-4 w-4" /> Upload Document</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-muted-foreground py-4">Loading evidence...</p>
+          ) : (
+            <>
+              {/* Checklist Section */}
+              {checklist.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Requirements Checklist</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Document</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {checklist.map((item: any) => {
+                        const req = item.bn_doc_requirement;
+                        return (
+                          <TableRow key={item.id} className={item.is_blocking ? 'bg-destructive/5' : ''}>
+                            <TableCell>
+                              <div>
+                                <span className="font-medium">{req?.document_type_code || 'Unknown'}</span>
+                                {req?.description && <p className="text-xs text-muted-foreground mt-0.5">{req.description}</p>}
+                              </div>
+                            </TableCell>
+                            <TableCell><Badge variant="outline">{req?.stage || '-'}</Badge></TableCell>
+                            <TableCell>
+                              <Badge variant={req?.requirement_level === 'MANDATORY' ? 'destructive' : req?.requirement_level === 'WAIVABLE' ? 'warning' : 'secondary'}>
+                                {req?.requirement_level || 'OPTIONAL'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell><EvidenceStatusBadge status={item.status} /></TableCell>
+                            <TableCell>
+                              {item.status === 'OUTSTANDING' && (
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => openUpload({
+                                  typeCode: req?.document_type_code,
+                                  name: req?.document_type_code,
+                                  requirementId: item.requirement_id,
+                                  extensions: req?.allowed_extensions,
+                                  maxSize: req?.max_file_size_mb,
+                                })}>
+                                  <Upload className="h-3 w-3" /> Upload
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* All Evidence */}
+              <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">All Evidence ({evidence.length})</h4>
+              {evidence.length === 0 ? (
+                <p className="text-muted-foreground text-center py-6">No evidence documents uploaded yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead className="w-36">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {evidence.map((ev: BnClaimEvidence) => (
+                      <TableRow key={ev.id} className={ev.status === 'EXPIRED' ? 'bg-warning/5' : ''}>
+                        <TableCell>
+                          <div>
+                            <span className="font-medium">{ev.document_name}</span>
+                            {ev.file_name && <p className="text-xs text-muted-foreground">{ev.file_name}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{ev.document_type_code}</TableCell>
+                        <TableCell><Badge variant="outline">{ev.source}</Badge></TableCell>
+                        <TableCell><EvidenceStatusBadge status={ev.status} /></TableCell>
+                        <TableCell className="text-sm">{ev.expires_at || '—'}</TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <div className="flex gap-1">
+                              {ev.status === 'RECEIVED' && canVerify && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" onClick={() => openAction('VERIFY', ev)}>
+                                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Verify</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {ev.status === 'RECEIVED' && canVerify && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" onClick={() => openAction('REJECT', ev)}>
+                                      <XCircle className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reject</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {(ev.status === 'RECEIVED' || ev.status === 'REJECTED') && canWaive && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" onClick={() => openAction('WAIVE', ev)}>
+                                      <ShieldOff className="h-4 w-4 text-warning" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Waive</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {ev.status !== 'VERIFIED' && ev.status !== 'WAIVED' && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" onClick={() => openAction('REQUEST_INFO', ev)}>
+                                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Request More Info</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </TooltipProvider>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <EvidenceUploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        claimId={claimId}
+        preselectedTypeCode={uploadContext.typeCode}
+        preselectedName={uploadContext.name}
+        requirementId={uploadContext.requirementId}
+        allowedExtensions={uploadContext.extensions}
+        maxFileSizeMb={uploadContext.maxSize}
+      />
+
+      {selectedEvidence && (
+        <EvidenceActionDialog
+          open={actionOpen}
+          onOpenChange={setActionOpen}
+          action={actionType}
+          evidenceId={selectedEvidence.id}
+          documentName={selectedEvidence.document_name}
+        />
+      )}
+    </>
+  );
+}
