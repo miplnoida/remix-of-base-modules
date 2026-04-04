@@ -141,9 +141,9 @@ function EditSecurityDialog({ workflow, onClose }: EditDialogProps) {
           <div className="space-y-2">
             <Label>Secured Module</Label>
             <Select
-              value={selectedModuleId}
+              value={selectedModuleId || '__none__'}
               onValueChange={(value) => {
-                setSelectedModuleId(value);
+                setSelectedModuleId(value === '__none__' ? '' : value);
                 setSelectedTable('');
               }}
             >
@@ -151,7 +151,7 @@ function EditSecurityDialog({ workflow, onClose }: EditDialogProps) {
                 <SelectValue placeholder="Select module (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {modules?.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.display_name}
@@ -163,15 +163,15 @@ function EditSecurityDialog({ workflow, onClose }: EditDialogProps) {
           <div className="space-y-2">
             <Label>Secured Table</Label>
             <Select
-              value={selectedTable}
-              onValueChange={setSelectedTable}
+              value={selectedTable || '__none__'}
+              onValueChange={(v) => setSelectedTable(v === '__none__' ? '' : v)}
               disabled={!selectedModuleId}
             >
               <SelectTrigger>
                 <SelectValue placeholder={selectedModuleId ? 'Select table' : 'Select a module first'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {tables?.map((t) => (
                   <SelectItem key={t.table_name} value={t.table_name}>
                     {t.display_name}
