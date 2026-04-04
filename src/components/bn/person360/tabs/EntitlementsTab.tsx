@@ -29,7 +29,12 @@ interface EntitlementsTabProps {
 
 export const EntitlementsTab: React.FC<EntitlementsTabProps> = ({ entitlements, isLoading }) => (
   <div className="space-y-4">
-    <div className="rounded-lg border overflow-hidden">
+    <div className="flex items-center justify-between">
+      <h3 className="text-sm font-medium text-muted-foreground">Benefit Entitlements</h3>
+      <Button variant="outline" size="sm" asChild>
+        <Link to="/bn/entitlements">Manage All Entitlements</Link>
+      </Button>
+    </div>
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
