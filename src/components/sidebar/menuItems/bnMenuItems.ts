@@ -57,6 +57,13 @@ export const bnMenuItems = [
         description: "Manage approved benefit rights and lifecycle",
       },
       {
+        title: "Payables Queue",
+        url: "/bn/payables",
+        icon: CreditCard,
+        requiresPermission: "benefits_management",
+        description: "Manage payable instructions before payment issue",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
