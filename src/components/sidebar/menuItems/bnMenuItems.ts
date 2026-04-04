@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   Shield,
   CalendarDays,
+  Package,
 } from "lucide-react";
 
 export const bnMenuItems = [
