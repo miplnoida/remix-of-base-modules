@@ -78,15 +78,15 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async getDependants(ssn: string): Promise<Dependant[]> {
     const { data, error } = await db
       .from('ip_dependants')
-      .select('ssn, first_name, surname, relationship, date_of_birth, gender')
-      .eq('parent_ssn', ssn.trim());
+      .select('dep_ssn, dep_firstname, dep_surname, relationship, dep_dob, dep_sex')
+      .eq('ssn', ssn.trim());
     if (error) throw error;
     return (data ?? []).map((d: any) => ({
-      ssn: d.ssn,
-      fullName: `${d.first_name || ''} ${d.surname || ''}`.trim(),
+      ssn: d.dep_ssn,
+      fullName: `${d.dep_firstname || ''} ${d.dep_surname || ''}`.trim(),
       relationship: d.relationship,
-      dateOfBirth: d.date_of_birth,
-      gender: d.gender || 'N',
+      dateOfBirth: d.dep_dob,
+      gender: d.dep_sex || 'N',
     }));
   },
 };
