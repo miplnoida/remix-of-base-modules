@@ -8,8 +8,10 @@
  */
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { Link } from 'react-router-dom';
 import type { Person360Entitlement } from '@/services/bn/person360Service';
 
 const entitlementStatusColor: Record<string, string> = {
@@ -27,6 +29,12 @@ interface EntitlementsTabProps {
 
 export const EntitlementsTab: React.FC<EntitlementsTabProps> = ({ entitlements, isLoading }) => (
   <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <h3 className="text-sm font-medium text-muted-foreground">Benefit Entitlements</h3>
+      <Button variant="outline" size="sm" asChild>
+        <Link to="/bn/entitlements">Manage All Entitlements</Link>
+      </Button>
+    </div>
     <div className="rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>

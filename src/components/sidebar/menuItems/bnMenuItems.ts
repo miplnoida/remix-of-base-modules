@@ -22,6 +22,7 @@ import {
   FolderOpen,
   TestTube2,
   ClipboardCheck,
+  Shield,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -47,6 +48,13 @@ export const bnMenuItems = [
         icon: ClipboardCheck,
         requiresPermission: "benefits_management",
         description: "Review and approve benefit decisions",
+      },
+      {
+        title: "Entitlements",
+        url: "/bn/entitlements",
+        icon: Shield,
+        requiresPermission: "benefits_management",
+        description: "Manage approved benefit rights and lifecycle",
       },
       {
         title: "Register New Claim",
