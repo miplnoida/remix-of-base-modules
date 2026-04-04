@@ -20,6 +20,7 @@ import {
   BookOpen,
   Monitor,
   FolderOpen,
+  TestTube2,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -176,6 +177,13 @@ export const bnMenuItems = [
             description: "Governing legislation with versioning",
           },
         ],
+      },
+      {
+        title: "Simulation Engine",
+        url: "/bn/simulation",
+        icon: TestTube2,
+        requiresPermission: "benefits_management",
+        description: "Test benefit products in an isolated sandbox",
       },
     ],
   },
