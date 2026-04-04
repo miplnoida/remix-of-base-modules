@@ -89,6 +89,13 @@ export const bnMenuItems = [
         description: "Issue outbound benefit disbursements to cl_cheques",
       },
       {
+        title: "Post-Issue Review",
+        url: "/bn/post-issue",
+        icon: ListChecks,
+        requiresPermission: "benefits_management",
+        description: "Complete claim-side updates after payment issue",
+      },
+      {
         title: "Register New Claim",
         url: "/bn/intake/register",
         icon: FileText,
