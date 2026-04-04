@@ -98,9 +98,12 @@ export function CalculationRulesTab({ versionId }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Formula Template</Label>
-              <Select value={editing.formula_template_id || ''} onValueChange={v => update('formula_template_id', v)}>
+              <Select value={editing.formula_template_id || '__none__'} onValueChange={v => update('formula_template_id', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                <SelectContent>{templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
