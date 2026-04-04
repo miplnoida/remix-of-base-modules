@@ -21,7 +21,7 @@ export const useUpsertBnRuleGroup = () => {
 };
 
 // Formula Templates
-export const useBnFormulaTemplates = () => useQuery({ queryKey: ['bn', 'formula-templates'], queryFn: configService.fetchFormulaTemplates });
+export const useBnFormulaTemplates = (countryCode?: string) => useQuery({ queryKey: ['bn', 'formula-templates', countryCode], queryFn: () => configService.fetchFormulaTemplates(countryCode) });
 export const useUpsertBnFormulaTemplate = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.upsertFormulaTemplate, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'formula-templates'] }) });
