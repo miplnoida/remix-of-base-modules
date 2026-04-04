@@ -1354,6 +1354,7 @@ export const AppRoutes = () => {
       <Route path="/bn/engine" element={<ProtectedLayout><BnCalculationEngine /></ProtectedLayout>} />
       <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
       <Route path="/bn/queue" element={<ProtectedLayout><BnClaimQueue /></ProtectedLayout>} />
+      <Route path="/bn/approval" element={<ProtectedLayout><BnApprovalConsole /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
