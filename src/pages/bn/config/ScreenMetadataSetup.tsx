@@ -17,7 +17,8 @@ import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
 export default function ScreenMetadataSetup() {
   const [search, setSearch] = useState('');
   const { data: screens = [], isLoading: screensLoading } = useBnScreenTemplates();
-  const { data: fields = [], isLoading: fieldsLoading } = useBnFieldMetadata();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+  const { data: fields = [], isLoading: fieldsLoading } = useBnFieldMetadata(selectedTemplateId);
 
   const filteredScreens = screens.filter((s: any) =>
     !search || s.template_name?.toLowerCase().includes(search.toLowerCase())
