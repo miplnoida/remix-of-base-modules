@@ -33,8 +33,10 @@ export const fetchBranches = async (schemeId?: string): Promise<BnBranch[]> => {
 };
 
 // ---- Rule Groups ----
-export const fetchRuleGroups = async (): Promise<BnRuleGroup[]> => {
-  const { data, error } = await db.from('bn_rule_group').select('*').order('sort_order');
+export const fetchRuleGroups = async (countryCode?: string): Promise<BnRuleGroup[]> => {
+  let q = db.from('bn_rule_group').select('*').order('sort_order');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };
