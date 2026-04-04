@@ -15,8 +15,10 @@ export const fetchCountries = async (): Promise<BnCountry[]> => {
 };
 
 // ---- Scheme ----
-export const fetchSchemes = async (): Promise<BnScheme[]> => {
-  const { data, error } = await db.from('bn_scheme').select('*').order('sort_order');
+export const fetchSchemes = async (countryCode?: string): Promise<BnScheme[]> => {
+  let q = db.from('bn_scheme').select('*').order('sort_order');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };
