@@ -84,7 +84,7 @@ export default function Claim360() {
             <FileText className="h-8 w-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Documents</p>
-              <p className="text-lg font-semibold">{documents.length}</p>
+              <p className="text-lg font-semibold">—</p>
             </div>
           </CardContent>
         </Card>
