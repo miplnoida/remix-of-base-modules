@@ -41,11 +41,11 @@ export const bnPersonAdapter: IBnPersonAdapter = {
   async getPersonDOB(ssn: string): Promise<string | null> {
     const { data, error } = await db
       .from('ip_master')
-      .select('date_of_birth')
+      .select('dob')
       .eq('ssn', ssn.trim())
       .maybeSingle();
     if (error) throw error;
-    return data?.date_of_birth ?? null;
+    return data?.dob ?? null;
   },
 
   async getPersonStatus(ssn: string): Promise<string> {
