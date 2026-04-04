@@ -5,7 +5,7 @@ import * as configService from '@/services/bn/configService';
 export const useBnCountries = () => useQuery({ queryKey: ['bn', 'countries'], queryFn: configService.fetchCountries });
 
 // Schemes
-export const useBnSchemes = () => useQuery({ queryKey: ['bn', 'schemes'], queryFn: configService.fetchSchemes });
+export const useBnSchemes = (countryCode?: string) => useQuery({ queryKey: ['bn', 'schemes', countryCode], queryFn: () => configService.fetchSchemes(countryCode) });
 
 // Branches
 export const useBnBranches = (schemeId?: string) => useQuery({
@@ -14,14 +14,14 @@ export const useBnBranches = (schemeId?: string) => useQuery({
 });
 
 // Rule Groups
-export const useBnRuleGroups = () => useQuery({ queryKey: ['bn', 'rule-groups'], queryFn: configService.fetchRuleGroups });
+export const useBnRuleGroups = (countryCode?: string) => useQuery({ queryKey: ['bn', 'rule-groups', countryCode], queryFn: () => configService.fetchRuleGroups(countryCode) });
 export const useUpsertBnRuleGroup = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.upsertRuleGroup, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'rule-groups'] }) });
 };
 
 // Formula Templates
-export const useBnFormulaTemplates = () => useQuery({ queryKey: ['bn', 'formula-templates'], queryFn: configService.fetchFormulaTemplates });
+export const useBnFormulaTemplates = (countryCode?: string) => useQuery({ queryKey: ['bn', 'formula-templates', countryCode], queryFn: () => configService.fetchFormulaTemplates(countryCode) });
 export const useUpsertBnFormulaTemplate = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.upsertFormulaTemplate, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'formula-templates'] }) });

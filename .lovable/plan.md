@@ -1,247 +1,175 @@
-
-
-# Benefit Documents & Evidence Module
+# Multi-Country Benefit Platform Design
 
 ## Summary
 
-Expand the existing `bn_claim_document` (simple upload tracker) into a full evidence management subsystem with configurable requirements per product version and stage, a multi-status document lifecycle, waiver authority, expiry tracking, file validation, and special service document support. Integrate with the decision engine to gate transitions on evidence completeness.
+Refactor the Benefit Module from an SKN-first implementation into a reusable multi-country platform where new countries are onboarded through configuration packs, not code forks.
 
 ## Architecture
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│              DOCUMENTS & EVIDENCE ENGINE              │
-│                                                       │
-│  ┌─────────────────┐  ┌──────────────────────────┐   │
-│  │ Requirement      │  │ Transactional Evidence   │   │
-│  │ Config           │  │ (bn_claim_evidence)      │   │
-│  │ (bn_doc_req)     │  │                          │   │
-│  └─────────────────┘  └──────────────────────────┘   │
-│  ┌─────────────────┐  ┌──────────────────────────┐   │
-│  │ Evidence Status  │  │ Waiver / Authority       │   │
-│  │ Workflow         │  │ Model                    │   │
-│  └─────────────────┘  └──────────────────────────┘   │
-│  ┌─────────────────┐  ┌──────────────────────────┐   │
-│  │ Evidence Audit   │  │ Service Document         │   │
-│  │ Trail            │  │ Registry                 │   │
-│  └─────────────────┘  └──────────────────────────┘   │
-│                                                       │
-│  Gates: Decision Engine → requires_evidence_complete  │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    PLATFORM LAYER (Country-Agnostic)             │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │ Claim Engine │  │ Calc Engine  │  │ Decision/Workflow Eng  │ │
+│  │ (bn_claim)   │  │ (bn_calc_*)  │  │ (bn_claim_transition)  │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │ Evidence Eng │  │ Award/Pmt    │  │ Legacy Adapter Layer   │ │
+│  │ (bn_claim_*) │  │ (bn_award)   │  │ (bn_legacy_*)          │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│                                                                  │
+│  UI: CountryContext → filters all queries by active country      │
+│  Services: All fetch functions accept country_code parameter     │
+│  Types: Country-agnostic interfaces, country packs = config data │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│                    COUNTRY PACK LAYER (Config Data)               │
+│                                                                  │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────┐ │
+│  │ SKN Pack   │  │ Future:    │  │ Future:    │  │ Future:   │ │
+│  │ (Active)   │  │ Barbados   │  │ Dominica   │  │ Anguilla  │ │
+│  └────────────┘  └────────────┘  └────────────┘  └───────────┘ │
+│                                                                  │
+│  Each pack provides:                                             │
+│  • Scheme/Branch/Product catalogue                               │
+│  • ID validation rules (SSN format, length, checksum)            │
+│  • Address model (field names, required fields, postal format)    │
+│  • Participant types (claimant, beneficiary, dependent types)     │
+│  • Contribution/wage rules via rule groups                       │
+│  • Formula templates and calculation rules                       │
+│  • Workflow templates + transition rules                         │
+│  • Document types + evidence requirements                        │
+│  • Payment calendar + method registry                            │
+│  • Legal references with version tracking                        │
+│  • Reason codes per country                                      │
+│  • Locale/i18n overrides                                         │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Database Changes (Migration)
+## Current State Assessment
 
-### Table 1: `bn_doc_requirement` — Replaces loose `bn_document_rule`
+### Already Country-Scoped (Good ✅)
+- `bn_country` — country-level parameters (currency, ceiling, retirement age)
+- `bn_scheme` — FK to country_code
+- `bn_product` — FK to country_code
+- `bn_rule_group`, `bn_formula_template`, `bn_workflow_template`, `bn_screen_template`, `bn_document_profile` — all have `country_code`
+- `bn_claim_transition_rule`, `bn_workbasket`, `bn_escalation_policy` — all have `country_code`
+- Product versions inherit country through product → scheme → country chain
 
-Configurable per product_version + stage. Drives what documents a claim needs.
+### Missing / SKN-Hardcoded (Needs Work ⚠️)
+1. No country-specific ID rules — SSN length (6 digits) hardcoded in env vars
+2. No country-specific address model — address fields assume SKN format
+3. No participant type registry — claimant/beneficiary types are implicit
+4. No payment calendar table — schedules are config JSONB blobs
+5. No legal reference tracking — legislation refs are free-text
+6. `bn_service_doc_type` lacks country_code
+7. `bn_reason_code` lacks country_code
+8. No CountryContext in React — UI doesn't filter by active country
+9. Services don't pass country_code — fetchSchemes() returns all countries
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| product_version_id | uuid FK bn_product_version | |
-| document_type_code | varchar(30) | FK to `bn_service_doc_type` |
-| stage | varchar(30) | INTAKE, EVIDENCE_REVIEW, DECISION, POST_AWARD, PERIODIC_REVIEW |
-| requirement_level | varchar(20) | MANDATORY, OPTIONAL, WAIVABLE |
-| allowed_extensions | text[] | e.g. {pdf,jpg,png} |
-| max_file_size_mb | numeric(6,2) DEFAULT 10 | |
-| expiry_days | int NULL | If set, doc expires N days after upload |
-| requires_notarization | boolean DEFAULT false | |
-| description | text NULL | |
-| sort_order | int DEFAULT 0 | |
-| is_active | boolean DEFAULT true | |
-| entered_by / entered_at | audit | |
-
-### Table 2: `bn_service_doc_type` — Special document type registry
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| type_code | varchar(30) UNIQUE | LIFE_CERT, DEATH_CERT, SCHOOL_CERT, BANK_EFT, EMPLOYER_CONF, MEDICAL_CERT, PROOF_RELATION, SURVIVOR_CERT, BIRTH_CERT, ID_CARD, etc. |
-| type_name | varchar(100) | |
-| category | varchar(30) | IDENTITY, FINANCIAL, MEDICAL, RELATIONSHIP, EMPLOYMENT, PERIODIC |
-| default_expiry_days | int NULL | |
-| requires_witness | boolean DEFAULT false | |
-| description | text NULL | |
-| is_active | boolean DEFAULT true | |
-| entered_by / entered_at | audit | |
-
-Seeded with: LIFE_CERT, DEATH_CERT, SCHOOL_CERT, BANK_EFT, EMPLOYER_CONF, MEDICAL_CERT, PROOF_RELATION, BIRTH_CERT, ID_CARD, MARRIAGE_CERT, POLICE_REPORT, INJURY_REPORT.
-
-### Table 3: `bn_claim_evidence` — Replaces `bn_claim_document`
-
-Full transactional evidence tracking per claim.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| claim_id | uuid FK bn_claim | |
-| requirement_id | uuid FK bn_doc_requirement NULL | NULL for ad-hoc uploads |
-| document_type_code | varchar(30) | |
-| document_name | varchar(200) | |
-| file_name | varchar(300) NULL | |
-| file_path | text NULL | Storage path |
-| file_size | int NULL | |
-| mime_type | varchar(100) NULL | |
-| storage_bucket | varchar(100) NULL | |
-| checksum_sha256 | varchar(64) NULL | |
-| source | varchar(20) DEFAULT 'UPLOAD' | UPLOAD, SCAN, ONLINE, LEGACY, GENERATED |
-| status | varchar(20) DEFAULT 'RECEIVED' | RECEIVED, VERIFIED, REJECTED, WAIVED, PENDING_INFO, EXPIRED |
-| status_reason | text NULL | |
-| verified_by | varchar(50) NULL | |
-| verified_at | timestamptz NULL | |
-| rejected_by | varchar(50) NULL | |
-| rejected_at | timestamptz NULL | |
-| rejection_reason | text NULL | |
-| waived_by | varchar(50) NULL | |
-| waived_at | timestamptz NULL | |
-| waiver_reason | text NULL | |
-| waiver_authority_level | int NULL | |
-| expires_at | date NULL | Computed from requirement expiry_days |
-| metadata | jsonb DEFAULT '{}' | Notarization info, witness, etc. |
-| entered_by / entered_at, modified_by / modified_at | audit | |
-
-### Table 4: `bn_evidence_audit` — Immutable log of every evidence status change
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| evidence_id | uuid FK bn_claim_evidence | |
-| claim_id | uuid FK bn_claim | |
-| action | varchar(30) | UPLOAD, VERIFY, REJECT, WAIVE, REQUEST_INFO, EXPIRE, REPLACE, DELETE |
-| from_status | varchar(20) NULL | |
-| to_status | varchar(20) | |
-| reason | text NULL | |
-| performed_by | varchar(50) | |
-| performed_at | timestamptz DEFAULT now() | |
-
-### Table 5: `bn_evidence_checklist` — Materialized checklist view per claim
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| claim_id | uuid FK bn_claim | |
-| requirement_id | uuid FK bn_doc_requirement | |
-| evidence_id | uuid FK bn_claim_evidence NULL | Linked when fulfilled |
-| status | varchar(20) DEFAULT 'OUTSTANDING' | OUTSTANDING, FULFILLED, WAIVED, REJECTED, EXPIRED |
-| is_blocking | boolean | True if MANDATORY and not fulfilled/waived |
-| entered_at | timestamptz DEFAULT now() | |
-| modified_at | timestamptz DEFAULT now() | |
+### SKN Overfitting Risks
+| Area | Risk | Mitigation |
+|------|------|------------|
+| 6-digit SSN | Other countries use 9-11 digit IDs | `bn_country_id_rule` table |
+| EC$ currency | Some countries use USD, BBD | Already on `bn_country.currency_code` ✅ |
+| Weekly contribution cycle | Some countries use monthly | Configurable via rule groups ✅ |
+| Parish-based addresses | Others have states/provinces | `bn_country_address_model` table |
+| Age 62 retirement | Varies 60-67 | Already on `bn_country.default_retirement_age` ✅ |
 
 ---
 
-## Types (added to `src/types/bn.ts`)
+## Database Changes
 
-New interfaces: `BnServiceDocType`, `BnDocRequirement`, `BnClaimEvidence`, `BnEvidenceAudit`, `BnEvidenceChecklist`.
+### Table 1: `bn_country_id_rule`
+ID validation rules per country (SSN format, mask, length, check digit algorithm).
 
-New enums/constants: `BN_EVIDENCE_STATUSES`, `BN_EVIDENCE_ACTIONS`, `BN_DOC_CATEGORIES`, `BN_REQUIREMENT_LEVELS`, `BN_EVIDENCE_STAGES`.
+### Table 2: `bn_country_address_model`
+Address field definitions per country (field code, label, type, required, options source, validation pattern).
 
----
+### Table 3: `bn_country_participant_type`
+Claimant & beneficiary type registry (type code, role, age constraints, relationship proof requirements, allowed products).
 
-## Services
+### Table 4: `bn_country_payment_config`
+Payment methods & calendar per country (method, cycle, processing days, cut-off, calendar config).
 
-### `src/services/bn/evidenceService.ts`
-- `fetchDocRequirements(productVersionId, stage?)` — config requirements
-- `fetchClaimEvidence(claimId)` — all evidence for a claim
-- `uploadEvidence(claimId, file, meta)` — upload to Supabase Storage `bn-evidence` bucket, write `bn_claim_evidence`, compute SHA-256, set expiry, write audit
-- `verifyEvidence(evidenceId, userCode)` — set VERIFIED, write audit, update checklist
-- `rejectEvidence(evidenceId, reason, userCode)` — set REJECTED, write audit
-- `waiveEvidence(evidenceId, reason, authorityLevel, userCode)` — set WAIVED, write audit, update checklist
-- `requestMoreInfo(evidenceId, reason, userCode)` — set PENDING_INFO, write audit
-- `getEvidenceChecklist(claimId)` — returns checklist with blocking status
-- `isEvidenceComplete(claimId)` — boolean: all mandatory items fulfilled/waived
-- `generateEvidenceChecklist(claimId, productVersionId, stage)` — creates checklist rows from requirements
-- `fetchEvidenceAudit(claimId)` — full audit trail
-- `fetchServiceDocTypes()` — reference data CRUD
+### Table 5: `bn_country_legal_ref`
+Legislation tracking with versioning (ref code, title, section, URL, applicable products, effective dates, supersedes chain).
 
-### File validation strategy (client + service):
-- Client-side: extension check, file size check against `max_file_size_mb`
-- Service-side: MIME type validation, SHA-256 checksum generation
-- Future: virus scan hook (placeholder function `scanFile()` that returns `{clean: true}` for now, to be replaced with ClamAV/external API integration)
+### Schema Modifications
+- `bn_service_doc_type` — ADD `country_code`
+- `bn_reason_code` — ADD `country_code`
+- `bn_country` — ADD `locale`, `timezone`, `address_model_version`
 
 ---
 
-## Hooks — `src/hooks/bn/useBnEvidence.ts`
+## Source of Truth Strategy
 
-- `useBnDocRequirements(productVersionId, stage?)` — query
-- `useBnClaimEvidence(claimId)` — query
-- `useBnEvidenceChecklist(claimId)` — query
-- `useBnEvidenceAudit(claimId)` — query
-- `useBnServiceDocTypes()` — query
-- `useUploadEvidence()` — mutation
-- `useVerifyEvidence()` — mutation
-- `useRejectEvidence()` — mutation
-- `useWaiveEvidence()` — mutation
-- `useRequestMoreInfo()` — mutation
-- `useBnIsEvidenceComplete(claimId)` — derived boolean
+| Table | Source of Truth? |
+|-------|-----------------|
+| bn_country + pack tables | ✅ Platform config |
+| bn_scheme / bn_product | ✅ Config per country |
+| bn_product_version + rules | ✅ Versioned config |
+| bn_claim / bn_award | ✅ Operational data |
+| bn_legacy_claim_map | Metadata only |
+| ip_master / ip_wages | ✅ Read-only, never duplicated |
+
+---
+
+## Services & Hooks
+
+### `countryPackService.ts`
+- `fetchCountryPack(countryCode)` — full pack
+- Fetch + upsert for each entity
+- `validateIdByCountry(countryCode, idValue)`
+
+### `BnCountryContext.tsx`
+- Active country code, country pack, convenience accessors
+- All BN pages wrapped in `<BnCountryProvider>`
+- `validateId()` derived from country rules
+
+### Refactored `configService.ts`
+- All fetch functions gain optional `countryCode` parameter
 
 ---
 
 ## UI Components
 
-### 1. `src/components/bn/evidence/EvidenceChecklist.tsx`
-Main claim evidence workspace (used in Claim360 Documents tab):
-- Shows checklist grid: requirement name, category, level (mandatory/optional/waivable), status badge, linked file, actions
-- Upload button per row opens file picker with extension/size validation
-- Action buttons: Verify, Reject, Waive, Request Info (role-gated)
-- Waive action opens modal requiring reason + authority level
-- Expired documents highlighted in amber
-- "Evidence Complete" / "X items blocking" summary banner at top
-
-### 2. `src/components/bn/evidence/EvidenceUploadDialog.tsx`
-Upload modal:
-- File picker with drag-drop
-- Auto-selects document type from checklist context
-- Extension and size validation with inline errors
-- Source selector (Upload/Scan/Online)
-- Notes field
-- Progress indicator
-
-### 3. `src/components/bn/evidence/EvidenceActionDialog.tsx`
-Shared modal for Verify/Reject/Waive/RequestInfo:
-- Action-specific fields (reason required for reject/waive, authority level for waive)
-- Confirmation step
-- Role check before rendering action buttons
-
-### 4. `src/components/bn/evidence/EvidenceAuditTimeline.tsx`
-Read-only chronological view of all evidence actions:
-- Each entry: action, document name, from/to status, reason, user, timestamp
-- Color-coded by action type
-- Export to JSON/CSV
-
-### 5. `src/components/bn/evidence/EvidenceStatusBadge.tsx`
-Reusable badge with status-specific colors.
-
-### 6. Admin: `src/pages/bn/config/ServiceDocTypes.tsx`
-CRUD page for `bn_service_doc_type` reference data.
-
-### 7. Admin: Doc Requirement config already exists in `DocumentRulesTab.tsx`
-Extend to use `bn_doc_requirement` with the new fields (requirement_level, expiry_days, requires_notarization).
+1. `CountrySelector.tsx` — admin header dropdown
+2. `CountryPackDashboard.tsx` — pack completeness overview
+3. `DynamicAddressForm.tsx` — renders address from country model
+4. `DynamicIdInput.tsx` — renders ID input from country rules
+5. `ParticipantTypeSelector.tsx` — dropdown from participant types
+6. Admin CRUD pages for each pack entity
 
 ---
 
-## Integration Points
+## Global vs. Country-Specific
 
-### Decision Engine Gating
-The existing `bn_claim_transition_rule.requires_evidence_complete` flag is already checked in `decisionEngine.ts`. Update `validateTransitionPreconditions` to call `isEvidenceComplete(claimId)` from the new evidence service instead of the simple `bn_claim_document.verified` check.
-
-### Claim360 Integration
-Replace the existing Documents tab content with `EvidenceChecklist`. Add `EvidenceAuditTimeline` as a sub-tab.
-
-### Calculation Engine
-The calculation engine's eligibility layer already checks evidence state. Wire `isEvidenceComplete` into the `runEligibility` step so calculations are blocked if mandatory evidence is missing.
-
-### Storage
-Create a `bn-evidence` storage bucket for file uploads. Files stored at path: `{claim_id}/{evidence_id}/{file_name}`.
+| Layer | Global (Platform) | Country-Specific (Pack) |
+|-------|-------------------|------------------------|
+| Schema | Table structures | Seed data |
+| Engines | Calc, decision, evidence | Rules, formulas, transitions |
+| UI Components | EvidenceChecklist, Claim360 | DynamicAddressForm, DynamicIdInput |
+| Validation | Engine framework | ID patterns, address rules |
+| Workflow | State machine | Transition rules, SLAs |
+| Documents | Evidence engine | Doc types, requirements |
+| Payments | Award engine | Methods, calendars |
+| Legal | Reference framework | Legislation sections |
 
 ---
 
-## Navigation
+## Onboarding a New Country (Zero Code Changes)
 
-Add to `bnMenuItems.ts` under Configuration:
-- "Service Document Types" → `/bn/config/service-doc-types`
+1. Insert `bn_country` row
+2. Seed ID rules, address model, participant types, payment config, legal refs
+3. Create scheme(s) + branches + products + versions with rules
+4. Seed doc types + reason codes
+5. Seed transition rules + workbaskets
+6. Configure legacy adapters if applicable
 
 ---
 
@@ -249,19 +177,29 @@ Add to `bnMenuItems.ts` under Configuration:
 
 | Action | File |
 |--------|------|
-| Create | Migration SQL (5 tables + seeds + storage bucket) |
-| Create | `src/services/bn/evidenceService.ts` |
-| Create | `src/hooks/bn/useBnEvidence.ts` |
-| Create | `src/components/bn/evidence/EvidenceChecklist.tsx` |
-| Create | `src/components/bn/evidence/EvidenceUploadDialog.tsx` |
-| Create | `src/components/bn/evidence/EvidenceActionDialog.tsx` |
-| Create | `src/components/bn/evidence/EvidenceAuditTimeline.tsx` |
-| Create | `src/components/bn/evidence/EvidenceStatusBadge.tsx` |
-| Create | `src/pages/bn/config/ServiceDocTypes.tsx` |
-| Modify | `src/types/bn.ts` — add 5 interfaces + constants |
-| Modify | `src/pages/bn/claims/Claim360.tsx` — replace Documents tab with EvidenceChecklist |
-| Modify | `src/services/bn/decisionEngine.ts` — wire `isEvidenceComplete` |
-| Modify | `src/components/bn/config/DocumentRulesTab.tsx` — extend with new fields |
-| Modify | `src/components/routing/AppRoutes.tsx` — add ServiceDocTypes route |
-| Modify | `src/components/sidebar/menuItems/bnMenuItems.ts` — add nav item |
+| Create | Migration SQL (5 tables + ALTER + SKN seeds) |
+| Create | `src/services/bn/countryPackService.ts` |
+| Create | `src/hooks/bn/useBnCountryPack.ts` |
+| Create | `src/contexts/BnCountryContext.tsx` |
+| Create | `src/components/bn/country/CountrySelector.tsx` |
+| Create | `src/components/bn/country/CountryPackDashboard.tsx` |
+| Create | `src/components/bn/country/DynamicAddressForm.tsx` |
+| Create | `src/components/bn/country/DynamicIdInput.tsx` |
+| Create | `src/components/bn/country/ParticipantTypeSelector.tsx` |
+| Create | `src/pages/bn/config/country/*.tsx` (5 admin pages) |
+| Modify | `src/types/bn.ts` — add interfaces |
+| Modify | `src/services/bn/configService.ts` — country filtering |
+| Modify | `src/hooks/bn/useBnConfig.ts` — consume CountryContext |
+| Modify | `src/components/routing/AppRoutes.tsx` |
+| Modify | `src/components/sidebar/menuItems/bnMenuItems.ts` |
 
+---
+
+## Open Points
+
+1. Default country: SKN or require explicit selection?
+2. Multi-country users: Can one user work across countries?
+3. Cross-country transfers: Support CARICOM portability?
+4. Shared document types: Global or per-country?
+5. Locale/i18n: Non-English interfaces needed?
+6. Legacy adapters: Standardize interface now for future countries?

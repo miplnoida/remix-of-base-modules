@@ -15,8 +15,10 @@ export const fetchCountries = async (): Promise<BnCountry[]> => {
 };
 
 // ---- Scheme ----
-export const fetchSchemes = async (): Promise<BnScheme[]> => {
-  const { data, error } = await db.from('bn_scheme').select('*').order('sort_order');
+export const fetchSchemes = async (countryCode?: string): Promise<BnScheme[]> => {
+  let q = db.from('bn_scheme').select('*').order('sort_order');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };
@@ -31,8 +33,10 @@ export const fetchBranches = async (schemeId?: string): Promise<BnBranch[]> => {
 };
 
 // ---- Rule Groups ----
-export const fetchRuleGroups = async (): Promise<BnRuleGroup[]> => {
-  const { data, error } = await db.from('bn_rule_group').select('*').order('sort_order');
+export const fetchRuleGroups = async (countryCode?: string): Promise<BnRuleGroup[]> => {
+  let q = db.from('bn_rule_group').select('*').order('sort_order');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };
@@ -44,8 +48,10 @@ export const upsertRuleGroup = async (rg: Partial<BnRuleGroup>): Promise<BnRuleG
 };
 
 // ---- Formula Templates ----
-export const fetchFormulaTemplates = async (): Promise<BnFormulaTemplate[]> => {
-  const { data, error } = await db.from('bn_formula_template').select('*').order('template_name');
+export const fetchFormulaTemplates = async (countryCode?: string): Promise<BnFormulaTemplate[]> => {
+  let q = db.from('bn_formula_template').select('*').order('template_name');
+  if (countryCode) q = q.eq('country_code', countryCode);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 };

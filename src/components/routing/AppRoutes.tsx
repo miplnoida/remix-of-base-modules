@@ -628,6 +628,12 @@ import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
 import BnWorkbasketConfig from '@/pages/bn/config/WorkbasketConfig';
 import BnEscalationConfig from '@/pages/bn/config/EscalationConfig';
 import BnServiceDocTypes from '@/pages/bn/config/ServiceDocTypes';
+import BnCountryPackPage from '@/pages/bn/config/country/CountryPackPage';
+import BnCountryIdRules from '@/pages/bn/config/country/CountryIdRules';
+import BnCountryAddressModel from '@/pages/bn/config/country/CountryAddressModel';
+import BnCountryParticipantTypes from '@/pages/bn/config/country/CountryParticipantTypes';
+import BnCountryPaymentConfig from '@/pages/bn/config/country/CountryPaymentConfig';
+import BnCountryLegalRefs from '@/pages/bn/config/country/CountryLegalRefs';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
@@ -1338,6 +1344,12 @@ export const AppRoutes = () => {
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
       <Route path="/bn/config/escalation" element={<ProtectedLayout><BnEscalationConfig /></ProtectedLayout>} />
       <Route path="/bn/config/service-doc-types" element={<ProtectedLayout><BnServiceDocTypes /></ProtectedLayout>} />
+      <Route path="/bn/config/country" element={<ProtectedLayout><BnCountryPackPage /></ProtectedLayout>} />
+      <Route path="/bn/config/country/id-rules" element={<ProtectedLayout><BnCountryIdRules /></ProtectedLayout>} />
+      <Route path="/bn/config/country/address-model" element={<ProtectedLayout><BnCountryAddressModel /></ProtectedLayout>} />
+      <Route path="/bn/config/country/participant-types" element={<ProtectedLayout><BnCountryParticipantTypes /></ProtectedLayout>} />
+      <Route path="/bn/config/country/payment-config" element={<ProtectedLayout><BnCountryPaymentConfig /></ProtectedLayout>} />
+      <Route path="/bn/config/country/legal-refs" element={<ProtectedLayout><BnCountryLegalRefs /></ProtectedLayout>} />
 
       {/* NBenefit Module - Central Benefits Registry */}
       {/* Benefit Application Form */}

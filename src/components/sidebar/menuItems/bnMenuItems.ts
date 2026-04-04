@@ -13,6 +13,10 @@ import {
   AlertTriangle,
   Layers,
   FileCheck,
+  MapPin,
+  CreditCard,
+  Scale,
+  Flag,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -91,6 +95,54 @@ export const bnMenuItems = [
             icon: FileCheck,
             requiresPermission: "benefits_management",
             description: "Manage special document types for benefit claims",
+          },
+        ],
+      },
+      {
+        title: "Country Packs",
+        icon: Flag,
+        subItems: [
+          {
+            title: "Pack Overview",
+            url: "/bn/config/country",
+            icon: Globe,
+            requiresPermission: "benefits_management",
+            description: "Country pack completeness dashboard",
+          },
+          {
+            title: "ID / SSN Rules",
+            url: "/bn/config/country/id-rules",
+            icon: FileCheck,
+            requiresPermission: "benefits_management",
+            description: "Country-specific ID validation rules",
+          },
+          {
+            title: "Address Model",
+            url: "/bn/config/country/address-model",
+            icon: MapPin,
+            requiresPermission: "benefits_management",
+            description: "Country-specific address field definitions",
+          },
+          {
+            title: "Participant Types",
+            url: "/bn/config/country/participant-types",
+            icon: Users,
+            requiresPermission: "benefits_management",
+            description: "Claimant and beneficiary type registry",
+          },
+          {
+            title: "Payment Config",
+            url: "/bn/config/country/payment-config",
+            icon: CreditCard,
+            requiresPermission: "benefits_management",
+            description: "Payment methods and calendar settings",
+          },
+          {
+            title: "Legal References",
+            url: "/bn/config/country/legal-refs",
+            icon: Scale,
+            requiresPermission: "benefits_management",
+            description: "Governing legislation with version tracking",
           },
         ],
       },

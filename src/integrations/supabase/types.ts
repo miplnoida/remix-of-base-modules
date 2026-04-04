@@ -3083,6 +3083,7 @@ export type Database = {
       }
       bn_country: {
         Row: {
+          address_model_version: number
           contribution_ceiling_annual: number | null
           contribution_ceiling_weekly: number | null
           country_code: string
@@ -3094,11 +3095,14 @@ export type Database = {
           entered_by: string | null
           fiscal_year_start_month: number
           is_active: boolean
+          locale: string
           modified_at: string
           modified_by: string | null
           parameters: Json
+          timezone: string
         }
         Insert: {
+          address_model_version?: number
           contribution_ceiling_annual?: number | null
           contribution_ceiling_weekly?: number | null
           country_code: string
@@ -3110,11 +3114,14 @@ export type Database = {
           entered_by?: string | null
           fiscal_year_start_month?: number
           is_active?: boolean
+          locale?: string
           modified_at?: string
           modified_by?: string | null
           parameters?: Json
+          timezone?: string
         }
         Update: {
+          address_model_version?: number
           contribution_ceiling_annual?: number | null
           contribution_ceiling_weekly?: number | null
           country_code?: string
@@ -3126,11 +3133,312 @@ export type Database = {
           entered_by?: string | null
           fiscal_year_start_month?: number
           is_active?: boolean
+          locale?: string
           modified_at?: string
           modified_by?: string | null
           parameters?: Json
+          timezone?: string
         }
         Relationships: []
+      }
+      bn_country_address_model: {
+        Row: {
+          country_code: string
+          entered_at: string
+          entered_by: string | null
+          field_code: string
+          field_label: string
+          field_type: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          options_source: string | null
+          sort_order: number
+          validation_pattern: string | null
+        }
+        Insert: {
+          country_code: string
+          entered_at?: string
+          entered_by?: string | null
+          field_code: string
+          field_label: string
+          field_type?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options_source?: string | null
+          sort_order?: number
+          validation_pattern?: string | null
+        }
+        Update: {
+          country_code?: string
+          entered_at?: string
+          entered_by?: string | null
+          field_code?: string
+          field_label?: string
+          field_type?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options_source?: string | null
+          sort_order?: number
+          validation_pattern?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_address_model_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
+      bn_country_id_rule: {
+        Row: {
+          check_digit_algorithm: string | null
+          country_code: string
+          digit_length: number
+          entered_at: string
+          entered_by: string | null
+          example_value: string | null
+          format_mask: string
+          format_pattern: string
+          has_check_digit: boolean
+          id: string
+          id_label: string
+          id_type: string
+          is_active: boolean
+          is_primary: boolean
+        }
+        Insert: {
+          check_digit_algorithm?: string | null
+          country_code: string
+          digit_length?: number
+          entered_at?: string
+          entered_by?: string | null
+          example_value?: string | null
+          format_mask?: string
+          format_pattern?: string
+          has_check_digit?: boolean
+          id?: string
+          id_label: string
+          id_type: string
+          is_active?: boolean
+          is_primary?: boolean
+        }
+        Update: {
+          check_digit_algorithm?: string | null
+          country_code?: string
+          digit_length?: number
+          entered_at?: string
+          entered_by?: string | null
+          example_value?: string | null
+          format_mask?: string
+          format_pattern?: string
+          has_check_digit?: boolean
+          id?: string
+          id_label?: string
+          id_type?: string
+          is_active?: boolean
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_id_rule_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
+      bn_country_legal_ref: {
+        Row: {
+          applicable_products: string[] | null
+          country_code: string
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          ref_code: string
+          ref_section: string | null
+          ref_title: string
+          ref_url: string | null
+          supersedes_id: string | null
+          version_number: number
+        }
+        Insert: {
+          applicable_products?: string[] | null
+          country_code: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          ref_code: string
+          ref_section?: string | null
+          ref_title: string
+          ref_url?: string | null
+          supersedes_id?: string | null
+          version_number?: number
+        }
+        Update: {
+          applicable_products?: string[] | null
+          country_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          ref_code?: string
+          ref_section?: string | null
+          ref_title?: string
+          ref_url?: string | null
+          supersedes_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_legal_ref_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "bn_country_legal_ref_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_country_participant_type: {
+        Row: {
+          allowed_products: string[] | null
+          country_code: string
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          max_age: number | null
+          min_age: number | null
+          participant_role: string
+          requires_id: boolean
+          requires_relationship_proof: boolean
+          sort_order: number
+          type_code: string
+          type_name: string
+        }
+        Insert: {
+          allowed_products?: string[] | null
+          country_code: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_age?: number | null
+          min_age?: number | null
+          participant_role?: string
+          requires_id?: boolean
+          requires_relationship_proof?: boolean
+          sort_order?: number
+          type_code: string
+          type_name: string
+        }
+        Update: {
+          allowed_products?: string[] | null
+          country_code?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_age?: number | null
+          min_age?: number | null
+          participant_role?: string
+          requires_id?: boolean
+          requires_relationship_proof?: boolean
+          sort_order?: number
+          type_code?: string
+          type_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_participant_type_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
+      bn_country_payment_config: {
+        Row: {
+          calendar_config: Json
+          country_code: string
+          cut_off_day: number | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          method_label: string
+          payment_cycle: string
+          payment_method: string
+          processing_days: number
+          requires_bank_account: boolean
+          requires_mobile_number: boolean
+        }
+        Insert: {
+          calendar_config?: Json
+          country_code: string
+          cut_off_day?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          method_label: string
+          payment_cycle?: string
+          payment_method: string
+          processing_days?: number
+          requires_bank_account?: boolean
+          requires_mobile_number?: boolean
+        }
+        Update: {
+          calendar_config?: Json
+          country_code?: string
+          cut_off_day?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          method_label?: string
+          payment_cycle?: string
+          payment_method?: string
+          processing_days?: number
+          requires_bank_account?: boolean
+          requires_mobile_number?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_payment_config_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
       }
       bn_doc_requirement: {
         Row: {
@@ -3918,6 +4226,7 @@ export type Database = {
       bn_reason_code: {
         Row: {
           applicable_actions: string[]
+          country_code: string | null
           entered_at: string
           entered_by: string | null
           id: string
@@ -3931,6 +4240,7 @@ export type Database = {
         }
         Insert: {
           applicable_actions?: string[]
+          country_code?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
@@ -3944,6 +4254,7 @@ export type Database = {
         }
         Update: {
           applicable_actions?: string[]
+          country_code?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
@@ -3955,7 +4266,15 @@ export type Database = {
           reason_label?: string
           requires_narrative?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_reason_code_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
       }
       bn_rule_group: {
         Row: {
@@ -4088,6 +4407,7 @@ export type Database = {
       bn_service_doc_type: {
         Row: {
           category: string
+          country_code: string | null
           default_expiry_days: number | null
           description: string | null
           entered_at: string
@@ -4102,6 +4422,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          country_code?: string | null
           default_expiry_days?: number | null
           description?: string | null
           entered_at?: string
@@ -4116,6 +4437,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          country_code?: string | null
           default_expiry_days?: number | null
           description?: string | null
           entered_at?: string
@@ -4128,7 +4450,15 @@ export type Database = {
           type_code?: string
           type_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_service_doc_type_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
       }
       bn_timeline_rule: {
         Row: {
