@@ -98,6 +98,15 @@ const mockUsers: User[] = [
     lastName: 'Auditor',
     email: 'patricia@ssb.gov.kn',
     active: true
+  },
+  {
+    id: '10',
+    username: 'config_analyst1',
+    role: 'CONFIG_ANALYST',
+    firstName: 'Karen',
+    lastName: 'Analyst',
+    email: 'karen@ssb.gov.kn',
+    active: true
   }
 ];
 
