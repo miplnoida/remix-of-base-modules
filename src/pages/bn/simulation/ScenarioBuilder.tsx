@@ -14,6 +14,8 @@ import { useBnCountries, useBnSchemes } from '@/hooks/bn/useBnConfig';
 import { useCreateSimScenario, useUpdateSimScenario, useBnSimScenario } from '@/hooks/bn/useBnSimulation';
 import { toast } from 'sonner';
 import type { BnSimScenarioType, BnSimSourceType } from '@/types/bnSimulation';
+import { useSimPermission } from '@/hooks/bn/useSimPermission';
+import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
 const SCENARIO_TYPES: { value: BnSimScenarioType; label: string; desc: string }[] = [
   { value: 'STANDARD', label: 'Standard', desc: 'Normal test scenario for a benefit product' },
