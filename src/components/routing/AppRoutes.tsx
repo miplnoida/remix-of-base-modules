@@ -642,6 +642,7 @@ import BnSimulationDashboard from '@/pages/bn/simulation/SimulationDashboard';
 import BnScenarioBuilder from '@/pages/bn/simulation/ScenarioBuilder';
 import BnRunSimulation from '@/pages/bn/simulation/RunSimulation';
 import BnSimulationResult from '@/pages/bn/simulation/SimulationResultSummary';
+import BnPerson360 from '@/pages/bn/person360/BnPerson360';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
@@ -1340,6 +1341,7 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
 
       {/* Benefit Management Module (bn_) */}
+      <Route path="/bn/person-360" element={<ProtectedLayout><BnPerson360 /></ProtectedLayout>} />
       <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
       <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
       <Route path="/bn/claims" element={<ProtectedLayout><BnClaimWorklist /></ProtectedLayout>} />

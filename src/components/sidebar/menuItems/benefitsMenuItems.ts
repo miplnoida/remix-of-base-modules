@@ -5,7 +5,8 @@ import {
   Shield, 
   FileText,
   Globe,
-  Settings
+  Settings,
+  UserCircle
 } from "lucide-react";
 
 export const benefitsMenuItems = [
@@ -13,6 +14,12 @@ export const benefitsMenuItems = [
     title: "Benefits Management",
     icon: Heart,
     subItems: [
+      {
+        title: "Person 360",
+        url: "/bn/person-360",
+        icon: UserCircle,
+        requiresPermission: "benefits_management"
+      },
       {
         title: "All Benefits",
         url: "/benefits/all",
