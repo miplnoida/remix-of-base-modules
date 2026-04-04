@@ -627,6 +627,7 @@ import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 import BnApprovalConsole from '@/pages/bn/approval/ApprovalConsole';
 import BnEntitlementManagement from '@/pages/bn/entitlement/EntitlementManagement';
 import BnPayablesQueue from '@/pages/bn/payables/PayablesQueue';
+import BnPaymentSchedule from '@/pages/bn/schedule/PaymentScheduleManagement';
 import BnClaimQueue from '@/pages/bn/claims/ClaimQueue';
 import BnReasonCodes from '@/pages/bn/config/ReasonCodes';
 import BnTransitionMatrix from '@/pages/bn/config/TransitionMatrix';
@@ -1359,6 +1360,7 @@ export const AppRoutes = () => {
       <Route path="/bn/approval" element={<ProtectedLayout><BnApprovalConsole /></ProtectedLayout>} />
       <Route path="/bn/entitlements" element={<ProtectedLayout><BnEntitlementManagement /></ProtectedLayout>} />
       <Route path="/bn/payables" element={<ProtectedLayout><BnPayablesQueue /></ProtectedLayout>} />
+      <Route path="/bn/schedules" element={<ProtectedLayout><BnPaymentSchedule /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />

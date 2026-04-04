@@ -23,6 +23,7 @@ import {
   TestTube2,
   ClipboardCheck,
   Shield,
+  CalendarDays,
 } from "lucide-react";
 
 export const bnMenuItems = [
@@ -62,6 +63,13 @@ export const bnMenuItems = [
         icon: CreditCard,
         requiresPermission: "benefits_management",
         description: "Manage payable instructions before payment issue",
+      },
+      {
+        title: "Payment Schedules",
+        url: "/bn/schedules",
+        icon: CalendarDays,
+        requiresPermission: "benefits_management",
+        description: "Plan one-time and recurring benefit disbursements",
       },
       {
         title: "Register New Claim",
