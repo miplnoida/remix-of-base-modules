@@ -100,13 +100,18 @@ export const LoginScreen = () => {
     }
   };
 
+  // Detect preview/dev environment where Turnstile and edge functions may not work
+  const isDevPreview = window.location.hostname.includes('preview--') || 
+                       window.location.hostname.includes('localhost');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setAttemptsRemaining(null);
 
-    if (!turnstileAvailable) {
+    // In dev preview, skip Turnstile entirely to avoid proxy issues
+    if (isDevPreview || !turnstileAvailable) {
       void performLogin(null);
       return;
     }
@@ -119,24 +124,29 @@ export const LoginScreen = () => {
     let securityEventId: string | null = null;
 
     try {
-      const tokenToSend = verificationToken || 'turnstile-unavailable';
-      try {
-        const verification = await verifyTurnstileToken(tokenToSend, email);
-        securityEventId = verification.eventId || null;
+      // Skip Turnstile edge function verification in dev preview
+      if (!isDevPreview) {
+        const tokenToSend = verificationToken || 'turnstile-unavailable';
+        try {
+          const verification = await verifyTurnstileToken(tokenToSend, email);
+          securityEventId = verification.eventId || null;
 
-        if (verification.skipped) {
-          // Allowed to proceed
-        } else if (verificationToken && !verification.success) {
-          setError(verification.error || 'Human verification failed.');
-          if (securityEventId) {
-            await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
+          if (verification.skipped) {
+            // Allowed to proceed
+          } else if (verificationToken && !verification.success) {
+            setError(verification.error || 'Human verification failed.');
+            if (securityEventId) {
+              await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
+            }
+            resetTurnstile();
+            setIsLoading(false);
+            return;
           }
-          resetTurnstile();
-          setIsLoading(false);
-          return;
+        } catch (verifyErr) {
+          console.error('[Login] Turnstile verification error:', verifyErr);
         }
-      } catch (verifyErr) {
-        console.error('[Login] Turnstile verification error:', verifyErr);
+      } else {
+        console.log('[Login] Dev preview mode — skipping Turnstile verification');
       }
 
       const result = await login(email, password);
