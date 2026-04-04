@@ -43,7 +43,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function RulesAdministration() {
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const { data: products = [] } = useBnProducts();
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
