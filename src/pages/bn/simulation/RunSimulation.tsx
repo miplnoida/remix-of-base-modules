@@ -123,7 +123,7 @@ export default function RunSimulation() {
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button onClick={handleRun} disabled={executeSim.isPending} className="gap-2">
+                <Button onClick={handleRun} disabled={executeSim.isPending || !canRun} className="gap-2">
                   {executeSim.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   Run Simulation
                 </Button>
