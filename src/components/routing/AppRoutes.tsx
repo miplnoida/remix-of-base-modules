@@ -615,6 +615,13 @@ import LettersCommunications from '@/pages/newBenefit/LettersCommunications';
 import AdminConfig from '@/pages/newBenefit/AdminConfig';
 import AuditorView from '@/pages/newBenefit/AuditorView';
 
+// Benefit Management Module (bn_)
+import BnProductCatalog from '@/pages/bn/config/ProductCatalog';
+import BnProductEditor from '@/pages/bn/config/ProductEditor';
+import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
+import BnClaim360 from '@/pages/bn/claims/Claim360';
+import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
+
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
 
