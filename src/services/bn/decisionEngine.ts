@@ -40,16 +40,14 @@ export async function getAvailableTransitions(
   if (rulesErr) throw rulesErr;
 
   // 3. Check preconditions in parallel
-  const [eligResults, calcResults, docResults] = await Promise.all([
+  const [eligResults, calcResults, evidenceComplete] = await Promise.all([
     db.from('bn_claim_eligibility').select('overall_result').eq('claim_id', claimId).order('check_date', { ascending: false }).limit(1),
     db.from('bn_claim_calculation').select('id').eq('claim_id', claimId).limit(1),
-    db.from('bn_claim_document').select('id, verified').eq('claim_id', claimId),
+    isEvidenceComplete(claimId),
   ]);
 
   const hasEligibilityPass = eligResults.data?.[0]?.overall_result === true;
   const hasCalculation = (calcResults.data?.length || 0) > 0;
-  const allDocsVerified = (docResults.data || []).length > 0 &&
-    (docResults.data || []).every((d: any) => d.verified);
 
   // 4. Evaluate each rule
   const isAdmin = userRoles.some(r => r.toLowerCase() === 'admin');
