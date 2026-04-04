@@ -98,21 +98,27 @@ export const ApprovalQueueTable: React.FC<Props> = ({ items, selectedIds, onSele
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  {item.has_eligibility ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-600" title="Eligibility passed" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5 text-muted-foreground" title="No eligibility" />
-                  )}
-                  {item.has_calculation ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-600" title="Calculated" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5 text-muted-foreground" title="Not calculated" />
-                  )}
-                  {item.evidence_complete ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-600" title="Evidence complete" />
-                  ) : (
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" title="Evidence incomplete" />
-                  )}
+                  <span title={item.has_eligibility ? 'Eligibility passed' : 'No eligibility'}>
+                    {item.has_eligibility ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </span>
+                  <span title={item.has_calculation ? 'Calculated' : 'Not calculated'}>
+                    {item.has_calculation ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </span>
+                  <span title={item.evidence_complete ? 'Evidence complete' : 'Evidence incomplete'}>
+                    {item.evidence_complete ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                    )}
+                  </span>
                 </div>
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">{item.assigned_to || '—'}</TableCell>
