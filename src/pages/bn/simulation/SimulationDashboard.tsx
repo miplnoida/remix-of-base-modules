@@ -22,8 +22,11 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
 
 export default function SimulationDashboard() {
   const navigate = useNavigate();
+  const { canView, canCreate, canDelete } = useSimPermission();
   const { data: scenarios, isLoading, isError } = useBnSimScenarios();
   const deleteMut = useDeleteSimScenario();
+
+  if (!canView) return <SimAccessDenied />;
 
   if (isLoading) return <BnEmptyState type="loading" />;
   if (isError) return <BnEmptyState type="error" />;
