@@ -35,6 +35,7 @@ export const EntitlementsTab: React.FC<EntitlementsTabProps> = ({ entitlements, 
         <Link to="/bn/entitlements">Manage All Entitlements</Link>
       </Button>
     </div>
+    <div className="rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
