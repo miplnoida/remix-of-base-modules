@@ -2389,7 +2389,15 @@ export type Database = {
           submission_date?: string | null
           workflow_instance_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_claim_calculation: {
         Row: {
