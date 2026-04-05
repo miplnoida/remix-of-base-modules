@@ -35,6 +35,9 @@ const SESSION_CHECK_INTERVAL_MS = 30_000; // Check every 30 seconds
 const IDLE_WARNING_BEFORE_MINUTES = 2; // Warn 2 minutes before idle logout
 const ACTIVITY_THROTTLE_MS = 10_000; // Throttle activity updates to once per 10 seconds
 
+type AuthBootstrapStatus = 'loading' | 'ready' | 'degraded';
+type DataLoadStatus = 'pending' | 'loaded' | 'failed';
+
 interface SupabaseAuthContextType {
   user: User | null;
   profile: UserProfile | null;
@@ -43,6 +46,16 @@ interface SupabaseAuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  /** True once the initial session restoration is complete (regardless of success) */
+  isAuthReady: boolean;
+  /** Status of roles data: pending (still loading), loaded (success/empty), failed */
+  rolesStatus: DataLoadStatus;
+  /** Status of profile data */
+  profileStatus: DataLoadStatus;
+  /** Overall bootstrap status: loading, ready, or degraded (partial failure) */
+  authBootstrapStatus: AuthBootstrapStatus;
+  /** Incremented on each successful bootstrap to trigger dependent re-fetches */
+  authBootstrapVersion: number;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
   hasRole: (role: string) => boolean;
@@ -67,6 +80,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [roles, setRoles] = useState<string[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
+  const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+  const [authBootstrapVersion, setAuthBootstrapVersion] = useState(0);
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
@@ -403,16 +420,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           Promise.all([fetchProfile(userId), fetchRoles(userId)])
             .then(([profileData, rolesData]) => {
               setProfile(profileData);
+              setProfileStatus(profileData ? 'loaded' : 'failed');
               setRoles(rolesData);
+              setRolesStatus('loaded');
               setIsLoading(false);
+              setAuthBootstrapVersion(v => v + 1);
             })
             .catch((err) => {
               console.error('Failed to load user data after auth change:', err);
+              setProfileStatus('failed');
+              setRolesStatus('failed');
               setIsLoading(false); // Always unblock the UI
+              setAuthBootstrapVersion(v => v + 1);
             });
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
+          setProfileStatus('pending');
+          setRolesStatus('pending');
+          setIsAuthReady(false);
           setIsLoading(false);
         } else {
           setIsLoading(false);
@@ -428,7 +454,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const safetyTimeout = setTimeout(() => {
         console.warn('Auth initialization timed out after 15 seconds — unblocking UI.');
         initializingRef.current = false;
+        setIsAuthReady(true);
+        setRolesStatus(prev => prev === 'pending' ? 'failed' : prev);
+        setProfileStatus(prev => prev === 'pending' ? 'failed' : prev);
         setIsLoading(false);
+        setAuthBootstrapVersion(v => v + 1);
       }, 15_000);
 
       try {
@@ -444,20 +474,40 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (currentSession?.user) {
-          const [profileData, rolesData] = await Promise.all([
-            fetchProfile(currentSession.user.id),
-            fetchRoles(currentSession.user.id),
-            loadSessionPolicy().catch(() => {}),
-          ]);
-          setProfile(profileData);
-          setRoles(rolesData);
+          let profileOk = false;
+          let rolesOk = false;
+          try {
+            const [profileData, rolesData] = await Promise.all([
+              fetchProfile(currentSession.user.id),
+              fetchRoles(currentSession.user.id),
+              loadSessionPolicy().catch(() => {}),
+            ]);
+            setProfile(profileData);
+            setProfileStatus(profileData ? 'loaded' : 'failed');
+            profileOk = !!profileData;
+            setRoles(rolesData);
+            setRolesStatus('loaded');
+            rolesOk = true;
+          } catch (dataErr) {
+            console.error('Error loading user data during init:', dataErr);
+            setProfileStatus('failed');
+            setRolesStatus('failed');
+          }
+        } else {
+          // No session — mark data as loaded (nothing to load)
+          setProfileStatus('loaded');
+          setRolesStatus('loaded');
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
+        setProfileStatus('failed');
+        setRolesStatus('failed');
       } finally {
         clearTimeout(safetyTimeout);
         initializingRef.current = false;
+        setIsAuthReady(true);
         setIsLoading(false);
+        setAuthBootstrapVersion(v => v + 1);
       }
     };
 
@@ -599,6 +649,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Compute bootstrap status
+  const authBootstrapStatus: AuthBootstrapStatus = !isAuthReady
+    ? 'loading'
+    : (profileStatus === 'failed' || rolesStatus === 'failed')
+      ? 'degraded'
+      : 'ready';
+
   const value: SupabaseAuthContextType = {
     user,
     profile,
@@ -607,6 +664,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isLoading,
     isAuthenticated: !!session && !!user,
     isAdmin,
+    isAuthReady,
+    rolesStatus,
+    profileStatus,
+    authBootstrapStatus,
+    authBootstrapVersion,
     login,
     logout,
     hasRole,
