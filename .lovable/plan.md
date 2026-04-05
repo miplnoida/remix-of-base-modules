@@ -1,205 +1,95 @@
-# Multi-Country Benefit Platform Design
 
-## Summary
 
-Refactor the Benefit Module from an SKN-first implementation into a reusable multi-country platform where new countries are onboarded through configuration packs, not code forks.
+## Plan: Fix Employer Application Detail — Code Lookups, Missing Fields, and Document Actions
 
-## Architecture
+### Problem Summary
+The employer application detail page displays raw codes instead of human-readable descriptions for several fields, is missing some fields entirely, and has non-functional document View/Download buttons.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│                    PLATFORM LAYER (Country-Agnostic)             │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │ Claim Engine │  │ Calc Engine  │  │ Decision/Workflow Eng  │ │
-│  │ (bn_claim)   │  │ (bn_calc_*)  │  │ (bn_claim_transition)  │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │ Evidence Eng │  │ Award/Pmt    │  │ Legacy Adapter Layer   │ │
-│  │ (bn_claim_*) │  │ (bn_award)   │  │ (bn_legacy_*)          │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
-│                                                                  │
-│  UI: CountryContext → filters all queries by active country      │
-│  Services: All fetch functions accept country_code parameter     │
-│  Types: Country-agnostic interfaces, country packs = config data │
-└──────────────────────────────────────────────────────────────────┘
+### Changes Required
 
-┌──────────────────────────────────────────────────────────────────┐
-│                    COUNTRY PACK LAYER (Config Data)               │
-│                                                                  │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────┐ │
-│  │ SKN Pack   │  │ Future:    │  │ Future:    │  │ Future:   │ │
-│  │ (Active)   │  │ Barbados   │  │ Dominica   │  │ Anguilla  │ │
-│  └────────────┘  └────────────┘  └────────────┘  └───────────┘ │
-│                                                                  │
-│  Each pack provides:                                             │
-│  • Scheme/Branch/Product catalogue                               │
-│  • ID validation rules (SSN format, length, checksum)            │
-│  • Address model (field names, required fields, postal format)    │
-│  • Participant types (claimant, beneficiary, dependent types)     │
-│  • Contribution/wage rules via rule groups                       │
-│  • Formula templates and calculation rules                       │
-│  • Workflow templates + transition rules                         │
-│  • Document types + evidence requirements                        │
-│  • Payment calendar + method registry                            │
-│  • Legal references with version tracking                        │
-│  • Reason codes per country                                      │
-│  • Locale/i18n overrides                                         │
-└──────────────────────────────────────────────────────────────────┘
+---
+
+### 1. Update `useEmployerApplicationDetail.ts` — Uncomment Missing Fields
+
+**What**: Uncomment `inspector_code` in the `EmployerApplicationDetail` interface and in `normalizeEmployerDetail()` so these values from the external API are captured.
+
+- Uncomment `inspector_code` field in interface (line ~148)
+- Uncomment mapping in `normalizeEmployerDetail` (line ~364)
+
+---
+
+### 2. Create a Reusable Lookup Resolver Hook — `useEmployerCodeResolver.ts`
+
+**What**: A new hook that takes the raw code values from the application and resolves them to descriptions using the existing `useERLookups` hook (which already fetches from `tb_legal_status`, `tb_sector`, `tb_office`, `tb_indus`, `tb_villages`, `tb_activity`, `tb_inspector`).
+
+**Location**: `src/hooks/useEmployerCodeResolver.ts`
+
+**Logic**:
+```
+function resolveCode(lookupList, code) → description or "code - description"
 ```
 
----
+Takes an `EmployerApplicationDetail` and returns resolved strings for:
+- `ownershipDescription` — from `tb_legal_status` by `ownership_code`
+- `sectorDescription` — from `tb_sector` by `sector_code`
+- `officeDescription` — from `tb_office` by `office_code`
+- `industryDescription` — from `tb_indus` by `industry_code`
+- `villageDescription` — from `tb_villages` by `village_code`
+- `activityTypeDescription` — from `tb_activity` by `activity_type`
+- `inspectorDescription` — from `tb_inspector` by `inspector_code`
 
-## Current State Assessment
-
-### Already Country-Scoped (Good ✅)
-- `bn_country` — country-level parameters (currency, ceiling, retirement age)
-- `bn_scheme` — FK to country_code
-- `bn_product` — FK to country_code
-- `bn_rule_group`, `bn_formula_template`, `bn_workflow_template`, `bn_screen_template`, `bn_document_profile` — all have `country_code`
-- `bn_claim_transition_rule`, `bn_workbasket`, `bn_escalation_policy` — all have `country_code`
-- Product versions inherit country through product → scheme → country chain
-
-### Missing / SKN-Hardcoded (Needs Work ⚠️)
-1. No country-specific ID rules — SSN length (6 digits) hardcoded in env vars
-2. No country-specific address model — address fields assume SKN format
-3. No participant type registry — claimant/beneficiary types are implicit
-4. No payment calendar table — schedules are config JSONB blobs
-5. No legal reference tracking — legislation refs are free-text
-6. `bn_service_doc_type` lacks country_code
-7. `bn_reason_code` lacks country_code
-8. No CountryContext in React — UI doesn't filter by active country
-9. Services don't pass country_code — fetchSchemes() returns all countries
-
-### SKN Overfitting Risks
-| Area | Risk | Mitigation |
-|------|------|------------|
-| 6-digit SSN | Other countries use 9-11 digit IDs | `bn_country_id_rule` table |
-| EC$ currency | Some countries use USD, BBD | Already on `bn_country.currency_code` ✅ |
-| Weekly contribution cycle | Some countries use monthly | Configurable via rule groups ✅ |
-| Parish-based addresses | Others have states/provinces | `bn_country_address_model` table |
-| Age 62 retirement | Varies 60-67 | Already on `bn_country.default_retirement_age` ✅ |
+Reuses the existing `useERLookups()` hook — no new database queries needed.
 
 ---
 
-## Database Changes
+### 3. Update `EmployerApplicationDetailPage.tsx` — UI Fixes
 
-### Table 1: `bn_country_id_rule`
-ID validation rules per country (SSN format, mask, length, check digit algorithm).
+**Changes**:
 
-### Table 2: `bn_country_address_model`
-Address field definitions per country (field code, label, type, required, options source, validation pattern).
+**a) Import and use the new resolver hook**
+```tsx
+const resolved = useEmployerCodeResolver(application);
+```
 
-### Table 3: `bn_country_participant_type`
-Claimant & beneficiary type registry (type code, role, age constraints, relationship proof requirements, allowed products).
+**b) Employer Profile tab — Organization Classification section (line ~346)**
+- Replace `application.ownership_code` with `resolved.ownershipDescription`
+- Replace `application.sector_code` with `resolved.sectorDescription`
 
-### Table 4: `bn_country_payment_config`
-Payment methods & calendar per country (method, cycle, processing days, cut-off, calendar config).
+**c) Employer Profile tab — Organization Details section (line ~358)**
+- Replace `application.office_code` with `resolved.officeDescription`
+- Replace `application.industry_code` with `resolved.industryDescription`
 
-### Table 5: `bn_country_legal_ref`
-Legislation tracking with versioning (ref code, title, section, URL, applicable products, effective dates, supersedes chain).
+**d) Contact & Reach tab — Location Information section (line ~448)**
+- Replace `application.village_code` with `resolved.villageDescription`
+- Uncomment and add Activity Type field using `resolved.activityTypeDescription`
+- Uncomment and add Inspector field using `resolved.inspectorDescription`
 
-### Schema Modifications
-- `bn_service_doc_type` — ADD `country_code`
-- `bn_reason_code` — ADD `country_code`
-- `bn_country` — ADD `locale`, `timezone`, `address_model_version`
+**e) Acquisition/Incorporation section (line ~335)**
+- Acquisition Date field already exists at line 335 (`application.date_acquired`). Verify it renders. If the API field name differs (e.g., `acquisition_date`), add a fallback: `application.date_acquired || application.acquisition_date`.
 
----
+**f) Documents tab — Fix View/Download buttons (line ~647)**
 
-## Source of Truth Strategy
+Current buttons use `documentUrl` (the raw URL from the external API) which may not be accessible. Replace with proper handling:
 
-| Table | Source of Truth? |
-|-------|-----------------|
-| bn_country + pack tables | ✅ Platform config |
-| bn_scheme / bn_product | ✅ Config per country |
-| bn_product_version + rules | ✅ Versioned config |
-| bn_claim / bn_award | ✅ Operational data |
-| bn_legacy_claim_map | Metadata only |
-| ip_master / ip_wages | ✅ Read-only, never duplicated |
-
----
-
-## Services & Hooks
-
-### `countryPackService.ts`
-- `fetchCountryPack(countryCode)` — full pack
-- Fetch + upsert for each entity
-- `validateIdByCountry(countryCode, idValue)`
-
-### `BnCountryContext.tsx`
-- Active country code, country pack, convenience accessors
-- All BN pages wrapped in `<BnCountryProvider>`
-- `validateId()` derived from country rules
-
-### Refactored `configService.ts`
-- All fetch functions gain optional `countryCode` parameter
+- If `doc.file_path` exists, generate a signed URL from Supabase Storage using `supabase.storage.from('employer-documents').createSignedUrl(doc.file_path, 3600)`.
+- If `doc.download_url` exists (from external API), use it directly.
+- Add click handlers instead of plain `<a>` tags for View (opens in new tab) and Download (triggers download).
+- Add a `useEffect` or on-click lazy URL generation to avoid generating signed URLs for all documents at once.
+- Log view/download actions for audit using an insert into `system_audit_trail` or `audit_logs`.
 
 ---
 
-## UI Components
+### 4. Files Modified
 
-1. `CountrySelector.tsx` — admin header dropdown
-2. `CountryPackDashboard.tsx` — pack completeness overview
-3. `DynamicAddressForm.tsx` — renders address from country model
-4. `DynamicIdInput.tsx` — renders ID input from country rules
-5. `ParticipantTypeSelector.tsx` — dropdown from participant types
-6. Admin CRUD pages for each pack entity
+| File | Action |
+|------|--------|
+| `src/hooks/useEmployerApplicationDetail.ts` | Uncomment `inspector_code` field + mapping |
+| `src/hooks/useEmployerCodeResolver.ts` | **New** — reusable code-to-description resolver |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Use resolver for all code fields, add missing fields, fix document actions |
 
----
+### Technical Notes
+- No new database tables or migrations needed
+- All lookups use existing `useERLookups()` which queries `tb_legal_status`, `tb_sector`, `tb_office`, `tb_indus`, `tb_villages`, `tb_activity`, `tb_inspector`
+- Document signed URL generation uses the existing Supabase Storage client
+- Backward compatible — raw codes are shown as fallback if lookup resolution fails
 
-## Global vs. Country-Specific
-
-| Layer | Global (Platform) | Country-Specific (Pack) |
-|-------|-------------------|------------------------|
-| Schema | Table structures | Seed data |
-| Engines | Calc, decision, evidence | Rules, formulas, transitions |
-| UI Components | EvidenceChecklist, Claim360 | DynamicAddressForm, DynamicIdInput |
-| Validation | Engine framework | ID patterns, address rules |
-| Workflow | State machine | Transition rules, SLAs |
-| Documents | Evidence engine | Doc types, requirements |
-| Payments | Award engine | Methods, calendars |
-| Legal | Reference framework | Legislation sections |
-
----
-
-## Onboarding a New Country (Zero Code Changes)
-
-1. Insert `bn_country` row
-2. Seed ID rules, address model, participant types, payment config, legal refs
-3. Create scheme(s) + branches + products + versions with rules
-4. Seed doc types + reason codes
-5. Seed transition rules + workbaskets
-6. Configure legacy adapters if applicable
-
----
-
-## Files to Create / Modify
-
-| Action | File |
-|--------|------|
-| Create | Migration SQL (5 tables + ALTER + SKN seeds) |
-| Create | `src/services/bn/countryPackService.ts` |
-| Create | `src/hooks/bn/useBnCountryPack.ts` |
-| Create | `src/contexts/BnCountryContext.tsx` |
-| Create | `src/components/bn/country/CountrySelector.tsx` |
-| Create | `src/components/bn/country/CountryPackDashboard.tsx` |
-| Create | `src/components/bn/country/DynamicAddressForm.tsx` |
-| Create | `src/components/bn/country/DynamicIdInput.tsx` |
-| Create | `src/components/bn/country/ParticipantTypeSelector.tsx` |
-| Create | `src/pages/bn/config/country/*.tsx` (5 admin pages) |
-| Modify | `src/types/bn.ts` — add interfaces |
-| Modify | `src/services/bn/configService.ts` — country filtering |
-| Modify | `src/hooks/bn/useBnConfig.ts` — consume CountryContext |
-| Modify | `src/components/routing/AppRoutes.tsx` |
-| Modify | `src/components/sidebar/menuItems/bnMenuItems.ts` |
-
----
-
-## Open Points
-
-1. Default country: SKN or require explicit selection?
-2. Multi-country users: Can one user work across countries?
-3. Cross-country transfers: Support CARICOM portability?
-4. Shared document types: Global or per-country?
-5. Locale/i18n: Non-English interfaces needed?
-6. Legacy adapters: Standardize interface now for future countries?
