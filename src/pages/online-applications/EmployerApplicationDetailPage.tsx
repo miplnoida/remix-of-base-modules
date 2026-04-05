@@ -37,10 +37,13 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
+import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
+import { supabase } from '@/integrations/supabase/client';
+import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 
 // Helper functions
@@ -109,6 +112,7 @@ export default function EmployerApplicationDetailPage() {
   const navigate = useNavigate();
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
+  const resolved = useEmployerCodeResolver(application);
 
   // Meeting integration
   const applicationRef = application?.registration_id || application?.id || applicationId;
@@ -343,8 +347,8 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={Shield} title="Organization Classification" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailField label="Ownership Type" value={application.ownership_code} />
-                  <DetailField label="Sector" value={application.sector_code} />
+                  <DetailField label="Ownership Type" value={resolved.ownershipDescription} />
+                  <DetailField label="Sector" value={resolved.sectorDescription} />
                 </div>
               </CardContent>
             </Card>
@@ -355,8 +359,8 @@ export default function EmployerApplicationDetailPage() {
                 <SectionHeader icon={Building2} title="Organization Details" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Parent Registration Number" value={application.parent_reg_no} />
-                  <DetailField label="Office" value={application.office_code} />
-                  <DetailField label="Industry" value={application.industry_code} />
+                  <DetailField label="Office" value={resolved.officeDescription} />
+                  <DetailField label="Industry" value={resolved.industryDescription} />
                   <DetailField label="Registration ID" value={application.registration_id} />
                 </div>
               </CardContent>
@@ -446,9 +450,9 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={MapPin} title="Location Information" subtitle="Business location and activity" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <DetailField label="Village" value={application.village_code} />
-                  {/* <DetailField label="Activity Type" value={application.activity_type_name || application.activity_type} /> */}
-                  {/* <DetailField label="Inspector Code" value={application.inspector_name || application.inspector_code} /> */}
+                  <DetailField label="Village" value={resolved.villageDescription} />
+                  <DetailField label="Activity Type" value={resolved.activityTypeDescription} />
+                  <DetailField label="Inspector" value={resolved.inspectorDescription} />
                 </div>
               </CardContent>
             </Card>
@@ -631,7 +635,52 @@ export default function EmployerApplicationDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {application.documents.map((doc, idx) => {
-                      const documentUrl = doc.download_url || doc.url || doc.signed_url;
+                      const handleDocAction = async (action: 'view' | 'download') => {
+                        try {
+                          let url = doc.download_url || doc.url || doc.signed_url;
+
+                          // If we have a file_path in storage, generate a signed URL
+                          if (doc.file_path && !url) {
+                            const { data: signedData, error: signedErr } = await supabase.storage
+                              .from('employer-documents')
+                              .createSignedUrl(doc.file_path, 3600);
+                            if (signedErr) throw signedErr;
+                            url = signedData?.signedUrl;
+                          }
+
+                          if (!url) {
+                            toast.error('Document URL is not available');
+                            return;
+                          }
+
+                          // Log audit
+                          logAuditTrail({
+                            action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
+                            entityType: 'employer-application-document',
+                            entityId: doc.id,
+                            module: 'employer-applications',
+                            metadata: {
+                              file_name: doc.file_name || doc.name,
+                              application_id: application.id,
+                            },
+                          });
+
+                          if (action === 'view') {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          } else {
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = doc.file_name || doc.name || 'document';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }
+                        } catch (err) {
+                          console.error('Document action failed:', err);
+                          toast.error('Failed to access document');
+                        }
+                      };
+
                       return (
                         <TableRow key={doc.id || idx}>
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
@@ -644,20 +693,14 @@ export default function EmployerApplicationDetailPage() {
                           </TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell className="text-right">
-                            {documentUrl && (
-                              <div className="flex items-center justify-end gap-1">
-                                <Button variant="ghost" size="icon" asChild>
-                                  <a href={documentUrl} target="_blank" rel="noopener noreferrer" title="View">
-                                    <Eye className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                                <Button variant="ghost" size="icon" asChild>
-                                  <a href={documentUrl} download title="Download">
-                                    <Download className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction('view')} title="View">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction('download')} title="Download">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

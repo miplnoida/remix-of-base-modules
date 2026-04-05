@@ -29,6 +29,18 @@ export type Database = {
         }
         Relationships: []
       }
+      A_SSN: {
+        Row: {
+          SSN_TEMP: string
+        }
+        Insert: {
+          SSN_TEMP: string
+        }
+        Update: {
+          SSN_TEMP?: string
+        }
+        Relationships: []
+      }
       api_config_audit_logs: {
         Row: {
           action: string
@@ -484,6 +496,1575 @@ export type Database = {
         }
         Relationships: []
       }
+      au_cl_bank_acct: {
+        Row: {
+          acct_name: string | null
+          acct_num: string
+          acct_type: string | null
+          action: string | null
+          active_ind: boolean
+          audit_id: number
+          bank_code: string
+          branch_code: string | null
+          claim_number: string
+          claim_seq: number
+          modified_date: string | null
+          modifier: string | null
+        }
+        Insert: {
+          acct_name?: string | null
+          acct_num: string
+          acct_type?: string | null
+          action?: string | null
+          active_ind: boolean
+          audit_id: number
+          bank_code: string
+          branch_code?: string | null
+          claim_number: string
+          claim_seq: number
+          modified_date?: string | null
+          modifier?: string | null
+        }
+        Update: {
+          acct_name?: string | null
+          acct_num?: string
+          acct_type?: string | null
+          action?: string | null
+          active_ind?: boolean
+          audit_id?: number
+          bank_code?: string
+          branch_code?: string | null
+          claim_number?: string
+          claim_seq?: number
+          modified_date?: string | null
+          modifier?: string | null
+        }
+        Relationships: []
+      }
+      au_cl_cheques: {
+        Row: {
+          action: string | null
+          audit_id: number
+          batch_number: string | null
+          batch_sequence_number: number | null
+          batch_status: string | null
+          cheque_date: string | null
+          cheque_item: number | null
+          cheque_number: string | null
+          cheque_status: string | null
+          cheque_type: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          date_cancel: string | null
+          date_cashed: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_of_issue: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_stale: string | null
+          date_status_changed: string | null
+          date_verified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          payment_amount: number | null
+          postal_reg_num: number | null
+          print_batch_number: string | null
+          remarks: string | null
+          verified_by: string | null
+          verify_status: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_item?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_item?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_funeral: {
+        Row: {
+          action: string | null
+          address_1: string | null
+          address_2: string | null
+          audit_id: number
+          child_id: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          claimant_firstname: string | null
+          claimant_middlename: string | null
+          claimant_ssn: string | null
+          claimant_surname: string | null
+          modified_date: string | null
+          modifier: string | null
+          relation_to_dec: string | null
+          relation_to_ip: string | null
+        }
+        Insert: {
+          action?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          audit_id: number
+          child_id?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          claimant_firstname?: string | null
+          claimant_middlename?: string | null
+          claimant_ssn?: string | null
+          claimant_surname?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          relation_to_dec?: string | null
+          relation_to_ip?: string | null
+        }
+        Update: {
+          action?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          audit_id?: number
+          child_id?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          claimant_firstname?: string | null
+          claimant_middlename?: string | null
+          claimant_ssn?: string | null
+          claimant_surname?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          relation_to_dec?: string | null
+          relation_to_ip?: string | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_matern: {
+        Row: {
+          action: string | null
+          audit_id: number
+          claim_number: string | null
+          claim_seq: number | null
+          date_ceased_work: string | null
+          date_of_confinement: string | null
+          expect_confine_date: string | null
+          modified_date: string | null
+          modifier: string | null
+          number_of_children: number | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_ceased_work?: string | null
+          date_of_confinement?: string | null
+          expect_confine_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_children?: number | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_ceased_work?: string | null
+          date_of_confinement?: string | null
+          expect_confine_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_children?: number | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_me: {
+        Row: {
+          action: string | null
+          amount_claimed: number | null
+          audit_id: number
+          claim_number: string | null
+          claim_seq: number | null
+          modified_date: string | null
+          modifier: string | null
+          number_of_receipts: number | null
+        }
+        Insert: {
+          action?: string | null
+          amount_claimed?: number | null
+          audit_id: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_receipts?: number | null
+        }
+        Update: {
+          action?: string | null
+          amount_claimed?: number | null
+          audit_id?: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_receipts?: number | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_pen: {
+        Row: {
+          action: string | null
+          age_cr_allowed: number | null
+          audit_id: number
+          claim_number: string | null
+          claim_seq: number | null
+          date_exit_bfit: string | null
+          date_life_cert: string | null
+          exit_reason: string | null
+          illness_code: string | null
+          last_cheque_date: string | null
+          modified_date: string | null
+          modifier: string | null
+          pen_end_date: string | null
+          pen_start_date: string | null
+          recipient_seq: string | null
+          recipient_ssn: string | null
+          tot_pen_paid: number | null
+        }
+        Insert: {
+          action?: string | null
+          age_cr_allowed?: number | null
+          audit_id: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_exit_bfit?: string | null
+          date_life_cert?: string | null
+          exit_reason?: string | null
+          illness_code?: string | null
+          last_cheque_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          pen_end_date?: string | null
+          pen_start_date?: string | null
+          recipient_seq?: string | null
+          recipient_ssn?: string | null
+          tot_pen_paid?: number | null
+        }
+        Update: {
+          action?: string | null
+          age_cr_allowed?: number | null
+          audit_id?: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_exit_bfit?: string | null
+          date_life_cert?: string | null
+          exit_reason?: string | null
+          illness_code?: string | null
+          last_cheque_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          pen_end_date?: string | null
+          pen_start_date?: string | null
+          recipient_seq?: string | null
+          recipient_ssn?: string | null
+          tot_pen_paid?: number | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_sb: {
+        Row: {
+          action: string | null
+          adjustment_amount: number | null
+          adjustment_end: string | null
+          adjustment_start: string | null
+          amount_owed: number | null
+          audit_id: number
+          claim_number: string | null
+          claim_seq: number | null
+          date_exit_bfit: string | null
+          date_of_birth: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          eligibility_review: string | null
+          exit_reason_code: string | null
+          life_cert_date: string | null
+          modified_date: string | null
+          modifier: string | null
+          paid_to_date: number | null
+          percent_of_pension: number | null
+          relationship_code: string | null
+          sex: string | null
+          status: string | null
+          surv_payee_firstname: string | null
+          surv_payee_middlename: string | null
+          surv_payee_surname: string | null
+          survivor_firstname: string | null
+          survivor_id: string | null
+          survivor_middlename: string | null
+          survivor_number: number | null
+          survivor_surname: string | null
+        }
+        Insert: {
+          action?: string | null
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          audit_id: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number?: number | null
+          survivor_surname?: string | null
+        }
+        Update: {
+          action?: string | null
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          audit_id?: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number?: number | null
+          survivor_surname?: string | null
+        }
+        Relationships: []
+      }
+      au_cl_detail_sib: {
+        Row: {
+          action: string | null
+          audit_id: number
+          cause_of_injury: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          date_ceased_work: string | null
+          date_emp_certified: string | null
+          date_of_accident: string | null
+          employer_rep: string | null
+          extent_of_injury: string | null
+          illness_code: string | null
+          machinery_involved: string | null
+          modified_date: string | null
+          modifier: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          cause_of_injury?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_ceased_work?: string | null
+          date_emp_certified?: string | null
+          date_of_accident?: string | null
+          employer_rep?: string | null
+          extent_of_injury?: string | null
+          illness_code?: string | null
+          machinery_involved?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          cause_of_injury?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_ceased_work?: string | null
+          date_emp_certified?: string | null
+          date_of_accident?: string | null
+          employer_rep?: string | null
+          extent_of_injury?: string | null
+          illness_code?: string | null
+          machinery_involved?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+        }
+        Relationships: []
+      }
+      au_cl_head: {
+        Row: {
+          account_credited: string | null
+          action: string | null
+          address_1: string | null
+          address_2: string | null
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          annual_benefit_rate: number | null
+          approved_by: string | null
+          audit_id: number
+          avg_annual_wages: number | null
+          avg_weekly_wages: number | null
+          benefit_amount: number | null
+          benefit_days: number | null
+          benefit_type: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          claim_type_code: string | null
+          claimant_id: string | null
+          contrib_weeks_paid: number | null
+          daily_benefit_rate: number | null
+          date_approved: string | null
+          date_certified: string | null
+          date_closed: string | null
+          date_disallowed: string | null
+          date_discontinued: string | null
+          date_entered: string | null
+          date_lost_elig: string | null
+          date_modified: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_processed: string | null
+          date_received: string | null
+          date_status_changed: string | null
+          date_suspended: string | null
+          date_verified: string | null
+          dbd_acct: string | null
+          dbd_acct_name: string | null
+          dbd_bank_code: string | null
+          dbd_ok: string | null
+          disable_code: string | null
+          disallowance_code: string | null
+          effective_end_date: string | null
+          effective_start_date: string | null
+          eligibility_review: string | null
+          entered_by: string | null
+          entry_mode: string | null
+          exit_reason: string | null
+          insured_ssn: string | null
+          linked_claim_no: string | null
+          medical_submitted: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          number_of_cheques: number | null
+          paid_to_date: number | null
+          payee_district: string | null
+          payee_firstname: string | null
+          payee_middlename: string | null
+          payee_surname: string | null
+          postal_reg_code: string | null
+          previous_status: string | null
+          processed_by: string | null
+          provider_code: string | null
+          regno: string | null
+          remark: string | null
+          remarks2: string | null
+          status: string | null
+          total_wages_paid: number | null
+          verified_by: string | null
+          weekly_benefit_rate: number | null
+        }
+        Insert: {
+          account_credited?: string | null
+          action?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          audit_id: number
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string | null
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string | null
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Update: {
+          account_credited?: string | null
+          action?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          audit_id?: number
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string | null
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string | null
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Relationships: []
+      }
+      au_cl_wages_credited: {
+        Row: {
+          action: string | null
+          audit_id: number
+          claim_number: string | null
+          claim_seq: number | null
+          modified_date: string | null
+          modifier: string | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          period: string | null
+          ssn: string | null
+          wages_credited1: number | null
+          wages_credited2: number | null
+          wages_credited3: number | null
+          wages_credited4: number | null
+          wages_credited5: number | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          period?: string | null
+          ssn?: string | null
+          wages_credited1?: number | null
+          wages_credited2?: number | null
+          wages_credited3?: number | null
+          wages_credited4?: number | null
+          wages_credited5?: number | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          claim_number?: string | null
+          claim_seq?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          period?: string | null
+          ssn?: string | null
+          wages_credited1?: number | null
+          wages_credited2?: number | null
+          wages_credited3?: number | null
+          wages_credited4?: number | null
+          wages_credited5?: number | null
+        }
+        Relationships: []
+      }
+      au_cn_batch: {
+        Row: {
+          action: string | null
+          audit_id: number
+          balance_forward: number | null
+          balance_status: string | null
+          batch_date: string | null
+          batch_number: string | null
+          batch_status: string | null
+          date_entered: string | null
+          date_posted: string | null
+          date_verified: string | null
+          entered_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          office_code: string | null
+          offset_amount: number | null
+          posted_by: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_date?: string | null
+          batch_number?: string | null
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_date?: string | null
+          batch_number?: string | null
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      au_cn_c3_reported: {
+        Row: {
+          action: string | null
+          au_modified_date: string | null
+          audit_id: number
+          date_entered: string | null
+          date_posted: string | null
+          date_received: string | null
+          date_verified: string | null
+          emp_levy_amt_calc: number | null
+          emp_levy_amt_rpt: number | null
+          emp_levy_penalty_amt: number | null
+          emp_pe_amt_calc: number | null
+          emp_pe_amt_rpt: number | null
+          emp_pe_penalty_amt: number | null
+          emp_ss_amt_calc: number | null
+          emp_ss_amt_rpt: number | null
+          emp_ss_fines_due: number | null
+          entered_by: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          nil_return: number | null
+          notes: string | null
+          number_employed: number | null
+          payer_id: string | null
+          payer_type: string | null
+          period: string | null
+          posting_status: string | null
+          received_by: string | null
+          sequence_no: number | null
+          total_wages: number | null
+          verified_by: string | null
+        }
+        Insert: {
+          action?: string | null
+          au_modified_date?: string | null
+          audit_id: number
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          nil_return?: number | null
+          notes?: string | null
+          number_employed?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          posting_status?: string | null
+          received_by?: string | null
+          sequence_no?: number | null
+          total_wages?: number | null
+          verified_by?: string | null
+        }
+        Update: {
+          action?: string | null
+          au_modified_date?: string | null
+          audit_id?: number
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          nil_return?: number | null
+          notes?: string | null
+          number_employed?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          posting_status?: string | null
+          received_by?: string | null
+          sequence_no?: number | null
+          total_wages?: number | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      au_cn_director_wages: {
+        Row: {
+          action: string | null
+          audit_id: number
+          levy_amt: number | null
+          modified_date: string | null
+          modifier: string | null
+          payer_id: string | null
+          payer_type: string | null
+          period: string | null
+          sequence_no: number | null
+          ssn: string | null
+          wages: number | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          levy_amt?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          wages?: number | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          levy_amt?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          wages?: number | null
+        }
+        Relationships: []
+      }
+      au_cn_payment: {
+        Row: {
+          action: string | null
+          audit_id: number
+          bank_code: string | null
+          bank_lodgement_code: string | null
+          cheque_date: string | null
+          credit_card_code: string | null
+          expiration_date: string | null
+          fund_code: string | null
+          modified_date: string | null
+          modifier: string | null
+          mop_account_number: string | null
+          mop_code: string | null
+          mop_notes1: string | null
+          mop_number: string | null
+          mop_transit_number: string | null
+          payment_amount: number | null
+          payment_code: string | null
+          payment_date: string | null
+          payment_id: number | null
+          payment_sequence_no: number | null
+          period: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          mop_account_number?: string | null
+          mop_code?: string | null
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_date?: string | null
+          payment_id?: number | null
+          payment_sequence_no?: number | null
+          period?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          mop_account_number?: string | null
+          mop_code?: string | null
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_date?: string | null
+          payment_id?: number | null
+          payment_sequence_no?: number | null
+          period?: string | null
+        }
+        Relationships: []
+      }
+      au_cn_payment_header: {
+        Row: {
+          action: string | null
+          audit_id: number
+          batch_number: string | null
+          date_received: string | null
+          modified_date: string | null
+          modifier: string | null
+          payer_id: string | null
+          payer_type: string | null
+          payment_id: number | null
+          remarks: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          batch_number?: string | null
+          date_received?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_id?: number | null
+          remarks?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          batch_number?: string | null
+          date_received?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_id?: number | null
+          remarks?: string | null
+        }
+        Relationships: []
+      }
+      au_cn_receipt: {
+        Row: {
+          action: string | null
+          audit_id: number
+          cancel_date: string | null
+          cancel_reason: string | null
+          cancel_user: string | null
+          modified_date: string | null
+          modifier: string | null
+          payment_id: number | null
+          receipt_id: string | null
+          receipt_total: number | null
+          reprint_times: number | null
+          status: string | null
+          total_number_of_payments: number | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_id?: number | null
+          receipt_id?: string | null
+          receipt_total?: number | null
+          reprint_times?: number | null
+          status?: string | null
+          total_number_of_payments?: number | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          cancel_date?: string | null
+          cancel_reason?: string | null
+          cancel_user?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_id?: number | null
+          receipt_id?: string | null
+          receipt_total?: number | null
+          reprint_times?: number | null
+          status?: string | null
+          total_number_of_payments?: number | null
+        }
+        Relationships: []
+      }
+      au_er_last_regno: {
+        Row: {
+          action: string | null
+          audit_id: number
+          date_issued: string | null
+          modified_date: string | null
+          modifier: string | null
+          regno: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          regno?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          regno?: string | null
+        }
+        Relationships: []
+      }
+      au_er_master: {
+        Row: {
+          acquired_code: string | null
+          action: string | null
+          activity_type: string | null
+          application_date: string | null
+          arrears: string | null
+          audit_id: number
+          computer_payroll: string | null
+          date_incorporated: string | null
+          date_modified: string | null
+          date_of_acquisition: string | null
+          date_of_closure: string | null
+          date_of_entry: string | null
+          date_of_issue: string | null
+          date_verified: string | null
+          date_wages_first_paid: string | null
+          disk_tape: string | null
+          email: string | null
+          entered_by: string | null
+          estim_arrears_lv: number | null
+          estim_arrears_pe: number | null
+          estim_arrears_ss: number | null
+          estim_wages_lv: number | null
+          estim_wages_pe: number | null
+          estim_wages_ss: number | null
+          exp_mthly_income: number | null
+          fax: string | null
+          females_employed: number | null
+          hq_addr1: string | null
+          hq_addr2: string | null
+          industrial_code: string | null
+          inspector_code: string | null
+          legal_action: string | null
+          maddr1: string | null
+          maddr2: string | null
+          make_model: string | null
+          males_employed: number | null
+          mobile: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          name: string | null
+          office_code: string | null
+          ownership_code: string | null
+          parent_regno: string | null
+          phone: string | null
+          prev_owner_addr1: string | null
+          prev_owner_addr2: string | null
+          previous_owner: string | null
+          re_registration_date: string | null
+          registration_date: string | null
+          registry_num: string | null
+          regno: string | null
+          sector_code: string | null
+          status: string | null
+          trade_name: string | null
+          verified_by: string | null
+          village_code: string | null
+        }
+        Insert: {
+          acquired_code?: string | null
+          action?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          audit_id: number
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          email?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          mobile?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          name?: string | null
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          registry_num?: string | null
+          regno?: string | null
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          acquired_code?: string | null
+          action?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          audit_id?: number
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          email?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          mobile?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          name?: string | null
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          registry_num?: string | null
+          regno?: string | null
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Relationships: []
+      }
+      au_er_suit: {
+        Row: {
+          action: string | null
+          audit_id: number
+          awarded_amount: number | null
+          awarded_cost: number | null
+          date_modified: string | null
+          date_of_entry: string | null
+          date_of_filing: string | null
+          date_of_hearing: string | null
+          date_pay_by: string | null
+          date_verified: string | null
+          entered_by: string | null
+          initial_suit_no: string | null
+          initial_suit_year: string | null
+          jds_no: string | null
+          jds_year: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          outcome_code: string | null
+          regno: string | null
+          remarks: string | null
+          scheme_code: string | null
+          suit_amount: number | null
+          suit_f_cont_month: string | null
+          suit_f_cont_year: string | null
+          suit_no: string | null
+          suit_status: string | null
+          suit_t_cont_month: string | null
+          suit_t_cont_year: string | null
+          suit_type: string | null
+          suit_year: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          outcome_code?: string | null
+          regno?: string | null
+          remarks?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_f_cont_month?: string | null
+          suit_f_cont_year?: string | null
+          suit_no?: string | null
+          suit_status?: string | null
+          suit_t_cont_month?: string | null
+          suit_t_cont_year?: string | null
+          suit_type?: string | null
+          suit_year?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          outcome_code?: string | null
+          regno?: string | null
+          remarks?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_f_cont_month?: string | null
+          suit_f_cont_year?: string | null
+          suit_no?: string | null
+          suit_status?: string | null
+          suit_t_cont_month?: string | null
+          suit_t_cont_year?: string | null
+          suit_type?: string | null
+          suit_year?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_depend: {
+        Row: {
+          action: string | null
+          audit_id: number
+          date_modified: string | null
+          date_of_death: string | null
+          depend_addr1: string | null
+          depend_addr2: string | null
+          depend_id: string | null
+          depend_ssn: string | null
+          dob: string | null
+          firstname: string | null
+          invalid: string | null
+          middle_name: string | null
+          modified_date: string | null
+          modifier: string | null
+          relation: string | null
+          school_child: string | null
+          sex: string | null
+          ssn: string | null
+          status: string | null
+          surname: string | null
+          tran_code: string | null
+          userid: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          date_modified?: string | null
+          date_of_death?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          depend_id?: string | null
+          depend_ssn?: string | null
+          dob?: string | null
+          firstname?: string | null
+          invalid?: string | null
+          middle_name?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          relation?: string | null
+          school_child?: string | null
+          sex?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          date_modified?: string | null
+          date_of_death?: string | null
+          depend_addr1?: string | null
+          depend_addr2?: string | null
+          depend_id?: string | null
+          depend_ssn?: string | null
+          dob?: string | null
+          firstname?: string | null
+          invalid?: string | null
+          middle_name?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          relation?: string | null
+          school_child?: string | null
+          sex?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_employer: {
+        Row: {
+          action: string | null
+          audit_id: number
+          date_modified: string | null
+          end_date: string | null
+          modified_date: string | null
+          modifier: string | null
+          occupation: string | null
+          regno: string | null
+          ssn: string | null
+          start_date: string | null
+          status: string | null
+          tran_code: string | null
+          userid: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          date_modified?: string | null
+          end_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          occupation?: string | null
+          regno?: string | null
+          ssn?: string | null
+          start_date?: string | null
+          status?: string | null
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          date_modified?: string | null
+          end_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          occupation?: string | null
+          regno?: string | null
+          ssn?: string | null
+          start_date?: string | null
+          status?: string | null
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Relationships: []
+      }
       au_ip_last_self_emp: {
         Row: {
           action: string | null
@@ -508,6 +2089,282 @@ export type Database = {
           modified_date?: string | null
           modifier?: string | null
           self_ref_no?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_last_ssn: {
+        Row: {
+          action: string | null
+          audit_id: number
+          date_issued: string | null
+          modified_date: string | null
+          modifier: string | null
+          ssn: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          ssn?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          date_issued?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          ssn?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_master: {
+        Row: {
+          action: string | null
+          alias: string | null
+          application_date: string | null
+          asp_num: string | null
+          audit_id: number
+          ben_addr1: string | null
+          ben_addr2: string | null
+          beneficiary: string | null
+          birth_place: string | null
+          card_expiration: string | null
+          citizenship: string | null
+          contact: string | null
+          contact_addr1: string | null
+          contact_addr2: string | null
+          contact_relation: string | null
+          date_card_recvd: string | null
+          date_died: string | null
+          date_married: string | null
+          date_modified: string | null
+          date_of_entry: string | null
+          date_of_residency: string | null
+          date_verified: string | null
+          date_witnessed: string | null
+          deb_crd_amount: number | null
+          delivery_zone: string | null
+          district: string | null
+          dob: string | null
+          email_addr: string | null
+          entered_by: string | null
+          eyecolor: string | null
+          father_name: string | null
+          firstname: string | null
+          heightfeet: number | null
+          heightinches: number | null
+          ip_signature: string | null
+          mail_addr1: string | null
+          mail_addr2: string | null
+          marital_status: string | null
+          middle_name: string | null
+          modified_date: string | null
+          modifier: string | null
+          mother_name: string | null
+          name_prefix: string | null
+          name_suffix: string | null
+          nationality: string | null
+          npf: string | null
+          old_card_attached: string | null
+          perm_card_date: string | null
+          phone: string | null
+          phone_mobile: string | null
+          photo: string | null
+          photo_location: string | null
+          place_of_residence: string | null
+          previous_name: string | null
+          primary_occup: string | null
+          registration_date: string | null
+          resident_addr1: string | null
+          resident_addr2: string | null
+          self_ref_no: string | null
+          sex: string | null
+          signature_location: string | null
+          spouse_addr1: string | null
+          spouse_addr2: string | null
+          spouse_name: string | null
+          ssn: string | null
+          status: string | null
+          surname: string | null
+          temp_card_date: string | null
+          termination_code: string | null
+          termination_date: string | null
+          tran_code: string | null
+          userid: string | null
+          verified_by: string | null
+          verify_birth_code: string | null
+          verify_death_code: string | null
+          verify_marital_code: string | null
+          verify_name_code: string | null
+          vol_contrib: string | null
+          witness_name: string | null
+          work_permit: string | null
+        }
+        Insert: {
+          action?: string | null
+          alias?: string | null
+          application_date?: string | null
+          asp_num?: string | null
+          audit_id: number
+          ben_addr1?: string | null
+          ben_addr2?: string | null
+          beneficiary?: string | null
+          birth_place?: string | null
+          card_expiration?: string | null
+          citizenship?: string | null
+          contact?: string | null
+          contact_addr1?: string | null
+          contact_addr2?: string | null
+          contact_relation?: string | null
+          date_card_recvd?: string | null
+          date_died?: string | null
+          date_married?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_residency?: string | null
+          date_verified?: string | null
+          date_witnessed?: string | null
+          deb_crd_amount?: number | null
+          delivery_zone?: string | null
+          district?: string | null
+          dob?: string | null
+          email_addr?: string | null
+          entered_by?: string | null
+          eyecolor?: string | null
+          father_name?: string | null
+          firstname?: string | null
+          heightfeet?: number | null
+          heightinches?: number | null
+          ip_signature?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          mother_name?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
+          nationality?: string | null
+          npf?: string | null
+          old_card_attached?: string | null
+          perm_card_date?: string | null
+          phone?: string | null
+          phone_mobile?: string | null
+          photo?: string | null
+          photo_location?: string | null
+          place_of_residence?: string | null
+          previous_name?: string | null
+          primary_occup?: string | null
+          registration_date?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
+          self_ref_no?: string | null
+          sex?: string | null
+          signature_location?: string | null
+          spouse_addr1?: string | null
+          spouse_addr2?: string | null
+          spouse_name?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+          temp_card_date?: string | null
+          termination_code?: string | null
+          termination_date?: string | null
+          tran_code?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_death_code?: string | null
+          verify_marital_code?: string | null
+          verify_name_code?: string | null
+          vol_contrib?: string | null
+          witness_name?: string | null
+          work_permit?: string | null
+        }
+        Update: {
+          action?: string | null
+          alias?: string | null
+          application_date?: string | null
+          asp_num?: string | null
+          audit_id?: number
+          ben_addr1?: string | null
+          ben_addr2?: string | null
+          beneficiary?: string | null
+          birth_place?: string | null
+          card_expiration?: string | null
+          citizenship?: string | null
+          contact?: string | null
+          contact_addr1?: string | null
+          contact_addr2?: string | null
+          contact_relation?: string | null
+          date_card_recvd?: string | null
+          date_died?: string | null
+          date_married?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_residency?: string | null
+          date_verified?: string | null
+          date_witnessed?: string | null
+          deb_crd_amount?: number | null
+          delivery_zone?: string | null
+          district?: string | null
+          dob?: string | null
+          email_addr?: string | null
+          entered_by?: string | null
+          eyecolor?: string | null
+          father_name?: string | null
+          firstname?: string | null
+          heightfeet?: number | null
+          heightinches?: number | null
+          ip_signature?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          marital_status?: string | null
+          middle_name?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          mother_name?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
+          nationality?: string | null
+          npf?: string | null
+          old_card_attached?: string | null
+          perm_card_date?: string | null
+          phone?: string | null
+          phone_mobile?: string | null
+          photo?: string | null
+          photo_location?: string | null
+          place_of_residence?: string | null
+          previous_name?: string | null
+          primary_occup?: string | null
+          registration_date?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
+          self_ref_no?: string | null
+          sex?: string | null
+          signature_location?: string | null
+          spouse_addr1?: string | null
+          spouse_addr2?: string | null
+          spouse_name?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+          temp_card_date?: string | null
+          termination_code?: string | null
+          termination_date?: string | null
+          tran_code?: string | null
+          userid?: string | null
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_death_code?: string | null
+          verify_marital_code?: string | null
+          verify_name_code?: string | null
+          vol_contrib?: string | null
+          witness_name?: string | null
+          work_permit?: string | null
         }
         Relationships: []
       }
@@ -631,6 +2488,288 @@ export type Database = {
           userid?: string | null
           verified_by?: string | null
           village_code?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_unemploy: {
+        Row: {
+          action: string | null
+          audit_id: number
+          benefit_extension: number | null
+          benefit_last_start_date: string | null
+          benefit_org_start_date: string | null
+          last_deemed_pay_date: string | null
+          modified_date: string | null
+          modifier: string | null
+          num_weeks_paid: number | null
+          ssn: string | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          benefit_extension?: number | null
+          benefit_last_start_date?: string | null
+          benefit_org_start_date?: string | null
+          last_deemed_pay_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          num_weeks_paid?: number | null
+          ssn?: string | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          benefit_extension?: number | null
+          benefit_last_start_date?: string | null
+          benefit_org_start_date?: string | null
+          last_deemed_pay_date?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          num_weeks_paid?: number | null
+          ssn?: string | null
+        }
+        Relationships: []
+      }
+      au_ip_wages: {
+        Row: {
+          action: string | null
+          audit_id: number
+          er_ei_amt: number | null
+          er_levy_amt: number | null
+          er_ss_amt: number | null
+          ip_levy_amt: number | null
+          ip_pe_amt: number | null
+          ip_ss_amt: number | null
+          modified_date: string | null
+          modifier: string | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          paid_code7: string | null
+          pay_period: string | null
+          payer_id: string | null
+          payer_type: string | null
+          period: string | null
+          sequence_no: number | null
+          ssn: string | null
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+          wages_paid7: number | null
+        }
+        Insert: {
+          action?: string | null
+          audit_id: number
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Update: {
+          action?: string | null
+          audit_id?: number
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          modified_date?: string | null
+          modifier?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Relationships: []
+      }
+      au_ip_wages_ann_sum: {
+        Row: {
+          action: string | null
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          audit_id: number
+          modified_date: string | null
+          modifier: string | null
+          ssn: string
+          wages_credit_addl: number | null
+          weeks_credit_addl: number | null
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          action?: string | null
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          audit_id: number
+          modified_date?: string | null
+          modifier?: string | null
+          ssn: string
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          action?: string | null
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          audit_id?: number
+          modified_date?: string | null
+          modifier?: string | null
+          ssn?: string
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      au_ip_wages_ann_sum_old: {
+        Row: {
+          action: string | null
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          audit_id: number
+          modified_date: string | null
+          modifier: string | null
+          ssn: string | null
+          wages_credit_addl: number | null
+          weeks_credit_addl: number | null
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string | null
+        }
+        Insert: {
+          action?: string | null
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          audit_id: number
+          modified_date?: string | null
+          modifier?: string | null
+          ssn?: string | null
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string | null
+        }
+        Update: {
+          action?: string | null
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          audit_id?: number
+          modified_date?: string | null
+          modifier?: string | null
+          ssn?: string | null
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string | null
+        }
+        Relationships: []
+      }
+      au_last_self_employ: {
+        Row: {
+          date_modified: string | null
+          last_self_ref_no: string | null
+          userid: string | null
+        }
+        Insert: {
+          date_modified?: string | null
+          last_self_ref_no?: string | null
+          userid?: string | null
+        }
+        Update: {
+          date_modified?: string | null
+          last_self_ref_no?: string | null
+          userid?: string | null
         }
         Relationships: []
       }
@@ -1860,6 +3999,21 @@ export type Database = {
           updated_at?: string | null
           zone_code?: string | null
           zone_name?: string
+        }
+        Relationships: []
+      }
+      bitmap: {
+        Row: {
+          bitmap: string
+          border: number | null
+        }
+        Insert: {
+          bitmap: string
+          border?: number | null
+        }
+        Update: {
+          bitmap?: string
+          border?: number | null
         }
         Relationships: []
       }
@@ -5172,6 +7326,63 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_app_setting: {
+        Row: {
+          additional_fine_rate: number | null
+          additional_penalty_rate: number | null
+          bonus_Levyee_rate: number | null
+          eib: number | null
+          employer_levy: number | null
+          fine_rate: number | null
+          from_date: string | null
+          is_locked: number | null
+          max_age: number | null
+          min_age: number | null
+          penalty_rate: number | null
+          set_id: number
+          severance_rate: number | null
+          soc_ee_rate: number | null
+          soc_er_rate: number | null
+          to_date: string | null
+        }
+        Insert: {
+          additional_fine_rate?: number | null
+          additional_penalty_rate?: number | null
+          bonus_Levyee_rate?: number | null
+          eib?: number | null
+          employer_levy?: number | null
+          fine_rate?: number | null
+          from_date?: string | null
+          is_locked?: number | null
+          max_age?: number | null
+          min_age?: number | null
+          penalty_rate?: number | null
+          set_id: number
+          severance_rate?: number | null
+          soc_ee_rate?: number | null
+          soc_er_rate?: number | null
+          to_date?: string | null
+        }
+        Update: {
+          additional_fine_rate?: number | null
+          additional_penalty_rate?: number | null
+          bonus_Levyee_rate?: number | null
+          eib?: number | null
+          employer_levy?: number | null
+          fine_rate?: number | null
+          from_date?: string | null
+          is_locked?: number | null
+          max_age?: number | null
+          min_age?: number | null
+          penalty_rate?: number | null
+          set_id?: number
+          severance_rate?: number | null
+          soc_ee_rate?: number | null
+          soc_er_rate?: number | null
+          to_date?: string | null
+        }
+        Relationships: []
+      }
       c3_bonus_policy_default: {
         Row: {
           calc_flat_enabled: boolean
@@ -5938,6 +8149,45 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_import_err: {
+        Row: {
+          date_entered: string | null
+          entered_by: string | null
+          error_text: string
+          filename: string
+          identifier: number
+          line_number: string
+          load_date: string
+          Month: string | null
+          regno: string | null
+          ssn: string | null
+        }
+        Insert: {
+          date_entered?: string | null
+          entered_by?: string | null
+          error_text: string
+          filename: string
+          identifier: number
+          line_number: string
+          load_date: string
+          Month?: string | null
+          regno?: string | null
+          ssn?: string | null
+        }
+        Update: {
+          date_entered?: string | null
+          entered_by?: string | null
+          error_text?: string
+          filename?: string
+          identifier?: number
+          line_number?: string
+          load_date?: string
+          Month?: string | null
+          regno?: string | null
+          ssn?: string | null
+        }
+        Relationships: []
+      }
       c3_income_code_policy_default: {
         Row: {
           calc_flat_enabled: boolean | null
@@ -6535,6 +8785,60 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_setting: {
+        Row: {
+          set_code: string
+          set_defvalue: string | null
+          set_dtype: string
+          set_grp_name: string
+          set_id: number
+          set_name: string
+          set_type: string
+        }
+        Insert: {
+          set_code: string
+          set_defvalue?: string | null
+          set_dtype: string
+          set_grp_name: string
+          set_id: number
+          set_name: string
+          set_type: string
+        }
+        Update: {
+          set_code?: string
+          set_defvalue?: string | null
+          set_dtype?: string
+          set_grp_name?: string
+          set_id?: number
+          set_name?: string
+          set_type?: string
+        }
+        Relationships: []
+      }
+      c3_setting_user: {
+        Row: {
+          lastupdttmsp: string | null
+          lastupdtuser: string | null
+          payer_id: string
+          set_id: number
+          set_value: string | null
+        }
+        Insert: {
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          payer_id: string
+          set_id: number
+          set_value?: string | null
+        }
+        Update: {
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          payer_id?: string
+          set_id?: number
+          set_value?: string | null
+        }
+        Relationships: []
+      }
       c3_submissions: {
         Row: {
           attachments: Json | null
@@ -6634,6 +8938,135 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_sysmsg_lkup: {
+        Row: {
+          locale: string
+          msgcode: string
+          msgid: number
+          msgresolution: string
+          msgtext: string
+          msgtype: string
+        }
+        Insert: {
+          locale: string
+          msgcode: string
+          msgid: number
+          msgresolution: string
+          msgtext: string
+          msgtype: string
+        }
+        Update: {
+          locale?: string
+          msgcode?: string
+          msgid?: number
+          msgresolution?: string
+          msgtext?: string
+          msgtype?: string
+        }
+        Relationships: []
+      }
+      c3_sysuserlogs: {
+        Row: {
+          callid: string
+          ipaddr: string
+          logdate: string
+          logid: number
+          method: string
+          resptime: number
+          url: string
+          username: string
+        }
+        Insert: {
+          callid: string
+          ipaddr: string
+          logdate: string
+          logid: number
+          method: string
+          resptime: number
+          url: string
+          username: string
+        }
+        Update: {
+          callid?: string
+          ipaddr?: string
+          logdate?: string
+          logid?: number
+          method?: string
+          resptime?: number
+          url?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      c3_tax_deduction: {
+        Row: {
+          base_amt: number | null
+          ded_code: string | null
+          marital_stat: string | null
+          order_no: number | null
+          over_amt: number | null
+          pay_period: string | null
+          tax_id: number
+          tax_rate: number | null
+          tax_year: string | null
+        }
+        Insert: {
+          base_amt?: number | null
+          ded_code?: string | null
+          marital_stat?: string | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          tax_id: number
+          tax_rate?: number | null
+          tax_year?: string | null
+        }
+        Update: {
+          base_amt?: number | null
+          ded_code?: string | null
+          marital_stat?: string | null
+          order_no?: number | null
+          over_amt?: number | null
+          pay_period?: string | null
+          tax_id?: number
+          tax_rate?: number | null
+          tax_year?: string | null
+        }
+        Relationships: []
+      }
+      c3_template: {
+        Row: {
+          emai_dflt_cc: string
+          emai_dflt_to: string
+          emai_subject: string
+          tmpl_id: number
+          tmpl_name: string
+          tmpl_stts: string
+          tmpl_txt: string
+          tmpl_type: string
+        }
+        Insert: {
+          emai_dflt_cc: string
+          emai_dflt_to: string
+          emai_subject: string
+          tmpl_id: number
+          tmpl_name: string
+          tmpl_stts: string
+          tmpl_txt: string
+          tmpl_type: string
+        }
+        Update: {
+          emai_dflt_cc?: string
+          emai_dflt_to?: string
+          emai_subject?: string
+          tmpl_id?: number
+          tmpl_name?: string
+          tmpl_stts?: string
+          tmpl_txt?: string
+          tmpl_type?: string
+        }
+        Relationships: []
+      }
       c3_unified_audit_log: {
         Row: {
           action: string
@@ -6709,6 +9142,63 @@ export type Database = {
           ses_id?: number | null
           weekly_contribution?: number | null
           weekly_income?: number | null
+        }
+        Relationships: []
+      }
+      c3supreq: {
+        Row: {
+          creatmsp: string | null
+          creauser: string | null
+          empno: string | null
+          lastupdtpgm: string | null
+          lastupdttmsp: string | null
+          lastupdtuser: string | null
+          regno: string
+          reqemail: string | null
+          reqname: string | null
+          reqno: number
+          reqph: string | null
+          reqsource: string | null
+          reqstts: string | null
+          reqtext: string | null
+          reqtype: string | null
+          resol: string | null
+        }
+        Insert: {
+          creatmsp?: string | null
+          creauser?: string | null
+          empno?: string | null
+          lastupdtpgm?: string | null
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          regno: string
+          reqemail?: string | null
+          reqname?: string | null
+          reqno: number
+          reqph?: string | null
+          reqsource?: string | null
+          reqstts?: string | null
+          reqtext?: string | null
+          reqtype?: string | null
+          resol?: string | null
+        }
+        Update: {
+          creatmsp?: string | null
+          creauser?: string | null
+          empno?: string | null
+          lastupdtpgm?: string | null
+          lastupdttmsp?: string | null
+          lastupdtuser?: string | null
+          regno?: string
+          reqemail?: string | null
+          reqname?: string | null
+          reqno?: number
+          reqph?: string | null
+          reqsource?: string | null
+          reqstts?: string | null
+          reqtext?: string | null
+          reqtype?: string | null
+          resol?: string | null
         }
         Relationships: []
       }
@@ -8735,6 +11225,2253 @@ export type Database = {
           },
         ]
       }
+      cl_bank_acct: {
+        Row: {
+          acct_name: string | null
+          acct_num: string
+          acct_type: string | null
+          active_ind: boolean
+          bank_code: string
+          branch_code: string | null
+          claim_number: string
+          claim_seq: number
+          identifier: number
+          last_modified_date: string | null
+          last_modified_name: string | null
+        }
+        Insert: {
+          acct_name?: string | null
+          acct_num: string
+          acct_type?: string | null
+          active_ind: boolean
+          bank_code: string
+          branch_code?: string | null
+          claim_number: string
+          claim_seq: number
+          identifier: number
+          last_modified_date?: string | null
+          last_modified_name?: string | null
+        }
+        Update: {
+          acct_name?: string | null
+          acct_num?: string
+          acct_type?: string | null
+          active_ind?: boolean
+          bank_code?: string
+          branch_code?: string | null
+          claim_number?: string
+          claim_seq?: number
+          identifier?: number
+          last_modified_date?: string | null
+          last_modified_name?: string | null
+        }
+        Relationships: []
+      }
+      cl_cheques: {
+        Row: {
+          batch_number: string | null
+          batch_sequence_number: number | null
+          batch_status: string | null
+          cheque_date: string | null
+          cheque_item: number
+          cheque_number: string
+          cheque_status: string | null
+          cheque_type: string | null
+          claim_number: string
+          claim_seq: number
+          date_cancel: string | null
+          date_cashed: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_of_issue: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_stale: string | null
+          date_status_changed: string | null
+          date_verified: string | null
+          entered_by: string | null
+          holding_cheque_id: number | null
+          modified_by: string | null
+          payment_amount: number | null
+          postal_reg_num: number | null
+          print_batch_number: string | null
+          remarks: string | null
+          verified_by: string | null
+          verify_status: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_item: number
+          cheque_number: string
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number: string
+          claim_seq: number
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          holding_cheque_id?: number | null
+          modified_by?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_item?: number
+          cheque_number?: string
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string
+          claim_seq?: number
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          holding_cheque_id?: number | null
+          modified_by?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Relationships: []
+      }
+      cl_cheques_holding: {
+        Row: {
+          batch_number: string | null
+          batch_sequence_number: number | null
+          batch_status: string | null
+          cheque_date: string | null
+          cheque_id: number
+          cheque_item: number | null
+          cheque_number: string | null
+          cheque_status: string | null
+          cheque_type: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          date_cancel: string | null
+          date_cashed: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_of_issue: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_stale: string | null
+          date_status_changed: string | null
+          date_verified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          modified_date: string | null
+          modifier: string | null
+          payment_amount: number | null
+          postal_reg_num: number | null
+          print_batch_number: string | null
+          remarks: string | null
+          verified_by: string | null
+          verify_status: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_id: number
+          cheque_item?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_id?: number
+          cheque_item?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_cancel?: string | null
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_stale?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          modifier?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+          verify_status?: string | null
+        }
+        Relationships: []
+      }
+      cl_cheques_survivor: {
+        Row: {
+          cheque_item: number
+          cheque_number: string
+          claim_number: string
+          claim_seq: number
+          payment_amount: number | null
+          survivor_number: number
+        }
+        Insert: {
+          cheque_item: number
+          cheque_number: string
+          claim_number: string
+          claim_seq: number
+          payment_amount?: number | null
+          survivor_number: number
+        }
+        Update: {
+          cheque_item?: number
+          cheque_number?: string
+          claim_number?: string
+          claim_seq?: number
+          payment_amount?: number | null
+          survivor_number?: number
+        }
+        Relationships: []
+      }
+      cl_detail_funeral: {
+        Row: {
+          address_1: string | null
+          address_2: string | null
+          child_id: string | null
+          claim_number: string
+          claim_seq: number
+          claimant_firstname: string | null
+          claimant_middlename: string | null
+          claimant_ssn: string | null
+          claimant_surname: string | null
+          relation_to_dec: string | null
+          relation_to_ip: string | null
+        }
+        Insert: {
+          address_1?: string | null
+          address_2?: string | null
+          child_id?: string | null
+          claim_number: string
+          claim_seq: number
+          claimant_firstname?: string | null
+          claimant_middlename?: string | null
+          claimant_ssn?: string | null
+          claimant_surname?: string | null
+          relation_to_dec?: string | null
+          relation_to_ip?: string | null
+        }
+        Update: {
+          address_1?: string | null
+          address_2?: string | null
+          child_id?: string | null
+          claim_number?: string
+          claim_seq?: number
+          claimant_firstname?: string | null
+          claimant_middlename?: string | null
+          claimant_ssn?: string | null
+          claimant_surname?: string | null
+          relation_to_dec?: string | null
+          relation_to_ip?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_matern: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          date_ceased_work: string | null
+          date_of_confinement: string | null
+          expect_confine_date: string | null
+          number_of_children: number | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          date_ceased_work?: string | null
+          date_of_confinement?: string | null
+          expect_confine_date?: string | null
+          number_of_children?: number | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          date_ceased_work?: string | null
+          date_of_confinement?: string | null
+          expect_confine_date?: string | null
+          number_of_children?: number | null
+        }
+        Relationships: []
+      }
+      cl_detail_me: {
+        Row: {
+          amount_claimed: number | null
+          claim_number: string
+          claim_seq: number
+          number_of_receipts: number
+        }
+        Insert: {
+          amount_claimed?: number | null
+          claim_number: string
+          claim_seq: number
+          number_of_receipts: number
+        }
+        Update: {
+          amount_claimed?: number | null
+          claim_number?: string
+          claim_seq?: number
+          number_of_receipts?: number
+        }
+        Relationships: []
+      }
+      cl_detail_pen: {
+        Row: {
+          age_cr_allowed: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit: string | null
+          date_life_cert: string | null
+          exit_reason: string | null
+          illness_code: string | null
+          last_cheque_date: string | null
+          pen_end_date: string | null
+          pen_start_date: string | null
+          recipient_seq: string | null
+          recipient_ssn: string | null
+          tot_pen_paid: number | null
+        }
+        Insert: {
+          age_cr_allowed?: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit?: string | null
+          date_life_cert?: string | null
+          exit_reason?: string | null
+          illness_code?: string | null
+          last_cheque_date?: string | null
+          pen_end_date?: string | null
+          pen_start_date?: string | null
+          recipient_seq?: string | null
+          recipient_ssn?: string | null
+          tot_pen_paid?: number | null
+        }
+        Update: {
+          age_cr_allowed?: number | null
+          claim_number?: string
+          claim_seq?: number
+          date_exit_bfit?: string | null
+          date_life_cert?: string | null
+          exit_reason?: string | null
+          illness_code?: string | null
+          last_cheque_date?: string | null
+          pen_end_date?: string | null
+          pen_start_date?: string | null
+          recipient_seq?: string | null
+          recipient_ssn?: string | null
+          tot_pen_paid?: number | null
+        }
+        Relationships: []
+      }
+      cl_detail_refund: {
+        Row: {
+          claim_number: string
+          claim_ref_sequence_no: number
+          claim_seq: number
+          payment_sequence_no: number
+          refund_amount: number | null
+        }
+        Insert: {
+          claim_number: string
+          claim_ref_sequence_no: number
+          claim_seq: number
+          payment_sequence_no: number
+          refund_amount?: number | null
+        }
+        Update: {
+          claim_number?: string
+          claim_ref_sequence_no?: number
+          claim_seq?: number
+          payment_sequence_no?: number
+          refund_amount?: number | null
+        }
+        Relationships: []
+      }
+      cl_detail_review_questions: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          details: string | null
+          disqualify_code: number | null
+          question_code: string
+          review_no: number
+          yesno: number | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          details?: string | null
+          disqualify_code?: number | null
+          question_code: string
+          review_no: number
+          yesno?: number | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          details?: string | null
+          disqualify_code?: number | null
+          question_code?: string
+          review_no?: number
+          yesno?: number | null
+        }
+        Relationships: []
+      }
+      cl_detail_sb: {
+        Row: {
+          adjustment_amount: number | null
+          adjustment_end: string | null
+          adjustment_start: string | null
+          amount_owed: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit: string | null
+          date_of_birth: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          eligibility_review: string | null
+          exit_reason_code: string | null
+          life_cert_date: string | null
+          paid_to_date: number | null
+          percent_of_pension: number | null
+          relationship_code: string | null
+          sex: string | null
+          status: string | null
+          surv_payee_firstname: string | null
+          surv_payee_middlename: string | null
+          surv_payee_surname: string | null
+          survivor_firstname: string | null
+          survivor_id: string | null
+          survivor_middlename: string | null
+          survivor_number: number
+          survivor_surname: string | null
+        }
+        Insert: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number: number
+          survivor_surname?: string | null
+        }
+        Update: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          claim_number?: string
+          claim_seq?: number
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number?: number
+          survivor_surname?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_sb_orig: {
+        Row: {
+          adjustment_amount: number | null
+          adjustment_end: string | null
+          adjustment_start: string | null
+          amount_owed: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit: string | null
+          date_of_birth: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          eligibility_review: string | null
+          exit_reason_code: string | null
+          life_cert_date: string | null
+          paid_to_date: number | null
+          percent_of_pension: number | null
+          relationship_code: string | null
+          sex: string | null
+          status: string | null
+          surv_payee_firstname: string | null
+          surv_payee_middlename: string | null
+          surv_payee_surname: string | null
+          survivor_firstname: string | null
+          survivor_id: string | null
+          survivor_middlename: string | null
+          survivor_number: number
+          survivor_surname: string | null
+        }
+        Insert: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          claim_number: string
+          claim_seq: number
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number: number
+          survivor_surname?: string | null
+        }
+        Update: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          claim_number?: string
+          claim_seq?: number
+          date_exit_bfit?: string | null
+          date_of_birth?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          eligibility_review?: string | null
+          exit_reason_code?: string | null
+          life_cert_date?: string | null
+          paid_to_date?: number | null
+          percent_of_pension?: number | null
+          relationship_code?: string | null
+          sex?: string | null
+          status?: string | null
+          surv_payee_firstname?: string | null
+          surv_payee_middlename?: string | null
+          surv_payee_surname?: string | null
+          survivor_firstname?: string | null
+          survivor_id?: string | null
+          survivor_middlename?: string | null
+          survivor_number?: number
+          survivor_surname?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_sib: {
+        Row: {
+          cause_of_injury: string | null
+          claim_number: string
+          claim_seq: number
+          date_ceased_work: string | null
+          date_emp_certified: string | null
+          date_of_accident: string | null
+          employer_rep: string | null
+          extent_of_injury: string | null
+          illness_code: string | null
+          machinery_involved: string | null
+        }
+        Insert: {
+          cause_of_injury?: string | null
+          claim_number: string
+          claim_seq: number
+          date_ceased_work?: string | null
+          date_emp_certified?: string | null
+          date_of_accident?: string | null
+          employer_rep?: string | null
+          extent_of_injury?: string | null
+          illness_code?: string | null
+          machinery_involved?: string | null
+        }
+        Update: {
+          cause_of_injury?: string | null
+          claim_number?: string
+          claim_seq?: number
+          date_ceased_work?: string | null
+          date_emp_certified?: string | null
+          date_of_accident?: string | null
+          employer_rep?: string | null
+          extent_of_injury?: string | null
+          illness_code?: string | null
+          machinery_involved?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_ui_eligibility: {
+        Row: {
+          amount_paid: number | null
+          claim_number: string
+          claim_seq: number
+          details: string | null
+          question_code: number
+          weeks_paid: number | null
+          yesno: number | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          claim_number: string
+          claim_seq: number
+          details?: string | null
+          question_code: number
+          weeks_paid?: number | null
+          yesno?: number | null
+        }
+        Update: {
+          amount_paid?: number | null
+          claim_number?: string
+          claim_seq?: number
+          details?: string | null
+          question_code?: number
+          weeks_paid?: number | null
+          yesno?: number | null
+        }
+        Relationships: []
+      }
+      cl_detail_ui_review: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          date_modified: string | null
+          end_week: string | null
+          num_req_searches: number | null
+          outcome: string | null
+          outcome_code: number | null
+          outcome_weeks: number | null
+          questioned: number | null
+          review_no: number
+          start_week: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          date_modified?: string | null
+          end_week?: string | null
+          num_req_searches?: number | null
+          outcome?: string | null
+          outcome_code?: number | null
+          outcome_weeks?: number | null
+          questioned?: number | null
+          review_no: number
+          start_week?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          date_modified?: string | null
+          end_week?: string | null
+          num_req_searches?: number | null
+          outcome?: string | null
+          outcome_code?: number | null
+          outcome_weeks?: number | null
+          questioned?: number | null
+          review_no?: number
+          start_week?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_ui_weeks: {
+        Row: {
+          approve: number | null
+          cheque_number: string | null
+          claim_number: string
+          claim_seq: number
+          date_modified: string | null
+          disqualify: number | null
+          disqualify_code: number | null
+          end_date: string | null
+          forfeit: number | null
+          modified_by: string | null
+          paid: number | null
+          seq_no: number
+          start_date: string | null
+        }
+        Insert: {
+          approve?: number | null
+          cheque_number?: string | null
+          claim_number: string
+          claim_seq: number
+          date_modified?: string | null
+          disqualify?: number | null
+          disqualify_code?: number | null
+          end_date?: string | null
+          forfeit?: number | null
+          modified_by?: string | null
+          paid?: number | null
+          seq_no: number
+          start_date?: string | null
+        }
+        Update: {
+          approve?: number | null
+          cheque_number?: string | null
+          claim_number?: string
+          claim_seq?: number
+          date_modified?: string | null
+          disqualify?: number | null
+          disqualify_code?: number | null
+          end_date?: string | null
+          forfeit?: number | null
+          modified_by?: string | null
+          paid?: number | null
+          seq_no?: number
+          start_date?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_ui_worklog: {
+        Row: {
+          activity_code: number | null
+          activity_date: string | null
+          address: string | null
+          app_filed: number | null
+          byemail: number | null
+          bymail: number | null
+          claim_number: string
+          claim_seq: number
+          hired: number | null
+          job_type_code: string | null
+          log_id: number
+          name: string | null
+          not_hiring: number | null
+          person_contacted: string | null
+          phone_number: string | null
+          review_no: number
+          start_date: string | null
+        }
+        Insert: {
+          activity_code?: number | null
+          activity_date?: string | null
+          address?: string | null
+          app_filed?: number | null
+          byemail?: number | null
+          bymail?: number | null
+          claim_number: string
+          claim_seq: number
+          hired?: number | null
+          job_type_code?: string | null
+          log_id: number
+          name?: string | null
+          not_hiring?: number | null
+          person_contacted?: string | null
+          phone_number?: string | null
+          review_no: number
+          start_date?: string | null
+        }
+        Update: {
+          activity_code?: number | null
+          activity_date?: string | null
+          address?: string | null
+          app_filed?: number | null
+          byemail?: number | null
+          bymail?: number | null
+          claim_number?: string
+          claim_seq?: number
+          hired?: number | null
+          job_type_code?: string | null
+          log_id?: number
+          name?: string | null
+          not_hiring?: number | null
+          person_contacted?: string | null
+          phone_number?: string | null
+          review_no?: number
+          start_date?: string | null
+        }
+        Relationships: []
+      }
+      cl_detail_unemploy: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          exp_reemploy_date: string | null
+          last_pay_date: string | null
+          termination_certnum: string | null
+          termination_date: string | null
+          termination_reason: string | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          exp_reemploy_date?: string | null
+          last_pay_date?: string | null
+          termination_certnum?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          exp_reemploy_date?: string | null
+          last_pay_date?: string | null
+          termination_certnum?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+        }
+        Relationships: []
+      }
+      cl_head: {
+        Row: {
+          account_credited: string | null
+          address_1: string | null
+          address_2: string | null
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          annual_benefit_rate: number | null
+          approved_by: string | null
+          avg_annual_wages: number | null
+          avg_weekly_wages: number | null
+          benefit_amount: number | null
+          benefit_days: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code: string | null
+          claimant_id: string | null
+          contrib_weeks_paid: number | null
+          daily_benefit_rate: number | null
+          date_approved: string | null
+          date_certified: string | null
+          date_closed: string | null
+          date_disallowed: string | null
+          date_discontinued: string | null
+          date_entered: string | null
+          date_lost_elig: string | null
+          date_modified: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_processed: string | null
+          date_received: string
+          date_status_changed: string | null
+          date_suspended: string | null
+          date_verified: string | null
+          dbd_acct: string | null
+          dbd_acct_name: string | null
+          dbd_bank_code: string | null
+          dbd_ok: string | null
+          disable_code: string | null
+          disallowance_code: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review: string | null
+          entered_by: string | null
+          entry_mode: string | null
+          exit_reason: string | null
+          insured_ssn: string
+          linked_claim_no: string | null
+          medical_submitted: string | null
+          modified_by: string | null
+          number_of_cheques: number | null
+          paid_to_date: number | null
+          payee_district: string | null
+          payee_firstname: string | null
+          payee_middlename: string | null
+          payee_surname: string | null
+          postal_reg_code: string | null
+          previous_status: string | null
+          processed_by: string | null
+          provider_code: string | null
+          regno: string | null
+          remark: string | null
+          remarks2: string | null
+          status: string | null
+          total_wages_paid: number | null
+          verified_by: string | null
+          weekly_benefit_rate: number | null
+        }
+        Insert: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Update: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string
+          claim_number?: string
+          claim_seq?: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string
+          effective_start_date?: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Relationships: []
+      }
+      cl_head_2014: {
+        Row: {
+          account_credited: string | null
+          address_1: string | null
+          address_2: string | null
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          annual_benefit_rate: number | null
+          approved_by: string | null
+          avg_annual_wages: number | null
+          avg_weekly_wages: number | null
+          benefit_amount: number | null
+          benefit_days: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code: string | null
+          claimant_id: string | null
+          contrib_weeks_paid: number | null
+          daily_benefit_rate: number | null
+          date_approved: string | null
+          date_certified: string | null
+          date_closed: string | null
+          date_disallowed: string | null
+          date_discontinued: string | null
+          date_entered: string | null
+          date_lost_elig: string | null
+          date_modified: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_processed: string | null
+          date_received: string
+          date_status_changed: string | null
+          date_suspended: string | null
+          date_verified: string | null
+          dbd_acct: string | null
+          dbd_acct_name: string | null
+          dbd_bank_code: string | null
+          dbd_ok: string | null
+          disable_code: string | null
+          disallowance_code: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review: string | null
+          entered_by: string | null
+          entry_mode: string | null
+          exit_reason: string | null
+          insured_ssn: string
+          linked_claim_no: string | null
+          medical_submitted: string | null
+          modified_by: string | null
+          number_of_cheques: number | null
+          paid_to_date: number | null
+          payee_district: string | null
+          payee_firstname: string | null
+          payee_middlename: string | null
+          payee_surname: string | null
+          postal_reg_code: string | null
+          previous_status: string | null
+          processed_by: string | null
+          provider_code: string | null
+          regno: string | null
+          remark: string | null
+          remarks2: string | null
+          status: string | null
+          total_wages_paid: number | null
+          verified_by: string | null
+          weekly_benefit_rate: number | null
+        }
+        Insert: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Update: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string
+          claim_number?: string
+          claim_seq?: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string
+          effective_start_date?: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Relationships: []
+      }
+      cl_head_NEW: {
+        Row: {
+          account_credited: string | null
+          address_1: string | null
+          address_2: string | null
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          annual_benefit_rate: number | null
+          approved_by: string | null
+          avg_annual_wages: number | null
+          avg_weekly_wages: number | null
+          benefit_amount: number | null
+          benefit_days: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code: string | null
+          claimant_id: string | null
+          contrib_weeks_paid: number | null
+          daily_benefit_rate: number | null
+          date_approved: string | null
+          date_certified: string | null
+          date_closed: string | null
+          date_disallowed: string | null
+          date_discontinued: string | null
+          date_entered: string | null
+          date_lost_elig: string | null
+          date_modified: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_processed: string | null
+          date_received: string
+          date_status_changed: string | null
+          date_suspended: string | null
+          date_verified: string | null
+          dbd_acct: string | null
+          dbd_acct_name: string | null
+          dbd_bank_code: string | null
+          dbd_ok: string | null
+          disable_code: string | null
+          disallowance_code: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review: string | null
+          entered_by: string | null
+          entry_mode: string | null
+          exit_reason: string | null
+          insured_ssn: string
+          linked_claim_no: string | null
+          medical_submitted: string | null
+          modified_by: string | null
+          number_of_cheques: number | null
+          paid_to_date: number | null
+          payee_district: string | null
+          payee_firstname: string | null
+          payee_middlename: string | null
+          payee_surname: string | null
+          postal_reg_code: string | null
+          previous_status: string | null
+          processed_by: string | null
+          provider_code: string | null
+          regno: string | null
+          remark: string | null
+          remarks2: string | null
+          status: string | null
+          total_wages_paid: number | null
+          verified_by: string | null
+          weekly_benefit_rate: number | null
+        }
+        Insert: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Update: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string
+          claim_number?: string
+          claim_seq?: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string
+          effective_start_date?: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Relationships: []
+      }
+      cl_head_notes: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          note_number: number
+          notes: string | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          note_number: number
+          notes?: string | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          note_number?: number
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      cl_head_orig: {
+        Row: {
+          account_credited: string | null
+          address_1: string | null
+          address_2: string | null
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          annual_benefit_rate: number | null
+          approved_by: string | null
+          avg_annual_wages: number | null
+          avg_weekly_wages: number | null
+          benefit_amount: number | null
+          benefit_days: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code: string | null
+          claimant_id: string | null
+          contrib_weeks_paid: number | null
+          daily_benefit_rate: number | null
+          date_approved: string | null
+          date_certified: string | null
+          date_closed: string | null
+          date_disallowed: string | null
+          date_discontinued: string | null
+          date_entered: string | null
+          date_lost_elig: string | null
+          date_modified: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_processed: string | null
+          date_received: string
+          date_status_changed: string | null
+          date_suspended: string | null
+          date_verified: string | null
+          dbd_acct: string | null
+          dbd_acct_name: string | null
+          dbd_bank_code: string | null
+          dbd_ok: string | null
+          disable_code: string | null
+          disallowance_code: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review: string | null
+          entered_by: string | null
+          entry_mode: string | null
+          exit_reason: string | null
+          insured_ssn: string
+          linked_claim_no: string | null
+          medical_submitted: string | null
+          modified_by: string | null
+          number_of_cheques: number | null
+          paid_to_date: number | null
+          payee_district: string | null
+          payee_firstname: string | null
+          payee_middlename: string | null
+          payee_surname: string | null
+          postal_reg_code: string | null
+          previous_status: string | null
+          processed_by: string | null
+          provider_code: string | null
+          regno: string | null
+          remark: string | null
+          remarks2: string | null
+          status: string | null
+          total_wages_paid: number | null
+          verified_by: string | null
+          weekly_benefit_rate: number | null
+        }
+        Insert: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type: string
+          claim_number: string
+          claim_seq: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Update: {
+          account_credited?: string | null
+          address_1?: string | null
+          address_2?: string | null
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          annual_benefit_rate?: number | null
+          approved_by?: string | null
+          avg_annual_wages?: number | null
+          avg_weekly_wages?: number | null
+          benefit_amount?: number | null
+          benefit_days?: number | null
+          benefit_type?: string
+          claim_number?: string
+          claim_seq?: number
+          claim_type_code?: string | null
+          claimant_id?: string | null
+          contrib_weeks_paid?: number | null
+          daily_benefit_rate?: number | null
+          date_approved?: string | null
+          date_certified?: string | null
+          date_closed?: string | null
+          date_disallowed?: string | null
+          date_discontinued?: string | null
+          date_entered?: string | null
+          date_lost_elig?: string | null
+          date_modified?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_processed?: string | null
+          date_received?: string
+          date_status_changed?: string | null
+          date_suspended?: string | null
+          date_verified?: string | null
+          dbd_acct?: string | null
+          dbd_acct_name?: string | null
+          dbd_bank_code?: string | null
+          dbd_ok?: string | null
+          disable_code?: string | null
+          disallowance_code?: string | null
+          effective_end_date?: string
+          effective_start_date?: string
+          eligibility_review?: string | null
+          entered_by?: string | null
+          entry_mode?: string | null
+          exit_reason?: string | null
+          insured_ssn?: string
+          linked_claim_no?: string | null
+          medical_submitted?: string | null
+          modified_by?: string | null
+          number_of_cheques?: number | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          payee_firstname?: string | null
+          payee_middlename?: string | null
+          payee_surname?: string | null
+          postal_reg_code?: string | null
+          previous_status?: string | null
+          processed_by?: string | null
+          provider_code?: string | null
+          regno?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          status?: string | null
+          total_wages_paid?: number | null
+          verified_by?: string | null
+          weekly_benefit_rate?: number | null
+        }
+        Relationships: []
+      }
+      cl_head_recalc: {
+        Row: {
+          benefit_amount: number | null
+          benefit_amount_recalc: number | null
+          benefit_type: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          date_entered: string | null
+          date_period_start: string | null
+          date_received: string | null
+          entered_by: string | null
+          paid_to_date: number | null
+          payee_district: string | null
+          ssn: string | null
+          total_wages_paid: number | null
+          total_wages_paid_recalc: number | null
+        }
+        Insert: {
+          benefit_amount?: number | null
+          benefit_amount_recalc?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_entered?: string | null
+          date_period_start?: string | null
+          date_received?: string | null
+          entered_by?: string | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          ssn?: string | null
+          total_wages_paid?: number | null
+          total_wages_paid_recalc?: number | null
+        }
+        Update: {
+          benefit_amount?: number | null
+          benefit_amount_recalc?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_entered?: string | null
+          date_period_start?: string | null
+          date_received?: string | null
+          entered_by?: string | null
+          paid_to_date?: number | null
+          payee_district?: string | null
+          ssn?: string | null
+          total_wages_paid?: number | null
+          total_wages_paid_recalc?: number | null
+        }
+        Relationships: []
+      }
+      cl_head_wages: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_name: string | null
+          period: string
+          sequence_no: number
+          ssn: string
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          pay_period?: string | null
+          payer_id: string
+          payer_name?: string | null
+          period: string
+          sequence_no: number
+          ssn: string
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          pay_period?: string | null
+          payer_id?: string
+          payer_name?: string | null
+          period?: string
+          sequence_no?: number
+          ssn?: string
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+        }
+        Relationships: []
+      }
+      cl_notification: {
+        Row: {
+          date_deleted: string | null
+          date_entered: string | null
+          deleted_by: string | null
+          entered_by: string | null
+          event_text: string | null
+          event_title: string | null
+          event_type: string | null
+          eventID: number
+          status_code: string | null
+        }
+        Insert: {
+          date_deleted?: string | null
+          date_entered?: string | null
+          deleted_by?: string | null
+          entered_by?: string | null
+          event_text?: string | null
+          event_title?: string | null
+          event_type?: string | null
+          eventID: number
+          status_code?: string | null
+        }
+        Update: {
+          date_deleted?: string | null
+          date_entered?: string | null
+          deleted_by?: string | null
+          entered_by?: string | null
+          event_text?: string | null
+          event_title?: string | null
+          event_type?: string | null
+          eventID?: number
+          status_code?: string | null
+        }
+        Relationships: []
+      }
+      cl_online_details: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          email: string | null
+          emp_outside: string | null
+          ip_id: string | null
+          occupation: string
+          phone: string | null
+          sip_idb: string | null
+          ss_benefit: string
+          upd_ip_record: string | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          email?: string | null
+          emp_outside?: string | null
+          ip_id?: string | null
+          occupation: string
+          phone?: string | null
+          sip_idb?: string | null
+          ss_benefit: string
+          upd_ip_record?: string | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          email?: string | null
+          emp_outside?: string | null
+          ip_id?: string | null
+          occupation?: string
+          phone?: string | null
+          sip_idb?: string | null
+          ss_benefit?: string
+          upd_ip_record?: string | null
+        }
+        Relationships: []
+      }
+      cl_track: {
+        Row: {
+          claim_number: string | null
+          claim_seq: number | null
+          date_completed: string | null
+          date_due: string | null
+          date_entered: string | null
+          dest_dept: string | null
+          operation: string | null
+          orig_dept: string | null
+          status: string | null
+          track_id: number
+          userid: string | null
+        }
+        Insert: {
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_completed?: string | null
+          date_due?: string | null
+          date_entered?: string | null
+          dest_dept?: string | null
+          operation?: string | null
+          orig_dept?: string | null
+          status?: string | null
+          track_id: number
+          userid?: string | null
+        }
+        Update: {
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_completed?: string | null
+          date_due?: string | null
+          date_entered?: string | null
+          dest_dept?: string | null
+          operation?: string | null
+          orig_dept?: string | null
+          status?: string | null
+          track_id?: number
+          userid?: string | null
+        }
+        Relationships: []
+      }
+      cl_void: {
+        Row: {
+          cancel_date: string
+          cancel_reason: string
+          cancel_uid: string
+          claim_number: string
+          claim_seq: number
+          ssn: string
+        }
+        Insert: {
+          cancel_date: string
+          cancel_reason: string
+          cancel_uid: string
+          claim_number: string
+          claim_seq: number
+          ssn: string
+        }
+        Update: {
+          cancel_date?: string
+          cancel_reason?: string
+          cancel_uid?: string
+          claim_number?: string
+          claim_seq?: number
+          ssn?: string
+        }
+        Relationships: []
+      }
+      cl_wages_credited: {
+        Row: {
+          claim_number: string
+          claim_seq: number
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          period: string
+          ssn: string
+          wages_credited1: number | null
+          wages_credited2: number | null
+          wages_credited3: number | null
+          wages_credited4: number | null
+          wages_credited5: number | null
+        }
+        Insert: {
+          claim_number: string
+          claim_seq: number
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          period: string
+          ssn: string
+          wages_credited1?: number | null
+          wages_credited2?: number | null
+          wages_credited3?: number | null
+          wages_credited4?: number | null
+          wages_credited5?: number | null
+        }
+        Update: {
+          claim_number?: string
+          claim_seq?: number
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          period?: string
+          ssn?: string
+          wages_credited1?: number | null
+          wages_credited2?: number | null
+          wages_credited3?: number | null
+          wages_credited4?: number | null
+          wages_credited5?: number | null
+        }
+        Relationships: []
+      }
+      cn_adjustments_journal: {
+        Row: {
+          adj_type: string
+          closing_period: string
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          entered_by: string | null
+          folio_id: number
+          fund_code: string
+          payer_id: string | null
+          payer_type: string | null
+          payment_amount: number
+          posted_by: string | null
+          write_off_id: number | null
+        }
+        Insert: {
+          adj_type: string
+          closing_period: string
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id: number
+          fund_code: string
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount: number
+          posted_by?: string | null
+          write_off_id?: number | null
+        }
+        Update: {
+          adj_type?: string
+          closing_period?: string
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id?: number
+          fund_code?: string
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount?: number
+          posted_by?: string | null
+          write_off_id?: number | null
+        }
+        Relationships: []
+      }
+      cn_arrears: {
+        Row: {
+          arrear_id: number
+          fund_code: string | null
+          numberofmonths: number | null
+          payer_id: string | null
+          payer_type: string | null
+          penalties: number | null
+          summary_period: string | null
+          total_c3: number | null
+        }
+        Insert: {
+          arrear_id: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+        }
+        Update: {
+          arrear_id?: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+        }
+        Relationships: []
+      }
+      cn_arrears_est: {
+        Row: {
+          arrear_id: number
+          fund_code: string | null
+          numberofmonths: number | null
+          payer_id: string | null
+          payer_type: string | null
+          penalties: number | null
+          summary_period: string | null
+          total_c3: number | null
+        }
+        Insert: {
+          arrear_id: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+        }
+        Update: {
+          arrear_id?: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+        }
+        Relationships: []
+      }
+      cn_arrears_liab: {
+        Row: {
+          arrear_id: number
+          fund_code: string | null
+          numberofmonths: number | null
+          payer_id: string | null
+          payer_type: string | null
+          penalties: number | null
+          summary_period: string | null
+          total_c3: number | null
+          total_wages: number | null
+        }
+        Insert: {
+          arrear_id: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+          total_wages?: number | null
+        }
+        Update: {
+          arrear_id?: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+          total_wages?: number | null
+        }
+        Relationships: []
+      }
+      cn_arrears_liab_est: {
+        Row: {
+          arrear_id: number
+          fund_code: string | null
+          numberofmonths: number | null
+          payer_id: string | null
+          payer_type: string | null
+          penalties: number | null
+          summary_period: string | null
+          total_c3: number | null
+          total_wages: number | null
+        }
+        Insert: {
+          arrear_id: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+          total_wages?: number | null
+        }
+        Update: {
+          arrear_id?: number
+          fund_code?: string | null
+          numberofmonths?: number | null
+          payer_id?: string | null
+          payer_type?: string | null
+          penalties?: number | null
+          summary_period?: string | null
+          total_c3?: number | null
+          total_wages?: number | null
+        }
+        Relationships: []
+      }
       cn_batch: {
         Row: {
           balance_forward: number | null
@@ -8941,6 +13678,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_c3_missing: {
+        Row: {
+          estimated_amt: number | null
+          estimated_arrears: number | null
+          fund_code: string
+          missing_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+        }
+        Insert: {
+          estimated_amt?: number | null
+          estimated_arrears?: number | null
+          fund_code: string
+          missing_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+        }
+        Update: {
+          estimated_amt?: number | null
+          estimated_arrears?: number | null
+          fund_code?: string
+          missing_id?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+        }
+        Relationships: []
+      }
       cn_c3_reported: {
         Row: {
           created_at: string
@@ -8949,10 +13716,13 @@ export type Database = {
           date_received: string | null
           date_verified: string | null
           emp_levy_amt_calc: number | null
+          emp_levy_amt_rpt: number | null
           emp_levy_penalty_amt: number | null
           emp_pe_amt_calc: number | null
+          emp_pe_amt_rpt: number | null
           emp_pe_penalty_amt: number | null
           emp_ss_amt_calc: number | null
+          emp_ss_amt_rpt: number | null
           emp_ss_fines_due: number | null
           entered_by: string | null
           id: string
@@ -8980,10 +13750,13 @@ export type Database = {
           date_received?: string | null
           date_verified?: string | null
           emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
           emp_levy_penalty_amt?: number | null
           emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
           emp_pe_penalty_amt?: number | null
           emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
           emp_ss_fines_due?: number | null
           entered_by?: string | null
           id?: string
@@ -9011,10 +13784,13 @@ export type Database = {
           date_received?: string | null
           date_verified?: string | null
           emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
           emp_levy_penalty_amt?: number | null
           emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
           emp_pe_penalty_amt?: number | null
           emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
           emp_ss_fines_due?: number | null
           entered_by?: string | null
           id?: string
@@ -9034,6 +13810,147 @@ export type Database = {
           total_wages?: number | null
           updated_at?: string
           verified_by?: string | null
+        }
+        Relationships: []
+      }
+      cn_c3_reported_dir: {
+        Row: {
+          date_entered: string | null
+          date_posted: string | null
+          date_received: string | null
+          date_verified: string | null
+          emp_levy_amt_calc: number | null
+          emp_levy_amt_rpt: number | null
+          emp_levy_penalty_amt: number | null
+          emp_pe_amt_calc: number | null
+          emp_pe_amt_rpt: number | null
+          emp_pe_penalty_amt: number | null
+          emp_ss_amt_calc: number | null
+          emp_ss_amt_rpt: number | null
+          emp_ss_fines_due: number | null
+          entered_by: string | null
+          modified_by: string | null
+          modified_date: string | null
+          nil_return: number | null
+          notes: string | null
+          number_employed: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posting_status: string | null
+          received_by: string | null
+          sequence_no: number
+          total_wages: number | null
+          verified_by: string | null
+        }
+        Insert: {
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          nil_return?: number | null
+          notes?: string | null
+          number_employed: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posting_status?: string | null
+          received_by?: string | null
+          sequence_no: number
+          total_wages?: number | null
+          verified_by?: string | null
+        }
+        Update: {
+          date_entered?: string | null
+          date_posted?: string | null
+          date_received?: string | null
+          date_verified?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_levy_amt_rpt?: number | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_pe_amt_rpt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_amt_calc?: number | null
+          emp_ss_amt_rpt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          modified_by?: string | null
+          modified_date?: string | null
+          nil_return?: number | null
+          notes?: string | null
+          number_employed?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          posting_status?: string | null
+          received_by?: string | null
+          sequence_no?: number
+          total_wages?: number | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      cn_c3_reported_journal: {
+        Row: {
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          emp_levy_amt_calc: number | null
+          emp_pe_amt_calc: number | null
+          emp_ss_amt_calc: number | null
+          entered_by: string | null
+          folio_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posted_by: string | null
+          sequence_no: number
+          total_wages: number | null
+        }
+        Insert: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_ss_amt_calc?: number | null
+          entered_by?: string | null
+          folio_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posted_by?: string | null
+          sequence_no: number
+          total_wages?: number | null
+        }
+        Update: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_ss_amt_calc?: number | null
+          entered_by?: string | null
+          folio_id?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          posted_by?: string | null
+          sequence_no?: number
+          total_wages?: number | null
         }
         Relationships: []
       }
@@ -9238,6 +14155,117 @@ export type Database = {
           id?: string
           office_code?: string
           override_date?: string
+        }
+        Relationships: []
+      }
+      cn_director_wages: {
+        Row: {
+          levy_amt: number
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          ssn: string
+          wages: number
+        }
+        Insert: {
+          levy_amt: number
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          ssn: string
+          wages: number
+        }
+        Update: {
+          levy_amt?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          sequence_no?: number
+          ssn?: string
+          wages?: number
+        }
+        Relationships: []
+      }
+      cn_director_wages_susp: {
+        Row: {
+          levy_amt: number
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          susp_id: number
+          wages: number
+        }
+        Insert: {
+          levy_amt: number
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          susp_id: number
+          wages: number
+        }
+        Update: {
+          levy_amt?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          sequence_no?: number
+          susp_id?: number
+          wages?: number
+        }
+        Relationships: []
+      }
+      cn_fines_journal: {
+        Row: {
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          emp_levy_penalty_amt: number | null
+          emp_pe_penalty_amt: number | null
+          emp_ss_fines_due: number | null
+          entered_by: string | null
+          folio_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posted_by: string | null
+          sequence_no: number
+          tran_type: string
+        }
+        Insert: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          folio_id: number
+          payer_id: string
+          payer_type: string
+          period: string
+          posted_by?: string | null
+          sequence_no: number
+          tran_type: string
+        }
+        Update: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          emp_levy_penalty_amt?: number | null
+          emp_pe_penalty_amt?: number | null
+          emp_ss_fines_due?: number | null
+          entered_by?: string | null
+          folio_id?: number
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          posted_by?: string | null
+          sequence_no?: number
+          tran_type?: string
         }
         Relationships: []
       }
@@ -9490,6 +14518,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_last_c3_ver: {
+        Row: {
+          payer_id: string
+          payer_type: string
+          period: string | null
+        }
+        Insert: {
+          payer_id: string
+          payer_type: string
+          period?: string | null
+        }
+        Update: {
+          payer_id?: string
+          payer_type?: string
+          period?: string | null
+        }
+        Relationships: []
+      }
       cn_office_opening_balance: {
         Row: {
           cashier_balance: number
@@ -9555,6 +14601,93 @@ export type Database = {
           payer_name?: string | null
           payer_type?: string
           phone?: string | null
+        }
+        Relationships: []
+      }
+      cn_payer_contrib_acct: {
+        Row: {
+          acct_sequence_no: number
+          closing_period: string
+          credit: number | null
+          current_amount: number | null
+          date_entered: string | null
+          debit: number | null
+          entered_by: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          ref_folio_id: number | null
+          total_wages: number | null
+          tran_type: string
+        }
+        Insert: {
+          acct_sequence_no: number
+          closing_period: string
+          credit?: number | null
+          current_amount?: number | null
+          date_entered?: string | null
+          debit?: number | null
+          entered_by?: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          ref_folio_id?: number | null
+          total_wages?: number | null
+          tran_type: string
+        }
+        Update: {
+          acct_sequence_no?: number
+          closing_period?: string
+          credit?: number | null
+          current_amount?: number | null
+          date_entered?: string | null
+          debit?: number | null
+          entered_by?: string | null
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          ref_folio_id?: number | null
+          total_wages?: number | null
+          tran_type?: string
+        }
+        Relationships: []
+      }
+      cn_payer_fines_acct: {
+        Row: {
+          closing_period: string
+          credit: number | null
+          date_entered: string | null
+          debit: number | null
+          entered_by: string | null
+          fines_sequence_no: number
+          fund_code: string | null
+          payer_id: string
+          payer_type: string
+          ref_folio_id: number | null
+        }
+        Insert: {
+          closing_period: string
+          credit?: number | null
+          date_entered?: string | null
+          debit?: number | null
+          entered_by?: string | null
+          fines_sequence_no: number
+          fund_code?: string | null
+          payer_id: string
+          payer_type: string
+          ref_folio_id?: number | null
+        }
+        Update: {
+          closing_period?: string
+          credit?: number | null
+          date_entered?: string | null
+          debit?: number | null
+          entered_by?: string | null
+          fines_sequence_no?: number
+          fund_code?: string | null
+          payer_id?: string
+          payer_type?: string
+          ref_folio_id?: number | null
         }
         Relationships: []
       }
@@ -9674,6 +14807,183 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_payments_journal: {
+        Row: {
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          entered_by: string | null
+          folio_id: number
+          fund_code: string | null
+          payer_id: string | null
+          payer_type: string | null
+          payment_amount: number | null
+          payment_code: string | null
+          payment_id: number
+          payment_sequence_no: number
+          posted_by: string | null
+        }
+        Insert: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_id: number
+          payment_sequence_no: number
+          posted_by?: string | null
+        }
+        Update: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id?: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_id?: number
+          payment_sequence_no?: number
+          posted_by?: string | null
+        }
+        Relationships: []
+      }
+      cn_period_summary: {
+        Row: {
+          comments: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties: number | null
+          prev_c3: number | null
+          prev_penalties: number | null
+          summary_period: string
+          total_c3: number | null
+          total_payments: number | null
+          total_wages: number | null
+        }
+        Insert: {
+          comments?: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          summary_period: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Update: {
+          comments?: string | null
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          summary_period?: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Relationships: []
+      }
+      cn_period_summary_det: {
+        Row: {
+          comments: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties: number | null
+          prev_c3: number | null
+          prev_penalties: number | null
+          sequence_no: number
+          summary_period: string
+          total_c3: number | null
+          total_payments: number | null
+          total_wages: number | null
+        }
+        Insert: {
+          comments?: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          sequence_no: number
+          summary_period: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Update: {
+          comments?: string | null
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          sequence_no?: number
+          summary_period?: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Relationships: []
+      }
+      cn_period_summary_est: {
+        Row: {
+          comments: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties: number | null
+          prev_c3: number | null
+          prev_penalties: number | null
+          summary_period: string
+          total_c3: number | null
+          total_payments: number | null
+          total_wages: number | null
+        }
+        Insert: {
+          comments?: string | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          summary_period: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Update: {
+          comments?: string | null
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          penalties?: number | null
+          prev_c3?: number | null
+          prev_penalties?: number | null
+          summary_period?: string
+          total_c3?: number | null
+          total_payments?: number | null
+          total_wages?: number | null
+        }
+        Relationships: []
+      }
       cn_receipt: {
         Row: {
           cancel_date: string | null
@@ -9749,6 +15059,324 @@ export type Database = {
           printed_at?: string
           printed_by?: string
           receipt_id?: number
+        }
+        Relationships: []
+      }
+      cn_reconciliation: {
+        Row: {
+          batch_number: string
+          denom_amount: number | null
+          denom_code: string
+          number_of__denom: number | null
+        }
+        Insert: {
+          batch_number: string
+          denom_amount?: number | null
+          denom_code: string
+          number_of__denom?: number | null
+        }
+        Update: {
+          batch_number?: string
+          denom_amount?: number | null
+          denom_code?: string
+          number_of__denom?: number | null
+        }
+        Relationships: []
+      }
+      cn_refund: {
+        Row: {
+          check_number: string | null
+          date_entered: string | null
+          date_modified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          payment_sequence_no: number
+          refund_amount: number | null
+          refund_date: string | null
+          refund_sequence_no: number
+        }
+        Insert: {
+          check_number?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_sequence_no: number
+          refund_amount?: number | null
+          refund_date?: string | null
+          refund_sequence_no: number
+        }
+        Update: {
+          check_number?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_sequence_no?: number
+          refund_amount?: number | null
+          refund_date?: string | null
+          refund_sequence_no?: number
+        }
+        Relationships: []
+      }
+      cn_refund_journal: {
+        Row: {
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          entered_by: string | null
+          folio_id: number
+          fund_code: string | null
+          payer_id: string | null
+          payer_type: string | null
+          payment_code: string | null
+          payment_id: number
+          posted_by: string | null
+          refund_amount: number | null
+          refund_sequence_no: number
+        }
+        Insert: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_code?: string | null
+          payment_id: number
+          posted_by?: string | null
+          refund_amount?: number | null
+          refund_sequence_no: number
+        }
+        Update: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id?: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_code?: string | null
+          payment_id?: number
+          posted_by?: string | null
+          refund_amount?: number | null
+          refund_sequence_no?: number
+        }
+        Relationships: []
+      }
+      cn_return_journal: {
+        Row: {
+          comments: string | null
+          date_entered: string | null
+          date_posted: string | null
+          entered_by: string | null
+          folio_id: number
+          fund_code: string | null
+          payer_id: string | null
+          payer_type: string | null
+          payment_code: string | null
+          payment_id: number
+          posted_by: string | null
+          return_amount: number | null
+          return_sequence_no: number
+        }
+        Insert: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_code?: string | null
+          payment_id: number
+          posted_by?: string | null
+          return_amount?: number | null
+          return_sequence_no: number
+        }
+        Update: {
+          comments?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          entered_by?: string | null
+          folio_id?: number
+          fund_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_code?: string | null
+          payment_id?: number
+          posted_by?: string | null
+          return_amount?: number | null
+          return_sequence_no?: number
+        }
+        Relationships: []
+      }
+      cn_return_payment: {
+        Row: {
+          bank_fees: number | null
+          date_entered: string | null
+          date_modified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          other_fees: number | null
+          payment_sequence_no: number
+          return_amount: number | null
+          return_sequence_no: number
+          returned_date: string | null
+          ssb_fees: number | null
+        }
+        Insert: {
+          bank_fees?: number | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          other_fees?: number | null
+          payment_sequence_no: number
+          return_amount?: number | null
+          return_sequence_no: number
+          returned_date?: string | null
+          ssb_fees?: number | null
+        }
+        Update: {
+          bank_fees?: number | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          other_fees?: number | null
+          payment_sequence_no?: number
+          return_amount?: number | null
+          return_sequence_no?: number
+          returned_date?: string | null
+          ssb_fees?: number | null
+        }
+        Relationships: []
+      }
+      cn_temp_work: {
+        Row: {
+          date_posted: string | null
+          emp_levy_amt_calc: number | null
+          emp_pe_amt_calc: number | null
+          emp_ss_amt_calc: number | null
+          folio_id: number | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          total_payments: number | null
+          total_wages: number | null
+          tran_type: string | null
+        }
+        Insert: {
+          date_posted?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_ss_amt_calc?: number | null
+          folio_id?: number | null
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          total_payments?: number | null
+          total_wages?: number | null
+          tran_type?: string | null
+        }
+        Update: {
+          date_posted?: string | null
+          emp_levy_amt_calc?: number | null
+          emp_pe_amt_calc?: number | null
+          emp_ss_amt_calc?: number | null
+          folio_id?: number | null
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          total_payments?: number | null
+          total_wages?: number | null
+          tran_type?: string | null
+        }
+        Relationships: []
+      }
+      cn_write_off: {
+        Row: {
+          adj_type: string | null
+          adjust_code: number | null
+          approved_by: string | null
+          date_approved: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_verified: string | null
+          entered_by: string | null
+          fund_code: string | null
+          modified_by: string | null
+          payer_id: string | null
+          payer_type: string | null
+          reason: string | null
+          sequence_no: number | null
+          status: string | null
+          summary_period: string | null
+          total_amount: number | null
+          userid: string | null
+          verified_by: string | null
+          write_off_date: string | null
+          write_off_id: number
+          xfr_payer_id: string | null
+          xfr_payer_type: string | null
+          xfr_payment_id: number | null
+        }
+        Insert: {
+          adj_type?: string | null
+          adjust_code?: number | null
+          approved_by?: string | null
+          date_approved?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fund_code?: string | null
+          modified_by?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          reason?: string | null
+          sequence_no?: number | null
+          status?: string | null
+          summary_period?: string | null
+          total_amount?: number | null
+          userid?: string | null
+          verified_by?: string | null
+          write_off_date?: string | null
+          write_off_id: number
+          xfr_payer_id?: string | null
+          xfr_payer_type?: string | null
+          xfr_payment_id?: number | null
+        }
+        Update: {
+          adj_type?: string | null
+          adjust_code?: number | null
+          approved_by?: string | null
+          date_approved?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          fund_code?: string | null
+          modified_by?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          reason?: string | null
+          sequence_no?: number | null
+          status?: string | null
+          summary_period?: string | null
+          total_amount?: number | null
+          userid?: string | null
+          verified_by?: string | null
+          write_off_date?: string | null
+          write_off_id?: number
+          xfr_payer_id?: string | null
+          xfr_payer_type?: string | null
+          xfr_payment_id?: number | null
         }
         Relationships: []
       }
@@ -10229,6 +15857,147 @@ export type Database = {
           supporting_documents?: Json | null
           updated_at?: string | null
           waiver_number?: string | null
+        }
+        Relationships: []
+      }
+      cont_stat: {
+        Row: {
+          ADDRESS_OK: string
+          ALL_ER_OK: string
+          CAMPAIGN_ID: string
+          CHANGEDATE: string
+          COMMENTS: string
+          DOB: string
+          EARNINGS_OK: string
+          EMAIL_ADDR: string
+          ER_NAME: string
+          FIRSTNAME: string
+          HELPFUL_OK: string
+          HQ_ADDR1: string
+          HQ_ADDR2: string
+          IP_CODE: string
+          MAILING_ADDR1: string
+          MAILING_ADDR2: string
+          MOBILE: string
+          NAME: string
+          NAME_OK: string
+          PHONE: string
+          PHONE_OK: string
+          REGNO: string
+          RESIDENT_ADDR1: string
+          RESIDENT_ADDR2: string
+          SEX: string
+          SSN: string
+          STATUS: string
+          SURNAME: string
+          UNDERSTOOD_OK: string
+          WEEKS_OK: string
+        }
+        Insert: {
+          ADDRESS_OK: string
+          ALL_ER_OK: string
+          CAMPAIGN_ID: string
+          CHANGEDATE: string
+          COMMENTS: string
+          DOB: string
+          EARNINGS_OK: string
+          EMAIL_ADDR: string
+          ER_NAME: string
+          FIRSTNAME: string
+          HELPFUL_OK: string
+          HQ_ADDR1: string
+          HQ_ADDR2: string
+          IP_CODE: string
+          MAILING_ADDR1: string
+          MAILING_ADDR2: string
+          MOBILE: string
+          NAME: string
+          NAME_OK: string
+          PHONE: string
+          PHONE_OK: string
+          REGNO: string
+          RESIDENT_ADDR1: string
+          RESIDENT_ADDR2: string
+          SEX: string
+          SSN: string
+          STATUS: string
+          SURNAME: string
+          UNDERSTOOD_OK: string
+          WEEKS_OK: string
+        }
+        Update: {
+          ADDRESS_OK?: string
+          ALL_ER_OK?: string
+          CAMPAIGN_ID?: string
+          CHANGEDATE?: string
+          COMMENTS?: string
+          DOB?: string
+          EARNINGS_OK?: string
+          EMAIL_ADDR?: string
+          ER_NAME?: string
+          FIRSTNAME?: string
+          HELPFUL_OK?: string
+          HQ_ADDR1?: string
+          HQ_ADDR2?: string
+          IP_CODE?: string
+          MAILING_ADDR1?: string
+          MAILING_ADDR2?: string
+          MOBILE?: string
+          NAME?: string
+          NAME_OK?: string
+          PHONE?: string
+          PHONE_OK?: string
+          REGNO?: string
+          RESIDENT_ADDR1?: string
+          RESIDENT_ADDR2?: string
+          SEX?: string
+          SSN?: string
+          STATUS?: string
+          SURNAME?: string
+          UNDERSTOOD_OK?: string
+          WEEKS_OK?: string
+        }
+        Relationships: []
+      }
+      cont_stat_feedback: {
+        Row: {
+          changedate: string | null
+          email: string | null
+          firstname: string | null
+          mailing_addr1: string | null
+          mailing_addr2: string | null
+          mobile: string | null
+          phone: string | null
+          resident_addr1: string | null
+          resident_addr2: string | null
+          ssn: string
+          surname: string | null
+        }
+        Insert: {
+          changedate?: string | null
+          email?: string | null
+          firstname?: string | null
+          mailing_addr1?: string | null
+          mailing_addr2?: string | null
+          mobile?: string | null
+          phone?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
+          ssn: string
+          surname?: string | null
+        }
+        Update: {
+          changedate?: string | null
+          email?: string | null
+          firstname?: string | null
+          mailing_addr1?: string | null
+          mailing_addr2?: string | null
+          mobile?: string | null
+          phone?: string | null
+          resident_addr1?: string | null
+          resident_addr2?: string | null
+          ssn?: string
+          surname?: string | null
         }
         Relationships: []
       }
@@ -18448,6 +24217,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_alias: {
+        Row: {
+          alias: string | null
+          seqno: number
+          ssn: string
+        }
+        Insert: {
+          alias?: string | null
+          seqno: number
+          ssn: string
+        }
+        Update: {
+          alias?: string | null
+          seqno?: number
+          ssn?: string
+        }
+        Relationships: []
+      }
+      ip_alpha: {
+        Row: {
+          firstname: string | null
+          ip_code: string | null
+          ssn: string
+          surname: string | null
+        }
+        Insert: {
+          firstname?: string | null
+          ip_code?: string | null
+          ssn: string
+          surname?: string | null
+        }
+        Update: {
+          firstname?: string | null
+          ip_code?: string | null
+          ssn?: string
+          surname?: string | null
+        }
+        Relationships: []
+      }
       ip_application_documents: {
         Row: {
           application_reference_number: string | null
@@ -18612,6 +24420,123 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_bank_hist: {
+        Row: {
+          acct_name: string | null
+          acct_num: string
+          acct_type: string | null
+          bank_code: string
+          branch_code: string | null
+          ssn: string
+        }
+        Insert: {
+          acct_name?: string | null
+          acct_num: string
+          acct_type?: string | null
+          bank_code: string
+          branch_code?: string | null
+          ssn: string
+        }
+        Update: {
+          acct_name?: string | null
+          acct_num?: string
+          acct_type?: string | null
+          bank_code?: string
+          branch_code?: string | null
+          ssn?: string
+        }
+        Relationships: []
+      }
+      ip_campaign_history: {
+        Row: {
+          campaign_criteria: string | null
+          campaign_date: string
+          campaign_id: string
+          campaign_name: string
+          campaign_query: string | null
+          ctypeid: string
+          username: string
+        }
+        Insert: {
+          campaign_criteria?: string | null
+          campaign_date: string
+          campaign_id: string
+          campaign_name: string
+          campaign_query?: string | null
+          ctypeid: string
+          username: string
+        }
+        Update: {
+          campaign_criteria?: string | null
+          campaign_date?: string
+          campaign_id?: string
+          campaign_name?: string
+          campaign_query?: string | null
+          ctypeid?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      ip_campaign_history_details: {
+        Row: {
+          campaign_id: string
+          campaignYears: string | null
+          cfile: string | null
+          cfilename: string | null
+          cfilepath: string | null
+          csfilename: string | null
+          csfilepath: string | null
+          csurveyfile: string | null
+          ctypeid: string
+          emailaddress: string | null
+          fullname: string | null
+          LastUpdateDate: string | null
+          numofyears: number | null
+          saccesscode: string | null
+          ssn: string
+          total_wages: string | null
+          whereclause: string | null
+        }
+        Insert: {
+          campaign_id: string
+          campaignYears?: string | null
+          cfile?: string | null
+          cfilename?: string | null
+          cfilepath?: string | null
+          csfilename?: string | null
+          csfilepath?: string | null
+          csurveyfile?: string | null
+          ctypeid: string
+          emailaddress?: string | null
+          fullname?: string | null
+          LastUpdateDate?: string | null
+          numofyears?: number | null
+          saccesscode?: string | null
+          ssn: string
+          total_wages?: string | null
+          whereclause?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          campaignYears?: string | null
+          cfile?: string | null
+          cfilename?: string | null
+          cfilepath?: string | null
+          csfilename?: string | null
+          csfilepath?: string | null
+          csurveyfile?: string | null
+          ctypeid?: string
+          emailaddress?: string | null
+          fullname?: string | null
+          LastUpdateDate?: string | null
+          numofyears?: number | null
+          saccesscode?: string | null
+          ssn?: string
+          total_wages?: string | null
+          whereclause?: string | null
+        }
+        Relationships: []
+      }
       ip_card_config: {
         Row: {
           card_validity_years: number
@@ -18642,6 +24567,150 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ip_cc_nationals: {
+        Row: {
+          country_code: string
+          employer_name: string
+          end_year: string | null
+          er_address1: string | null
+          er_address2: string | null
+          ssn: string
+          start_year: string | null
+        }
+        Insert: {
+          country_code: string
+          employer_name: string
+          end_year?: string | null
+          er_address1?: string | null
+          er_address2?: string | null
+          ssn: string
+          start_year?: string | null
+        }
+        Update: {
+          country_code?: string
+          employer_name?: string
+          end_year?: string | null
+          er_address1?: string | null
+          er_address2?: string | null
+          ssn?: string
+          start_year?: string | null
+        }
+        Relationships: []
+      }
+      ip_code: {
+        Row: {
+          firstname: string
+          ip_code: string
+          ssn: string
+          surname: string
+        }
+        Insert: {
+          firstname: string
+          ip_code: string
+          ssn: string
+          surname: string
+        }
+        Update: {
+          firstname?: string
+          ip_code?: string
+          ssn?: string
+          surname?: string
+        }
+        Relationships: []
+      }
+      ip_contrib_stmt: {
+        Row: {
+          annual_ip_ss_amt: number | null
+          annual_wages_paid: number | null
+          firstname: string | null
+          mail_addr1: string | null
+          mail_addr2: string | null
+          middlename: string | null
+          payer_name: string | null
+          printed: string
+          regno: string
+          ssn: string
+          surname: string | null
+          vol_contrib: string
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          annual_ip_ss_amt?: number | null
+          annual_wages_paid?: number | null
+          firstname?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          middlename?: string | null
+          payer_name?: string | null
+          printed: string
+          regno: string
+          ssn: string
+          surname?: string | null
+          vol_contrib: string
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          annual_ip_ss_amt?: number | null
+          annual_wages_paid?: number | null
+          firstname?: string | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          middlename?: string | null
+          payer_name?: string | null
+          printed?: string
+          regno?: string
+          ssn?: string
+          surname?: string | null
+          vol_contrib?: string
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      ip_contrib_stmt_log: {
+        Row: {
+          end_year: number | null
+          printed_ind: number | null
+          ssn: string
+          start_year: number | null
+        }
+        Insert: {
+          end_year?: number | null
+          printed_ind?: number | null
+          ssn: string
+          start_year?: number | null
+        }
+        Update: {
+          end_year?: number | null
+          printed_ind?: number | null
+          ssn?: string
+          start_year?: number | null
+        }
+        Relationships: []
+      }
+      ip_contrib_stmt_log_copy: {
+        Row: {
+          end_year: number | null
+          printed_ind: number | null
+          ssn: string
+          start_year: number | null
+        }
+        Insert: {
+          end_year?: number | null
+          printed_ind?: number | null
+          ssn: string
+          start_year?: number | null
+        }
+        Update: {
+          end_year?: number | null
+          printed_ind?: number | null
+          ssn?: string
+          start_year?: number | null
         }
         Relationships: []
       }
@@ -18879,6 +24948,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_employer_susp: {
+        Row: {
+          date_modified: string | null
+          end_date: string | null
+          occupation: string | null
+          regno: string
+          start_date: string | null
+          status: string | null
+          susp_id: number
+          tran_code: string | null
+          userid: string | null
+        }
+        Insert: {
+          date_modified?: string | null
+          end_date?: string | null
+          occupation?: string | null
+          regno: string
+          start_date?: string | null
+          status?: string | null
+          susp_id: number
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Update: {
+          date_modified?: string | null
+          end_date?: string | null
+          occupation?: string | null
+          regno?: string
+          start_date?: string | null
+          status?: string | null
+          susp_id?: number
+          tran_code?: string | null
+          userid?: string | null
+        }
+        Relationships: []
+      }
+      ip_last_asp: {
+        Row: {
+          asp_num: string
+          date_issued: string
+        }
+        Insert: {
+          asp_num: string
+          date_issued: string
+        }
+        Update: {
+          asp_num?: string
+          date_issued?: string
+        }
+        Relationships: []
+      }
       ip_last_self_emp: {
         Row: {
           date_issued: string | null
@@ -18891,6 +25011,21 @@ export type Database = {
         Update: {
           date_issued?: string | null
           self_ref_no?: string
+        }
+        Relationships: []
+      }
+      ip_last_ssn: {
+        Row: {
+          date_issued: string | null
+          ssn: string
+        }
+        Insert: {
+          date_issued?: string | null
+          ssn: string
+        }
+        Update: {
+          date_issued?: string | null
+          ssn?: string
         }
         Relationships: []
       }
@@ -18963,6 +25098,7 @@ export type Database = {
           perm_card_date: string | null
           phone: string | null
           phone_mobile: string | null
+          photo: string | null
           photo_location: string | null
           place_of_residence: string | null
           previous_name: string | null
@@ -19074,6 +25210,7 @@ export type Database = {
           perm_card_date?: string | null
           phone?: string | null
           phone_mobile?: string | null
+          photo?: string | null
           photo_location?: string | null
           place_of_residence?: string | null
           previous_name?: string | null
@@ -19185,6 +25322,7 @@ export type Database = {
           perm_card_date?: string | null
           phone?: string | null
           phone_mobile?: string | null
+          photo?: string | null
           photo_location?: string | null
           place_of_residence?: string | null
           previous_name?: string | null
@@ -19260,6 +25398,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_master_susp: {
+        Row: {
+          alias: string | null
+          assign_ssn: string | null
+          date_modified: string | null
+          date_of_entry: string | null
+          dob: string | null
+          entered_by: string | null
+          firstname: string | null
+          middle_name: string | null
+          sex: string | null
+          status: string | null
+          surname: string | null
+          susp_id: number
+          userid: string | null
+        }
+        Insert: {
+          alias?: string | null
+          assign_ssn?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          dob?: string | null
+          entered_by?: string | null
+          firstname?: string | null
+          middle_name?: string | null
+          sex?: string | null
+          status?: string | null
+          surname?: string | null
+          susp_id: number
+          userid?: string | null
+        }
+        Update: {
+          alias?: string | null
+          assign_ssn?: string | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          dob?: string | null
+          entered_by?: string | null
+          firstname?: string | null
+          middle_name?: string | null
+          sex?: string | null
+          status?: string | null
+          surname?: string | null
+          susp_id?: number
+          userid?: string | null
+        }
+        Relationships: []
+      }
       ip_name: {
         Row: {
           changed_at: string | null
@@ -19304,6 +25490,66 @@ export type Database = {
           },
         ]
       }
+      ip_names: {
+        Row: {
+          alias: string | null
+          first_name: string
+          middle_name: string | null
+          modified_date: string | null
+          name_prefix: string | null
+          name_suffix: string | null
+          old_alias: string | null
+          old_first_name: string | null
+          old_middle_name: string | null
+          old_name_prefix: string | null
+          old_name_suffix: string | null
+          old_previous_name: string | null
+          old_surname: string | null
+          previous_name: string | null
+          seqno: number
+          ssn: string
+          surname: string
+        }
+        Insert: {
+          alias?: string | null
+          first_name: string
+          middle_name?: string | null
+          modified_date?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
+          old_alias?: string | null
+          old_first_name?: string | null
+          old_middle_name?: string | null
+          old_name_prefix?: string | null
+          old_name_suffix?: string | null
+          old_previous_name?: string | null
+          old_surname?: string | null
+          previous_name?: string | null
+          seqno: number
+          ssn: string
+          surname: string
+        }
+        Update: {
+          alias?: string | null
+          first_name?: string
+          middle_name?: string | null
+          modified_date?: string | null
+          name_prefix?: string | null
+          name_suffix?: string | null
+          old_alias?: string | null
+          old_first_name?: string | null
+          old_middle_name?: string | null
+          old_name_prefix?: string | null
+          old_name_suffix?: string | null
+          old_previous_name?: string | null
+          old_surname?: string | null
+          previous_name?: string | null
+          seqno?: number
+          ssn?: string
+          surname?: string
+        }
+        Relationships: []
+      }
       ip_notes: {
         Row: {
           note: string | null
@@ -19338,6 +25584,105 @@ export type Database = {
             referencedColumns: ["ssn"]
           },
         ]
+      }
+      ip_npf: {
+        Row: {
+          account_status: string | null
+          balance_78: number | null
+          balance_87: number | null
+          cheque_amount: number | null
+          cheque_number: string | null
+          cheque_status: string | null
+          claim_number: string | null
+          date_of_claim: string | null
+          date_of_closure: string | null
+          date_of_entry: string | null
+          date_of_modification: string | null
+          date_of_payment: string | null
+          date_of_scheme_entry: string | null
+          date_of_verification: string | null
+          entered_by: string | null
+          modified_by: string | null
+          payment_type: string | null
+          ssn: string
+          verified_by: string | null
+          verify_birth_code: string | null
+          verify_name_code: string | null
+          verify_status: string | null
+        }
+        Insert: {
+          account_status?: string | null
+          balance_78?: number | null
+          balance_87?: number | null
+          cheque_amount?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          claim_number?: string | null
+          date_of_claim?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_modification?: string | null
+          date_of_payment?: string | null
+          date_of_scheme_entry?: string | null
+          date_of_verification?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_type?: string | null
+          ssn: string
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_name_code?: string | null
+          verify_status?: string | null
+        }
+        Update: {
+          account_status?: string | null
+          balance_78?: number | null
+          balance_87?: number | null
+          cheque_amount?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          claim_number?: string | null
+          date_of_claim?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_modification?: string | null
+          date_of_payment?: string | null
+          date_of_scheme_entry?: string | null
+          date_of_verification?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_type?: string | null
+          ssn?: string
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_name_code?: string | null
+          verify_status?: string | null
+        }
+        Relationships: []
+      }
+      ip_npf_detl: {
+        Row: {
+          balance: number | null
+          date_period_end: string
+          interest: number | null
+          months: number | null
+          ssn: string
+        }
+        Insert: {
+          balance?: number | null
+          date_period_end: string
+          interest?: number | null
+          months?: number | null
+          ssn: string
+        }
+        Update: {
+          balance?: number | null
+          date_period_end?: string
+          interest?: number | null
+          months?: number | null
+          ssn?: string
+        }
+        Relationships: []
       }
       ip_other_payments: {
         Row: {
@@ -19694,6 +26039,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_unemploy: {
+        Row: {
+          benefit_extension: number | null
+          benefit_last_start_date: string | null
+          benefit_org_start_date: string | null
+          last_deemed_pay_date: string | null
+          num_weeks_paid: number | null
+          ssn: string
+        }
+        Insert: {
+          benefit_extension?: number | null
+          benefit_last_start_date?: string | null
+          benefit_org_start_date?: string | null
+          last_deemed_pay_date?: string | null
+          num_weeks_paid?: number | null
+          ssn: string
+        }
+        Update: {
+          benefit_extension?: number | null
+          benefit_last_start_date?: string | null
+          benefit_org_start_date?: string | null
+          last_deemed_pay_date?: string | null
+          num_weeks_paid?: number | null
+          ssn?: string
+        }
+        Relationships: []
+      }
       ip_validation_config: {
         Row: {
           created_at: string
@@ -19727,6 +26099,36 @@ export type Database = {
           item_name?: string
           step_number?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ip_verify: {
+        Row: {
+          cert_date: string | null
+          cert_details: string | null
+          cert_expiration: string | null
+          cert_id: string | null
+          cert_notes: string | null
+          code: string
+          ssn: string
+        }
+        Insert: {
+          cert_date?: string | null
+          cert_details?: string | null
+          cert_expiration?: string | null
+          cert_id?: string | null
+          cert_notes?: string | null
+          code: string
+          ssn: string
+        }
+        Update: {
+          cert_date?: string | null
+          cert_details?: string | null
+          cert_expiration?: string | null
+          cert_id?: string | null
+          cert_notes?: string | null
+          code?: string
+          ssn?: string
         }
         Relationships: []
       }
@@ -19959,6 +26361,300 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ip_wages_ann_sum: {
+        Row: {
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          ssn: string
+          wages_credit_addl: number | null
+          weeks_credit_addl: number | null
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          ssn: string
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          ssn?: string
+          wages_credit_addl?: number | null
+          weeks_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      ip_wages_orphans: {
+        Row: {
+          date_entered: string | null
+          entered_by: string | null
+          er_ei_amt: number | null
+          er_levy_amt: number | null
+          er_ss_amt: number | null
+          input_seq_no: number | null
+          ip_levy_amt: number | null
+          ip_pe_amt: number | null
+          ip_ss_amt: number | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          paid_code7: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          ssn: string
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+          wages_paid7: number | null
+        }
+        Insert: {
+          date_entered?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          ssn: string
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Update: {
+          date_entered?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          sequence_no?: number
+          ssn?: string
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Relationships: []
+      }
+      ip_wages_sum: {
+        Row: {
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          regno: string
+          ssn: string
+          wages_credit_addl: number | null
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          regno: string
+          ssn: string
+          wages_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          regno?: string
+          ssn?: string
+          wages_credit_addl?: number | null
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      ip_wages_susp: {
+        Row: {
+          date_entered: string | null
+          entered_by: string | null
+          er_ei_amt: number | null
+          er_levy_amt: number | null
+          er_ss_amt: number | null
+          input_seq_no: number | null
+          ip_levy_amt: number | null
+          ip_pe_amt: number | null
+          ip_ss_amt: number | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          paid_code7: string | null
+          pay_period: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          susp_id: number
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+          wages_paid7: number | null
+        }
+        Insert: {
+          date_entered?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id: string
+          payer_type: string
+          period: string
+          sequence_no: number
+          susp_id: number
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Update: {
+          date_entered?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string
+          payer_type?: string
+          period?: string
+          sequence_no?: number
+          susp_id?: number
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Relationships: []
       }
       legal_admin_audit: {
         Row: {
@@ -21472,6 +28168,78 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          msgbutton: string
+          msgdefaultbutton: number
+          msgicon: string
+          msgid: string
+          msgprint: string
+          msgseverity: number
+          msgtext: string
+          msgtitle: string
+          msguserinput: string
+        }
+        Insert: {
+          msgbutton: string
+          msgdefaultbutton: number
+          msgicon: string
+          msgid: string
+          msgprint: string
+          msgseverity: number
+          msgtext: string
+          msgtitle: string
+          msguserinput: string
+        }
+        Update: {
+          msgbutton?: string
+          msgdefaultbutton?: number
+          msgicon?: string
+          msgid?: string
+          msgprint?: string
+          msgseverity?: number
+          msgtext?: string
+          msgtitle?: string
+          msguserinput?: string
+        }
+        Relationships: []
+      }
+      messages_copy: {
+        Row: {
+          msgbutton: string
+          msgdefaultbutton: number
+          msgicon: string
+          msgid: string
+          msgprint: string
+          msgseverity: number
+          msgtext: string
+          msgtitle: string
+          msguserinput: string
+        }
+        Insert: {
+          msgbutton: string
+          msgdefaultbutton: number
+          msgicon: string
+          msgid: string
+          msgprint: string
+          msgseverity: number
+          msgtext: string
+          msgtitle: string
+          msguserinput: string
+        }
+        Update: {
+          msgbutton?: string
+          msgdefaultbutton?: number
+          msgicon?: string
+          msgid?: string
+          msgprint?: string
+          msgseverity?: number
+          msgtext?: string
+          msgtitle?: string
+          msguserinput?: string
+        }
+        Relationships: []
+      }
       mfa_config: {
         Row: {
           allowed_methods: string[] | null
@@ -22522,6 +29290,342 @@ export type Database = {
         }
         Relationships: []
       }
+      pbcatcol: {
+        Row: {
+          pbc_bmap: string | null
+          pbc_case: number | null
+          pbc_cid: number
+          pbc_cmnt: string | null
+          pbc_cnam: string
+          pbc_edit: string | null
+          pbc_hdr: string | null
+          pbc_hght: number | null
+          pbc_hpos: number | null
+          pbc_init: string | null
+          pbc_jtfy: number | null
+          pbc_labl: string | null
+          pbc_lpos: number | null
+          pbc_mask: string | null
+          pbc_ownr: string
+          pbc_ptrn: string | null
+          pbc_tag: string | null
+          pbc_tid: number
+          pbc_tnam: string
+          pbc_wdth: number | null
+        }
+        Insert: {
+          pbc_bmap?: string | null
+          pbc_case?: number | null
+          pbc_cid: number
+          pbc_cmnt?: string | null
+          pbc_cnam: string
+          pbc_edit?: string | null
+          pbc_hdr?: string | null
+          pbc_hght?: number | null
+          pbc_hpos?: number | null
+          pbc_init?: string | null
+          pbc_jtfy?: number | null
+          pbc_labl?: string | null
+          pbc_lpos?: number | null
+          pbc_mask?: string | null
+          pbc_ownr: string
+          pbc_ptrn?: string | null
+          pbc_tag?: string | null
+          pbc_tid: number
+          pbc_tnam: string
+          pbc_wdth?: number | null
+        }
+        Update: {
+          pbc_bmap?: string | null
+          pbc_case?: number | null
+          pbc_cid?: number
+          pbc_cmnt?: string | null
+          pbc_cnam?: string
+          pbc_edit?: string | null
+          pbc_hdr?: string | null
+          pbc_hght?: number | null
+          pbc_hpos?: number | null
+          pbc_init?: string | null
+          pbc_jtfy?: number | null
+          pbc_labl?: string | null
+          pbc_lpos?: number | null
+          pbc_mask?: string | null
+          pbc_ownr?: string
+          pbc_ptrn?: string | null
+          pbc_tag?: string | null
+          pbc_tid?: number
+          pbc_tnam?: string
+          pbc_wdth?: number | null
+        }
+        Relationships: []
+      }
+      pbcatedt: {
+        Row: {
+          pbe_cntr: number | null
+          pbe_edit: string
+          pbe_flag: number | null
+          pbe_name: string
+          pbe_seqn: number
+          pbe_type: number
+          pbe_work: string | null
+        }
+        Insert: {
+          pbe_cntr?: number | null
+          pbe_edit: string
+          pbe_flag?: number | null
+          pbe_name: string
+          pbe_seqn: number
+          pbe_type: number
+          pbe_work?: string | null
+        }
+        Update: {
+          pbe_cntr?: number | null
+          pbe_edit?: string
+          pbe_flag?: number | null
+          pbe_name?: string
+          pbe_seqn?: number
+          pbe_type?: number
+          pbe_work?: string | null
+        }
+        Relationships: []
+      }
+      pbcatfmt: {
+        Row: {
+          pbf_cntr: number | null
+          pbf_frmt: string
+          pbf_name: string
+          pbf_type: number
+        }
+        Insert: {
+          pbf_cntr?: number | null
+          pbf_frmt: string
+          pbf_name: string
+          pbf_type: number
+        }
+        Update: {
+          pbf_cntr?: number | null
+          pbf_frmt?: string
+          pbf_name?: string
+          pbf_type?: number
+        }
+        Relationships: []
+      }
+      pbcattbl: {
+        Row: {
+          pbd_fchr: number | null
+          pbd_ffce: string | null
+          pbd_fhgt: number | null
+          pbd_fitl: string | null
+          pbd_fptc: number | null
+          pbd_funl: string | null
+          pbd_fwgt: number | null
+          pbh_fchr: number | null
+          pbh_ffce: string | null
+          pbh_fhgt: number | null
+          pbh_fitl: string | null
+          pbh_fptc: number | null
+          pbh_funl: string | null
+          pbh_fwgt: number | null
+          pbl_fchr: number | null
+          pbl_ffce: string | null
+          pbl_fhgt: number | null
+          pbl_fitl: string | null
+          pbl_fptc: number | null
+          pbl_funl: string | null
+          pbl_fwgt: number | null
+          pbt_cmnt: string | null
+          pbt_ownr: string
+          pbt_tid: number
+          pbt_tnam: string
+        }
+        Insert: {
+          pbd_fchr?: number | null
+          pbd_ffce?: string | null
+          pbd_fhgt?: number | null
+          pbd_fitl?: string | null
+          pbd_fptc?: number | null
+          pbd_funl?: string | null
+          pbd_fwgt?: number | null
+          pbh_fchr?: number | null
+          pbh_ffce?: string | null
+          pbh_fhgt?: number | null
+          pbh_fitl?: string | null
+          pbh_fptc?: number | null
+          pbh_funl?: string | null
+          pbh_fwgt?: number | null
+          pbl_fchr?: number | null
+          pbl_ffce?: string | null
+          pbl_fhgt?: number | null
+          pbl_fitl?: string | null
+          pbl_fptc?: number | null
+          pbl_funl?: string | null
+          pbl_fwgt?: number | null
+          pbt_cmnt?: string | null
+          pbt_ownr: string
+          pbt_tid: number
+          pbt_tnam: string
+        }
+        Update: {
+          pbd_fchr?: number | null
+          pbd_ffce?: string | null
+          pbd_fhgt?: number | null
+          pbd_fitl?: string | null
+          pbd_fptc?: number | null
+          pbd_funl?: string | null
+          pbd_fwgt?: number | null
+          pbh_fchr?: number | null
+          pbh_ffce?: string | null
+          pbh_fhgt?: number | null
+          pbh_fitl?: string | null
+          pbh_fptc?: number | null
+          pbh_funl?: string | null
+          pbh_fwgt?: number | null
+          pbl_fchr?: number | null
+          pbl_ffce?: string | null
+          pbl_fhgt?: number | null
+          pbl_fitl?: string | null
+          pbl_fptc?: number | null
+          pbl_funl?: string | null
+          pbl_fwgt?: number | null
+          pbt_cmnt?: string | null
+          pbt_ownr?: string
+          pbt_tid?: number
+          pbt_tnam?: string
+        }
+        Relationships: []
+      }
+      pbcatvld: {
+        Row: {
+          pbv_cntr: number | null
+          pbv_msg: string | null
+          pbv_name: string
+          pbv_type: number
+          pbv_vald: string
+        }
+        Insert: {
+          pbv_cntr?: number | null
+          pbv_msg?: string | null
+          pbv_name: string
+          pbv_type: number
+          pbv_vald: string
+        }
+        Update: {
+          pbv_cntr?: number | null
+          pbv_msg?: string | null
+          pbv_name?: string
+          pbv_type?: number
+          pbv_vald?: string
+        }
+        Relationships: []
+      }
+      pen_increase_2020: {
+        Row: {
+          adj_end_date: string | null
+          adj_start_date: string | null
+          adjustment_amount: number | null
+          benefit_amount: number | null
+          benefit_type: string
+          claim_number: string
+          date_of_issue: string | null
+          date_period_start: string | null
+          dob: string
+          firstname: string | null
+          increase_amount: number | null
+          insured_ssn: string
+          new_amount: number | null
+          payment_amount: number | null
+          percent_increase: number | null
+          surname: string | null
+        }
+        Insert: {
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          benefit_amount?: number | null
+          benefit_type: string
+          claim_number: string
+          date_of_issue?: string | null
+          date_period_start?: string | null
+          dob: string
+          firstname?: string | null
+          increase_amount?: number | null
+          insured_ssn: string
+          new_amount?: number | null
+          payment_amount?: number | null
+          percent_increase?: number | null
+          surname?: string | null
+        }
+        Update: {
+          adj_end_date?: string | null
+          adj_start_date?: string | null
+          adjustment_amount?: number | null
+          benefit_amount?: number | null
+          benefit_type?: string
+          claim_number?: string
+          date_of_issue?: string | null
+          date_period_start?: string | null
+          dob?: string
+          firstname?: string | null
+          increase_amount?: number | null
+          insured_ssn?: string
+          new_amount?: number | null
+          payment_amount?: number | null
+          percent_increase?: number | null
+          surname?: string | null
+        }
+        Relationships: []
+      }
+      pen_increase_2020_ssp: {
+        Row: {
+          adjustment_amount: number | null
+          adjustment_end: string | null
+          adjustment_start: string | null
+          amount_owed: number | null
+          benefit_type: string
+          claim_number: string
+          date_period_start: string | null
+          increase: number | null
+          insured_ssn: string
+          new_amount: number | null
+          percent_increase: number | null
+          relationship_code: string | null
+          survivor_firstname: string | null
+          survivor_surname: string | null
+        }
+        Insert: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          benefit_type: string
+          claim_number: string
+          date_period_start?: string | null
+          increase?: number | null
+          insured_ssn: string
+          new_amount?: number | null
+          percent_increase?: number | null
+          relationship_code?: string | null
+          survivor_firstname?: string | null
+          survivor_surname?: string | null
+        }
+        Update: {
+          adjustment_amount?: number | null
+          adjustment_end?: string | null
+          adjustment_start?: string | null
+          amount_owed?: number | null
+          benefit_type?: string
+          claim_number?: string
+          date_period_start?: string | null
+          increase?: number | null
+          insured_ssn?: string
+          new_amount?: number | null
+          percent_increase?: number | null
+          relationship_code?: string | null
+          survivor_firstname?: string | null
+          survivor_surname?: string | null
+        }
+        Relationships: []
+      }
       pii_unlock_logs: {
         Row: {
           expires_at: string | null
@@ -23405,6 +30509,48 @@ export type Database = {
           },
         ]
       }
+      recip_claims_dec_2023: {
+        Row: {
+          benefit_amount: number | null
+          benefit_type: string | null
+          claim_number: string | null
+          dob: string | null
+          firstname: string | null
+          remark: string | null
+          remarks2: string | null
+          sex: string | null
+          ssn: string | null
+          status: string | null
+          surname: string | null
+        }
+        Insert: {
+          benefit_amount?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          dob?: string | null
+          firstname?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          sex?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+        }
+        Update: {
+          benefit_amount?: number | null
+          benefit_type?: string | null
+          claim_number?: string | null
+          dob?: string | null
+          firstname?: string | null
+          remark?: string | null
+          remarks2?: string | null
+          sex?: string | null
+          ssn?: string | null
+          status?: string | null
+          surname?: string | null
+        }
+        Relationships: []
+      }
       remittance_schedule: {
         Row: {
           auto_generate_voucher: boolean | null
@@ -23442,6 +30588,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rf_address_link: {
+        Row: {
+          activity_seq_no: string | null
+          addr_link_type_code: number | null
+          address_link_id: number
+          bank_code: string | null
+          claim_number: string | null
+          claim_seq: number | null
+          date_entered: string | null
+          date_modified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          regno: string | null
+          self_ref_no: string | null
+          ssn: string | null
+        }
+        Insert: {
+          activity_seq_no?: string | null
+          addr_link_type_code?: number | null
+          address_link_id: number
+          bank_code?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          regno?: string | null
+          self_ref_no?: string | null
+          ssn?: string | null
+        }
+        Update: {
+          activity_seq_no?: string | null
+          addr_link_type_code?: number | null
+          address_link_id?: number
+          bank_code?: string | null
+          claim_number?: string | null
+          claim_seq?: number | null
+          date_entered?: string | null
+          date_modified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          regno?: string | null
+          self_ref_no?: string | null
+          ssn?: string | null
+        }
+        Relationships: []
+      }
+      rf_mail_address: {
+        Row: {
+          address_link_id: number | null
+          address_seq_no: number
+          address_type_code: number | null
+          city_town_name: string | null
+          country_code: string | null
+          postal_code: string | null
+          state_region: string | null
+          street_address: string | null
+          street_name: string | null
+        }
+        Insert: {
+          address_link_id?: number | null
+          address_seq_no: number
+          address_type_code?: number | null
+          city_town_name?: string | null
+          country_code?: string | null
+          postal_code?: string | null
+          state_region?: string | null
+          street_address?: string | null
+          street_name?: string | null
+        }
+        Update: {
+          address_link_id?: number | null
+          address_seq_no?: number
+          address_type_code?: number | null
+          city_town_name?: string | null
+          country_code?: string | null
+          postal_code?: string | null
+          state_region?: string | null
+          street_address?: string | null
+          street_name?: string | null
+        }
+        Relationships: []
       }
       role_hierarchy: {
         Row: {
@@ -23813,6 +31043,60 @@ export type Database = {
         }
         Relationships: []
       }
+      security_apps: {
+        Row: {
+          application: string
+          description: string
+        }
+        Insert: {
+          application: string
+          description: string
+        }
+        Update: {
+          application?: string
+          description?: string
+        }
+        Relationships: []
+      }
+      security_groupings: {
+        Row: {
+          group_name: string
+          user_name: string
+        }
+        Insert: {
+          group_name: string
+          user_name: string
+        }
+        Update: {
+          group_name?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
+      security_info: {
+        Row: {
+          application: string
+          control: string
+          status: string
+          user_name: string
+          window: string
+        }
+        Insert: {
+          application: string
+          control: string
+          status: string
+          user_name: string
+          window: string
+        }
+        Update: {
+          application?: string
+          control?: string
+          status?: string
+          user_name?: string
+          window?: string
+        }
+        Relationships: []
+      }
       security_ip_blocks: {
         Row: {
           block_duration_minutes: number
@@ -23888,6 +31172,177 @@ export type Database = {
           id?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      security_template: {
+        Row: {
+          application: string
+          control: string
+          description: string
+          object_type: string
+          window: string
+        }
+        Insert: {
+          application: string
+          control: string
+          description: string
+          object_type: string
+          window: string
+        }
+        Update: {
+          application?: string
+          control?: string
+          description?: string
+          object_type?: string
+          window?: string
+        }
+        Relationships: []
+      }
+      security_users: {
+        Row: {
+          db_loginid: string | null
+          description: string
+          email_address: string | null
+          initials: string | null
+          name: string
+          office_code: string | null
+          priority: number
+          user_type: number | null
+        }
+        Insert: {
+          db_loginid?: string | null
+          description: string
+          email_address?: string | null
+          initials?: string | null
+          name: string
+          office_code?: string | null
+          priority: number
+          user_type?: number | null
+        }
+        Update: {
+          db_loginid?: string | null
+          description?: string
+          email_address?: string | null
+          initials?: string | null
+          name?: string
+          office_code?: string | null
+          priority?: number
+          user_type?: number | null
+        }
+        Relationships: []
+      }
+      sr_tab_contrib: {
+        Row: {
+          annual_ip_ss_amt: number | null
+          annual_wages_paid: number | null
+          firstname: string | null
+          grtot_weeks_paid: number | null
+          mail_addr1: string | null
+          mail_addr2: string | null
+          middlename: string | null
+          payer_name: string | null
+          regno: string | null
+          ssn: string | null
+          surname: string | null
+          tot_weeks_paid: number | null
+          weeks_paid: number | null
+          year: string | null
+        }
+        Insert: {
+          annual_ip_ss_amt?: number | null
+          annual_wages_paid?: number | null
+          firstname?: string | null
+          grtot_weeks_paid?: number | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          middlename?: string | null
+          payer_name?: string | null
+          regno?: string | null
+          ssn?: string | null
+          surname?: string | null
+          tot_weeks_paid?: number | null
+          weeks_paid?: number | null
+          year?: string | null
+        }
+        Update: {
+          annual_ip_ss_amt?: number | null
+          annual_wages_paid?: number | null
+          firstname?: string | null
+          grtot_weeks_paid?: number | null
+          mail_addr1?: string | null
+          mail_addr2?: string | null
+          middlename?: string | null
+          payer_name?: string | null
+          regno?: string | null
+          ssn?: string | null
+          surname?: string | null
+          tot_weeks_paid?: number | null
+          weeks_paid?: number | null
+          year?: string | null
+        }
+        Relationships: []
+      }
+      sr_tab2: {
+        Row: {
+          period: string | null
+          ssn: string | null
+          weeks_paid: number | null
+        }
+        Insert: {
+          period?: string | null
+          ssn?: string | null
+          weeks_paid?: number | null
+        }
+        Update: {
+          period?: string | null
+          ssn?: string | null
+          weeks_paid?: number | null
+        }
+        Relationships: []
+      }
+      sr_tab3: {
+        Row: {
+          ssn: string | null
+          tot_weeks_paid: number | null
+          year: string | null
+        }
+        Insert: {
+          ssn?: string | null
+          tot_weeks_paid?: number | null
+          year?: string | null
+        }
+        Update: {
+          ssn?: string | null
+          tot_weeks_paid?: number | null
+          year?: string | null
+        }
+        Relationships: []
+      }
+      step_workers: {
+        Row: {
+          dob: string | null
+          employer: string | null
+          firstname: string | null
+          middle_name: string | null
+          ssn: string
+          surname: string | null
+        }
+        Insert: {
+          dob?: string | null
+          employer?: string | null
+          firstname?: string | null
+          middle_name?: string | null
+          ssn: string
+          surname?: string | null
+        }
+        Update: {
+          dob?: string | null
+          employer?: string | null
+          firstname?: string | null
+          middle_name?: string | null
+          ssn?: string
+          surname?: string | null
         }
         Relationships: []
       }
@@ -24401,6 +31856,168 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_address_link_type: {
+        Row: {
+          addr_link_type_code: number
+          date_entered: string | null
+          date_modified: string | null
+          description: string | null
+          entered_by: string | null
+          modified_by: string | null
+        }
+        Insert: {
+          addr_link_type_code: number
+          date_entered?: string | null
+          date_modified?: string | null
+          description?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+        }
+        Update: {
+          addr_link_type_code?: number
+          date_entered?: string | null
+          date_modified?: string | null
+          description?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+        }
+        Relationships: []
+      }
+      tb_address_type: {
+        Row: {
+          address_type_code: number
+          date_entered: string | null
+          date_modified: string | null
+          description: string | null
+          entered_by: string | null
+          modified_by: string | null
+        }
+        Insert: {
+          address_type_code: number
+          date_entered?: string | null
+          date_modified?: string | null
+          description?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+        }
+        Update: {
+          address_type_code?: number
+          date_entered?: string | null
+          date_modified?: string | null
+          description?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+        }
+        Relationships: []
+      }
+      tb_adjustment_types: {
+        Row: {
+          adjust_code: number
+          adjust_desc: string | null
+        }
+        Insert: {
+          adjust_code: number
+          adjust_desc?: string | null
+        }
+        Update: {
+          adjust_code?: number
+          adjust_desc?: string | null
+        }
+        Relationships: []
+      }
+      tb_age_contrib_rate: {
+        Row: {
+          effend: string
+          effstart: string
+          emp_ei_percent: number
+          emp_ss_percent: number
+          ip_ei_percent: number
+          ip_ss_percent: number
+          max_age: number
+          min_age: number
+        }
+        Insert: {
+          effend: string
+          effstart: string
+          emp_ei_percent: number
+          emp_ss_percent: number
+          ip_ei_percent: number
+          ip_ss_percent: number
+          max_age: number
+          min_age: number
+        }
+        Update: {
+          effend?: string
+          effstart?: string
+          emp_ei_percent?: number
+          emp_ss_percent?: number
+          ip_ei_percent?: number
+          ip_ss_percent?: number
+          max_age?: number
+          min_age?: number
+        }
+        Relationships: []
+      }
+      tb_age_contrib_rate_new: {
+        Row: {
+          effend: string
+          effstart: string
+          emp_ei_percent: number
+          emp_ss_percent: number
+          ip_ei_percent: number
+          ip_ss_percent: number
+          max_age: number
+          min_age: number
+        }
+        Insert: {
+          effend: string
+          effstart: string
+          emp_ei_percent: number
+          emp_ss_percent: number
+          ip_ei_percent: number
+          ip_ss_percent: number
+          max_age: number
+          min_age: number
+        }
+        Update: {
+          effend?: string
+          effstart?: string
+          emp_ei_percent?: number
+          emp_ss_percent?: number
+          ip_ei_percent?: number
+          ip_ss_percent?: number
+          max_age?: number
+          min_age?: number
+        }
+        Relationships: []
+      }
+      tb_age_pension_cont_schedule: {
+        Row: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_contributions: number
+          min_contributions: number
+          percentage_of_wages: number | null
+        }
+        Insert: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_contributions: number
+          min_contributions: number
+          percentage_of_wages?: number | null
+        }
+        Update: {
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          max_contributions?: number
+          min_contributions?: number
+          percentage_of_wages?: number | null
+        }
+        Relationships: []
+      }
       tb_bank_code: {
         Row: {
           address1: string | null
@@ -24464,6 +32081,162 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_benefit: {
+        Row: {
+          benefit_description: string | null
+          benefit_type: string
+          credit_eligible_date: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review_weeks: number | null
+          longterm_shorterm: number | null
+          max_age: number | null
+          max_amount: number | null
+          max_credits: number | null
+          max_period_nbrs: number | null
+          min_age: number | null
+          min_amount: number | null
+          min_credit_age: number | null
+          months_back: number | null
+          percentage_of_wages: number | null
+          period_type: string | null
+          submission_limit_nbr: number | null
+          yearly_credits: number | null
+        }
+        Insert: {
+          benefit_description?: string | null
+          benefit_type: string
+          credit_eligible_date?: string | null
+          effective_end_date: string
+          effective_start_date: string
+          eligibility_review_weeks?: number | null
+          longterm_shorterm?: number | null
+          max_age?: number | null
+          max_amount?: number | null
+          max_credits?: number | null
+          max_period_nbrs?: number | null
+          min_age?: number | null
+          min_amount?: number | null
+          min_credit_age?: number | null
+          months_back?: number | null
+          percentage_of_wages?: number | null
+          period_type?: string | null
+          submission_limit_nbr?: number | null
+          yearly_credits?: number | null
+        }
+        Update: {
+          benefit_description?: string | null
+          benefit_type?: string
+          credit_eligible_date?: string | null
+          effective_end_date?: string
+          effective_start_date?: string
+          eligibility_review_weeks?: number | null
+          longterm_shorterm?: number | null
+          max_age?: number | null
+          max_amount?: number | null
+          max_credits?: number | null
+          max_period_nbrs?: number | null
+          min_age?: number | null
+          min_amount?: number | null
+          min_credit_age?: number | null
+          months_back?: number | null
+          percentage_of_wages?: number | null
+          period_type?: string | null
+          submission_limit_nbr?: number | null
+          yearly_credits?: number | null
+        }
+        Relationships: []
+      }
+      tb_benefit_increase: {
+        Row: {
+          benefit_type: string | null
+          effective_end_date: string | null
+          effective_start_date: string | null
+          increase_id: number
+          percent_increase: number | null
+          retroactive: number | null
+        }
+        Insert: {
+          benefit_type?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          increase_id: number
+          percent_increase?: number | null
+          retroactive?: number | null
+        }
+        Update: {
+          benefit_type?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          increase_id?: number
+          percent_increase?: number | null
+          retroactive?: number | null
+        }
+        Relationships: []
+      }
+      tb_benefit_indexation: {
+        Row: {
+          benefit_type: string
+          cutoff_date: string
+          eff_end_date: string
+          eff_start_date: string
+          index_amount: number
+          index_rate: number
+        }
+        Insert: {
+          benefit_type: string
+          cutoff_date: string
+          eff_end_date: string
+          eff_start_date: string
+          index_amount: number
+          index_rate: number
+        }
+        Update: {
+          benefit_type?: string
+          cutoff_date?: string
+          eff_end_date?: string
+          eff_start_date?: string
+          index_amount?: number
+          index_rate?: number
+        }
+        Relationships: []
+      }
+      tb_bfn: {
+        Row: {
+          bfn_code: string
+          bfn_name: string | null
+          bfn_number: number | null
+          enable: string | null
+          report_flag: string | null
+        }
+        Insert: {
+          bfn_code: string
+          bfn_name?: string | null
+          bfn_number?: number | null
+          enable?: string | null
+          report_flag?: string | null
+        }
+        Update: {
+          bfn_code?: string
+          bfn_name?: string | null
+          bfn_number?: number | null
+          enable?: string | null
+          report_flag?: string | null
+        }
+        Relationships: []
+      }
+      tb_c3_months: {
+        Row: {
+          c3_month: string
+        }
+        Insert: {
+          c3_month: string
+        }
+        Update: {
+          c3_month?: string
+        }
+        Relationships: []
+      }
       tb_c3_status: {
         Row: {
           code: string
@@ -24479,6 +32252,186 @@ export type Database = {
           code?: string
           description?: string
           isactive?: boolean
+        }
+        Relationships: []
+      }
+      tb_campaign_types: {
+        Row: {
+          ctype: string | null
+          ctypeid: string
+        }
+        Insert: {
+          ctype?: string | null
+          ctypeid: string
+        }
+        Update: {
+          ctype?: string | null
+          ctypeid?: string
+        }
+        Relationships: []
+      }
+      tb_cheque_dates: {
+        Row: {
+          benefit_type: string
+          cheque_period_end: string
+          cheque_period_start: string
+          date_of_cheque: string | null
+          period: string
+          processed_indicator: string | null
+        }
+        Insert: {
+          benefit_type: string
+          cheque_period_end: string
+          cheque_period_start: string
+          date_of_cheque?: string | null
+          period: string
+          processed_indicator?: string | null
+        }
+        Update: {
+          benefit_type?: string
+          cheque_period_end?: string
+          cheque_period_start?: string
+          date_of_cheque?: string | null
+          period?: string
+          processed_indicator?: string | null
+        }
+        Relationships: []
+      }
+      tb_cheque_remarks: {
+        Row: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          remark: string | null
+          remark_seq: number
+        }
+        Insert: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          remark?: string | null
+          remark_seq: number
+        }
+        Update: {
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          remark?: string | null
+          remark_seq?: number
+        }
+        Relationships: []
+      }
+      tb_claim_status: {
+        Row: {
+          allow_void: boolean
+          code: string
+          description: string | null
+        }
+        Insert: {
+          allow_void: boolean
+          code: string
+          description?: string | null
+        }
+        Update: {
+          allow_void?: boolean
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_company: {
+        Row: {
+          company: string
+          country: string
+          district: string
+          fax: string
+          maddr1: string
+          maddr2: string
+          maddr3: string
+          phone1: string
+          phone2: string
+        }
+        Insert: {
+          company: string
+          country: string
+          district: string
+          fax: string
+          maddr1: string
+          maddr2: string
+          maddr3: string
+          phone1: string
+          phone2: string
+        }
+        Update: {
+          company?: string
+          country?: string
+          district?: string
+          fax?: string
+          maddr1?: string
+          maddr2?: string
+          maddr3?: string
+          phone1?: string
+          phone2?: string
+        }
+        Relationships: []
+      }
+      tb_contributory: {
+        Row: {
+          benefit_percentage: number | null
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          mandatory_contrib_weeks: number | null
+          max_contrib_weeks: number | null
+          min_contrib_weeks: number | null
+          num_best_years: number | null
+          num_years_wages: number | null
+          subset_of_mandatory_contrib: number | null
+        }
+        Insert: {
+          benefit_percentage?: number | null
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          mandatory_contrib_weeks?: number | null
+          max_contrib_weeks?: number | null
+          min_contrib_weeks?: number | null
+          num_best_years?: number | null
+          num_years_wages?: number | null
+          subset_of_mandatory_contrib?: number | null
+        }
+        Update: {
+          benefit_percentage?: number | null
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          mandatory_contrib_weeks?: number | null
+          max_contrib_weeks?: number | null
+          min_contrib_weeks?: number | null
+          num_best_years?: number | null
+          num_years_wages?: number | null
+          subset_of_mandatory_contrib?: number | null
+        }
+        Relationships: []
+      }
+      tb_control: {
+        Row: {
+          date_issued: string
+          last_number: string
+          table_code: string
+          table_description: string | null
+        }
+        Insert: {
+          date_issued: string
+          last_number: string
+          table_code: string
+          table_description?: string | null
+        }
+        Update: {
+          date_issued?: string
+          last_number?: string
+          table_code?: string
+          table_description?: string | null
         }
         Relationships: []
       }
@@ -24668,6 +32621,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_delivery: {
+        Row: {
+          delivery_desc: string | null
+          delivery_person: string | null
+          delivery_zone: string
+        }
+        Insert: {
+          delivery_desc?: string | null
+          delivery_person?: string | null
+          delivery_zone: string
+        }
+        Update: {
+          delivery_desc?: string | null
+          delivery_person?: string | null
+          delivery_zone?: string
+        }
+        Relationships: []
+      }
+      tb_denominations: {
+        Row: {
+          denom_code: string
+          description: string | null
+          mop_code: string | null
+          value: number | null
+        }
+        Insert: {
+          denom_code: string
+          description?: string | null
+          mop_code?: string | null
+          value?: number | null
+        }
+        Update: {
+          denom_code?: string
+          description?: string | null
+          mop_code?: string | null
+          value?: number | null
+        }
+        Relationships: []
+      }
       tb_dependent_relation: {
         Row: {
           code: string
@@ -24680,6 +32672,21 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+        }
+        Relationships: []
+      }
+      tb_dept: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
         }
         Relationships: []
       }
@@ -24716,6 +32723,87 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_disablement: {
+        Row: {
+          degree_of_disablement: number | null
+          disable_code: string
+          long_description: string | null
+          short_description: string | null
+        }
+        Insert: {
+          degree_of_disablement?: number | null
+          disable_code: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Update: {
+          degree_of_disablement?: number | null
+          disable_code?: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_disablement_deg_schedule: {
+        Row: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_deg_of_desablement: number
+          min_deg_of_disablement: number
+          percentage_of_wages: number | null
+        }
+        Insert: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_deg_of_desablement: number
+          min_deg_of_disablement: number
+          percentage_of_wages?: number | null
+        }
+        Update: {
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          max_deg_of_desablement?: number
+          min_deg_of_disablement?: number
+          percentage_of_wages?: number | null
+        }
+        Relationships: []
+      }
+      tb_disallow: {
+        Row: {
+          code: string
+          long_description: string | null
+          short_description: string | null
+        }
+        Insert: {
+          code: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Update: {
+          code?: string
+          long_description?: string | null
+          short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_disqualification: {
+        Row: {
+          description: string | null
+          disqualify_code: number
+        }
+        Insert: {
+          description?: string | null
+          disqualify_code: number
+        }
+        Update: {
+          description?: string | null
+          disqualify_code?: number
+        }
+        Relationships: []
+      }
       tb_district: {
         Row: {
           code: string
@@ -24731,7 +32819,154 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_employer_status: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
       tb_eye_color: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_fund: {
+        Row: {
+          fund_code: string
+          fund_description: string | null
+        }
+        Insert: {
+          fund_code: string
+          fund_description?: string | null
+        }
+        Update: {
+          fund_code?: string
+          fund_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_funeral_grant_schedue: {
+        Row: {
+          amount: number | null
+          max_age: number
+          min_age: number
+        }
+        Insert: {
+          amount?: number | null
+          max_age: number
+          min_age: number
+        }
+        Update: {
+          amount?: number | null
+          max_age?: number
+          min_age?: number
+        }
+        Relationships: []
+      }
+      tb_gb_contrib_rate: {
+        Row: {
+          contrib_wage_ceiling: number | null
+          effend: string
+          effstart: string
+          levy_penalty_percent: number | null
+          pay_period: string
+          prev_month_levy_penalty: number | null
+          ss_penalty_percent: number | null
+        }
+        Insert: {
+          contrib_wage_ceiling?: number | null
+          effend: string
+          effstart: string
+          levy_penalty_percent?: number | null
+          pay_period: string
+          prev_month_levy_penalty?: number | null
+          ss_penalty_percent?: number | null
+        }
+        Update: {
+          contrib_wage_ceiling?: number | null
+          effend?: string
+          effstart?: string
+          levy_penalty_percent?: number | null
+          pay_period?: string
+          prev_month_levy_penalty?: number | null
+          ss_penalty_percent?: number | null
+        }
+        Relationships: []
+      }
+      tb_gb_contrib_rate_new: {
+        Row: {
+          contrib_wage_ceiling: number
+          effend: string
+          effstart: string
+          levy_penalty_percent: number
+          pay_period: string
+          prev_month_levy_penalty: number
+          ss_penalty_percent: number
+        }
+        Insert: {
+          contrib_wage_ceiling: number
+          effend: string
+          effstart: string
+          levy_penalty_percent: number
+          pay_period: string
+          prev_month_levy_penalty: number
+          ss_penalty_percent: number
+        }
+        Update: {
+          contrib_wage_ceiling?: number
+          effend?: string
+          effstart?: string
+          levy_penalty_percent?: number
+          pay_period?: string
+          prev_month_levy_penalty?: number
+          ss_penalty_percent?: number
+        }
+        Relationships: []
+      }
+      tb_helptopics: {
+        Row: {
+          classname: string
+          help_file: string
+          help_topic: string
+          object_name: string
+          tran_code: string
+        }
+        Insert: {
+          classname: string
+          help_file: string
+          help_topic: string
+          object_name: string
+          tran_code: string
+        }
+        Update: {
+          classname?: string
+          help_file?: string
+          help_topic?: string
+          object_name?: string
+          tran_code?: string
+        }
+        Relationships: []
+      }
+      tb_illness: {
         Row: {
           code: string
           description: string | null
@@ -24818,6 +33053,78 @@ export type Database = {
           code?: string
           long_description?: string | null
           short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_indus_cat: {
+        Row: {
+          category_desc: string | null
+          category_desc2: string | null
+          tab_code: string
+        }
+        Insert: {
+          category_desc?: string | null
+          category_desc2?: string | null
+          tab_code: string
+        }
+        Update: {
+          category_desc?: string | null
+          category_desc2?: string | null
+          tab_code?: string
+        }
+        Relationships: []
+      }
+      tb_indus_class: {
+        Row: {
+          class_code: string
+          class_desc: string | null
+          div_code: string
+          tab_code: string
+        }
+        Insert: {
+          class_code: string
+          class_desc?: string | null
+          div_code: string
+          tab_code: string
+        }
+        Update: {
+          class_code?: string
+          class_desc?: string | null
+          div_code?: string
+          tab_code?: string
+        }
+        Relationships: []
+      }
+      tb_indus_div: {
+        Row: {
+          div_code: string
+          div_desc: string | null
+          tab_code: string
+        }
+        Insert: {
+          div_code: string
+          div_desc?: string | null
+          tab_code: string
+        }
+        Update: {
+          div_code?: string
+          div_desc?: string | null
+          tab_code?: string
+        }
+        Relationships: []
+      }
+      tb_indus_rpt: {
+        Row: {
+          class_code: string
+          rep_code: string
+        }
+        Insert: {
+          class_code: string
+          rep_code: string
+        }
+        Update: {
+          class_code?: string
+          rep_code?: string
         }
         Relationships: []
       }
@@ -25015,6 +33322,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_maternity_allowance: {
+        Row: {
+          benefit_type: string
+          early_submission_limit: number | null
+          effective_end_date: string
+          effective_start_date: string
+        }
+        Insert: {
+          benefit_type: string
+          early_submission_limit?: number | null
+          effective_end_date: string
+          effective_start_date: string
+        }
+        Update: {
+          benefit_type?: string
+          early_submission_limit?: number | null
+          effective_end_date?: string
+          effective_start_date?: string
+        }
+        Relationships: []
+      }
       tb_merchant: {
         Row: {
           address: string | null
@@ -25060,6 +33388,45 @@ export type Database = {
           long_description?: string | null
           mop_code?: string
           short_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_notify_status: {
+        Row: {
+          code: string
+          description: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_npf: {
+        Row: {
+          end_period: string
+          interest_rate: number
+          months: number | null
+          months2: number | null
+          start_period: string
+        }
+        Insert: {
+          end_period: string
+          interest_rate: number
+          months?: number | null
+          months2?: number | null
+          start_period: string
+        }
+        Update: {
+          end_period?: string
+          interest_rate?: number
+          months?: number | null
+          months2?: number | null
+          start_period?: string
         }
         Relationships: []
       }
@@ -25155,6 +33522,39 @@ export type Database = {
           },
         ]
       }
+      tb_operation: {
+        Row: {
+          dept: string | null
+          description: string | null
+          operation: string
+        }
+        Insert: {
+          dept?: string | null
+          description?: string | null
+          operation: string
+        }
+        Update: {
+          dept?: string | null
+          description?: string | null
+          operation?: string
+        }
+        Relationships: []
+      }
+      tb_outcome: {
+        Row: {
+          outcome_code: string
+          outcome_description: string
+        }
+        Insert: {
+          outcome_code: string
+          outcome_description: string
+        }
+        Update: {
+          outcome_code?: string
+          outcome_description?: string
+        }
+        Relationships: []
+      }
       tb_pay_periods: {
         Row: {
           code: string
@@ -25218,6 +33618,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_payment_remarks: {
+        Row: {
+          effective_end_date: string | null
+          effective_start_date: string | null
+          remark_id: number
+          remark_type: string | null
+          remarks: string | null
+        }
+        Insert: {
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          remark_id: number
+          remark_type?: string | null
+          remarks?: string | null
+        }
+        Update: {
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          remark_id?: number
+          remark_type?: string | null
+          remarks?: string | null
+        }
+        Relationships: []
+      }
       tb_payment_sources: {
         Row: {
           code: string
@@ -25266,6 +33690,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_paytype: {
+        Row: {
+          code: string
+          description: string | null
+          fund: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          fund?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          fund?: string | null
+        }
+        Relationships: []
+      }
       tb_penalty: {
         Row: {
           created_by: string
@@ -25311,6 +33753,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_postal_code: {
+        Row: {
+          description: string | null
+          postal_code: string
+          postal_district_code: string | null
+          postal_zone_code: string | null
+        }
+        Insert: {
+          description?: string | null
+          postal_code: string
+          postal_district_code?: string | null
+          postal_zone_code?: string | null
+        }
+        Update: {
+          description?: string | null
+          postal_code?: string
+          postal_district_code?: string | null
+          postal_zone_code?: string | null
+        }
+        Relationships: []
+      }
+      tb_postal_code_det: {
+        Row: {
+          postal_code: string | null
+          postal_seq_no: number
+          street_nm: string | null
+          village_area_nm: string | null
+        }
+        Insert: {
+          postal_code?: string | null
+          postal_seq_no: number
+          street_nm?: string | null
+          village_area_nm?: string | null
+        }
+        Update: {
+          postal_code?: string | null
+          postal_seq_no?: number
+          street_nm?: string | null
+          village_area_nm?: string | null
+        }
+        Relationships: []
+      }
       tb_postal_district: {
         Row: {
           code: string
@@ -25323,6 +33807,105 @@ export type Database = {
         Update: {
           code?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+      tb_postal_reg: {
+        Row: {
+          date_of_issue: string
+          end_range: number
+          start_range: number
+        }
+        Insert: {
+          date_of_issue: string
+          end_range: number
+          start_range: number
+        }
+        Update: {
+          date_of_issue?: string
+          end_range?: number
+          start_range?: number
+        }
+        Relationships: []
+      }
+      tb_postal_reg_used: {
+        Row: {
+          batch_number: string | null
+          cheque_issue_date: string | null
+          date_of_issue: string
+          date_sent_for_signing: string | null
+          date_signed: string | null
+          end_range: number
+          ending_cheque_no: string | null
+          last_number_used: number
+          number_of_cheques: number | null
+          remarks: string | null
+          start_range: number
+          starting_cheque_no: string | null
+          type: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          cheque_issue_date?: string | null
+          date_of_issue: string
+          date_sent_for_signing?: string | null
+          date_signed?: string | null
+          end_range: number
+          ending_cheque_no?: string | null
+          last_number_used: number
+          number_of_cheques?: number | null
+          remarks?: string | null
+          start_range: number
+          starting_cheque_no?: string | null
+          type?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          cheque_issue_date?: string | null
+          date_of_issue?: string
+          date_sent_for_signing?: string | null
+          date_signed?: string | null
+          end_range?: number
+          ending_cheque_no?: string | null
+          last_number_used?: number
+          number_of_cheques?: number | null
+          remarks?: string | null
+          start_range?: number
+          starting_cheque_no?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      tb_postal_zones: {
+        Row: {
+          description: string | null
+          postal_zone_code: string
+        }
+        Insert: {
+          description?: string | null
+          postal_zone_code: string
+        }
+        Update: {
+          description?: string | null
+          postal_zone_code?: string
+        }
+        Relationships: []
+      }
+      tb_provider: {
+        Row: {
+          code: string
+          name: string
+          status: string | null
+        }
+        Insert: {
+          code: string
+          name: string
+          status?: string | null
+        }
+        Update: {
+          code?: string
+          name?: string
+          status?: string | null
         }
         Relationships: []
       }
@@ -25371,6 +33954,102 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_report: {
+        Row: {
+          bfn_code: string | null
+          dw_object: string | null
+          enable: string | null
+          group_name: string | null
+          report_id: string
+          report_name: string | null
+          report_number: number | null
+        }
+        Insert: {
+          bfn_code?: string | null
+          dw_object?: string | null
+          enable?: string | null
+          group_name?: string | null
+          report_id: string
+          report_name?: string | null
+          report_number?: number | null
+        }
+        Update: {
+          bfn_code?: string | null
+          dw_object?: string | null
+          enable?: string | null
+          group_name?: string | null
+          report_id?: string
+          report_name?: string | null
+          report_number?: number | null
+        }
+        Relationships: []
+      }
+      tb_report_args: {
+        Row: {
+          AllowEdit: number | null
+          ArgName: string
+          ArgType: string
+          DataCol: string | null
+          dddw_Name: string | null
+          DisplayCol: string | null
+          EditType: string | null
+          HscrollBar: number | null
+          Limit: number | null
+          Lines: number | null
+          PercentWidth: number | null
+          report_id: string
+          VscrollBar: number | null
+        }
+        Insert: {
+          AllowEdit?: number | null
+          ArgName: string
+          ArgType: string
+          DataCol?: string | null
+          dddw_Name?: string | null
+          DisplayCol?: string | null
+          EditType?: string | null
+          HscrollBar?: number | null
+          Limit?: number | null
+          Lines?: number | null
+          PercentWidth?: number | null
+          report_id: string
+          VscrollBar?: number | null
+        }
+        Update: {
+          AllowEdit?: number | null
+          ArgName?: string
+          ArgType?: string
+          DataCol?: string | null
+          dddw_Name?: string | null
+          DisplayCol?: string | null
+          EditType?: string | null
+          HscrollBar?: number | null
+          Limit?: number | null
+          Lines?: number | null
+          PercentWidth?: number | null
+          report_id?: string
+          VscrollBar?: number | null
+        }
+        Relationships: []
+      }
+      tb_report_src: {
+        Row: {
+          line_no: number
+          report_id: string
+          source_code: string | null
+        }
+        Insert: {
+          line_no: number
+          report_id: string
+          source_code?: string | null
+        }
+        Update: {
+          line_no?: number
+          report_id?: string
+          source_code?: string | null
+        }
+        Relationships: []
+      }
       tb_sector: {
         Row: {
           code: string
@@ -25413,6 +34092,51 @@ export type Database = {
           sep_penalty_percent?: number | null
           sep_ss_percent?: number
           wage_cat?: number
+        }
+        Relationships: []
+      }
+      tb_sickness_injury: {
+        Row: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          link_weeks: number | null
+          max_period_per_claim: number | null
+          min_period_of_disability: number | null
+        }
+        Insert: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          link_weeks?: number | null
+          max_period_per_claim?: number | null
+          min_period_of_disability?: number | null
+        }
+        Update: {
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          link_weeks?: number | null
+          max_period_per_claim?: number | null
+          min_period_of_disability?: number | null
+        }
+        Relationships: []
+      }
+      tb_ssas_benefit_type: {
+        Row: {
+          ben_type: string
+          description: string | null
+          surv_type: string
+        }
+        Insert: {
+          ben_type: string
+          description?: string | null
+          surv_type: string
+        }
+        Update: {
+          ben_type?: string
+          description?: string | null
+          surv_type?: string
         }
         Relationships: []
       }
@@ -25464,6 +34188,147 @@ export type Database = {
           is_active?: boolean
           modified_by?: string | null
           modified_date?: string | null
+        }
+        Relationships: []
+      }
+      tb_suits: {
+        Row: {
+          suit_code: string
+          suit_description: string | null
+        }
+        Insert: {
+          suit_code: string
+          suit_description?: string | null
+        }
+        Update: {
+          suit_code?: string
+          suit_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_survivor_benefit: {
+        Row: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_age: number | null
+          min_age: number | null
+          min_benefit_amount: number | null
+          min_parents_age: number | null
+          surv_pension_percent: number | null
+          surv_percent: number | null
+          surv_type: string
+          years_married: number | null
+        }
+        Insert: {
+          benefit_type: string
+          effective_end_date: string
+          effective_start_date: string
+          max_age?: number | null
+          min_age?: number | null
+          min_benefit_amount?: number | null
+          min_parents_age?: number | null
+          surv_pension_percent?: number | null
+          surv_percent?: number | null
+          surv_type: string
+          years_married?: number | null
+        }
+        Update: {
+          benefit_type?: string
+          effective_end_date?: string
+          effective_start_date?: string
+          max_age?: number | null
+          min_age?: number | null
+          min_benefit_amount?: number | null
+          min_parents_age?: number | null
+          surv_pension_percent?: number | null
+          surv_percent?: number | null
+          surv_type?: string
+          years_married?: number | null
+        }
+        Relationships: []
+      }
+      tb_survivor_type: {
+        Row: {
+          description: string | null
+          surv_type: string
+        }
+        Insert: {
+          description?: string | null
+          surv_type: string
+        }
+        Update: {
+          description?: string | null
+          surv_type?: string
+        }
+        Relationships: []
+      }
+      tb_ui_eligibility: {
+        Row: {
+          code: number
+          question: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          code: number
+          question?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          code?: number
+          question?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      tb_unemploy: {
+        Row: {
+          benefit_duration: number | null
+          benefit_extension_max: number | null
+          benefit_type: string
+          claimant_period: number | null
+          effective_end_date: string
+          effective_start_date: string
+          mandatory_contrib_weeks: number | null
+          max_benefit_pct: number | null
+          max_retroactive_weeks: number | null
+          min_contrib_weeks: number | null
+          num_weeks_per_claim: number | null
+          pilot_period: number | null
+          subset_of_mandatory_contrib: number | null
+          waiting_period: number | null
+        }
+        Insert: {
+          benefit_duration?: number | null
+          benefit_extension_max?: number | null
+          benefit_type: string
+          claimant_period?: number | null
+          effective_end_date: string
+          effective_start_date: string
+          mandatory_contrib_weeks?: number | null
+          max_benefit_pct?: number | null
+          max_retroactive_weeks?: number | null
+          min_contrib_weeks?: number | null
+          num_weeks_per_claim?: number | null
+          pilot_period?: number | null
+          subset_of_mandatory_contrib?: number | null
+          waiting_period?: number | null
+        }
+        Update: {
+          benefit_duration?: number | null
+          benefit_extension_max?: number | null
+          benefit_type?: string
+          claimant_period?: number | null
+          effective_end_date?: string
+          effective_start_date?: string
+          mandatory_contrib_weeks?: number | null
+          max_benefit_pct?: number | null
+          max_retroactive_weeks?: number | null
+          min_contrib_weeks?: number | null
+          num_weeks_per_claim?: number | null
+          pilot_period?: number | null
+          subset_of_mandatory_contrib?: number | null
+          waiting_period?: number | null
         }
         Relationships: []
       }
@@ -25578,6 +34443,18 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_version: {
+        Row: {
+          version_id: string
+        }
+        Insert: {
+          version_id: string
+        }
+        Update: {
+          version_id?: string
+        }
+        Relationships: []
+      }
       tb_villages: {
         Row: {
           code: string
@@ -25593,6 +34470,654 @@ export type Database = {
           code?: string
           description?: string | null
           postal_code?: string | null
+        }
+        Relationships: []
+      }
+      tb_wage_contrib_rate: {
+        Row: {
+          additional_levy: number | null
+          bonus_ceiling: number | null
+          bonus_levy: number | null
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number | null
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Insert: {
+          additional_levy?: number | null
+          bonus_ceiling?: number | null
+          bonus_levy?: number | null
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings?: number | null
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Update: {
+          additional_levy?: number | null
+          bonus_ceiling?: number | null
+          bonus_levy?: number | null
+          effend?: string
+          effstart?: string
+          emp_levy_percent?: number
+          emp_pe_percent?: number
+          ip_levy_percent?: number
+          ip_pe_percent?: number
+          max_earnings?: number | null
+          max_wage?: number
+          min_wage?: number
+          pay_period?: string
+        }
+        Relationships: []
+      }
+      tb_wage_contrib_rate_new: {
+        Row: {
+          additional_levy: number
+          bonus_ceiling: number
+          bonus_levy: number
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Insert: {
+          additional_levy: number
+          bonus_ceiling: number
+          bonus_levy: number
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Update: {
+          additional_levy?: number
+          bonus_ceiling?: number
+          bonus_levy?: number
+          effend?: string
+          effstart?: string
+          emp_levy_percent?: number
+          emp_pe_percent?: number
+          ip_levy_percent?: number
+          ip_pe_percent?: number
+          max_earnings?: number
+          max_wage?: number
+          min_wage?: number
+          pay_period?: string
+        }
+        Relationships: []
+      }
+      tb_work: {
+        Row: {
+          work_code: string
+          work_description: string | null
+        }
+        Insert: {
+          work_code: string
+          work_description?: string | null
+        }
+        Update: {
+          work_code?: string
+          work_description?: string | null
+        }
+        Relationships: []
+      }
+      tb_work_search_activity: {
+        Row: {
+          code: number
+          description: string | null
+        }
+        Insert: {
+          code: number
+          description?: string | null
+        }
+        Update: {
+          code?: number
+          description?: string | null
+        }
+        Relationships: []
+      }
+      tb_worklog_question: {
+        Row: {
+          code: string
+          question: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          code: string
+          question?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          code?: string
+          question?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      tmp_cl_cheques: {
+        Row: {
+          batch_number: string | null
+          batch_sequence_number: number | null
+          batch_status: string | null
+          cheque_date: string | null
+          cheque_number: string
+          cheque_status: string | null
+          cheque_type: string | null
+          claim_number: string
+          claim_seq: number
+          date_cashed: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_of_issue: string | null
+          date_period_end: string | null
+          date_period_start: string | null
+          date_status_changed: string | null
+          date_verified: string | null
+          entered_by: string | null
+          modified_by: string | null
+          payment_amount: number | null
+          postal_reg_num: number | null
+          print_batch_number: string | null
+          remarks: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_number: string
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number: string
+          claim_seq: number
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          batch_sequence_number?: number | null
+          batch_status?: string | null
+          cheque_date?: string | null
+          cheque_number?: string
+          cheque_status?: string | null
+          cheque_type?: string | null
+          claim_number?: string
+          claim_seq?: number
+          date_cashed?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_of_issue?: string | null
+          date_period_end?: string | null
+          date_period_start?: string | null
+          date_status_changed?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_amount?: number | null
+          postal_reg_num?: number | null
+          print_batch_number?: string | null
+          remarks?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      tmp_cn_batch: {
+        Row: {
+          balance_forward: number | null
+          balance_status: string | null
+          batch_number: string
+          batch_status: string | null
+          date_entered: string | null
+          date_posted: string | null
+          date_verified: string | null
+          entered_by: string | null
+          office_code: string | null
+          offset_amount: number | null
+          posted_by: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_number: string
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          balance_forward?: number | null
+          balance_status?: string | null
+          batch_number?: string
+          batch_status?: string | null
+          date_entered?: string | null
+          date_posted?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          office_code?: string | null
+          offset_amount?: number | null
+          posted_by?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      tmp_cn_payment: {
+        Row: {
+          bank_code: string | null
+          bank_lodgement_code: string | null
+          cheque_date: string | null
+          credit_card_code: string | null
+          expiration_date: string | null
+          fund_code: string
+          mop_account_number: string | null
+          mop_code: string
+          mop_notes1: string | null
+          mop_number: string | null
+          mop_transit_number: string | null
+          payment_amount: number | null
+          payment_code: string
+          payment_date: string | null
+          payment_id: number
+          payment_sequence_no: number
+          period: string | null
+        }
+        Insert: {
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code: string
+          mop_account_number?: string | null
+          mop_code: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code: string
+          payment_date?: string | null
+          payment_id: number
+          payment_sequence_no: number
+          period?: string | null
+        }
+        Update: {
+          bank_code?: string | null
+          bank_lodgement_code?: string | null
+          cheque_date?: string | null
+          credit_card_code?: string | null
+          expiration_date?: string | null
+          fund_code?: string
+          mop_account_number?: string | null
+          mop_code?: string
+          mop_notes1?: string | null
+          mop_number?: string | null
+          mop_transit_number?: string | null
+          payment_amount?: number | null
+          payment_code?: string
+          payment_date?: string | null
+          payment_id?: number
+          payment_sequence_no?: number
+          period?: string | null
+        }
+        Relationships: []
+      }
+      tmp_cn_payment_header: {
+        Row: {
+          batch_number: string
+          date_received: string | null
+          payer_id: string
+          payer_type: string | null
+          payment_id: number
+          remarks: string | null
+        }
+        Insert: {
+          batch_number: string
+          date_received?: string | null
+          payer_id: string
+          payer_type?: string | null
+          payment_id: number
+          remarks?: string | null
+        }
+        Update: {
+          batch_number?: string
+          date_received?: string | null
+          payer_id?: string
+          payer_type?: string | null
+          payment_id?: number
+          remarks?: string | null
+        }
+        Relationships: []
+      }
+      tmp_cn_period_summary: {
+        Row: {
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          summary_period: string
+          total_payments: number | null
+        }
+        Insert: {
+          fund_code: string
+          payer_id: string
+          payer_type: string
+          summary_period: string
+          total_payments?: number | null
+        }
+        Update: {
+          fund_code?: string
+          payer_id?: string
+          payer_type?: string
+          summary_period?: string
+          total_payments?: number | null
+        }
+        Relationships: []
+      }
+      tmp_er_master: {
+        Row: {
+          acquired_code: string | null
+          activity_type: string | null
+          application_date: string | null
+          arrears: string | null
+          computer_payroll: string | null
+          date_incorporated: string | null
+          date_modified: string | null
+          date_of_acquisition: string | null
+          date_of_closure: string | null
+          date_of_entry: string | null
+          date_of_issue: string | null
+          date_verified: string | null
+          date_wages_first_paid: string | null
+          disk_tape: string | null
+          entered_by: string | null
+          estim_arrears_lv: number | null
+          estim_arrears_pe: number | null
+          estim_arrears_ss: number | null
+          estim_wages_lv: number | null
+          estim_wages_pe: number | null
+          estim_wages_ss: number | null
+          exp_mthly_income: number | null
+          fax: string | null
+          females_employed: number | null
+          hq_addr1: string | null
+          hq_addr2: string | null
+          industrial_code: string | null
+          inspector_code: string | null
+          legal_action: string | null
+          maddr1: string | null
+          maddr2: string | null
+          make_model: string | null
+          males_employed: number | null
+          modified_by: string | null
+          name: string
+          office_code: string | null
+          ownership_code: string | null
+          parent_regno: string | null
+          phone: string | null
+          prev_owner_addr1: string | null
+          prev_owner_addr2: string | null
+          previous_owner: string | null
+          re_registration_date: string | null
+          registration_date: string | null
+          regno: string
+          sector_code: string | null
+          status: string | null
+          trade_name: string | null
+          verified_by: string | null
+          village_code: string | null
+        }
+        Insert: {
+          acquired_code?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          modified_by?: string | null
+          name: string
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          regno: string
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          acquired_code?: string | null
+          activity_type?: string | null
+          application_date?: string | null
+          arrears?: string | null
+          computer_payroll?: string | null
+          date_incorporated?: string | null
+          date_modified?: string | null
+          date_of_acquisition?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_issue?: string | null
+          date_verified?: string | null
+          date_wages_first_paid?: string | null
+          disk_tape?: string | null
+          entered_by?: string | null
+          estim_arrears_lv?: number | null
+          estim_arrears_pe?: number | null
+          estim_arrears_ss?: number | null
+          estim_wages_lv?: number | null
+          estim_wages_pe?: number | null
+          estim_wages_ss?: number | null
+          exp_mthly_income?: number | null
+          fax?: string | null
+          females_employed?: number | null
+          hq_addr1?: string | null
+          hq_addr2?: string | null
+          industrial_code?: string | null
+          inspector_code?: string | null
+          legal_action?: string | null
+          maddr1?: string | null
+          maddr2?: string | null
+          make_model?: string | null
+          males_employed?: number | null
+          modified_by?: string | null
+          name?: string
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_regno?: string | null
+          phone?: string | null
+          prev_owner_addr1?: string | null
+          prev_owner_addr2?: string | null
+          previous_owner?: string | null
+          re_registration_date?: string | null
+          registration_date?: string | null
+          regno?: string
+          sector_code?: string | null
+          status?: string | null
+          trade_name?: string | null
+          verified_by?: string | null
+          village_code?: string | null
+        }
+        Relationships: []
+      }
+      tmp_er_master_period: {
+        Row: {
+          period: string
+          regno: string
+        }
+        Insert: {
+          period: string
+          regno: string
+        }
+        Update: {
+          period?: string
+          regno?: string
+        }
+        Relationships: []
+      }
+      tmp_er_suit: {
+        Row: {
+          awarded_amount: number | null
+          awarded_cost: number | null
+          date_modified: string | null
+          date_of_entry: string | null
+          date_of_filing: string | null
+          date_of_hearing: string | null
+          date_pay_by: string | null
+          date_verified: string | null
+          entered_by: string | null
+          initial_suit_no: string | null
+          initial_suit_year: string | null
+          jds_no: string | null
+          jds_year: string | null
+          modified_by: string | null
+          outcome_code: string | null
+          regno: string
+          remarks: string | null
+          scheme_code: string | null
+          suit_amount: number | null
+          suit_f_cont_month: string | null
+          suit_f_cont_year: string | null
+          suit_no: string
+          suit_status: string | null
+          suit_t_cont_month: string | null
+          suit_t_cont_year: string | null
+          suit_type: string
+          suit_year: string
+          verified_by: string | null
+        }
+        Insert: {
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          outcome_code?: string | null
+          regno: string
+          remarks?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_f_cont_month?: string | null
+          suit_f_cont_year?: string | null
+          suit_no: string
+          suit_status?: string | null
+          suit_t_cont_month?: string | null
+          suit_t_cont_year?: string | null
+          suit_type: string
+          suit_year: string
+          verified_by?: string | null
+        }
+        Update: {
+          awarded_amount?: number | null
+          awarded_cost?: number | null
+          date_modified?: string | null
+          date_of_entry?: string | null
+          date_of_filing?: string | null
+          date_of_hearing?: string | null
+          date_pay_by?: string | null
+          date_verified?: string | null
+          entered_by?: string | null
+          initial_suit_no?: string | null
+          initial_suit_year?: string | null
+          jds_no?: string | null
+          jds_year?: string | null
+          modified_by?: string | null
+          outcome_code?: string | null
+          regno?: string
+          remarks?: string | null
+          scheme_code?: string | null
+          suit_amount?: number | null
+          suit_f_cont_month?: string | null
+          suit_f_cont_year?: string | null
+          suit_no?: string
+          suit_status?: string | null
+          suit_t_cont_month?: string | null
+          suit_t_cont_year?: string | null
+          suit_type?: string
+          suit_year?: string
+          verified_by?: string | null
         }
         Relationships: []
       }
@@ -25666,6 +35191,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tmp_ip_employer: {
+        Row: {
+          regno: string
+          ssn: string
+        }
+        Insert: {
+          regno: string
+          ssn: string
+        }
+        Update: {
+          regno?: string
+          ssn?: string
+        }
+        Relationships: []
       }
       tmp_ip_master: {
         Row: {
@@ -25857,6 +35397,396 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tmp_ip_npf: {
+        Row: {
+          account_status: string | null
+          balance_78: number | null
+          balance_87: number | null
+          cheque_amount: number | null
+          cheque_number: string | null
+          cheque_status: string | null
+          claim_number: string | null
+          date_of_claim: string | null
+          date_of_closure: string | null
+          date_of_entry: string | null
+          date_of_modification: string | null
+          date_of_payment: string | null
+          date_of_scheme_entry: string | null
+          date_of_verification: string | null
+          entered_by: string | null
+          modified_by: string | null
+          payment_type: string | null
+          ssn: string
+          verified_by: string | null
+          verify_birth_code: string | null
+          verify_name_code: string | null
+          verify_status: string | null
+        }
+        Insert: {
+          account_status?: string | null
+          balance_78?: number | null
+          balance_87?: number | null
+          cheque_amount?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          claim_number?: string | null
+          date_of_claim?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_modification?: string | null
+          date_of_payment?: string | null
+          date_of_scheme_entry?: string | null
+          date_of_verification?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_type?: string | null
+          ssn: string
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_name_code?: string | null
+          verify_status?: string | null
+        }
+        Update: {
+          account_status?: string | null
+          balance_78?: number | null
+          balance_87?: number | null
+          cheque_amount?: number | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          claim_number?: string | null
+          date_of_claim?: string | null
+          date_of_closure?: string | null
+          date_of_entry?: string | null
+          date_of_modification?: string | null
+          date_of_payment?: string | null
+          date_of_scheme_entry?: string | null
+          date_of_verification?: string | null
+          entered_by?: string | null
+          modified_by?: string | null
+          payment_type?: string | null
+          ssn?: string
+          verified_by?: string | null
+          verify_birth_code?: string | null
+          verify_name_code?: string | null
+          verify_status?: string | null
+        }
+        Relationships: []
+      }
+      tmp_ip_verify: {
+        Row: {
+          cert_date: string | null
+          cert_id: string | null
+          code: string
+          ssn: string
+          tran_aft: number | null
+          tran_bef: number | null
+          verify_type_code: string
+          verify_type_description: string | null
+          verify_type_number: string | null
+        }
+        Insert: {
+          cert_date?: string | null
+          cert_id?: string | null
+          code: string
+          ssn: string
+          tran_aft?: number | null
+          tran_bef?: number | null
+          verify_type_code: string
+          verify_type_description?: string | null
+          verify_type_number?: string | null
+        }
+        Update: {
+          cert_date?: string | null
+          cert_id?: string | null
+          code?: string
+          ssn?: string
+          tran_aft?: number | null
+          tran_bef?: number | null
+          verify_type_code?: string
+          verify_type_description?: string | null
+          verify_type_number?: string | null
+        }
+        Relationships: []
+      }
+      tmp_ip_wages_ann_sum: {
+        Row: {
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          ssn: string
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          ssn: string
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          ssn?: string
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      tmp_ip_wages_sum: {
+        Row: {
+          annual_er_ei_amt: number | null
+          annual_er_levy_amt: number | null
+          annual_er_ss_amt: number | null
+          annual_ip_levy_amt: number | null
+          annual_ip_pe_amt: number | null
+          annual_ip_ss_amt: number | null
+          annual_wages_credit: number | null
+          annual_wages_paid: number | null
+          regno: string
+          ssn: string
+          weeks_credited: number | null
+          weeks_paid: number | null
+          year: string
+        }
+        Insert: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          regno: string
+          ssn: string
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year: string
+        }
+        Update: {
+          annual_er_ei_amt?: number | null
+          annual_er_levy_amt?: number | null
+          annual_er_ss_amt?: number | null
+          annual_ip_levy_amt?: number | null
+          annual_ip_pe_amt?: number | null
+          annual_ip_ss_amt?: number | null
+          annual_wages_credit?: number | null
+          annual_wages_paid?: number | null
+          regno?: string
+          ssn?: string
+          weeks_credited?: number | null
+          weeks_paid?: number | null
+          year?: string
+        }
+        Relationships: []
+      }
+      tmp_tb_gb_contrib_rate: {
+        Row: {
+          contrib_wage_ceiling: number | null
+          effend: string
+          effstart: string
+          levy_penalty_percent: number | null
+          prev_month_levy_penalty: number | null
+          ss_penalty_percent: number | null
+        }
+        Insert: {
+          contrib_wage_ceiling?: number | null
+          effend: string
+          effstart: string
+          levy_penalty_percent?: number | null
+          prev_month_levy_penalty?: number | null
+          ss_penalty_percent?: number | null
+        }
+        Update: {
+          contrib_wage_ceiling?: number | null
+          effend?: string
+          effstart?: string
+          levy_penalty_percent?: number | null
+          prev_month_levy_penalty?: number | null
+          ss_penalty_percent?: number | null
+        }
+        Relationships: []
+      }
+      tmp_tb_wage_contrib_rate: {
+        Row: {
+          additional_levy: number | null
+          bonus_ceiling: number | null
+          bonus_levy: number | null
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number | null
+          max_wage: number
+          min_wage: number
+        }
+        Insert: {
+          additional_levy?: number | null
+          bonus_ceiling?: number | null
+          bonus_levy?: number | null
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings?: number | null
+          max_wage: number
+          min_wage: number
+        }
+        Update: {
+          additional_levy?: number | null
+          bonus_ceiling?: number | null
+          bonus_levy?: number | null
+          effend?: string
+          effstart?: string
+          emp_levy_percent?: number
+          emp_pe_percent?: number
+          ip_levy_percent?: number
+          ip_pe_percent?: number
+          max_earnings?: number | null
+          max_wage?: number
+          min_wage?: number
+        }
+        Relationships: []
+      }
+      tp_wages_all: {
+        Row: {
+          er_ei_amt: number
+          er_levy_amt: number
+          er_ss_amt: number
+          ip_levy_amt: number
+          ip_pe_amt: number
+          ip_ss_amt: number
+          paid_code1: number
+          paid_code2: number
+          paid_code3: number
+          paid_code4: number
+          paid_code5: number
+          pay_period: string
+          period: string
+          ssn: string
+          wages_paid1: number
+          wages_paid2: number
+          wages_paid3: number
+          wages_paid4: number
+          wages_paid5: number
+          wages_paid6: number
+        }
+        Insert: {
+          er_ei_amt: number
+          er_levy_amt: number
+          er_ss_amt: number
+          ip_levy_amt: number
+          ip_pe_amt: number
+          ip_ss_amt: number
+          paid_code1: number
+          paid_code2: number
+          paid_code3: number
+          paid_code4: number
+          paid_code5: number
+          pay_period: string
+          period: string
+          ssn: string
+          wages_paid1: number
+          wages_paid2: number
+          wages_paid3: number
+          wages_paid4: number
+          wages_paid5: number
+          wages_paid6: number
+        }
+        Update: {
+          er_ei_amt?: number
+          er_levy_amt?: number
+          er_ss_amt?: number
+          ip_levy_amt?: number
+          ip_pe_amt?: number
+          ip_ss_amt?: number
+          paid_code1?: number
+          paid_code2?: number
+          paid_code3?: number
+          paid_code4?: number
+          paid_code5?: number
+          pay_period?: string
+          period?: string
+          ssn?: string
+          wages_paid1?: number
+          wages_paid2?: number
+          wages_paid3?: number
+          wages_paid4?: number
+          wages_paid5?: number
+          wages_paid6?: number
+        }
+        Relationships: []
+      }
+      tp_wages_credited: {
+        Row: {
+          paid_code1: number
+          paid_code2: number
+          paid_code3: number
+          paid_code4: number
+          paid_code5: number
+          period: string
+          ssn: string
+          wages_credited1: number
+          wages_credited2: number
+          wages_credited3: number
+          wages_credited4: number
+          wages_credited5: number
+        }
+        Insert: {
+          paid_code1: number
+          paid_code2: number
+          paid_code3: number
+          paid_code4: number
+          paid_code5: number
+          period: string
+          ssn: string
+          wages_credited1: number
+          wages_credited2: number
+          wages_credited3: number
+          wages_credited4: number
+          wages_credited5: number
+        }
+        Update: {
+          paid_code1?: number
+          paid_code2?: number
+          paid_code3?: number
+          paid_code4?: number
+          paid_code5?: number
+          period?: string
+          ssn?: string
+          wages_credited1?: number
+          wages_credited2?: number
+          wages_credited3?: number
+          wages_credited4?: number
+          wages_credited5?: number
+        }
+        Relationships: []
       }
       unauthorized_access_logs: {
         Row: {
@@ -26142,6 +36072,69 @@ export type Database = {
           theme_key?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      Wage_contrib: {
+        Row: {
+          additional_levy: number
+          bonus_ceiling: number
+          bonus_levy: number
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Insert: {
+          additional_levy: number
+          bonus_ceiling: number
+          bonus_levy: number
+          effend: string
+          effstart: string
+          emp_levy_percent: number
+          emp_pe_percent: number
+          ip_levy_percent: number
+          ip_pe_percent: number
+          max_earnings: number
+          max_wage: number
+          min_wage: number
+          pay_period: string
+        }
+        Update: {
+          additional_levy?: number
+          bonus_ceiling?: number
+          bonus_levy?: number
+          effend?: string
+          effstart?: string
+          emp_levy_percent?: number
+          emp_pe_percent?: number
+          ip_levy_percent?: number
+          ip_pe_percent?: number
+          max_earnings?: number
+          max_wage?: number
+          min_wage?: number
+          pay_period?: string
+        }
+        Relationships: []
+      }
+      Who_Run_Update: {
+        Row: {
+          Name: string
+          RunDateTime: string
+        }
+        Insert: {
+          Name: string
+          RunDateTime: string
+        }
+        Update: {
+          Name?: string
+          RunDateTime?: string
         }
         Relationships: []
       }
