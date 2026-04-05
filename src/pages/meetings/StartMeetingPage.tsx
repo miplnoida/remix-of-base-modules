@@ -187,6 +187,15 @@ export default function StartMeetingPage() {
       return;
     }
 
+    // Block employer conversion if preflight errors exist
+    if (isEmployerMeeting && employerPreflightErrors.length > 0) {
+      toast.error(
+        `Cannot approve: ${employerPreflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
     try {
       // ── For IP-Registration meetings: run atomic conversion FIRST ──────────
       if (meetingType === 'IP-Registration' && applicationData) {
@@ -227,6 +236,26 @@ export default function StartMeetingPage() {
             setWorkflowEligibility(eligibility);
           }
         }
+      }
+
+      // ── For Employer-Registration meetings: run employer conversion ────────
+      if (meetingType === 'Employer-Registration' && applicationData) {
+        const dataForConversion = hasChanges
+          ? { ...applicationData, ...editedData }
+          : applicationData;
+
+        const result = await convertToEmployer({
+          applicationData: dataForConversion,
+          userId: user?.id || '',
+          userCode: userCode || '',
+          applicationReference,
+        });
+
+        if (!result.success) {
+          return;
+        }
+
+        toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
       // ── Close the meeting as approved ──────────────────────────────────────
