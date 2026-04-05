@@ -93,7 +93,7 @@ function matchRoutePattern(path: string, pattern: string): boolean {
 export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading, roles, profile } = useSupabaseAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading, roles, profile, isAuthReady, rolesStatus } = useSupabaseAuth();
   const queryClient = useQueryClient();
   const [isCheckingRoute, setIsCheckingRoute] = useState(false);
   const [lastDeniedRoute, setLastDeniedRoute] = useState<string | null>(null);
@@ -135,8 +135,9 @@ export const SecurityPolicyProvider: React.FC<{ children: React.ReactNode }> = (
   });
 
   // Determine if security context is ready to evaluate routes
-  // Must wait for: auth loaded, route rules loaded, and roles populated (if authenticated)
-  const isSecurityReady = !authLoading && !rulesLoading && (!isAuthenticated || roles.length > 0 || !user);
+  // Uses explicit auth readiness and role-load completion instead of roles.length > 0
+  // This prevents "no roles" or "role fetch failed" from being treated as "still loading forever"
+  const isSecurityReady = isAuthReady && !rulesLoading && (!isAuthenticated || rolesStatus !== 'pending');
 
   // 3. Route change enforcement
   const checkRouteAccess = useCallback(async (path: string) => {

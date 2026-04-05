@@ -349,7 +349,7 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 }
 
 export function useDynamicNavigation() {
-  const { user, isAdmin } = useSupabaseAuth();
+  const { user, isAdmin, isAuthReady, isAuthenticated, authBootstrapVersion } = useSupabaseAuth();
 
   const {
     data: menuItems = [],
@@ -358,7 +358,7 @@ export function useDynamicNavigation() {
     error,
     refetch
   } = useQuery({
-    queryKey: ['dynamic-navigation', user?.id],
+    queryKey: ['dynamic-navigation', user?.id, authBootstrapVersion],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -379,7 +379,7 @@ export function useDynamicNavigation() {
       if (error) {
         console.error('Failed to fetch accessible modules:', error);
         
-        // Fire-and-forget logging — never block navigation loading
+        // Fire-and-forget logging with bootstrap diagnostics
         logSystemError({
           api_name: 'get_user_accessible_modules',
           module: 'Navigation',
@@ -387,7 +387,12 @@ export function useDynamicNavigation() {
           error_message: error.message,
           stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
           severity: 'error',
-          payload_json: { user_id: user.id, error_code: error.code },
+          payload_json: { 
+            user_id: user.id, 
+            error_code: error.code,
+            auth_ready: isAuthReady,
+            bootstrap_version: authBootstrapVersion,
+          },
         }, user.id).catch(() => {});
 
         logTechnical({
@@ -396,7 +401,7 @@ export function useDynamicNavigation() {
           execution_time_ms: executionTime,
           status: 'failed',
           severity: 'error',
-          request_payload: { user_id: user.id },
+          request_payload: { user_id: user.id, auth_ready: isAuthReady, bootstrap_version: authBootstrapVersion },
           response_payload: { error: error.message, code: error.code },
         }, user.id).catch(() => {});
 
@@ -410,11 +415,13 @@ export function useDynamicNavigation() {
         execution_time_ms: executionTime,
         status: 'success',
         severity: 'info',
+        request_payload: { user_id: user.id, module_count: ((data as ModuleRow[]) || []).length },
       }, user.id).catch(() => {});
 
       return groupInternalAuditNavigation(buildMenuTree((data as ModuleRow[]) || []));
     },
-    enabled: !!user?.id,
+    // Only fire when auth bootstrap is truly complete and user is authenticated
+    enabled: isAuthReady && isAuthenticated && !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 2, // Limit retries to avoid long waits
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
@@ -436,7 +443,7 @@ export function useDynamicNavigation() {
 
 // Hook to check if user can access a specific module
 export function useCanAccessModule(moduleName: string) {
-  const { user, isAdmin } = useSupabaseAuth();
+  const { user, isAdmin, isAuthReady, isAuthenticated } = useSupabaseAuth();
 
   const { data: canAccess = false, isLoading } = useQuery({
     queryKey: ['can-access-module', user?.id, moduleName],
@@ -481,7 +488,7 @@ export function useCanAccessModule(moduleName: string) {
 
       return (data as boolean) ?? false;
     },
-    enabled: !!user?.id && !!moduleName,
+    enabled: isAuthReady && isAuthenticated && !!user?.id && !!moduleName,
     staleTime: 5 * 60 * 1000,
   });
 
