@@ -457,8 +457,8 @@ export function useCanAccessModule(moduleName: string) {
       if (error) {
         console.error('Failed to check module access:', error);
         
-        // Log the API error
-        await logSystemError({
+        // Fire-and-forget logging
+        logSystemError({
           api_name: 'can_access_module',
           module: 'Authorization',
           error_type: error.code || 'API_ERROR',
@@ -466,15 +466,15 @@ export function useCanAccessModule(moduleName: string) {
           stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
           severity: 'error',
           payload_json: { user_id: user.id, module_name: moduleName, error_code: error.code },
-        }, user.id);
+        }, user.id).catch(() => {});
 
-        await logTechnical({
+        logTechnical({
           api_name: 'can_access_module',
           module: 'Authorization',
           execution_time_ms: executionTime,
           status: 'failed',
           severity: 'error',
-        }, user.id);
+        }, user.id).catch(() => {});
 
         return false;
       }
