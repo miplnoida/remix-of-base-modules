@@ -52,6 +52,7 @@ import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHand
 import { EmployerApplicationEditForm } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
+import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
 import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
 import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
@@ -114,11 +115,32 @@ export default function StartMeetingPage() {
   const applicationReference = meetingData?.meeting?.application_reference;
   const meetingType = meetingData?.meeting?.meeting_type;
   
-  // Fetch application data based on meeting type
-  const { data: applicationData, isLoading: appLoading, refetch: refetchApplication, isFetching: appFetching } = useExternalApplicationDetail(applicationReference);
+  // Determine meeting type early for conditional hook enabling
+  const isEmployerMeeting = meetingType === 'Employer-Registration';
+  const isIPMeeting = meetingType === 'IP-Registration';
+
+  // Fetch application data based on meeting type — only one hook is enabled at a time
+  const {
+    data: ipApplicationData,
+    isLoading: ipAppLoading,
+    refetch: refetchIPApplication,
+    isFetching: ipAppFetching,
+  } = useExternalApplicationDetail(!isEmployerMeeting ? applicationReference : undefined);
+
+  const {
+    data: employerApplicationData,
+    isLoading: employerAppLoading,
+    refetch: refetchEmployerApplication,
+    isFetching: employerAppFetching,
+  } = useEmployerApplicationDetail(isEmployerMeeting ? applicationReference : undefined);
+
+  // Unified references
+  const applicationData = isEmployerMeeting ? employerApplicationData : ipApplicationData;
+  const appLoading = isEmployerMeeting ? employerAppLoading : ipAppLoading;
+  const appFetching = isEmployerMeeting ? employerAppFetching : ipAppFetching;
+  const refetchApplication = isEmployerMeeting ? refetchEmployerApplication : refetchIPApplication;
 
   // Validate application for conversion (only for IP-Registration meetings)
-  const isIPMeeting = meetingType === 'IP-Registration';
   const { data: validationResult, isLoading: validationLoading } = useValidateApplicationForConversion(
     isIPMeeting ? applicationReference : undefined,
     isIPMeeting ? applicationData : undefined
