@@ -105,6 +105,7 @@ export default function StartMeetingPage() {
   const approveMutation = useCloseMeetingWithApproval();
   const rejectMutation = useCloseMeetingWithRejection();
   const { convert: convertToIP, isConverting } = useConvertToIPRegistration();
+  const { convert: convertToEmployer, isConverting: isConvertingEmployer } = useConvertToEmployerRegistration();
   const { user } = useSupabaseAuth();
   const { userCode } = useUserCode();
 
