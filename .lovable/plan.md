@@ -1,180 +1,136 @@
 
-## Plan: Permanent Fix for Intermittent Left Navigation Menu Failures
 
-### Findings from the current code
-Page load currently triggers these backend interactions before/alongside sidebar load:
+## Plan: Editable Employer Application Details in Meeting Workflow
 
+### Problem
+
+The current `EmployerEditForm` in `StartMeetingPage.tsx` (lines 1568-1643) is a minimal placeholder with only 4 tabs, ~12 generic fields (`businessName`, `tradeName`, `taxId`, etc.) that do **not** map to the actual `EmployerApplicationDetail` data structure returned by the external API. Meanwhile, the read-only view at `/online-applications/employer/:id` (`EmployerApplicationDetailPage.tsx`) has 8 fully-populated tabs with ~60+ fields, code-resolved lookups, owners, locations, documents, and notes.
+
+There is also no employer conversion RPC — unlike IP Registration which has `convert_application_to_ip`, there is no equivalent `convert_application_to_employer` function.
+
+### What will be built
+
+1. **Full editable employer form** matching all 8 tabs from `EmployerApplicationDetailPage`
+2. **Employer conversion RPC** to atomically create an `er_master` + `er_owner` + `er_locations` + `er_notes` record on approval
+3. **Client-side conversion hook** following the same pattern as `useConvertToIPRegistration`
+4. **Approval flow integration** in `StartMeetingPage` for `Employer-Registration` meetings
+
+---
+
+### Step 1: Create `EmployerApplicationEditForm` component
+
+New file: `src/components/meetings/EmployerApplicationEditForm.tsx`
+
+This will be a comprehensive editable form component with the same 8 tabs as `EmployerApplicationDetailPage`:
+- **Employer Profile** — Previous Owner fields, Acquisition/Incorporated dates, Ownership/Sector selects (using `useERLookups`), Parent Reg No, Office/Industry selects
+- **Basic Details** — Employer Name, Trade Name, Business Email, HQ Address (1/2/country), Mailing Address (1/2), Dates (application, wages first paid), Male/Female employee counts
+- **Contact & Reach** — Contact telephone/fax (with dial codes), Contact Name, Mobile, Email, Country, Village select, Activity Type select, Inspector select
+- **Tech & Finance** — Computer Payroll (Y/N toggle), Make/Model
+- **Owners** — Editable table with Add/Edit/Delete for owners (name, title, phone, email, SSN)
+- **Locations** — Editable table with Add/Edit/Delete for locations (trade name, address, activity type)
+- **Documents** — Read-only document list with View/Download (same as detail page)
+- **Notes** — Read-only display of remarks/notes
+
+All code dropdowns (ownership, sector, office, industry, village, activity, inspector) will use `useERLookups` with `SearchableSelect` pattern for consistency.
+
+The component receives `data` and `onChange` props matching the existing `ApplicationEditForm` interface.
+
+---
+
+### Step 2: Create `convert_application_to_employer` Supabase RPC
+
+New migration creating a PL/pgSQL function that:
+
+1. Generates a temp `regno` via `generate_temp_er_regno()`
+2. Inserts into `er_master` mapping all fields from the online application:
+   - `name` ← employer_name
+   - `trade_name` ← trade_name
+   - `hq_addr1/2` ← hq_address1/2
+   - `maddr1/2` ← mailing_address1/2
+   - `phone` ← contact_telephone
+   - `fax` ← contact_fax
+   - `email` ← email/business_email
+   - `mobile` ← mobile
+   - `ownership_code`, `sector_code`, `office_code`, `industrial_code`, `village_code`, `activity_type`, `inspector_code` ← direct code mappings
+   - `males_employed/females_employed` ← male_count/female_count
+   - `date_wages_first_paid`, `application_date`, `date_incorporated`, `date_of_acquisition`
+   - `previous_owner`, `prev_owner_addr1/2`
+   - `computer_payroll`, `make_model`
+   - `acquired_code` ← is_acquired (Y/N)
+   - `status` = 'P' (Pending)
+   - `entered_by` ← user_code
+   - `date_of_entry` ← now()
+3. Inserts owners into `er_owner` from the owners JSON array
+4. Inserts locations into `er_locations` from the locations JSON array
+5. Inserts notes into `er_notes` from the remarks JSON array
+6. Returns `{ success, regno, message }`
+7. Wraps everything in a transaction — rolls back entirely on failure
+8. Checks for duplicate `application_reference` to prevent double conversion
+
+---
+
+### Step 3: Create `useConvertToEmployerRegistration` hook
+
+New file: `src/hooks/useConvertToEmployerRegistration.ts`
+
+Following the IP conversion pattern:
+- Client-side preflight validation (employer_name required, at least one of phone/email required)
+- Field length truncation/sanitization matching `er_master` column constraints
+- Calls the `convert_application_to_employer` RPC
+- Returns `{ success, regno, message }` result
+- Includes `validateEmployerApplicationForConversion()` export for blocking approval on errors
+
+---
+
+### Step 4: Wire up approval flow in `StartMeetingPage`
+
+Modify `StartMeetingPage.tsx`:
+
+**a)** Replace the current `EmployerEditForm` reference (line 721) with the new `EmployerApplicationEditForm`
+
+**b)** Extend `handleApprove()` to handle `Employer-Registration` meetings:
 ```text
-auth.getSession / onAuthStateChange
-→ profiles
-→ user_roles
-→ system_settings
-→ password_policies
-→ app_lockdown_state
-→ route_security_config
-→ check-ip-access / check_ip_whitelist
-→ get_user_accessible_modules
-→ can_access_module (route checks)
+if (meetingType === 'Employer-Registration' && applicationData) {
+  → merge editedData
+  → call convertToEmployer(...)
+  → if failed, return (block approval)
+  → toast success with regno
+  → close meeting as approved
+  → navigate to /meetings/manage
+}
 ```
 
-The sidebar issue is not just a timeout problem. The current design has a brittle startup contract:
+**c)** Add employer-specific validation blocking on the Accept button (same pattern as IP validation)
 
-1. `useDynamicNavigation` starts as soon as `user?.id` exists, not when auth/session bootstrap is truly ready.
-2. `SupabaseAuthContext` returns `roles: []` on failure, so the app cannot distinguish:
-   - “roles still loading”
-   - “roles query failed”
-   - “user really has no roles”
-3. `SecurityPolicyContext` treats `roles.length > 0` as readiness, which can leave route security in an unresolved state for users with empty/failed role loads.
-4. `DynamicSidebarContent` treats dynamic navigation as all-or-nothing; one RPC failure replaces the whole dynamic sidebar with an error screen.
-5. `get_user_accessible_modules` is a join-heavy RPC that only returns directly permitted modules; it does not explicitly hydrate parent menu groups for permitted children and gives no structured diagnostic signal back to the UI.
-
-Recent fixes improved symptoms (timeouts, retry button, non-blocking logging), but not the root cause: auth readiness, role readiness, and navigation readiness are still not modeled separately.
+**d)** Update the confirmation dialog text for employer meetings
 
 ---
 
-## Production-grade implementation
+### Step 5: Audit trail integration
 
-### 1. Separate auth readiness from role/profile readiness
-Refactor `SupabaseAuthContext` to expose explicit bootstrap state instead of only `isLoading`.
+The `convert_application_to_employer` RPC will:
+- Record `entered_by` with the user_code performing approval
+- The existing database audit trigger (`fn_audit_row_change`) on `er_master` will automatically capture the before/after for all inserts
 
-Add state such as:
-- `isAuthReady` — initial session restoration complete
-- `rolesLoaded` — roles request completed successfully or definitively empty
-- `profileLoaded` — profile request completed
-- `authBootstrapStatus` — `loading | ready | degraded`
-
-This removes the current ambiguity where `roles = []` can mean either failure or legitimate empty access.
-
-Files:
-- `src/contexts/SupabaseAuthContext.tsx`
+For field-level edit tracking during the meeting:
+- Edits are tracked in-memory via the existing `editedData` / `hasChanges` state
+- On approval, the edited data (not original) is used for conversion, preserving original data in the external API
+- The meeting closure (`useCloseMeetingWithApproval`) already stores `applicationData` changes in the meeting record metadata
 
 ---
 
-### 2. Gate sidebar loading on real auth readiness
-Refactor `useDynamicNavigation` so it only calls the Supabase RPC when:
-- auth bootstrap is complete
-- session is present
-- user id is present
-- token context is ready
+### Files to create/modify
 
-Change the query trigger from `enabled: !!user?.id` to something equivalent to:
-- `enabled: isAuthReady && isAuthenticated && !!user?.id`
+| File | Action |
+|------|--------|
+| `src/components/meetings/EmployerApplicationEditForm.tsx` | **Create** — Full 8-tab editable form |
+| `src/hooks/useConvertToEmployerRegistration.ts` | **Create** — Conversion hook + validation |
+| `supabase/migrations/...` | **Create** — `convert_application_to_employer` RPC |
+| `src/pages/meetings/StartMeetingPage.tsx` | **Modify** — Wire new form + employer approval flow |
 
-Also make the query key include a stable auth bootstrap version so a late-ready session automatically re-fetches instead of keeping the first failed result.
+### No impact on existing workflows
 
-Files:
-- `src/hooks/useDynamicNavigation.ts`
-- `src/contexts/SupabaseAuthContext.tsx`
+- The `InsuredPersonEditForm` and `DoctorEditForm` remain untouched
+- The `ApplicationEditForm` router (line 716-733) branches by `meetingType`, so only `Employer-Registration` meetings are affected
+- The `handleApprove` function already branches by `meetingType` — the new employer block is added alongside the existing IP block
 
----
-
-### 3. Harden the backend navigation RPC
-Keep the sidebar on the Supabase RPC layer; do not fall back to direct client table reads.
-
-Update `get_user_accessible_modules` so it:
-- resolves permissions via a clearer CTE/`EXISTS` flow
-- includes required parent menu nodes when a child is accessible
-- returns an empty result, not an exception, for no-role/no-permission cases
-- consistently filters `is_enabled` and `show_in_menu`
-- is safe for slow/partial role states
-
-Also review `can_access_module` so its logic matches the sidebar RPC exactly.
-
-Likely migration work:
-- replace the current join-only RPC with a parent-aware query
-- add/confirm indexes supporting the permission path and menu tree path
-- verify role name lookups are indexed and consistent
-
-Files:
-- new migration in `supabase/migrations/*`
-- existing RPC definitions for `get_user_accessible_modules` and `can_access_module`
-
----
-
-### 4. Make the sidebar resilient instead of all-or-nothing
-Refactor `DynamicSidebarContent` so a failed dynamic RPC does not blank the navigation area.
-
-Behavior:
-- always render the default menu group
-- render last-known-good dynamic menu if available
-- show a compact inline warning for dynamic-menu failure
-- show a proper “No modules assigned” state when the RPC succeeds with zero items
-- keep retry available, but do not require retry for the sidebar to remain usable
-
-Use cached dynamic navigation per user session as a resilience layer, not as the source of truth.
-
-Files:
-- `src/components/sidebar/DynamicSidebarContent.tsx`
-- `src/hooks/useDynamicNavigation.ts`
-
----
-
-### 5. Fix security/provider coupling
-Refactor `SecurityPolicyContext` readiness so it does not depend on `roles.length > 0`.
-
-Use explicit role-load completion instead. This prevents “no roles” or “role fetch failed” from being treated as “still loading forever,” which can create inconsistent startup behavior around protected routes and module access.
-
-Files:
-- `src/contexts/SecurityPolicyContext.tsx`
-- `src/contexts/SupabaseAuthContext.tsx`
-
----
-
-### 6. Add structured diagnostics for navigation bootstrap
-Use existing logging tables, but log the right signals for this specific flow:
-
-For navigation load attempts, capture:
-- auth bootstrap state
-- session present/not present
-- roles loaded / role count
-- user id
-- RPC name
-- duration
-- timeout vs backend error vs empty result
-- whether cached menu was used
-
-This will make future failures diagnosable without relying on vague “Failed to load menu” reports.
-
-Files:
-- `src/hooks/useDynamicNavigation.ts`
-- optionally shared logging helper if needed
-
----
-
-## Expected file changes
-- `src/contexts/SupabaseAuthContext.tsx`
-- `src/hooks/useDynamicNavigation.ts`
-- `src/components/sidebar/DynamicSidebarContent.tsx`
-- `src/contexts/SecurityPolicyContext.tsx`
-- `supabase/migrations/...` for hardened navigation RPC/index updates
-
----
-
-## Verification checklist
-Test after implementation in these scenarios:
-
-1. Fresh login in preview
-2. Existing restored session on hard refresh
-3. Slow network / delayed auth restoration
-4. Expired session then re-login
-5. Token refresh while app is open
-6. Concurrent tab login/logout
-7. User with no assigned dynamic modules
-8. User with child-module access only
-9. Admin user
-10. Simulated RPC failure / timeout
-
-Success criteria:
-- sidebar never stays stuck in skeleton/error-only mode
-- default navigation always remains usable
-- dynamic menu loads automatically when auth becomes ready
-- no hard refresh is required
-- route security and menu visibility stay consistent
-- failures are logged with enough detail to diagnose quickly
-
----
-
-## Technical notes
-- Keep the solution on Supabase endpoints/RPCs; do not bypass with direct client reads from `app_modules`
-- No new RLS work should be introduced
-- Update the project knowledge/test coverage for auth bootstrap + dynamic sidebar behavior so this regression is tracked going forward
