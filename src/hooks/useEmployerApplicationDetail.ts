@@ -145,8 +145,7 @@ export interface EmployerApplicationDetail {
   //activity_type_name: string | null;
   village_code: string | null;
   //village_name: string | null;
-  //inspector_code: string | null;
-  //inspector_name: string | null;
+    inspector_code: string | null;
   
   // Tech & Finance
   computer_payroll: boolean | null;
@@ -361,8 +360,7 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     //activity_type_name: (raw.activity_type_name as string) || null,
     village_code: (raw.village_code as string) || null,
     //village_name: (raw.village_name as string) || null,
-    //inspector_code: (raw.inspector_code as string) || null,
-    //inspector_name: (raw.inspector_name as string) || null,
+    inspector_code: (raw.inspector_code as string) || null,
     
     // Tech & Finance
     computer_payroll: (raw.computer_payroll as boolean) ?? (raw.computerised_payroll as boolean) ?? null,
