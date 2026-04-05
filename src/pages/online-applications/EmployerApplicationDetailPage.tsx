@@ -347,8 +347,8 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={Shield} title="Organization Classification" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailField label="Ownership Type" value={application.ownership_code} />
-                  <DetailField label="Sector" value={application.sector_code} />
+                  <DetailField label="Ownership Type" value={resolved.ownershipDescription} />
+                  <DetailField label="Sector" value={resolved.sectorDescription} />
                 </div>
               </CardContent>
             </Card>
@@ -359,8 +359,8 @@ export default function EmployerApplicationDetailPage() {
                 <SectionHeader icon={Building2} title="Organization Details" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DetailField label="Parent Registration Number" value={application.parent_reg_no} />
-                  <DetailField label="Office" value={application.office_code} />
-                  <DetailField label="Industry" value={application.industry_code} />
+                  <DetailField label="Office" value={resolved.officeDescription} />
+                  <DetailField label="Industry" value={resolved.industryDescription} />
                   <DetailField label="Registration ID" value={application.registration_id} />
                 </div>
               </CardContent>
@@ -450,9 +450,9 @@ export default function EmployerApplicationDetailPage() {
               <CardContent className="p-6">
                 <SectionHeader icon={MapPin} title="Location Information" subtitle="Business location and activity" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <DetailField label="Village" value={application.village_code} />
-                  {/* <DetailField label="Activity Type" value={application.activity_type_name || application.activity_type} /> */}
-                  {/* <DetailField label="Inspector Code" value={application.inspector_name || application.inspector_code} /> */}
+                  <DetailField label="Village" value={resolved.villageDescription} />
+                  <DetailField label="Activity Type" value={resolved.activityTypeDescription} />
+                  <DetailField label="Inspector" value={resolved.inspectorDescription} />
                 </div>
               </CardContent>
             </Card>
