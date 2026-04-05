@@ -112,6 +112,7 @@ export default function EmployerApplicationDetailPage() {
   const navigate = useNavigate();
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
+  const resolved = useEmployerCodeResolver(application);
 
   // Meeting integration
   const applicationRef = application?.registration_id || application?.id || applicationId;
