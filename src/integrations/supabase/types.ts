@@ -37810,6 +37810,48 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_application_to_employer: {
+        Args: {
+          p_acquired_code?: string
+          p_activity_type?: string
+          p_application_date?: string
+          p_application_reference?: string
+          p_computer_payroll?: string
+          p_date_incorporated?: string
+          p_date_of_acquisition?: string
+          p_date_wages_first_paid?: string
+          p_email?: string
+          p_employer_name?: string
+          p_entered_by?: string
+          p_fax?: string
+          p_females_employed?: number
+          p_hq_addr1?: string
+          p_hq_addr2?: string
+          p_industrial_code?: string
+          p_inspector_code?: string
+          p_locations_json?: string
+          p_maddr1?: string
+          p_maddr2?: string
+          p_make_model?: string
+          p_males_employed?: number
+          p_mobile?: string
+          p_notes_json?: string
+          p_office_code?: string
+          p_owners_json?: string
+          p_ownership_code?: string
+          p_parent_regno?: string
+          p_phone?: string
+          p_prev_owner_addr1?: string
+          p_prev_owner_addr2?: string
+          p_previous_owner?: string
+          p_registry_num?: string
+          p_sector_code?: string
+          p_trade_name?: string
+          p_user_id?: string
+          p_village_code?: string
+        }
+        Returns: Json
+      }
       convert_application_to_ip: {
         Args: {
           p_address_line1?: string
