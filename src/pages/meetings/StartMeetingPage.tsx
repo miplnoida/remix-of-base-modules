@@ -49,10 +49,12 @@ import {
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
+import { EmployerApplicationEditForm } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
 import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
+import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
@@ -104,6 +106,7 @@ export default function StartMeetingPage() {
   const approveMutation = useCloseMeetingWithApproval();
   const rejectMutation = useCloseMeetingWithRejection();
   const { convert: convertToIP, isConverting } = useConvertToIPRegistration();
+  const { convert: convertToEmployer, isConverting: isConvertingEmployer } = useConvertToEmployerRegistration();
   const { user } = useSupabaseAuth();
   const { userCode } = useUserCode();
 
@@ -132,6 +135,14 @@ export default function StartMeetingPage() {
     if (!isIPMeeting || !applicationData) return [];
     return validateApplicationForConversion(applicationData as ExternalApplicationDetail);
   }, [isIPMeeting, applicationData]);
+
+  // Client-side preflight errors (for Employer meetings)
+  const isEmployerMeeting = meetingType === 'Employer-Registration';
+  const employerPreflightErrors = React.useMemo(() => {
+    if (!isEmployerMeeting || !applicationData) return [];
+    const dataToValidate = hasChanges ? { ...applicationData, ...editedData } : applicationData;
+    return validateEmployerApplicationForConversion(dataToValidate);
+  }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
 
   // Initialize edited data when application loads
   useEffect(() => {
@@ -177,6 +188,15 @@ export default function StartMeetingPage() {
       return;
     }
 
+    // Block employer conversion if preflight errors exist
+    if (isEmployerMeeting && employerPreflightErrors.length > 0) {
+      toast.error(
+        `Cannot approve: ${employerPreflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
     try {
       // ── For IP-Registration meetings: run atomic conversion FIRST ──────────
       if (meetingType === 'IP-Registration' && applicationData) {
@@ -217,6 +237,26 @@ export default function StartMeetingPage() {
             setWorkflowEligibility(eligibility);
           }
         }
+      }
+
+      // ── For Employer-Registration meetings: run employer conversion ────────
+      if (meetingType === 'Employer-Registration' && applicationData) {
+        const dataForConversion = hasChanges
+          ? { ...applicationData, ...editedData }
+          : applicationData;
+
+        const result = await convertToEmployer({
+          applicationData: dataForConversion,
+          userId: user?.id || '',
+          userCode: userCode || '',
+          applicationReference,
+        });
+
+        if (!result.success) {
+          return;
+        }
+
+        toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
       // ── Close the meeting as approved ──────────────────────────────────────
@@ -718,7 +758,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerEditForm data={data} onChange={onChange} />;
+    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} />;
   }
   
   if (meetingType === 'Doctor-Registration') {
