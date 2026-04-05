@@ -635,7 +635,52 @@ export default function EmployerApplicationDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {application.documents.map((doc, idx) => {
-                      const documentUrl = doc.download_url || doc.url || doc.signed_url;
+                      const handleDocAction = async (action: 'view' | 'download') => {
+                        try {
+                          let url = doc.download_url || doc.url || doc.signed_url;
+
+                          // If we have a file_path in storage, generate a signed URL
+                          if (doc.file_path && !url) {
+                            const { data: signedData, error: signedErr } = await supabase.storage
+                              .from('employer-documents')
+                              .createSignedUrl(doc.file_path, 3600);
+                            if (signedErr) throw signedErr;
+                            url = signedData?.signedUrl;
+                          }
+
+                          if (!url) {
+                            toast.error('Document URL is not available');
+                            return;
+                          }
+
+                          // Log audit
+                          logAuditTrail({
+                            action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
+                            entityType: 'employer-application-document',
+                            entityId: doc.id,
+                            module: 'employer-applications',
+                            metadata: {
+                              file_name: doc.file_name || doc.name,
+                              application_id: application.id,
+                            },
+                          });
+
+                          if (action === 'view') {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          } else {
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = doc.file_name || doc.name || 'document';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }
+                        } catch (err) {
+                          console.error('Document action failed:', err);
+                          toast.error('Failed to access document');
+                        }
+                      };
+
                       return (
                         <TableRow key={doc.id || idx}>
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
@@ -648,20 +693,14 @@ export default function EmployerApplicationDetailPage() {
                           </TableCell>
                           <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                           <TableCell className="text-right">
-                            {documentUrl && (
-                              <div className="flex items-center justify-end gap-1">
-                                <Button variant="ghost" size="icon" asChild>
-                                  <a href={documentUrl} target="_blank" rel="noopener noreferrer" title="View">
-                                    <Eye className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                                <Button variant="ghost" size="icon" asChild>
-                                  <a href={documentUrl} download title="Download">
-                                    <Download className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction('view')} title="View">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction('download')} title="Download">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
