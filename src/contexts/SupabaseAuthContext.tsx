@@ -400,11 +400,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
           const userId = currentSession.user.id;
           // Parallelize profile + roles fetch
-          Promise.all([fetchProfile(userId), fetchRoles(userId)]).then(([profileData, rolesData]) => {
-            setProfile(profileData);
-            setRoles(rolesData);
-            setIsLoading(false);
-          });
+          Promise.all([fetchProfile(userId), fetchRoles(userId)])
+            .then(([profileData, rolesData]) => {
+              setProfile(profileData);
+              setRoles(rolesData);
+              setIsLoading(false);
+            })
+            .catch((err) => {
+              console.error('Failed to load user data after auth change:', err);
+              setIsLoading(false); // Always unblock the UI
+            });
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
@@ -418,6 +423,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // INITIAL load — fetch profile before setting loading false
     const initializeAuth = async () => {
       initializingRef.current = true;
+
+      // Safety timeout — force unblock UI if init hangs for 15s
+      const safetyTimeout = setTimeout(() => {
+        console.warn('Auth initialization timed out after 15 seconds — unblocking UI.');
+        initializingRef.current = false;
+        setIsLoading(false);
+      }, 15_000);
+
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
@@ -439,7 +452,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setProfile(profileData);
           setRoles(rolesData);
         }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
       } finally {
+        clearTimeout(safetyTimeout);
         initializingRef.current = false;
         setIsLoading(false);
       }
