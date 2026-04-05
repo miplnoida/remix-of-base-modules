@@ -80,6 +80,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [roles, setRoles] = useState<string[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
+  const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+  const [authBootstrapVersion, setAuthBootstrapVersion] = useState(0);
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
