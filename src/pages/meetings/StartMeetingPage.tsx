@@ -143,7 +143,7 @@ export default function StartMeetingPage() {
   // Validate application for conversion (only for IP-Registration meetings)
   const { data: validationResult, isLoading: validationLoading } = useValidateApplicationForConversion(
     isIPMeeting ? applicationReference : undefined,
-    isIPMeeting ? applicationData : undefined
+    isIPMeeting ? (applicationData as ExternalApplicationDetail) : undefined
   );
 
   // Build valid relation codes from the same lookups used in the page
@@ -159,7 +159,7 @@ export default function StartMeetingPage() {
   }, [isIPMeeting, applicationData]);
 
   // Client-side preflight errors (for Employer meetings)
-  const isEmployerMeeting = meetingType === 'Employer-Registration';
+  
   const employerPreflightErrors = React.useMemo(() => {
     if (!isEmployerMeeting || !applicationData) return [];
     const dataToValidate = hasChanges ? { ...applicationData, ...editedData } : applicationData;
