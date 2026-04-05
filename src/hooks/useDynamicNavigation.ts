@@ -364,17 +364,23 @@ export function useDynamicNavigation() {
 
       const startTime = performance.now();
       
-      // Call the RPC function using raw SQL to avoid type issues
-      const { data, error } = await supabase
+      // Call the RPC function with a timeout to prevent indefinite hanging
+      const rpcPromise = supabase
         .rpc('get_user_accessible_modules' as any, { _user_id: user.id });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Navigation query timed out after 20s')), 20_000)
+      );
+
+      const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
 
       const executionTime = Math.round(performance.now() - startTime);
 
       if (error) {
         console.error('Failed to fetch accessible modules:', error);
         
-        // Log the API error to system_error_logs
-        await logSystemError({
+        // Fire-and-forget logging — never block navigation loading
+        logSystemError({
           api_name: 'get_user_accessible_modules',
           module: 'Navigation',
           error_type: error.code || 'API_ERROR',
@@ -382,10 +388,9 @@ export function useDynamicNavigation() {
           stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
           severity: 'error',
           payload_json: { user_id: user.id, error_code: error.code },
-        }, user.id);
+        }, user.id).catch(() => {});
 
-        // Also log as technical log with failed status
-        await logTechnical({
+        logTechnical({
           api_name: 'get_user_accessible_modules',
           module: 'Navigation',
           execution_time_ms: executionTime,
@@ -393,24 +398,26 @@ export function useDynamicNavigation() {
           severity: 'error',
           request_payload: { user_id: user.id },
           response_payload: { error: error.message, code: error.code },
-        }, user.id);
+        }, user.id).catch(() => {});
 
         throw error;
       }
 
-      // Log successful API call
-      await logTechnical({
+      // Fire-and-forget successful API call logging
+      logTechnical({
         api_name: 'get_user_accessible_modules',
         module: 'Navigation',
         execution_time_ms: executionTime,
         status: 'success',
         severity: 'info',
-      }, user.id);
+      }, user.id).catch(() => {});
 
       return groupInternalAuditNavigation(buildMenuTree((data as ModuleRow[]) || []));
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2, // Limit retries to avoid long waits
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
     refetchOnWindowFocus: false,
   });
 
@@ -450,8 +457,8 @@ export function useCanAccessModule(moduleName: string) {
       if (error) {
         console.error('Failed to check module access:', error);
         
-        // Log the API error
-        await logSystemError({
+        // Fire-and-forget logging
+        logSystemError({
           api_name: 'can_access_module',
           module: 'Authorization',
           error_type: error.code || 'API_ERROR',
@@ -459,15 +466,15 @@ export function useCanAccessModule(moduleName: string) {
           stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
           severity: 'error',
           payload_json: { user_id: user.id, module_name: moduleName, error_code: error.code },
-        }, user.id);
+        }, user.id).catch(() => {});
 
-        await logTechnical({
+        logTechnical({
           api_name: 'can_access_module',
           module: 'Authorization',
           execution_time_ms: executionTime,
           status: 'failed',
           severity: 'error',
-        }, user.id);
+        }, user.id).catch(() => {});
 
         return false;
       }

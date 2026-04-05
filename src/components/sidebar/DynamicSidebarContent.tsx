@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useDynamicNavigation, MenuItem } from '@/hooks/useDynamicNavigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
@@ -60,9 +61,20 @@ const defaultMenuItems: MenuItem[] = [
 
 export default function DynamicSidebarContent({ collapsed }: DynamicSidebarContentProps) {
   const { menuItems, isLoading, isError, isEmpty, refetch } = useDynamicNavigation();
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
-  // Loading state
-  if (isLoading) {
+  // If loading takes more than 15s, show a timeout fallback instead of infinite skeletons
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadingTimedOut(true), 15_000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Loading state — show skeletons, but with a timeout fallback
+  if (isLoading && !loadingTimedOut) {
     return (
       <div className="px-3 py-4 space-y-3">
         {[...Array(6)].map((_, i) => (
@@ -75,18 +87,21 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
     );
   }
 
-  // Error state
-  if (isError) {
+  // Error state OR loading timed out — show retry
+  if (isError || loadingTimedOut) {
     return (
       <div className="px-4 py-6 text-center">
         <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
         <p className="text-sm text-muted-foreground mb-3">
-          Failed to load menu
+          {loadingTimedOut ? 'Menu is taking too long to load' : 'Failed to load menu'}
         </p>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => refetch()}
+          onClick={() => {
+            setLoadingTimedOut(false);
+            refetch();
+          }}
           className="gap-2"
         >
           <RefreshCw className="h-4 w-4" />
