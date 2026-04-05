@@ -53,6 +53,7 @@ import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithReje
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meetings';
 import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
+import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
