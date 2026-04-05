@@ -35,6 +35,9 @@ const SESSION_CHECK_INTERVAL_MS = 30_000; // Check every 30 seconds
 const IDLE_WARNING_BEFORE_MINUTES = 2; // Warn 2 minutes before idle logout
 const ACTIVITY_THROTTLE_MS = 10_000; // Throttle activity updates to once per 10 seconds
 
+type AuthBootstrapStatus = 'loading' | 'ready' | 'degraded';
+type DataLoadStatus = 'pending' | 'loaded' | 'failed';
+
 interface SupabaseAuthContextType {
   user: User | null;
   profile: UserProfile | null;
@@ -43,6 +46,16 @@ interface SupabaseAuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  /** True once the initial session restoration is complete (regardless of success) */
+  isAuthReady: boolean;
+  /** Status of roles data: pending (still loading), loaded (success/empty), failed */
+  rolesStatus: DataLoadStatus;
+  /** Status of profile data */
+  profileStatus: DataLoadStatus;
+  /** Overall bootstrap status: loading, ready, or degraded (partial failure) */
+  authBootstrapStatus: AuthBootstrapStatus;
+  /** Incremented on each successful bootstrap to trigger dependent re-fetches */
+  authBootstrapVersion: number;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
   hasRole: (role: string) => boolean;
