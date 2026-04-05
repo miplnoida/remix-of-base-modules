@@ -135,6 +135,14 @@ export default function StartMeetingPage() {
     return validateApplicationForConversion(applicationData as ExternalApplicationDetail);
   }, [isIPMeeting, applicationData]);
 
+  // Client-side preflight errors (for Employer meetings)
+  const isEmployerMeeting = meetingType === 'Employer-Registration';
+  const employerPreflightErrors = React.useMemo(() => {
+    if (!isEmployerMeeting || !applicationData) return [];
+    const dataToValidate = hasChanges ? { ...applicationData, ...editedData } : applicationData;
+    return validateEmployerApplicationForConversion(dataToValidate);
+  }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
+
   // Initialize edited data when application loads
   useEffect(() => {
     if (applicationData) {
