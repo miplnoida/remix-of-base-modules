@@ -37,10 +37,13 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
+import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
+import { supabase } from '@/integrations/supabase/client';
+import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 
 // Helper functions
