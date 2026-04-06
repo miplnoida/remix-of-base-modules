@@ -81,7 +81,7 @@ const defaultColumns: Column[] = [
 export default function IPRegistrationList() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  const { user: supabaseUser } = useSupabaseAuth();
+  const { user: supabaseUser, isAuthReady, isAuthenticated } = useSupabaseAuth();
   
   // Use Supabase user if available, otherwise fall back to auth user
   const user = supabaseUser || authUser;
@@ -255,23 +255,26 @@ export default function IPRegistrationList() {
 
   // Fetch data when page, pageSize, tab, or searchText changes
   useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
     fetchRecords(appliedFilters, page, pageSize);
-  }, [page, pageSize, activeTab, appliedFilters, fetchRecords]);
+  }, [page, pageSize, activeTab, appliedFilters, fetchRecords, isAuthReady, isAuthenticated]);
 
   // Fetch tab counts on mount and when data changes
   useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
     fetchCounts();
-  }, [fetchCounts]);
+  }, [fetchCounts, isAuthReady, isAuthenticated]);
 
   // Debounced quick search: reset to page 1 on search text change
   useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
     const timer = setTimeout(() => {
       setPage(1);
       fetchRecords(appliedFilters, 1, pageSize);
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText]);
+  }, [searchText, isAuthReady, isAuthenticated]);
 
   // Handle advanced filter search button click
   const handleSearch = () => {

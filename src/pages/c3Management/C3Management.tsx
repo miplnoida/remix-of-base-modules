@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Plus, Search, RotateCcw, ChevronDown, ChevronUp, Eye, Edit, Trash2, Printer, MoreHorizontal, Download, FileSpreadsheet, ArrowLeft, StickyNote, CheckCircle, BadgeCheck, Loader2, Send, Save, CheckCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useToast } from "@/hooks/use-toast";
 import EmployerC3Form from "./forms/EmployerC3Form";
 import SelfContributorC3Form from "./forms/SelfContributorC3Form";
@@ -31,6 +32,7 @@ export default function C3Management() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { isAuthReady, isAuthenticated } = useSupabaseAuth();
   
   // C3 Management Hook - connects to Supabase
   const {
@@ -103,12 +105,14 @@ export default function C3Management() {
 
   // Fetch lookup data on mount
   useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
     getC3Statuses().then(setC3Statuses);
     getActiveProfiles().then(setProfilesList);
-  }, []);
+  }, [isAuthReady, isAuthenticated]);
 
   // Fetch records on mount and when contribution type changes (using that tab's filters)
   useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
     const payerType = contributionTypeToPayerType(contributionType);
     const filterStatus = searchParams.get('filter');
     const currentFilters = tabFilters[contributionType] || emptyFilters;
@@ -125,7 +129,7 @@ export default function C3Management() {
       date_entered_from: currentFilters.dateEntered || undefined,
       schedule_no: currentFilters.scheduleNo ? parseInt(currentFilters.scheduleNo) : undefined,
     });
-  }, [contributionType, searchParams]);
+  }, [contributionType, searchParams, isAuthReady, isAuthenticated]);
 
   // Function to get the appropriate button text based on active tab
   const getAddButtonText = () => {
