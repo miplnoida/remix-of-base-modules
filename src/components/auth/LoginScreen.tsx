@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,11 @@ const features = [
   { icon: BarChart3, label: 'Real-time Analytics' },
 ];
 
+// Maximum time (ms) the login button can stay in loading state
+const LOGIN_SAFETY_TIMEOUT_MS = 10_000;
+// Time to wait for Turnstile before proceeding without it
+const TURNSTILE_WAIT_MS = 3_500;
+
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,17 +36,26 @@ export const LoginScreen = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
-  const [pendingSubmit, setPendingSubmit] = useState(false);
   
   const hasRedirected = useRef(false);
+  const loginCalledRef = useRef(false);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const turnstileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { login, isAuthenticated, profile, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
   const { token: turnstileToken, error: turnstileError, isAvailable: turnstileAvailable, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
   const isEditorPreview = isLovableEditorPreview();
 
-  // Redirect if already authenticated.
-  // Important: do not require profile to exist before redirecting,
-  // otherwise the public login page can get stuck forever on a stale session.
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      if (turnstileTimerRef.current) clearTimeout(turnstileTimerRef.current);
+    };
+  }, []);
+
+  // Redirect if already authenticated
   useEffect(() => {
     if (authLoading || hasRedirected.current || !isAuthenticated) return;
 
@@ -58,17 +72,50 @@ export const LoginScreen = () => {
 
   const shouldShowRedirectingState = !authLoading && isAuthenticated;
 
-  // When turnstile token arrives and we have a pending submit, proceed
+  // Global safety timeout: force-exit loading after 10s no matter what
   useEffect(() => {
-    if (pendingSubmit && turnstileToken) {
-      setPendingSubmit(false);
+    if (isLoading) {
+      safetyTimerRef.current = setTimeout(() => {
+        setIsLoading(false);
+        setError('Sign-in is taking too long. Please try again.');
+        loginCalledRef.current = false;
+        resetTurnstile();
+      }, LOGIN_SAFETY_TIMEOUT_MS);
+    } else {
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
+    };
+  }, [isLoading, resetTurnstile]);
+
+  // Watch for Turnstile token/error and proceed if login hasn't been called yet
+  useEffect(() => {
+    if (!loginCalledRef.current) return;
+    // Already called — this is a duplicate trigger guard handled by the ref
+    // Token arrived — proceed
+    if (turnstileToken) {
+      if (turnstileTimerRef.current) {
+        clearTimeout(turnstileTimerRef.current);
+        turnstileTimerRef.current = null;
+      }
       void performLogin(turnstileToken);
     }
-    if (pendingSubmit && turnstileError) {
-      setPendingSubmit(false);
+    // Error arrived — proceed without token
+    if (turnstileError) {
+      if (turnstileTimerRef.current) {
+        clearTimeout(turnstileTimerRef.current);
+        turnstileTimerRef.current = null;
+      }
       void performLogin(null);
     }
-  }, [turnstileToken, turnstileError, pendingSubmit]);
+  }, [turnstileToken, turnstileError]);
 
   // Log login attempt to system logs
   const logLoginAttempt = (success: boolean, userEmail: string, userId?: string, reason?: string) => {
@@ -103,18 +150,34 @@ export const LoginScreen = () => {
     setIsLoading(true);
     setError('');
     setAttemptsRemaining(null);
+    loginCalledRef.current = false;
 
     // In dev preview, skip Turnstile entirely to avoid proxy issues
     if (isEditorPreview || !turnstileAvailable) {
+      loginCalledRef.current = true;
       void performLogin(null);
       return;
     }
 
-    setPendingSubmit(true);
+    // Execute Turnstile and set a fallback timeout
+    loginCalledRef.current = true;
     executeTurnstile();
+
+    // If Turnstile doesn't respond within TURNSTILE_WAIT_MS, proceed without it
+    turnstileTimerRef.current = setTimeout(() => {
+      // Only proceed if performLogin hasn't been called by the token/error effect
+      if (loginCalledRef.current) {
+        console.warn('[Login] Turnstile timed out, proceeding without verification');
+        void performLogin(null);
+      }
+    }, TURNSTILE_WAIT_MS);
   };
 
-  const performLogin = async (verificationToken: string | null) => {
+  const performLogin = useCallback(async (verificationToken: string | null) => {
+    // Prevent double-invocation
+    if (!loginCalledRef.current) return;
+    loginCalledRef.current = false;
+
     try {
       let turnstileEventPromise: Promise<string | null> | null = null;
 
@@ -125,15 +188,12 @@ export const LoginScreen = () => {
             if (!verification.skipped && verificationToken && !verification.success) {
               console.warn('[Login] Turnstile verification failed:', verification.error);
             }
-
             return verification.eventId || null;
           })
           .catch((verifyErr) => {
             console.error('[Login] Turnstile verification error:', verifyErr);
             return null;
           });
-      } else {
-        console.log('[Login] Editor preview mode — skipping Turnstile verification');
       }
 
       const result = await login(email, password);
@@ -208,10 +268,7 @@ export const LoginScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Don't block the login form while auth is loading — it's a public route.
-  // Only redirect after auth resolves (handled by useEffect above).
+  }, [email, password, login, navigate, resetTurnstile, isEditorPreview]);
 
   if (shouldShowRedirectingState) {
     return (
