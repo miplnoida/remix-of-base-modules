@@ -232,22 +232,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Load timeout settings from active policy AND system_settings override
+  // Load timeout settings from active policy AND system_settings override (parallelized)
   const loadSessionPolicy = useCallback(async () => {
     try {
-      const { data: sysData } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'session_timeout_minutes')
-        .single();
+      const [sysResult, policyResult] = await Promise.all([
+        supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'session_timeout_minutes')
+          .single(),
+        supabase
+          .from('password_policies')
+          .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
+          .eq('is_active', true)
+          .single(),
+      ]);
 
-      const systemTimeout = sysData?.setting_value ? parseInt(sysData.setting_value) : null;
-
-      const { data, error } = await supabase
-        .from('password_policies')
-        .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
-        .eq('is_active', true)
-        .single();
+      const systemTimeout = sysResult.data?.setting_value ? parseInt(sysResult.data.setting_value) : null;
+      const data = policyResult.data;
+      const error = policyResult.error;
 
       if (error && !systemTimeout) return;
 
@@ -474,28 +477,41 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
-      // Run email resolution and lockout check in PARALLEL
+      // Run email resolution (with 1.5s timeout) and lockout check in PARALLEL
+      const RESOLVE_EMAIL_TIMEOUT_MS = 1500;
+
       const [resolveResult, profileResult] = await Promise.all([
-        supabase.functions.invoke('resolve-auth-email', { body: { email } }).catch(err => {
-          console.warn('Email resolution failed, using provided email:', err);
-          return { data: null };
-        }),
+        Promise.race([
+          supabase.functions.invoke('resolve-auth-email', { body: { email } }).catch(err => {
+            console.warn('Email resolution failed, using provided email:', err);
+            return { data: null };
+          }),
+          new Promise<{ data: null }>((resolve) =>
+            setTimeout(() => {
+              console.warn('[Login] resolve-auth-email timed out after 1.5s — using provided email');
+              resolve({ data: null });
+            }, RESOLVE_EMAIL_TIMEOUT_MS)
+          ),
+        ]),
         supabase
           .from('profiles')
-          .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
+          .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email')
           .or(`email.eq.${email}`)
           .limit(1)
           .maybeSingle(),
       ]);
 
+      // If profile was found by entered email, it's already correct — skip edge function result
       let loginEmail = email;
-      if (resolveResult?.data?.auth_email) {
+      const profileFoundByEmail = profileResult.data?.email === email;
+
+      if (!profileFoundByEmail && resolveResult?.data?.auth_email) {
         loginEmail = resolveResult.data.auth_email;
         // If resolved email differs, also check that profile
         if (loginEmail !== email && !profileResult.data) {
           const { data: resolvedProfile } = await supabase
             .from('profiles')
-            .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
+            .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email')
             .eq('email', loginEmail)
             .limit(1)
             .maybeSingle();

@@ -82,36 +82,46 @@ export function useIPAccessCheck(): IPCheckResult {
     }
 
     setIsChecking(true);
+
+    // Race the entire IP check flow against a 2s timeout — fail-open on timeout
+    const IP_CHECK_TIMEOUT_MS = 2000;
+
     try {
-      const ip = await getClientIP();
-      setClientIP(ip);
+      const result = await Promise.race([
+        (async () => {
+          const ip = await getClientIP();
 
-      const { data, error } = await supabase.functions.invoke('check-ip-access', {
-        body: { ip_address: ip },
-      });
+          const { data, error } = await supabase.functions.invoke('check-ip-access', {
+            body: { ip_address: ip },
+          });
 
-      if (error) {
-        console.error('[IPAccessCheck] Edge function error:', error);
-        const directResult = await checkWhitelistDirectly(ip);
-        const result = directResult ?? true;
-        setIsAllowed(result);
-        setCachedResult(ip, result);
-        return;
-      }
+          if (error) {
+            console.error('[IPAccessCheck] Edge function error:', error);
+            const directResult = await checkWhitelistDirectly(ip);
+            return { ip, allowed: directResult ?? true };
+          }
 
-      if (data?.allowed === false && ip && ip !== 'unknown') {
-        const directResult = await checkWhitelistDirectly(ip);
-        if (directResult === true) {
-          console.warn('[IPAccessCheck] Edge function denied a whitelisted IP, using direct RPC fallback.');
-          setIsAllowed(true);
-          setCachedResult(ip, true);
-          return;
-        }
-      }
+          if (data?.allowed === false && ip && ip !== 'unknown') {
+            const directResult = await checkWhitelistDirectly(ip);
+            if (directResult === true) {
+              console.warn('[IPAccessCheck] Edge function denied a whitelisted IP, using direct RPC fallback.');
+              return { ip, allowed: true };
+            }
+          }
 
-      const result = data?.allowed ?? true;
-      setIsAllowed(result);
-      setCachedResult(ip, result);
+          return { ip, allowed: (data?.allowed ?? true) as boolean };
+        })(),
+        new Promise<{ ip: string; allowed: boolean }>((resolve) =>
+          setTimeout(() => {
+            console.warn('[IPAccessCheck] Timed out after 2s — failing open');
+            resolve({ ip: 'timeout', allowed: true });
+          }, IP_CHECK_TIMEOUT_MS)
+        ),
+      ]);
+
+      setClientIP(result.ip);
+      setIsAllowed(result.allowed);
+      setCachedResult(result.ip, result.allowed);
     } catch (err) {
       console.error('[IPAccessCheck] Unexpected error:', err);
       setIsAllowed(true);
