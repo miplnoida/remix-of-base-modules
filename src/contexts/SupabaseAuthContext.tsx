@@ -71,6 +71,8 @@ export const useSupabaseAuth = () => {
 };
 
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Ref to skip duplicate profile/roles fetch when login() already handled it
+  const loginJustCompletedRef = useRef(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
