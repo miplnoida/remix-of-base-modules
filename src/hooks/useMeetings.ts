@@ -433,17 +433,15 @@ export function useCloseMeetingWithApproval() {
       // 4. Update workflow instance + tasks if linked
       const workflowInstanceId = meeting.workflow_instance_id;
       if (workflowInstanceId) {
-        await Promise.all([
-          supabase
-            .from('workflow_instances')
-            .update({ status: 'Approved', updated_at: now })
-            .eq('id', workflowInstanceId),
-          supabase
-            .from('workflow_tasks')
-            .update({ status: 'Completed', completed_at: now, updated_at: now } as any)
-            .eq('workflow_instance_id', workflowInstanceId)
-            .in('status', ['Pending', 'InProgress'] as any),
-        ]);
+        await supabase
+          .from('workflow_instances')
+          .update({ status: 'Approved', updated_at: now })
+          .eq('id', workflowInstanceId);
+        await (supabase
+          .from('workflow_tasks')
+          .update({ status: 'Completed', completed_at: now, updated_at: now }) as any)
+          .eq('workflow_instance_id', workflowInstanceId)
+          .in('status', ['Pending', 'InProgress']);
       }
 
       return { success: true, message: 'Application accepted successfully' };
