@@ -1,125 +1,113 @@
 
-Plan: Stabilize intermittent loading across menu, C3, IP, Employer, and similar screens
 
-What is actually happening
+## Analysis: Changes After March 31st That Caused Slow/Intermittent Loading
 
-This is an application-level auth/state regression, not a Lovable platform issue.
+### What Was Working on March 31st (commit `6bcdd96d`)
 
-The repo currently has two different auth systems running at the same time:
-
-1. Real auth: `src/contexts/SupabaseAuthContext.tsx`
-2. Legacy mock auth: `src/contexts/AuthContext.tsx`
-
-`src/App.tsx` mounts both providers together. After login, protected routing uses the real auth context, but many pages/hooks still read the legacy mock context or use incomplete query gating.
-
-Why it only fails sometimes
-
-The app is now in a mixed state:
-- Newer code waits for `isAuthReady`
-- Older code still assumes `isAuthenticated` or `user?.id` is enough
-- Some screens still read `useAuth()` from the mock provider, which has no real logged-in user after Supabase login
-
-That makes loading timing-dependent:
+The March 31st code had a simple, fast auth + navigation flow:
 
 ```text
-Login succeeds
-→ ProtectedRoute allows entry using Supabase auth
-→ Some screens/hooks wait correctly for isAuthReady
-→ Other screens/hooks start too early or read the wrong auth context
-→ Depending on timing, they either work, return empty/error, or stay loading
+March 31st flow:
+Login → setSession → setUser → fetchProfile + fetchRoles → setIsLoading(false)
+                                                                    ↓
+Navigation query: enabled: !!user?.id  ← fires immediately when user is set
+                                                                    ↓
+Sidebar: isLoading? → skeletons. isError? → retry. Otherwise → render menu.
 ```
 
-Exact code responsible
+No `isAuthReady`, no `authBootstrapVersion`, no `initializingRef`, no timeouts, no sessionStorage caching. Simple and fast.
 
-1. Dual auth providers
-- `src/App.tsx`
-  - mounts both `SupabaseAuthProvider` and legacy `AuthProvider`
+### What Changed After March 31st (22+ commits to auth/nav files)
 
-2. Legacy/mock auth still active
-- `src/contexts/AuthContext.tsx`
-  - mock users only
-  - not connected to real backend auth
+**Layer 1 — SupabaseAuthContext.tsx** (commits `8bd0b455`, `0cf1f094`, `287e7a22`, `1d4e2a82`, `fdc8fe54`, `f084b337`)
 
-3. New auth contract introduced
-- `src/contexts/SupabaseAuthContext.tsx`
-  - adds `isAuthReady`, bootstrap states, async profile/roles loading
+Added:
+- `isAuthReady` state (starts `false`, must be explicitly set to `true`)
+- `authBootstrapVersion` counter
+- `rolesStatus` / `profileStatus` tracking
+- `initializingRef` guard to prevent duplicate fetches
+- 15-second safety timeout in `initializeAuth`
+- `.then()` / `.catch()` in `onAuthStateChange` SIGNED_IN handler
 
-4. Menu uses new contract correctly
-- `src/hooks/useDynamicNavigation.ts`
-  - gated by `isAuthReady && isAuthenticated && !!user?.id`
+**Impact**: Created a two-phase auth lifecycle where `isLoading=false` no longer means "ready to fetch data." Components must now also wait for `isAuthReady=true`. This is the core source of the regression — every component that only checked `isLoading` or `!!user?.id` became broken.
 
-5. Other shared auth hooks still use old/incomplete contract
-- `src/hooks/useNavigationMenu.ts`
-  - uses only `isAuthenticated` / `!!user?.id`, not `isAuthReady`
-- `src/hooks/useWorkflowActions.ts`
-  - mixes `useSupabaseAuth()` with fallback `useAuth()`
+**Layer 2 — useDynamicNavigation.ts** (commits `a6010319`, `18f0ccb2`, `a194b184`)
 
-6. Operational pages still partially depend on legacy auth
-- `src/pages/ip-registration/IPRegistrationList.tsx`
-  - mixes `useAuth()` and `useSupabaseAuth()`
-- `src/pages/employer-registration/EmployerRegistrationList.tsx`
-  - still uses `useAuth()` for current user actions
-- many other files found via search still import `useAuth()` in protected modules
+Changed:
+- `enabled: !!user?.id` → `enabled: isAuthReady && isAuthenticated && !!user?.id`
+- Added `authBootstrapVersion` to `queryKey` (forces refetch on every bootstrap)
+- Added 20-second `Promise.race` timeout wrapper around the RPC call
+- Added `retry: 2` with exponential backoff
+- Made logging fire-and-forget (good change, keeps)
 
-Why this started in the last 1–2 days
+**Impact**: The navigation query now waits for `isAuthReady` (correct), but when `isAuthReady` is delayed, the query stays disabled. React Query v5 returns `isLoading: false` for disabled queries, so the sidebar sees `menuItems: []` + `isLoading: false` = "No modules assigned" flash.
 
-The recent auth bootstrap refactor introduced `isAuthReady` and made some modules wait for a fully restored session. That change itself is correct.
+**Layer 3 — DynamicSidebarContent.tsx** (commits `e523b41c`, `1d306abf`, `6295a591`)
 
-The regression happened because the migration was partial:
-- some modules were updated to the new auth lifecycle
-- many others were left on the old lifecycle (`useAuth`, `isAuthenticated`, or `!!user?.id` only)
+Changed from 132 lines to ~210 lines:
+- Added sessionStorage caching with icon rehydration
+- Added 15-second `loadingTimedOut` state
+- Added "last known good" menu fallback
+- Added "Refresh menu" button on timeout/error
 
-That widened the race window and exposed screens that now load before auth bootstrap is fully complete.
+**Impact**: Over-engineered for a problem that shouldn't exist. The caching/timeout logic adds complexity but masks the real issue (auth readiness delay). The 15s sidebar timeout races against the 15s auth safety timeout + 20s RPC timeout.
 
-Fix strategy
+**Layer 4 — ProtectedRoute.tsx** (commit `8bd0b455`)
 
-Step 1: Choose one auth source for protected app code
-- Treat `SupabaseAuthContext` as the only runtime auth source
-- Stop using `AuthContext` in protected business modules
+Changed from simple loading text to:
+- 10-second warning timer
+- 20-second retry/login buttons
 
-Step 2: Remove mixed auth usage from shared hooks first
-Priority files:
-- `src/hooks/useNavigationMenu.ts`
-- `src/hooks/useWorkflowActions.ts`
-- any shared permission/admin hooks still depending on `useAuth`
+**Impact**: This is fine as defensive UX, but it shouldn't be needed if auth bootstraps in <2 seconds.
 
-Step 3: Standardize all auth-dependent fetching
-Apply one rule everywhere:
-- React Query: `enabled: isAuthReady && isAuthenticated && ...`
-- `useEffect` fetches: early-return until `isAuthReady && isAuthenticated`
+### Root Cause Summary
 
-Step 4: Migrate operational screens off legacy auth
-Priority examples already visible:
-- `src/pages/ip-registration/IPRegistrationList.tsx`
-- `src/pages/employer-registration/EmployerRegistrationList.tsx`
-- remaining IP/Employer/C3/workflow pages that still import `useAuth()`
+| What broke it | Why |
+|---|---|
+| Adding `isAuthReady` to SupabaseAuthContext | Created a new gate that existing code didn't know about |
+| Partial migration | Only navigation hook was updated to use `isAuthReady`; dozens of other hooks/pages weren't |
+| `initializingRef` guard | Can cause `onAuthStateChange` to skip profile/roles fetch, leaving `isAuthReady` stuck until `initializeAuth` finishes |
+| Stacked timeouts (15s auth + 20s RPC + 15s sidebar + 10s/20s ProtectedRoute) | On slow networks, these cascade and fight each other |
+| `authBootstrapVersion` in queryKey | Forces a fresh RPC call on every bootstrap cycle, preventing React Query cache from helping |
 
-Step 5: Keep the recent page gates
-The recent `isAuthReady` gates added to menu/IP/Employer/C3 should stay. They are not the bug; they exposed the real inconsistency.
+### Fix Strategy: Simplify Back to Working State
 
-Code cleanup to remove
+The `isAuthReady` concept is correct in principle but was over-implemented. The fix should:
 
-Remove or isolate these from protected runtime flows:
-- legacy `AuthContext` usage in protected app pages/hooks
-- fallback role/user logic that reads from mock auth when Supabase auth should be authoritative
-- shared hooks that gate only on `isAuthenticated` or `!!user?.id` but not `isAuthReady`
+**Step 1: Simplify SupabaseAuthContext**
+- Remove the 15-second safety timeout (unnecessary — `finally` block already handles this)
+- Remove `authBootstrapVersion` (causes unnecessary refetches; `user?.id` in queryKey is sufficient)
+- Keep `isAuthReady` but ensure it's set to `true` in ALL exit paths without complex branching
+- Remove `initializingRef` — it creates a race where `onAuthStateChange` skips legitimate session events
 
-Technical implementation approach
+**Step 2: Simplify useDynamicNavigation**
+- Remove the 20-second `Promise.race` timeout (Supabase client already has its own timeout)
+- Remove `authBootstrapVersion` from `queryKey`
+- Keep `enabled: isAuthReady && isAuthenticated && !!user?.id` (this is correct)
+- Keep fire-and-forget logging (good)
 
-```text
-Bad pattern:
-useAuth()
-enabled: isAuthenticated
-enabled: !!user?.id
+**Step 3: Restore simple DynamicSidebarContent**
+- Remove sessionStorage caching and icon rehydration (unnecessary complexity)
+- Remove the 15-second `loadingTimedOut` state
+- Restore the original simple pattern: `isLoading → skeletons`, `isError → retry`, else → render
+- Keep the default menu items section
 
-Correct pattern:
-const { user, isAuthenticated, isAuthReady, profile } = useSupabaseAuth()
-enabled: isAuthReady && isAuthenticated && !!user?.id
-```
+**Step 4: Simplify ProtectedRoute**
+- Remove the 10s/20s warning and retry timers
+- Keep simple loading spinner — if auth takes >15s something is truly broken and a page refresh is the right action
 
-Expected result after cleanup
+### Files to Modify
 
-- Menu loads consistently after login
-- C3/IP/Employer screens stop randomly hanging
-- No more “works sometimes” behavior based on timing
-- Retry/skeleton fallbacks become true error states instead of auth-race symptoms
+| File | Change |
+|------|--------|
+| `src/contexts/SupabaseAuthContext.tsx` | Remove safety timeout, `initializingRef`, `authBootstrapVersion`. Keep `isAuthReady` set simply in `finally` and `.catch()` |
+| `src/hooks/useDynamicNavigation.ts` | Remove `Promise.race` timeout, `authBootstrapVersion` from queryKey. Keep `isAuthReady` gate |
+| `src/components/sidebar/DynamicSidebarContent.tsx` | Restore to March 31st simplicity (132 lines) while keeping `isAuthReady`-aware hook |
+| `src/components/auth/ProtectedRoute.tsx` | Remove timer-based warnings, restore simple loading state |
+
+### Expected Result
+- Auth bootstrap completes in <2 seconds (as it did on March 31st)
+- Navigation query fires immediately after auth is ready
+- No cascading timeouts fighting each other
+- Menu loads consistently on every login
+
