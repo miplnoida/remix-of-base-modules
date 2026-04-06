@@ -440,9 +440,9 @@ export function useCloseMeetingWithApproval() {
             .eq('id', workflowInstanceId),
           supabase
             .from('workflow_tasks')
-            .update({ status: 'Completed', completed_at: now, updated_at: now })
+            .update({ status: 'Completed', completed_at: now, updated_at: now } as any)
             .eq('workflow_instance_id', workflowInstanceId)
-            .in('status', ['Pending', 'InProgress']),
+            .in('status', ['Pending', 'InProgress'] as any),
         ]);
       }
 
