@@ -6,14 +6,16 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
-import { Loader2, RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Loader2, RefreshCw, ChevronLeft, ChevronRight, Download, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PAGE_SIZE = 20;
@@ -27,7 +29,9 @@ const UnauthorizedAccessLogs: React.FC = () => {
   const [userFilter, setUserFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['unauthorized-access-logs', page, dateFrom, dateTo, severityFilter, ipFilter, userFilter, moduleFilter],
     queryFn: async () => {
       let query = supabase
@@ -47,6 +51,9 @@ const UnauthorizedAccessLogs: React.FC = () => {
       if (error) throw error;
       return { logs: data || [], count: count || 0 };
     },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const getSeverityBadge = (severity: string) => {
