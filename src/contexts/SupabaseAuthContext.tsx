@@ -380,6 +380,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // After initializeAuth completes, handle profile/roles for auth changes
         if (initDone && currentSession?.user) {
+          // Skip if login() just completed — it already loaded profile/roles
+          if (loginJustCompletedRef.current) {
+            loginJustCompletedRef.current = false;
+            console.info('Skipping duplicate profile/roles fetch — login() already loaded data');
+            return;
+          }
           const userId = currentSession.user.id;
           Promise.all([fetchProfile(userId), fetchRoles(userId)])
             .then(([profileData, rolesData]) => {
@@ -468,24 +474,38 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
+      // Run email resolution and lockout check in PARALLEL
+      const [resolveResult, profileResult] = await Promise.all([
+        supabase.functions.invoke('resolve-auth-email', { body: { email } }).catch(err => {
+          console.warn('Email resolution failed, using provided email:', err);
+          return { data: null };
+        }),
+        supabase
+          .from('profiles')
+          .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
+          .or(`email.eq.${email}`)
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
       let loginEmail = email;
-      try {
-        const { data: resolveData } = await supabase.functions.invoke('resolve-auth-email', {
-          body: { email },
-        });
-        if (resolveData?.auth_email) {
-          loginEmail = resolveData.auth_email;
+      if (resolveResult?.data?.auth_email) {
+        loginEmail = resolveResult.data.auth_email;
+        // If resolved email differs, also check that profile
+        if (loginEmail !== email && !profileResult.data) {
+          const { data: resolvedProfile } = await supabase
+            .from('profiles')
+            .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
+            .eq('email', loginEmail)
+            .limit(1)
+            .maybeSingle();
+          if (resolvedProfile) {
+            (profileResult as any).data = resolvedProfile;
+          }
         }
-      } catch (resolveErr) {
-        console.warn('Email resolution failed, using provided email:', resolveErr);
       }
 
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, locked_until, failed_login_attempts, is_active, force_password_change')
-        .or(`email.eq.${email},email.eq.${loginEmail}`)
-        .limit(1)
-        .maybeSingle();
+      const existingProfile = profileResult.data;
 
       if (existingProfile) {
         if (!existingProfile.is_active) {
@@ -536,9 +556,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoggingOutRef.current = false;
         idleWarningShownRef.current = false;
 
-        await loadSessionPolicy();
-
-        await supabase
+        // Fire-and-forget: session policy + profile update + profile/roles fetch in parallel
+        const profileUpdatePromise = supabase
           .from('profiles')
           .update({ 
             failed_login_attempts: 0, 
@@ -547,8 +566,23 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           })
           .eq('id', data.user.id);
 
-        const profile = await fetchProfile(data.user.id);
-        if (profile?.force_password_change) {
+        const [profileData, rolesData] = await Promise.all([
+          fetchProfile(data.user.id),
+          fetchRoles(data.user.id),
+          profileUpdatePromise,
+          loadSessionPolicy().catch(() => {}),
+        ]);
+
+        // Set auth state immediately — prevent onAuthStateChange from duplicating
+        loginJustCompletedRef.current = true;
+        setProfile(profileData);
+        setProfileStatus(profileData ? 'loaded' : 'failed');
+        setRoles(rolesData);
+        setRolesStatus('loaded');
+        setIsAuthReady(true);
+        setIsLoading(false);
+
+        if (profileData?.force_password_change) {
           return { success: true, requiresPasswordChange: true };
         }
       }
