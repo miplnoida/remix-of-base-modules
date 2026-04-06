@@ -1,96 +1,125 @@
-## Plan: Fix Continuous Loading on IP Registration, Employer Registration, and C3 Management Pages
 
-### Root Cause
+Plan: Stabilize intermittent loading across menu, C3, IP, Employer, and similar screens
 
-The three affected pages (`IPRegistrationList`, `EmployerRegistrationList`, `C3Management`) execute database queries immediately on mount without waiting for the authentication session to be fully established. Although `ProtectedRoute` checks `isLoading`, the Supabase client session may not be fully ready when the first query fires, causing queries to fail silently or return empty results that leave the page in a perpetual loading state.
+What is actually happening
 
-Specifically:
+This is an application-level auth/state regression, not a Lovable platform issue.
 
-- **IPRegistrationList**: Uses raw `useEffect` + `fetchRecords` on mount — no auth gate
-- **EmployerRegistrationList** (`useEmployerList` hook): Uses React Query without an `enabled` gate
-- **C3Management** (`useC3Management` hook): Uses raw `useEffect` + `fetchRecords` on mount — no auth gate
+The repo currently has two different auth systems running at the same time:
 
-### Fix
+1. Real auth: `src/contexts/SupabaseAuthContext.tsx`
+2. Legacy mock auth: `src/contexts/AuthContext.tsx`
 
-Gate all data-fetching in these pages/hooks on `isAuthReady && isAuthenticated` from `useSupabaseAuth()`, following the pattern already established in `useDynamicNavigation`.
+`src/App.tsx` mounts both providers together. After login, protected routing uses the real auth context, but many pages/hooks still read the legacy mock context or use incomplete query gating.
 
-### Step 1: Fix `useEmployerList` in `src/hooks/useEmployerRegistration.ts`
+Why it only fails sometimes
 
-Add `useSupabaseAuth` import and gate both React Query calls with `enabled: isAuthReady && isAuthenticated`:
+The app is now in a mixed state:
+- Newer code waits for `isAuthReady`
+- Older code still assumes `isAuthenticated` or `user?.id` is enough
+- Some screens still read `useAuth()` from the mock provider, which has no real logged-in user after Supabase login
 
-```typescript
-const { isAuthReady, isAuthenticated } = useSupabaseAuth();
+That makes loading timing-dependent:
 
-const { data: employers, isLoading, refetch } = useQuery({
-  queryKey: ['er_master_list', activeTab],
-  queryFn: async () => { ... },
-  enabled: isAuthReady && isAuthenticated,  // ADD THIS
-});
-
-const { data: counts } = useQuery({
-  queryKey: ['er_master_counts'],
-  queryFn: async () => { ... },
-  enabled: isAuthReady && isAuthenticated,  // ADD THIS
-});
+```text
+Login succeeds
+→ ProtectedRoute allows entry using Supabase auth
+→ Some screens/hooks wait correctly for isAuthReady
+→ Other screens/hooks start too early or read the wrong auth context
+→ Depending on timing, they either work, return empty/error, or stay loading
 ```
 
-### Step 2: Fix `IPRegistrationList` in `src/pages/ip-registration/IPRegistrationList.tsx`
+Exact code responsible
 
-Add `isAuthReady` and `isAuthenticated` from `useSupabaseAuth()` and gate the `fetchRecords` and `fetchCounts` effects:
+1. Dual auth providers
+- `src/App.tsx`
+  - mounts both `SupabaseAuthProvider` and legacy `AuthProvider`
 
-```typescript
-const { isAuthReady, isAuthenticated } = useSupabaseAuth();
+2. Legacy/mock auth still active
+- `src/contexts/AuthContext.tsx`
+  - mock users only
+  - not connected to real backend auth
 
-// Gate data fetching on auth readiness
-useEffect(() => {
-  if (!isAuthReady || !isAuthenticated) return;
-  fetchRecords(appliedFilters, page, pageSize);
-}, [page, pageSize, activeTab, appliedFilters, fetchRecords, isAuthReady, isAuthenticated]);
+3. New auth contract introduced
+- `src/contexts/SupabaseAuthContext.tsx`
+  - adds `isAuthReady`, bootstrap states, async profile/roles loading
 
-useEffect(() => {
-  if (!isAuthReady || !isAuthenticated) return;
-  fetchCounts();
-}, [fetchCounts, isAuthReady, isAuthenticated]);
+4. Menu uses new contract correctly
+- `src/hooks/useDynamicNavigation.ts`
+  - gated by `isAuthReady && isAuthenticated && !!user?.id`
 
-// Also gate the debounced search effect
-useEffect(() => {
-  if (!isAuthReady || !isAuthenticated) return;
-  const timer = setTimeout(() => { ... }, 400);
-  return () => clearTimeout(timer);
-}, [searchText, isAuthReady, isAuthenticated]);
+5. Other shared auth hooks still use old/incomplete contract
+- `src/hooks/useNavigationMenu.ts`
+  - uses only `isAuthenticated` / `!!user?.id`, not `isAuthReady`
+- `src/hooks/useWorkflowActions.ts`
+  - mixes `useSupabaseAuth()` with fallback `useAuth()`
+
+6. Operational pages still partially depend on legacy auth
+- `src/pages/ip-registration/IPRegistrationList.tsx`
+  - mixes `useAuth()` and `useSupabaseAuth()`
+- `src/pages/employer-registration/EmployerRegistrationList.tsx`
+  - still uses `useAuth()` for current user actions
+- many other files found via search still import `useAuth()` in protected modules
+
+Why this started in the last 1–2 days
+
+The recent auth bootstrap refactor introduced `isAuthReady` and made some modules wait for a fully restored session. That change itself is correct.
+
+The regression happened because the migration was partial:
+- some modules were updated to the new auth lifecycle
+- many others were left on the old lifecycle (`useAuth`, `isAuthenticated`, or `!!user?.id` only)
+
+That widened the race window and exposed screens that now load before auth bootstrap is fully complete.
+
+Fix strategy
+
+Step 1: Choose one auth source for protected app code
+- Treat `SupabaseAuthContext` as the only runtime auth source
+- Stop using `AuthContext` in protected business modules
+
+Step 2: Remove mixed auth usage from shared hooks first
+Priority files:
+- `src/hooks/useNavigationMenu.ts`
+- `src/hooks/useWorkflowActions.ts`
+- any shared permission/admin hooks still depending on `useAuth`
+
+Step 3: Standardize all auth-dependent fetching
+Apply one rule everywhere:
+- React Query: `enabled: isAuthReady && isAuthenticated && ...`
+- `useEffect` fetches: early-return until `isAuthReady && isAuthenticated`
+
+Step 4: Migrate operational screens off legacy auth
+Priority examples already visible:
+- `src/pages/ip-registration/IPRegistrationList.tsx`
+- `src/pages/employer-registration/EmployerRegistrationList.tsx`
+- remaining IP/Employer/C3/workflow pages that still import `useAuth()`
+
+Step 5: Keep the recent page gates
+The recent `isAuthReady` gates added to menu/IP/Employer/C3 should stay. They are not the bug; they exposed the real inconsistency.
+
+Code cleanup to remove
+
+Remove or isolate these from protected runtime flows:
+- legacy `AuthContext` usage in protected app pages/hooks
+- fallback role/user logic that reads from mock auth when Supabase auth should be authoritative
+- shared hooks that gate only on `isAuthenticated` or `!!user?.id` but not `isAuthReady`
+
+Technical implementation approach
+
+```text
+Bad pattern:
+useAuth()
+enabled: isAuthenticated
+enabled: !!user?.id
+
+Correct pattern:
+const { user, isAuthenticated, isAuthReady, profile } = useSupabaseAuth()
+enabled: isAuthReady && isAuthenticated && !!user?.id
 ```
 
-### Step 3: Fix `C3Management` in `src/pages/c3Management/C3Management.tsx`
+Expected result after cleanup
 
-Add `isAuthReady` and `isAuthenticated` from `useSupabaseAuth()` and gate the mount-time data fetch:
-
-```typescript
-const { isAuthReady, isAuthenticated } = useSupabaseAuth();
-
-useEffect(() => {
-  if (!isAuthReady || !isAuthenticated) return;
-  getC3Statuses().then(setC3Statuses);
-  getActiveProfiles().then(setProfilesList);
-}, [isAuthReady, isAuthenticated]);
-
-useEffect(() => {
-  if (!isAuthReady || !isAuthenticated) return;
-  fetchRecords({ ... });
-}, [contributionType, searchParams, isAuthReady, isAuthenticated]);
-```
-
-### Files to modify
-
-
-| File                                               | Change                                          |
-| -------------------------------------------------- | ----------------------------------------------- |
-| `src/hooks/useEmployerRegistration.ts`             | Add `enabled` gate to both `useQuery` calls     |
-| `src/pages/ip-registration/IPRegistrationList.tsx` | Gate `useEffect` data fetches on auth readiness |
-| `src/pages/c3Management/C3Management.tsx`          | Gate `useEffect` data fetches on auth readiness |
-
-
-### No new files, no migrations
-
-This is a wiring fix applying the same auth-gating pattern used by `useDynamicNavigation` to three ungated pages.  
-  
-Important Note: Why are these changes needed, and how was it working before? All the pages were working well two days ago. I want to know which functionality or change caused this error in the last 1–2 days, as it was working fine before.
+- Menu loads consistently after login
+- C3/IP/Employer screens stop randomly hanging
+- No more “works sometimes” behavior based on timing
+- Retry/skeleton fallbacks become true error states instead of auth-race symptoms
