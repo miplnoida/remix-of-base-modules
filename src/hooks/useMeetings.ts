@@ -14,34 +14,47 @@ export function useMeetings(filters?: MeetingFilters) {
   return useQuery({
     queryKey: ['meetings', filters],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
-        body: {
-          action: 'get_meetings',
-          filters: {
-            status: filters?.status,
-            meetingType: filters?.meetingType,
-            dateFrom: filters?.dateFrom,
-            dateTo: filters?.dateTo
-          }
-        }
-      });
+      let query = supabase
+        .from('meetings')
+        .select(`
+          *,
+          workflow_definitions(name),
+          workflow_steps(step_name)
+        `)
+        .order('meeting_date', { ascending: true })
+        .order('meeting_time', { ascending: true });
+
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters?.meetingType) {
+        query = query.eq('meeting_type', filters.meetingType);
+      }
+      if (filters?.dateFrom) {
+        query = query.gte('meeting_date', filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        query = query.lte('meeting_date', filters.dateTo);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
-      
-      let meetings: Meeting[] = data?.meetings || [];
-      
+
+      let meetings: Meeting[] = (data || []) as unknown as Meeting[];
+
       // Client-side filtering for reference searches
       if (filters?.applicationReference) {
-        meetings = meetings.filter(m => 
+        meetings = meetings.filter(m =>
           m.application_reference?.toLowerCase().includes(filters.applicationReference!.toLowerCase())
         );
       }
       if (filters?.meetingReference) {
-        meetings = meetings.filter(m => 
+        meetings = meetings.filter(m =>
           m.meeting_reference?.toLowerCase().includes(filters.meetingReference!.toLowerCase())
         );
       }
-      
+
       return meetings;
     },
     staleTime: 30000
