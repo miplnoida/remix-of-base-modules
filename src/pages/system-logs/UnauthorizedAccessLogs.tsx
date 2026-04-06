@@ -110,6 +110,19 @@ const UnauthorizedAccessLogs: React.FC = () => {
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-4">
+              <Alert variant="destructive" className="max-w-md">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load unauthorized access logs: {queryError instanceof Error ? queryError.message : 'Unknown error'}
+                </AlertDescription>
+              </Alert>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           ) : (
             <>
               <Table>
