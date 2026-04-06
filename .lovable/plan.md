@@ -1,65 +1,57 @@
 
 
-## Plan: Fix Login Delay Caused by Edge Function Cold Starts and Blocking Pre-Login Calls
+## Plan: Fix Employer Application Approval and Conversion Flow
 
-### Root Cause
+### Problem Analysis
 
-The login path triggers up to **4 edge function invocations** (each with 1-3s cold start potential) plus an external API call, creating a worst-case delay of 10-15 seconds:
+When a reviewer clicks "Approve" on an employer application meeting (e.g., MTG-2026-000035), nothing happens. Two root causes:
 
-1. **App mount**: `getClientIP()` calls `https://api.ipify.org` (up to 5s) → then `check-ip-access` edge function (1-3s)
-2. **Login click** (published URL only): Turnstile `verify-turnstile` edge function (1-3s)
-3. **Login function**: `resolve-auth-email` edge function (1-3s) — called on EVERY login, even when email is never mismatched
-4. **Post-login**: `loadSessionPolicy` queries two tables sequentially
+1. **`useCloseMeetingWithApproval` calls the `meeting-api-handler` edge function** which suffers from cold-start delays (1-5s+). This edge function does 6+ sequential database operations. Combined with the conversion RPC, the total wait exceeds practical timeouts, causing the UI to appear frozen or silently fail.
+
+2. **The conversion RPC (`convert_application_to_employer`) may succeed, but the subsequent meeting-closure edge function call hangs**, so the user never sees a success toast, the meeting status never changes, and navigation never happens. The meeting MTG-2026-000035 is still `InProgress` with no outcome recorded.
+
+3. **No navigation to the new employer registration** — even on success, the page navigates to `/meetings/manage` without telling the user the new registration number or linking to it.
 
 ### Fix Strategy
 
-**Principle**: Eliminate or make non-blocking every call that isn't strictly required before authentication completes.
+Replace the edge function call in `useCloseMeetingWithApproval` with direct Supabase client queries (same pattern already applied to `useMeetings` data loading). This eliminates the cold-start bottleneck entirely.
 
-### Step 1: Make `resolve-auth-email` non-blocking with a timeout race
-**File**: `src/contexts/SupabaseAuthContext.tsx`
+### Step 1: Replace `useCloseMeetingWithApproval` with direct queries
+**File**: `src/hooks/useMeetings.ts`
 
-The email resolution edge function exists for a rare edge case (admin changed auth email). It should NOT block login for 1-3 seconds on every attempt. 
+Replace the `supabase.functions.invoke('meeting-api-handler', { body: { action: 'close_meeting_approved' } })` call with direct Supabase client operations:
 
-- Wrap the `resolve-auth-email` call in a `Promise.race` with a 1.5s timeout
-- If it doesn't respond in time, proceed with the user-provided email (correct 99% of the time)
-- The profile/lockout query already runs in parallel, so this only affects the worst case
+1. Fetch the meeting record (with workflow_instances join)
+2. Update the `meetings` table: set `status='Closed'`, `outcome='ClosedWithApproval'`, timestamps, user info
+3. Insert a `meeting_history` record
+4. If `workflow_instance_id` exists:
+   - Update `workflow_instances` status to `Approved`
+   - Update pending `workflow_tasks` to `Completed`
+   - Insert a `workflow_logs` entry
+5. Optionally save `applicationData` to the primary table if the workflow instance has `primary_table` metadata
 
-### Step 2: Skip `resolve-auth-email` entirely when unnecessary
-**File**: `src/contexts/SupabaseAuthContext.tsx`
+All DB operations mirrored from the existing edge function logic (lines 844-1007 of `meeting-api-handler/index.ts`). The external API trigger (`triggerActionWorkflowApi`) will be skipped for now since it's non-blocking and not essential.
 
-- If the parallel profile query finds a matching profile by the entered email, the email is already correct — skip using the edge function result entirely
-- Only use the resolved email when no profile was found with the original email (the rare mismatch case)
+### Step 2: Replace `useCloseMeetingWithRejection` with direct queries
+**File**: `src/hooks/useMeetings.ts`
 
-### Step 3: Make the `check-ip-access` startup path faster
-**File**: `src/hooks/useIPAccessCheck.ts`
+Same pattern — replace edge function call with direct Supabase operations for rejection flow.
 
-- Add a `Promise.race` with a 2s timeout around the combined `getClientIP()` + `check-ip-access` call
-- On timeout, default to `allowed: true` (fail-open, matching existing error behavior)
-- This prevents the app from hanging on slow ipify or edge function cold starts
+### Step 3: Navigate to new employer registration after approval
+**File**: `src/pages/meetings/StartMeetingPage.tsx`
 
-### Step 4: Make Turnstile verification non-blocking for login
-**File**: `src/components/auth/LoginScreen.tsx`
-
-- Instead of awaiting `verifyTurnstileToken()` before calling `login()`, fire it as a parallel operation
-- Start the actual `login()` call immediately while Turnstile verification runs alongside
-- If Turnstile fails, log it but don't block the user — the edge function already handles "skipped" verification gracefully
-
-### Step 5: Optimize `loadSessionPolicy` query  
-**File**: `src/contexts/SupabaseAuthContext.tsx`
-
-- `loadSessionPolicy` makes 2 sequential queries (system_settings + password_policies). Parallelize them with `Promise.all`
-- This is already fire-and-forget in the login path but still blocks during `initializeAuth` — parallelize there too
+After successful employer conversion + meeting closure, navigate to `/employer-registration/view/{regno}` instead of `/meetings/manage`, so the reviewer sees the newly created registration.
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/contexts/SupabaseAuthContext.tsx` | Race-timeout on `resolve-auth-email` (1.5s), skip when profile found, parallelize `loadSessionPolicy` queries |
-| `src/hooks/useIPAccessCheck.ts` | Race-timeout (2s) on entire IP check flow |
-| `src/components/auth/LoginScreen.tsx` | Fire Turnstile verification in parallel with login, don't block |
+| `src/hooks/useMeetings.ts` | Replace `useCloseMeetingWithApproval` and `useCloseMeetingWithRejection` edge function calls with direct Supabase client queries |
+| `src/pages/meetings/StartMeetingPage.tsx` | After successful employer conversion, navigate to the new registration view page |
 
 ### Expected Result
-- **Best case** (warm functions): Login in ~1s (signInWithPassword + parallel profile/roles)
-- **Cold start case**: Login in ~2-3s instead of 10-15s (all edge functions race-timed or parallelized)
-- **No regressions**: All fallbacks match existing error-handling behavior (fail-open for IP, proceed without verification for Turnstile, use entered email for resolve)
+- Approval completes in ~1-2s (direct DB queries, no edge function cold start)
+- Meeting status changes to `Closed` with `ClosedWithApproval` outcome
+- `er_master` record is created with `P` (Pending) status
+- User is navigated to `/employer-registration/view/{regno}` to see the new registration
 
