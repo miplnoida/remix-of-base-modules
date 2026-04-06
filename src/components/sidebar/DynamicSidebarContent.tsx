@@ -62,10 +62,21 @@ const defaultMenuItems: MenuItem[] = [
 // Session-level cache key for last-known-good dynamic menu
 const MENU_CACHE_KEY = 'dynamic-nav-cache';
 
+// Re-hydrate icons after JSON deserialization (components become {} after stringify)
+function rehydrateIcons(items: MenuItem[]): MenuItem[] {
+  return items.map(item => ({
+    ...item,
+    icon: (typeof item.icon === 'function' ? item.icon : LayoutDashboard) as LucideIcon,
+    subItems: item.subItems ? rehydrateIcons(item.subItems) : undefined,
+  }));
+}
+
 function getCachedMenu(): MenuItem[] | null {
   try {
     const cached = sessionStorage.getItem(MENU_CACHE_KEY);
-    return cached ? JSON.parse(cached) : null;
+    if (!cached) return null;
+    const parsed = JSON.parse(cached) as MenuItem[];
+    return rehydrateIcons(parsed);
   } catch {
     return null;
   }
