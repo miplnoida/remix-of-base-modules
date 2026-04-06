@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
 import { useTurnstile } from '@/hooks/useTurnstile';
 import { verifyTurnstileToken } from '@/services/turnstileService';
+import { isLovableEditorPreview } from '@/lib/runtimeEnvironment';
 
 export const SupabaseLoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export const SupabaseLoginScreen = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
   const { token, error: turnstileError, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
+  const isEditorPreview = isLovableEditorPreview();
 
   // Pending submission state — waits for turnstile token
   const [pendingSubmit, setPendingSubmit] = useState(false);
@@ -50,7 +52,7 @@ export const SupabaseLoginScreen = () => {
     console.log('[Login] handleSubmit called, window.turnstile available:', !!window.turnstile);
 
     // If turnstile is not available (blocked by iframe, ad-blocker, etc.), skip verification
-    if (!window.turnstile) {
+    if (isEditorPreview || !window.turnstile) {
       console.log('[Login] Turnstile not available, proceeding without verification');
       void processLogin(null);
       return;
@@ -63,7 +65,7 @@ export const SupabaseLoginScreen = () => {
   const processLogin = async (verificationToken: string | null) => {
     try {
       console.log('[Login] processLogin called, token:', verificationToken ? 'present' : 'null');
-      if (verificationToken) {
+      if (!isEditorPreview && verificationToken) {
         // Step 1: Verify human via edge function
         const verification = await verifyTurnstileToken(verificationToken, email);
         console.log('[Login] Turnstile verification result:', verification);
@@ -73,7 +75,7 @@ export const SupabaseLoginScreen = () => {
           setIsLoading(false);
           return;
         }
-      } else {
+      } else if (!isEditorPreview) {
         // Log unverified login attempt (Turnstile unavailable)
         console.log('[Login] Logging unverified attempt via edge function');
         try {
