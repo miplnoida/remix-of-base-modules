@@ -73,16 +73,52 @@ export function useMeetingDetails(meetingId: string | undefined) {
     queryKey: ['meeting-details', meetingId],
     queryFn: async (): Promise<MeetingDetailResponse> => {
       if (!meetingId) throw new Error('Meeting ID is required');
-      
-      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
-        body: {
-          action: 'get_meeting_details',
-          meetingId
-        }
-      });
 
-      if (error) throw error;
-      return data as MeetingDetailResponse;
+      // Fetch meeting with joins
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select(`
+          *,
+          workflow_definitions(name, description),
+          workflow_steps(step_name, description),
+          workflow_action_configurations(
+            meeting_type,
+            requires_api_integration
+          )
+        `)
+        .eq('id', meetingId)
+        .single();
+
+      if (meetingError) throw meetingError;
+
+      // Fetch history, outcomes, and API logs in parallel
+      const [historyResult, outcomesResult, apiLogsResult] = await Promise.all([
+        supabase
+          .from('meeting_history')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('performed_at', { ascending: false }),
+        meeting.action_config_id
+          ? supabase
+              .from('workflow_action_outcomes')
+              .select('*')
+              .eq('action_config_id', meeting.action_config_id)
+              .eq('is_active', true)
+              .order('display_order')
+          : Promise.resolve({ data: [], error: null }),
+        supabase
+          .from('meeting_api_logs')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      return {
+        meeting: meeting as unknown as Meeting,
+        history: (historyResult.data || []) as any,
+        outcomes: (outcomesResult.data || []) as any,
+        apiLogs: (apiLogsResult.data || []) as any,
+      };
     },
     enabled: !!meetingId,
     staleTime: 10000
