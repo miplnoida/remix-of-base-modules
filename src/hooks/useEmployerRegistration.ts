@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { 
   ERMasterFormData, 
   EROwnerData, 
@@ -419,6 +420,7 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
 
 // Hook for employer list
 export const useEmployerList = () => {
+  const { isAuthReady, isAuthenticated } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState('pending');
 
   const PENDING_STATUSES = ['Z', 'P'];
@@ -453,6 +455,7 @@ export const useEmployerList = () => {
       if (error) throw error;
       return data || [];
     },
+    enabled: isAuthReady && isAuthenticated,
   });
 
   const { data: counts } = useQuery({
@@ -472,6 +475,7 @@ export const useEmployerList = () => {
         ceased: allRecords.filter(r => CEASED_STATUSES.includes(r.status)).length,
       };
     },
+    enabled: isAuthReady && isAuthenticated,
   });
 
   // Delete employer (soft delete)
