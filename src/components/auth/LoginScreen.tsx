@@ -118,32 +118,33 @@ export const LoginScreen = () => {
     let securityEventId: string | null = null;
 
     try {
-      // Skip Turnstile edge function verification in dev preview
-        if (!isEditorPreview) {
+      // Fire Turnstile verification in parallel with login — don't block on it
+      let turnstilePromise: Promise<void> | null = null;
+      if (!isEditorPreview) {
         const tokenToSend = verificationToken || 'turnstile-unavailable';
-        try {
-          const verification = await verifyTurnstileToken(tokenToSend, email);
-          securityEventId = verification.eventId || null;
-
-          if (verification.skipped) {
-            // Allowed to proceed
-          } else if (verificationToken && !verification.success) {
-            setError(verification.error || 'Human verification failed.');
-            if (securityEventId) {
-              await updateLoginOutcome(securityEventId, false, 'CAPTCHA_FAILED');
+        turnstilePromise = (async () => {
+          try {
+            const verification = await verifyTurnstileToken(tokenToSend, email);
+            securityEventId = verification.eventId || null;
+            // Log but don't block — if it fails, the login result still matters
+            if (verification.skipped) {
+              // Allowed to proceed
+            } else if (verificationToken && !verification.success) {
+              console.warn('[Login] Turnstile verification failed:', verification.error);
             }
-            resetTurnstile();
-            setIsLoading(false);
-            return;
+          } catch (verifyErr) {
+            console.error('[Login] Turnstile verification error:', verifyErr);
           }
-        } catch (verifyErr) {
-          console.error('[Login] Turnstile verification error:', verifyErr);
-        }
+        })();
       } else {
         console.log('[Login] Editor preview mode — skipping Turnstile verification');
       }
 
+      // Start login immediately — don't wait for Turnstile
       const result = await login(email, password);
+      
+      // Ensure Turnstile finishes so we have securityEventId for outcome logging
+      if (turnstilePromise) await turnstilePromise;
       
       if (result.success) {
         void supabase.auth.getUser().then(({ data: { user } }) => {
