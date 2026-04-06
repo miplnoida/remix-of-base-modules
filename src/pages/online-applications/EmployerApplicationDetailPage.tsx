@@ -115,7 +115,7 @@ export default function EmployerApplicationDetailPage() {
   const resolved = useEmployerCodeResolver(application);
 
   // Meeting integration
-  const applicationRef = application?.registration_id || application?.id || applicationId;
+  const applicationRef = applicationId || application?.id || application?.registration_id;
   const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
   const handleActionComplete = () => {
@@ -217,7 +217,7 @@ export default function EmployerApplicationDetailPage() {
           </Button>
           <WorkflowActionButtons
             sourceModule="online-employer-applications"
-            sourceRecordId={application.registration_id || application.id || applicationId || null}
+            sourceRecordId={applicationId || application.id || application.registration_id || null}
             onActionComplete={(action) => {
               toast.success(`Action "${action}" completed successfully`);
               handleActionComplete();
@@ -336,7 +336,7 @@ export default function EmployerApplicationDetailPage() {
                       </Badge>
                     } 
                   />
-                  <DetailField label="Acquisition Date" value={formatDate(application.date_acquired)} />
+                  <DetailField label="Acquisition Date" value={formatDate(application.date_acquired || application.acquisition_date)} />
                   <DetailField label="Incorporated Date" value={formatDate(application.incorporated_date)} />
                 </div>
               </CardContent>

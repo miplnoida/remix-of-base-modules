@@ -371,7 +371,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange }: Em
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <EditField label="Parent Registration Number" value={data.parent_reg_no} onChange={(v) => onChange('parent_reg_no', v)} maxLength={6} />
                   <SelectField label="Office" value={data.office_code || ''} onChange={(v) => onChange('office_code', v)} options={officeCodes} placeholder="Select Office" />
-                  <SelectField label="Industry" value={data.industrial_code || ''} onChange={(v) => onChange('industrial_code', v)} options={industrialCodes} placeholder="Select Industry" />
+                  <SelectField label="Industry" value={data.industrial_code || data.industry_code || ''} onChange={(v) => onChange('industrial_code', v)} options={industrialCodes} placeholder="Select Industry" />
                 </div>
               </CardContent>
             </Card>

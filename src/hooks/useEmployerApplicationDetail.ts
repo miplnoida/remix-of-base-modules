@@ -102,6 +102,7 @@ export interface EmployerApplicationDetail {
   office_code: string | null;
   //office_name: string | null;
   industry_code: string | null;
+  industrial_code: string | null; // alias for edit form compatibility
   //industry_name: string | null;
   
   // Step 2: Basic Details - Business Identity
@@ -304,7 +305,7 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     // Step 1: Employer Profile
     incorporated_date: (raw.incorporated_date as string) || null,
     is_acquired: (raw.is_acquired as boolean) ?? null,
-    date_acquired: (raw.date_acquired as string) || null,
+    date_acquired: (raw.date_acquired as string) || (raw.acquisition_date as string) || null,
     previous_owner: (raw.previous_owner as string) || null,
     //previous_owner_reg_no: (raw.previous_owner_reg_no as string) || null,
     prev_owner_address1: (raw.previous_owner_address1 as string) || (raw.prev_owner_addr1 as string)  || (raw.prev_owner_address1 as string) || null,
@@ -316,7 +317,8 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     parent_reg_no: (raw.parent_reg_no as string) || null,
     office_code: (raw.office_code as string) || null,
     //office_name: (raw.office_name as string) || null,
-    industry_code: (raw.industry_code as string) || null,
+    industry_code: (raw.industry_code as string) || (raw.industrial_code as string) || null,
+    industrial_code: (raw.industrial_code as string) || (raw.industry_code as string) || null,
     //industry_name: (raw.industry_name as string) || null,
     
     // Step 2: Business Identity - Map to expected UI fields
