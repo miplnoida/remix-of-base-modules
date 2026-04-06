@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, RefreshCw, Download, FileCode, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Search, RefreshCw, Download, FileCode, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,7 +44,9 @@ const TechnicalLogs: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState<TechnicalLog | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['technical-logs', page, dateFrom, dateTo, apiFilter, userFilter, correlationSearch, statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -73,7 +77,10 @@ const TechnicalLogs: React.FC = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       return { logs: data as TechnicalLog[], count: count || 0 };
-    }
+    },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const getStatusBadge = (status: string | null) => {
@@ -177,6 +184,19 @@ const TechnicalLogs: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-4">
+              <Alert variant="destructive" className="max-w-md">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load technical logs: {queryError instanceof Error ? queryError.message : 'Unknown error'}
+                </AlertDescription>
+              </Alert>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
             </div>
           ) : (
             <>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,9 @@ const LoginSecurityLogs: React.FC = () => {
   const [emailFilter, setEmailFilter] = useState('');
   const { data: cfConfig, isLoading: cfLoading } = useCloudflareConfig();
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['login-security-events', page, dateFrom, dateTo, resultFilter, riskFilter, emailFilter],
     queryFn: async () => {
       let query = (supabase as any)
@@ -42,7 +45,10 @@ const LoginSecurityLogs: React.FC = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       return { logs: data || [], count: count || 0 };
-    }
+    },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const getResultBadge = (result: string) => {
@@ -198,6 +204,19 @@ const LoginSecurityLogs: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-4">
+              <Alert variant="destructive" className="max-w-md">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load login security logs: {queryError instanceof Error ? queryError.message : 'Unknown error'}
+                </AlertDescription>
+              </Alert>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
             </div>
           ) : (
             <>
