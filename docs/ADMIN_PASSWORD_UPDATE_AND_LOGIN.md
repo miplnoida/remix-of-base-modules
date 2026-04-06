@@ -1,7 +1,7 @@
 # Admin Password Update & Login Process
 
 ## Module: UserManagement / Authentication
-## Last Modified: 2026-02-24
+## Last Modified: 2026-04-06
 
 ---
 
@@ -38,14 +38,16 @@
 ## 2. Login Process (`SupabaseAuthContext.login()`)
 
 ### Behavior
-1. **Email Resolution**: Calls `resolve-auth-email` edge function to check if profile email differs from auth email. If so, uses the auth email for login.
+1. **Fast-Path Login**: Starts authentication immediately with the entered email for the common case, instead of always waiting on email resolution first.
+2. **Email Resolution Fallback**: Uses `resolve-auth-email` only as a fast fallback/retry path when no profile is found or the first credential check indicates the auth email may differ.
 2. **Account Checks**: Queries profile for `is_active`, `locked_until`, `failed_login_attempts`.
 3. **Authentication**: Calls `supabase.auth.signInWithPassword({ email, password })`.
 4. **Lockout**: After 5 failed attempts, locks account for 30 minutes.
 5. **Force Password Change**: If `force_password_change` is true, redirects to change-password screen.
+6. **Security Logging**: Turnstile verification and login outcome logging run in the background and do not block redirect after successful sign-in.
 
 ### Email Resolution (`resolve-auth-email` edge function)
-- Called before login with the email user entered.
+- Called as a fallback during login with the email user entered.
 - Looks up profile by email → gets auth user by profile ID → compares emails.
 - If emails differ, syncs profile email to auth email and returns the auth email.
 - `verify_jwt = false` (pre-authentication).

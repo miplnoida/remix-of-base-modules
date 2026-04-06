@@ -477,70 +477,101 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
-      // Run email resolution (with 1.5s timeout) and lockout check in PARALLEL
-      const RESOLVE_EMAIL_TIMEOUT_MS = 1500;
+      const RESOLVE_EMAIL_TIMEOUT_MS = 500;
 
-      const [resolveResult, profileResult] = await Promise.all([
-        Promise.race([
-          supabase.functions.invoke('resolve-auth-email', { body: { email } }).catch(err => {
-            console.warn('Email resolution failed, using provided email:', err);
-            return { data: null };
-          }),
-          new Promise<{ data: null }>((resolve) =>
-            setTimeout(() => {
-              console.warn('[Login] resolve-auth-email timed out after 1.5s — using provided email');
-              resolve({ data: null });
-            }, RESOLVE_EMAIL_TIMEOUT_MS)
-          ),
-        ]),
-        supabase
+      const fetchProfileByEmail = async (lookupEmail: string) => {
+        const { data } = await supabase
           .from('profiles')
           .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email')
-          .or(`email.eq.${email}`)
+          .eq('email', lookupEmail)
           .limit(1)
-          .maybeSingle(),
-      ]);
+          .maybeSingle();
 
-      // If profile was found by entered email, it's already correct — skip edge function result
-      let loginEmail = email;
-      const profileFoundByEmail = profileResult.data?.email === email;
+        return data;
+      };
 
-      if (!profileFoundByEmail && resolveResult?.data?.auth_email) {
-        loginEmail = resolveResult.data.auth_email;
-        // If resolved email differs, also check that profile
-        if (loginEmail !== email && !profileResult.data) {
-          const { data: resolvedProfile } = await supabase
-            .from('profiles')
-            .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email')
-            .eq('email', loginEmail)
-            .limit(1)
-            .maybeSingle();
-          if (resolvedProfile) {
-            (profileResult as any).data = resolvedProfile;
-          }
-        }
-      }
+      const validateProfileAccess = (existingProfile: Awaited<ReturnType<typeof fetchProfileByEmail>>) => {
+        if (!existingProfile) return null;
 
-      const existingProfile = profileResult.data;
-
-      if (existingProfile) {
         if (!existingProfile.is_active) {
-          return { success: false, error: 'Account is deactivated. Please contact administrator.' };
+          return 'Account is deactivated. Please contact administrator.';
         }
 
         if (existingProfile.locked_until) {
           const lockUntil = new Date(existingProfile.locked_until);
           if (lockUntil > new Date()) {
             const minutesRemaining = Math.ceil((lockUntil.getTime() - Date.now()) / 60000);
-            return { success: false, error: `Account is locked. Try again in ${minutesRemaining} minutes.` };
+            return `Account is locked. Try again in ${minutesRemaining} minutes.`;
           }
+        }
+
+        return null;
+      };
+
+      const hasInvalidCredentialsMessage = (message?: string) => {
+        const normalized = message?.toLowerCase() ?? '';
+        return normalized.includes('invalid') || normalized.includes('credential');
+      };
+
+      const resolveAuthEmailPromise = Promise.race<string | null>([
+        supabase.functions.invoke('resolve-auth-email', { body: { email } })
+          .then(({ data }) => data?.auth_email ?? null)
+          .catch(err => {
+            console.warn('Email resolution failed, using provided email:', err);
+            return null;
+          }),
+        new Promise<string | null>((resolve) =>
+          setTimeout(() => {
+            console.warn('[Login] resolve-auth-email timed out after 500ms — using provided email unless retry is needed');
+            resolve(null);
+          }, RESOLVE_EMAIL_TIMEOUT_MS)
+        ),
+      ]);
+
+      let existingProfile = await fetchProfileByEmail(email);
+      let loginEmail = email;
+
+      if (!existingProfile) {
+        const resolvedEmail = await resolveAuthEmailPromise;
+        if (resolvedEmail && resolvedEmail !== email) {
+          loginEmail = resolvedEmail;
+          existingProfile = await fetchProfileByEmail(resolvedEmail);
         }
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const profileAccessError = validateProfileAccess(existingProfile);
+      if (profileAccessError) {
+        return { success: false, error: profileAccessError };
+      }
+
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password,
       });
+
+      if (error && loginEmail === email && hasInvalidCredentialsMessage(error.message)) {
+        const resolvedEmail = await resolveAuthEmailPromise;
+
+        if (resolvedEmail && resolvedEmail !== email) {
+          const resolvedProfile = existingProfile ?? await fetchProfileByEmail(resolvedEmail);
+          const resolvedProfileAccessError = validateProfileAccess(resolvedProfile);
+
+          if (resolvedProfileAccessError) {
+            return { success: false, error: resolvedProfileAccessError };
+          }
+
+          existingProfile = resolvedProfile;
+          loginEmail = resolvedEmail;
+
+          const retryResult = await supabase.auth.signInWithPassword({
+            email: resolvedEmail,
+            password,
+          });
+
+          data = retryResult.data;
+          error = retryResult.error;
+        }
+      }
 
       if (error) {
         if (existingProfile) {
@@ -572,8 +603,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoggingOutRef.current = false;
         idleWarningShownRef.current = false;
 
-        // Fire-and-forget: session policy + profile update + profile/roles fetch in parallel
-        const profileUpdatePromise = supabase
+        void supabase
           .from('profiles')
           .update({ 
             failed_login_attempts: 0, 
@@ -582,11 +612,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           })
           .eq('id', data.user.id);
 
+        void loadSessionPolicy().catch(() => {});
+
         const [profileData, rolesData] = await Promise.all([
           fetchProfile(data.user.id),
           fetchRoles(data.user.id),
-          profileUpdatePromise,
-          loadSessionPolicy().catch(() => {}),
         ]);
 
         // Set auth state immediately — prevent onAuthStateChange from duplicating

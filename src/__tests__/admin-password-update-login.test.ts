@@ -76,6 +76,13 @@ describe('Admin Password Update', () => {
 // ============================================================
 describe('Login Process', () => {
   describe('Email Resolution', () => {
+    it('should not wait for email resolution before first sign-in attempt when entered email profile exists', () => {
+      // Flow: User enters a normal in-sync email
+      //   → profiles lookup succeeds immediately
+      //   → signInWithPassword is attempted right away
+      //   → resolve-auth-email remains a background fallback only
+    });
+
     it('should resolve auth email before login attempt', () => {
       // Flow: User enters "profile@email.com" 
       //   → resolve-auth-email returns "auth@email.com"
@@ -90,6 +97,13 @@ describe('Login Process', () => {
     it('should use entered email if no mismatch exists', () => {
       // Scenario: Profile email matches auth email
       // Expected: resolve-auth-email returns same email
+    });
+
+    it('should retry once with resolved auth email after invalid credentials when profile email is stale', () => {
+      // Flow: User enters stale profile email
+      //   → first signInWithPassword with entered email fails
+      //   → resolve-auth-email returns updated auth email
+      //   → signInWithPassword retries once with resolved auth email
     });
   });
 
@@ -132,6 +146,11 @@ describe('Login Process', () => {
 
     it('should redirect to change-password when force_password_change is true', () => {
       // Expected: { success: true, requiresPasswordChange: true }
+    });
+
+    it('should not block successful sign-in on turnstile outcome logging', () => {
+      // Expected: redirect can proceed after auth success
+      // Side effect: turnstile verification and updateLoginOutcome complete asynchronously
     });
   });
 });
