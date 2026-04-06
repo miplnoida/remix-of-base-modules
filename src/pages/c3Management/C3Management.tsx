@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,7 +125,7 @@ export default function C3Management() {
       date_entered_from: currentFilters.dateEntered || undefined,
       schedule_no: currentFilters.scheduleNo ? parseInt(currentFilters.scheduleNo) : undefined,
     });
-  }, [contributionType, searchParams]);
+  }, [contributionType, searchParams, fetchRecords]);
 
   // Function to get the appropriate button text based on active tab
   const getAddButtonText = () => {
