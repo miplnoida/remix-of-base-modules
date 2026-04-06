@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, RefreshCw, Download, Shield, ChevronLeft, ChevronRight, CheckCircle, XCircle, ShieldAlert, Ban } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, Download, Shield, ChevronLeft, ChevronRight, CheckCircle, XCircle, ShieldAlert, Ban, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import UnauthorizedAccessLogs from './UnauthorizedAccessLogs';
@@ -36,7 +38,9 @@ const SecurityLogs: React.FC = () => {
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['security-logs', page, dateFrom, dateTo, eventTypeFilter, userFilter],
     queryFn: async () => {
       let query = supabase
@@ -54,7 +58,9 @@ const SecurityLogs: React.FC = () => {
       if (error) throw error;
       return { logs: data as SecurityLog[], count: count || 0 };
     },
-    enabled: activeTab === 'auth-events',
+    enabled: isAuthReady && isAuthenticated && activeTab === 'auth-events',
+    staleTime: 30_000,
+    retry: 2,
   });
 
   // Count queries for tab badges

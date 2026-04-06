@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, RefreshCw, Download, GitBranch, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, Download, GitBranch, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 
@@ -35,7 +37,9 @@ const WorkflowLogs: React.FC = () => {
   const [workflowSearch, setWorkflowSearch] = useState('');
   const [selectedLog, setSelectedLog] = useState<WorkflowLog | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['workflow-logs', page, dateFrom, dateTo, statusFilter, workflowSearch],
     queryFn: async () => {
       let query = supabase
@@ -52,7 +56,10 @@ const WorkflowLogs: React.FC = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       return { logs: data as WorkflowLog[], count: count || 0 };
-    }
+    },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const getStatusBadge = (status: string | null) => {

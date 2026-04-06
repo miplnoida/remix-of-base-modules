@@ -11,7 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Unlock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Unlock, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { logAuditTrail } from '@/services/auditService';
@@ -19,11 +20,11 @@ import { logAuditTrail } from '@/services/auditService';
 const PAGE_SIZE = 20;
 
 const IPBlocksManagement: React.FC = () => {
-  const { user, profile } = useSupabaseAuth();
+  const { user, profile, isAuthenticated, isAuthReady } = useSupabaseAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['ip-blocks', page],
     queryFn: async () => {
       const { data, error, count } = await supabase
@@ -34,6 +35,9 @@ const IPBlocksManagement: React.FC = () => {
       if (error) throw error;
       return { blocks: data || [], count: count || 0 };
     },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const unblockMutation = useMutation({

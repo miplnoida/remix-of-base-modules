@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Download, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, Download, Briefcase, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 
@@ -34,7 +36,9 @@ const BusinessEvents: React.FC = () => {
   const [userFilter, setUserFilter] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isAuthenticated, isAuthReady } = useSupabaseAuth();
+
+  const { data, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['business-events', page, dateFrom, dateTo, moduleFilter, userFilter, entityTypeFilter],
     queryFn: async () => {
       let query = supabase
@@ -52,7 +56,10 @@ const BusinessEvents: React.FC = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       return { events: data as BusinessEvent[], count: count || 0 };
-    }
+    },
+    enabled: isAuthReady && isAuthenticated,
+    staleTime: 30_000,
+    retry: 2,
   });
 
   const getActionBadge = (action: string | null) => {
