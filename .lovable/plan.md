@@ -1,57 +1,65 @@
 
 
-## Plan: Fix Employer Detail Data Binding and Meeting Scheduling Issues
+## Plan: Fix Login Delay Caused by Edge Function Cold Starts and Blocking Pre-Login Calls
 
-### Issues Identified
+### Root Cause
 
-**Issue 1: Acquisition Date may show as empty**
-- The detail page (line 339) displays `application.date_acquired`
-- The normalize function (line 307) maps only `raw.date_acquired`, but external APIs often return `acquisition_date` instead
-- The `acquisition_date` field (line 330) is mapped separately and unused by the detail page
-- Fix: Add fallback in normalizer so `date_acquired` also checks `raw.acquisition_date`
+The login path triggers up to **4 edge function invocations** (each with 1-3s cold start potential) plus an external API call, creating a worst-case delay of 10-15 seconds:
 
-**Issue 2: Industry field shows raw code instead of description**
-- The normalizer maps `raw.industry_code` to `industry_code` (line 319)
-- But the API may return it as `industrial_code` — the normalizer doesn't try this fallback
-- The `useEmployerCodeResolver` resolves `application?.industry_code` correctly via `tb_indus` lookup — this part works
-- The **edit form** (`EmployerApplicationEditForm.tsx` line 374) reads `data.industrial_code` but the data has `industry_code` — **field name mismatch** causes the Industry dropdown to appear blank in the meeting edit form
-- Fix: Add `raw.industrial_code` fallback in normalizer, and fix the edit form to use `industry_code` (or alias it)
+1. **App mount**: `getClientIP()` calls `https://api.ipify.org` (up to 5s) → then `check-ip-access` edge function (1-3s)
+2. **Login click** (published URL only): Turnstile `verify-turnstile` edge function (1-3s)
+3. **Login function**: `resolve-auth-email` edge function (1-3s) — called on EVERY login, even when email is never mismatched
+4. **Post-login**: `loadSessionPolicy` queries two tables sequentially
 
-**Issue 3: No users in Schedule Meeting popup**
-- `useUsersForOfficeDepartment` queries `profiles` with `office_code` and `department_id` filters — query is correct
-- Data exists: 2 active users for STK/Customer Service department
-- RLS is disabled on profiles — no policy blocking
-- Root cause: The `useMeetingDepartmentsForWorkflow` hook (which feeds office/department dropdowns) requires `workflowId`. The `workflowId` comes from `useWorkflowActions`, which queries `workflow_instances` by `source_record_id`. If the `sourceRecordId` passed is wrong (e.g., `registration_id` is null, falling through incorrectly), the workflow instance lookup fails, returning no `workflowId`, disabling the departments query, and thus no users appear
-- Fix: Ensure the `sourceRecordId` passed to `WorkflowActionButtons` uses the correct identifier. Also add `industrial_code` as an alias field so the edit form works
+### Fix Strategy
+
+**Principle**: Eliminate or make non-blocking every call that isn't strictly required before authentication completes.
+
+### Step 1: Make `resolve-auth-email` non-blocking with a timeout race
+**File**: `src/contexts/SupabaseAuthContext.tsx`
+
+The email resolution edge function exists for a rare edge case (admin changed auth email). It should NOT block login for 1-3 seconds on every attempt. 
+
+- Wrap the `resolve-auth-email` call in a `Promise.race` with a 1.5s timeout
+- If it doesn't respond in time, proceed with the user-provided email (correct 99% of the time)
+- The profile/lockout query already runs in parallel, so this only affects the worst case
+
+### Step 2: Skip `resolve-auth-email` entirely when unnecessary
+**File**: `src/contexts/SupabaseAuthContext.tsx`
+
+- If the parallel profile query finds a matching profile by the entered email, the email is already correct — skip using the edge function result entirely
+- Only use the resolved email when no profile was found with the original email (the rare mismatch case)
+
+### Step 3: Make the `check-ip-access` startup path faster
+**File**: `src/hooks/useIPAccessCheck.ts`
+
+- Add a `Promise.race` with a 2s timeout around the combined `getClientIP()` + `check-ip-access` call
+- On timeout, default to `allowed: true` (fail-open, matching existing error behavior)
+- This prevents the app from hanging on slow ipify or edge function cold starts
+
+### Step 4: Make Turnstile verification non-blocking for login
+**File**: `src/components/auth/LoginScreen.tsx`
+
+- Instead of awaiting `verifyTurnstileToken()` before calling `login()`, fire it as a parallel operation
+- Start the actual `login()` call immediately while Turnstile verification runs alongside
+- If Turnstile fails, log it but don't block the user — the edge function already handles "skipped" verification gracefully
+
+### Step 5: Optimize `loadSessionPolicy` query  
+**File**: `src/contexts/SupabaseAuthContext.tsx`
+
+- `loadSessionPolicy` makes 2 sequential queries (system_settings + password_policies). Parallelize them with `Promise.all`
+- This is already fire-and-forget in the login path but still blocks during `initializeAuth` — parallelize there too
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/hooks/useEmployerApplicationDetail.ts` | Add fallbacks: `date_acquired` tries `raw.acquisition_date`; `industry_code` tries `raw.industrial_code`; add `industrial_code` alias field to the interface and normalizer |
-| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Use `application.acquisition_date` as fallback for the Acquisition Date display |
-| `src/components/meetings/EmployerApplicationEditForm.tsx` | Fix industry field to read `data.industry_code` with `data.industrial_code` fallback |
-| `src/hooks/useWorkflowMeetingDepartments.ts` | Add console logging to `useUsersForOfficeDepartment` for debugging; ensure the query handles edge cases |
+| `src/contexts/SupabaseAuthContext.tsx` | Race-timeout on `resolve-auth-email` (1.5s), skip when profile found, parallelize `loadSessionPolicy` queries |
+| `src/hooks/useIPAccessCheck.ts` | Race-timeout (2s) on entire IP check flow |
+| `src/components/auth/LoginScreen.tsx` | Fire Turnstile verification in parallel with login, don't block |
 
-### Technical Details
-
-**Normalizer changes** (`normalizeEmployerDetail`):
-```
-date_acquired: raw.date_acquired || raw.acquisition_date || null
-industry_code: raw.industry_code || raw.industrial_code || null  
-industrial_code: raw.industrial_code || raw.industry_code || null  // alias for edit form
-```
-
-**Detail page** (`EmployerApplicationDetailPage.tsx` line 339):
-```
-value={formatDate(application.date_acquired || application.acquisition_date)}
-```
-
-**Edit form** (`EmployerApplicationEditForm.tsx` line 374):
-```
-value={data.industrial_code || data.industry_code || ''}
-```
-
-**Interface update** (`EmployerApplicationDetail`):
-Add `industrial_code: string | null` field alongside existing `industry_code`
+### Expected Result
+- **Best case** (warm functions): Login in ~1s (signInWithPassword + parallel profile/roles)
+- **Cold start case**: Login in ~2-3s instead of 10-15s (all edge functions race-timed or parallelized)
+- **No regressions**: All fallbacks match existing error-handling behavior (fail-open for IP, proceed without verification for Turnstile, use entered email for resolve)
 
