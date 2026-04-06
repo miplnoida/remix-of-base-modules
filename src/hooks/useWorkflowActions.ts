@@ -135,7 +135,7 @@ export function useWorkflowActions(
       const combinedRoleNames = Array.from(
         new Set([...(contextRoleNames || []), ...dbRoleNames].filter(Boolean))
       );
-      const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : (combinedRoleNames[0] ?? fallbackRole);
+      const userRoleName = dbRoleNames.length > 0 ? dbRoleNames[0] : (combinedRoleNames[0] ?? 'user');
 
       // Step 3: Check permission (optimized - passes pre-fetched roles)
       const canPerformActions = await checkUserPermissionOptimized(
