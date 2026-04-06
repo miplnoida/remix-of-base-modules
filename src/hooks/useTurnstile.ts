@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { isLovableEditorPreview } from '@/lib/runtimeEnvironment';
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAACZ0HQSt_zV47yKd';
 const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -31,25 +32,61 @@ export function useTurnstile() {
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
+  const shouldBypassTurnstile = isLovableEditorPreview();
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scriptLoadedRef = useRef(false);
+  const availabilityCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const availabilityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isExecutingRef = useRef(false);
+
+  const clearAvailabilityWatchers = useCallback(() => {
+    if (availabilityCheckIntervalRef.current) {
+      clearInterval(availabilityCheckIntervalRef.current);
+      availabilityCheckIntervalRef.current = null;
+    }
+
+    if (availabilityTimeoutRef.current) {
+      clearTimeout(availabilityTimeoutRef.current);
+      availabilityTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearExecutionState = useCallback((nextError?: string | null) => {
+    if (executeTimeoutRef.current) {
+      clearTimeout(executeTimeoutRef.current);
+      executeTimeoutRef.current = null;
+    }
+
+    isExecutingRef.current = false;
+
+    if (nextError !== undefined) {
+      setError(nextError);
+    }
+  }, []);
 
   // Load the Turnstile script
   useEffect(() => {
+    if (shouldBypassTurnstile) {
+      setIsReady(true);
+      setIsAvailable(false);
+      return;
+    }
+
     if (scriptLoadedRef.current || document.querySelector(`script[src*="turnstile"]`)) {
       // Script tag exists — wait for full API
-      const checkInterval = setInterval(() => {
+      availabilityCheckIntervalRef.current = setInterval(() => {
         if (isTurnstileFullyAvailable()) {
           setIsReady(true);
           setIsAvailable(true);
           scriptLoadedRef.current = true;
-          clearInterval(checkInterval);
+          clearAvailabilityWatchers();
         }
       }, 200);
+
       // Timeout after 5s — mark ready but unavailable
-      setTimeout(() => {
-        clearInterval(checkInterval);
+      availabilityTimeoutRef.current = setTimeout(() => {
         scriptLoadedRef.current = true;
         setIsReady(true);
         if (!isTurnstileFullyAvailable()) {
@@ -57,7 +94,8 @@ export function useTurnstile() {
           setIsAvailable(false);
         }
       }, 5000);
-      return;
+
+      return clearAvailabilityWatchers;
     }
 
     const script = document.createElement('script');
@@ -83,11 +121,13 @@ export function useTurnstile() {
       scriptLoadedRef.current = true;
     };
     document.head.appendChild(script);
-  }, []);
+
+    return clearAvailabilityWatchers;
+  }, [clearAvailabilityWatchers, shouldBypassTurnstile]);
 
   // Render the invisible widget once ready and available
   useEffect(() => {
-    if (!isReady || !isAvailable || !containerRef.current) return;
+    if (shouldBypassTurnstile || !isReady || !isAvailable || !containerRef.current) return;
     if (widgetIdRef.current) return;
 
     try {
@@ -95,20 +135,15 @@ export function useTurnstile() {
         sitekey: TURNSTILE_SITE_KEY,
         size: 'invisible',
         callback: (tkn: string) => {
-          // Clear safety timeout
-          const ref = containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> };
-          if (ref._timeoutId) { clearTimeout(ref._timeoutId); ref._timeoutId = undefined; }
+          clearExecutionState(null);
           setToken(tkn);
-          setError(null);
         },
         'error-callback': () => {
-          // Clear safety timeout
-          const ref = containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> };
-          if (ref._timeoutId) { clearTimeout(ref._timeoutId); ref._timeoutId = undefined; }
-          setError('Verification failed. Please try again.');
+          clearExecutionState('Verification failed. Please try again.');
           setToken(null);
         },
         'expired-callback': () => {
+          clearExecutionState(null);
           setToken(null);
         },
       });
@@ -117,18 +152,24 @@ export function useTurnstile() {
       console.warn('[Turnstile] Failed to render widget:', err);
       setIsAvailable(false);
     }
-  }, [isReady, isAvailable]);
+  }, [clearExecutionState, isReady, isAvailable, shouldBypassTurnstile]);
 
   // Execute verification (call on form submit)
   const execute = useCallback(() => {
     setToken(null);
     setError(null);
 
-    if (!isTurnstileFullyAvailable() || !containerRef.current) {
+    if (shouldBypassTurnstile || !isTurnstileFullyAvailable() || !containerRef.current) {
       // Not available — signal immediately via error so caller can proceed without
       setError('turnstile-unavailable');
       return;
     }
+
+    if (isExecutingRef.current) {
+      return;
+    }
+
+    isExecutingRef.current = true;
 
     try {
       // Reset first, then execute after a short delay to avoid "already executing" state
@@ -144,42 +185,41 @@ export function useTurnstile() {
           } else if (containerRef.current) {
             window.turnstile!.execute(containerRef.current);
           } else {
-            setError('turnstile-unavailable');
+            clearExecutionState('turnstile-unavailable');
           }
         } catch (err) {
           console.warn('[Turnstile] Execute (delayed) failed:', err);
-          setError('turnstile-unavailable');
+          clearExecutionState('turnstile-unavailable');
         }
       }, 100);
 
-      // Safety timeout: if turnstile doesn't respond in 8s, unblock login
-      const timeoutId = setTimeout(() => {
-        setError('turnstile-unavailable');
+      // Safety timeout: if turnstile doesn't respond quickly, unblock login
+      executeTimeoutRef.current = setTimeout(() => {
+        clearExecutionState('turnstile-unavailable');
         console.warn('[Turnstile] Timed out waiting for response — proceeding without verification');
-      }, 8000);
-
-      // Store timeout ID so we can clear it if token/error arrives
-      (containerRef as React.MutableRefObject<HTMLDivElement | null> & { _timeoutId?: ReturnType<typeof setTimeout> })._timeoutId = timeoutId;
+      }, 3000);
     } catch (err) {
       console.warn('[Turnstile] Execute failed:', err);
-      setError('turnstile-unavailable');
+      clearExecutionState('turnstile-unavailable');
     }
-  }, []);
+  }, [clearExecutionState, shouldBypassTurnstile]);
 
   // Reset the widget
   const reset = useCallback(() => {
     setToken(null);
-    setError(null);
+    clearExecutionState(null);
     if (isTurnstileFullyAvailable() && widgetIdRef.current) {
       try {
         window.turnstile!.reset(widgetIdRef.current);
       } catch { /* noop */ }
     }
-  }, []);
+  }, [clearExecutionState]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      clearAvailabilityWatchers();
+      clearExecutionState();
       if (window.turnstile && widgetIdRef.current) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -187,7 +227,7 @@ export function useTurnstile() {
         widgetIdRef.current = null;
       }
     };
-  }, []);
+  }, [clearAvailabilityWatchers, clearExecutionState]);
 
   return { token, error, isReady, isAvailable, execute, reset, containerRef };
 }

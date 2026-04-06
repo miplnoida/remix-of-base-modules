@@ -15,6 +15,7 @@ import {
 import { getDeviceInfo } from '@/services/correlationIdService';
 import { useTurnstile } from '@/hooks/useTurnstile';
 import { verifyTurnstileToken, updateLoginOutcome } from '@/services/turnstileService';
+import { isLovableEditorPreview } from '@/lib/runtimeEnvironment';
 
 const features = [
   { icon: Shield, label: 'Risk-Based Planning' },
@@ -36,6 +37,7 @@ export const LoginScreen = () => {
   const { login, isAuthenticated, profile, isLoading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
   const { token: turnstileToken, error: turnstileError, isAvailable: turnstileAvailable, execute: executeTurnstile, reset: resetTurnstile, containerRef } = useTurnstile();
+  const isEditorPreview = isLovableEditorPreview();
 
   // Redirect if already authenticated.
   // Important: do not require profile to exist before redirecting,
@@ -69,40 +71,32 @@ export const LoginScreen = () => {
   }, [turnstileToken, turnstileError, pendingSubmit]);
 
   // Log login attempt to system logs
-  const logLoginAttempt = async (success: boolean, userEmail: string, userId?: string, reason?: string) => {
-    try {
-      startNewCorrelation();
-      
-      await logSecurity({
-        event_type: success ? 'login' : 'failed_login',
-        user_name: userEmail,
-        success,
-        module: 'Authentication',
-        api_name: 'login',
-        severity: success ? 'info' : 'warning',
-        payload_json: { 
-          reason, 
-          device: getDeviceInfo(),
-          timestamp: new Date().toISOString()
-        },
-      }, userId);
+  const logLoginAttempt = (success: boolean, userEmail: string, userId?: string, reason?: string) => {
+    startNewCorrelation();
 
-      await supabase.from('audit_logs').insert({
-        action_type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE',
-        module_name: 'Authentication',
-        entity_type: 'user',
-        user_email: userEmail,
-        user_id: userId,
-        metadata: reason ? { reason } : null,
-      });
-    } catch (err) {
-      console.error('Failed to log login event:', err);
-    }
+    void logSecurity({
+      event_type: success ? 'login' : 'failed_login',
+      user_name: userEmail,
+      success,
+      module: 'Authentication',
+      api_name: 'login',
+      severity: success ? 'info' : 'warning',
+      payload_json: {
+        reason,
+        device: getDeviceInfo(),
+        timestamp: new Date().toISOString()
+      },
+    }, userId);
+
+    void supabase.from('audit_logs').insert({
+      action_type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILURE',
+      module_name: 'Authentication',
+      entity_type: 'user',
+      user_email: userEmail,
+      user_id: userId,
+      metadata: reason ? { reason } : null,
+    });
   };
-
-  // Detect preview/dev environment where Turnstile and edge functions may not work
-  const isDevPreview = window.location.hostname.includes('preview--') || 
-                       window.location.hostname.includes('localhost');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +105,7 @@ export const LoginScreen = () => {
     setAttemptsRemaining(null);
 
     // In dev preview, skip Turnstile entirely to avoid proxy issues
-    if (isDevPreview || !turnstileAvailable) {
+    if (isEditorPreview || !turnstileAvailable) {
       void performLogin(null);
       return;
     }
@@ -125,7 +119,7 @@ export const LoginScreen = () => {
 
     try {
       // Skip Turnstile edge function verification in dev preview
-      if (!isDevPreview) {
+        if (!isEditorPreview) {
         const tokenToSend = verificationToken || 'turnstile-unavailable';
         try {
           const verification = await verifyTurnstileToken(tokenToSend, email);
@@ -146,19 +140,19 @@ export const LoginScreen = () => {
           console.error('[Login] Turnstile verification error:', verifyErr);
         }
       } else {
-        console.log('[Login] Dev preview mode — skipping Turnstile verification');
+        console.log('[Login] Editor preview mode — skipping Turnstile verification');
       }
 
       const result = await login(email, password);
       
       if (result.success) {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (securityEventId) {
-          await updateLoginOutcome(securityEventId, true, undefined, user?.id);
-        }
-        
-        await logLoginAttempt(true, email, user?.id);
+        void supabase.auth.getUser().then(({ data: { user } }) => {
+          if (securityEventId) {
+            void updateLoginOutcome(securityEventId, true, undefined, user?.id);
+          }
+
+          logLoginAttempt(true, email, user?.id);
+        });
         
         if (result.requiresPasswordChange) {
           navigate('/change-password', { state: { required: true }, replace: true });
@@ -170,10 +164,10 @@ export const LoginScreen = () => {
           : 'LOGIN_FAILED';
 
         if (securityEventId) {
-          await updateLoginOutcome(securityEventId, false, failureReason);
+          void updateLoginOutcome(securityEventId, false, failureReason);
         }
 
-        await logLoginAttempt(false, email, undefined, failureReason);
+        logLoginAttempt(false, email, undefined, failureReason);
         resetTurnstile();
         
         if (result.error?.includes('locked')) {
@@ -200,10 +194,10 @@ export const LoginScreen = () => {
       console.error('Login error:', err);
       
       if (securityEventId) {
-        await updateLoginOutcome(securityEventId, false, 'SYSTEM_ERROR');
+        void updateLoginOutcome(securityEventId, false, 'SYSTEM_ERROR');
       }
 
-      await logSystemError({
+      void logSystemError({
         error_type: 'LoginError',
         error_message: err?.message || 'Unknown login error',
         stack_trace: err?.stack,
