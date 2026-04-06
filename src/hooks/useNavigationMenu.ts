@@ -50,7 +50,7 @@ export function useIsAdmin() {
 }
 
 export function useNavigationMenu() {
-  const { user, isAuthenticated } = useSupabaseAuth();
+  const { user, isAuthenticated, isAuthReady } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
 
   const { data: modules = [], isLoading: modulesLoading } = useQuery({
@@ -64,7 +64,7 @@ export function useNavigationMenu() {
       if (error) throw error;
       return data as AppModule[];
     },
-    enabled: isAuthenticated,
+    enabled: isAuthReady && isAuthenticated,
   });
 
   const { data: userPermissions = [], isLoading: permissionsLoading } = useQuery({
@@ -76,7 +76,7 @@ export function useNavigationMenu() {
       if (error) throw error;
       return data as Array<{ module_name: string; action_name: string; is_granted: boolean }>;
     },
-    enabled: !!user?.id,
+    enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
 
   // Build navigation tree
@@ -189,7 +189,7 @@ export function useNavigationMenu() {
 
 // Hook to check if user has specific permission
 export function useHasPermission(moduleName: string, actionName: string): boolean {
-  const { user } = useSupabaseAuth();
+  const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
   
   const { data: hasPermission = false } = useQuery({
@@ -206,7 +206,7 @@ export function useHasPermission(moduleName: string, actionName: string): boolea
       if (error) throw error;
       return data ?? false;
     },
-    enabled: !!user?.id && !!moduleName && !!actionName,
+    enabled: isAuthReady && isAuthenticated && !!user?.id && !!moduleName && !!actionName,
   });
 
   // Admin role bypass - always return true
@@ -217,7 +217,7 @@ export function useHasPermission(moduleName: string, actionName: string): boolea
 
 // Hook to get all user permissions for a module
 export function useModulePermissions(moduleName: string) {
-  const { user } = useSupabaseAuth();
+  const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
   
   const { data: permissions = [], isLoading } = useQuery({
@@ -231,7 +231,7 @@ export function useModulePermissions(moduleName: string) {
         .filter(p => p.module_name === moduleName)
         .map(p => p.action_name);
     },
-    enabled: !!user?.id && !!moduleName,
+    enabled: isAuthReady && isAuthenticated && !!user?.id && !!moduleName,
   });
 
   return {
