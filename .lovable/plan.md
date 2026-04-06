@@ -1,113 +1,95 @@
 
 
-## Analysis: Changes After March 31st That Caused Slow/Intermittent Loading
+## Plan: Permanently Fix Slow Login and Stuck Loading Screens
 
-### What Was Working on March 31st (commit `6bcdd96d`)
+### Problem Summary
 
-The March 31st code had a simple, fast auth + navigation flow:
+Login takes 5-10+ seconds and pages hang after login. This is caused by **sequential network bottlenecks** during login and **duplicate auth state management** across multiple hooks.
 
-```text
-March 31st flow:
-Login → setSession → setUser → fetchProfile + fetchRoles → setIsLoading(false)
-                                                                    ↓
-Navigation query: enabled: !!user?.id  ← fires immediately when user is set
-                                                                    ↓
-Sidebar: isLoading? → skeletons. isError? → retry. Otherwise → render menu.
-```
+### Root Causes (Ordered by Impact)
 
-No `isAuthReady`, no `authBootstrapVersion`, no `initializingRef`, no timeouts, no sessionStorage caching. Simple and fast.
+**1. Login function makes 3 sequential network calls BEFORE authentication**
 
-### What Changed After March 31st (22+ commits to auth/nav files)
+In `SupabaseAuthContext.tsx` lines 467-505, the `login()` function does:
+1. Edge function call `resolve-auth-email` (cold start = 1-3s)
+2. Profile query to check lockout (200-500ms)
+3. THEN `signInWithPassword` (200-500ms)
+4. THEN `loadSessionPolicy` (200ms)
+5. THEN profile update (200ms)
+6. THEN `fetchProfile` again (200ms)
 
-**Layer 1 — SupabaseAuthContext.tsx** (commits `8bd0b455`, `0cf1f094`, `287e7a22`, `1d4e2a82`, `fdc8fe54`, `f084b337`)
+That's 6 sequential calls. Total: 2-5 seconds minimum.
 
-Added:
-- `isAuthReady` state (starts `false`, must be explicitly set to `true`)
-- `authBootstrapVersion` counter
-- `rolesStatus` / `profileStatus` tracking
-- `initializingRef` guard to prevent duplicate fetches
-- 15-second safety timeout in `initializeAuth`
-- `.then()` / `.catch()` in `onAuthStateChange` SIGNED_IN handler
+**2. Duplicate profile/roles fetching after login**
 
-**Impact**: Created a two-phase auth lifecycle where `isLoading=false` no longer means "ready to fetch data." Components must now also wait for `isAuthReady=true`. This is the core source of the regression — every component that only checked `isLoading` or `!!user?.id` became broken.
+After `signInWithPassword` succeeds, `onAuthStateChange` fires `SIGNED_IN`. Since `initDone` is `true` by then, lines 380-397 trigger ANOTHER `Promise.all([fetchProfile, fetchRoles])`. This duplicates work the login function already did, adding 400ms+ of wasted time.
 
-**Layer 2 — useDynamicNavigation.ts** (commits `a6010319`, `18f0ccb2`, `a194b184`)
+**3. `useOnlineApplicationWorkflowBinding` creates its own auth listener**
 
-Changed:
-- `enabled: !!user?.id` → `enabled: isAuthReady && isAuthenticated && !!user?.id`
-- Added `authBootstrapVersion` to `queryKey` (forces refetch on every bootstrap)
-- Added 20-second `Promise.race` timeout wrapper around the RPC call
-- Added `retry: 2` with exponential backoff
-- Made logging fire-and-forget (good change, keeps)
+Lines 276-288 call `supabase.auth.getUser()` (network call) and set up a SEPARATE `onAuthStateChange` subscription — on every mount of employer/IP/doctor application pages. This is completely redundant since the user is already available from `useSupabaseAuth()`.
 
-**Impact**: The navigation query now waits for `isAuthReady` (correct), but when `isAuthReady` is delayed, the query stays disabled. React Query v5 returns `isLoading: false` for disabled queries, so the sidebar sees `menuItems: []` + `isLoading: false` = "No modules assigned" flash.
+**4. Console.log fires on every render (not in useEffect)**
 
-**Layer 3 — DynamicSidebarContent.tsx** (commits `e523b41c`, `1d306abf`, `6295a591`)
+Lines 291-296 of `useOnlineApplicationWorkflowBinding` log on every render cycle, not inside a useEffect. This is a performance anti-pattern that clutters output and wastes CPU.
 
-Changed from 132 lines to ~210 lines:
-- Added sessionStorage caching with icon rehydration
-- Added 15-second `loadingTimedOut` state
-- Added "last known good" menu fallback
-- Added "Refresh menu" button on timeout/error
+**5. `ProtectedRoute` checks `isLoading` but not `isAuthReady`**
 
-**Impact**: Over-engineered for a problem that shouldn't exist. The caching/timeout logic adds complexity but masks the real issue (auth readiness delay). The 15s sidebar timeout races against the 15s auth safety timeout + 20s RPC timeout.
+`ProtectedRoute` uses only `isLoading` to gate rendering. After the recent changes, `isLoading` can become `false` before `isAuthReady` is `true`, causing child components to mount and fire queries before auth data (profile, roles) is available.
 
-**Layer 4 — ProtectedRoute.tsx** (commit `8bd0b455`)
+### Fix Plan
 
-Changed from simple loading text to:
-- 10-second warning timer
-- 20-second retry/login buttons
+#### Step 1: Speed up the login function
+**File:** `src/contexts/SupabaseAuthContext.tsx`
 
-**Impact**: This is fine as defensive UX, but it shouldn't be needed if auth bootstraps in <2 seconds.
+- Move `resolve-auth-email` to run in PARALLEL with the lockout profile check (both are pre-auth validation)
+- Remove the duplicate `fetchProfile` call at line 548 — it's already triggered by `onAuthStateChange` SIGNED_IN handler
+- Move `loadSessionPolicy()` to fire-and-forget (non-blocking) after login succeeds
 
-### Root Cause Summary
+This reduces login from 6 sequential calls to: 1 parallel pre-check + signInWithPassword + 1 profile update = ~3 calls.
 
-| What broke it | Why |
-|---|---|
-| Adding `isAuthReady` to SupabaseAuthContext | Created a new gate that existing code didn't know about |
-| Partial migration | Only navigation hook was updated to use `isAuthReady`; dozens of other hooks/pages weren't |
-| `initializingRef` guard | Can cause `onAuthStateChange` to skip profile/roles fetch, leaving `isAuthReady` stuck until `initializeAuth` finishes |
-| Stacked timeouts (15s auth + 20s RPC + 15s sidebar + 10s/20s ProtectedRoute) | On slow networks, these cascade and fight each other |
-| `authBootstrapVersion` in queryKey | Forces a fresh RPC call on every bootstrap cycle, preventing React Query cache from helping |
+#### Step 2: Prevent duplicate profile/roles fetch after login
+**File:** `src/contexts/SupabaseAuthContext.tsx`
 
-### Fix Strategy: Simplify Back to Working State
+- In the `onAuthStateChange` SIGNED_IN handler, skip the `fetchProfile + fetchRoles` call if the data was already loaded by the `login()` function in the same session
+- Use a ref (`loginJustCompletedRef`) that the login function sets to `true`, and the SIGNED_IN handler checks and resets
 
-The `isAuthReady` concept is correct in principle but was over-implemented. The fix should:
+#### Step 3: Fix ProtectedRoute to gate on `isAuthReady`
+**File:** `src/components/auth/ProtectedRoute.tsx`
 
-**Step 1: Simplify SupabaseAuthContext**
-- Remove the 15-second safety timeout (unnecessary — `finally` block already handles this)
-- Remove `authBootstrapVersion` (causes unnecessary refetches; `user?.id` in queryKey is sufficient)
-- Keep `isAuthReady` but ensure it's set to `true` in ALL exit paths without complex branching
-- Remove `initializingRef` — it creates a race where `onAuthStateChange` skips legitimate session events
+- Change the loading condition from `isLoading` to `isLoading || !isAuthReady` when user is authenticated
+- This prevents child pages from mounting before profile/roles are loaded
 
-**Step 2: Simplify useDynamicNavigation**
-- Remove the 20-second `Promise.race` timeout (Supabase client already has its own timeout)
-- Remove `authBootstrapVersion` from `queryKey`
-- Keep `enabled: isAuthReady && isAuthenticated && !!user?.id` (this is correct)
-- Keep fire-and-forget logging (good)
+#### Step 4: Remove redundant auth in `useOnlineApplicationWorkflowBinding`
+**File:** `src/hooks/useOnlineApplicationWorkflowBinding.ts`
 
-**Step 3: Restore simple DynamicSidebarContent**
-- Remove sessionStorage caching and icon rehydration (unnecessary complexity)
-- Remove the 15-second `loadingTimedOut` state
-- Restore the original simple pattern: `isLoading → skeletons`, `isError → retry`, else → render
-- Keep the default menu items section
+- Remove the internal `getUser()` call and `onAuthStateChange` subscription (lines 276-288)
+- Accept `userId` as a parameter or use `useSupabaseAuth()` directly
+- Move debug `console.log` from render body into the useEffect
+- This eliminates 1 network call + 1 auth listener per application page mount
 
-**Step 4: Simplify ProtectedRoute**
-- Remove the 10s/20s warning and retry timers
-- Keep simple loading spinner — if auth takes >15s something is truly broken and a page refresh is the right action
+#### Step 5: Remove verbose render-time logging
+**File:** `src/hooks/useOnlineApplicationWorkflowBinding.ts`
+
+- Move the `console.log` at line 291-296 inside the useEffect or remove it
+- Keep only meaningful logs inside the async workflow binding function
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/contexts/SupabaseAuthContext.tsx` | Remove safety timeout, `initializingRef`, `authBootstrapVersion`. Keep `isAuthReady` set simply in `finally` and `.catch()` |
-| `src/hooks/useDynamicNavigation.ts` | Remove `Promise.race` timeout, `authBootstrapVersion` from queryKey. Keep `isAuthReady` gate |
-| `src/components/sidebar/DynamicSidebarContent.tsx` | Restore to March 31st simplicity (132 lines) while keeping `isAuthReady`-aware hook |
-| `src/components/auth/ProtectedRoute.tsx` | Remove timer-based warnings, restore simple loading state |
+| `src/contexts/SupabaseAuthContext.tsx` | Parallelize pre-login checks, prevent duplicate fetch, fire-and-forget policy load |
+| `src/components/auth/ProtectedRoute.tsx` | Gate on `isAuthReady` for authenticated users |
+| `src/hooks/useOnlineApplicationWorkflowBinding.ts` | Use `useSupabaseAuth()` instead of own auth listener, fix render-time logging |
 
 ### Expected Result
-- Auth bootstrap completes in <2 seconds (as it did on March 31st)
-- Navigation query fires immediately after auth is ready
-- No cascading timeouts fighting each other
-- Menu loads consistently on every login
+- Login: from 5-10s down to 1-2s
+- Page data loading: immediate after auth ready (no more "stuck" screens)
+- Fewer network calls: eliminated ~4 redundant calls per login + page load cycle
+- No more duplicate auth subscriptions competing with each other
+
+### What Is NOT Changed
+- The `isAuthReady` gating pattern in navigation and data hooks — this is correct
+- The `AuthContext` shim — it's working as intended
+- The `SecurityPolicyContext` — it already gates on `isAuthReady`
+- Edge function implementations — the proxy-api pattern is fine
 
