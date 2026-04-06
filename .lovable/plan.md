@@ -1,36 +1,60 @@
 
 
-## Plan: Fix C3 Management Page Infinite Loader
+## Plan: Fix Employer Application Data Loading on Meeting Start Page
 
 ### Root Cause
 
-The `C3Management` page calls `getC3Records()` which invokes the `get_c3_records_filtered` RPC. The RPC itself works correctly (23 rows, proper indexes, single function signature, RLS disabled). The infinite loader occurs when the Supabase client's HTTP request hangs without resolving or rejecting — the `await supabase.rpc(...)` never completes, so `setLoading(false)` in the `finally` block never executes.
+Line 118 of `StartMeetingPage.tsx` uses `useExternalApplicationDetail(applicationReference)` for **all** meeting types. This hook hardcodes the proxy module to `insured-person-applications`. When the meeting type is `Employer-Registration`, the proxy calls the wrong external API module, gets no data (or wrong data), and the form renders empty.
 
-Contributing factors:
-1. **No request timeout** — `getC3Records` has no timeout; a stalled network connection keeps `loading: true` forever.
-2. **Missing `fetchRecords` in useEffect deps** — The initial data-fetch `useEffect` (line 111) depends on `[contributionType, searchParams]` but not `fetchRecords`, meaning it can call a stale closure.
-3. **No safety timer** — Unlike the sidebar (which has a 15-second safety fallback), this page has no mechanism to escape a hung request.
+The project already has a dedicated `useEmployerApplicationDetail` hook in `src/hooks/useEmployerApplicationDetail.ts` that correctly calls the `employer-applications` proxy module and normalizes the response into the `EmployerApplicationDetail` interface — the same hook used by the read-only detail page at `/online-applications/employer/:id`.
 
 ### Fix
 
-**File: `src/services/c3Service.ts`** — Add a timeout wrapper around the RPC call in `getC3Records`:
-- Wrap the `supabase.rpc` call in a `Promise.race` with a 15-second `AbortController`/timeout
-- If the timeout fires, reject with a clear "Request timed out" error
-- The existing `catch` block will handle it and return `{ data: [], total: 0, error }`, allowing the page to show "No records found" instead of an infinite spinner
+**File: `src/pages/meetings/StartMeetingPage.tsx`**
 
-**File: `src/hooks/useC3Management.ts`** — Add a safety timer in `fetchRecords`:
-- After 20 seconds, if `loading` is still `true`, force it to `false` and set an error message
-- This acts as a last-resort fallback independent of the service layer timeout
+1. **Import `useEmployerApplicationDetail`** from `src/hooks/useEmployerApplicationDetail.ts`.
 
-**File: `src/pages/c3Management/C3Management.tsx`** — Two fixes:
-1. Add `fetchRecords` to the initial `useEffect` dependency array (line 128) to prevent stale closure issues
-2. Add a retry button alongside the "Loading C3 records..." message that appears after 10 seconds, so users can manually retry without refreshing the page
+2. **Add a second query hook** for employer data, gated on meeting type:
+   ```
+   const isEmployerMeeting = meetingType === 'Employer-Registration';
+   
+   // Existing IP hook — only enabled for non-employer meetings
+   const { data: ipApplicationData, ... } = useExternalApplicationDetail(
+     !isEmployerMeeting ? applicationReference : undefined
+   );
+   
+   // New employer hook — only enabled for employer meetings  
+   const { data: employerApplicationData, ... } = useEmployerApplicationDetail(
+     isEmployerMeeting ? applicationReference : undefined
+   );
+   
+   // Unified reference
+   const applicationData = isEmployerMeeting ? employerApplicationData : ipApplicationData;
+   const appLoading = isEmployerMeeting ? employerLoading : ipAppLoading;
+   const appFetching = isEmployerMeeting ? employerFetching : ipAppFetching;
+   ```
+
+3. **Update `handleRefresh`** to call the correct refetch function based on meeting type.
+
+4. **Move `isEmployerMeeting` declaration** above the hooks (currently it's at line 140, after the hooks). Since `meetingType` comes from `meetingData` which can be undefined initially, both hooks will be disabled until `meetingData` loads, then the correct one activates.
+
+5. **No changes to `EmployerApplicationEditForm`** — it already accepts `data: Record<string, any>` and the `EmployerApplicationDetail` interface fields match what the form reads.
+
+6. **No changes to the approval flow** — the `convertToEmployer` call at line 248 already passes `applicationData` which will now be the correctly-typed employer data.
+
+### Edge cases handled
+
+- **Invalid/missing reference**: Both hooks return `null` when `applicationReference` is undefined; the existing "Unable to load application data" alert renders.
+- **Meeting type not yet loaded**: Both hooks are disabled (`enabled: false`) when `meetingType` is undefined, preventing premature API calls.
+- **Other meeting types unaffected**: IP-Registration and Doctor-Registration continue using `useExternalApplicationDetail` as before.
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
-| `src/services/c3Service.ts` | Add 15s timeout to `getC3Records` RPC call |
-| `src/hooks/useC3Management.ts` | Add 20s safety timer in `fetchRecords` |
-| `src/pages/c3Management/C3Management.tsx` | Fix `useEffect` deps; add timeout retry UI in loading state |
+| `src/pages/meetings/StartMeetingPage.tsx` | Add `useEmployerApplicationDetail` import; add conditional hook call; unify `applicationData`/`appLoading`/`appFetching` references |
+
+### No migration or new files needed
+
+The existing `useEmployerApplicationDetail` hook, `proxy-api` edge function, and `EmployerApplicationEditForm` component are all already built and correct. This is purely a wiring fix in the page component.
 

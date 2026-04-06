@@ -27,31 +27,6 @@ import { getC3Statuses, getActiveProfiles, updateWageVerification, verifyAllWage
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import { Checkbox } from "@/components/ui/checkbox";
 
-// Loading component with retry after timeout
-function LoadingWithRetry({ onRetry }: { onRetry: () => void }) {
-  const [showRetry, setShowRetry] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setShowRetry(true), 10000);
-    return () => clearTimeout(timer);
-  }, []);
-  return (
-    <div className="flex flex-col items-center justify-center py-8 gap-3">
-      <div className="flex items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Loading C3 records...</span>
-      </div>
-      {showRetry && (
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-sm text-muted-foreground">Taking longer than expected...</span>
-          <Button variant="outline" size="sm" onClick={onRetry}>
-            <RotateCcw className="h-4 w-4 mr-1" /> Retry
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function C3Management() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -150,7 +125,7 @@ export default function C3Management() {
       date_entered_from: currentFilters.dateEntered || undefined,
       schedule_no: currentFilters.scheduleNo ? parseInt(currentFilters.scheduleNo) : undefined,
     });
-  }, [contributionType, searchParams, fetchRecords]);
+  }, [contributionType, searchParams]);
 
   // Function to get the appropriate button text based on active tab
   const getAddButtonText = () => {
@@ -1364,10 +1339,10 @@ export default function C3Management() {
         {loading ? (
           <Card>
             <CardContent className="p-6">
-              <LoadingWithRetry onRetry={() => {
-                const payerType = contributionTypeToPayerType(contributionType);
-                fetchRecords({ payer_type: payerType });
-              }} />
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading C3 records...</span>
+              </div>
             </CardContent>
           </Card>
         ) : currentRecords.length === 0 ? (

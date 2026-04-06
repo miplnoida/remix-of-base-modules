@@ -718,9 +718,6 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
       ? filters.period_month + 1
       : null;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
     const { data, error } = await supabase.rpc('get_c3_records_filtered', {
       p_payer_type: filters.payer_type || null,
       p_payer_id: filters.payer_id || null,
@@ -732,12 +729,10 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
       p_date_received: filters.date_received_from || null,
       p_date_entered: filters.date_entered_from || null,
       p_schedule_no: filters.schedule_no || null,
-      p_exclude_deleted: !filters.status,
+      p_exclude_deleted: !filters.status, // If a specific status is selected, don't auto-exclude deleted
       p_page: filters.page || 1,
       p_page_size: filters.pageSize || 20,
-    }).abortSignal(controller.signal);
-
-    clearTimeout(timeoutId);
+    });
 
     if (error) throw error;
 
@@ -745,10 +740,6 @@ export async function getC3Records(filters: C3ListFilters): Promise<{ data: C3Re
     const result = data as any;
     return { data: result?.data || [], total: result?.total || 0 };
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.error('C3 records fetch request timed out after 15s');
-      return { data: [], total: 0, error: 'Request timed out. Please try again.' };
-    }
     console.error('Error fetching C3 records:', error);
     return { data: [], total: 0, error: error.message };
   }
