@@ -115,41 +115,37 @@ export const LoginScreen = () => {
   };
 
   const performLogin = async (verificationToken: string | null) => {
-    let securityEventId: string | null = null;
-
     try {
-      // Fire Turnstile verification in parallel with login — don't block on it
-      let turnstilePromise: Promise<void> | null = null;
+      let turnstileEventPromise: Promise<string | null> | null = null;
+
       if (!isEditorPreview) {
         const tokenToSend = verificationToken || 'turnstile-unavailable';
-        turnstilePromise = (async () => {
-          try {
-            const verification = await verifyTurnstileToken(tokenToSend, email);
-            securityEventId = verification.eventId || null;
-            // Log but don't block — if it fails, the login result still matters
-            if (verification.skipped) {
-              // Allowed to proceed
-            } else if (verificationToken && !verification.success) {
+        turnstileEventPromise = verifyTurnstileToken(tokenToSend, email)
+          .then((verification) => {
+            if (!verification.skipped && verificationToken && !verification.success) {
               console.warn('[Login] Turnstile verification failed:', verification.error);
             }
-          } catch (verifyErr) {
+
+            return verification.eventId || null;
+          })
+          .catch((verifyErr) => {
             console.error('[Login] Turnstile verification error:', verifyErr);
-          }
-        })();
+            return null;
+          });
       } else {
         console.log('[Login] Editor preview mode — skipping Turnstile verification');
       }
 
-      // Start login immediately — don't wait for Turnstile
       const result = await login(email, password);
-      
-      // Ensure Turnstile finishes so we have securityEventId for outcome logging
-      if (turnstilePromise) await turnstilePromise;
-      
+
       if (result.success) {
         void supabase.auth.getUser().then(({ data: { user } }) => {
-          if (securityEventId) {
-            void updateLoginOutcome(securityEventId, true, undefined, user?.id);
+          if (turnstileEventPromise) {
+            void turnstileEventPromise.then((eventId) => {
+              if (eventId) {
+                return updateLoginOutcome(eventId, true, undefined, user?.id);
+              }
+            });
           }
 
           logLoginAttempt(true, email, user?.id);
@@ -164,8 +160,12 @@ export const LoginScreen = () => {
           : result.error?.includes('deactivated') ? 'ACCOUNT_DEACTIVATED'
           : 'LOGIN_FAILED';
 
-        if (securityEventId) {
-          void updateLoginOutcome(securityEventId, false, failureReason);
+        if (turnstileEventPromise) {
+          void turnstileEventPromise.then((eventId) => {
+            if (eventId) {
+              return updateLoginOutcome(eventId, false, failureReason);
+            }
+          });
         }
 
         logLoginAttempt(false, email, undefined, failureReason);
@@ -193,10 +193,6 @@ export const LoginScreen = () => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      
-      if (securityEventId) {
-        void updateLoginOutcome(securityEventId, false, 'SYSTEM_ERROR');
-      }
 
       void logSystemError({
         error_type: 'LoginError',
