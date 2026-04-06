@@ -1,60 +1,96 @@
-
-
-## Plan: Fix Employer Application Data Loading on Meeting Start Page
+## Plan: Fix Continuous Loading on IP Registration, Employer Registration, and C3 Management Pages
 
 ### Root Cause
 
-Line 118 of `StartMeetingPage.tsx` uses `useExternalApplicationDetail(applicationReference)` for **all** meeting types. This hook hardcodes the proxy module to `insured-person-applications`. When the meeting type is `Employer-Registration`, the proxy calls the wrong external API module, gets no data (or wrong data), and the form renders empty.
+The three affected pages (`IPRegistrationList`, `EmployerRegistrationList`, `C3Management`) execute database queries immediately on mount without waiting for the authentication session to be fully established. Although `ProtectedRoute` checks `isLoading`, the Supabase client session may not be fully ready when the first query fires, causing queries to fail silently or return empty results that leave the page in a perpetual loading state.
 
-The project already has a dedicated `useEmployerApplicationDetail` hook in `src/hooks/useEmployerApplicationDetail.ts` that correctly calls the `employer-applications` proxy module and normalizes the response into the `EmployerApplicationDetail` interface — the same hook used by the read-only detail page at `/online-applications/employer/:id`.
+Specifically:
+
+- **IPRegistrationList**: Uses raw `useEffect` + `fetchRecords` on mount — no auth gate
+- **EmployerRegistrationList** (`useEmployerList` hook): Uses React Query without an `enabled` gate
+- **C3Management** (`useC3Management` hook): Uses raw `useEffect` + `fetchRecords` on mount — no auth gate
 
 ### Fix
 
-**File: `src/pages/meetings/StartMeetingPage.tsx`**
+Gate all data-fetching in these pages/hooks on `isAuthReady && isAuthenticated` from `useSupabaseAuth()`, following the pattern already established in `useDynamicNavigation`.
 
-1. **Import `useEmployerApplicationDetail`** from `src/hooks/useEmployerApplicationDetail.ts`.
+### Step 1: Fix `useEmployerList` in `src/hooks/useEmployerRegistration.ts`
 
-2. **Add a second query hook** for employer data, gated on meeting type:
-   ```
-   const isEmployerMeeting = meetingType === 'Employer-Registration';
-   
-   // Existing IP hook — only enabled for non-employer meetings
-   const { data: ipApplicationData, ... } = useExternalApplicationDetail(
-     !isEmployerMeeting ? applicationReference : undefined
-   );
-   
-   // New employer hook — only enabled for employer meetings  
-   const { data: employerApplicationData, ... } = useEmployerApplicationDetail(
-     isEmployerMeeting ? applicationReference : undefined
-   );
-   
-   // Unified reference
-   const applicationData = isEmployerMeeting ? employerApplicationData : ipApplicationData;
-   const appLoading = isEmployerMeeting ? employerLoading : ipAppLoading;
-   const appFetching = isEmployerMeeting ? employerFetching : ipAppFetching;
-   ```
+Add `useSupabaseAuth` import and gate both React Query calls with `enabled: isAuthReady && isAuthenticated`:
 
-3. **Update `handleRefresh`** to call the correct refetch function based on meeting type.
+```typescript
+const { isAuthReady, isAuthenticated } = useSupabaseAuth();
 
-4. **Move `isEmployerMeeting` declaration** above the hooks (currently it's at line 140, after the hooks). Since `meetingType` comes from `meetingData` which can be undefined initially, both hooks will be disabled until `meetingData` loads, then the correct one activates.
+const { data: employers, isLoading, refetch } = useQuery({
+  queryKey: ['er_master_list', activeTab],
+  queryFn: async () => { ... },
+  enabled: isAuthReady && isAuthenticated,  // ADD THIS
+});
 
-5. **No changes to `EmployerApplicationEditForm`** — it already accepts `data: Record<string, any>` and the `EmployerApplicationDetail` interface fields match what the form reads.
+const { data: counts } = useQuery({
+  queryKey: ['er_master_counts'],
+  queryFn: async () => { ... },
+  enabled: isAuthReady && isAuthenticated,  // ADD THIS
+});
+```
 
-6. **No changes to the approval flow** — the `convertToEmployer` call at line 248 already passes `applicationData` which will now be the correctly-typed employer data.
+### Step 2: Fix `IPRegistrationList` in `src/pages/ip-registration/IPRegistrationList.tsx`
 
-### Edge cases handled
+Add `isAuthReady` and `isAuthenticated` from `useSupabaseAuth()` and gate the `fetchRecords` and `fetchCounts` effects:
 
-- **Invalid/missing reference**: Both hooks return `null` when `applicationReference` is undefined; the existing "Unable to load application data" alert renders.
-- **Meeting type not yet loaded**: Both hooks are disabled (`enabled: false`) when `meetingType` is undefined, preventing premature API calls.
-- **Other meeting types unaffected**: IP-Registration and Doctor-Registration continue using `useExternalApplicationDetail` as before.
+```typescript
+const { isAuthReady, isAuthenticated } = useSupabaseAuth();
+
+// Gate data fetching on auth readiness
+useEffect(() => {
+  if (!isAuthReady || !isAuthenticated) return;
+  fetchRecords(appliedFilters, page, pageSize);
+}, [page, pageSize, activeTab, appliedFilters, fetchRecords, isAuthReady, isAuthenticated]);
+
+useEffect(() => {
+  if (!isAuthReady || !isAuthenticated) return;
+  fetchCounts();
+}, [fetchCounts, isAuthReady, isAuthenticated]);
+
+// Also gate the debounced search effect
+useEffect(() => {
+  if (!isAuthReady || !isAuthenticated) return;
+  const timer = setTimeout(() => { ... }, 400);
+  return () => clearTimeout(timer);
+}, [searchText, isAuthReady, isAuthenticated]);
+```
+
+### Step 3: Fix `C3Management` in `src/pages/c3Management/C3Management.tsx`
+
+Add `isAuthReady` and `isAuthenticated` from `useSupabaseAuth()` and gate the mount-time data fetch:
+
+```typescript
+const { isAuthReady, isAuthenticated } = useSupabaseAuth();
+
+useEffect(() => {
+  if (!isAuthReady || !isAuthenticated) return;
+  getC3Statuses().then(setC3Statuses);
+  getActiveProfiles().then(setProfilesList);
+}, [isAuthReady, isAuthenticated]);
+
+useEffect(() => {
+  if (!isAuthReady || !isAuthenticated) return;
+  fetchRecords({ ... });
+}, [contributionType, searchParams, isAuthReady, isAuthenticated]);
+```
 
 ### Files to modify
 
-| File | Change |
-|------|--------|
-| `src/pages/meetings/StartMeetingPage.tsx` | Add `useEmployerApplicationDetail` import; add conditional hook call; unify `applicationData`/`appLoading`/`appFetching` references |
 
-### No migration or new files needed
+| File                                               | Change                                          |
+| -------------------------------------------------- | ----------------------------------------------- |
+| `src/hooks/useEmployerRegistration.ts`             | Add `enabled` gate to both `useQuery` calls     |
+| `src/pages/ip-registration/IPRegistrationList.tsx` | Gate `useEffect` data fetches on auth readiness |
+| `src/pages/c3Management/C3Management.tsx`          | Gate `useEffect` data fetches on auth readiness |
 
-The existing `useEmployerApplicationDetail` hook, `proxy-api` edge function, and `EmployerApplicationEditForm` component are all already built and correct. This is purely a wiring fix in the page component.
 
+### No new files, no migrations
+
+This is a wiring fix applying the same auth-gating pattern used by `useDynamicNavigation` to three ungated pages.  
+  
+Important Note: Why are these changes needed, and how was it working before? All the pages were working well two days ago. I want to know which functionality or change caused this error in the last 1–2 days, as it was working fine before.
