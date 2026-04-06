@@ -186,7 +186,7 @@ export function useWorkflowActions(
         actions, canPerformActions,
       };
     },
-    enabled: !!sourceRecordId && !!userId,
+    enabled: isAuthReady && isAuthenticated && !!sourceRecordId && !!userId,
     staleTime: 60000, // 60 seconds - reduce refetch frequency
     gcTime: 300000, // 5 minutes cache
   });
