@@ -1,57 +1,60 @@
 
 
-## Plan: Fix Employer Application Approval and Conversion Flow
+## Plan: Fix Continuous Loading on Login and Error Logs Screens
 
-### Problem Analysis
+### Root Cause Analysis
 
-When a reviewer clicks "Approve" on an employer application meeting (e.g., MTG-2026-000035), nothing happens. Two root causes:
+**Issue 1: Login stuck in loading state**
 
-1. **`useCloseMeetingWithApproval` calls the `meeting-api-handler` edge function** which suffers from cold-start delays (1-5s+). This edge function does 6+ sequential database operations. Combined with the conversion RPC, the total wait exceeds practical timeouts, causing the UI to appear frozen or silently fail.
+The Turnstile flow has a critical race condition. When the user clicks "Sign In" on the published URL:
 
-2. **The conversion RPC (`convert_application_to_employer`) may succeed, but the subsequent meeting-closure edge function call hangs**, so the user never sees a success toast, the meeting status never changes, and navigation never happens. The meeting MTG-2026-000035 is still `InProgress` with no outcome recorded.
+1. `handleSubmit` sets `isLoading=true` and `pendingSubmit=true`, then calls `executeTurnstile()`
+2. The `useEffect` on line 62 watches for `turnstileToken` or `turnstileError` to call `performLogin`
+3. **Problem**: The Turnstile `execute()` function has a 100ms delay before calling the actual execute, plus a 3s safety timeout. But the `useEffect` dependency array is `[turnstileToken, turnstileError, pendingSubmit]` — it does NOT include `performLogin`. This means `performLogin` is a stale closure that may reference old `email`/`password` state
+4. **Bigger problem**: If Turnstile's `error-callback` fires (setting `turnstileError` to a string), the `useEffect` catches it and calls `performLogin(null)`. But if `turnstileError` was already set from a previous attempt (e.g., timeout set it to `'turnstile-unavailable'`), the effect won't re-fire because the value hasn't changed. The login stays stuck in `isLoading=true` forever
+5. Additionally, in the published URL path (`social-wellspring-app.lovable.app`), `isLovableEditorPreview()` returns `false` (it's not in an iframe, not localhost, not lovableproject.com), so Turnstile IS active. If the Turnstile widget fails to render or execute properly, the 3s timeout fires setting `error` to `'turnstile-unavailable'` — but if that error value is already set from a previous cycle, no state change occurs, no effect fires, and the UI hangs
 
-3. **No navigation to the new employer registration** — even on success, the page navigates to `/meetings/manage` without telling the user the new registration number or linking to it.
+**Issue 2: Error Logs continuously loading**
+
+The `ErrorLogs` page query has no `enabled` gate on authentication readiness. The query fires immediately on mount. Since this page is behind `ProtectedRoute` (which waits for `isAuthReady`), the query should work. However:
+
+1. The query uses `select('*', { count: 'exact' })` on 1274 rows — the `count: 'exact'` forces a full table scan
+2. If the Supabase client's auth token isn't attached yet when the query fires (race between `onAuthStateChange` restoring the session and React Query executing), the query may fail silently or return empty results
+3. The query has no error display — if it throws, `isLoading` stays true forever because `useQuery` enters error state but the UI only checks `isLoading`, not `isError`
 
 ### Fix Strategy
 
-Replace the edge function call in `useCloseMeetingWithApproval` with direct Supabase client queries (same pattern already applied to `useMeetings` data loading). This eliminates the cold-start bottleneck entirely.
+#### Step 1: Fix LoginScreen Turnstile race condition
+**File**: `src/components/auth/LoginScreen.tsx`
 
-### Step 1: Replace `useCloseMeetingWithApproval` with direct queries
-**File**: `src/hooks/useMeetings.ts`
+- Remove the `pendingSubmit` state + `useEffect` pattern entirely — it's inherently racy
+- Instead, use a simple approach: after calling `executeTurnstile()`, set a 3.5s timeout that force-calls `performLogin(null)` if Turnstile hasn't responded
+- Add a ref to track whether `performLogin` has already been called to prevent double-invocation
+- Add a global safety timeout: if `isLoading` has been true for more than 10s, force-reset it to false and show an error
 
-Replace the `supabase.functions.invoke('meeting-api-handler', { body: { action: 'close_meeting_approved' } })` call with direct Supabase client operations:
+#### Step 2: Fix Turnstile error value reuse
+**File**: `src/hooks/useTurnstile.ts`
 
-1. Fetch the meeting record (with workflow_instances join)
-2. Update the `meetings` table: set `status='Closed'`, `outcome='ClosedWithApproval'`, timestamps, user info
-3. Insert a `meeting_history` record
-4. If `workflow_instance_id` exists:
-   - Update `workflow_instances` status to `Approved`
-   - Update pending `workflow_tasks` to `Completed`
-   - Insert a `workflow_logs` entry
-5. Optionally save `applicationData` to the primary table if the workflow instance has `primary_table` metadata
+- In the `execute()` function, always reset `error` to `null` before starting (already done on line 160) — but ensure the timeout sets a unique error value each time (append timestamp) so the `useEffect` always detects the change
+- **Better approach**: Since we're removing the `useEffect` pattern in Step 1, this becomes unnecessary
 
-All DB operations mirrored from the existing edge function logic (lines 844-1007 of `meeting-api-handler/index.ts`). The external API trigger (`triggerActionWorkflowApi`) will be skipped for now since it's non-blocking and not essential.
+#### Step 3: Fix Error Logs loading state
+**File**: `src/pages/system-logs/ErrorLogs.tsx`
 
-### Step 2: Replace `useCloseMeetingWithRejection` with direct queries
-**File**: `src/hooks/useMeetings.ts`
-
-Same pattern — replace edge function call with direct Supabase operations for rejection flow.
-
-### Step 3: Navigate to new employer registration after approval
-**File**: `src/pages/meetings/StartMeetingPage.tsx`
-
-After successful employer conversion + meeting closure, navigate to `/employer-registration/view/{regno}` instead of `/meetings/manage`, so the reviewer sees the newly created registration.
+- Add `isError` and `error` to the destructured `useQuery` return
+- Show an error state in the UI when query fails (instead of infinite spinner)
+- Add `enabled: !!supabase` guard (always true but future-proof)
+- Add `staleTime` and `retry` config to prevent excessive refetching
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/hooks/useMeetings.ts` | Replace `useCloseMeetingWithApproval` and `useCloseMeetingWithRejection` edge function calls with direct Supabase client queries |
-| `src/pages/meetings/StartMeetingPage.tsx` | After successful employer conversion, navigate to the new registration view page |
+| `src/components/auth/LoginScreen.tsx` | Replace `pendingSubmit` + `useEffect` pattern with direct callback approach; add safety timeout to prevent infinite loading |
+| `src/pages/system-logs/ErrorLogs.tsx` | Add error state handling to prevent infinite spinner; show error message when query fails |
 
 ### Expected Result
-- Approval completes in ~1-2s (direct DB queries, no edge function cold start)
-- Meeting status changes to `Closed` with `ClosedWithApproval` outcome
-- `er_master` record is created with `P` (Pending) status
-- User is navigated to `/employer-registration/view/{regno}` to see the new registration
+- Login completes within 4s worst-case (3s Turnstile timeout + 1s auth call), never hangs indefinitely
+- Error Logs shows data or an error message — never stays in infinite loading
+- Both screens have maximum wait thresholds with forced fallback UI states
 
