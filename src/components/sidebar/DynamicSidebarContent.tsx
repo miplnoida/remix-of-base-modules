@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
 import SidebarMenuGroup from './SidebarMenuGroup';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail } from 'lucide-react';
+import { AlertCircle, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail, LayoutDashboard, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
