@@ -30,10 +30,10 @@ interface SessionPolicy {
 
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
 const DEFAULT_IDLE_TIMEOUT_MINUTES = 15;
-const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000; // Refresh 2 minutes before expiry
-const SESSION_CHECK_INTERVAL_MS = 30_000; // Check every 30 seconds
-const IDLE_WARNING_BEFORE_MINUTES = 2; // Warn 2 minutes before idle logout
-const ACTIVITY_THROTTLE_MS = 10_000; // Throttle activity updates to once per 10 seconds
+const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
+const SESSION_CHECK_INTERVAL_MS = 30_000;
+const IDLE_WARNING_BEFORE_MINUTES = 2;
+const ACTIVITY_THROTTLE_MS = 10_000;
 
 type AuthBootstrapStatus = 'loading' | 'ready' | 'degraded';
 type DataLoadStatus = 'pending' | 'loaded' | 'failed';
@@ -46,15 +46,11 @@ interface SupabaseAuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  /** True once the initial session restoration is complete (regardless of success) */
   isAuthReady: boolean;
-  /** Status of roles data: pending (still loading), loaded (success/empty), failed */
   rolesStatus: DataLoadStatus;
-  /** Status of profile data */
   profileStatus: DataLoadStatus;
-  /** Overall bootstrap status: loading, ready, or degraded (partial failure) */
   authBootstrapStatus: AuthBootstrapStatus;
-  /** Incremented on each successful bootstrap to trigger dependent re-fetches */
+  /** @deprecated No longer incremented. Use user?.id in queryKeys instead. */
   authBootstrapVersion: number;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
@@ -83,7 +79,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
-  const [authBootstrapVersion, setAuthBootstrapVersion] = useState(0);
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
@@ -92,26 +87,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     autoRefreshEnabled: true,
   });
 
-  // Flag to track if policy has been loaded from DB at least once
   const policyLoadedRef = useRef(false);
 
-  // Track activity and session start without triggering rerenders
   const lastActivityRef = useRef<number>(Date.now());
   const sessionStartRef = useRef<number>(Date.now());
   const isLoggingOutRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Ref-based logout so the timeout useEffect doesn't depend on the logout callback
   const logoutRef = useRef<() => Promise<void>>(async () => {});
-
-  // Track whether idle warning has been shown (to avoid spamming)
   const idleWarningShownRef = useRef(false);
-
-  // Throttle tracking for activity updates
   const lastActivityUpdateRef = useRef<number>(0);
-
-  // Guard to prevent onAuthStateChange from duplicating initializeAuth fetches
-  const initializingRef = useRef(false);
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -156,18 +140,17 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user, fetchProfile, fetchRoles]);
 
-  // Throttled activity update — only updates ref at most once per ACTIVITY_THROTTLE_MS
+  // Throttled activity update
   const updateActivity = useCallback(() => {
     const now = Date.now();
     if (now - lastActivityUpdateRef.current >= ACTIVITY_THROTTLE_MS) {
       lastActivityRef.current = now;
       lastActivityUpdateRef.current = now;
-      // Reset warning flag when user becomes active again
       idleWarningShownRef.current = false;
     }
   }, []);
 
-  // Graceful logout (prevents duplicate logouts)
+  // Graceful logout
   const logout = useCallback(async () => {
     if (isLoggingOutRef.current) return;
     isLoggingOutRef.current = true;
@@ -210,14 +193,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user, profile]);
 
-  // Keep logoutRef in sync with the latest logout callback
   useEffect(() => {
     logoutRef.current = logout;
   }, [logout]);
 
   // Schedule proactive token refresh before expiry
   const scheduleTokenRefresh = useCallback((currentSession: Session | null) => {
-    // Clear any existing refresh timer
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = null;
@@ -231,15 +212,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const expiresAtMs = expiresAt * 1000;
     const now = Date.now();
     const msUntilExpiry = expiresAtMs - now;
-    const refreshIn = Math.max(msUntilExpiry - TOKEN_REFRESH_BUFFER_MS, 5000); // At least 5s from now
+    const refreshIn = Math.max(msUntilExpiry - TOKEN_REFRESH_BUFFER_MS, 5000);
 
-    if (refreshIn > 0 && refreshIn < 60 * 60 * 1000) { // Only schedule if < 1 hour
+    if (refreshIn > 0 && refreshIn < 60 * 60 * 1000) {
       refreshTimerRef.current = setTimeout(async () => {
         try {
           const { data, error } = await supabase.auth.refreshSession();
           if (error) {
             console.warn('Proactive token refresh failed:', error.message);
-            // Don't logout here - Supabase's autoRefreshToken may still recover
           } else if (data.session) {
             console.info('Token refreshed proactively');
           }
@@ -253,7 +233,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Load timeout settings from active policy AND system_settings override
   const loadSessionPolicy = useCallback(async () => {
     try {
-      // First check system_settings for session_timeout_minutes (admin-configurable)
       const { data: sysData } = await supabase
         .from('system_settings')
         .select('setting_value')
@@ -270,7 +249,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error && !systemTimeout) return;
 
-      // system_settings takes priority over password_policies
       const effectiveTimeout = (systemTimeout && systemTimeout >= 15) 
         ? systemTimeout 
         : (typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES);
@@ -281,26 +259,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         autoRefreshEnabled: data?.auto_refresh_enabled !== false,
       };
 
-      // Mark policy as loaded
       policyLoadedRef.current = true;
     } catch {
       // Fall back to defaults
     }
   }, []);
 
-  // Idle & session timeout checker — depends only on [session], NOT on logout
+  // Idle & session timeout checker
   useEffect(() => {
     if (!session) return;
 
-    // Policy is already loaded by initializeAuth — only load here if it wasn't
     if (!policyLoadedRef.current) {
       loadSessionPolicy();
     }
 
     const checkTimeouts = () => {
       if (isLoggingOutRef.current) return;
-
-      // Don't check timeouts until policy has been loaded from DB
       if (!policyLoadedRef.current) return;
 
       const now = Date.now();
@@ -310,7 +284,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const idleLimit = policyRef.current.idleTimeoutMinutes;
       const warningThreshold = idleLimit - IDLE_WARNING_BEFORE_MINUTES;
 
-      // Show idle warning before logout
       if (idleMinutes >= warningThreshold && idleMinutes < idleLimit && !idleWarningShownRef.current) {
         idleWarningShownRef.current = true;
         const remainingSeconds = Math.ceil((idleLimit - idleMinutes) * 60);
@@ -335,7 +308,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const interval = setInterval(checkTimeouts, SESSION_CHECK_INTERVAL_MS);
 
-    // Activity listeners — mousemove is throttled via updateActivity
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
     events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
 
@@ -343,21 +315,18 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       clearInterval(interval);
       events.forEach(event => window.removeEventListener(event, updateActivity));
     };
-    // IMPORTANT: removed `logout` from deps — uses logoutRef instead
   }, [session, updateActivity, loadSessionPolicy]);
 
-  // Handle tab visibility change - refresh session when tab becomes visible
+  // Handle tab visibility change
   useEffect(() => {
     if (!session) return;
 
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && !isLoggingOutRef.current) {
-        // Update activity on return
         lastActivityRef.current = Date.now();
         lastActivityUpdateRef.current = Date.now();
         idleWarningShownRef.current = false;
 
-        // Check if session is still valid by refreshing
         try {
           const { data, error } = await supabase.auth.getSession();
           if (error || !data.session) {
@@ -365,9 +334,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toast.warning('Session expired. Please log in again.');
             void logoutRef.current();
           } else {
-            // Reload policy in case admin changed it
             await loadSessionPolicy();
-            // Re-schedule refresh timer
             scheduleTokenRefresh(data.session);
           }
         } catch (err) {
@@ -378,14 +345,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // Uses logoutRef — no need for logout in deps
   }, [session, loadSessionPolicy, scheduleTokenRefresh]);
 
-  // Initialize auth state
+  // Initialize auth state — simplified: no safety timeout, no initializingRef
   useEffect(() => {
+    let initDone = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        // Ignore events during intentional logout
         if (isLoggingOutRef.current && event === 'SIGNED_OUT') {
           return;
         }
@@ -404,19 +371,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (event === 'TOKEN_REFRESHED' && currentSession) {
           lastActivityRef.current = Date.now();
           lastActivityUpdateRef.current = Date.now();
-          // Also reset session start so active users aren't hit by absolute timeout
           sessionStartRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
           console.info('Auth token refreshed successfully');
         }
 
-        if (currentSession?.user) {
-          // Skip if initializeAuth is already handling this (prevents duplicate fetches)
-          if (initializingRef.current) {
-            return;
-          }
+        // After initializeAuth completes, handle profile/roles for auth changes
+        if (initDone && currentSession?.user) {
           const userId = currentSession.user.id;
-          // Parallelize profile + roles fetch
           Promise.all([fetchProfile(userId), fetchRoles(userId)])
             .then(([profileData, rolesData]) => {
               setProfile(profileData);
@@ -425,15 +387,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               setRolesStatus('loaded');
               setIsAuthReady(true);
               setIsLoading(false);
-              setAuthBootstrapVersion(v => v + 1);
             })
             .catch((err) => {
               console.error('Failed to load user data after auth change:', err);
               setProfileStatus('failed');
               setRolesStatus('failed');
               setIsAuthReady(true);
-              setIsLoading(false); // Always unblock the UI
-              setAuthBootstrapVersion(v => v + 1);
+              setIsLoading(false);
             });
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
@@ -442,27 +402,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setRolesStatus('pending');
           setIsAuthReady(false);
           setIsLoading(false);
-        } else {
+        } else if (initDone) {
           setIsLoading(false);
         }
       }
     );
 
-    // INITIAL load — fetch profile before setting loading false
+    // INITIAL load
     const initializeAuth = async () => {
-      initializingRef.current = true;
-
-      // Safety timeout — force unblock UI if init hangs for 15s
-      const safetyTimeout = setTimeout(() => {
-        console.warn('Auth initialization timed out after 15 seconds — unblocking UI.');
-        initializingRef.current = false;
-        setIsAuthReady(true);
-        setRolesStatus(prev => prev === 'pending' ? 'failed' : prev);
-        setProfileStatus(prev => prev === 'pending' ? 'failed' : prev);
-        setIsLoading(false);
-        setAuthBootstrapVersion(v => v + 1);
-      }, 15_000);
-
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
@@ -476,8 +423,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (currentSession?.user) {
-          let profileOk = false;
-          let rolesOk = false;
           try {
             const [profileData, rolesData] = await Promise.all([
               fetchProfile(currentSession.user.id),
@@ -486,17 +431,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
             ]);
             setProfile(profileData);
             setProfileStatus(profileData ? 'loaded' : 'failed');
-            profileOk = !!profileData;
             setRoles(rolesData);
             setRolesStatus('loaded');
-            rolesOk = true;
           } catch (dataErr) {
             console.error('Error loading user data during init:', dataErr);
             setProfileStatus('failed');
             setRolesStatus('failed');
           }
         } else {
-          // No session — mark data as loaded (nothing to load)
           setProfileStatus('loaded');
           setRolesStatus('loaded');
         }
@@ -505,11 +447,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setProfileStatus('failed');
         setRolesStatus('failed');
       } finally {
-        clearTimeout(safetyTimeout);
-        initializingRef.current = false;
+        initDone = true;
         setIsAuthReady(true);
         setIsLoading(false);
-        setAuthBootstrapVersion(v => v + 1);
       }
     };
 
@@ -526,7 +466,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Login function with lockout check
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }> => {
     try {
-      // Resolve the actual auth email (handles profile/auth email mismatches)
       let loginEmail = email;
       try {
         const { data: resolveData } = await supabase.functions.invoke('resolve-auth-email', {
@@ -589,14 +528,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       if (data.user) {
-        // Reset timers on fresh login
         sessionStartRef.current = Date.now();
         lastActivityRef.current = Date.now();
         lastActivityUpdateRef.current = Date.now();
         isLoggingOutRef.current = false;
         idleWarningShownRef.current = false;
 
-        // Load session policy for the new session
         await loadSessionPolicy();
 
         await supabase
@@ -621,16 +558,10 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Check if user has a specific role
   const hasRole = (role: string): boolean => roles.includes(role);
-
-  // Check if user has any of the specified roles
   const hasAnyRole = (checkRoles: string[]): boolean => checkRoles.some(role => roles.includes(role));
-
-  // Check if user is Admin
   const isAdmin = roles.includes('Admin');
 
-  // Check permission
   const hasPermission = async (moduleName: string, actionName: string): Promise<boolean> => {
     if (!user) return false;
     if (isAdmin) return true;
@@ -651,7 +582,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Compute bootstrap status
   const authBootstrapStatus: AuthBootstrapStatus = !isAuthReady
     ? 'loading'
     : (profileStatus === 'failed' || rolesStatus === 'failed')
@@ -670,7 +600,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     rolesStatus,
     profileStatus,
     authBootstrapStatus,
-    authBootstrapVersion,
+    authBootstrapVersion: 0, // Deprecated — kept for interface compat
     login,
     logout,
     hasRole,

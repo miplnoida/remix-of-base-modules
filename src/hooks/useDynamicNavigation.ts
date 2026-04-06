@@ -144,24 +144,17 @@ const iconMap: Record<string, LucideIcon> = {
   'file-bar-chart': FileBarChart,
 };
 
-// Map icon name string to Lucide icon component
 function getIcon(iconName: string | null): LucideIcon {
   if (!iconName) return LayoutDashboard;
-  
   const normalizedName = iconName.toLowerCase().replace(/[_\s]/g, '-');
   return iconMap[normalizedName] || iconMap[normalizedName.replace(/-/g, '')] || LayoutDashboard;
 }
 
-// Build hierarchical menu from flat module list
 function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
-  const moduleMap = new Map<string, ModuleRow>();
   const childrenMap = new Map<string, ModuleRow[]>();
   const rootModules: ModuleRow[] = [];
 
-  // First pass: organize modules
   modules.forEach(module => {
-    moduleMap.set(module.id, module);
-
     if (module.parent_id) {
       const siblings = childrenMap.get(module.parent_id) || [];
       siblings.push(module);
@@ -171,11 +164,9 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
     }
   });
 
-  // Sort by sort_order
   const sortModules = (a: ModuleRow, b: ModuleRow) =>
     (a.sort_order ?? 999) - (b.sort_order ?? 999);
 
-  // Recursive function to build menu items
   function buildMenuItem(module: ModuleRow): MenuItem {
     const children = childrenMap.get(module.id) || [];
     children.sort(sortModules);
@@ -198,7 +189,6 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
     return menuItem;
   }
 
-  // Build the tree starting from root modules
   rootModules.sort(sortModules);
   return rootModules.map(buildMenuItem);
 }
@@ -207,64 +197,24 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
 interface IAGroupDef {
   groupTitle: string;
   icon: LucideIcon;
-  /** Route paths that belong to this group (matched against child.url) */
   paths: string[];
 }
 
 const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
+  { groupTitle: 'Dashboard', icon: LayoutDashboard, paths: ['/audit/dashboard'] },
+  { groupTitle: 'Risk Management', icon: Shield, paths: ['/audit/risk-assessment', '/audit/risk-matrix'] },
+  { groupTitle: 'Audit Planning', icon: ClipboardCheck, paths: ['/audit/audit-plans', '/audit/plan-approval'] },
+  { groupTitle: 'Audit Execution', icon: Briefcase, paths: ['/audit/audits'] },
   {
-    groupTitle: 'Dashboard',
-    icon: LayoutDashboard,
-    paths: ['/audit/dashboard'],
+    groupTitle: 'Resource Management', icon: Users,
+    paths: ['/audit/auditors', '/audit/auditor-profiles', '/audit/workload', '/audit/time-tracking', '/audit/leave'],
   },
-  {
-    groupTitle: 'Risk Management',
-    icon: Shield,
-    paths: ['/audit/risk-assessment', '/audit/risk-matrix'],
-  },
-  {
-    groupTitle: 'Audit Planning',
-    icon: ClipboardCheck,
-    paths: ['/audit/audit-plans', '/audit/plan-approval'],
-  },
-  {
-    groupTitle: 'Audit Execution',
-    icon: Briefcase,
-    paths: ['/audit/audits'],
-  },
-  {
-    groupTitle: 'Resource Management',
-    icon: Users,
-    paths: [
-      '/audit/auditors', '/audit/auditor-profiles',
-      '/audit/workload',
-      '/audit/time-tracking',
-      '/audit/leave',
-    ],
-  },
-  {
-    groupTitle: 'Master Data',
-    icon: Database,
-    paths: ['/audit/departments', '/audit/functions', '/audit/templates'],
-  },
-  {
-    groupTitle: 'Reporting',
-    icon: FileBarChart,
-    paths: ['/audit/audit-reports'],
-  },
-  {
-    groupTitle: 'Configuration',
-    icon: Settings,
-    paths: ['/audit/config', '/audit/risk-settings'],
-  },
-  {
-    groupTitle: 'Admin',
-    icon: Terminal,
-    paths: ['/db-diagram/internal_audit'],
-  },
+  { groupTitle: 'Master Data', icon: Database, paths: ['/audit/departments', '/audit/functions', '/audit/templates'] },
+  { groupTitle: 'Reporting', icon: FileBarChart, paths: ['/audit/audit-reports'] },
+  { groupTitle: 'Configuration', icon: Settings, paths: ['/audit/config', '/audit/risk-settings'] },
+  { groupTitle: 'Admin', icon: Terminal, paths: ['/db-diagram/internal_audit'] },
 ];
 
-// Display overrides for individual items (icon, title, description)
 const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; description?: string }> = {
   '/audit/dashboard':        { title: 'Dashboard',               icon: LayoutDashboard, description: 'Audit overview and KPIs' },
   '/audit/risk-assessment':  { title: 'Risk Assessment',         icon: Shield,          description: 'Assess function-level risks' },
@@ -277,7 +227,6 @@ const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; des
   '/audit/workload':         { title: 'Workload & Capacity',     icon: BarChart3,       description: 'View auditor workload and capacity' },
   '/audit/time-tracking':    { title: 'Time Tracking',           icon: Clock,           description: 'Track audit time spent' },
   '/audit/leave':            { title: 'Leave & Vacation',        icon: Calendar,        description: 'Manage auditor leave schedules' },
-  
   '/audit/departments':      { title: 'Departments',             icon: Building2,       description: 'Manage department information' },
   '/audit/functions':        { title: 'Functions',               icon: FolderTree,      description: 'Manage department functions' },
   '/audit/templates':        { title: 'Templates',               icon: FileText,        description: 'Manage audit templates' },
@@ -299,7 +248,6 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 
     if (!isInternalAuditRoot || children.length === 0) return item;
 
-    // Apply display overrides to each child
     const enhanced = children.map((child) => {
       const norm = normalizePath(child.url);
       const ov = IA_ITEM_OVERRIDES[norm];
@@ -314,11 +262,9 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
       return child;
     });
 
-    // Build a set of paths already claimed by groups
     const claimedPaths = new Set<string>();
     IA_WORKFLOW_GROUPS.forEach(g => g.paths.forEach(p => claimedPaths.add(normalizePath(p))));
 
-    // Create grouped sub-menus
     const groupedItems: MenuItem[] = [];
 
     IA_WORKFLOW_GROUPS.forEach((group) => {
@@ -327,7 +273,6 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 
       if (members.length === 0) return;
 
-      // If only 1 member AND group title matches item title, flatten to direct link
       if (members.length === 1 && members[0].title === group.groupTitle) {
         groupedItems.push(members[0]);
       } else {
@@ -340,7 +285,6 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
       }
     });
 
-    // Add any unclaimed enabled children at the end
     const unclaimed = enhanced.filter(c => !c.url || !claimedPaths.has(normalizePath(c.url)));
     unclaimed.forEach(c => groupedItems.push(c));
 
@@ -349,7 +293,7 @@ function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
 }
 
 export function useDynamicNavigation() {
-  const { user, isAdmin, isAuthReady, isAuthenticated, authBootstrapVersion } = useSupabaseAuth();
+  const { user, isAdmin, isAuthReady, isAuthenticated } = useSupabaseAuth();
 
   const {
     data: menuItems = [],
@@ -358,28 +302,21 @@ export function useDynamicNavigation() {
     error,
     refetch
   } = useQuery({
-    queryKey: ['dynamic-navigation', user?.id, authBootstrapVersion],
+    queryKey: ['dynamic-navigation', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
       const startTime = performance.now();
       
-      // Call the RPC function with a timeout to prevent indefinite hanging
-      const rpcPromise = supabase
+      const { data, error } = await supabase
         .rpc('get_user_accessible_modules' as any, { _user_id: user.id });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Navigation query timed out after 20s')), 20_000)
-      );
-
-      const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
 
       const executionTime = Math.round(performance.now() - startTime);
 
       if (error) {
         console.error('Failed to fetch accessible modules:', error);
         
-        // Fire-and-forget logging with bootstrap diagnostics
+        // Fire-and-forget logging
         logSystemError({
           api_name: 'get_user_accessible_modules',
           module: 'Navigation',
@@ -387,12 +324,7 @@ export function useDynamicNavigation() {
           error_message: error.message,
           stack_trace: error.details ? JSON.stringify({ details: error.details, hint: error.hint }) : undefined,
           severity: 'error',
-          payload_json: { 
-            user_id: user.id, 
-            error_code: error.code,
-            auth_ready: isAuthReady,
-            bootstrap_version: authBootstrapVersion,
-          },
+          payload_json: { user_id: user.id, error_code: error.code },
         }, user.id).catch(() => {});
 
         logTechnical({
@@ -401,14 +333,14 @@ export function useDynamicNavigation() {
           execution_time_ms: executionTime,
           status: 'failed',
           severity: 'error',
-          request_payload: { user_id: user.id, auth_ready: isAuthReady, bootstrap_version: authBootstrapVersion },
+          request_payload: { user_id: user.id },
           response_payload: { error: error.message, code: error.code },
         }, user.id).catch(() => {});
 
         throw error;
       }
 
-      // Fire-and-forget successful API call logging
+      // Fire-and-forget successful logging
       logTechnical({
         api_name: 'get_user_accessible_modules',
         module: 'Navigation',
@@ -420,10 +352,9 @@ export function useDynamicNavigation() {
 
       return groupInternalAuditNavigation(buildMenuTree((data as ModuleRow[]) || []));
     },
-    // Only fire when auth bootstrap is truly complete and user is authenticated
     enabled: isAuthReady && isAuthenticated && !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: 2, // Limit retries to avoid long waits
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
     refetchOnWindowFocus: false,
   });
@@ -464,7 +395,6 @@ export function useCanAccessModule(moduleName: string) {
       if (error) {
         console.error('Failed to check module access:', error);
         
-        // Fire-and-forget logging
         logSystemError({
           api_name: 'can_access_module',
           module: 'Authorization',
