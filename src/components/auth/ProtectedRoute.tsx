@@ -14,8 +14,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, isLoading, isAuthReady } = useSupabaseAuth();
 
-  // Show loading while auth is initializing OR while profile/roles are still loading
-  if (isLoading || (!isAuthReady && !isAuthenticated)) {
+  // Show loading ONLY while session restore is in progress
+  // isAuthReady is now set as soon as the session is known (before profile/roles load)
+  if (isLoading || !isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -30,17 +31,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Authenticated but auth data (profile/roles) not yet ready — keep showing spinner
-  if (!isAuthReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Session is known and user is authenticated — render children immediately
+  // Profile/roles load in background; screens can check profileStatus/rolesStatus if needed
   return <>{children}</>;
 };

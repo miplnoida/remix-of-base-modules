@@ -352,9 +352,39 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [session, loadSessionPolicy, scheduleTokenRefresh]);
 
-  // Initialize auth state — simplified: no safety timeout, no initializingRef
+  // Initialize auth state — two-phase: session-ready first, then user data in background
   useEffect(() => {
     let initDone = false;
+
+    // Background-load profile/roles with a hard timeout to prevent hanging
+    const BOOTSTRAP_TIMEOUT_MS = 5_000;
+
+    const loadUserDataInBackground = (userId: string) => {
+      const dataPromise = Promise.all([fetchProfile(userId), fetchRoles(userId)])
+        .then(([profileData, rolesData]) => {
+          setProfile(profileData);
+          setProfileStatus(profileData ? 'loaded' : 'failed');
+          setRoles(rolesData);
+          setRolesStatus('loaded');
+        })
+        .catch((err) => {
+          console.error('Failed to load user data:', err);
+          setProfileStatus('failed');
+          setRolesStatus('failed');
+        });
+
+      // Hard timeout: if profile/roles don't load in time, mark as failed but don't block
+      const timeoutPromise = new Promise<void>((resolve) =>
+        setTimeout(() => {
+          setProfileStatus((prev) => (prev === 'pending' ? 'failed' : prev));
+          setRolesStatus((prev) => (prev === 'pending' ? 'failed' : prev));
+          resolve();
+        }, BOOTSTRAP_TIMEOUT_MS)
+      );
+
+      // Fire-and-forget: whichever finishes first wins
+      void Promise.race([dataPromise, timeoutPromise]);
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -389,29 +419,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
             console.info('Skipping duplicate profile/roles fetch — login() already loaded data');
             return;
           }
-          const userId = currentSession.user.id;
-          Promise.all([fetchProfile(userId), fetchRoles(userId)])
-            .then(([profileData, rolesData]) => {
-              setProfile(profileData);
-              setProfileStatus(profileData ? 'loaded' : 'failed');
-              setRoles(rolesData);
-              setRolesStatus('loaded');
-              setIsAuthReady(true);
-              setIsLoading(false);
-            })
-            .catch((err) => {
-              console.error('Failed to load user data after auth change:', err);
-              setProfileStatus('failed');
-              setRolesStatus('failed');
-              setIsAuthReady(true);
-              setIsLoading(false);
-            });
+          // isAuthReady is already true from init — just refresh data in background
+          loadUserDataInBackground(currentSession.user.id);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
           setProfileStatus('pending');
           setRolesStatus('pending');
-          setIsAuthReady(false);
+          // Keep isAuthReady true after sign-out so the login page renders properly
           setIsLoading(false);
         } else if (initDone) {
           setIsLoading(false);
@@ -419,7 +434,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     );
 
-    // INITIAL load
+    // INITIAL load — Phase 1: session restore → isAuthReady=true immediately
+    // Phase 2: profile/roles load in background (non-blocking)
     const initializeAuth = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -433,22 +449,17 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           scheduleTokenRefresh(currentSession);
         }
 
+        // Mark auth as ready NOW — session state is known
+        // This unblocks ProtectedRoute immediately
+        initDone = true;
+        setIsAuthReady(true);
+        setIsLoading(false);
+
+        // Load user data in background (non-blocking)
         if (currentSession?.user) {
-          try {
-            const [profileData, rolesData] = await Promise.all([
-              fetchProfile(currentSession.user.id),
-              fetchRoles(currentSession.user.id),
-              loadSessionPolicy().catch(() => {}),
-            ]);
-            setProfile(profileData);
-            setProfileStatus(profileData ? 'loaded' : 'failed');
-            setRoles(rolesData);
-            setRolesStatus('loaded');
-          } catch (dataErr) {
-            console.error('Error loading user data during init:', dataErr);
-            setProfileStatus('failed');
-            setRolesStatus('failed');
-          }
+          loadUserDataInBackground(currentSession.user.id);
+          // Also load session policy in background
+          void loadSessionPolicy().catch(() => {});
         } else {
           setProfileStatus('loaded');
           setRolesStatus('loaded');
@@ -457,7 +468,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.error('Auth initialization error:', err);
         setProfileStatus('failed');
         setRolesStatus('failed');
-      } finally {
         initDone = true;
         setIsAuthReady(true);
         setIsLoading(false);
