@@ -1,95 +1,57 @@
 
 
-## Plan: Permanently Fix Slow Login and Stuck Loading Screens
+## Plan: Fix Employer Detail Data Binding and Meeting Scheduling Issues
 
-### Problem Summary
+### Issues Identified
 
-Login takes 5-10+ seconds and pages hang after login. This is caused by **sequential network bottlenecks** during login and **duplicate auth state management** across multiple hooks.
+**Issue 1: Acquisition Date may show as empty**
+- The detail page (line 339) displays `application.date_acquired`
+- The normalize function (line 307) maps only `raw.date_acquired`, but external APIs often return `acquisition_date` instead
+- The `acquisition_date` field (line 330) is mapped separately and unused by the detail page
+- Fix: Add fallback in normalizer so `date_acquired` also checks `raw.acquisition_date`
 
-### Root Causes (Ordered by Impact)
+**Issue 2: Industry field shows raw code instead of description**
+- The normalizer maps `raw.industry_code` to `industry_code` (line 319)
+- But the API may return it as `industrial_code` — the normalizer doesn't try this fallback
+- The `useEmployerCodeResolver` resolves `application?.industry_code` correctly via `tb_indus` lookup — this part works
+- The **edit form** (`EmployerApplicationEditForm.tsx` line 374) reads `data.industrial_code` but the data has `industry_code` — **field name mismatch** causes the Industry dropdown to appear blank in the meeting edit form
+- Fix: Add `raw.industrial_code` fallback in normalizer, and fix the edit form to use `industry_code` (or alias it)
 
-**1. Login function makes 3 sequential network calls BEFORE authentication**
-
-In `SupabaseAuthContext.tsx` lines 467-505, the `login()` function does:
-1. Edge function call `resolve-auth-email` (cold start = 1-3s)
-2. Profile query to check lockout (200-500ms)
-3. THEN `signInWithPassword` (200-500ms)
-4. THEN `loadSessionPolicy` (200ms)
-5. THEN profile update (200ms)
-6. THEN `fetchProfile` again (200ms)
-
-That's 6 sequential calls. Total: 2-5 seconds minimum.
-
-**2. Duplicate profile/roles fetching after login**
-
-After `signInWithPassword` succeeds, `onAuthStateChange` fires `SIGNED_IN`. Since `initDone` is `true` by then, lines 380-397 trigger ANOTHER `Promise.all([fetchProfile, fetchRoles])`. This duplicates work the login function already did, adding 400ms+ of wasted time.
-
-**3. `useOnlineApplicationWorkflowBinding` creates its own auth listener**
-
-Lines 276-288 call `supabase.auth.getUser()` (network call) and set up a SEPARATE `onAuthStateChange` subscription — on every mount of employer/IP/doctor application pages. This is completely redundant since the user is already available from `useSupabaseAuth()`.
-
-**4. Console.log fires on every render (not in useEffect)**
-
-Lines 291-296 of `useOnlineApplicationWorkflowBinding` log on every render cycle, not inside a useEffect. This is a performance anti-pattern that clutters output and wastes CPU.
-
-**5. `ProtectedRoute` checks `isLoading` but not `isAuthReady`**
-
-`ProtectedRoute` uses only `isLoading` to gate rendering. After the recent changes, `isLoading` can become `false` before `isAuthReady` is `true`, causing child components to mount and fire queries before auth data (profile, roles) is available.
-
-### Fix Plan
-
-#### Step 1: Speed up the login function
-**File:** `src/contexts/SupabaseAuthContext.tsx`
-
-- Move `resolve-auth-email` to run in PARALLEL with the lockout profile check (both are pre-auth validation)
-- Remove the duplicate `fetchProfile` call at line 548 — it's already triggered by `onAuthStateChange` SIGNED_IN handler
-- Move `loadSessionPolicy()` to fire-and-forget (non-blocking) after login succeeds
-
-This reduces login from 6 sequential calls to: 1 parallel pre-check + signInWithPassword + 1 profile update = ~3 calls.
-
-#### Step 2: Prevent duplicate profile/roles fetch after login
-**File:** `src/contexts/SupabaseAuthContext.tsx`
-
-- In the `onAuthStateChange` SIGNED_IN handler, skip the `fetchProfile + fetchRoles` call if the data was already loaded by the `login()` function in the same session
-- Use a ref (`loginJustCompletedRef`) that the login function sets to `true`, and the SIGNED_IN handler checks and resets
-
-#### Step 3: Fix ProtectedRoute to gate on `isAuthReady`
-**File:** `src/components/auth/ProtectedRoute.tsx`
-
-- Change the loading condition from `isLoading` to `isLoading || !isAuthReady` when user is authenticated
-- This prevents child pages from mounting before profile/roles are loaded
-
-#### Step 4: Remove redundant auth in `useOnlineApplicationWorkflowBinding`
-**File:** `src/hooks/useOnlineApplicationWorkflowBinding.ts`
-
-- Remove the internal `getUser()` call and `onAuthStateChange` subscription (lines 276-288)
-- Accept `userId` as a parameter or use `useSupabaseAuth()` directly
-- Move debug `console.log` from render body into the useEffect
-- This eliminates 1 network call + 1 auth listener per application page mount
-
-#### Step 5: Remove verbose render-time logging
-**File:** `src/hooks/useOnlineApplicationWorkflowBinding.ts`
-
-- Move the `console.log` at line 291-296 inside the useEffect or remove it
-- Keep only meaningful logs inside the async workflow binding function
+**Issue 3: No users in Schedule Meeting popup**
+- `useUsersForOfficeDepartment` queries `profiles` with `office_code` and `department_id` filters — query is correct
+- Data exists: 2 active users for STK/Customer Service department
+- RLS is disabled on profiles — no policy blocking
+- Root cause: The `useMeetingDepartmentsForWorkflow` hook (which feeds office/department dropdowns) requires `workflowId`. The `workflowId` comes from `useWorkflowActions`, which queries `workflow_instances` by `source_record_id`. If the `sourceRecordId` passed is wrong (e.g., `registration_id` is null, falling through incorrectly), the workflow instance lookup fails, returning no `workflowId`, disabling the departments query, and thus no users appear
+- Fix: Ensure the `sourceRecordId` passed to `WorkflowActionButtons` uses the correct identifier. Also add `industrial_code` as an alias field so the edit form works
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/contexts/SupabaseAuthContext.tsx` | Parallelize pre-login checks, prevent duplicate fetch, fire-and-forget policy load |
-| `src/components/auth/ProtectedRoute.tsx` | Gate on `isAuthReady` for authenticated users |
-| `src/hooks/useOnlineApplicationWorkflowBinding.ts` | Use `useSupabaseAuth()` instead of own auth listener, fix render-time logging |
+| `src/hooks/useEmployerApplicationDetail.ts` | Add fallbacks: `date_acquired` tries `raw.acquisition_date`; `industry_code` tries `raw.industrial_code`; add `industrial_code` alias field to the interface and normalizer |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Use `application.acquisition_date` as fallback for the Acquisition Date display |
+| `src/components/meetings/EmployerApplicationEditForm.tsx` | Fix industry field to read `data.industry_code` with `data.industrial_code` fallback |
+| `src/hooks/useWorkflowMeetingDepartments.ts` | Add console logging to `useUsersForOfficeDepartment` for debugging; ensure the query handles edge cases |
 
-### Expected Result
-- Login: from 5-10s down to 1-2s
-- Page data loading: immediate after auth ready (no more "stuck" screens)
-- Fewer network calls: eliminated ~4 redundant calls per login + page load cycle
-- No more duplicate auth subscriptions competing with each other
+### Technical Details
 
-### What Is NOT Changed
-- The `isAuthReady` gating pattern in navigation and data hooks — this is correct
-- The `AuthContext` shim — it's working as intended
-- The `SecurityPolicyContext` — it already gates on `isAuthReady`
-- Edge function implementations — the proxy-api pattern is fine
+**Normalizer changes** (`normalizeEmployerDetail`):
+```
+date_acquired: raw.date_acquired || raw.acquisition_date || null
+industry_code: raw.industry_code || raw.industrial_code || null  
+industrial_code: raw.industrial_code || raw.industry_code || null  // alias for edit form
+```
+
+**Detail page** (`EmployerApplicationDetailPage.tsx` line 339):
+```
+value={formatDate(application.date_acquired || application.acquisition_date)}
+```
+
+**Edit form** (`EmployerApplicationEditForm.tsx` line 374):
+```
+value={data.industrial_code || data.industry_code || ''}
+```
+
+**Interface update** (`EmployerApplicationDetail`):
+Add `industrial_code: string | null` field alongside existing `industry_code`
 
