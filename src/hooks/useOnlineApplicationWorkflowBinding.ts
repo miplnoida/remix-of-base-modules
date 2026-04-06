@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { logApplicationError } from '@/lib/globalErrorHandler';
 
 // Workflow configuration for each application type
@@ -268,32 +269,12 @@ export function useOnlineApplicationWorkflowBinding(
 ) {
   const hasRunRef = useRef<Set<string>>(new Set());
   const isProcessingRef = useRef(false);
-  const [supabaseUser, setSupabaseUser] = useState<{ id: string; email?: string } | null>(null);
 
   const config = WORKFLOW_CONFIGS[applicationType];
 
-  // Get Supabase auth user on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setSupabaseUser(user ? { id: user.id, email: user.email } : null);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setSupabaseUser(session?.user ? { id: session.user.id, email: session.user.email } : null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Initial debug logging
-  console.log(`[WorkflowBinding:${applicationType}] Hook initialized:`, {
-    applicationsCount: applications?.length ?? 0,
-    enabled,
-    hasUser: !!supabaseUser,
-    userId: supabaseUser?.id
-  });
+  // Use the global auth context instead of creating a separate listener
+  const { user: authUser } = useSupabaseAuth();
+  const supabaseUser = authUser ? { id: authUser.id, email: authUser.email } : null;
 
   useEffect(() => {
     console.log(`[WorkflowBinding:${applicationType}] useEffect triggered:`, {
