@@ -115,7 +115,7 @@ export default function EmployerApplicationDetailPage() {
   const resolved = useEmployerCodeResolver(application);
 
   // Meeting integration
-  const applicationRef = application?.registration_id || application?.id || applicationId;
+  const applicationRef = applicationId || application?.id || application?.registration_id;
   const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
   const handleActionComplete = () => {
