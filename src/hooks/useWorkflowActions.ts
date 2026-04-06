@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
 import { applyBusinessObjectFieldUpdates } from '@/hooks/useBusinessObjectRoot';
@@ -73,13 +72,10 @@ export function useWorkflowActions(
   sourceModule: string,
   sourceRecordId: string | null
 ): WorkflowContext {
-  // Prefer real authenticated user (SupabaseAuthContext). AuthContext is mock/demo.
-  const { user: supabaseUser, roles: supabaseRoles } = useSupabaseAuth();
-  const { user: mockUser } = useAuth();
+  const { user: supabaseUser, roles: supabaseRoles, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const queryClient = useQueryClient();
 
   const userId = supabaseUser?.id ?? null;
-  const fallbackRole = mockUser?.role;
   const contextRoleNames = supabaseRoles?.length ? supabaseRoles : undefined;
 
   const query = useQuery({
