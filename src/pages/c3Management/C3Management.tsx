@@ -1339,10 +1339,10 @@ export default function C3Management() {
         {loading ? (
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading C3 records...</span>
-              </div>
+              <LoadingWithRetry onRetry={() => {
+                const payerType = contributionTypeToPayerType(contributionType);
+                fetchRecords({ payer_type: payerType });
+              }} />
             </CardContent>
           </Card>
         ) : currentRecords.length === 0 ? (
