@@ -405,6 +405,12 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
     setLoading(true);
     setError(null);
     
+    // Safety timer: force loading=false after 20s to prevent infinite spinner
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+      setError('The request took too long to complete. Please try again.');
+    }, 20000);
+    
     const appliedFilters: C3ListFilters = {
       ...currentFilters,
       ...filters,
@@ -437,6 +443,7 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
         variant: "destructive",
       });
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   }, [currentFilters, currentPage, pageSize, toast]);
