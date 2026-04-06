@@ -262,6 +262,7 @@ export default function StartMeetingPage() {
       }
 
       // ── For Employer-Registration meetings: run employer conversion ────────
+      let employerRegno: string | null = null;
       if (meetingType === 'Employer-Registration' && applicationData) {
         const dataForConversion = hasChanges
           ? { ...applicationData, ...editedData }
@@ -278,6 +279,7 @@ export default function StartMeetingPage() {
           return;
         }
 
+        employerRegno = result.regno || null;
         toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
@@ -290,8 +292,12 @@ export default function StartMeetingPage() {
 
       setApprovalDialogOpen(false);
       
-      // If workflow is eligible, show dialog before navigating
-      if (workflowEligibility?.eligible && pendingConversionResult) {
+      // Navigate to the appropriate destination
+      if (isEmployerMeeting && employerRegno) {
+        // Navigate to newly created employer registration
+        navigate(`/employer-registration/view/${employerRegno}`);
+      } else if (workflowEligibility?.eligible && pendingConversionResult) {
+        // If workflow is eligible, show dialog before navigating
         setWorkflowDialogOpen(true);
       } else {
         navigate('/meetings/manage');

@@ -381,7 +381,7 @@ export function useRescheduleMeeting() {
   });
 }
 
-// Close meeting with approval (from Start Meeting page)
+// Close meeting with approval (from Start Meeting page) — direct Supabase queries
 export function useCloseMeetingWithApproval() {
   const queryClient = useQueryClient();
   
@@ -396,19 +396,55 @@ export function useCloseMeetingWithApproval() {
       applicationData?: Record<string, any>;
       remarks?: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
-        body: {
-          action: 'close_meeting_approved',
-          meetingId,
-          applicationData,
-          remarks
-        }
+      const now = new Date().toISOString();
+
+      // 1. Fetch meeting
+      const { data: meeting, error: fetchErr } = await supabase
+        .from('meetings')
+        .select('*, workflow_instances(id, status)')
+        .eq('id', meetingId)
+        .single();
+      if (fetchErr || !meeting) throw new Error(fetchErr?.message || 'Meeting not found');
+
+      // 2. Update meeting status
+      const { error: updateErr } = await supabase
+        .from('meetings')
+        .update({
+          status: 'Closed',
+          outcome: 'ClosedWithApproval',
+          outcome_remarks: remarks || null,
+          closed_at: now,
+          updated_at: now,
+        })
+        .eq('id', meetingId);
+      if (updateErr) throw new Error(updateErr.message);
+
+      // 3. Insert meeting history
+      await supabase.from('meeting_history').insert({
+        meeting_id: meetingId,
+        old_status: meeting.status,
+        new_status: 'Closed',
+        action_taken: 'Closed with Approval',
+        outcome: 'ClosedWithApproval',
+        remarks: remarks || null,
+        performed_at: now,
       });
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.message || 'Failed to accept application');
-      
-      return data;
+      // 4. Update workflow instance + tasks if linked
+      const workflowInstanceId = meeting.workflow_instance_id;
+      if (workflowInstanceId) {
+        await supabase
+          .from('workflow_instances')
+          .update({ status: 'Approved', updated_at: now })
+          .eq('id', workflowInstanceId);
+        await (supabase
+          .from('workflow_tasks')
+          .update({ status: 'Completed', completed_at: now, updated_at: now }) as any)
+          .eq('workflow_instance_id', workflowInstanceId)
+          .in('status', ['Pending', 'InProgress']);
+      }
+
+      return { success: true, message: 'Application accepted successfully' };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -426,7 +462,7 @@ export function useCloseMeetingWithApproval() {
   });
 }
 
-// Close meeting with rejection (from Start Meeting page)
+// Close meeting with rejection (from Start Meeting page) — direct Supabase queries
 export function useCloseMeetingWithRejection() {
   const queryClient = useQueryClient();
   
@@ -439,18 +475,55 @@ export function useCloseMeetingWithRejection() {
       meetingId: string; 
       remarks: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
-        body: {
-          action: 'close_meeting_rejected',
-          meetingId,
-          remarks
-        }
+      const now = new Date().toISOString();
+
+      // 1. Fetch meeting
+      const { data: meeting, error: fetchErr } = await supabase
+        .from('meetings')
+        .select('*, workflow_instances(id, status)')
+        .eq('id', meetingId)
+        .single();
+      if (fetchErr || !meeting) throw new Error(fetchErr?.message || 'Meeting not found');
+
+      // 2. Update meeting status
+      const { error: updateErr } = await supabase
+        .from('meetings')
+        .update({
+          status: 'Closed',
+          outcome: 'ClosedWithRejection',
+          outcome_remarks: remarks,
+          closed_at: now,
+          updated_at: now,
+        })
+        .eq('id', meetingId);
+      if (updateErr) throw new Error(updateErr.message);
+
+      // 3. Insert meeting history
+      await supabase.from('meeting_history').insert({
+        meeting_id: meetingId,
+        old_status: meeting.status,
+        new_status: 'Closed',
+        action_taken: 'Closed with Rejection',
+        outcome: 'ClosedWithRejection',
+        remarks,
+        performed_at: now,
       });
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.message || 'Failed to reject application');
-      
-      return data;
+      // 4. Update workflow instance + tasks if linked
+      const workflowInstanceId = meeting.workflow_instance_id;
+      if (workflowInstanceId) {
+        await supabase
+          .from('workflow_instances')
+          .update({ status: 'Rejected', updated_at: now })
+          .eq('id', workflowInstanceId);
+        await (supabase
+          .from('workflow_tasks')
+          .update({ status: 'Completed', completed_at: now, updated_at: now }) as any)
+          .eq('workflow_instance_id', workflowInstanceId)
+          .in('status', ['Pending', 'InProgress']);
+      }
+
+      return { success: true, message: 'Application rejected' };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
