@@ -423,6 +423,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               setProfileStatus(profileData ? 'loaded' : 'failed');
               setRoles(rolesData);
               setRolesStatus('loaded');
+              setIsAuthReady(true);
               setIsLoading(false);
               setAuthBootstrapVersion(v => v + 1);
             })
@@ -430,6 +431,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               console.error('Failed to load user data after auth change:', err);
               setProfileStatus('failed');
               setRolesStatus('failed');
+              setIsAuthReady(true);
               setIsLoading(false); // Always unblock the UI
               setAuthBootstrapVersion(v => v + 1);
             });
