@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { triggerEmployerRegistrationWorkflow } from '@/services/employerWorkflowTriggerService';
 
 const formatDbError = (err: unknown): string => {
   if (!err) return 'Unknown error';
@@ -56,31 +57,7 @@ export const validateERRegistrationForSubmit = (data: ERSubmitData): ValidationE
   return errors;
 };
 
-interface WorkflowTrigger {
-  id: string;
-  workflow_id: string;
-  action_name: string;
-  is_active: boolean;
-}
-
-interface WorkflowDefinition {
-  id: string;
-  name: string;
-  default_sla_hours: number | null;
-}
-
-interface WorkflowStep {
-  id: string;
-  step_name: string;
-  step_number: number;
-  sla_hours: number | null;
-  approver_type?: string | null;
-  approver_role_ids?: string[] | null;
-  approver_designation_ids?: string[] | null;
-  approver_user_ids?: string[] | null;
-}
-
-// Employer Registration module ID
+// Employer Registration module ID — kept for reference
 const ER_MODULE_ID = '683ed102-9a5a-41d7-91d3-1e00c2e15a15';
 
 /**
