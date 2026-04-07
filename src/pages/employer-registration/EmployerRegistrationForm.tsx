@@ -319,6 +319,18 @@ export default function EmployerRegistrationForm() {
           </Card>
         </TabsContent>
 
+        {/* Documents Tab */}
+        <TabsContent value="documents">
+          <ERDocumentsTab
+            documents={erDocuments}
+            regno={regno || ''}
+            isViewMode={isViewMode}
+            userId={user?.id}
+            userCode={userCode || ''}
+            onRefresh={refetchDocs}
+          />
+        </TabsContent>
+
         {/* Notes Tab */}
         <TabsContent value="notes">
           <Card>
