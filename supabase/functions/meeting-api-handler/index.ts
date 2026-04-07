@@ -947,9 +947,10 @@ Deno.serve(async (req) => {
             instance_id: meeting.workflow_instance_id,
             step_id: meeting.step_id,
             action: 'Approved',
+            old_status: 'InProgress',
             new_status: 'Approved',
-            performed_by: userId,
-            performed_by_name: userName,
+            user_id: userId,
+            user_name: userName,
             comments: `Application approved during meeting ${meeting.meeting_reference}`
           })
 
@@ -1094,9 +1095,10 @@ Deno.serve(async (req) => {
             instance_id: meeting.workflow_instance_id,
             step_id: meeting.step_id,
             action: 'Rejected',
+            old_status: 'InProgress',
             new_status: 'Rejected',
-            performed_by: userId,
-            performed_by_name: userName,
+            user_id: userId,
+            user_name: userName,
             comments: body.remarks
           })
 
