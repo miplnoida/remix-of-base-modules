@@ -17459,6 +17459,72 @@ export type Database = {
           },
         ]
       }
+      er_application_documents: {
+        Row: {
+          created_at: string | null
+          doc_code: string | null
+          document_description: string | null
+          document_type: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          regno: string
+          source_application_reference: string
+          storage_url: string
+          transferred_at: string | null
+          transferred_by: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+          uploaded_by_code: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          doc_code?: string | null
+          document_description?: string | null
+          document_type?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          regno: string
+          source_application_reference: string
+          storage_url: string
+          transferred_at?: string | null
+          transferred_by?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          doc_code?: string | null
+          document_description?: string | null
+          document_type?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          regno?: string
+          source_application_reference?: string
+          storage_url?: string
+          transferred_at?: string | null
+          transferred_by?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+        }
+        Relationships: []
+      }
       er_commence: {
         Row: {
           commence_seq_no: number

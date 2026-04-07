@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
@@ -19,13 +19,19 @@ import { Trash2, Plus } from 'lucide-react';
 import FormDetailTab from './tabs/FormDetailTab';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { formatDisplayDate } from '@/lib/dateFormat';
+import { supabase } from '@/integrations/supabase/client';
+import { logAuditTrail } from '@/services/auditService';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useQuery } from '@tanstack/react-query';
+import { ACCEPTED_TYPES, MAX_FILE_SIZE } from '@/components/documents/shared/types';
+import { format } from 'date-fns';
 
 export default function EmployerRegistrationForm() {
   const { regno } = useParams<{ regno: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { userCode } = useUserCode();
   const isViewMode = window.location.pathname.includes('/view/');
   const isNewMode = window.location.pathname.includes('/new');
   const action = searchParams.get('action');
@@ -37,6 +43,23 @@ export default function EmployerRegistrationForm() {
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
+
+  // Fetch transferred documents for this employer
+  const { data: erDocuments = [], refetch: refetchDocs } = useQuery({
+    queryKey: ['er-application-documents', regno],
+    queryFn: async () => {
+      if (!regno) return [];
+      const { data, error } = await supabase
+        .from('er_application_documents')
+        .select('*')
+        .eq('regno', regno)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) { console.error('Error fetching ER docs:', error); return []; }
+      return data || [];
+    },
+    enabled: !!regno,
+  });
 
   const [activeTab, setActiveTab] = useState('details');
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -202,7 +225,7 @@ export default function EmployerRegistrationForm() {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="details" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Form Detail</span>
@@ -214,6 +237,10 @@ export default function EmployerRegistrationForm() {
               <TabsTrigger value="locations" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 <span className="hidden sm:inline">Locations</span>
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Documents</span>
               </TabsTrigger>
               <TabsTrigger value="notes" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -290,6 +317,18 @@ export default function EmployerRegistrationForm() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents">
+          <ERDocumentsTab
+            documents={erDocuments}
+            regno={regno || ''}
+            isViewMode={isViewMode}
+            userId={user?.id}
+            userCode={userCode || ''}
+            onRefresh={refetchDocs}
+          />
         </TabsContent>
 
         {/* Notes Tab */}
@@ -439,5 +478,211 @@ export default function EmployerRegistrationForm() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ─── ER Documents Tab (inline) ──────────────────────────────────────────────
+
+function ERDocumentsTab({
+  documents,
+  regno,
+  isViewMode,
+  userId,
+  userCode,
+  onRefresh,
+}: {
+  documents: any[];
+  regno: string;
+  isViewMode: boolean;
+  userId?: string;
+  userCode: string;
+  onRefresh: () => void;
+}) {
+  const fileInputRefs = React.useRef<Record<number, HTMLInputElement | null>>({});
+  const [uploadingIdx, setUploadingIdx] = React.useState<number | null>(null);
+
+  const handleDocAction = async (doc: any, action: 'view' | 'download') => {
+    try {
+      let url = doc.storage_url;
+      if (doc.file_path) {
+        const { data: signedData, error } = await supabase.storage
+          .from('employer-documents')
+          .createSignedUrl(doc.file_path, 3600);
+        if (!error && signedData) url = signedData.signedUrl;
+      }
+      if (!url) { toast.error('Document URL not available'); return; }
+
+      logAuditTrail({
+        action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
+        entityType: 'er_application_documents',
+        entityId: doc.id,
+        module: 'employer-registration',
+        metadata: { file_name: doc.file_name, regno },
+        userCode,
+        userId,
+      });
+
+      if (action === 'view') {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.file_name || 'document';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Document action failed:', err);
+      toast.error('Failed to access document');
+    }
+  };
+
+  const handleReupload = async (idx: number, file: File | undefined) => {
+    if (!file || !regno) return;
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!ACCEPTED_TYPES.includes(ext)) { toast.error(`File type ${ext} not allowed`); return; }
+    if (file.size > MAX_FILE_SIZE) { toast.error('File exceeds 10MB limit'); return; }
+
+    setUploadingIdx(idx);
+    const doc = documents[idx];
+    try {
+      const fileExt = file.name.split('.').pop();
+      const storagePath = `er_${regno}/${doc.document_type || 'doc'}_${Date.now()}.${fileExt}`;
+      const { error: uploadErr } = await supabase.storage.from('employer-documents').upload(storagePath, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('employer-documents').getPublicUrl(storagePath);
+
+      // Deactivate old
+      await supabase
+        .from('er_application_documents')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', doc.id);
+
+      // Insert new
+      await supabase.from('er_application_documents').insert({
+        regno,
+        source_application_reference: doc.source_application_reference || '',
+        doc_code: doc.doc_code,
+        document_type: doc.document_type,
+        document_description: doc.document_description,
+        file_name: file.name,
+        file_path: storagePath,
+        storage_url: urlData?.publicUrl || '',
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_by: userId || null,
+        uploaded_by_code: userCode || null,
+        transferred_by: userCode || null,
+      });
+
+      logAuditTrail({
+        action: 'DOCUMENT_REUPLOAD',
+        entityType: 'er_application_documents',
+        entityId: doc.id,
+        module: 'employer-registration',
+        afterValue: { file_name: file.name, document_type: doc.document_type, regno },
+        userCode,
+        userId,
+      });
+
+      toast.success(`"${file.name}" uploaded successfully`);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Reupload failed:', err);
+      toast.error(err.message || 'Failed to upload document');
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-5 w-5" />
+            Documents
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{documents.length} document(s) transferred</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onRefresh}>
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {documents.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead>Document Type</TableHead>
+                <TableHead>File Name</TableHead>
+                <TableHead>Transferred</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc: any, idx: number) => (
+                <TableRow key={doc.id}>
+                  <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="font-medium">{doc.document_type || doc.doc_code || '—'}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate max-w-[250px]">{doc.file_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{doc.transferred_at ? format(new Date(doc.transferred_at), 'dd/MM/yyyy') : '—'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'view')} title="View">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'download')} title="Download">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {!isViewMode && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRefs.current[idx]?.click()}
+                            disabled={uploadingIdx !== null}
+                          >
+                            {uploadingIdx === idx ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                                Replace
+                              </>
+                            )}
+                          </Button>
+                          <input
+                            type="file"
+                            ref={(el) => { fileInputRefs.current[idx] = el; }}
+                            className="hidden"
+                            accept={ACCEPTED_TYPES.join(',')}
+                            onChange={(e) => handleReupload(idx, e.target.files?.[0])}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No documents transferred yet</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

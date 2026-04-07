@@ -47,6 +47,7 @@ interface EmployerConversionParams {
   userId: string;
   userCode: string;
   applicationReference?: string;
+  meetingId?: string;
 }
 
 // ─── Client-side preflight validation ───────────────────────────────────────
@@ -87,6 +88,7 @@ export function useConvertToEmployerRegistration() {
     userId,
     userCode,
     applicationReference,
+    meetingId,
   }: EmployerConversionParams): Promise<EmployerConversionResult> => {
     setIsConverting(true);
     setConversionErrors([]);
@@ -184,6 +186,50 @@ export function useConvertToEmployerRegistration() {
         const message = result?.message || 'Conversion failed';
         toast.error(message, { duration: 8000 });
         return { success: false, message };
+      }
+
+      // ── Step 6: Transfer meeting documents to er_application_documents ──
+      if (meetingId && result.regno) {
+        try {
+          const { data: meetingDocs } = await supabase
+            .from('meeting_uploaded_documents')
+            .select('*')
+            .eq('meeting_id', meetingId)
+            .eq('application_reference', resolvedAppRef)
+            .eq('is_active', true);
+
+          if (meetingDocs && meetingDocs.length > 0) {
+            const docInserts = meetingDocs.map((doc: any) => ({
+              regno: result.regno,
+              source_application_reference: resolvedAppRef,
+              doc_code: doc.doc_code || null,
+              document_type: doc.document_type || null,
+              document_description: doc.document_name || doc.file_name,
+              file_name: doc.file_name,
+              file_path: doc.file_path,
+              storage_url: doc.storage_url,
+              file_size: doc.file_size || null,
+              mime_type: doc.mime_type || null,
+              uploaded_by: doc.uploaded_by || null,
+              uploaded_by_code: doc.uploaded_by_code || null,
+              transferred_by: userCode || null,
+              metadata: doc.metadata || null,
+            }));
+
+            const { error: docTransferErr } = await supabase
+              .from('er_application_documents')
+              .insert(docInserts);
+
+            if (docTransferErr) {
+              console.error('[useConvertToEmployerRegistration] Document transfer failed:', docTransferErr);
+              // Non-blocking — conversion succeeded, just log the doc transfer failure
+            } else {
+              console.log(`[useConvertToEmployerRegistration] Transferred ${docInserts.length} document(s) to er_application_documents`);
+            }
+          }
+        } catch (docErr) {
+          console.error('[useConvertToEmployerRegistration] Document transfer error:', docErr);
+        }
       }
 
       // Invalidate queries

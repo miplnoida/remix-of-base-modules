@@ -275,6 +275,7 @@ export default function StartMeetingPage() {
           userId: user?.id || '',
           userCode: userCode || '',
           applicationReference,
+          meetingId,
         });
 
         if (!result.success) {
@@ -810,7 +811,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} />;
+    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
   }
   
   if (meetingType === 'Doctor-Registration') {

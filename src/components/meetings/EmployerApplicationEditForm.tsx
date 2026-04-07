@@ -42,6 +42,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { EmployerMeetingDocumentsTab as EmployerMeetingDocumentsTabComponent } from './EmployerMeetingDocumentsTab';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -142,9 +143,11 @@ interface EmployerApplicationEditFormProps {
   data: Record<string, any>;
   onChange: (field: string, value: any) => void;
   onDataChange: (newData: Record<string, any>) => void;
+  meetingId?: string;
+  applicationReference?: string;
 }
 
-export function EmployerApplicationEditForm({ data, onChange, onDataChange }: EmployerApplicationEditFormProps) {
+export function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference }: EmployerApplicationEditFormProps) {
   const {
     officeCodes,
     ownershipCodes,
@@ -610,62 +613,70 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange }: Em
           </Card>
         </TabsContent>
 
-        {/* Tab 7: Documents (read-only) */}
+        {/* Tab 7: Documents — upload-capable when meetingId is available */}
         <TabsContent value="documents">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-5 w-5" />
-                Uploaded Documents
-              </CardTitle>
-              <CardDescription>Supporting documents ({documents.length} files)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {documents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px]">#</TableHead>
-                      <TableHead>Document Type</TableHead>
-                      <TableHead>File Name</TableHead>
-                      <TableHead>Upload Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {documents.map((doc, idx) => (
-                      <TableRow key={doc.id || idx}>
-                        <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                        <TableCell className="font-medium">{doc.document_type || doc.type || '—'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="truncate max-w-[300px]">{doc.file_name || doc.name || 'Document'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{doc.uploaded_at ? format(new Date(doc.uploaded_at), 'dd/MM/yyyy') : '—'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'view')} title="View">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'download')} title="Download">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+          {meetingId && applicationReference ? (
+            <EmployerMeetingDocumentsTabComponent
+              documents={documents}
+              meetingId={meetingId}
+              applicationReference={applicationReference}
+            />
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="h-5 w-5" />
+                  Uploaded Documents
+                </CardTitle>
+                <CardDescription>Supporting documents ({documents.length} files)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {documents.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
+                        <TableHead>Document Type</TableHead>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>Upload Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No documents uploaded</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {documents.map((doc, idx) => (
+                        <TableRow key={doc.id || idx}>
+                          <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                          <TableCell className="font-medium">{doc.document_type || doc.type || '—'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <span className="truncate max-w-[300px]">{doc.file_name || doc.name || 'Document'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{doc.uploaded_at ? format(new Date(doc.uploaded_at), 'dd/MM/yyyy') : '—'}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'view')} title="View">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'download')} title="Download">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No documents uploaded</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tab 8: Notes (read-only) */}
