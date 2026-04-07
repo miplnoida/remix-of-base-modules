@@ -810,7 +810,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} />;
+    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
   }
   
   if (meetingType === 'Doctor-Registration') {
