@@ -303,9 +303,6 @@ export default function StartMeetingPage() {
         if (closeResult?.nextWorkflowInstanceId) {
           toast.success('Employer Registration Approval Workflow initiated automatically.', { duration: 5000 });
         }
-        // Invalidate queries
-        const queryClient = (await import('@tanstack/react-query')).useQueryClient;
-        // We can't call useQueryClient here, so invalidate via approveMutation's onSuccess side-effect
       } else {
         await approveMutation.mutateAsync({
           meetingId,
@@ -314,12 +311,8 @@ export default function StartMeetingPage() {
         });
       }
 
-      // Invalidate queries for employer path
-      if (isEmployerMeeting) {
-        // The approveMutation.onSuccess does this for the non-employer path
-        // For employer path, manually trigger invalidation by calling a lightweight refetch
-        refetchMeeting();
-      }
+      // Trigger query invalidation
+      refetchMeeting();
 
       setApprovalDialogOpen(false);
       
