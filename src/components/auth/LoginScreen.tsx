@@ -72,14 +72,23 @@ export const LoginScreen = () => {
 
   const shouldShowRedirectingState = !authLoading && isAuthenticated;
 
-  // Global safety timeout: force-exit loading after 10s no matter what
+  // Safety timeout: clears loading state after LOGIN_SAFETY_TIMEOUT_MS.
+  // This is a LAST-RESORT guard. The login() function itself has an 8s
+  // timeout on signInWithPassword, so this should rarely fire.
+  // When it does fire, it only clears the spinner — it does NOT
+  // overwrite a valid isAuthenticated state. If the user already
+  // authenticated, the redirect effect above will still navigate them.
   useEffect(() => {
     if (isLoading) {
       safetyTimerRef.current = setTimeout(() => {
+        // Only show error if auth hasn't succeeded in the meantime
         setIsLoading(false);
-        setError('Sign-in is taking too long. Please try again.');
         loginCalledRef.current = false;
-        resetTurnstile();
+        // Don't set error if already authenticated — the redirect effect handles it
+        if (!isAuthenticated) {
+          setError('Sign-in is taking too long. Please try again.');
+          resetTurnstile();
+        }
       }, LOGIN_SAFETY_TIMEOUT_MS);
     } else {
       if (safetyTimerRef.current) {
@@ -93,7 +102,14 @@ export const LoginScreen = () => {
         safetyTimerRef.current = null;
       }
     };
-  }, [isLoading, resetTurnstile]);
+  }, [isLoading, resetTurnstile, isAuthenticated]);
+
+  // If isAuthenticated becomes true while still in loading state, clear loading
+  useEffect(() => {
+    if (isAuthenticated && isLoading) {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, isLoading]);
 
   // Watch for Turnstile token/error and proceed if login hasn't been called yet
   useEffect(() => {

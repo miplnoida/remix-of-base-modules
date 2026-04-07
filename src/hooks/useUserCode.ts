@@ -14,6 +14,9 @@ interface UserCodeData {
  * The user_code is derived as first-initial + full last name (e.g. "JBarry").
  * Duplicates get a numeric suffix (JBarry2, JBarry3).
  * Use this code for audit fields like entered_by, modified_by, verified_by, etc.
+ *
+ * This hook uses a PASSIVE auth listener — no awaited Supabase calls inside
+ * onAuthStateChange — and loads profile data in a separate effect.
  */
 export function useUserCode(): UserCodeData {
   const [data, setData] = useState<UserCodeData>({
@@ -24,76 +27,78 @@ export function useUserCode(): UserCodeData {
     error: null,
   });
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // PASSIVE auth listener — only sets userId, no DB calls
   useEffect(() => {
-    let isMounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user?.id ?? null);
+      if (!session?.user) {
+        setData({ userCode: null, userId: null, fullName: null, isLoading: false, error: null });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user?.id ?? null;
+      setCurrentUserId(uid);
+      if (!uid) {
+        setData({ userCode: null, userId: null, fullName: null, isLoading: false, error: null });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Separate effect: fetch profile when userId changes
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    let cancelled = false;
 
     const fetchUserCode = async () => {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
-          if (isMounted) {
-            setData({
-              userCode: null,
-              userId: null,
-              fullName: null,
-              isLoading: false,
-              error: authError?.message || 'Not authenticated',
-            });
-          }
-          return;
-        }
-
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('user_code, full_name')
-          .eq('id', user.id)
+          .eq('id', currentUserId)
           .single();
 
-        if (isMounted) {
-          if (profileError) {
-            setData({
-              userCode: null,
-              userId: user.id,
-              fullName: null,
-              isLoading: false,
-              error: profileError.message,
-            });
-          } else {
-            setData({
-              userCode: profile?.user_code || null,
-              userId: user.id,
-              fullName: profile?.full_name || null,
-              isLoading: false,
-              error: null,
-            });
-          }
-        }
-      } catch (err) {
-        if (isMounted) {
+        if (cancelled) return;
+
+        if (profileError) {
           setData({
             userCode: null,
-            userId: null,
+            userId: currentUserId,
             fullName: null,
             isLoading: false,
-            error: err instanceof Error ? err.message : 'Unknown error',
+            error: profileError.message,
+          });
+        } else {
+          setData({
+            userCode: profile?.user_code || null,
+            userId: currentUserId,
+            fullName: profile?.full_name || null,
+            isLoading: false,
+            error: null,
           });
         }
+      } catch (err) {
+        if (cancelled) return;
+        setData({
+          userCode: null,
+          userId: currentUserId,
+          fullName: null,
+          isLoading: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
       }
     };
 
+    setData(prev => ({ ...prev, isLoading: true }));
     fetchUserCode();
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchUserCode();
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [currentUserId]);
 
   return data;
 }

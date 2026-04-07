@@ -234,16 +234,13 @@ export const SystemLoggingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [location.pathname, user, profile, logBusinessEvent, logPerformance, logAudit, startNewCorrelation]);
 
-  // Clear persisted route on logout so next login gets a fresh page_view
+  // Clear persisted route on logout — passive, uses context state instead of auth listener
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        sessionStorage.removeItem('audit_last_route');
-        previousPath.current = '';
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!user) {
+      sessionStorage.removeItem('audit_last_route');
+      previousPath.current = '';
+    }
+  }, [user]);
 
   // Log unhandled promise rejections
   useEffect(() => {
