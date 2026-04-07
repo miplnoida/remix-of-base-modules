@@ -265,9 +265,9 @@ export function useEmployerRegistrationSubmit() {
           step_id: firstStep.id,
           step_name: firstStep.step_name,
           action: 'workflow_started',
-          performed_by: userId,
-          performed_by_name: profile?.full_name || 'System',
-          details: `Workflow started for Employer Registration: ${recordName}`,
+          user_id: userId,
+          user_name: profile?.full_name || 'System',
+          comments: `Workflow started for Employer Registration: ${recordName}`,
         });
 
       // Notify approvers
