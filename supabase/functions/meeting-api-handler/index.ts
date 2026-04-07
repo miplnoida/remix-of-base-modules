@@ -1781,3 +1781,173 @@ async function callExternalApi(
     return { success: false, error: errorMessage }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trigger "Employer Registration Approval Workflow" for a newly created
+// employer registration (er_master) after meeting-based conversion.
+//
+// Mirrors the logic in useEmployerRegistrationSubmit.ts but runs server-side
+// with service-role privileges and correct workflow_logs schema.
+// ─────────────────────────────────────────────────────────────────────────────
+const ER_MODULE_ID = '683ed102-9a5a-41d7-91d3-1e00c2e15a15'
+
+async function triggerEmployerRegistrationWorkflow(
+  supabase: any,
+  regno: string,
+  employerName: string,
+  userId: string | null,
+  userName: string | null
+): Promise<string | null> {
+  // 1. Look up workflow trigger for employers module + submit
+  const { data: triggers, error: triggerError } = await supabase
+    .from('workflow_triggers')
+    .select('id, workflow_id, action_name, is_active')
+    .eq('action_name', 'submit')
+    .eq('is_active', true)
+    .eq('module_id', ER_MODULE_ID)
+
+  if (triggerError || !triggers || triggers.length === 0) {
+    console.log('[triggerEmployerRegistrationWorkflow] No workflow trigger configured for ER registration submit')
+    return null
+  }
+
+  const trigger = triggers[0]
+
+  // 2. Get workflow definition
+  const { data: workflow, error: workflowError } = await supabase
+    .from('workflow_definitions')
+    .select('id, name, default_sla_hours')
+    .eq('id', trigger.workflow_id)
+    .single()
+
+  if (workflowError || !workflow) {
+    console.log('[triggerEmployerRegistrationWorkflow] Workflow not found:', trigger.workflow_id)
+    return null
+  }
+
+  // 3. Get workflow steps
+  const { data: steps, error: stepsError } = await supabase
+    .from('workflow_steps')
+    .select('id, step_name, step_number, sla_hours, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
+    .eq('workflow_id', workflow.id)
+    .order('step_number', { ascending: true })
+
+  if (stepsError || !steps || steps.length === 0) {
+    console.log('[triggerEmployerRegistrationWorkflow] Workflow has no steps configured')
+    return null
+  }
+
+  const firstStep = steps[0]
+  const dueAt = new Date()
+  dueAt.setHours(dueAt.getHours() + (workflow.default_sla_hours || 24))
+
+  // 4. Create workflow instance
+  const { data: instance, error: instanceError } = await supabase
+    .from('workflow_instances')
+    .insert({
+      workflow_id: workflow.id,
+      workflow_name: workflow.name,
+      source_module: 'employers',
+      source_record_id: regno,
+      source_record_name: employerName,
+      current_step_id: firstStep.id,
+      status: 'InProgress',
+      started_by: userId,
+      started_by_name: userName || 'System',
+      due_at: dueAt.toISOString(),
+      metadata: {
+        regno,
+        employer_name: employerName,
+      }
+    })
+    .select('id')
+    .single()
+
+  if (instanceError || !instance) {
+    console.error('[triggerEmployerRegistrationWorkflow] Error creating workflow instance:', instanceError)
+    return null
+  }
+
+  // 5. Determine task assignment
+  const taskAssignment: { assigned_role?: string | null; assigned_designation?: string | null; assigned_to?: string | null } = {}
+  const approverType = firstStep.approver_type || 'role'
+
+  if (approverType === 'role' && firstStep.approver_role_ids?.length > 0) {
+    const roleIds = firstStep.approver_role_ids as string[]
+    if (roleIds.length === 1) {
+      const { data: roleData } = await supabase
+        .from('roles')
+        .select('role_name')
+        .eq('id', roleIds[0])
+        .single()
+      if (roleData) taskAssignment.assigned_role = roleData.role_name
+    }
+  } else if (approverType === 'designation' && firstStep.approver_designation_ids?.length > 0) {
+    const designationIds = firstStep.approver_designation_ids as string[]
+    if (designationIds.length === 1) taskAssignment.assigned_designation = designationIds[0]
+  } else if ((approverType === 'user' || approverType === 'specific_users') && firstStep.approver_user_ids?.length > 0) {
+    const userIds = firstStep.approver_user_ids as string[]
+    if (userIds.length === 1) taskAssignment.assigned_to = userIds[0]
+  }
+
+  // 6. Create first task
+  const taskDueAt = new Date()
+  taskDueAt.setHours(taskDueAt.getHours() + (firstStep.sla_hours || 24))
+
+  const { data: taskData } = await supabase
+    .from('workflow_tasks')
+    .insert({
+      instance_id: instance.id,
+      step_id: firstStep.id,
+      step_name: firstStep.step_name,
+      assigned_role: taskAssignment.assigned_role || null,
+      assigned_designation: taskAssignment.assigned_designation || null,
+      assigned_to: taskAssignment.assigned_to || null,
+      status: 'Pending',
+      due_at: taskDueAt.toISOString(),
+    })
+    .select('id')
+    .single()
+
+  // 7. Log workflow start
+  await supabase.from('workflow_logs').insert({
+    instance_id: instance.id,
+    step_id: firstStep.id,
+    step_name: firstStep.step_name,
+    action: 'workflow_started',
+    new_status: 'InProgress',
+    user_id: userId,
+    user_name: userName || 'System',
+    comments: `Workflow started for Employer Registration: ${employerName} (${regno})`,
+  })
+
+  // 8. Notify approvers (non-blocking)
+  if (taskData?.id) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      await fetch(`${supabaseUrl}/functions/v1/workflow-notify-approvers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+        },
+        body: JSON.stringify({
+          instance_id: instance.id,
+          step_id: firstStep.id,
+          task_id: taskData.id,
+          workflow_name: workflow.name,
+          source_record_name: employerName,
+          source_module: 'employers',
+        }),
+      })
+      console.log('[triggerEmployerRegistrationWorkflow] Approvers notified')
+    } catch (notifyErr) {
+      console.error('[triggerEmployerRegistrationWorkflow] Failed to notify approvers (non-critical):', notifyErr)
+    }
+  }
+
+  console.log(`[triggerEmployerRegistrationWorkflow] Workflow instance ${instance.id} created for ${regno}`)
+  return instance.id
+}
