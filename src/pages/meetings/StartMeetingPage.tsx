@@ -275,6 +275,7 @@ export default function StartMeetingPage() {
           userId: user?.id || '',
           userCode: userCode || '',
           applicationReference,
+          meetingId,
         });
 
         if (!result.success) {
