@@ -57,6 +57,7 @@ import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meeti
 import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
 import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
@@ -263,6 +264,7 @@ export default function StartMeetingPage() {
 
       // ── For Employer-Registration meetings: run employer conversion ────────
       let employerRegno: string | null = null;
+      let employerName: string | null = null;
       if (meetingType === 'Employer-Registration' && applicationData) {
         const dataForConversion = hasChanges
           ? { ...applicationData, ...editedData }
@@ -280,15 +282,37 @@ export default function StartMeetingPage() {
         }
 
         employerRegno = result.regno || null;
+        employerName = (dataForConversion as any)?.name || (dataForConversion as any)?.employer_name || employerRegno;
         toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
       // ── Close the meeting as approved ──────────────────────────────────────
-      await approveMutation.mutateAsync({
-        meetingId,
-        applicationData: hasChanges ? editedData : undefined,
-        remarks: approvalRemarks || undefined,
-      });
+      // For employer meetings, use the edge function to also trigger the next workflow
+      if (isEmployerMeeting && employerRegno) {
+        const { data: closeResult, error: closeErr } = await supabase.functions.invoke('meeting-api-handler', {
+          body: {
+            action: 'close_meeting_approved',
+            meetingId,
+            applicationData: hasChanges ? editedData : undefined,
+            remarks: approvalRemarks || undefined,
+            employerRegno,
+            employerName: employerName || employerRegno,
+          }
+        });
+        if (closeErr) throw new Error(closeErr.message || 'Failed to close meeting');
+        if (closeResult?.nextWorkflowInstanceId) {
+          toast.success('Employer Registration Approval Workflow initiated automatically.', { duration: 5000 });
+        }
+      } else {
+        await approveMutation.mutateAsync({
+          meetingId,
+          applicationData: hasChanges ? editedData : undefined,
+          remarks: approvalRemarks || undefined,
+        });
+      }
+
+      // Trigger query invalidation
+      refetchMeeting();
 
       setApprovalDialogOpen(false);
       

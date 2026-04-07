@@ -433,15 +433,29 @@ export function useCloseMeetingWithApproval() {
       // 4. Update workflow instance + tasks if linked
       const workflowInstanceId = meeting.workflow_instance_id;
       if (workflowInstanceId) {
-        await supabase
+        const { error: wiErr } = await supabase
           .from('workflow_instances')
-          .update({ status: 'Approved', updated_at: now })
+          .update({ status: 'Approved', completed_at: now })
           .eq('id', workflowInstanceId);
-        await (supabase
+        if (wiErr) console.error('Failed to close workflow instance:', wiErr.message);
+
+        const { error: wtErr } = await supabase
           .from('workflow_tasks')
-          .update({ status: 'Completed', completed_at: now, updated_at: now }) as any)
-          .eq('workflow_instance_id', workflowInstanceId)
+          .update({ status: 'Completed', completed_at: now })
+          .eq('instance_id', workflowInstanceId)
           .in('status', ['Pending', 'InProgress']);
+        if (wtErr) console.error('Failed to complete workflow tasks:', wtErr.message);
+
+        // Write workflow audit log
+        await supabase.from('workflow_logs').insert({
+          instance_id: workflowInstanceId,
+          action: 'Approved',
+          old_status: 'InProgress',
+          new_status: 'Approved',
+          user_id: null,
+          user_name: 'System',
+          comments: remarks || 'Application approved during meeting',
+        });
       }
 
       return { success: true, message: 'Application accepted successfully' };
@@ -512,15 +526,29 @@ export function useCloseMeetingWithRejection() {
       // 4. Update workflow instance + tasks if linked
       const workflowInstanceId = meeting.workflow_instance_id;
       if (workflowInstanceId) {
-        await supabase
+        const { error: wiErr } = await supabase
           .from('workflow_instances')
-          .update({ status: 'Rejected', updated_at: now })
+          .update({ status: 'Rejected', completed_at: now })
           .eq('id', workflowInstanceId);
-        await (supabase
+        if (wiErr) console.error('Failed to reject workflow instance:', wiErr.message);
+
+        const { error: wtErr } = await supabase
           .from('workflow_tasks')
-          .update({ status: 'Completed', completed_at: now, updated_at: now }) as any)
-          .eq('workflow_instance_id', workflowInstanceId)
+          .update({ status: 'Completed', completed_at: now })
+          .eq('instance_id', workflowInstanceId)
           .in('status', ['Pending', 'InProgress']);
+        if (wtErr) console.error('Failed to complete workflow tasks:', wtErr.message);
+
+        // Write workflow audit log
+        await supabase.from('workflow_logs').insert({
+          instance_id: workflowInstanceId,
+          action: 'Rejected',
+          old_status: 'InProgress',
+          new_status: 'Rejected',
+          user_id: null,
+          user_name: 'System',
+          comments: remarks || 'Application rejected during meeting',
+        });
       }
 
       return { success: true, message: 'Application rejected' };
