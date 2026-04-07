@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
@@ -19,6 +19,12 @@ import { Trash2, Plus } from 'lucide-react';
 import FormDetailTab from './tabs/FormDetailTab';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { formatDisplayDate } from '@/lib/dateFormat';
+import { supabase } from '@/integrations/supabase/client';
+import { logAuditTrail } from '@/services/auditService';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useQuery } from '@tanstack/react-query';
+import { ACCEPTED_TYPES, MAX_FILE_SIZE } from '@/components/documents/shared/types';
+import { format } from 'date-fns';
 
 export default function EmployerRegistrationForm() {
   const { regno } = useParams<{ regno: string }>();
