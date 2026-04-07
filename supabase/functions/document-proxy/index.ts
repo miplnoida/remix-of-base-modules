@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     const allowedOrigins = [
       'fiqyahojoouloswmnhcu.supabase.co',
       'hekgiuycrjncxalcapfz.supabase.co',
+      'xynceskeiiisiefqlgxo.supabase.co',
     ]
     
     let parsedUrl: URL

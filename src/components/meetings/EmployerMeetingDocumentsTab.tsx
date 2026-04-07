@@ -218,17 +218,77 @@ export function EmployerMeetingDocumentsTab({ documents, meetingId, applicationR
     }
   };
 
+  const [docActionLoading, setDocActionLoading] = useState<string | null>(null);
+
   const handleDocAction = async (doc: MergedDocument, action: 'view' | 'download') => {
+    setDocActionLoading(doc.id);
     try {
       let url = doc.url;
 
-      // For platform docs, get a signed URL from employer-documents bucket
       if (doc.source === 'platform' && doc.file_path) {
+        // Platform docs: get a signed URL from employer-documents bucket
         const { data: signedData, error: signedErr } = await supabase.storage
           .from('employer-documents')
           .createSignedUrl(doc.file_path, 3600);
         if (signedErr) throw signedErr;
         url = signedData?.signedUrl || doc.url;
+      } else if (doc.source === 'external' && url) {
+        // External docs: route through document-proxy for reliable access
+        const proxyAction = action === 'view' ? 'stream' : 'download';
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const proxyUrl = `https://${projectId}.supabase.co/functions/v1/document-proxy`;
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        if (!token) {
+          toast.error('Authentication required to access documents');
+          return;
+        }
+
+        const proxyResp = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: proxyAction,
+            documentUrl: url,
+            fileName: doc.file_name,
+          }),
+        });
+
+        if (!proxyResp.ok) {
+          const errBody = await proxyResp.json().catch(() => ({}));
+          throw new Error(errBody.error || `Proxy returned ${proxyResp.status}`);
+        }
+
+        const blob = await proxyResp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        logAuditTrail({
+          action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
+          entityType: 'employer-application-document',
+          entityId: doc.id,
+          module: 'employer-applications',
+          metadata: { file_name: doc.file_name, meeting_id: meetingId },
+          userCode: userCode || undefined,
+          userId: user?.id,
+        });
+
+        if (action === 'view') {
+          window.open(blobUrl, '_blank');
+        } else {
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = doc.file_name || 'document';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        // Clean up blob URL after a delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        return;
       }
 
       if (!url) {
@@ -259,6 +319,8 @@ export function EmployerMeetingDocumentsTab({ documents, meetingId, applicationR
     } catch (err) {
       console.error('Document action failed:', err);
       toast.error('Failed to access document');
+    } finally {
+      setDocActionLoading(null);
     }
   };
 
@@ -331,10 +393,10 @@ export function EmployerMeetingDocumentsTab({ documents, meetingId, applicationR
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'view')} title="View">
-                        <Eye className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'view')} title="View" disabled={docActionLoading === doc.id}>
+                        {docActionLoading === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'download')} title="Download">
+                      <Button variant="ghost" size="icon" onClick={() => handleDocAction(doc, 'download')} title="Download" disabled={docActionLoading === doc.id}>
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button

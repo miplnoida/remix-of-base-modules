@@ -25099,7 +25099,7 @@ export type Database = {
         Row: {
           alias: string | null
           application_date: string | null
-          application_id: string
+          application_id: string | null
           application_reference_number: string | null
           application_remarks: string | null
           asp_num: string | null
@@ -25211,7 +25211,7 @@ export type Database = {
         Insert: {
           alias?: string | null
           application_date?: string | null
-          application_id: string
+          application_id?: string | null
           application_reference_number?: string | null
           application_remarks?: string | null
           asp_num?: string | null
@@ -25323,7 +25323,7 @@ export type Database = {
         Update: {
           alias?: string | null
           application_date?: string | null
-          application_id?: string
+          application_id?: string | null
           application_reference_number?: string | null
           application_remarks?: string | null
           asp_num?: string | null
@@ -37886,6 +37886,7 @@ export type Database = {
           p_date_incorporated?: string
           p_date_of_acquisition?: string
           p_date_wages_first_paid?: string
+          p_documents_json?: string
           p_email?: string
           p_employer_name?: string
           p_entered_by?: string
