@@ -31,7 +31,7 @@ export default function EmployerRegistrationForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { userCode } = useUserCode();
   const isViewMode = window.location.pathname.includes('/view/');
   const isNewMode = window.location.pathname.includes('/new');
   const action = searchParams.get('action');
@@ -43,6 +43,23 @@ export default function EmployerRegistrationForm() {
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
+
+  // Fetch transferred documents for this employer
+  const { data: erDocuments = [], refetch: refetchDocs } = useQuery({
+    queryKey: ['er-application-documents', regno],
+    queryFn: async () => {
+      if (!regno) return [];
+      const { data, error } = await supabase
+        .from('er_application_documents')
+        .select('*')
+        .eq('regno', regno)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) { console.error('Error fetching ER docs:', error); return []; }
+      return data || [];
+    },
+    enabled: !!regno,
+  });
 
   const [activeTab, setActiveTab] = useState('details');
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
