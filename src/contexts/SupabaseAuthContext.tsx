@@ -320,7 +320,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [session, updateActivity, loadSessionPolicy]);
 
-  // Handle tab visibility change
+  // Handle tab visibility change — resilient to transient failures
   useEffect(() => {
     if (!session) return;
 
@@ -333,15 +333,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         try {
           const { data, error } = await supabase.auth.getSession();
           if (error || !data.session) {
-            console.warn('Session invalid after tab switch');
-            toast.warning('Session expired. Please log in again.');
-            void logoutRef.current();
+            // Don't immediately logout — try refreshing first
+            console.warn('Session missing after tab switch, attempting refresh…');
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError || !refreshData.session) {
+              console.warn('Session refresh failed after tab switch — logging out');
+              toast.warning('Session expired. Please log in again.');
+              void logoutRef.current();
+            } else {
+              console.info('Session recovered via refresh after tab switch');
+              scheduleTokenRefresh(refreshData.session);
+            }
           } else {
-            await loadSessionPolicy();
+            // Session is valid — refresh policy & token schedule in background
+            void loadSessionPolicy().catch(() => {});
             scheduleTokenRefresh(data.session);
           }
         } catch (err) {
           console.warn('Error checking session on visibility change:', err);
+          // Don't logout on transient network errors
         }
       }
     };
