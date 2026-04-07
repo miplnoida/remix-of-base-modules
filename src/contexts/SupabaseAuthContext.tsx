@@ -546,10 +546,20 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: profileAccessError };
       }
 
-      let { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password,
-      });
+      const SIGN_IN_TIMEOUT_MS = 8_000;
+
+      const signInWithTimeout = (signInEmail: string, signInPassword: string) =>
+        Promise.race([
+          supabase.auth.signInWithPassword({ email: signInEmail, password: signInPassword }),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Authentication service is not responding. Please use the Share Preview link or published URL.')),
+              SIGN_IN_TIMEOUT_MS
+            )
+          ),
+        ]);
+
+      let { data, error } = await signInWithTimeout(loginEmail, password);
 
       if (error && loginEmail === email && hasInvalidCredentialsMessage(error.message)) {
         const resolvedEmail = await resolveAuthEmailPromise;
@@ -565,11 +575,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           existingProfile = resolvedProfile;
           loginEmail = resolvedEmail;
 
-          const retryResult = await supabase.auth.signInWithPassword({
-            email: resolvedEmail,
-            password,
-          });
-
+          const retryResult = await signInWithTimeout(resolvedEmail, password);
           data = retryResult.data;
           error = retryResult.error;
         }
@@ -605,6 +611,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoggingOutRef.current = false;
         idleWarningShownRef.current = false;
 
+        // Fire-and-forget: reset failed attempts and update last_login
         void supabase
           .from('profiles')
           .update({ 
@@ -614,31 +621,31 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           })
           .eq('id', data.user.id);
 
+        // Fire-and-forget: load session policy in background
         void loadSessionPolicy().catch(() => {});
 
-        const [profileData, rolesData] = await Promise.all([
-          fetchProfile(data.user.id),
-          fetchRoles(data.user.id),
-        ]);
-
-        // Set auth state immediately — prevent onAuthStateChange from duplicating
-        loginJustCompletedRef.current = true;
-        setProfile(profileData);
-        setProfileStatus(profileData ? 'loaded' : 'failed');
-        setRoles(rolesData);
-        setRolesStatus('loaded');
-        setIsAuthReady(true);
-        setIsLoading(false);
-
-        if (profileData?.force_password_change) {
+        // Check force_password_change with a quick lightweight query
+        // Profile/roles will be loaded by onAuthStateChange -> loadUserDataInBackground
+        if (existingProfile?.force_password_change) {
           return { success: true, requiresPasswordChange: true };
+        } else if (!existingProfile) {
+          // No pre-fetched profile — do a quick single-field check
+          const { data: fpData } = await supabase
+            .from('profiles')
+            .select('force_password_change')
+            .eq('id', data.user.id)
+            .single();
+          if (fpData?.force_password_change) {
+            return { success: true, requiresPasswordChange: true };
+          }
         }
       }
 
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: 'An unexpected error occurred' };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      return { success: false, error: message };
     }
   };
 
