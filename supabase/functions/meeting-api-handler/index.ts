@@ -1002,9 +1002,45 @@ Deno.serve(async (req) => {
           }
         }
 
+        // ── Auto-trigger next employer workflow if regno is provided ──────────
+        let nextWorkflowInstanceId: string | null = null
+        if (body.employerRegno && meeting.meeting_type === 'Employer-Registration') {
+          try {
+            nextWorkflowInstanceId = await triggerEmployerRegistrationWorkflow(
+              supabase,
+              body.employerRegno,
+              body.employerName || body.employerRegno,
+              userId,
+              userName
+            )
+            if (nextWorkflowInstanceId) {
+              console.log('[close_meeting_approved] Next employer workflow triggered:', nextWorkflowInstanceId)
+            }
+          } catch (triggerErr) {
+            console.error('[close_meeting_approved] Failed to trigger next employer workflow (non-blocking):', triggerErr)
+            await supabase.from('system_audit_trail').insert({
+              action: 'employer_workflow_trigger_failed',
+              entity_type: 'employer_registration',
+              entity_id: body.employerRegno,
+              module: 'Workflow Trigger',
+              user_id: userId,
+              user_name: userName || 'SYSTEM',
+              severity: 'error',
+              payload_json: {
+                regno: body.employerRegno,
+                meeting_id: body.meetingId,
+                error: triggerErr instanceof Error ? triggerErr.message : String(triggerErr),
+              },
+              timestamp: new Date().toISOString(),
+            }).catch(() => {})
+          }
+        }
+
         return new Response(JSON.stringify({ 
           success: true, 
-          message: 'Application approved successfully'
+          message: 'Application approved successfully',
+          nextWorkflowInstanceId,
+          employerRegno: body.employerRegno || null,
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
