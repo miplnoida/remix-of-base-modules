@@ -123,7 +123,7 @@ export function useConvertToEmployerRegistration() {
 
       // ── Step 4: Build notes JSON ──────────────────────────────────────
       const notesJson = (app.remarks || []).map((r: any) => ({
-        note: trim(r.note, 250),
+        note: trim(r.note, 500),
         note_date: safeDate(r.note_date) || new Date().toISOString().split('T')[0],
         user_id: trim(r.created_by || userCode, 50),
       }));
