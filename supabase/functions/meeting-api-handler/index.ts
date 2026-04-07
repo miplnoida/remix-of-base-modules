@@ -45,6 +45,9 @@ interface MeetingApiRequest {
    * conflict-check queries still see it as occupied.
    */
   releasePreviousSlot?: boolean
+  // Employer workflow trigger fields
+  employerRegno?: string
+  employerName?: string
   filters?: {
     status?: string
     dateFrom?: string
