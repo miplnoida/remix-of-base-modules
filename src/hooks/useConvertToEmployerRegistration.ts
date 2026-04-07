@@ -40,6 +40,7 @@ export interface EmployerConversionResult {
   regno?: string;
   errors?: EmployerConversionValidationError[];
   message?: string;
+  documentsAdded?: number;
 }
 
 interface EmployerConversionParams {
@@ -74,6 +75,76 @@ export function validateEmployerApplicationForConversion(
   }
 
   return errors;
+}
+
+// ─── Document builder (matches IP flow pattern) ─────────────────────────────
+
+function mapDocToRpcFormat(doc: Record<string, any>): Record<string, any> {
+  return {
+    file_name: doc.file_name || doc.fileName || doc.name || doc.document_name || 'unknown',
+    file_path: doc.file_path || doc.filePath || '',
+    storage_url: doc.storage_url || doc.url || doc.signed_url || doc.download_url || '',
+    document_type: doc.document_type || doc.type || doc.documentType || null,
+    document_description: doc.document_description || doc.document_name || doc.file_name || null,
+    doc_code: doc.doc_code || null,
+    mime_type: doc.mime_type || doc.mimeType || null,
+    file_size: doc.file_size || doc.fileSize || null,
+    uploaded_by: doc.uploaded_by || null,
+    uploaded_by_code: doc.uploaded_by_code || null,
+    is_supportive: doc.is_supportive ?? false,
+    metadata: doc.metadata || null,
+  };
+}
+
+async function buildEmployerDocumentsForConversion(
+  applicationData: Record<string, any>,
+  meetingId?: string,
+  applicationReference?: string,
+  userCode?: string,
+): Promise<object[]> {
+  // Start with the documents from the external application payload
+  const appDocs = (applicationData.documents || []).map(mapDocToRpcFormat);
+
+  // If conversion is triggered from a meeting, fetch documents uploaded during the meeting
+  if (meetingId && applicationReference) {
+    console.log(`[buildEmployerDocumentsForConversion] Fetching meeting docs for meeting=${meetingId}, appRef=${applicationReference}`);
+
+    const { data: meetingDocs, error } = await supabase
+      .from('meeting_uploaded_documents')
+      .select('*')
+      .eq('meeting_id', meetingId)
+      .eq('application_reference', applicationReference)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('[buildEmployerDocumentsForConversion] Failed to fetch meeting documents:', error);
+      throw new Error(`Failed to fetch meeting documents: ${error.message}. Document transfer aborted.`);
+    }
+
+    const meetingMapped = (meetingDocs || []).map(mapDocToRpcFormat);
+    console.log(`[buildEmployerDocumentsForConversion] Found ${appDocs.length} app doc(s) + ${meetingMapped.length} meeting doc(s)`);
+
+    // Deduplicate: meeting docs take precedence (by document_type)
+    const seen = new Set<string>();
+    const merged: object[] = [];
+
+    for (const doc of meetingMapped) {
+      const key = (doc as any).document_type || (doc as any).doc_code || '';
+      if (key) seen.add(key);
+      merged.push(doc);
+    }
+    for (const doc of appDocs) {
+      const key = (doc as any).document_type || (doc as any).doc_code || '';
+      if (key && seen.has(key)) continue;
+      merged.push(doc);
+    }
+
+    console.log(`[buildEmployerDocumentsForConversion] Total documents for conversion: ${merged.length}`);
+    return merged;
+  }
+
+  console.log(`[buildEmployerDocumentsForConversion] No meeting context — using ${appDocs.length} app doc(s)`);
+  return appDocs;
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
@@ -130,7 +201,13 @@ export function useConvertToEmployerRegistration() {
         user_id: trim(r.created_by || userCode, 50),
       }));
 
-      // ── Step 5: Call the RPC ──────────────────────────────────────────
+      // ── Step 5: Build documents JSON (atomic — merged from API + meeting) ──
+      const documentsJson = await buildEmployerDocumentsForConversion(
+        app, meetingId, resolvedAppRef, userCode
+      );
+      console.log(`[useConvertToEmployerRegistration] Passing ${documentsJson.length} document(s) to RPC`);
+
+      // ── Step 6: Call the RPC ──────────────────────────────────────────
       const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
         'convert_application_to_employer',
         {
@@ -171,6 +248,7 @@ export function useConvertToEmployerRegistration() {
           p_owners_json: JSON.stringify(ownersJson),
           p_locations_json: JSON.stringify(locationsJson),
           p_notes_json: JSON.stringify(notesJson),
+          p_documents_json: JSON.stringify(documentsJson),
         }
       );
 
@@ -188,50 +266,6 @@ export function useConvertToEmployerRegistration() {
         return { success: false, message };
       }
 
-      // ── Step 6: Transfer meeting documents to er_application_documents ──
-      if (meetingId && result.regno) {
-        try {
-          const { data: meetingDocs } = await supabase
-            .from('meeting_uploaded_documents')
-            .select('*')
-            .eq('meeting_id', meetingId)
-            .eq('application_reference', resolvedAppRef)
-            .eq('is_active', true);
-
-          if (meetingDocs && meetingDocs.length > 0) {
-            const docInserts = meetingDocs.map((doc: any) => ({
-              regno: result.regno,
-              source_application_reference: resolvedAppRef,
-              doc_code: doc.doc_code || null,
-              document_type: doc.document_type || null,
-              document_description: doc.document_name || doc.file_name,
-              file_name: doc.file_name,
-              file_path: doc.file_path,
-              storage_url: doc.storage_url,
-              file_size: doc.file_size || null,
-              mime_type: doc.mime_type || null,
-              uploaded_by: doc.uploaded_by || null,
-              uploaded_by_code: doc.uploaded_by_code || null,
-              transferred_by: userCode || null,
-              metadata: doc.metadata || null,
-            }));
-
-            const { error: docTransferErr } = await supabase
-              .from('er_application_documents')
-              .insert(docInserts);
-
-            if (docTransferErr) {
-              console.error('[useConvertToEmployerRegistration] Document transfer failed:', docTransferErr);
-              // Non-blocking — conversion succeeded, just log the doc transfer failure
-            } else {
-              console.log(`[useConvertToEmployerRegistration] Transferred ${docInserts.length} document(s) to er_application_documents`);
-            }
-          }
-        } catch (docErr) {
-          console.error('[useConvertToEmployerRegistration] Document transfer error:', docErr);
-        }
-      }
-
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['er-master'] });
       queryClient.invalidateQueries({ queryKey: ['employer-registrations'] });
@@ -239,6 +273,7 @@ export function useConvertToEmployerRegistration() {
       return {
         success: true,
         regno: result.regno,
+        documentsAdded: result.documents_added || 0,
         message: result.message || `Employer Registration ${result.regno} created successfully`,
       };
     } catch (err) {

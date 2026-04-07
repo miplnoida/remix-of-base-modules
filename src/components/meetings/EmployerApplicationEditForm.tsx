@@ -243,9 +243,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
 
   // ─── Document actions (read-only) ───────────────────────────────────────
 
+  const [docActionLoading, setDocActionLoading] = useState<string | null>(null);
+
   const handleDocAction = async (doc: any, action: 'view' | 'download') => {
+    const docId = doc.id || doc.file_name || 'unknown';
+    setDocActionLoading(docId);
     try {
       let url = doc.download_url || doc.url || doc.signed_url;
+
+      // Platform docs: use signed URL from storage
       if (doc.file_path && !url) {
         const { data: signedData, error: signedErr } = await supabase.storage
           .from('employer-documents')
@@ -253,6 +259,59 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
         if (signedErr) throw signedErr;
         url = signedData?.signedUrl;
       }
+
+      // External docs: route through document-proxy for reliable access
+      if (url && !doc.file_path) {
+        const proxyAction = action === 'view' ? 'stream' : 'download';
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const proxyUrl = `https://${projectId}.supabase.co/functions/v1/document-proxy`;
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        if (token) {
+          const proxyResp = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              action: proxyAction,
+              documentUrl: url,
+              fileName: doc.file_name || doc.name || 'document',
+            }),
+          });
+
+          if (proxyResp.ok) {
+            const blob = await proxyResp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            logAuditTrail({
+              action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
+              entityType: 'employer-application-document',
+              entityId: docId,
+              module: 'employer-applications',
+              metadata: { file_name: doc.file_name || doc.name, application_id: data.id },
+            });
+
+            if (action === 'view') {
+              window.open(blobUrl, '_blank');
+            } else {
+              const link = document.createElement('a');
+              link.href = blobUrl;
+              link.download = doc.file_name || doc.name || 'document';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            return;
+          }
+          // If proxy fails, fall through to direct URL
+          console.warn('Document proxy failed, falling back to direct URL');
+        }
+      }
+
       if (!url) {
         toast.error('Document URL is not available');
         return;
@@ -260,7 +319,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
       logAuditTrail({
         action: action === 'view' ? 'DOCUMENT_VIEW' : 'DOCUMENT_DOWNLOAD',
         entityType: 'employer-application-document',
-        entityId: doc.id,
+        entityId: docId,
         module: 'employer-applications',
         metadata: { file_name: doc.file_name || doc.name, application_id: data.id },
       });
@@ -277,6 +336,8 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
     } catch (err) {
       console.error('Document action failed:', err);
       toast.error('Failed to access document');
+    } finally {
+      setDocActionLoading(null);
     }
   };
 
