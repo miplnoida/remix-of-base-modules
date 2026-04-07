@@ -294,16 +294,30 @@ const C3ContributionList: React.FC = () => {
                         </Button>
                       </TableCell>
                       <TableCell>
-                        {c.payment_status === 'Paid' ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-                            onClick={() => handlePaid(c)}
-                            title="Download Payment Receipt"
-                          >
-                            Paid <Printer className="h-3 w-3 text-green-600" />
-                          </span>
-                        ) : c.payment_status === 'Partial' ? (
-                          <div className="flex flex-col items-start gap-0.5">
+                        <div className="flex items-center gap-1">
+                          {c.payment_status === 'Paid' ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
+                              onClick={() => handlePaid(c)}
+                              title="Download Payment Receipt"
+                            >
+                              Paid <Printer className="h-3 w-3 text-green-600" />
+                            </span>
+                          ) : c.payment_status === 'Partial' ? (
+                            <div className="flex flex-col items-start gap-0.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-blue-500 text-blue-600 text-xs h-7"
+                                onClick={() => handlePayment(c)}
+                              >
+                                Payment
+                              </Button>
+                              <span className="text-[10px] text-orange-600 font-medium">
+                                {formatCurrency(c.pending_amount ?? 0)}
+                              </span>
+                            </div>
+                          ) : c.payment_status === '$ Pay' ? (
                             <Button
                               variant="outline"
                               size="sm"
@@ -312,24 +326,13 @@ const C3ContributionList: React.FC = () => {
                             >
                               Payment
                             </Button>
-                            <span className="text-[10px] text-orange-600 font-medium">
-                              {formatCurrency(c.pending_amount ?? 0)}
+                          ) : null}
+                          {c.is_imported_from_bema && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border ml-1">
+                              BIMA
                             </span>
-                          </div>
-                        ) : c.payment_status === '$ Pay' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-blue-500 text-blue-600 text-xs h-7"
-                            onClick={() => handlePayment(c)}
-                          >
-                            Payment
-                          </Button>
-                        ) : c.payment_status === 'BEMA' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs text-muted-foreground">
-                            BEMA
-                          </span>
-                        ) : null}
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
