@@ -411,12 +411,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // After initializeAuth completes, handle profile/roles for auth changes
         if (initDone && currentSession?.user) {
-          // Skip if login() just completed — it already loaded profile/roles
-          if (loginJustCompletedRef.current) {
-            loginJustCompletedRef.current = false;
-            console.info('Skipping duplicate profile/roles fetch — login() already loaded data');
-            return;
-          }
           // isAuthReady is already true from init — just refresh data in background
           loadUserDataInBackground(currentSession.user.id);
         } else if (event === 'SIGNED_OUT') {
