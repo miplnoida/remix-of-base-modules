@@ -1,30 +1,32 @@
 
 
-## Fix: C3 Detail API Field Mapping + Payment Sync for NWD
+## Fix: `designations_pkey already exists` Migration Failure
 
-### Context
-The C3-Wizard team raised two isolated queries about SSB Admin's public APIs.
+### Root Cause
 
----
+Migration `20260402195103_46eb88bc-...sql` contains an **unconditional** rename:
+```sql
+ALTER TABLE designations RENAME TO tb_designations;
+```
 
-### Query 1: Missing Aggregate SS/Levy/Severance Fields in C3 Detail API — ✅ DONE
+In Live, the `designations` table (with its `designations_pkey` constraint) already exists from the initial pg_dump migration. When this unconditional migration runs against Live, it conflicts because the constraint relationship is already established, causing the cascade failure.
 
-Updated `public_api_c3_detail` RPC to include 6 new aggregate fields in `c3Header`:
-- `totalEmpSsContributions` — SUM of `ip_ss_amt` from `ip_wages`
-- `totalErSsContributions` — SUM of `er_ss_amt` from `ip_wages`
-- `totalEmpLevyContributions` — SUM of `ip_levy_amt` from `ip_wages`
-- `totalErLevyContributions` — SUM of `er_levy_amt` from `ip_wages`
-- `totalEmpPeContributions` — SUM of `ip_pe_amt` from `ip_wages`
-- `totalErPeContributions` — SUM of `er_ei_amt` from `ip_wages`
+A later migration (`20260404165150`) already handles this **idempotently** with proper `IF EXISTS` checks. The unconditional one is redundant and breaking deployment.
 
-### Query 2: Payment Sync Gap — Deferred (message prepared for C3-Wizard team)
+### Fix
 
-### Query 3: SE/VC ip_wages Contribution Columns NULL — ✅ DONE
+**Replace the contents of `supabase/migrations/20260402195103_46eb88bc-f083-4bea-a012-eeba041dc979.sql`** with an empty/no-op statement:
 
-**Problem**: SE/VC C3 saves hardcoded `ip_ss_amt: null` in `ip_wages`, so aggregate fields returned $0.
+```sql
+-- Superseded by idempotent migration 20260404165150
+SELECT 1;
+```
 
-**Fix applied**:
-1. `c3Service.ts`: `saveSelfContributorC3` and `saveVoluntaryContributorC3` now set `ip_ss_amt: toNumericOrNull(record.emp_ss_amt_calc)` — populates SS contribution from header.
-2. `public_api_c3_detail` RPC: Added fallback — when all 6 wage-level aggregates are zero, falls back to header-level `emp_ss_amt_calc`, `emp_levy_amt_calc`, `emp_pe_amt_calc`. Covers existing records without data backfill.
+This neutralizes the unconditional rename while preserving the migration entry in the history. The idempotent version in `20260404165150` will handle the rename safely.
 
-**Verified**: Payer 100039 (SE, May 2026) now returns `totalEmpSsContributions: 30.00` via fallback.
+### Files
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/20260402195103_46eb88bc-f083-4bea-a012-eeba041dc979.sql` | Replace unconditional `ALTER TABLE` with no-op `SELECT 1` |
+
