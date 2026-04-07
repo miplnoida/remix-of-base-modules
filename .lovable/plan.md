@@ -1,47 +1,95 @@
+# Fix: C3 Detail API Field Mapping + Payment Sync for NWD
 
+## Context
 
-## Fix: Decouple BIMA Badge from Payment Status Logic
+The C3-Wizard team raised two isolated queries about SSB Admin's public APIs. These are independent fixes.
+
+---
+
+## Query 1: Missing Aggregate SS/Levy/Severance Fields in C3 Detail API
 
 ### Problem
-The C3-Wizard API no longer returns `payment_status: "BEMA"` for BIMA-imported records. Instead, it now returns the real payment status (`"$ Pay"`, `"Paid"`, `"Partial"`). The current UI checks for `payment_status === 'BEMA'` and renders a static "BEMA" label with no payment action — meaning BIMA-imported records that need payment will now fall through to `null` (no button rendered) since the API no longer sends that value.
 
-The fix is to:
-1. Remove the `payment_status === 'BEMA'` branch from all three list components
-2. Add an independent BIMA badge based on `is_imported_from_bema` (already in the API response and type definitions)
+The `public_api_c3_detail` RPC returns only header-level calculated fields (`calcEmpSsAmt`, `calcEmpLevyAmt`, `calcEmpPeAmt`) but does NOT return per-contributor-type breakdowns that the C3-Wizard needs:
 
-### Changes
 
-#### 1. `C3ContributionList.tsx` — Payment column (lines 296-332)
-- Remove the `payment_status === 'BEMA'` branch (lines 328-331)
-- Add a BIMA badge after each payment status display when `c.is_imported_from_bema` is true
-- For `Paid`: show "Paid" + printer icon + BIMA badge
-- For `Partial`: show Payment button + pending amount + BIMA badge
-- For `$ Pay`: show Payment button + BIMA badge
+| Expected Field              | Source                               | Currently Returned? |
+| --------------------------- | ------------------------------------ | ------------------- |
+| `totalEmpSsContributions`   | SUM of `ip_ss_amt` from `ip_wages`   | No                  |
+| `totalErSsContributions`    | SUM of `er_ss_amt` from `ip_wages`   | No                  |
+| `totalEmpLevyContributions` | SUM of `ip_levy_amt` from `ip_wages` | No                  |
+| `totalErLevyContributions`  | SUM of `er_levy_amt` from `ip_wages` | No                  |
+| `totalEmpPeContributions`   | SUM of `ip_pe_amt` from `ip_wages`   | No                  |
+| `totalErPeContributions`    | SUM of `er_ei_amt` from `ip_wages`   | No                  |
 
-#### 2. `NwDirectorList.tsx` — Payment column (lines 252-282)
-- Same change: remove `payment_status === 'BEMA'` branch (lines 280-281)
-- Add BIMA badge alongside each payment status when `c.is_imported_from_bema` is true
 
-#### 3. `SelfEmployedContributionList.tsx` — Payment column (lines 247-276)
-- Same change: remove `payment_status === 'BEMA'` branch (lines 274-275)
-- Add BIMA badge alongside each payment status when `c.is_imported_from_bema` is true
+The C3-Wizard currently receives `$0` for aggregate totals and has to compute them client-side from granular wage data. This is fragile and should be provided server-side.
 
-### BIMA Badge Component (inline)
-```tsx
-{c.is_imported_from_bema && (
-  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500 border ml-1">
-    BIMA
-  </span>
-)}
+### Fix
+
+Update `public_api_c3_detail` RPC to compute and include these 6 aggregate fields in the `c3Header` response by summing from the `ip_wages` records for that C3 period. Add them alongside the existing `calcEmpSsAmt` fields:
+
+```sql
+-- Add to v_result -> c3Header:
+'totalEmpSsContributions', v_total_ip_ss,
+'totalErSsContributions', v_total_er_ss,
+'totalEmpLevyContributions', v_total_ip_levy,
+'totalErLevyContributions', v_total_er_levy,
+'totalEmpPeContributions', v_total_ip_pe,
+'totalErPeContributions', v_total_er_pe
 ```
 
-### Files to Modify
-| File | Change |
-|------|--------|
-| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Remove BEMA branch, add `is_imported_from_bema` badge |
-| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Same |
-| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Same |
+These are computed from the same `ip_wages` query already being built for the `ipWages` array. We just add a pre-aggregation step.
 
-### No type changes needed
-The `is_imported_from_bema` field is already defined in `wizC3DetailsService.ts` types for all three contributor types.
+### File
 
+- **Database migration**: Update `public_api_c3_detail` RPC
+
+---
+
+## Query 2: Payment Sync Gap — NWD Payments Not Syncing
+
+### Problem
+
+The `sync-c3-payment` edge function only includes `schedule_number` when `payer_type === 'ER'`. Since NWD records ARE stored as `payer_type = 'ER'` in the database, this is not the issue.
+
+The actual gap is that the C3-Wizard's `/receive-payment` endpoint expects to be called after every SSB Admin payment. The sync IS triggered from the C3 Payments page (`triggerPaymentSync`), but:
+
+1. The sync URL is configured in `api_settings` under key `c3_received_payment_sync`. If this is pointed at the wrong URL or not configured to call the C3-Wizard's `/receive-payment` endpoint, payments won't reach the C3-Wizard.
+2. The `sync-c3-payment` payload uses `registration_number` (from `payer_id`) but the C3-Wizard expects this exact field name — this matches.
+3. The payload includes `payment_components` array with `fund_code`, `payment_code`, `amount` — this matches the C3-Wizard's expected format.
+
+### Fix
+
+The sync mechanism already exists and the payload format matches. The issue is likely the `api_settings` configuration. We need to:
+
+1. **Verify/update the `api_settings` row** for `c3_received_payment_sync` to point to the C3-Wizard's `/receive-payment` endpoint
+2. **Add `amount` field to sync payload** — the C3-Wizard expects a top-level `amount` field (the total payment amount), which is currently sent as `receipt_amount` but not as `amount`
+3. **Add `payment_method` field** — the C3-Wizard expects `payment_method` (e.g., "CSH") but the current sync only sends `receipt_amount`, not the MOP code
+
+### Changes to `sync-c3-payment/index.ts`
+
+- Add `amount` field mapped from `receipt.receipt_total`
+- Fetch and include `payment_method` (MOP code) from `cn_payment` table
+- Add `payment_date` field (already present as `receipt_date`, but C3-Wizard expects `payment_date`)
+
+```typescript
+// Add to payload:
+amount: Number(receipt.receipt_total || 0),
+payment_method: mopCode,  // fetched from cn_payment.mop_code
+payment_date: receiptDate,
+```
+
+### Files
+
+- `**supabase/functions/sync-c3-payment/index.ts**`: Add missing fields to sync payload
+
+---
+
+## Summary
+
+
+| #   | Change                                                                                                                                                         | File                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1   | Add 6 aggregate contribution fields to C3 Detail API                                                                                                           | Database migration (update `public_api_c3_detail`) |
+| 2   | Important note: for now, fix only the query 1 chnages required not the query 2 ad provide the proper message to share with the c3-wizard for this query 1 fix. | &nbsp;                                             |
