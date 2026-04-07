@@ -57,6 +57,7 @@ import { CancelMeetingDialog, RescheduleMeetingDialog } from '@/components/meeti
 import { useConvertToIPRegistration, validateApplicationForConversion } from '@/hooks/useConvertToIPRegistration';
 import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
