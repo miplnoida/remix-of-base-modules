@@ -1,259 +1,63 @@
 
-Goal: permanently remove indefinite loading by fixing the actual choke point first, then standardizing all data screens to use timeout-safe backend endpoints.
 
-What I found
+## Plan: Fix Login Timeout — Make Auth Call Non-Blocking
 
-1. The main regression is still the auth bootstrap gate, not just individual pages.
-- `src/components/auth/ProtectedRoute.tsx` blocks every protected screen until `isAuthReady === true`.
-- `src/contexts/SupabaseAuthContext.tsx` only sets `isAuthReady` after session restore plus profile/roles/policy loading completes.
-- The session replay for `/system-logs/errors` shows the app stuck on the route-level spinner, which means the page itself is often never reached.
-- This explains why the issue appears “across multiple screens”: all `ProtectedLayout` routes are vulnerable.
+### Root Cause
 
-2. The March 31 behavior was simpler and safer.
-- Earlier flow effectively unlocked the app once auth session was known.
-- Current flow added a second readiness gate, so any slow/hung profile, roles, or policy request can freeze the whole protected app.
-
-3. The previous Error Logs fix was only local.
-- `src/pages/system-logs/ErrorLogs.tsx` now has better query error handling.
-- But it still sits behind `ProtectedRoute`, so if auth bootstrap stalls, the page never renders.
-- Also, sibling system-log pages still use spinner-only queries with no error/timeout exit:
-  - `TechnicalLogs.tsx`
-  - `SecurityLogs.tsx`
-  - `BusinessEvents.tsx`
-  - `IntegrationLogs.tsx`
-  - `WorkflowLogs.tsx`
-  - `LoginSecurityLogs.tsx`
-  - `UnauthorizedAccessLogs.tsx`
-  - `IPBlocksManagement.tsx`
-
-4. The system logs module still has a second class of performance issues.
-- Most pages call client-side table queries directly.
-- Many use `select('*', { count: 'exact' })` on large log tables, which is expensive.
-- Most do not expose `isError`, timeout fallback, or degraded UI.
-- So even after auth is fixed, several log screens can still appear stuck under slow/failing responses.
-
-5. Login is still fragmented.
-- The login flow spans:
-  - `LoginScreen.tsx`
-  - `useTurnstile.ts`
-  - `turnstileService.ts`
-  - `SupabaseAuthContext.tsx`
-- There are multiple loading owners: local login loading, Turnstile timing, auth context bootstrap, and redirect logic.
-- It is improved, but still too distributed to guarantee a clean exit in every failure mode.
-
-Design approach
-
-Use a two-layer stabilization strategy:
+The `login()` function in `SupabaseAuthContext.tsx` (line 488-651) performs **5 sequential network calls** before returning `{ success: true }`:
 
 ```text
-Layer 1: unblock the app shell
-session known -> route allowed
-profile/roles/policy -> load in background with degraded fallback
-
-Layer 2: make every data screen endpoint-driven and timeout-safe
-request start -> success | empty | error | timeout
-never spinner forever
+1. resolveAuthEmailPromise   → edge function (500ms timeout, but started async)
+2. fetchProfileByEmail()     → DB query (awaited)
+3. signInWithPassword()      → Supabase auth API (awaited) ← HANGS IN IFRAME
+4. fetchProfile()            → DB query (awaited after success)
+5. fetchRoles()              → DB query (awaited after success)
 ```
 
-Implementation plan
+In the **editor preview iframe**, `signInWithPassword` hangs indefinitely due to the platform's fetch proxy interfering with `/auth/v1/token` POST requests. This is a known platform limitation documented in memory.
 
-1. Redesign auth readiness into two separate states
-Files:
-- `src/contexts/SupabaseAuthContext.tsx`
-- `src/components/auth/ProtectedRoute.tsx`
-- `src/components/auth/LoginScreen.tsx`
+In the **share preview**, `signInWithPassword` works but steps 2+3+4+5 sequentially can exceed 10 seconds on cold connections, triggering the `LOGIN_SAFETY_TIMEOUT_MS` timer in `LoginScreen.tsx`.
 
-Changes:
-- Split current auth lifecycle into:
-  - `isSessionReady`: session restore finished
-  - `isUserDataReady`: profile/roles/policy fetch finished
-- Protected routes should gate on session readiness, not on full profile hydration.
-- If user is authenticated, allow route entry once session is known; keep profile/roles loading in the background.
-- Add a hard timeout for bootstrap fetches so auth can enter a degraded-but-usable state instead of blocking forever.
-- Keep login redirect driven by authenticated session, not by slow profile loading.
+The `login()` function currently **awaits profile+roles fetch after successful sign-in** (lines 627-630), which is redundant because `onAuthStateChange` with `SIGNED_IN` event already triggers `loadUserDataInBackground()` (line 423). The `loginJustCompletedRef` flag prevents double-fetching, but the problem is the login function blocks waiting for data it doesn't need to return.
 
-Expected result:
-- Protected screens stop hanging behind the global auth spinner.
-- `/system-logs/errors` and other protected routes can render even if profile/policy fetch is slow.
+### Fix Strategy
 
-2. Replace direct client-side database reads in auth-critical flows with backend endpoints
-Files/modules to refactor:
-- `src/contexts/SupabaseAuthContext.tsx`
-- `src/components/auth/LoginScreen.tsx`
-- new backend endpoints/functions/RPCs
+**Make `login()` return immediately after `signInWithPassword` succeeds.** Move profile/roles fetch to background. Add a hard timeout around `signInWithPassword` itself.
 
-Changes:
-- Move pre-login checks into a backend endpoint:
-  - resolve login email
-  - lockout status
-  - account active status
-- Move post-login bootstrap into a single backend endpoint:
-  - profile
-  - roles
-  - session policy
-  - optional lightweight permissions summary
-- Remove client-side direct reads like `profiles` / `user_roles` from the login/bootstrap path.
+### Step 1: Add timeout to `signInWithPassword` call
+**File**: `src/contexts/SupabaseAuthContext.tsx`
 
-Security model:
-- Use backend endpoints with role validation only, matching the project rule to avoid RLS-based design.
-- Do not rely on direct browser queries for auth bootstrap.
+Wrap the `signInWithPassword` call in a `Promise.race` with an 8-second timeout. If it hangs (iframe proxy issue), return a clear error: "Authentication service is not responding. Please use the Share Preview link or published URL."
 
-Expected result:
-- Fewer round trips
-- No fragmented auth state
-- No client-side table dependency during login
+### Step 2: Remove blocking profile/roles await from `login()`
+**File**: `src/contexts/SupabaseAuthContext.tsx`
 
-3. Standardize a global endpoint client so no screen can spin forever
-Files:
-- shared API utility/hook layer
-- system logs pages
-- auth-related fetchers
+Lines 627-638 currently await `Promise.all([fetchProfile, fetchRoles])` before returning success. Remove this await — the `onAuthStateChange` handler already calls `loadUserDataInBackground()` which does the same work. Just return `{ success: true }` immediately after `signInWithPassword` succeeds.
 
-Changes:
-- Introduce one shared request contract for all backend calls:
-  - `{ ok, data, error, timedOut }`
-- Add default timeout handling and normalized error mapping.
-- Ensure every screen has four explicit UI states:
-  - loading
-  - success
-  - empty
-  - error/timeout
-- Prevent infinite loaders by forcing timeout exit and showing retry UI.
+Keep the fire-and-forget profile update (reset failed_login_attempts, update last_login) — that's already non-blocking.
 
-Expected result:
-- No page remains in indefinite loading because of an unresolved promise.
+Keep the `force_password_change` check by doing a quick single-field query on the profile instead of the full fetch.
 
-4. Rebuild the System Logs screens on backend endpoints instead of direct table reads
-Impacted screens:
-- `/system-logs/errors`
-- `/system-logs/technical`
-- `/system-logs/business`
-- `/system-logs/security`
-- `/system-logs/integration`
-- `/system-logs/workflow`
-- `/system-logs/login-security`
-- nested unauthorized/IP block tabs
+### Step 3: Remove redundant `loginJustCompletedRef` pattern
+**File**: `src/contexts/SupabaseAuthContext.tsx`
 
-Changes:
-- Create paginated backend endpoints for each log category, or one unified logs endpoint with typed categories.
-- Move filtering, pagination, and counting server-side.
-- Replace client `select('*', { count: 'exact' })` patterns with backend-controlled pagination/count strategy.
-- Add error state + retry state to every log screen, not just Error Logs.
-- Ensure tabs like Security Logs do not fire hidden queries unnecessarily.
+Since `login()` will no longer pre-fetch profile/roles, the `loginJustCompletedRef` guard is unnecessary. The `onAuthStateChange` SIGNED_IN handler will always trigger `loadUserDataInBackground()` — no duplication to prevent.
 
-Expected result:
-- Logs pages become stable under slow networks and large datasets.
-- Admin monitoring pages stop looking “stuck” when a query fails or slows down.
+### Step 4: Increase safety timeout or remove it
+**File**: `src/components/auth/LoginScreen.tsx`
 
-5. Optimize the underlying log and auth queries
-Backend/database work:
-- Verify and add indexes where missing for high-volume filters:
-  - log table timestamp columns
-  - severity/status columns
-  - user_id/user_email fields used in filters
-  - `profiles.email`
-  - `user_roles.user_id`
-- Avoid exact full-count scans where not needed.
-- Return lightweight page metadata from backend endpoints.
-- Combine bootstrap fetches into one backend call instead of separate client queries.
+With the `signInWithPassword` timeout at 8s, the login function will always resolve in <9s. Keep the 10s safety timeout as a last-resort guard but it should never trigger in practice.
 
-Expected result:
-- Faster first render
-- Lower database load
-- Better consistency under production traffic
+### Files to Modify
 
-6. Clean up remaining blocking/background patterns
-Files to review during implementation:
-- `src/hooks/useCloudflareConfig.ts`
-- `src/services/turnstileService.ts`
-- `src/providers/SystemLoggingProvider.tsx`
-- any screen with spinner-only query rendering
+| File | Change |
+|------|--------|
+| `src/contexts/SupabaseAuthContext.tsx` | Add 8s timeout to `signInWithPassword`; remove blocking profile/roles await after login; remove `loginJustCompletedRef` |
+| `src/components/auth/LoginScreen.tsx` | No structural changes needed — the safety timeout stays as-is |
 
-Changes:
-- Add timeout-safe wrappers for non-critical edge function calls.
-- Keep technical/security logging fire-and-forget only.
-- Ensure optional background checks never block route rendering or form completion.
+### Expected Result
+- Login succeeds in 2-4s on share preview (signInWithPassword + return)
+- Login shows a clear actionable error in editor iframe within 8s instead of a vague "taking too long"
+- Profile/roles load in background via existing `onAuthStateChange` handler
+- The 10s safety timeout becomes a true last-resort guard, not the primary failure mode
 
-Testing plan
-
-1. Auth scenarios
-- valid login
-- invalid credentials
-- locked account
-- slow auth response
-- Turnstile unavailable
-- profile/roles/policy endpoint slow or failing
-
-2. Protected route scenarios
-- direct navigation to `/system-logs/errors`
-- refresh on protected pages
-- expired session
-- token refresh
-- degraded bootstrap mode
-
-3. System logs scenarios
-- empty dataset
-- large dataset
-- slow backend response
-- backend error
-- timeout
-- filter changes + pagination
-
-4. Cross-screen verification
-- dashboard/menu
-- system logs pages
-- C3/IP/Employer protected pages
-- confirm no route remains on the ProtectedRoute spinner indefinitely
-
-Technical detail
-
-Confirmed root-cause chain:
-
-```text
-Current:
-auth.getSession()
- -> fetchProfile + fetchRoles + loadSessionPolicy
- -> setIsAuthReady(true)
- -> ProtectedRoute allows page
-
-If any middle step is slow/hangs:
- -> ProtectedRoute spinner stays forever
- -> all protected screens appear broken
-```
-
-Target behavior:
-
-```text
-Target:
-auth.getSession()
- -> setIsSessionReady(true)
- -> if authenticated, allow protected route
- -> fetch profile/roles/policy in background
- -> if slow/fails, mark degraded and show fallback UI, not app-wide spinner
-```
-
-Recommended delivery order
-
-Phase 1
-- fix auth bootstrap and ProtectedRoute
-- unify login completion state
-
-Phase 2
-- move auth/bootstrap reads to backend endpoints
-- add global request wrapper
-
-Phase 3
-- migrate all system log pages to endpoint-driven fetching
-- add consistent error/timeout UI
-
-Phase 4
-- query/index tuning
-- regression testing across protected modules
-
-Expected outcome
-
-- Login always exits loading state with either success, explicit error, or timeout fallback
-- Protected pages no longer depend on slow profile/role hydration to render
-- `/system-logs/errors` and sibling admin log pages stop hanging
-- Endpoint behavior becomes consistent across the app
-- The app returns to March 31-level responsiveness, but with stronger failure handling and a cleaner architecture
