@@ -6,3 +6,4 @@ export { CancelMeetingDialog } from './CancelMeetingDialog';
 export { RescheduleMeetingDialog } from './RescheduleMeetingDialog';
 export { RelatedMeetings } from './RelatedMeetings';
 export { MeetingDocumentVerificationTab } from './MeetingDocumentVerificationTab';
+export { EmployerMeetingDocumentsTab } from './EmployerMeetingDocumentsTab';
