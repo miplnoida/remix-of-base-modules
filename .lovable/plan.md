@@ -1,44 +1,13 @@
 
 
-## Fix: Storage RLS Policies for `employer-documents` Bucket
+## ✅ Completed: Standardize Employer Document Flow to Match IP Flow Reliability
 
-### Root Cause
+### Changes Made
 
-The `employer-documents` storage bucket was created but **no RLS policies** were added to `storage.objects` for it. Supabase Storage always has RLS enabled on `storage.objects`, so any upload/update/delete attempt by an authenticated user is blocked with "new row violates row-level security policy."
-
-The existing `ip-documents` bucket works because it has explicit policies (visible in the query results). The `employer-documents` bucket needs the same treatment.
-
-### Fix — Single Migration
-
-Add four policies on `storage.objects` for the `employer-documents` bucket, matching the pattern used by `ip-documents` and `audit-attachments`:
-
-```sql
--- INSERT (upload)
-CREATE POLICY "Authenticated users can upload employer documents"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'employer-documents');
-
--- SELECT (read/download)
-CREATE POLICY "Authenticated users can read employer documents"
-ON storage.objects FOR SELECT TO authenticated
-USING (bucket_id = 'employer-documents');
-
--- UPDATE (overwrite)
-CREATE POLICY "Authenticated users can update employer documents"
-ON storage.objects FOR UPDATE TO authenticated
-USING (bucket_id = 'employer-documents');
-
--- DELETE
-CREATE POLICY "Authenticated users can delete employer documents"
-ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'employer-documents');
-```
-
-### Files
-
-| Item | Change |
+| File | Change |
 |------|--------|
-| Database migration | Add 4 storage RLS policies for `employer-documents` bucket |
-
-No code changes needed — the upload logic in `EmployerMeetingDocumentsTab.tsx` is already correct; it just needs the storage layer to permit writes.
-
+| Database migration | Dropped and recreated `convert_application_to_employer` with `p_documents_json TEXT DEFAULT '[]'` parameter; inserts into `er_application_documents` atomically inside the transaction; returns `documents_added` count |
+| `src/hooks/useConvertToEmployerRegistration.ts` | Added `buildEmployerDocumentsForConversion()` and `mapDocToRpcFormat()` — merges external API + meeting-uploaded docs with dedup; passes JSON to RPC; removed post-RPC document transfer block |
+| `src/components/meetings/EmployerMeetingDocumentsTab.tsx` | External docs now routed through `document-proxy` edge function (blob streaming); added per-row loading state |
+| `src/components/meetings/EmployerApplicationEditForm.tsx` | Fallback `handleDocAction` updated to use `document-proxy` for external docs with graceful fallback |
+| `supabase/functions/document-proxy/index.ts` | Added project's own Supabase storage origin (`xynceskeiiisiefqlgxo.supabase.co`) to `allowedOrigins` |
