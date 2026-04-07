@@ -1,73 +1,68 @@
 
 
-## Analysis: C3 Wizard API Key Authorization for BIMA Endpoints
+## Standardize Employer Document Flow to Match IP Flow Reliability
 
-### Finding: All Endpoints Are Working — No Code Changes Required
+### Problem Summary
 
-Based on thorough investigation of the access logs, API registry, and scope assignments, **the C3 Wizard key already has full access to all reported endpoints and they are functioning correctly.**
+The IP and Employer document flows have three critical discrepancies:
 
-### Evidence from Access Logs
+| Issue | IP Flow | Employer Flow |
+|-------|---------|---------------|
+| **External API docs during conversion** | Merged into `p_documents` and inserted atomically inside `convert_application_atomic` RPC | **Lost** — only meeting uploads are transferred post-RPC |
+| **Atomicity** | Documents inserted inside the same DB transaction as `ip_master` | Non-atomic — client-side insert after RPC completes; errors silently swallowed |
+| **View/Download of external docs** | Routes through `document-proxy` edge function (blob streaming) | Opens external URL directly via `window.open()` — fails on expired signed URLs |
 
-| Endpoint | Status | Last Successful Call |
-|----------|--------|---------------------|
-| `GET /api/v1/Employee/employeesByLastC3/658852` | 200 | Apr 7, 07:44 UTC |
-| `GET /api/v1/Employee/getIpDetailsByQuery/{params}` | 200 | Apr 6, 12:54 UTC |
-| `POST /api/v1/api/payment/save` | 200 | Apr 6, 05:49 UTC |
-| `POST /api/v1/api/payment/save/658852/ER` | 200 | Apr 3, 20:31 UTC |
+### Fix — Three Changes
 
-All endpoints return 200. The **only 401** was a single call on Apr 3 from IP `34.91.234.249` — a different origin than all successful calls — indicating that specific request used a wrong or expired key.
+#### 1. Database Migration: Upgrade `convert_application_to_employer` RPC
 
-### Scope Assignments (Confirmed in Database)
+Drop and recreate the RPC with a new `p_documents_json TEXT DEFAULT '[]'` parameter. Inside the same transaction that creates `er_master`, `er_owner`, `er_locations`, and `er_notes`, the function will:
 
-The C3 Wizard Application key (`pk_live_...`) has explicit scope assignments for:
-- **C3 Ingestion** — c3-reported, c3-wages, c3-verify
-- **C3 History** — Range, Detail, Last Submitted
-- **Employee Lookup** — getIpDetailsByQuery, getMultipleIpDetails
-- **Employee Sync** — employeesByLastC3, nwdirectorsByLastC3
-- **Payment** — Payment Save, Receipt Lookup
-- **Validation** — ER Master Details, SE Master Details
-- **Profile Sync** — Update User
+- Parse the documents JSON array
+- Iterate and insert each row into `er_application_documents` (keyed by the new `regno`)
+- Return a `documents_added` count in the result
+- If any document insertion fails, the entire transaction rolls back — matching the IP flow
 
-### Answers to the C3 Wizard Team
+The document JSON carries both external API documents and meeting-uploaded documents, merged client-side before calling the RPC.
 
-**Q1: Does the key need additional scopes?**
-No. The key `pk_live_...tre7p` already has scopes for Employee Lookup, Employee Sync, and Payment categories. All are enabled and confirmed working. The 401 error was from a single request (IP `34.91.234.249`) that likely used a different/incorrect key. Ask the team to verify the exact key being sent from that environment.
+#### 2. Code Change: Update `useConvertToEmployerRegistration.ts`
 
-**Q2: Payment endpoint path — `/api/v1/payment/save` or `/api/v1/api/payment/save`?**
-**Both path formats work:**
-- `POST /api/v1/api/payment/save` — flat POST with `payerId` and `payerType` in the request body (preferred, latest format)
-- `POST /api/v1/api/payment/save/{payerId}/{payerType}` — legacy format with params in URL path (also works, confirmed in logs)
+Add a `buildEmployerDocumentsForConversion()` function modeled on the IP flow's `buildDocumentsForConversion()`:
 
-The path `/api/v1/payment/save` (without the extra `/api/`) will **NOT** work — the `isPaymentRoute` function requires the path to start with `/api/v1/api/payment/`.
+- Takes external `applicationData.documents` array from the API
+- Fetches active `meeting_uploaded_documents` for the meeting (if `meetingId` provided)
+- Merges them with meeting docs taking precedence (dedup by document type/code)
+- Maps each to RPC format: `file_name`, `file_path`, `storage_url`, `document_type`, `doc_code`, `mime_type`, `file_size`, `uploaded_by`, `uploaded_by_code`, `is_supportive`, `metadata`
+- Passes the merged JSON as `p_documents_json` to the RPC call
+- Removes the existing post-RPC document transfer block (currently lines ~191-233) since documents are now handled inside the transaction
+- If the RPC returns `success: false` due to document failure, the conversion is treated as failed — no silent skipping
 
-**Q3: SE payments — payerType "SE" with 6-digit SSN, officeCode "STK"**
-The payment handler passes the full payload to the `public_api_payment_save` RPC. Whether "SE" with 6-digit SSN and "STK" officeCode works depends on that RPC's validation logic. No restrictions exist at the API gateway level.
+#### 3. Code Change: Fix Document View/Download with Proxy
 
-### Recommended Response to C3 Wizard Team
+**`EmployerMeetingDocumentsTab.tsx`**: Update `handleDocAction` to:
+- For **platform** docs (uploaded via UI): continue using `createSignedUrl` from `employer-documents` bucket
+- For **external** docs (from API): call the `document-proxy` edge function with `action: 'stream'` or `'download'`, create a blob URL, and open/download it
+- Add per-row loading state to show a spinner while fetching
 
-```text
-RE: API Key Authorization Scope for BIMA Endpoints
+**`EmployerApplicationEditForm.tsx`**: Update the fallback `handleDocAction` (around lines 246-281) with the same proxy pattern for external documents.
 
-All three endpoint groups (Employee, Payment, BIMA) are already
-authorized for your key (pk_live_...tre7p). Access logs confirm
-successful calls from your production IPs as recently as today.
+**`document-proxy/index.ts`**: Add the project's own Supabase storage origin to `allowedOrigins` so platform-uploaded docs can also be proxied if needed.
 
-The single 401 on Apr 3 came from IP 34.91.234.249 — please verify
-which key that environment is sending. Your production environments
-(AWS IPs 43.205.x, 13.235.x, etc.) are working correctly.
+### Files to Modify
 
-Payment path: Use POST /api/v1/api/payment/save with payerId and
-payerType in the request body. The path /api/v1/payment/save
-(without /api/) will NOT work.
+| File | Change |
+|------|--------|
+| Database migration | Drop and recreate `convert_application_to_employer` with `p_documents_json` parameter; insert into `er_application_documents` inside the transaction |
+| `src/hooks/useConvertToEmployerRegistration.ts` | Add `buildEmployerDocumentsForConversion()`; pass docs to RPC; remove post-RPC transfer block |
+| `src/components/meetings/EmployerMeetingDocumentsTab.tsx` | Replace direct URL opening with `document-proxy` calls for external docs; add loading state |
+| `src/components/meetings/EmployerApplicationEditForm.tsx` | Update fallback `handleDocAction` to use `document-proxy` for external docs |
+| `supabase/functions/document-proxy/index.ts` | Add project storage origin to `allowedOrigins` |
 
-SE payments: payerType "SE" and 6-digit SSN as payerId are accepted
-at the gateway level. officeCode "STK" is passed through to the
-backend RPC.
+### Result
 
-No key changes or additional scopes are needed.
-```
-
-### No Code Changes Required
-
-The system is functioning as designed. This is an operational/communication issue, not a bug.
+After these changes:
+- Both IP and Employer flows merge external API + meeting-uploaded documents before conversion
+- Both insert documents atomically inside the RPC transaction — no silent data loss
+- Both use `document-proxy` for reliable document viewing/downloading regardless of URL expiry
+- The conversion result includes `documents_added` count for audit/verification
 
