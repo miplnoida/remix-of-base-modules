@@ -56,8 +56,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem('app-dark') === 'true';
   });
-  const userIdRef = useRef<string | null>(null);
-  const initialLoadDone = useRef(false);
+  // Track userId locally — updated via a PASSIVE, non-blocking auth listener
+  const [userId, setUserId] = useState<string | null>(null);
 
   /* Fetch all themes from DB */
   const fetchThemes = useCallback(async () => {
@@ -75,39 +75,35 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  /* Load user preference from DB once auth is resolved */
+  /* PASSIVE auth listener — NO awaited Supabase calls inside */
   useEffect(() => {
-    const loadUserPreference = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        initialLoadDone.current = true;
-        return;
-      }
-      userIdRef.current = user.id;
-      const { data } = await supabase
-        .from('user_theme_preferences')
-        .select('theme_key, is_dark')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (data) {
-        setCurrentTheme(data.theme_key);
-        setIsDark(data.is_dark);
-        localStorage.setItem('app-theme', data.theme_key);
-        localStorage.setItem('app-dark', String(data.is_dark));
-      }
-      initialLoadDone.current = true;
-    };
-    fetchThemes();
-    loadUserPreference();
+    // Initial check — fire and forget, no await in the listener itself
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
 
-    // Listen for auth changes to reload preference
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // ONLY update local state — NO awaited Supabase queries here
       if (event === 'SIGNED_IN' && session?.user) {
-        userIdRef.current = session.user.id;
+        setUserId(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUserId(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  /* Load theme preferences as a SEPARATE effect triggered by userId change */
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadPreference = async () => {
+      try {
         const { data } = await supabase
           .from('user_theme_preferences')
           .select('theme_key, is_dark')
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .maybeSingle();
         if (data) {
           setCurrentTheme(data.theme_key);
@@ -115,11 +111,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           localStorage.setItem('app-theme', data.theme_key);
           localStorage.setItem('app-dark', String(data.is_dark));
         }
-      } else if (event === 'SIGNED_OUT') {
-        userIdRef.current = null;
+      } catch (err) {
+        console.error('Failed to load theme preference:', err);
       }
-    });
-    return () => subscription.unsubscribe();
+    };
+
+    loadPreference();
+  }, [userId]);
+
+  /* Fetch themes once on mount */
+  useEffect(() => {
+    fetchThemes();
   }, [fetchThemes]);
 
   /* Apply theme CSS whenever currentTheme or isDark changes */
@@ -132,7 +134,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   /* Persist to DB helper */
   const persistPreference = useCallback(async (themeKey: string, dark: boolean) => {
-    const userId = userIdRef.current;
     if (!userId) return;
     try {
       await supabase
@@ -146,7 +147,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error('Failed to persist theme preference:', err);
     }
-  }, []);
+  }, [userId]);
 
   const setTheme = useCallback((key: string) => {
     setCurrentTheme(key);
