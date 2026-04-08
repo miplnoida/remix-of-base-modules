@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Save, ChevronDown, ChevronUp, Plus, Trash2, Palette, Type, LayoutGrid, Hash, FileSignature, Table2, ShieldCheck, Loader2 } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, Plus, Trash2, Palette, Type, LayoutGrid, Hash, FileSignature, Table2, ShieldCheck, Loader2, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { useDocumentFoundation, useDocumentFoundationMutation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DEFAULT_FOUNDATION,
   type DocumentFoundationConfig,
@@ -35,6 +35,8 @@ export function FoundationSettingsEditor() {
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<DocumentFoundationConfig>(DEFAULT_FOUNDATION);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ branding: true });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (foundation) setDraft(foundation);
@@ -53,6 +55,55 @@ export function FoundationSettingsEditor() {
     );
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type', { description: 'Please upload PNG, JPG, SVG, or WebP.' });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large', { description: 'Maximum file size is 2 MB.' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const filePath = `logos/org-logo-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('audit-assets')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('audit-assets')
+        .getPublicUrl(filePath);
+
+      setDraft((d) => ({
+        ...d,
+        branding: { ...d.branding, logoSource: urlData.publicUrl },
+      }));
+      toast.success('Logo uploaded successfully');
+    } catch (err: any) {
+      toast.error('Logo upload failed', { description: err.message });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setDraft((d) => ({
+      ...d,
+      branding: { ...d.branding, logoSource: 'default' },
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -62,12 +113,15 @@ export function FoundationSettingsEditor() {
     );
   }
 
+  const hasCustomLogo = draft.branding.logoSource && draft.branding.logoSource !== 'default';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">
             These settings are inherited by <strong>all</strong> audit document types (Reports, Plans, Management Response Reports).
+            Changes here automatically apply everywhere.
           </p>
         </div>
         <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
@@ -83,6 +137,59 @@ export function FoundationSettingsEditor() {
             <Label>Show Logo</Label>
             <Switch checked={draft.branding.showLogo} onCheckedChange={(v) => setDraft((d) => ({ ...d, branding: { ...d.branding, showLogo: v } }))} />
           </div>
+
+          {/* Logo Upload */}
+          {draft.branding.showLogo && (
+            <div className="space-y-3">
+              <Label className="text-xs font-medium">Organization Logo</Label>
+              <div className="flex items-start gap-4">
+                {/* Preview */}
+                <div className="w-32 h-20 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden">
+                  {hasCustomLogo ? (
+                    <img
+                      src={draft.branding.logoSource}
+                      alt="Organization logo"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground mx-auto" />
+                      <span className="text-[10px] text-muted-foreground">No logo</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-1" />
+                    )}
+                    {hasCustomLogo ? 'Replace Logo' : 'Upload Logo'}
+                  </Button>
+                  {hasCustomLogo && (
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={handleRemoveLogo}>
+                      <X className="h-3 w-3 mr-1" /> Remove
+                    </Button>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">PNG, JPG, SVG or WebP. Max 2 MB.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Logo Size</Label>
@@ -407,8 +514,7 @@ export function FoundationSettingsEditor() {
               <Input value={draft.draftRules.watermarkText} onChange={(e) => setDraft((d) => ({ ...d, draftRules: { ...d.draftRules, watermarkText: e.target.value } }))} />
             </div>
           )}
-          <Separator />
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Final Rules</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-2">Final / Issued</p>
           <div className="flex items-center justify-between">
             <Label>Show Issued Stamp on Final</Label>
             <Switch checked={draft.draftRules.showIssuedStamp} onCheckedChange={(v) => setDraft((d) => ({ ...d, draftRules: { ...d.draftRules, showIssuedStamp: v } }))} />
@@ -420,6 +526,7 @@ export function FoundationSettingsEditor() {
 }
 
 // ─── Collapsible Settings Card ───
+
 function SettingsCard({
   sectionKey,
   open,
@@ -432,7 +539,7 @@ function SettingsCard({
   open: boolean;
   onToggle: (key: string) => void;
   title: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
 }) {
   return (
