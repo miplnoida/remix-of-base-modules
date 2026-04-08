@@ -92,7 +92,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
 
   const [reportData, setReportData] = useState({
     title: '',
-    report_type: 'Engagement Report',
+    report_type: 'Audit Report',
     engagement_id: auditId,
     department_id: '',
     executive_summary: '',
@@ -119,7 +119,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
     if (existingReport) {
       setReportData({
         title: existingReport.title || '',
-        report_type: existingReport.report_type || 'Engagement Report',
+        report_type: existingReport.report_type || 'Audit Report',
         engagement_id: auditId,
         department_id: existingReport.department_id || '',
         executive_summary: existingReport.executive_summary || '',
@@ -213,7 +213,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
       .map((f: any) => `• ${f.title}: ${f.recommendation}`)
       .join('\n');
 
-    const executiveSummary = `This report presents the results of the "${audit?.engagement_name}" audit engagement conducted for ${departmentName}. The audit was led by ${leadAuditorName} during the period ${audit?.planned_start_date ? formatDateForDisplay(audit.planned_start_date) : '—'} to ${audit?.planned_end_date ? formatDateForDisplay(audit.planned_end_date) : '—'}.
+    const executiveSummary = `This report presents the results of the "${audit?.engagement_name}" audit conducted for ${departmentName}. The audit was led by ${leadAuditorName} during the period ${audit?.planned_start_date ? formatDateForDisplay(audit.planned_start_date) : '—'} to ${audit?.planned_end_date ? formatDateForDisplay(audit.planned_end_date) : '—'}.
 
 A total of ${auditFindings.length} finding(s) were identified across ${totalActivities} audit activities, with ${completedActivities.length} activities completed. ${evidenceCount} piece(s) of evidence and ${wpCount} working paper(s) were documented. ${ctTotal > 0 ? `Control testing covered ${ctTotal} control(s), of which ${ctPassed} were found effective.` : ''}
 
