@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AuditFindingCard } from './AuditFindingCard';
 import { generateAuditReportPDF } from './AuditReportPDFExport';
+import { resolveReportTemplate, type ResolvedReportOutput } from '@/lib/audit/documentTemplateResolver';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import logo from '@/assets/stkitts-logo.png';
 
 interface AuditReportPreviewProps {
@@ -16,6 +18,7 @@ interface AuditReportPreviewProps {
   actions: any[];
   engagement?: any;
   departmentName?: string;
+  templateConfig?: AuditReportTemplateConfig;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -28,14 +31,16 @@ const OPINION_STYLES: Record<string, { bg: string; text: string; border: string 
 };
 
 export function AuditReportPreview({
-  reportData, findings, responses, actions, engagement, departmentName, onClose, onPrint,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, onClose, onPrint,
 }: AuditReportPreviewProps) {
+  const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  const resolved = resolveReportTemplate(config, reportData.status);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
 
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config });
   };
 
   // Section numbering
@@ -70,14 +75,14 @@ export function AuditReportPreview({
         {/* ─── COVER PAGE ─── */}
         <div className="bg-white dark:bg-background shadow-lg print:shadow-none rounded-lg print:rounded-none overflow-hidden relative min-h-[900px] flex flex-col">
           {/* Draft Watermark */}
-          {isDraft && (
+          {resolved.showWatermark && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">DRAFT</p>
+              <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">{resolved.watermarkText}</p>
             </div>
           )}
 
           {/* Issued Stamp */}
-          {isFinal && (
+          {resolved.showIssuedStamp && (
             <div className="absolute top-16 right-8 z-10 pointer-events-none">
               <div className="border-4 border-emerald-600 rounded-lg px-5 py-2 rotate-12 opacity-60">
                 <p className="text-emerald-600 font-bold text-lg tracking-wider">ISSUED</p>
@@ -91,14 +96,15 @@ export function AuditReportPreview({
             <div className="bg-[#0E5F3A] text-white px-12 py-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <img src={logo} alt="SSB Logo" className="h-14 mb-2 brightness-0 invert" />
-                  <h1 className="text-lg font-bold tracking-wide">SOCIAL SECURITY BOARD</h1>
-                  <p className="text-sm opacity-80">ST. KITTS AND NEVIS</p>
+                  {resolved.branding.showLogo && (
+                    <img src={logo} alt="Logo" className="h-14 mb-2 brightness-0 invert" />
+                  )}
+                  <h1 className="text-lg font-bold tracking-wide">{resolved.branding.orgName}</h1>
+                  <p className="text-sm opacity-80">{resolved.branding.country}</p>
                 </div>
                 <div className="text-right text-xs opacity-70">
-                  <p>Bay Road, P.O. Box 79</p>
-                  <p>Basseterre, St. Kitts</p>
-                  <p>Tel: (869) 465-2521</p>
+                  <p>{resolved.branding.address}</p>
+                  <p>Tel: {resolved.branding.phone}</p>
                 </div>
               </div>
             </div>
@@ -108,10 +114,12 @@ export function AuditReportPreview({
             {/* Cover Content */}
             <div className="flex-1 flex flex-col items-center justify-center px-12 py-16 text-center">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] mb-4">Internal Audit Department</p>
-              <h2 className="text-3xl font-bold text-foreground leading-tight mb-4">{reportData.title || 'Audit Report'}</h2>
+              <h2 className="text-3xl font-bold text-foreground leading-tight mb-4">{reportData.title || resolved.coverPage.reportTitle}</h2>
               
               <div className="flex items-center gap-3 mb-8">
-                {reportData.report_type && <Badge variant="outline" className="text-sm px-3 py-1">{reportData.report_type}</Badge>}
+                {resolved.coverPage.showSubtitle && reportData.report_type && (
+                  <Badge variant="outline" className="text-sm px-3 py-1">{reportData.report_type || resolved.coverPage.subtitleText}</Badge>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm mt-4 max-w-md">
@@ -128,8 +136,7 @@ export function AuditReportPreview({
             <div className="border-t px-12 py-5 bg-muted/30 print:bg-gray-50">
               <p className="text-[10px] text-muted-foreground text-center font-medium uppercase tracking-wider mb-1">Confidential</p>
               <p className="text-[10px] text-muted-foreground text-center leading-relaxed max-w-lg mx-auto">
-                This document is the property of the Social Security Board, St. Kitts and Nevis. It contains confidential information
-                intended solely for the use of the addressee. Unauthorized distribution, copying, or disclosure is strictly prohibited.
+                {resolved.coverPage.confidentialityText}
               </p>
             </div>
           </div>
@@ -350,19 +357,21 @@ export function AuditReportPreview({
             <div>
               <SectionHeading number={nextSection()}>Approval & Sign-off</SectionHeading>
               <div className="grid gap-12 mt-8">
-                {[
-                  { label: 'Prepared By', name: reportData.prepared_by, role: 'Internal Auditor' },
-                  { label: 'Reviewed By', name: reportData.reviewed_by, role: 'Manager, Internal Audit' },
-                  { label: 'Approved By', name: reportData.approved_by || 'Director, Social Security Board', role: 'Director' },
-                ].map((sig) => (
-                  <div key={sig.label}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
-                    <div className="mt-8 border-t border-foreground/40 w-72" />
-                    <p className="text-sm font-semibold mt-2">{sig.name || '—'}</p>
-                    <p className="text-xs text-muted-foreground">{sig.role}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
-                  </div>
-                ))}
+                {resolved.signatories.map((sig) => {
+                  const name = sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
+                               sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
+                               sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
+                               sig.defaultName;
+                  return (
+                    <div key={sig.label}>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
+                      <div className="mt-8 border-t border-foreground/40 w-72" />
+                      <p className="text-sm font-semibold mt-2">{name || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{sig.roleTitle}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

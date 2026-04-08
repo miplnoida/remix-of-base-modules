@@ -99,6 +99,13 @@ export const auditMenuItems = [
         requiresPermission: "configure_audit_system",
         description: "Likelihood, impact, formula, rating bands, and risk derivation"
       },
+      {
+        title: "Document Templates",
+        url: "/audit/document-templates",
+        icon: FileText,
+        requiresPermission: "configure_audit_system",
+        description: "Configure audit report and plan document layouts"
+      },
       // ── Resources ──
       {
         title: "Resources",

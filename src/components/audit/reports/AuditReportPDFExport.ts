@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SSB_BRAND, addSSBFooter } from '@/lib/reportTemplate';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 
 interface PDFExportParams {
   reportData: any;
@@ -14,11 +16,14 @@ interface PDFExportParams {
   actions: any[];
   engagement?: any;
   departmentName?: string;
+  templateConfig?: AuditReportTemplateConfig;
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig,
 }: PDFExportParams) {
+  const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  const resolved = resolveReportTemplate(config, reportData.status);
   const doc = new jsPDF({ orientation: 'portrait' });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
@@ -37,17 +42,17 @@ export function generateAuditReportPDF({
   doc.setTextColor(...colors.white);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(SSB_BRAND.name, margin, 18);
+  doc.text(resolved.branding.orgName, margin, 18);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(SSB_BRAND.country, margin, 27);
+  doc.text(resolved.branding.country, margin, 27);
   doc.setFontSize(9);
   doc.text('Internal Audit Department', margin, 35);
 
   // Address right
   doc.setFontSize(7);
-  doc.text(SSB_BRAND.address, pw - margin, 18, { align: 'right' });
-  doc.text(`Tel: ${SSB_BRAND.phone}`, pw - margin, 24, { align: 'right' });
+  doc.text(resolved.branding.address, pw - margin, 18, { align: 'right' });
+  doc.text(`Tel: ${resolved.branding.phone}`, pw - margin, 24, { align: 'right' });
 
   // Report Title
   let y = 80;
@@ -107,14 +112,14 @@ export function generateAuditReportPDF({
   doc.text(confLines, pw / 2, y, { align: 'center' });
 
   // Draft watermark on cover
-  if (isDraft) addDraftWatermark(doc);
+  if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText);
 
   // ─── CONTENT PAGES ───
   doc.addPage();
   y = 20;
 
   const addSectionHeader = (title: string, num?: number) => {
-    if (y > ph - 50) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+    if (y > ph - 50) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
     doc.setFillColor(...colors.primary);
     doc.rect(margin, y - 4, 3, 12, 'F');
     doc.setTextColor(...colors.primary);
@@ -134,7 +139,7 @@ export function generateAuditReportPDF({
     doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(text, contentWidth);
     lines.forEach((line: string) => {
-      if (y > ph - 25) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+      if (y > ph - 25) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
       doc.text(line, margin, y);
       y += 5;
     });
@@ -226,7 +231,7 @@ export function generateAuditReportPDF({
     // Detailed findings
     addSectionHeader('Detailed Findings', ++sn);
     findings.forEach((f: any, i: number) => {
-      if (y > ph - 60) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+      if (y > ph - 60) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...colors.primary);
@@ -309,12 +314,16 @@ export function generateAuditReportPDF({
 
   // Signatures
   addSectionHeader('Approval & Sign-off', ++sn);
-  [
-    { label: 'Prepared By', name: reportData.prepared_by, role: 'Internal Auditor' },
-    { label: 'Reviewed By', name: reportData.reviewed_by, role: 'Manager, Internal Audit' },
-    { label: 'Approved By', name: reportData.approved_by || 'Director', role: 'Director' },
-  ].forEach((sig) => {
-    if (y > ph - 40) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+  const signatories = resolved.signatories.map((sig) => ({
+    label: sig.label,
+    name: sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
+          sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
+          sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
+          sig.defaultName,
+    role: sig.roleTitle,
+  }));
+  signatories.forEach((sig) => {
+    if (y > ph - 40) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...colors.mutedText);
@@ -346,13 +355,13 @@ export function generateAuditReportPDF({
   doc.save(`${fileName}.pdf`);
 }
 
-function addDraftWatermark(doc: jsPDF) {
+function addDraftWatermark(doc: jsPDF, text: string = 'DRAFT') {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   doc.setTextColor(200, 200, 200);
   doc.setFontSize(60);
   doc.setFont('helvetica', 'bold');
-  doc.text('DRAFT', pw / 2, ph / 2, {
+  doc.text(text, pw / 2, ph / 2, {
     align: 'center',
     angle: 45,
     renderingMode: 'fill',
