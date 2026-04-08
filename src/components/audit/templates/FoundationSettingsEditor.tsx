@@ -18,6 +18,24 @@ import {
   type FoundationSignatory,
 } from '@/lib/audit/documentFoundationTypes';
 
+const FONT_OPTIONS = [
+  { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+  { label: 'Times New Roman', value: 'Times New Roman, Times, serif' },
+  { label: 'Calibri', value: 'Calibri, Candara, sans-serif' },
+  { label: 'Cambria', value: 'Cambria, Georgia, serif' },
+  { label: 'Georgia', value: 'Georgia, Times New Roman, serif' },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  { label: 'Trebuchet MS', value: 'Trebuchet MS, Lucida Grande, sans-serif' },
+  { label: 'Garamond', value: 'Garamond, Baskerville, serif' },
+  { label: 'Palatino', value: 'Palatino Linotype, Book Antiqua, serif' },
+  { label: 'Century Gothic', value: 'Century Gothic, CenturyGothic, sans-serif' },
+  { label: 'Book Antiqua', value: 'Book Antiqua, Palatino, serif' },
+  { label: 'Courier New', value: 'Courier New, Courier, monospace' },
+  { label: 'Lucida Sans', value: 'Lucida Sans Unicode, Lucida Grande, sans-serif' },
+  { label: 'Segoe UI', value: 'Segoe UI, Tahoma, sans-serif' },
+];
+
 const SECTIONS = [
   { key: 'branding', label: 'Branding & Logo', icon: Palette },
   { key: 'colors', label: 'Color Palette', icon: Palette },
