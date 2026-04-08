@@ -731,15 +731,19 @@ async function generateDetailedPlanPdf(
       y += 30;
     }
 
-    y = addKvTable(doc, y, [
-      ['Board / Audit Committee', dv(plan?.board_committee_name, 'Not yet specified')],
+    const govRows: [string, string][] = [];
+    if (planTemplateConfig?.governance.showBoardLine !== false) {
+      govRows.push(['Board / Audit Committee', dv(plan?.board_committee_name, 'Not yet specified')]);
+    }
+    govRows.push(
       ['Minutes Reference', dv(plan?.minutes_reference)],
       ['Approval Note', dv(plan?.approval_note || plan?.approval_comments)],
       ['Submitted By', dv(plan?.submitted_by, isPending ? 'Pending' : '')],
       ['Submitted Date', plan?.submitted_date ? formatDateForDisplay(plan.submitted_date) : (isPending ? 'Pending' : '')],
       ['Approved By', dv(plan?.approved_by, isPending ? 'Pending' : '')],
       ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : (isPending ? 'Pending' : '')],
-    ], theme);
+    );
+    y = addKvTable(doc, y, govRows, theme);
 
     // Sign-off placeholders
     y += 10;
