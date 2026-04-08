@@ -58,9 +58,31 @@ function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
+/** Convert hex color to RGB tuple */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
+}
+
+/** Build theme from resolved plan template config (template takes priority) */
+function getThemeFromTemplate(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>) {
+  if (!templateConfig?.resolved?.branding?.colorPalette) {
+    return getTheme(config);
+  }
+  const palette = templateConfig.resolved.branding.colorPalette;
+  return {
+    primary: hexToRgb(palette.primary),
+    secondary: hexToRgb(palette.secondary),
+    accent: hexToRgb(palette.accent),
+    altRow: hexToRgb(palette.tableStripe),
+    label: 'Template',
+    description: 'From template config',
+  };
+}
+
 /** Build ExportBranding from ReportConfig theme */
-function buildBranding(config: ReportConfig): ExportBranding {
-  const theme = getTheme(config);
+function buildBranding(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>): ExportBranding {
+  const theme = templateConfig ? getThemeFromTemplate(config, templateConfig) : getTheme(config);
   return {
     ...DEFAULT_AUDIT_BRANDING,
     orgName: config.headerTitle || DEFAULT_AUDIT_BRANDING.orgName,
