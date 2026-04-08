@@ -23731,6 +23731,220 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_risk_mitigation_actions: {
+        Row: {
+          action_description: string | null
+          action_title: string
+          assigned_to: string | null
+          completion_date: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          evidence_notes: string | null
+          id: string
+          is_active: boolean
+          priority: string | null
+          risk_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action_description?: string | null
+          action_title: string
+          assigned_to?: string | null
+          completion_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          evidence_notes?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string | null
+          risk_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action_description?: string | null
+          action_title?: string
+          assigned_to?: string | null
+          completion_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          evidence_notes?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string | null
+          risk_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_risk_mitigation_actions_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "ia_risk_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_risk_register: {
+        Row: {
+          audit_universe_id: string | null
+          control_effectiveness: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          fiscal_year: string | null
+          id: string
+          inherent_impact: number | null
+          inherent_likelihood: number | null
+          inherent_risk_level: string | null
+          inherent_risk_score: number | null
+          is_active: boolean
+          linked_risk_id: string | null
+          notes: string | null
+          residual_impact: number | null
+          residual_likelihood: number | null
+          residual_risk_level: string | null
+          residual_risk_score: number | null
+          review_date: string | null
+          risk_category: string | null
+          risk_description: string | null
+          risk_owner: string | null
+          risk_title: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audit_universe_id?: string | null
+          control_effectiveness?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          fiscal_year?: string | null
+          id?: string
+          inherent_impact?: number | null
+          inherent_likelihood?: number | null
+          inherent_risk_level?: string | null
+          inherent_risk_score?: number | null
+          is_active?: boolean
+          linked_risk_id?: string | null
+          notes?: string | null
+          residual_impact?: number | null
+          residual_likelihood?: number | null
+          residual_risk_level?: string | null
+          residual_risk_score?: number | null
+          review_date?: string | null
+          risk_category?: string | null
+          risk_description?: string | null
+          risk_owner?: string | null
+          risk_title: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audit_universe_id?: string | null
+          control_effectiveness?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          fiscal_year?: string | null
+          id?: string
+          inherent_impact?: number | null
+          inherent_likelihood?: number | null
+          inherent_risk_level?: string | null
+          inherent_risk_score?: number | null
+          is_active?: boolean
+          linked_risk_id?: string | null
+          notes?: string | null
+          residual_impact?: number | null
+          residual_likelihood?: number | null
+          residual_risk_level?: string | null
+          residual_risk_score?: number | null
+          review_date?: string | null
+          risk_category?: string | null
+          risk_description?: string | null
+          risk_owner?: string | null
+          risk_title?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_risk_register_audit_universe_id_fkey"
+            columns: ["audit_universe_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_universe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_risk_register_linked_risk_id_fkey"
+            columns: ["linked_risk_id"]
+            isOneToOne: false
+            referencedRelation: "ia_risk_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_risk_reviews: {
+        Row: {
+          comments: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          new_risk_level: string | null
+          new_score: number | null
+          previous_risk_level: string | null
+          previous_score: number | null
+          review_date: string
+          reviewed_by: string | null
+          risk_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_risk_level?: string | null
+          new_score?: number | null
+          previous_risk_level?: string | null
+          previous_score?: number | null
+          review_date?: string
+          reviewed_by?: string | null
+          risk_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_risk_level?: string | null
+          new_score?: number | null
+          previous_risk_level?: string | null
+          previous_score?: number | null
+          review_date?: string
+          reviewed_by?: string | null
+          risk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_risk_reviews_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "ia_risk_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_risk_scoring_models: {
         Row: {
           created_at: string | null

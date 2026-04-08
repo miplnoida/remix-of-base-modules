@@ -72,6 +72,7 @@ const ROUTE_MODULE_MAP: Array<{
   // Internal Audit
   { prefix: '/audit/engagements', module: 'Internal Audit', screen: 'Engagement Workspace', entityType: 'ia_audit_engagements' },
   { prefix: '/audit/universe', module: 'Internal Audit', screen: 'Audit Universe', entityType: 'ia_audit_universe' },
+  { prefix: '/audit/risk-register', module: 'Internal Audit', screen: 'Risk Register', entityType: 'ia_risk_register' },
   { prefix: '/audit/risk', module: 'Internal Audit', screen: 'Risk Assessment', entityType: 'ia_risk_assessments' },
   { prefix: '/audit/plan', module: 'Internal Audit', screen: 'Audit Plan', entityType: 'ia_annual_plans' },
   { prefix: '/audit', module: 'Internal Audit', screen: 'Internal Audit' },

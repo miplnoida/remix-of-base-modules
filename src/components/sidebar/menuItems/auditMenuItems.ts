@@ -34,6 +34,13 @@ export const auditMenuItems = [
         description: "Audit overview and KPIs"
       },
       {
+        title: "Audit Universe",
+        url: "/audit/universe",
+        icon: Grid3X3,
+        requiresPermission: "configure_audit_system",
+        description: "Manage all auditable entities"
+      },
+      {
         title: "Departments",
         url: "/audit/departments",
         icon: Users,
@@ -53,6 +60,13 @@ export const auditMenuItems = [
         icon: Target,
         requiresPermission: "configure_audit_system",
         description: "Assess function-level risks"
+      },
+      {
+        title: "Risk Register",
+        url: "/audit/risk-register",
+        icon: Shield,
+        requiresPermission: "configure_audit_system",
+        description: "Manage entity-level risk register"
       },
       {
         title: "Risk Matrix",

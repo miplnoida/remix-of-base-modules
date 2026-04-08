@@ -268,3 +268,54 @@ export const AUDIT_PLANS_SCHEMA: ModuleSchema = {
     { key: 'status', label: 'Status', type: 'string', showInTable: true, showInImport: false, showInExport: true, sortOrder: 4, allowedValues: ['Draft', 'Submitted', 'Approved', 'In Progress', 'Completed', 'Rejected'], renderHint: 'badge' },
   ],
 };
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIT UNIVERSE
+// ═══════════════════════════════════════════════════════════════
+export const AUDIT_UNIVERSE_SCHEMA: ModuleSchema = {
+  moduleKey: 'audit_universe',
+  moduleLabel: 'Audit Universe',
+  templateFileName: 'audit-universe-template',
+  exportFileName: 'audit-universe',
+  exportTitle: 'Audit Universe Register',
+  fields: [
+    { key: 'entity_name', label: 'Entity Name', required: true, type: 'string', showInTable: true, showInExport: true, sortOrder: 1 },
+    { key: 'entity_type', label: 'Entity Type', required: true, type: 'string', showInTable: true, showInExport: true, sortOrder: 2 },
+    { key: 'entity_code', label: 'Entity Code', type: 'string', showInTable: true, showInExport: true, sortOrder: 3 },
+    { key: 'process_owner', label: 'Process Owner', type: 'string', showInTable: true, showInExport: true, sortOrder: 4 },
+    { key: 'risk_category', label: 'Risk Category', type: 'string', showInTable: true, showInExport: true, sortOrder: 5 },
+    { key: 'materiality', label: 'Materiality', type: 'string', showInTable: true, showInExport: true, sortOrder: 6, allowedValues: ['High', 'Medium', 'Low'] },
+    { key: 'audit_frequency', label: 'Audit Frequency', type: 'string', showInTable: true, showInExport: true, sortOrder: 7 },
+    { key: 'status', label: 'Status', type: 'string', showInTable: true, showInExport: true, sortOrder: 8 },
+    { key: 'regulatory_impact', label: 'Regulatory Impact', type: 'string', showInTable: false, showInExport: true, sortOrder: 9 },
+    { key: 'inherent_risk_score', label: 'Inherent Risk Score', type: 'number', showInTable: false, showInExport: true, sortOrder: 10 },
+    { key: 'residual_risk_score', label: 'Residual Risk Score', type: 'number', showInTable: false, showInExport: true, sortOrder: 11 },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════
+// RISK REGISTER
+// ═══════════════════════════════════════════════════════════════
+export const RISK_REGISTER_SCHEMA: ModuleSchema = {
+  moduleKey: 'risk_register',
+  moduleLabel: 'Risk Register',
+  templateFileName: 'risk-register-template',
+  exportFileName: 'risk-register',
+  exportTitle: 'Risk Register',
+  fields: [
+    { key: 'risk_title', label: 'Risk Title', required: true, type: 'string', showInTable: true, showInExport: true, sortOrder: 1 },
+    { key: 'entity_name', label: 'Entity', type: 'string', showInTable: true, showInExport: true, sortOrder: 2 },
+    { key: 'risk_category', label: 'Category', type: 'string', showInTable: true, showInExport: true, sortOrder: 3 },
+    { key: 'inherent_risk_score', label: 'Inherent Score', type: 'number', showInTable: true, showInExport: true, sortOrder: 4 },
+    { key: 'inherent_risk_level', label: 'Inherent Level', type: 'string', showInTable: true, showInExport: true, sortOrder: 5 },
+    { key: 'residual_risk_score', label: 'Residual Score', type: 'number', showInTable: true, showInExport: true, sortOrder: 6 },
+    { key: 'residual_risk_level', label: 'Residual Level', type: 'string', showInTable: true, showInExport: true, sortOrder: 7 },
+    { key: 'control_effectiveness', label: 'Control Effectiveness', type: 'string', showInTable: false, showInExport: true, sortOrder: 8 },
+    { key: 'risk_owner', label: 'Risk Owner', type: 'string', showInTable: true, showInExport: true, sortOrder: 9 },
+    { key: 'status', label: 'Status', type: 'string', showInTable: true, showInExport: true, sortOrder: 10, allowedValues: ['Open', 'Mitigating', 'Under Review', 'Closed', 'Accepted'] },
+    { key: 'fiscal_year', label: 'Fiscal Year', type: 'string', showInTable: false, showInExport: true, sortOrder: 11 },
+    { key: 'review_date', label: 'Review Date', type: 'date', showInTable: false, showInExport: true, sortOrder: 12 },
+    { key: 'due_date', label: 'Due Date', type: 'date', showInTable: false, showInExport: true, sortOrder: 13 },
+    { key: 'notes', label: 'Notes', type: 'string', showInTable: false, showInExport: true, sortOrder: 14 },
+  ],
+};
