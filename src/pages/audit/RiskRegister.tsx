@@ -66,7 +66,13 @@ const emptyAction = {
 };
 
 export default function RiskRegister() {
-  const { data: universeEntities = [] } = useActiveAuditUniverse();
+  const { data: departments = [] } = useQuery({
+    queryKey: ['ia_departments_active'],
+    queryFn: async () => {
+      const { data } = await supabase.from('ia_departments').select('id, name').eq('is_active', true).order('name');
+      return data || [];
+    },
+  });
   const [entityFilter, setEntityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
