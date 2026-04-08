@@ -24,6 +24,20 @@ import type { PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides
 import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
 import { PlanOverridePanel } from './templates/PlanOverridePanel';
 import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
+import {
+  DEFAULT_AUDIT_BRANDING,
+  renderCoverPage as renderUnifiedCover,
+  renderPageHeader,
+  renderFooter,
+  renderSectionTitle as renderUnifiedSectionTitle,
+  renderNarrativeBlock,
+  renderKvTable,
+  renderWatermarkAllPages,
+  loadLogoBase64,
+  displayValue as dv,
+  resolveField as ef,
+  type ExportBranding,
+} from '@/lib/audit/auditExportPrimitives';
 
 interface BoardPackTabProps {
   planId: string;
@@ -39,48 +53,30 @@ function buildLookups(departments: any[], functions: any[], auditors: any[]) {
   return { deptMap, funcMap, auditorMap };
 }
 
-// ===== PDF HELPERS (SSB BRANDED — REDESIGNED) =====
+// ===== PDF HELPERS — delegating to unified auditExportPrimitives =====
 function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
-/** Load logo image as base64 for jsPDF embedding */
-let _logoBase64: string | null = null;
-let _logoLoaded = false;
+/** Build ExportBranding from ReportConfig theme */
+function buildBranding(config: ReportConfig): ExportBranding {
+  const theme = getTheme(config);
+  return {
+    ...DEFAULT_AUDIT_BRANDING,
+    orgName: config.headerTitle || DEFAULT_AUDIT_BRANDING.orgName,
+    department: config.headerSubtitle || DEFAULT_AUDIT_BRANDING.department,
+    primaryColor: theme.primary,
+    accentColor: theme.accent,
+    altRowColor: theme.altRow,
+    confidentialityText: config.confidentialityLabel || DEFAULT_AUDIT_BRANDING.confidentialityText,
+  };
+}
+
 async function getLogoBase64(): Promise<string | null> {
-  if (_logoLoaded) return _logoBase64;
-  try {
-    const resp = await fetch(ssbLogoPng);
-    const blob = await resp.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        _logoBase64 = reader.result as string;
-        _logoLoaded = true;
-        resolve(_logoBase64);
-      };
-      reader.onerror = () => { _logoLoaded = true; resolve(null); };
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    _logoLoaded = true;
-    return null;
-  }
+  return loadLogoBase64(ssbLogoPng);
 }
 
-/** Clean display value — no ugly dashes for empty data */
-function dv(val: any, fallback = ''): string {
-  if (val === null || val === undefined || val === '' || val === '—') return fallback;
-  return String(val);
-}
-
-/** Resolve engagement field with fallbacks */
-function ef(e: any, ...keys: string[]): any {
-  for (const k of keys) {
-    if (e[k] !== null && e[k] !== undefined && e[k] !== '') return e[k];
-  }
-  return null;
-}
+// dv and ef are now imported from auditExportPrimitives (displayValue, resolveField)
 
 /** Get rationale display from structured or legacy fields */
 function getRationaleDisplay(e: any): string {
@@ -106,118 +102,50 @@ function getSupportNames(e: any, auditorMap: Map<string, string>): string {
     .map((id: string) => auditorMap.get(id)).filter(Boolean).join(', ');
 }
 
-// ===== REDESIGNED PAGE HEADER =====
+// ===== PAGE HEADER — delegates to unified primitives =====
 function addHeader(doc: jsPDF, sectionTitle: string, fiscalYear: string, version: number, config: ReportConfig) {
-  const pw = doc.internal.pageSize.getWidth();
-  const theme = getTheme(config);
-
-  // Green header bar — taller for presence
-  doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.rect(0, 0, pw, 36, 'F');
-  // Gold accent stripe
-  doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-  doc.rect(0, 36, pw, 2.5, 'F');
-
-  // Organization name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont(undefined as any, 'bold');
-  doc.text(config.headerTitle || 'Social Security Board', 14, 14);
-  // Department
-  doc.setFontSize(9);
-  doc.setFont(undefined as any, 'normal');
-  doc.text(config.headerSubtitle || 'Internal Audit Department', 14, 21);
-  // Section title on left
-  doc.setFontSize(8);
-  doc.text(sectionTitle, 14, 29);
-  // FY + version on right
-  doc.text(`FY ${fiscalYear}  •  Plan v${version}`, pw - 14, 29, { align: 'right' });
+  const branding = buildBranding(config);
+  renderPageHeader(doc, branding, { sectionTitle, fiscalYear, version });
 }
 
-// ===== REDESIGNED FOOTER =====
+// ===== FOOTER — delegates to unified primitives =====
 function addFooter(doc: jsPDF, version: number, artifactVersion: number, status: string, config: ReportConfig) {
-  const pageCount = doc.getNumberOfPages();
-  const theme = getTheme(config);
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    const pw = doc.internal.pageSize.getWidth();
-    const ph = doc.internal.pageSize.getHeight();
-
-    // Thin gold line above footer
-    doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-    doc.setLineWidth(0.5);
-    doc.line(14, ph - 18, pw - 14, ph - 18);
-
-    doc.setFontSize(6.5);
-    doc.setTextColor(120, 120, 120);
-    doc.text(`${config.confidentialityLabel}`, 14, ph - 12);
-    doc.text(`Plan v${version}  •  Artifact v${artifactVersion}  •  Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 12, { align: 'center' });
-    doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 12, { align: 'right' });
-
-    // Draft watermark — visible diagonal watermark
-    if (status !== 'Approved' && config.showDraftWatermark) {
-      doc.saveGraphicsState();
-      (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
-      doc.setTextColor(120, 120, 120);
-      doc.setFontSize(80);
-      doc.setFont(undefined as any, 'bold');
-      doc.text('DRAFT', pw / 2, ph / 2, { align: 'center', angle: 40 });
-      doc.restoreGraphicsState();
-    }
+  const branding = buildBranding(config);
+  renderFooter(doc, branding, {
+    extraText: `Plan v${version}  •  Artifact v${artifactVersion}`,
+  });
+  // Draft watermark
+  if (status !== 'Approved' && config.showDraftWatermark) {
+    renderWatermarkAllPages(doc, 'DRAFT', 0.12);
   }
 }
 
-// ===== SECTION TITLE =====
+// ===== SECTION TITLE — delegates to unified primitives =====
 function drawSectionTitle(doc: jsPDF, y: number, title: string, theme: any): number {
-  const pw = doc.internal.pageSize.getWidth();
-  doc.setFontSize(14);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.text(title, 14, y);
-  // Thin accent line under title
-  doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-  doc.setLineWidth(0.8);
-  doc.line(14, y + 2, pw / 3, y + 2);
-  return y + 10;
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+    accentColor: theme.accent,
+  };
+  return renderUnifiedSectionTitle(doc, branding, title, y);
 }
 
-// ===== NARRATIVE BLOCK =====
-function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, pw: number, theme: any): number {
-  if (!content) return y;
-  if (y > 250) { doc.addPage(); y = 52; }
-  // Section label
-  doc.setFontSize(11);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.text(title, 14, y);
-  y += 6;
-  // Content
-  doc.setFont(undefined as any, 'normal');
-  doc.setTextColor(40, 40, 40);
-  doc.setFontSize(10);
-  const lines = doc.splitTextToSize(content, pw - 32);
-  doc.text(lines, 16, y);
-  y += lines.length * 5 + 8;
-  return y;
+// ===== NARRATIVE BLOCK — delegates to unified primitives =====
+function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, _pw: number, theme: any): number {
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+  };
+  return renderNarrativeBlock(doc, branding, title, content, y);
 }
 
-// ===== KEY-VALUE PAIR TABLE =====
+// ===== KEY-VALUE PAIR TABLE — delegates to unified primitives =====
 function addKvTable(doc: jsPDF, y: number, pairs: [string, string][], theme: any): number {
-  // Filter out empty value pairs
-  const filtered = pairs.filter(([, v]) => v && v.trim() !== '');
-  if (filtered.length === 0) return y;
-  autoTable(doc, {
-    startY: y,
-    body: filtered,
-    styles: { fontSize: 10, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.3 },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 60, textColor: theme.primary },
-      1: { textColor: [40, 40, 40] },
-    },
-    theme: 'plain',
-    margin: { left: 14, right: 14 },
-  });
-  return (doc as any).lastAutoTable.finalY + 8;
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+  };
+  return renderKvTable(doc, branding, pairs, y);
 }
 
 // ===== BOARD SUMMARY PDF (REDESIGNED) =====
@@ -321,79 +249,23 @@ async function generateDetailedPlanPdf(
   const theme = getTheme(config);
   const logoData = await getLogoBase64();
 
-  // ===== A. COVER PAGE =====
+  // ===== A. COVER PAGE — delegates to unified primitives =====
   if (config.includeCoverPage) {
-    // Full green background
-    doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-    doc.rect(0, 0, pw, ph, 'F');
-
-    // Logo — real SSB logo or fallback text
-    if (logoData) {
-      doc.addImage(logoData, 'PNG', pw / 2 - 20, 25, 40, 40);
-    } else {
-      doc.setFillColor(255, 255, 255);
-      doc.circle(pw / 2, 45, 18, 'F');
-      doc.setFontSize(14);
-      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-      doc.setFont(undefined as any, 'bold');
-      doc.text('SSB', pw / 2, 48, { align: 'center' });
-    }
-
-    // Gold accent lines
-    doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-    doc.rect(pw * 0.2, 80, pw * 0.6, 2.5, 'F');
-    doc.rect(pw * 0.25, 85, pw * 0.5, 0.8, 'F');
-
-    // Organization name
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont(undefined as any, 'bold');
-    doc.text(config.headerTitle || 'Social Security Board', pw / 2, 100, { align: 'center' });
-
-    // Department
-    doc.setFontSize(12);
-    doc.setFont(undefined as any, 'normal');
-    doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 112, { align: 'center' });
-
-    // Main title — use template config if available
+    const branding = buildBranding(config);
+    branding.logoBase64 = logoData;
     const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
-    doc.setFontSize(26);
-    doc.setFont(undefined as any, 'bold');
-    const titleY = ph * 0.40;
-    const coverTitleLines = coverTitle.split('\n');
-    coverTitleLines.forEach((line: string, idx: number) => {
-      doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
-    });
-
-    // Fiscal year — use template config display if available
     const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
-    doc.setFontSize(16);
-    doc.setFont(undefined as any, 'normal');
-    doc.text(`Fiscal Year ${fyDisplay}`, pw / 2, titleY + coverTitleLines.length * 16 + 24, { align: 'center' });
-
-    // Metadata block — positioned with more breathing room
-    const metaY = ph * 0.65;
-    doc.setFontSize(10);
-    doc.setTextColor(200, 230, 210);
-    const metaLines = [
-      `Plan Version: v${version}`,
-      `Status: ${dv(plan?.status, 'Draft')}`,
-      `Prepared By: ${dv(plan?.created_by || plan?.plan_owner, 'Internal Audit Department')}`,
-    ];
-    if (plan?.approved_by) {
-      metaLines.push(`Approved By: ${plan.approved_by}`);
-      if (plan?.approved_date) metaLines.push(`Approved Date: ${formatDateForDisplay(plan.approved_date)}`);
-    }
-    metaLines.forEach((line, i) => {
-      doc.text(line, pw / 2, metaY + i * 10, { align: 'center' });
+    renderUnifiedCover(doc, branding, {
+      title: coverTitle,
+      fullPageCover: true,
+      fiscalYear: fyDisplay,
+      version: `v${version}`,
+      status: dv(plan?.status, 'Draft'),
+      preparedBy: dv(plan?.created_by || plan?.plan_owner, 'Internal Audit Department'),
+      approvedBy: plan?.approved_by || undefined,
+      approvedDate: plan?.approved_date ? formatDateForDisplay(plan.approved_date) : undefined,
+      showConfidentiality: true,
     });
-
-    // Confidentiality note at bottom
-    doc.setFontSize(8);
-    doc.setTextColor(160, 200, 170);
-    doc.text(config.confidentialityLabel, pw / 2, ph - 30, { align: 'center' });
-    doc.setFontSize(7);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 22, { align: 'center' });
   }
 
   // ===== B. EXECUTIVE SUMMARY =====
