@@ -21935,6 +21935,45 @@ export type Database = {
           },
         ]
       }
+      ia_mitigation_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          default_priority: string
+          id: string
+          is_active: boolean
+          template_description: string | null
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_priority?: string
+          id?: string
+          is_active?: boolean
+          template_description?: string | null
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_priority?: string
+          id?: string
+          is_active?: boolean
+          template_description?: string | null
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_notification_logs: {
         Row: {
           channel: string | null
@@ -23746,6 +23785,7 @@ export type Database = {
           priority: string | null
           risk_id: string
           status: string
+          template_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -23763,6 +23803,7 @@ export type Database = {
           priority?: string | null
           risk_id: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -23780,6 +23821,7 @@ export type Database = {
           priority?: string | null
           risk_id?: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -23789,6 +23831,13 @@ export type Database = {
             columns: ["risk_id"]
             isOneToOne: false
             referencedRelation: "ia_risk_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_risk_mitigation_actions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_mitigation_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -23817,6 +23866,7 @@ export type Database = {
           risk_category: string | null
           risk_description: string | null
           risk_owner: string | null
+          risk_source: string | null
           risk_title: string
           status: string
           updated_at: string
@@ -23845,6 +23895,7 @@ export type Database = {
           risk_category?: string | null
           risk_description?: string | null
           risk_owner?: string | null
+          risk_source?: string | null
           risk_title: string
           status?: string
           updated_at?: string
@@ -23873,6 +23924,7 @@ export type Database = {
           risk_category?: string | null
           risk_description?: string | null
           risk_owner?: string | null
+          risk_source?: string | null
           risk_title?: string
           status?: string
           updated_at?: string
