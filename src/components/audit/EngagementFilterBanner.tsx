@@ -42,7 +42,7 @@ export function EngagementFilterBanner() {
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20">
       <Filter className="h-4 w-4 text-primary shrink-0" />
       <p className="text-sm flex-1">
-        Filtered by engagement:{' '}
+        Filtered by audit:{' '}
         <button
           onClick={() => navigate(`/audit/engagements/${engagementId}`)}
           className="font-semibold text-primary hover:underline"
@@ -51,7 +51,7 @@ export function EngagementFilterBanner() {
         </button>
       </p>
       <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => navigate(`/audit/engagements/${engagementId}`)}>
-        <ArrowLeft className="h-3 w-3 mr-1" />Back to Engagement
+        <ArrowLeft className="h-3 w-3 mr-1" />Back to Audit
       </Button>
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearFilter}>
         <X className="h-3 w-3" />
