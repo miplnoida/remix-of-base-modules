@@ -245,7 +245,8 @@ export default function RiskAssessment() {
 
   const { data: deptFunctions = [] } = useIADepartmentFunctions(selectedDeptId || undefined);
 
-  const deptMap = useMemo(() => new Map((departments as any[]).map((d: any) => [d.id, d])), [departments]);
+  // Use allDepartments for display so deactivated dept names resolve correctly
+  const deptMap = useMemo(() => new Map((allDepartments as any[]).map((d: any) => [d.id, d])), [allDepartments]);
   const funcMap = useMemo(() => {
     const map: Record<string, any> = {};
     allFunctions.forEach((f: any) => { map[f.id] = f; });
@@ -435,9 +436,15 @@ export default function RiskAssessment() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Department <span className="text-destructive">*</span></Label>
-              <Select value={selectedDeptId} onValueChange={(v) => { setSelectedDeptId(v); setSelectedFunctionId(''); }} disabled={isReadOnly}>
+              <Select value={selectedDeptId} onValueChange={(v) => { if (v !== selectedDeptId) { setSelectedDeptId(v); setSelectedFunctionId(''); } }} disabled={isReadOnly}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                <SelectContent>{(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  {/* Show deactivated department if currently selected but not in active list */}
+                  {selectedDeptId && !(departments as any[]).some((d: any) => d.id === selectedDeptId) && deptMap.has(selectedDeptId) && (
+                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{deptMap.get(selectedDeptId)?.name} (Deactivated)</SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div>
