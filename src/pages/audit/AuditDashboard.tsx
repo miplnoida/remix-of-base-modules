@@ -10,8 +10,11 @@ import { useIAEngagements, useIARiskAssessments } from '@/hooks/useAuditDataPhas
 import { Progress } from '@/components/ui/progress';
 
 import { calculateRiskLevel as deriveRiskLevel } from '@/lib/audit/riskEngine';
+import { useRiskRealtimeSync } from '@/hooks/useRiskRealtimeSync';
 
 export default function AuditDashboard() {
+  // Subscribe to realtime risk config/register changes for auto-refresh
+  useRiskRealtimeSync();
   const navigate = useNavigate();
   const { data: departments = [], isLoading: departmentsLoading } = useIADepartments();
   const { data: functions = [] } = useIADepartmentFunctions('all');
