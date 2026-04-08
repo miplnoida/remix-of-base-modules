@@ -114,12 +114,31 @@ export const auditMenuItems = [
         requiresPermission: "configure_audit_system",
         description: "Likelihood, impact, formula, rating bands, and risk derivation"
       },
+      // ── Templates & Queries ──
+      {
+        title: "Templates & Queries",
+        isGroupLabel: true,
+      },
       {
         title: "Document Templates",
         url: "/audit/document-templates",
         icon: FileText,
         requiresPermission: "configure_audit_system",
         description: "Configure audit report and plan document layouts"
+      },
+      {
+        title: "Templates Management",
+        url: "/audit/templates",
+        icon: FileText,
+        requiresPermission: "configure_audit_system",
+        description: "Manage reusable audit module templates"
+      },
+      {
+        title: "Audit Queries",
+        url: "/audit/queries",
+        icon: FileSearch,
+        requiresPermission: "view_audit_assignments",
+        description: "Run and manage saved audit queries"
       },
       // ── Resources ──
       {
