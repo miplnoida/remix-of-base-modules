@@ -10,9 +10,10 @@ export const MITIGATION_STATUSES = ['Planned', 'In Progress', 'Completed', 'Over
 export const MITIGATION_PRIORITIES = ['High', 'Medium', 'Low'] as const;
 export const RISK_SOURCES = ['Previous Audit', 'Self-Assessment', 'External Review', 'Regulatory', 'Risk Workshop', 'Management Referral', 'Other'] as const;
 
-// Risk scoring delegated to centralized engine
+// Risk scoring delegated to centralized engine — use the hook for live config
 export { calculateRiskLevel, getRiskLevelVariant } from '@/lib/audit/riskEngine';
-import { calculateRiskLevel } from '@/lib/audit/riskEngine';
+import { calculateScore, getRiskRating } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 // ============= RISK REGISTER =============
 export function useRiskRegister(filters?: { audit_universe_id?: string; status?: string; category?: string }) {
