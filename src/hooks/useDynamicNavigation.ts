@@ -203,23 +203,22 @@ interface IAGroupDef {
 const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
   { groupTitle: 'Dashboard', icon: LayoutDashboard, paths: ['/audit/dashboard'] },
   { groupTitle: 'Risk Management', icon: Shield, paths: ['/audit/risk-assessment', '/audit/risk-matrix'] },
-  { groupTitle: 'Audit Planning', icon: ClipboardCheck, paths: ['/audit/audit-plans', '/audit/plan-approval'] },
-  { groupTitle: 'Audit Execution', icon: Briefcase, paths: ['/audit/audits'] },
+  { groupTitle: 'Planning', icon: ClipboardCheck, paths: ['/audit/audit-plans', '/audit/plan-approval'] },
+  { groupTitle: 'Execution', icon: Briefcase, paths: ['/audit/audits', '/audit/queries'] },
   {
-    groupTitle: 'Resource Management', icon: Users,
+    groupTitle: 'Resources', icon: Users,
     paths: ['/audit/auditors', '/audit/auditor-profiles', '/audit/workload', '/audit/time-tracking', '/audit/leave'],
   },
-  { groupTitle: 'Master Data', icon: Database, paths: ['/audit/departments', '/audit/functions', '/audit/templates'] },
+  { groupTitle: 'Reference Data', icon: Database, paths: ['/audit/departments', '/audit/functions', '/audit/templates'] },
   { groupTitle: 'Reporting', icon: FileBarChart, paths: ['/audit/audit-reports'] },
-  { groupTitle: 'Configuration', icon: Settings, paths: ['/audit/config', '/audit/risk-settings'] },
-  { groupTitle: 'Admin', icon: Terminal, paths: ['/db-diagram/internal_audit'] },
+  { groupTitle: 'Configuration', icon: Settings, paths: ['/audit/config', '/audit/risk-settings', '/audit/document-templates'] },
 ];
 
 const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; description?: string }> = {
   '/audit/dashboard':        { title: 'Dashboard',               icon: LayoutDashboard, description: 'Audit overview and KPIs' },
   '/audit/risk-assessment':  { title: 'Risk Assessment',         icon: Shield,          description: 'Assess function-level risks' },
   '/audit/risk-matrix':      { title: 'Risk Matrix',             icon: BarChart3,       description: 'View the 5×5 risk heatmap' },
-  '/audit/audit-plans':      { title: 'Audit Plan',              icon: ClipboardList,   description: 'Create risk-driven audit plans' },
+  '/audit/audit-plans':      { title: 'Audit Plans',             icon: ClipboardList,   description: 'Create risk-driven audit plans' },
   '/audit/plan-approval':    { title: 'Plan Approval',           icon: ClipboardCheck,  description: 'Review and approve submitted plans' },
   '/audit/audits':           { title: 'Audits',                  icon: Briefcase,       description: 'Execute audits for department functions' },
   '/audit/auditors':         { title: 'Auditor Profiles',        icon: UserCheck,       description: 'Manage auditor registry and roles' },
@@ -228,11 +227,12 @@ const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; des
   '/audit/time-tracking':    { title: 'Time Tracking',           icon: Clock,           description: 'Track audit time spent' },
   '/audit/leave':            { title: 'Leave & Vacation',        icon: Calendar,        description: 'Manage auditor leave schedules' },
   '/audit/departments':      { title: 'Departments',             icon: Building2,       description: 'Manage department information' },
-  '/audit/functions':        { title: 'Functions',               icon: FolderTree,      description: 'Manage department functions' },
-  '/audit/templates':        { title: 'Templates',               icon: FileText,        description: 'Manage audit templates' },
-  '/audit/audit-reports':    { title: 'Reports',                 icon: FileBarChart,    description: 'Generate audit reports' },
-  '/audit/config':           { title: 'System Configuration',    icon: Settings,        description: 'Workflow defaults, notifications, SLA' },
+  '/audit/functions':        { title: 'Business Functions',      icon: FolderTree,      description: 'Manage department functions' },
+  '/audit/templates':        { title: 'Communication Templates', icon: FileText,        description: 'Reusable templates for letters, reports, and notices' },
+  '/audit/audit-reports':    { title: 'Report Center',           icon: FileBarChart,    description: 'Create and manage audit reports' },
+  '/audit/config':           { title: 'Audit Configuration',     icon: Settings,        description: 'Workflow defaults, notifications, SLA' },
   '/audit/risk-settings':    { title: 'Risk Configuration',      icon: Shield,          description: 'Likelihood, impact, formula, rating bands' },
+  '/audit/document-templates': { title: 'Document & Output Settings', icon: Settings,   description: 'Foundation branding, section library, and layouts' },
   '/db-diagram/internal_audit': { title: 'DB Diagram',           icon: Database,        description: 'Internal Audit database schema' },
 };
 
