@@ -451,7 +451,13 @@ export default function RiskAssessment() {
               <Label>Function <span className="text-destructive">*</span></Label>
               <Select value={selectedFunctionId} onValueChange={setSelectedFunctionId} disabled={isReadOnly || !selectedDeptId}>
                 <SelectTrigger><SelectValue placeholder={selectedDeptId ? 'Select function' : 'Select department first'} /></SelectTrigger>
-                <SelectContent>{(deptFunctions as any[]).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.function_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {(deptFunctions as any[]).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.function_name}</SelectItem>)}
+                  {/* Show current function if not in active dept functions list */}
+                  {selectedFunctionId && !(deptFunctions as any[]).some((f: any) => f.id === selectedFunctionId) && funcMap[selectedFunctionId] && (
+                    <SelectItem key={selectedFunctionId} value={selectedFunctionId}>{funcMap[selectedFunctionId].function_name} (Deactivated)</SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </div>
           </div>
