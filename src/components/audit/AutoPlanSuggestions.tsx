@@ -129,10 +129,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   };
 
   const getRiskBadgeVariant = (score: number) => {
-    if (score >= 75) return 'Critical';
-    if (score >= 50) return 'High';
-    if (score >= 25) return 'Medium';
-    return 'Low';
+    return classifyCompositeScore(score, bands);
   };
 
   // Split candidates into sections

@@ -84,8 +84,8 @@ export default function DepartmentView() {
     functions.filter((f: any) => f.id !== excludeId).reduce((s: number, f: any) => s + (Number(f.weight_percentage) || 0), 0);
 
   const getRiskBadge = (risk: string) => {
-    const colors: Record<string, string> = { 'High': 'bg-red-500', 'Medium': 'bg-orange-600', 'Low': 'bg-green-500' };
-    return <Badge className={colors[risk]}>{risk}</Badge>;
+    const color = getRiskRating(calculateFunctionRiskScore(risk, risk)).color;
+    return <Badge style={{ backgroundColor: color, color: 'white' }}>{risk}</Badge>;
   };
 
   const getControlBadge = (effectiveness: string) => {
