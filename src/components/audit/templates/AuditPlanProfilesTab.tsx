@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Star, Copy, Pencil, Trash2, Users, Briefcase, Shield, Wrench } from 'lucide-react';
+import { Plus, Star, Copy, Pencil, Trash2, Users, Briefcase, Shield, Wrench, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { AuditPlanProfile, AuditPlanAudience } from '@/lib/audit/auditPlanTemplateTypes';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserCode } from '@/hooks/useUserCode';
+import type { AuditPlanAudience } from '@/lib/audit/auditPlanTemplateTypes';
 
 const AUDIENCE_OPTIONS: { value: AuditPlanAudience; label: string; icon: React.ReactNode; description: string }[] = [
   { value: 'management', label: 'Management', icon: <Users className="h-3.5 w-3.5" />, description: 'For internal management stakeholders' },
@@ -19,33 +21,30 @@ const AUDIENCE_OPTIONS: { value: AuditPlanAudience; label: string; icon: React.R
   { value: 'working', label: 'Working Draft', icon: <Wrench className="h-3.5 w-3.5" />, description: 'Internal working documents' },
 ];
 
-// Demo profiles for initial display
-const DEMO_PROFILES: AuditPlanProfile[] = [
-  {
-    id: '1', profile_name: 'Annual Audit Plan — Board Pack', description: 'Full formal plan for Board/Audit Committee presentation',
-    template_id: 'tpl-1', audience: 'board', fiscal_year: '2026', is_active: true, is_default: true,
-    created_by: 'admin', updated_by: 'admin', created_at: '2026-01-15T00:00:00Z', updated_at: '2026-04-01T00:00:00Z',
-  },
-  {
-    id: '2', profile_name: 'Quarterly Management Plan', description: 'Concise plan for quarterly management review',
-    template_id: 'tpl-3', audience: 'management', fiscal_year: '2026', is_active: true, is_default: false,
-    created_by: 'admin', updated_by: 'admin', created_at: '2026-02-01T00:00:00Z', updated_at: '2026-03-20T00:00:00Z',
-  },
-  {
-    id: '3', profile_name: 'Working Draft — IT Audit', description: 'Working draft for IT audit planning',
-    template_id: 'tpl-5', audience: 'working', fiscal_year: '2026', is_active: true, is_default: false,
-    created_by: 'admin', updated_by: null, created_at: '2026-03-10T00:00:00Z', updated_at: '2026-03-10T00:00:00Z',
-  },
-];
+interface ProfileRow {
+  id: string;
+  profile_name: string;
+  description: string | null;
+  template_id: string | null;
+  audience: AuditPlanAudience;
+  fiscal_year: string | null;
+  is_active: boolean;
+  is_default: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuditPlanProfilesTabProps {
   onSelectProfile?: (profileId: string) => void;
 }
 
 export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabProps) {
-  const [profiles, setProfiles] = useState<AuditPlanProfile[]>(DEMO_PROFILES);
+  const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<AuditPlanProfile | null>(null);
+  const [editingProfile, setEditingProfile] = useState<ProfileRow | null>(null);
   const [formData, setFormData] = useState({
     profile_name: '',
     description: '',
@@ -53,66 +52,141 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
     fiscal_year: new Date().getFullYear().toString(),
   });
 
+  const QUERY_KEY = 'ia_audit_plan_profiles';
+
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: [QUERY_KEY],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('ia_audit_plan_profiles')
+        .select('*')
+        .order('is_default', { ascending: false })
+        .order('profile_name');
+      if (error) {
+        console.error('Failed to fetch profiles:', error);
+        return [];
+      }
+      return (data ?? []) as ProfileRow[];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: Partial<ProfileRow>) => {
+      const { data, error } = await (supabase as any)
+        .from('ia_audit_plan_profiles')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success(editingProfile ? 'Profile updated' : 'Profile created');
+      setShowCreateDialog(false);
+      resetForm();
+    },
+    onError: (err: any) => toast.error('Failed to save profile', { description: err.message }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...payload }: Partial<ProfileRow> & { id: string }) => {
+      const { data, error } = await (supabase as any)
+        .from('ia_audit_plan_profiles')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success('Profile updated');
+      setShowCreateDialog(false);
+      resetForm();
+    },
+    onError: (err: any) => toast.error('Failed to update profile', { description: err.message }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from('ia_audit_plan_profiles')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success('Profile deleted');
+    },
+    onError: (err: any) => toast.error('Failed to delete profile', { description: err.message }),
+  });
+
   const resetForm = () => {
     setFormData({ profile_name: '', description: '', audience: 'management', fiscal_year: new Date().getFullYear().toString() });
     setEditingProfile(null);
   };
 
-  const handleCreate = () => {
+  const handleSave = () => {
     if (!formData.profile_name.trim()) {
       toast.error('Profile name is required');
       return;
     }
-    const newProfile: AuditPlanProfile = {
-      id: crypto.randomUUID(),
-      profile_name: formData.profile_name,
-      description: formData.description || null,
-      template_id: 'tpl-1',
-      audience: formData.audience,
-      fiscal_year: formData.fiscal_year,
-      is_active: true,
-      is_default: false,
-      created_by: 'admin',
-      updated_by: 'admin',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setProfiles((prev) => [...prev, newProfile]);
-    toast.success('Profile created');
-    setShowCreateDialog(false);
-    resetForm();
+    const code = userCode || 'system';
+    if (editingProfile) {
+      updateMutation.mutate({
+        id: editingProfile.id,
+        profile_name: formData.profile_name.trim(),
+        description: formData.description.trim() || null,
+        audience: formData.audience,
+        fiscal_year: formData.fiscal_year.trim() || null,
+        updated_by: code,
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      createMutation.mutate({
+        profile_name: formData.profile_name.trim(),
+        description: formData.description.trim() || null,
+        audience: formData.audience,
+        fiscal_year: formData.fiscal_year.trim() || null,
+        is_active: true,
+        is_default: false,
+        created_by: code,
+        updated_by: code,
+      });
+    }
   };
 
-  const handleUpdate = () => {
-    if (!editingProfile || !formData.profile_name.trim()) return;
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === editingProfile.id
-          ? { ...p, profile_name: formData.profile_name, description: formData.description || null, audience: formData.audience, fiscal_year: formData.fiscal_year, updated_at: new Date().toISOString() }
-          : p
-      )
-    );
-    toast.success('Profile updated');
-    setShowCreateDialog(false);
-    resetForm();
-  };
-
-  const handleSetDefault = (id: string) => {
-    setProfiles((prev) => prev.map((p) => ({ ...p, is_default: p.id === id })));
+  const handleSetDefault = async (id: string) => {
+    // Unset current defaults
+    await (supabase as any)
+      .from('ia_audit_plan_profiles')
+      .update({ is_default: false })
+      .eq('is_default', true);
+    // Set new default
+    await (supabase as any)
+      .from('ia_audit_plan_profiles')
+      .update({ is_default: true, updated_by: userCode || 'system' })
+      .eq('id', id);
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
     toast.success('Default profile updated');
   };
 
-  const handleDuplicate = (profile: AuditPlanProfile) => {
-    const clone: AuditPlanProfile = {
-      ...profile,
-      id: crypto.randomUUID(),
+  const handleDuplicate = (profile: ProfileRow) => {
+    createMutation.mutate({
       profile_name: `${profile.profile_name} (Copy)`,
+      description: profile.description,
+      template_id: profile.template_id,
+      audience: profile.audience,
+      fiscal_year: profile.fiscal_year,
+      is_active: true,
       is_default: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setProfiles((prev) => [...prev, clone]);
-    toast.success('Profile duplicated');
+      created_by: userCode || 'system',
+      updated_by: userCode || 'system',
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -121,15 +195,14 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
       toast.error('Cannot delete the default profile');
       return;
     }
-    setProfiles((prev) => prev.filter((p) => p.id !== id));
-    toast.success('Profile deleted');
+    deleteMutation.mutate(id);
   };
 
   const handleToggleActive = (id: string, active: boolean) => {
-    setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, is_active: active } : p)));
+    updateMutation.mutate({ id, is_active: active, updated_by: userCode || 'system' });
   };
 
-  const openEdit = (profile: AuditPlanProfile) => {
+  const openEdit = (profile: ProfileRow) => {
     setEditingProfile(profile);
     setFormData({
       profile_name: profile.profile_name,
@@ -144,6 +217,15 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
     resetForm();
     setShowCreateDialog(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+        <span className="text-sm text-muted-foreground">Loading profiles…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -181,9 +263,7 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
                         </Badge>
                       )}
                       {profile.fiscal_year && (
-                        <Badge variant="secondary" className="text-[10px] h-5">
-                          FY {profile.fiscal_year}
-                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] h-5">FY {profile.fiscal_year}</Badge>
                       )}
                     </div>
                     {profile.description && (
@@ -296,7 +376,8 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); resetForm(); }}>Cancel</Button>
-            <Button onClick={editingProfile ? handleUpdate : handleCreate}>
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               {editingProfile ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
