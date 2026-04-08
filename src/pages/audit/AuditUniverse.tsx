@@ -160,7 +160,7 @@ export default function AuditUniverse() {
   ];
 
   const auMetadata = useMemo(() => buildMetadata(
-    'Audit Universe Register',
+    'Auditable Entities Register',
     filtered.length,
     [
       { label: 'Entity Type', value: typeFilter },
@@ -171,7 +171,7 @@ export default function AuditUniverse() {
   ), [filtered.length, typeFilter, statusFilter, ownerFilter, categoryFilter]);
 
   return (
-    <PageShell title="Audit Universe" subtitle="Manage all auditable entities across the organization">
+    <PageShell title="Auditable Entities" subtitle="Manage all auditable entities across the organization">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard title="Total Entities" value={entities.length} icon={Globe} />
         <MetricCard title="Active" value={activeCount} icon={Building2} />
@@ -181,9 +181,9 @@ export default function AuditUniverse() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Audit Universe Register</CardTitle>
+          <CardTitle>Auditable Entities Register</CardTitle>
           <div className="flex gap-2">
-            <ExportDropdown data={filtered} columns={exportColumns} fileName="audit-universe" title="Audit Universe Register" metadata={auMetadata} groupByOptions={auGroupByOptions} />
+            <ExportDropdown data={filtered} columns={exportColumns} fileName="auditable-entities" title="Auditable Entities Register" metadata={auMetadata} groupByOptions={auGroupByOptions} />
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
           </div>
         </CardHeader>
@@ -205,7 +205,7 @@ export default function AuditUniverse() {
             <AuditEmptyState
               icon={Globe}
               title="No auditable entities yet"
-              description="Add your first entity to begin building the audit universe — departments, processes, systems, and more."
+              description="Add your first auditable entity — departments, processes, systems, and more."
               actionLabel="Add Entity"
               onAction={openCreate}
             />

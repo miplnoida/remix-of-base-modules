@@ -34,11 +34,11 @@ export const auditMenuItems = [
         description: "Audit overview and KPIs"
       },
       {
-        title: "Audit Universe",
+        title: "Auditable Entities",
         url: "/audit/universe",
         icon: Grid3X3,
         requiresPermission: "configure_audit_system",
-        description: "Manage all auditable entities"
+        description: "Registry of all auditable entities"
       },
       {
         title: "Departments",
