@@ -100,7 +100,7 @@ export default function RiskMatrix() {
                   <div className="flex items-center justify-center rounded-md border bg-muted/40 p-2 text-center font-medium">{likelihood}</div>
                   {[1, 2, 3, 4, 5].map((impact) => {
                     const score = likelihood * impact;
-                    const level = getRiskLevel(score);
+                    const level = calculateRiskLevel(score, bands);
                     const items = cells[`${likelihood}-${impact}`] ?? [];
                     const isSelected = selectedCell?.likelihood === likelihood && selectedCell?.impact === impact;
 
@@ -138,7 +138,7 @@ export default function RiskMatrix() {
                 const fn = functionMap[item.function_id];
                 const dept = fn ? departmentMap.get(fn.department_id) : null;
                 const score = Number(item.overall_risk_score) || (Number(item.impact_score) || 0) * (Number(item.likelihood_score) || 0);
-                const level = item.risk_level || getRiskLevel(score);
+                const level = item.risk_level || calculateRiskLevel(score, bands);
 
                 return (
                   <div key={item.id} className="rounded-lg border bg-card p-3">
@@ -175,7 +175,7 @@ export default function RiskMatrix() {
                   const fn = functionMap[item.function_id];
                   const dept = fn ? departmentMap.get(fn.department_id) : null;
                   const score = Number(item.overall_risk_score) || (Number(item.impact_score) || 0) * (Number(item.likelihood_score) || 0);
-                  const level = item.risk_level || getRiskLevel(score);
+                  const level = item.risk_level || calculateRiskLevel(score, bands);
 
                   return (
                     <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
