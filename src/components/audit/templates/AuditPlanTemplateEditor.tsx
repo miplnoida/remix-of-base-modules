@@ -12,15 +12,18 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
+import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
+import { AUDIT_PLAN_SECTION_LIBRARY, type AuditPlanSection } from '@/lib/audit/auditPlanTemplateTypes';
 
 export function AuditPlanTemplateEditor() {
   const { data: config, isLoading } = useAuditPlanTemplate();
   const mutation = useAuditDocumentTemplateMutation();
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditPlanTemplateConfig>(DEFAULT_AUDIT_PLAN_CONFIG);
+  const [sectionConfig, setSectionConfig] = useState<AuditPlanSection[]>([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    coverPage: true, planSummary: false, columns: false, resourcePlan: false, governance: false,
+    coverPage: true, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
   });
 
   useEffect(() => {
@@ -90,6 +93,15 @@ export function AuditPlanTemplateEditor() {
               </Select>
             </div>
           </div>
+        </SettingsCard>
+
+        {/* Section Configuration */}
+        <SettingsCard title="Section Configuration" cardKey="sectionConfig" open={openSections.sectionConfig} onToggle={toggleCard}>
+          <AuditPlanSectionConfigurator
+            sections={sectionConfig}
+            onChange={setSectionConfig}
+            onReset={() => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[])}
+          />
         </SettingsCard>
 
         {/* Plan Summary */}
