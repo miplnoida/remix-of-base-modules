@@ -14,11 +14,14 @@ import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/a
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
 import { CoverBrandingConfigurator } from './CoverBrandingConfigurator';
+import { TocPaginationConfigurator } from './TocPaginationConfigurator';
 import {
   AUDIT_PLAN_SECTION_LIBRARY,
   type AuditPlanSection,
   type AuditPlanBranding,
   type AuditPlanCoverPageConfig,
+  type AuditPlanTocConfig,
+  type AuditPlanPaginationConfig,
 } from '@/lib/audit/auditPlanTemplateTypes';
 import { PRESET_AUDIT_BLUE_MINIMAL } from '@/lib/audit/auditPlanTemplatePresets';
 
@@ -30,9 +33,11 @@ export function AuditPlanTemplateEditor() {
   const [sectionConfig, setSectionConfig] = useState<AuditPlanSection[]>([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
   const [brandingConfig, setBrandingConfig] = useState<AuditPlanBranding>(PRESET_AUDIT_BLUE_MINIMAL.branding);
   const [coverPageConfig, setCoverPageConfig] = useState<AuditPlanCoverPageConfig>(PRESET_AUDIT_BLUE_MINIMAL.coverPage);
+  const [tocConfig, setTocConfig] = useState<AuditPlanTocConfig>(PRESET_AUDIT_BLUE_MINIMAL.toc);
+  const [paginationConfig, setPaginationConfig] = useState<AuditPlanPaginationConfig>(PRESET_AUDIT_BLUE_MINIMAL.pagination);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    coverBranding: true, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
+    coverBranding: true, tocPagination: false, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
   });
 
   useEffect(() => {
@@ -76,6 +81,16 @@ export function AuditPlanTemplateEditor() {
             coverPage={coverPageConfig}
             onBrandingChange={setBrandingConfig}
             onCoverPageChange={setCoverPageConfig}
+          />
+        </SettingsCard>
+
+        {/* TOC & Pagination */}
+        <SettingsCard title="TOC & Pagination" cardKey="tocPagination" open={openSections.tocPagination} onToggle={toggleCard}>
+          <TocPaginationConfigurator
+            toc={tocConfig}
+            pagination={paginationConfig}
+            onTocChange={setTocConfig}
+            onPaginationChange={setPaginationConfig}
           />
         </SettingsCard>
 
@@ -269,6 +284,8 @@ export function AuditPlanTemplateEditor() {
             config={draft}
             brandingConfig={brandingConfig}
             coverPageConfig={coverPageConfig}
+            tocConfig={tocConfig}
+            paginationConfig={paginationConfig}
           />
         </div>
       )}
