@@ -101,8 +101,8 @@ export function AuditPortfolioSection({ engagements, departments }: AuditPortfol
                 <div key={level} className="flex-1 flex flex-col items-center gap-1.5">
                   <span className="text-xs font-bold tabular-nums">{count}</span>
                   <div
-                    className={`w-full rounded-t-md ${RISK_COLORS[level]} transition-all`}
-                    style={{ height: `${height}%`, minHeight: 4 }}
+                    className="w-full rounded-t-md transition-all"
+                    style={{ height: `${height}%`, minHeight: 4, backgroundColor: getRiskBadgeColor(level) }}
                   />
                   <span className="text-[10px] text-muted-foreground font-medium">{level}</span>
                 </div>

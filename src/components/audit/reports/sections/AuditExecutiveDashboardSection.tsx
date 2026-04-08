@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle2, Clock, RotateCcw, TrendingDown } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { getRiskColor } from '@/lib/audit/riskEngine';
 
 interface AuditExecutiveDashboardSectionProps {
   findings: any[];
