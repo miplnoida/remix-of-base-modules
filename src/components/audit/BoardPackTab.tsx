@@ -571,7 +571,12 @@ async function generateDetailedPlanPdf(
     });
     y = (doc as any).lastAutoTable.finalY + 12;
 
-    // Recommendation box
+    // Recommendation box — check if enough space remains (need ~30pt)
+    if (y + 30 > ph - 30) {
+      doc.addPage();
+      addHeader(doc, 'Risk Coverage / Gap Analysis (cont.)', plan?.fiscal_year || '', version, config);
+      y = 50;
+    }
     doc.setFillColor(255, 248, 235);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'F');
     doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
