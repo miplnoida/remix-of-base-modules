@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SSB_BRAND, addSSBFooter } from '@/lib/reportTemplate';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 
 interface PDFExportParams {
   reportData: any;
@@ -14,11 +16,14 @@ interface PDFExportParams {
   actions: any[];
   engagement?: any;
   departmentName?: string;
+  templateConfig?: AuditReportTemplateConfig;
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig,
 }: PDFExportParams) {
+  const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  const resolved = resolveReportTemplate(config, reportData.status);
   const doc = new jsPDF({ orientation: 'portrait' });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
