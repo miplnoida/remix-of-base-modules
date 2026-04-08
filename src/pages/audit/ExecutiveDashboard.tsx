@@ -98,6 +98,7 @@ export default function ExecutiveDashboard() {
               impact: f.impact_score || 3,
               riskLevel: f.risk_rating,
             }))}
+          bands={bands}
         />
         {departments.length > 0 && (
           <AuditHistoryTimeline
