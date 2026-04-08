@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Shield, AlertTriangle, Eye, Edit, Trash2, Link2, Clock, XCircle } from 'lucide-react';
+import { Plus, Shield, AlertTriangle, Eye, Edit, Trash2, Link2, Clock, XCircle, FileDown } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -28,6 +28,7 @@ import { useAuditFields } from '@/hooks/useAuditTrail';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
+import { buildMetadata, exportRiskDetailPDF, exportMitigationPlanPDF, type GroupByOption } from '@/lib/auditReportExports';
 
 const exportColumns = toExportColumns(RISK_REGISTER_SCHEMA);
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
@@ -224,6 +225,27 @@ export default function RiskRegister() {
     { key: 'reviewDue', label: 'Review Due', type: 'select', options: [{ label: 'All', value: 'all' }, { label: 'Overdue', value: 'overdue' }, { label: 'Next 30 Days', value: 'upcoming' }] },
   ];
 
+  const rrGroupByOptions: GroupByOption[] = [
+    { label: 'Entity', key: 'entity_name' },
+    { label: 'Owner', key: 'risk_owner' },
+    { label: 'Status', key: 'status' },
+    { label: 'Category', key: 'risk_category' },
+    { label: 'Severity', key: 'residual_risk_level' },
+  ];
+
+  const rrMetadata = useMemo(() => buildMetadata(
+    'Risk Register',
+    filtered.length,
+    [
+      { label: 'Entity', value: entityFilter !== 'all' ? universeEntities.find((e: any) => e.id === entityFilter)?.entity_name || entityFilter : 'all' },
+      { label: 'Status', value: statusFilter },
+      { label: 'Category', value: categoryFilter },
+      { label: 'Owner', value: ownerFilter },
+      { label: 'Severity', value: severityFilter },
+      { label: 'Review Due', value: reviewDueFilter },
+    ],
+  ), [filtered.length, entityFilter, statusFilter, categoryFilter, ownerFilter, severityFilter, reviewDueFilter, universeEntities]);
+
   const iScore = (form.inherent_likelihood || 0) * (form.inherent_impact || 0);
   const rScore = (form.residual_likelihood || 0) * (form.residual_impact || 0);
 
@@ -240,7 +262,7 @@ export default function RiskRegister() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Risk Register</CardTitle>
           <div className="flex gap-2">
-            <ExportDropdown data={filtered.map((r: any) => ({ ...r, entity_name: r.ia_audit_universe?.entity_name || '', risk_source: r.risk_source || '' }))} columns={exportColumns} fileName="risk-register" title="Risk Register" />
+            <ExportDropdown data={filtered.map((r: any) => ({ ...r, entity_name: r.ia_audit_universe?.entity_name || '', risk_source: r.risk_source || '' }))} columns={exportColumns} fileName="risk-register" title="Risk Register" metadata={rrMetadata} groupByOptions={rrGroupByOptions} />
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Risk</Button>
           </div>
         </CardHeader>
@@ -549,12 +571,22 @@ function RiskDetailPanel({ risk, allRisks, onClose }: { risk: any; allRisks: any
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" /> {risk.risk_title}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2"><Shield className="h-5 w-5" /> {risk.risk_title}</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="no-print" onClick={() => exportRiskDetailPDF(risk, actions, reviews, `risk-detail-${risk.risk_title?.slice(0, 20)}`)}>
+                  <FileDown className="h-3 w-3 mr-1" />PDF
+                </Button>
+                {actions.length > 0 && (
+                  <Button variant="outline" size="sm" className="no-print" onClick={() => exportMitigationPlanPDF([risk], actions, `mitigation-plan-${risk.risk_title?.slice(0, 20)}`)}>
+                    <FileDown className="h-3 w-3 mr-1" />Mitigation Plan
+                  </Button>
+                )}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div><span className="text-muted-foreground">Entity:</span> {risk.ia_audit_universe?.entity_name || '—'}</div>

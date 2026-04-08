@@ -7,12 +7,24 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
-import { Download, FileSpreadsheet, FileText, FileDown } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, FileDown, Printer, FileType } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { generateSSBReport } from '@/lib/reportTemplate';
+import {
+  exportPDFWithMetadata,
+  exportDocx,
+  exportGroupedPDF,
+  exportGroupedExcel,
+  type ExportMetadata,
+  type GroupByOption,
+} from '@/lib/auditReportExports';
 
 export interface ExportColumn {
   key: string;
@@ -25,6 +37,9 @@ interface ExportDropdownProps {
   columns: ExportColumn[];
   fileName: string;
   title?: string;
+  metadata?: ExportMetadata;
+  groupByOptions?: GroupByOption[];
+  onPrint?: () => void;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
@@ -34,6 +49,9 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
   columns,
   fileName,
   title,
+  metadata,
+  groupByOptions,
+  onPrint,
   variant = 'outline',
   size = 'sm',
 }) => {
@@ -85,32 +103,99 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportPDF = () => {
     try {
-      generateSSBReport(
-        {
-          title: title || fileName,
-          subtitle: `Total Records: ${data.length}`,
-          additionalInfo: [
-            { label: 'Generated', value: new Date().toLocaleDateString() },
-          ],
-        },
-        columns.map(c => ({ header: c.header, key: c.key })),
-        data,
-        fileName
-      );
+      if (metadata) {
+        exportPDFWithMetadata(
+          columns.map(c => ({ header: c.header, key: c.key })),
+          data,
+          metadata,
+          fileName,
+        );
+      } else {
+        generateSSBReport(
+          {
+            title: title || fileName,
+            subtitle: `Total Records: ${data.length}`,
+            additionalInfo: [{ label: 'Generated', value: new Date().toLocaleDateString() }],
+          },
+          columns.map(c => ({ header: c.header, key: c.key })),
+          data,
+          fileName,
+        );
+      }
       toast({ title: 'Export Successful', description: `Exported ${data.length} records to PDF` });
     } catch {
       toast({ title: 'Export Failed', description: 'Failed to export to PDF', variant: 'destructive' });
     }
   };
 
+  const handleExportDocx = async () => {
+    try {
+      const meta = metadata || {
+        title: title || fileName,
+        generatedDate: new Date().toLocaleDateString(),
+        totalRecords: data.length,
+        filtersApplied: [],
+      };
+      await exportDocx(columns, data, meta, fileName);
+      toast({ title: 'Export Successful', description: `Exported ${data.length} records to DOCX` });
+    } catch {
+      toast({ title: 'Export Failed', description: 'Failed to export to DOCX', variant: 'destructive' });
+    }
+  };
+
+  const handleGroupedPDF = (opt: GroupByOption) => {
+    try {
+      const meta = metadata || {
+        title: title || fileName,
+        generatedDate: new Date().toLocaleDateString(),
+        totalRecords: data.length,
+        filtersApplied: [],
+      };
+      exportGroupedPDF(
+        columns.map(c => ({ header: c.header, key: c.key })),
+        data,
+        opt.key,
+        opt.label,
+        meta,
+        `${fileName}-by-${opt.key}`,
+      );
+      toast({ title: 'Export Successful', description: `Exported grouped report by ${opt.label}` });
+    } catch {
+      toast({ title: 'Export Failed', description: 'Failed to generate grouped report', variant: 'destructive' });
+    }
+  };
+
+  const handleGroupedExcel = async (opt: GroupByOption) => {
+    try {
+      const meta = metadata || {
+        title: title || fileName,
+        generatedDate: new Date().toLocaleDateString(),
+        totalRecords: data.length,
+        filtersApplied: [],
+      };
+      await exportGroupedExcel(columns, data, opt.key, opt.label, meta, `${fileName}-by-${opt.key}`);
+      toast({ title: 'Export Successful', description: `Exported grouped Excel by ${opt.label}` });
+    } catch {
+      toast({ title: 'Export Failed', description: 'Failed to generate grouped Excel', variant: 'destructive' });
+    }
+  };
+
+  const handlePrint = () => {
+    if (onPrint) {
+      onPrint();
+    } else {
+      window.print();
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} disabled={!data || data.length === 0}>
+        <Button variant={variant} size={size} disabled={!data || data.length === 0} className="no-print">
           <Download className="h-4 w-4 mr-2" />Export
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 bg-background z-50">
+      <DropdownMenuContent align="end" className="w-56 bg-background z-50">
         <DropdownMenuLabel>Export Format</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={exportExcel} className="cursor-pointer">
@@ -122,6 +207,47 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
         <DropdownMenuItem onClick={exportPDF} className="cursor-pointer">
           <FileDown className="h-4 w-4 mr-2" />Export as PDF
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleExportDocx} className="cursor-pointer">
+          <FileType className="h-4 w-4 mr-2" />Export as DOCX
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handlePrint} className="cursor-pointer">
+          <Printer className="h-4 w-4 mr-2" />Print
+        </DropdownMenuItem>
+
+        {groupByOptions && groupByOptions.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <FileDown className="h-4 w-4 mr-2" />Grouped Report (PDF)
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="bg-background">
+                  {groupByOptions.map(opt => (
+                    <DropdownMenuItem key={opt.key} onClick={() => handleGroupedPDF(opt)} className="cursor-pointer">
+                      By {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />Grouped Report (Excel)
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="bg-background">
+                  {groupByOptions.map(opt => (
+                    <DropdownMenuItem key={opt.key} onClick={() => handleGroupedExcel(opt)} className="cursor-pointer">
+                      By {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
