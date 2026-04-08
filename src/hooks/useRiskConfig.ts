@@ -173,3 +173,37 @@ export function useRiskRatingCalculator() {
     colorMap, engineConfig,
   };
 }
+
+// ============= Manual Batch Recalculation =============
+/**
+ * Trigger server-side batch recalculation of all risks.
+ * Useful when an admin changes risk config via the settings UI.
+ */
+export function useRiskBatchRecalculation() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { userCode } = useAuditFields();
+
+  const recalculate = useMutation({
+    mutationKey: ['ia_risk_recalculate_all'],
+    mutationFn: async (reason: string = 'manual_recalculation') => {
+      const { data, error } = await supabase.rpc('ia_recalculate_all_risks' as any, {
+        p_reason: reason,
+        p_triggered_by: userCode || 'SYSTEM',
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_register'] });
+      queryClient.invalidateQueries({ queryKey: ['ia_resolve_engagement_risk'] });
+      toast({
+        title: 'Risk Recalculation Complete',
+        description: `${count} risk(s) updated based on current configuration.`,
+      });
+    },
+    onError: (e: any) => toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' }),
+  });
+
+  return recalculate;
+}
