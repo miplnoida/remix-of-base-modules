@@ -18,8 +18,7 @@ import CaseManagement from './cases/CaseManagement';
 import CaseQueue from './cases/CaseQueue';
 import PenaltyManagement from './cases/PenaltyManagement';
 
-// Risk
-import RiskProfiles from './risk/RiskProfiles';
+// Risk (removed - redirected to Risk Register)
 
 // Inspections
 import InspectionManagement from './inspections/InspectionManagement';
@@ -105,8 +104,7 @@ const ComplianceRoutes = () => {
       <Route path="/cases/queue" element={<CaseQueue />} />
       <Route path="/cases/penalties" element={<PenaltyManagement />} />
 
-      {/* Risk Profiles */}
-      <Route path="/risk-profiles" element={<RiskProfiles />} />
+      {/* Risk Profiles - removed, redirected to Risk Register */}
 
       {/* Inspections */}
       <Route path="/inspections" element={<InspectionManagement />} />

@@ -61,7 +61,7 @@ import ComplianceInspectorDashboard from '@/pages/compliance/dashboards/Inspecto
 import ComplianceLegalDashboard from '@/pages/compliance/dashboards/LegalDashboard';
 import ComplianceCaseManagement from '@/pages/compliance/cases/CaseManagement';
 import ComplianceCaseQueue from '@/pages/compliance/cases/CaseQueue';
-import ComplianceRiskProfiles from '@/pages/compliance/risk/RiskProfiles';
+
 import ComplianceInspectionManagement from '@/pages/compliance/inspections/InspectionManagement';
 import ComplianceBreachMonitoring from '@/pages/compliance/arrangements/BreachMonitoring';
 import ComplianceLegalQueue from '@/pages/compliance/legal/LegalQueue';
@@ -257,7 +257,7 @@ import WorkflowManagement from '@/pages/workflow/WorkflowManagement';
 // Enterprise Admin Module
 import UserManagementAdmin from '@/pages/admin/UserManagementAdmin';
 import RolePermissionManagement from '@/pages/admin/RolePermissionManagement';
-import AuditLogViewer from '@/pages/admin/AuditLogViewer';
+
 import NotificationManagement from '@/pages/admin/NotificationManagement';
 import OfficeManagement from '@/pages/admin/OfficeManagement';
 import OfficeIPManagement from '@/pages/admin/OfficeIPManagement';
@@ -972,7 +972,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/dashboard/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
       <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
       <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
-      <Route path="/compliance/risk-profiles" element={<ProtectedLayout><ComplianceRiskProfiles /></ProtectedLayout>} />
+      <Route path="/compliance/risk-profiles" element={<Navigate to="/audit/risk-register" replace />} />
       <Route path="/compliance/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
       <Route path="/compliance/arrangements/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/legal/queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
@@ -1168,8 +1168,8 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
       <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
-      <Route path="/admin/audit-log" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
-      <Route path="/admin/audit-logs" element={<ProtectedLayout><AuditLogViewer /></ProtectedLayout>} />
+      <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
+      <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
       <Route path="/admin/backup" element={<ProtectedLayout><BackupRecovery /></ProtectedLayout>} />
       <Route path="/admin/logs" element={<ProtectedLayout><SystemLogs /></ProtectedLayout>} />
