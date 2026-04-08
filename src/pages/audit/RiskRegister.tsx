@@ -130,21 +130,21 @@ export default function RiskRegister() {
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'risk_title', header: 'Risk Title', render: (v: string, row: any) => (
-      <button className="text-left text-primary hover:underline font-medium" onClick={() => setDetailRisk(row)}>{v}</button>
+    { key: 'risk_title', header: 'Risk Title', render: (row: any) => (
+      <button className="text-left text-primary hover:underline font-medium" onClick={() => setDetailRisk(row)}>{row.risk_title}</button>
     )},
-    { key: 'ia_audit_universe', header: 'Entity', render: (v: any) => v?.entity_name || '—' },
-    { key: 'risk_category', header: 'Category', render: (v: string) => <Badge variant="outline">{v}</Badge> },
-    { key: 'inherent_risk_score', header: 'Inherent', render: (v: number, row: any) => (
-      <Badge variant={getRiskLevelVariant(row.inherent_risk_level)}>{v} ({row.inherent_risk_level})</Badge>
+    { key: 'ia_audit_universe', header: 'Entity', render: (row: any) => row.ia_audit_universe?.entity_name || '—' },
+    { key: 'risk_category', header: 'Category', render: (row: any) => <Badge variant="outline">{row.risk_category}</Badge> },
+    { key: 'inherent_risk_score', header: 'Inherent', render: (row: any) => (
+      <Badge variant={getRiskLevelVariant(row.inherent_risk_level)}>{row.inherent_risk_score} ({row.inherent_risk_level})</Badge>
     )},
-    { key: 'residual_risk_score', header: 'Residual', render: (v: number, row: any) => (
-      <Badge variant={getRiskLevelVariant(row.residual_risk_level)}>{v} ({row.residual_risk_level})</Badge>
+    { key: 'residual_risk_score', header: 'Residual', render: (row: any) => (
+      <Badge variant={getRiskLevelVariant(row.residual_risk_level)}>{row.residual_risk_score} ({row.residual_risk_level})</Badge>
     )},
     { key: 'risk_owner', header: 'Owner' },
-    { key: 'status', header: 'Status', render: (v: string) => <StatusBadge status={v} /> },
+    { key: 'status', header: 'Status', render: (row: any) => <StatusBadge status={row.status} /> },
     {
-      key: 'actions', header: 'Actions', render: (_: any, row: any) => (
+      key: 'actions', header: 'Actions', render: (row: any) => (
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Edit className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => remove.mutate(row.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>

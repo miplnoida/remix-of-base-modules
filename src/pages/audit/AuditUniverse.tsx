@@ -90,15 +90,15 @@ export default function AuditUniverse() {
 
   const columns: DataTableColumn<any>[] = [
     { key: 'entity_name', header: 'Entity Name' },
-    { key: 'entity_type', header: 'Type', render: (v: string) => <Badge variant="outline">{v}</Badge> },
+    { key: 'entity_type', header: 'Type', render: (row: any) => <Badge variant="outline">{row.entity_type}</Badge> },
     { key: 'entity_code', header: 'Code' },
     { key: 'process_owner', header: 'Process Owner' },
     { key: 'risk_category', header: 'Risk Category' },
-    { key: 'materiality', header: 'Materiality', render: (v: string) => <StatusBadge status={v} /> },
+    { key: 'materiality', header: 'Materiality', render: (row: any) => <StatusBadge status={row.materiality} /> },
     { key: 'audit_frequency', header: 'Frequency' },
-    { key: 'status', header: 'Status', render: (v: string) => <StatusBadge status={v} /> },
+    { key: 'status', header: 'Status', render: (row: any) => <StatusBadge status={row.status} /> },
     {
-      key: 'actions', header: 'Actions', render: (_: any, row: any) => (
+      key: 'actions', header: 'Actions', render: (row: any) => (
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Edit className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => remove.mutate(row.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
