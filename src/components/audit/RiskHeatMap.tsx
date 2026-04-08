@@ -11,12 +11,7 @@ interface RiskHeatMapProps {
   }>;
 }
 
-const RISK_COLORS: Record<string, string> = {
-  Critical: 'hsl(var(--destructive))',
-  High: '#ef4444',
-  Medium: '#f97316',
-  Low: '#22c55e',
-};
+import { buildColorMap, DEFAULT_BANDS, type RiskBandConfig } from '@/lib/audit/riskEngine';
 
 export function RiskHeatMap({ data }: RiskHeatMapProps) {
   if (!data.length) {

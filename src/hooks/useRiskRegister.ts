@@ -10,21 +10,9 @@ export const MITIGATION_STATUSES = ['Planned', 'In Progress', 'Completed', 'Over
 export const MITIGATION_PRIORITIES = ['High', 'Medium', 'Low'] as const;
 export const RISK_SOURCES = ['Previous Audit', 'Self-Assessment', 'External Review', 'Regulatory', 'Risk Workshop', 'Management Referral', 'Other'] as const;
 
-export function calculateRiskLevel(score: number): string {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
-
-export function getRiskLevelVariant(level: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (level) {
-    case 'Critical': return 'destructive';
-    case 'High': return 'destructive';
-    case 'Medium': return 'secondary';
-    default: return 'outline';
-  }
-}
+// Risk scoring delegated to centralized engine
+export { calculateRiskLevel, getRiskLevelVariant } from '@/lib/audit/riskEngine';
+import { calculateRiskLevel } from '@/lib/audit/riskEngine';
 
 // ============= RISK REGISTER =============
 export function useRiskRegister(filters?: { audit_universe_id?: string; status?: string; category?: string }) {

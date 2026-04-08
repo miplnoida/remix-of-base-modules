@@ -1,10 +1,37 @@
 /**
  * Centralized Risk Configuration Hook
+ * Wraps the pure riskEngine functions with live DB configuration.
  * Single source of truth for risk ratings across the entire Audit module.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  calculateScore as engineCalculateScore,
+  getRiskRating as engineGetRiskRating,
+  calculateFunctionRiskScore as engineCalcFuncScore,
+  calculateDeptRisk as engineCalcDeptRisk,
+  textToScore,
+  buildColorMap,
+  DEFAULT_BANDS,
+  type RiskBandConfig,
+  type RiskEngineConfig,
+} from '@/lib/audit/riskEngine';
+
+// Re-export engine utilities so consumers can import from one place
+export {
+  calculateScore as pureCalculateScore,
+  getRiskRating as pureGetRiskRating,
+  calculateRiskLevel,
+  getRiskColor,
+  getRiskLevelVariant,
+  buildColorMap,
+  textToScore,
+  classifyCompositeScore,
+  DEFAULT_BANDS,
+  DEFAULT_CONFIG,
+} from '@/lib/audit/riskEngine';
+export type { RiskBandConfig, RiskEngineConfig, RiskRating, DeptRiskResult } from '@/lib/audit/riskEngine';
 
 // ============= Types =============
 export interface RiskConfigMaster {
@@ -89,11 +116,11 @@ export function useRiskConfigMasterMutations() {
 
 // ============= Centralized Risk Rating Calculator =============
 /**
- * Returns the risk rating label and color for a given score
- * based on the configured classification thresholds.
+ * Returns functions backed by live DB configuration for risk scoring.
+ * All modules MUST use this hook (or the pure engine for non-React contexts).
  */
 export function useRiskRatingCalculator() {
-  const { data: bands = [] } = useQuery({
+  const { data: bandsRaw = [] } = useQuery({
     queryKey: ['ia_risk_classification_thresholds'],
     queryFn: async (): Promise<RiskBand[]> => {
       const { data, error } = await supabase
@@ -108,91 +135,40 @@ export function useRiskRatingCalculator() {
 
   const { data: configMaster } = useRiskConfigMaster();
 
-  const getRiskRating = (score: number): { label: string; color: string } => {
-    for (const band of bands) {
-      if (score >= band.min_score && score <= band.max_score) {
-        return { label: band.label, color: band.color };
-      }
-    }
-    return { label: 'Unknown', color: '#6b7280' };
+  // Convert DB bands to engine format
+  const bands: RiskBandConfig[] = bandsRaw.length > 0
+    ? bandsRaw.map(b => ({ label: b.label, min_score: b.min_score, max_score: b.max_score, color: b.color, sort_order: b.sort_order }))
+    : DEFAULT_BANDS;
+
+  const formulaType = configMaster?.formula_type || 'likelihood_x_impact';
+  const deptRiskMethod = configMaster?.dept_risk_method || 'maximum';
+
+  const engineConfig: RiskEngineConfig = {
+    formulaType,
+    deptRiskMethod,
+    scaleMin: configMaster?.scale_min || 1,
+    scaleMax: configMaster?.scale_max || 5,
+    bands,
   };
 
-  const calculateScore = (likelihood: number, impact: number): number => {
-    const formula = configMaster?.formula_type || 'likelihood_x_impact';
-    switch (formula) {
-      case 'likelihood_x_impact':
-        return likelihood * impact;
-      case 'likelihood_plus_impact':
-        return likelihood + impact;
-      case 'weighted_average':
-        return Math.round((likelihood + impact) / 2);
-      default:
-        return likelihood * impact;
-    }
-  };
+  // Delegate everything to the pure engine
+  const getRiskRating = (score: number) => engineGetRiskRating(score, bands);
+  const calculateScore = (likelihood: number, impact: number) => engineCalculateScore(likelihood, impact, formulaType);
+  const getDeptRiskMethod = () => deptRiskMethod;
+  const colorMap = buildColorMap(bands);
 
-  const getDeptRiskMethod = () => configMaster?.dept_risk_method || 'maximum';
-
-  /**
-   * Maps text-based likelihood/impact labels ("Low", "Medium", "High") to numeric scores.
-   * Falls back to a sensible default if bands aren't loaded yet.
-   */
-  const likelihoodImpactTextToScore = (label: string): number => {
-    const defaults: Record<string, number> = { 'Very Low': 1, Low: 2, Medium: 3, High: 4, 'Very High': 5 };
-    return defaults[label] ?? 3;
-  };
-
-  /**
-   * Calculates department-level risk from an array of functions,
-   * using the configured dept_risk_method.
-   */
   const calculateDeptRisk = (
     functions: Array<{ likelihood?: string; impact?: string; weight_percentage?: number }>
-  ): { score: number; label: string; color: string; method: string } => {
-    const method = getDeptRiskMethod();
-    if (!functions.length) return { score: 0, label: 'N/A', color: '#6b7280', method };
+  ) => engineCalcDeptRisk(functions, engineConfig);
 
-    const scores = functions.map(fn => {
-      const l = likelihoodImpactTextToScore(fn.likelihood || 'Medium');
-      const i = likelihoodImpactTextToScore(fn.impact || 'Medium');
-      return calculateScore(l, i);
-    });
+  const calculateFunctionRiskScore = (likelihood: string, impact: string) =>
+    engineCalcFuncScore(likelihood, impact, formulaType);
 
-    let deptScore = 0;
-    switch (method) {
-      case 'maximum':
-        deptScore = Math.max(...scores);
-        break;
-      case 'average':
-        deptScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        break;
-      case 'weighted': {
-        deptScore = functions.reduce((sum, fn, idx) => {
-          const weight = Number(fn.weight_percentage) || 0;
-          return sum + scores[idx] * (weight / 100);
-        }, 0);
-        deptScore = Math.round(deptScore * 100) / 100;
-        break;
-      }
-      default:
-        deptScore = Math.max(...scores);
-    }
-
-    const rating = getRiskRating(deptScore);
-    return { score: deptScore, ...rating, method };
-  };
-
-  /**
-   * Calculates a single function's risk score from text-based likelihood/impact.
-   */
-  const calculateFunctionRiskScore = (likelihood: string, impact: string): number => {
-    const l = likelihoodImpactTextToScore(likelihood || 'Medium');
-    const i = likelihoodImpactTextToScore(impact || 'Medium');
-    return calculateScore(l, i);
-  };
+  const likelihoodImpactTextToScore = textToScore;
 
   return {
     getRiskRating, calculateScore, getDeptRiskMethod, bands, configMaster,
     likelihoodImpactTextToScore, calculateDeptRisk, calculateFunctionRiskScore,
+    colorMap, engineConfig,
   };
 }
