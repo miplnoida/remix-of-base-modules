@@ -290,7 +290,23 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
     }
   };
 
-  // Show preview
+  // Management Response Report data
+  const mgmtResponseData = useMemo(
+    () => mapManagementResponseReport(audit, auditFindings, auditResponses, auditActions, departmentName),
+    [audit, auditFindings, auditResponses, auditActions, departmentName]
+  );
+
+  // Show management response preview
+  if (showMgmtResponsePreview) {
+    return (
+      <ManagementResponseReportPreview
+        data={mgmtResponseData}
+        onClose={() => setShowMgmtResponsePreview(false)}
+      />
+    );
+  }
+
+  // Show audit report preview
   if (showPreview) {
     return (
       <AuditReportPreview
