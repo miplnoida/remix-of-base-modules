@@ -50,7 +50,15 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
     return grid;
   }, [assessments]);
 
-  const getCellColor = (l: number, i: number) => getRiskLevelColor(calculateRiskLevel(l * i));
+  const getCellColor = (l: number, i: number) => {
+    const level = calculateRiskLevel(l * i);
+    const color = getRiskColor(level);
+    return '';
+  };
+  const getCellStyle = (l: number, i: number): React.CSSProperties => {
+    const level = calculateRiskLevel(l * i);
+    return { backgroundColor: getRiskColor(level), color: '#fff' };
+  };
 
   const selectedItems = selectedCell ? gridData[`${selectedCell.l}-${selectedCell.i}`] || [] : [];
   const likelihoodLabels = ['Rare', 'Unlikely', 'Possible', 'Likely', 'Almost Certain'];
@@ -88,8 +96,8 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
             </div>
           </div>
           <div className="flex justify-center gap-4 mt-4">
-            {[{ label: 'Low (1-5)', cls: 'bg-green-500' }, { label: 'Medium (6-10)', cls: 'bg-amber-400' }, { label: 'High (11-15)', cls: 'bg-red-400' }, { label: 'Critical (16-25)', cls: 'bg-red-600' }].map(({ label, cls }) => (
-              <div key={label} className="flex items-center gap-1 text-xs"><div className={`w-3 h-3 rounded-full ${cls}`} />{label}</div>
+            {buildLegendEntries().map(({ label, range, color }) => (
+              <div key={label} className="flex items-center gap-1 text-xs"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />{label} ({range})</div>
             ))}
           </div>
         </CardContent>
@@ -113,7 +121,7 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                       <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
                       <p className="text-xs text-muted-foreground">{dept?.name || '—'} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
                     </div>
-                    <Badge className={`text-xs ${getRiskLevelColor(item.risk_level)}`}>{item.risk_level}</Badge>
+                    <Badge style={{ backgroundColor: getRiskColor(item.risk_level), color: '#fff' }} className="text-xs">{item.risk_level}</Badge>
                   </div>
                 );
               })}
