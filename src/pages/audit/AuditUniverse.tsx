@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Globe, Building2, Eye, Edit, Trash2, Shield, X } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
+import { buildMetadata, type ExportMetadata, type GroupByOption } from '@/lib/auditReportExports';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { useAuditUniverse, useAuditUniverseMutations, ENTITY_TYPES, AUDIT_FREQUENCIES, MATERIALITY_LEVELS, ENTITY_STATUSES } from '@/hooks/useAuditUniverse';
@@ -150,6 +151,25 @@ export default function AuditUniverse() {
     { key: 'category', label: 'Risk Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(c => ({ label: c, value: c }))] },
   ];
 
+  const auGroupByOptions: GroupByOption[] = [
+    { label: 'Entity Type', key: 'entity_type' },
+    { label: 'Owner', key: 'process_owner' },
+    { label: 'Status', key: 'status' },
+    { label: 'Risk Category', key: 'risk_category' },
+    { label: 'Materiality', key: 'materiality' },
+  ];
+
+  const auMetadata = useMemo(() => buildMetadata(
+    'Audit Universe Register',
+    filtered.length,
+    [
+      { label: 'Entity Type', value: typeFilter },
+      { label: 'Status', value: statusFilter },
+      { label: 'Owner', value: ownerFilter },
+      { label: 'Risk Category', value: categoryFilter },
+    ],
+  ), [filtered.length, typeFilter, statusFilter, ownerFilter, categoryFilter]);
+
   return (
     <PageShell title="Audit Universe" subtitle="Manage all auditable entities across the organization">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -163,7 +183,7 @@ export default function AuditUniverse() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Audit Universe Register</CardTitle>
           <div className="flex gap-2">
-            <ExportDropdown data={filtered} columns={exportColumns} fileName="audit-universe" title="Audit Universe Register" />
+            <ExportDropdown data={filtered} columns={exportColumns} fileName="audit-universe" title="Audit Universe Register" metadata={auMetadata} groupByOptions={auGroupByOptions} />
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Entity</Button>
           </div>
         </CardHeader>
