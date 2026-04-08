@@ -36,9 +36,9 @@ export default function DocumentTemplateSettings() {
             <ClipboardList className="h-4 w-4" />
             Internal Audit Plan
           </TabsTrigger>
-          <TabsTrigger value="mgmt_response" className="gap-2 hidden">
+          <TabsTrigger value="mgmt_response" className="gap-2">
             <FileCheck className="h-4 w-4" />
-            Mgmt Response
+            Management Response
           </TabsTrigger>
         </TabsList>
 
