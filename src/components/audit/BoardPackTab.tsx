@@ -750,13 +750,15 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           : `Engagement_Annex_FY${plan?.fiscal_year}_v${version}.${artVersion}.xlsx`;
       const filePath = `plans/${planId}/${fileName}`;
 
+      let generatedBlob: Blob | null = null;
+
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
           : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, resolvedPlanTemplate);
 
-        const pdfBlob = doc.output('blob');
-        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+        generatedBlob = doc.output('blob');
+        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, { contentType: 'application/pdf', upsert: true });
         if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
       } else if (artifactType === 'excel_annex') {
         const ExcelJS = (await import('exceljs')).default;
@@ -811,10 +813,16 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E5F3A' } };
         const buffer = await workbook.xlsx.writeBuffer();
-        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, new Blob([buffer]), {
+        generatedBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, {
           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', upsert: true,
         });
         if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Auto-download the generated file immediately
+      if (generatedBlob) {
+        triggerBlobDownload(generatedBlob, fileName);
       }
 
       await create.mutateAsync({
