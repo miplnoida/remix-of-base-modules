@@ -739,7 +739,7 @@ export function AuditReportBuilderStudio() {
         </div>
 
         {/* Right Sidebar - Metadata/Settings */}
-        <div className="w-64 border-l bg-muted/10 shrink-0 overflow-y-auto">
+        <div className="w-72 border-l bg-muted/10 shrink-0 overflow-y-auto">
           <div className="p-4 space-y-5">
             {/* Completeness */}
             <div>
@@ -782,6 +782,10 @@ export function AuditReportBuilderStudio() {
                 <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowPreview(true)}>
                   <Eye className="h-4 w-4 mr-2" /> Preview Report
                 </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowOverridePanel(!showOverridePanel)}>
+                  <Settings2 className="h-4 w-4 mr-2" /> {showOverridePanel ? 'Hide' : 'Show'} Overrides
+                  {hasReportOverrides(reportOverrides) && <Badge variant="secondary" className="ml-auto text-[9px]">Active</Badge>}
+                </Button>
                 <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => window.print()}>
                   <Printer className="h-4 w-4 mr-2" /> Print
                 </Button>
@@ -790,6 +794,28 @@ export function AuditReportBuilderStudio() {
                 </Button>
               </div>
             </div>
+
+            {/* Override Panel */}
+            {showOverridePanel && reportTemplateConfig && (
+              <>
+                <Separator />
+                <ReportOverridePanel
+                  baseConfig={reportTemplateConfig}
+                  overrides={reportOverrides}
+                  onChange={setReportOverrides}
+                  onReset={() => setReportOverrides(createEmptyReportOverride())}
+                />
+              </>
+            )}
+
+            {/* Live Preview */}
+            <Separator />
+            <LiveDocumentPreview
+              type="report"
+              baseConfig={reportTemplateConfig || DEFAULT_AUDIT_REPORT_CONFIG}
+              overrides={reportOverrides}
+              reportStatus={reportData.status}
+            />
 
             {showVersions && (
               <>
