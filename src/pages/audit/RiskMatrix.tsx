@@ -6,13 +6,8 @@ import { PageShell } from '@/components/common';
 import { Layers, Building2, ShieldAlert } from 'lucide-react';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { supabase } from '@/integrations/supabase/client';
-
-function getRiskLevel(score: number): 'Low' | 'Medium' | 'High' | 'Critical' {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
+import { calculateRiskLevel, getRiskColor } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 function getLevelClasses(level: string) {
   switch (level) {
@@ -30,6 +25,7 @@ function getLevelClasses(level: string) {
 export default function RiskMatrix() {
   const { data: assessments = [], isLoading } = useIARiskAssessments();
   const [selectedCell, setSelectedCell] = useState<{ likelihood: number; impact: number } | null>(null);
+  const { bands } = useRiskRatingCalculator();
 
   const { data: functions = [] } = useQuery({
     queryKey: ['ia_department_functions_all_for_matrix'],

@@ -220,15 +220,58 @@ export function calculateDeptRisk(
 
 /**
  * Classify a composite score (0-100 scale) into risk bands.
- * Maps percentile-style scores to band labels using the configured bands
- * by normalizing to the configured scale.
  */
 export function classifyCompositeScore(
   compositeScore: number,
   bands: RiskBandConfig[] = DEFAULT_BANDS
 ): string {
-  // Composite scores are 0-100; normalize to the band scale
   const maxBandScore = Math.max(...bands.map(b => b.max_score));
   const normalized = Math.round((compositeScore / 100) * maxBandScore);
   return getRiskRating(normalized, bands).label;
+}
+
+// ============= Tailwind-class helpers =============
+// For UI components that need Tailwind utility classes derived from config.
+
+/**
+ * Returns Tailwind bg/text class string for a risk level label.
+ * Uses inline style with configured color for maximum consistency.
+ * For cases where only a CSS class is possible (not inline style),
+ * prefer using getRiskColor() and inline styles.
+ */
+export function getRiskBadgeStyle(level: string, bands: RiskBandConfig[] = DEFAULT_BANDS): React.CSSProperties {
+  const color = getRiskColor(level, bands);
+  return { backgroundColor: color, color: '#fff' };
+}
+
+/**
+ * Build legend entries from configured bands for heat maps and charts.
+ */
+export function buildLegendEntries(bands: RiskBandConfig[] = DEFAULT_BANDS): Array<{ label: string; range: string; color: string }> {
+  return [...bands]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(b => ({
+      label: b.label,
+      range: `${b.min_score}-${b.max_score}`,
+      color: b.color,
+    }));
+}
+
+/**
+ * Finding card presentational colors derived from configured band color.
+ * Returns Tailwind-compatible opacity/shade variants.
+ */
+export function getFindingCardColors(level: string, bands: RiskBandConfig[] = DEFAULT_BANDS): {
+  border: string; bg: string; text: string; dot: string; headerBg: string; color: string;
+} {
+  const color = getRiskColor(level, bands);
+  // Return inline-style-friendly colors with opacity
+  return {
+    color,
+    border: `border-l-[${color}]`,
+    bg: 'bg-muted/10',
+    text: 'text-foreground',
+    dot: `bg-[${color}]`,
+    headerBg: 'bg-muted/20',
+  };
 }
