@@ -19,6 +19,11 @@ import ssbLogoPng from '@/assets/ssb-logo.png';
 import { useAuditPlanTemplate } from '@/hooks/useAuditDocumentTemplates';
 import { resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
 import { mapPlanOutput } from '@/lib/audit/planOutputMapper';
+import { DEFAULT_AUDIT_PLAN_CONFIG } from '@/lib/audit/documentTemplateDefaults';
+import type { PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
+import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
+import { PlanOverridePanel } from './templates/PlanOverridePanel';
+import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
 
 interface BoardPackTabProps {
   planId: string;
@@ -787,9 +792,16 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
   const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
+  const [planOverrides, setPlanOverrides] = useState<PlanTemplateOverride>(createEmptyPlanOverride());
+  const [showPlanOverrides, setShowPlanOverrides] = useState(false);
+
+  // Apply overrides before resolving
+  const effectivePlanConfig = planTemplateConfig
+    ? applyPlanOverrides(planTemplateConfig, planOverrides)
+    : DEFAULT_AUDIT_PLAN_CONFIG;
 
   // Resolve plan template for PDF generation
-  const resolvedPlanTemplate = planTemplateConfig ? mapPlanOutput(resolvePlanTemplate(planTemplateConfig), plan) : undefined;
+  const resolvedPlanTemplate = mapPlanOutput(resolvePlanTemplate(effectivePlanConfig), plan);
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
