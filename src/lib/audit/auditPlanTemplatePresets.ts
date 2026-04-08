@@ -204,6 +204,11 @@ export const PRESET_AUDIT_BLUE_MINIMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -323,6 +328,11 @@ export const PRESET_GOVERNMENT_FORMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -447,6 +457,11 @@ export const PRESET_PROFESSIONAL_MINIMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -564,6 +579,11 @@ export const PRESET_AUDIT_COMMITTEE_PACK: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -692,6 +712,11 @@ export const PRESET_WORKING_DRAFT: AuditPlanFullTemplateConfig = {
     draftWatermark: true,
     draftWatermarkText: 'WORKING DRAFT',
   },
+  planSummary: { ...DEFAULT_PLAN_SUMMARY, hideExactDates: true },
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: false },
+  governance: { ...DEFAULT_GOVERNANCE, showBoardLine: false },
 };
 
 // ─── Registry: all presets keyed by template_key ───
