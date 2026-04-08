@@ -75,7 +75,7 @@ export function deriveNextActions(audit: any, counts: {
 
   if (execStatus === 'Planned' || execStatus === 'Ready for Launch') {
     actions.push({
-      label: 'Launch Engagement',
+      label: 'Launch Audit',
       description: 'Verify readiness and begin audit execution',
       icon: Rocket,
       variant: 'primary',
@@ -115,7 +115,7 @@ export function deriveNextActions(audit: any, counts: {
   }
   if (execStatus === 'Follow-up Monitoring' && counts.openFindings === 0) {
     actions.push({
-      label: 'Close Engagement',
+      label: 'Close Audit',
       description: 'All findings resolved — ready for closure',
       icon: Lock,
       variant: 'primary',

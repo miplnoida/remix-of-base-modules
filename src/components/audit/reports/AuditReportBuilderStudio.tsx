@@ -94,7 +94,7 @@ export function AuditReportBuilderStudio() {
 
   const [reportData, setReportData] = useState({
     title: '',
-    report_type: 'Engagement Report',
+    report_type: 'Audit Report',
     engagement_id: '',
     department_id: '',
     executive_summary: '',
@@ -122,7 +122,7 @@ export function AuditReportBuilderStudio() {
     if (existingReport) {
       setReportData({
         title: existingReport.title || '',
-        report_type: existingReport.report_type || 'Engagement Report',
+        report_type: existingReport.report_type || 'Audit Report',
         engagement_id: existingReport.engagement_id || '',
         department_id: existingReport.department_id || '',
         executive_summary: existingReport.executive_summary || '',
@@ -269,14 +269,14 @@ export function AuditReportBuilderStudio() {
       ...prev,
       title: prev.title || `Audit Report — ${selectedEngagement.engagement_name || selectedEngagement.engagement_code}`,
       department_id: selectedEngagement.department_id || prev.department_id,
-      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} engagement conducted for ${dept?.name || 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
+      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} audit conducted for ${dept?.name || 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
       audit_objective: prev.audit_objective || selectedEngagement.objectives || '',
       audit_scope: prev.audit_scope || selectedEngagement.scope || '',
       methodology: prev.methodology || selectedEngagement.methodology || '',
       risk_rating: prev.risk_rating || Object.entries(riskCounts).map(([k, v]) => `${k}: ${v}`).join(' | '),
       fiscal_year: selectedEngagement.planned_start_date ? String(new Date(selectedEngagement.planned_start_date).getFullYear()) : prev.fiscal_year,
     }));
-    toast({ title: 'Auto-populated from engagement data' });
+    toast({ title: 'Auto-populated from audit data' });
   };
 
   const handleTemplateSelect = (template: ReportTemplate) => {
@@ -411,9 +411,9 @@ export function AuditReportBuilderStudio() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Audit Engagement</Label>
+                    <Label>Linked Audit</Label>
                       <Select value={reportData.engagement_id} onValueChange={(v) => updateField('engagement_id', v)} disabled={isLocked}>
-                        <SelectTrigger><SelectValue placeholder="Select engagement..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select audit..." /></SelectTrigger>
                         <SelectContent>
                           {engagements.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.engagement_name || e.engagement_code}</SelectItem>)}
                         </SelectContent>
@@ -481,7 +481,7 @@ export function AuditReportBuilderStudio() {
                   value={reportData.background}
                   onChange={(e) => updateField('background', e.target.value)}
                   disabled={isLocked}
-                  placeholder="Describe the background context for this audit engagement..."
+                  placeholder="Describe the background context for this audit..."
                   className="leading-relaxed text-sm"
                 />
               </SectionCard>
@@ -494,7 +494,7 @@ export function AuditReportBuilderStudio() {
                   value={reportData.audit_objective}
                   onChange={(e) => updateField('audit_objective', e.target.value)}
                   disabled={isLocked}
-                  placeholder="State the objective(s) of this audit engagement..."
+                  placeholder="State the objective(s) of this audit..."
                   className="leading-relaxed text-sm"
                 />
               </SectionCard>

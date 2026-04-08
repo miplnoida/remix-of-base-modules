@@ -236,7 +236,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     ['Status', dv(plan?.status, 'Draft')],
     ['Plan Version', `v${version}`],
     ['Prepared By', dv(plan?.created_by || plan?.plan_owner)],
-    ['Total Engagements', String(engagements.length)],
+    ['Total Audits', String(engagements.length)],
     ['Total Planned Days', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0))],
     ['Approved By', dv(plan?.approved_by)],
     ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : ''],
@@ -257,7 +257,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     });
     autoTable(doc, {
       startY: y,
-      head: [['Risk Level', 'Engagements', '% of Plan']],
+      head: [['Risk Level', 'Audits', '% of Plan']],
       body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
       styles: { fontSize: 10, cellPadding: 4 },
       headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
@@ -268,11 +268,11 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 
   if (config.includeEngagementSchedule) {
     if (y > 180) { doc.addPage(); y = 52; }
-    y = drawSectionTitle(doc, y, 'Engagement Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
 
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Engagement Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
+      head: [['#', 'Audit Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
       body: engagements.map((e: any, i: number) => {
         const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
         const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
@@ -431,12 +431,12 @@ async function generateDetailedPlanPdf(
 
     // Summary metrics as a clean card-style table
     y = addKvTable(doc, y, [
-      ['Total Engagements', String(engagements.length)],
+      ['Total Audits', String(engagements.length)],
       ['Departments Covered', String(coveredDepts.size)],
       ['Functions Covered', String(coveredFuncs.size)],
       ['Total Planned Days', String(totalDays)],
       ['Total Planned Hours', String(totalHours)],
-      ...(boardPri > 0 ? [['Board Priority Engagements', String(boardPri)] as [string, string]] : []),
+      ...(boardPri > 0 ? [['Board Priority Audits', String(boardPri)] as [string, string]] : []),
     ], theme);
 
     // Risk distribution table
@@ -456,18 +456,18 @@ async function generateDetailedPlanPdf(
     });
   }
 
-  // ===== D. ENGAGEMENT SCHEDULE — REDESIGNED =====
+  // ===== D. AUDIT SCHEDULE — REDESIGNED =====
   if (config.includeEngagementSchedule) {
     // Primary schedule summary table
     doc.addPage();
-    addHeader(doc, 'Engagement Schedule', plan?.fiscal_year || '', version, config);
+    addHeader(doc, 'Audit Schedule', plan?.fiscal_year || '', version, config);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Engagement Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
 
     // Clean summary table with readable columns
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Code', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
+      head: [['#', 'Code', 'Audit Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
       body: engagements.map((e: any, i: number) => {
         const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
         const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
@@ -862,11 +862,11 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       } else if (artifactType === 'excel_annex') {
         const ExcelJS = (await import('exceljs')).default;
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Audit Engagements');
+        const sheet = workbook.addWorksheet('Audit Schedule');
         sheet.columns = [
           { header: '#', key: 'seq', width: 5 },
           { header: 'Code', key: 'code', width: 16 },
-          { header: 'Engagement Title', key: 'title', width: 35 },
+          { header: 'Audit Title', key: 'title', width: 35 },
           { header: 'Department', key: 'dept', width: 25 },
           { header: 'Function', key: 'func', width: 25 },
           { header: 'Risk', key: 'risk', width: 10 },

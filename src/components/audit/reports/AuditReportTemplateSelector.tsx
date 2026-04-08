@@ -23,8 +23,8 @@ export interface ReportTemplate {
 export const REPORT_TEMPLATES: ReportTemplate[] = [
   {
     id: 'engagement',
-    label: 'Engagement Report',
-    description: 'Full audit engagement report with findings, responses, recommendations, and sign-off. The standard output for individual audit assignments.',
+    label: 'Audit Report',
+    description: 'Full audit report with findings, responses, recommendations, and sign-off. The standard output for individual audit assignments.',
     icon: FileText,
     color: 'text-blue-600',
     bg: 'bg-blue-50 dark:bg-blue-950/30',

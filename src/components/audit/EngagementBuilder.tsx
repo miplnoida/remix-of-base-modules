@@ -146,7 +146,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
     const { id, engagement_code, created_at, updated_at, ...rest } = eng;
     setEditTarget({ ...rest, engagement_name: `${eng.engagement_name} (Copy)`, id: undefined });
     setShowDialog(true);
-    toast({ title: 'Duplicating', description: 'Pre-filled from existing engagement. Modify and save as new.' });
+    toast({ title: 'Duplicating', description: 'Pre-filled from existing audit. Modify and save as new.' });
   };
 
   const columns: DataTableColumn<any>[] = [
@@ -193,21 +193,21 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
       )}
       {isApproved && (
         <div className="mb-3 rounded-md border border-border bg-muted px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
-          <span className="font-medium">Approved plan is locked.</span> Use the Revise Plan action to create an amendment before changing engagements.
+          <span className="font-medium">Approved plan is locked.</span> Use the Revise Plan action to create an amendment before making changes.
         </div>
       )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-sm">Engagement Portfolio</CardTitle>
+            <CardTitle className="text-sm">Audit Portfolio</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              {engagements.length} engagements • {totalDays} days ({totalWeeks} weeks) planned
+              {engagements.length} audits • {totalDays} days ({totalWeeks} weeks) planned
               {byQuarter.filter(q => q.count > 0).map(q => ` • ${q.quarter}: ${q.count}`).join('')}
             </p>
           </div>
           {canModify && !isLocked && (
             <Button size="sm" onClick={() => { setEditTarget(null); setShowDialog(true); }}>
-              <Plus className="h-4 w-4 mr-1" />Add Engagement
+              <Plus className="h-4 w-4 mr-1" />Add Audit
             </Button>
           )}
         </CardHeader>
@@ -215,7 +215,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
           <DataTable
             columns={columns}
             data={engagements}
-            emptyMessage="No engagements added to this plan yet. Click 'Add Engagement' to build the audit portfolio."
+            emptyMessage="No audits added to this plan yet. Click 'Add Audit' to build the audit portfolio."
             renderActions={(canModify && !isLocked) ? (row) => (
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditTarget(row); setShowDialog(true); }} title="Edit">
@@ -224,7 +224,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateEngagement(row)} title="Duplicate">
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setRemoveTarget({ id: row.id, name: row.engagement_name || 'Engagement' })} title="Remove">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setRemoveTarget({ id: row.id, name: row.engagement_name || 'Audit' })} title="Remove">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -248,9 +248,9 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
       <OverrideReasonModal
         open={!!removeTarget}
         onClose={() => setRemoveTarget(null)}
-        title="Remove Engagement"
+        title="Remove Audit"
         description={`Removing "${removeTarget?.name}" from the plan requires justification.`}
-        overrideTypes={[{ value: 'remove_engagement', label: 'Remove Engagement' }]}
+        overrideTypes={[{ value: 'remove_engagement', label: 'Remove Audit' }]}
         onConfirm={(_type, reason) => {
           if (removeTarget) {
             manualOverride.mutate({

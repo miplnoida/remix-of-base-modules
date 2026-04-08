@@ -238,7 +238,7 @@ export function CapacityCalendarPanel({ planId }: CapacityCalendarPanelProps) {
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
-            Engagement Schedule Timeline
+            Audit Schedule Timeline
           </CardTitle>
         </CardHeader>
         <CardContent>
