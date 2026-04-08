@@ -9,11 +9,14 @@ import {
   Briefcase,
   BarChart3,
   ClipboardCheck,
-  Calendar,
   Clock,
   Settings,
   UserCheck,
   Timer,
+  BookOpen,
+  Database,
+  Cog,
+  Mail,
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -37,7 +40,7 @@ export const auditMenuItems = [
         title: "Audit Universe",
         icon: Grid3X3,
         requiresPermission: "configure_audit_system",
-        description: "Departments and business functions",
+        description: "Auditable entities and functions",
         items: [
           {
             title: "Departments",
@@ -54,6 +57,11 @@ export const auditMenuItems = [
             description: "Manage department functions"
           },
         ]
+      },
+      // ── Risk Management ──
+      {
+        title: "Risk Management",
+        isGroupLabel: true,
       },
       {
         title: "Risk Assessment",
@@ -95,50 +103,36 @@ export const auditMenuItems = [
         requiresPermission: "approve_audit_plans",
         description: "Review and approve submitted plans"
       },
-      // ── Settings ──
+      // ── Execution ──
       {
-        title: "Settings",
+        title: "Execution",
         isGroupLabel: true,
       },
       {
-        title: "System Configuration",
-        url: "/audit/config",
-        icon: Settings,
-        requiresPermission: "configure_audit_system",
-        description: "Workflow defaults, notifications, SLA, and general audit module behavior"
-      },
-      {
-        title: "Risk Configuration",
-        url: "/audit/risk-settings",
-        icon: Shield,
-        requiresPermission: "configure_audit_system",
-        description: "Likelihood, impact, formula, rating bands, and risk derivation"
-      },
-      // ── Templates & Queries ──
-      {
-        title: "Templates & Queries",
-        isGroupLabel: true,
-      },
-      {
-        title: "Document Templates",
-        url: "/audit/document-templates",
-        icon: FileText,
-        requiresPermission: "configure_audit_system",
-        description: "Configure audit report and plan document layouts"
-      },
-      {
-        title: "Templates Management",
-        url: "/audit/templates",
-        icon: FileText,
-        requiresPermission: "configure_audit_system",
-        description: "Manage reusable audit module templates"
+        title: "Audits",
+        url: "/audit/audits",
+        icon: Briefcase,
+        requiresPermission: "create_audit_plans",
+        description: "Execute audits with checklists"
       },
       {
         title: "Audit Queries",
         url: "/audit/queries",
         icon: FileSearch,
         requiresPermission: "view_audit_assignments",
-        description: "Run and manage saved audit queries"
+        description: "Communication between audit team and departments"
+      },
+      // ── Reporting ──
+      {
+        title: "Reporting",
+        isGroupLabel: true,
+      },
+      {
+        title: "Report Center",
+        url: "/audit/audit-reports",
+        icon: BarChart3,
+        requiresPermission: "generate_reports",
+        description: "Create and manage audit reports"
       },
       // ── Resources ──
       {
@@ -173,30 +167,44 @@ export const auditMenuItems = [
         requiresPermission: "view_audit_assignments",
         description: "Manage auditor leave schedules"
       },
-      // ── Execution ──
+      // ── Reference Data ──
       {
-        title: "Execution",
+        title: "Reference Data",
         isGroupLabel: true,
       },
       {
-        title: "Audits",
-        url: "/audit/audits",
-        icon: Briefcase,
-        requiresPermission: "create_audit_plans",
-        description: "Execute audits with checklists"
+        title: "Communication Templates",
+        url: "/audit/templates",
+        icon: Mail,
+        requiresPermission: "configure_audit_system",
+        description: "Reusable templates for letters, reports, and notices"
       },
-      // ── Reporting ──
+      // ── Configuration ──
       {
-        title: "Reporting",
+        title: "Configuration",
         isGroupLabel: true,
       },
       {
-        title: "Report Center",
-        url: "/audit/audit-reports",
-        icon: BarChart3,
-        requiresPermission: "generate_reports",
-        description: "Create and manage audit reports"
-      }
+        title: "Audit Configuration",
+        url: "/audit/config",
+        icon: Cog,
+        requiresPermission: "configure_audit_system",
+        description: "Workflow defaults, notifications, SLA, and general module behavior"
+      },
+      {
+        title: "Risk Configuration",
+        url: "/audit/risk-settings",
+        icon: Shield,
+        requiresPermission: "configure_audit_system",
+        description: "Likelihood, impact, formula, rating bands, and risk derivation"
+      },
+      {
+        title: "Document & Output Settings",
+        url: "/audit/document-templates",
+        icon: Settings,
+        requiresPermission: "configure_audit_system",
+        description: "Foundation branding, section library, and document type layouts"
+      },
     ]
   }
 ];
