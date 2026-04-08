@@ -1045,7 +1045,36 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Plan Template Overrides & Live Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mb-3 gap-2"
+            onClick={() => setShowPlanOverrides(!showPlanOverrides)}
+          >
+            <Settings2 className="h-4 w-4" />
+            {showPlanOverrides ? 'Hide' : 'Show'} Template Overrides
+            {hasPlanOverrides(planOverrides) && (
+              <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">Active</span>
+            )}
+          </Button>
+          {showPlanOverrides && (
+            <PlanOverridePanel
+              baseConfig={planTemplateConfig || DEFAULT_AUDIT_PLAN_CONFIG}
+              overrides={planOverrides}
+              onChange={setPlanOverrides}
+              onReset={() => setPlanOverrides(createEmptyPlanOverride())}
+            />
+          )}
+        </div>
+        <LiveDocumentPreview
+          type="plan"
+          baseConfig={planTemplateConfig || DEFAULT_AUDIT_PLAN_CONFIG}
+          overrides={planOverrides}
+        />
+      </div>
         <CardHeader>
           <CardTitle className="text-sm">Artifact History</CardTitle>
         </CardHeader>
