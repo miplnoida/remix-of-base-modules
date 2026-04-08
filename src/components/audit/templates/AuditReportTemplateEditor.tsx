@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Save, ChevronDown, ChevronUp, GripVertical, Plus, Trash2, Eye } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info } from 'lucide-react';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
-import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSection, type TemplateSignatory } from '@/lib/audit/documentTemplateDefaults';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSection } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 
 export function AuditReportTemplateEditor() {
@@ -22,8 +22,8 @@ export function AuditReportTemplateEditor() {
   const [draft, setDraft] = useState<AuditReportTemplateConfig>(DEFAULT_AUDIT_REPORT_CONFIG);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    branding: true, coverPage: false, sections: false, findings: false,
-    riskDistribution: false, actionPlan: false, signOff: false, draftFinal: false,
+    coverPage: true, sections: false, findings: false,
+    riskDistribution: false, actionPlan: false,
   });
 
   useEffect(() => {
@@ -42,9 +42,6 @@ export function AuditReportTemplateEditor() {
       }
     );
   };
-
-  const updateBranding = (key: string, value: any) =>
-    setDraft((d) => ({ ...d, branding: { ...d.branding, [key]: value } }));
 
   const updateCover = (key: string, value: any) =>
     setDraft((d) => ({ ...d, coverPage: { ...d.coverPage, [key]: value } }));
@@ -70,33 +67,6 @@ export function AuditReportTemplateEditor() {
     });
   };
 
-  const updateSignatory = (idx: number, updates: Partial<TemplateSignatory>) =>
-    setDraft((d) => ({
-      ...d,
-      signOff: {
-        ...d.signOff,
-        signatories: d.signOff.signatories.map((s, i) => (i === idx ? { ...s, ...updates } : s)),
-      },
-    }));
-
-  const addSignatory = () =>
-    setDraft((d) => ({
-      ...d,
-      signOff: {
-        ...d.signOff,
-        signatories: [...d.signOff.signatories, { label: '', defaultName: '', roleTitle: '' }],
-      },
-    }));
-
-  const removeSignatory = (idx: number) =>
-    setDraft((d) => ({
-      ...d,
-      signOff: {
-        ...d.signOff,
-        signatories: d.signOff.signatories.filter((_, i) => i !== idx),
-      },
-    }));
-
   if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading template…</div>;
 
   const sortedSections = [...draft.sections].sort((a, b) => a.order - b.order);
@@ -104,7 +74,7 @@ export function AuditReportTemplateEditor() {
   return (
     <div className="flex gap-6">
       <div className={`flex-1 space-y-4 ${showPreview ? 'max-w-[55%]' : ''}`}>
-        {/* Save Bar */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Audit Report Template</h2>
           <div className="flex gap-2">
@@ -117,33 +87,13 @@ export function AuditReportTemplateEditor() {
           </div>
         </div>
 
-        {/* Branding */}
-        <SettingsCard title="Branding" cardKey="branding" open={openSections.branding} onToggle={toggleCard}>
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between">
-              <Label>Show Logo on Cover</Label>
-              <Switch checked={draft.branding.showLogo} onCheckedChange={(v) => updateBranding('showLogo', v)} />
-            </div>
-            <div>
-              <Label>Organization Name</Label>
-              <Input value={draft.branding.orgName} onChange={(e) => updateBranding('orgName', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Country</Label>
-                <Input value={draft.branding.country} onChange={(e) => updateBranding('country', e.target.value)} />
-              </div>
-              <div>
-                <Label>Phone</Label>
-                <Input value={draft.branding.phone} onChange={(e) => updateBranding('phone', e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <Label>Address</Label>
-              <Input value={draft.branding.address} onChange={(e) => updateBranding('address', e.target.value)} />
-            </div>
-          </div>
-        </SettingsCard>
+        <Alert className="border-primary/20 bg-primary/5">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Branding, typography, pagination, table style, sign-off, and draft/final rules are managed in the <strong>Foundation</strong> tab and apply to all document types.
+            Configure only report-specific settings below.
+          </AlertDescription>
+        </Alert>
 
         {/* Cover Page */}
         <SettingsCard title="Cover Page" cardKey="coverPage" open={openSections.coverPage} onToggle={toggleCard}>
@@ -292,69 +242,6 @@ export function AuditReportTemplateEditor() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </SettingsCard>
-
-        {/* Sign-off */}
-        <SettingsCard title="Sign-off & Governance" cardKey="signOff" open={openSections.signOff} onToggle={toggleCard}>
-          <div className="space-y-4">
-            {draft.signOff.signatories.map((sig, i) => (
-              <div key={i} className="grid grid-cols-3 gap-3 items-end p-3 border rounded-md bg-muted/20">
-                <div>
-                  <Label className="text-xs">Label</Label>
-                  <Input value={sig.label} onChange={(e) => updateSignatory(i, { label: e.target.value })} placeholder="e.g. Prepared By" />
-                </div>
-                <div>
-                  <Label className="text-xs">Default Name</Label>
-                  <Input value={sig.defaultName} onChange={(e) => updateSignatory(i, { defaultName: e.target.value })} placeholder="Optional" />
-                </div>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Label className="text-xs">Role Title</Label>
-                    <Input value={sig.roleTitle} onChange={(e) => updateSignatory(i, { roleTitle: e.target.value })} placeholder="e.g. Internal Auditor" />
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeSignatory(i)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={addSignatory}>
-              <Plus className="h-4 w-4 mr-1" /> Add Signatory
-            </Button>
-          </div>
-        </SettingsCard>
-
-        {/* Draft / Final Rules */}
-        <SettingsCard title="Draft & Final Rules" cardKey="draftFinal" open={openSections.draftFinal} onToggle={toggleCard}>
-          <div className="space-y-4">
-            <Separator />
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Draft Rules</p>
-            <div className="flex items-center justify-between">
-              <Label>Show Watermark</Label>
-              <Switch
-                checked={draft.draftRules.showWatermark}
-                onCheckedChange={(v) => setDraft((d) => ({ ...d, draftRules: { ...d.draftRules, showWatermark: v } }))}
-              />
-            </div>
-            {draft.draftRules.showWatermark && (
-              <div>
-                <Label>Watermark Text</Label>
-                <Input
-                  value={draft.draftRules.watermarkText}
-                  onChange={(e) => setDraft((d) => ({ ...d, draftRules: { ...d.draftRules, watermarkText: e.target.value } }))}
-                />
-              </div>
-            )}
-            <Separator />
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Final Rules</p>
-            <div className="flex items-center justify-between">
-              <Label>Show Issued Stamp</Label>
-              <Switch
-                checked={draft.finalRules.showIssuedStamp}
-                onCheckedChange={(v) => setDraft((d) => ({ ...d, finalRules: { ...d.finalRules, showIssuedStamp: v } }))}
-              />
             </div>
           </div>
         </SettingsCard>
