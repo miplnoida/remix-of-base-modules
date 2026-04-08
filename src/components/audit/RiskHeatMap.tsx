@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { buildColorMap, DEFAULT_BANDS } from '@/lib/audit/riskEngine';
 
 interface RiskHeatMapProps {
   data: Array<{
@@ -9,16 +10,13 @@ interface RiskHeatMapProps {
     impact: number;
     riskLevel: string;
   }>;
+  /** Optional: pass live bands from useRiskRatingCalculator for dynamic colors */
+  bands?: Array<{ label: string; min_score: number; max_score: number; color: string; sort_order: number }>;
 }
 
-const RISK_COLORS: Record<string, string> = {
-  Critical: 'hsl(var(--destructive))',
-  High: '#ef4444',
-  Medium: '#f97316',
-  Low: '#22c55e',
-};
+export function RiskHeatMap({ data, bands }: RiskHeatMapProps) {
+  const RISK_COLORS = buildColorMap(bands ?? DEFAULT_BANDS);
 
-export function RiskHeatMap({ data }: RiskHeatMapProps) {
   if (!data.length) {
     return (
       <Card>
@@ -59,7 +57,7 @@ export function RiskHeatMap({ data }: RiskHeatMapProps) {
             />
             <Scatter data={data} fill="hsl(var(--primary))">
               {data.map((entry, index) => (
-                <Cell key={index} fill={RISK_COLORS[entry.riskLevel] || RISK_COLORS.Medium} />
+                <Cell key={index} fill={RISK_COLORS[entry.riskLevel] || '#6b7280'} />
               ))}
             </Scatter>
           </ScatterChart>

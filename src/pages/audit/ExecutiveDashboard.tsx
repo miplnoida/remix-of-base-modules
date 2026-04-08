@@ -8,6 +8,7 @@ import { useIAFindings, useIAActionTracking } from '@/hooks/useAuditDataExtended
 import { useIADepartmentFunctions, useIADepartments } from '@/hooks/useAuditData';
 import { useIADepartmentAudits } from '@/hooks/useAuditData';
 import { RiskHeatMap } from '@/components/audit/RiskHeatMap';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { AuditHistoryTimeline } from '@/components/audit/AuditHistoryTimeline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -22,6 +23,7 @@ export default function ExecutiveDashboard() {
   const { data: qualityReviews = [] } = useIAQualityReviews();
   const { data: findings = [] } = useIAFindings();
   const { data: actions = [] } = useIAActionTracking();
+  const { bands } = useRiskRatingCalculator();
 
   const highRiskFunctions = (functions as any[]).filter((f: any) => f.risk_rating === 'High' || f.risk_rating === 'Critical');
 
@@ -96,6 +98,7 @@ export default function ExecutiveDashboard() {
               impact: f.impact_score || 3,
               riskLevel: f.risk_rating,
             }))}
+          bands={bands}
         />
         {departments.length > 0 && (
           <AuditHistoryTimeline

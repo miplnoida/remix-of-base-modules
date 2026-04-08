@@ -9,12 +9,7 @@ import { useIADepartments, useIADepartmentFunctions, useIAAnnualPlans, useIAFind
 import { useIAEngagements, useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { Progress } from '@/components/ui/progress';
 
-function deriveRiskLevel(score: number) {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
+import { calculateRiskLevel as deriveRiskLevel } from '@/lib/audit/riskEngine';
 
 export default function AuditDashboard() {
   const navigate = useNavigate();

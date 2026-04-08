@@ -19,6 +19,8 @@ import { CandidateDetailPanel } from './CandidateDetailPanel';
 import { useIAActiveAuditors, useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { isEditablePlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { classifyCompositeScore } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
@@ -46,6 +48,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const manualOverride = useManualOverride(planId);
   const capacitySchedule = useCapacitySchedule(planId);
   const convertCandidates = useConvertCandidates(planId);
+  const { bands } = useRiskRatingCalculator();
 
   const [rejectDialog, setRejectDialog] = useState<{ id: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -129,10 +132,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   };
 
   const getRiskBadgeVariant = (score: number) => {
-    if (score >= 75) return 'Critical';
-    if (score >= 50) return 'High';
-    if (score >= 25) return 'Medium';
-    return 'Low';
+    return classifyCompositeScore(score, bands);
   };
 
   // Split candidates into sections
