@@ -864,9 +864,13 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       const a = document.createElement('a');
       a.href = url;
       a.download = artifact.file_name;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err: any) {
+      console.error('[Download] Error:', err);
       toast({ title: 'Download Failed', description: err.message, variant: 'destructive' });
     }
   };
