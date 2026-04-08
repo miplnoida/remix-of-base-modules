@@ -8,6 +8,7 @@ export const RISK_STATUSES = ['Open', 'Mitigating', 'Under Review', 'Closed', 'A
 export const CONTROL_EFFECTIVENESS = ['Strong', 'Moderate', 'Weak', 'None'] as const;
 export const MITIGATION_STATUSES = ['Planned', 'In Progress', 'Completed', 'Overdue', 'Cancelled'] as const;
 export const MITIGATION_PRIORITIES = ['High', 'Medium', 'Low'] as const;
+export const RISK_SOURCES = ['Previous Audit', 'Self-Assessment', 'External Review', 'Regulatory', 'Risk Workshop', 'Management Referral', 'Other'] as const;
 
 export function calculateRiskLevel(score: number): string {
   if (score >= 16) return 'Critical';
@@ -251,4 +252,49 @@ export function useDuplicateRiskCheck(auditUniverseId?: string, riskTitle?: stri
     },
     enabled: !!auditUniverseId && !!riskTitle && riskTitle.length >= 3,
   });
+}
+
+// ============= MITIGATION TEMPLATES =============
+export function useMitigationTemplates(category?: string) {
+  return useQuery({
+    queryKey: ['ia_mitigation_templates', category],
+    queryFn: async () => {
+      let query = supabase
+        .from('ia_mitigation_templates' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('template_name');
+      if (category) query = query.eq('category', category);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+}
+
+export function useMitigationTemplateMutations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { getCreateFields, getUpdateFields } = useAuditFields();
+
+  const create = useMutation({
+    mutationFn: async (tpl: any) => {
+      const { data, error } = await supabase
+        .from('ia_mitigation_templates' as any)
+        .insert({ ...tpl, ...getCreateFields() })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ia_mitigation_templates'] });
+      toast({ title: 'Template Created' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  return { create };
 }

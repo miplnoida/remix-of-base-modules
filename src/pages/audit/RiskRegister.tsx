@@ -17,9 +17,9 @@ import {
   useRiskRegister, useRiskRegisterMutations,
   useRiskMitigationActions, useRiskMitigationMutations,
   useRiskReviews, useRiskReviewMutations,
-  useDuplicateRiskCheck,
+  useDuplicateRiskCheck, useMitigationTemplates,
   RISK_CATEGORIES, RISK_STATUSES, CONTROL_EFFECTIVENESS,
-  MITIGATION_STATUSES, MITIGATION_PRIORITIES,
+  MITIGATION_STATUSES, MITIGATION_PRIORITIES, RISK_SOURCES,
   calculateRiskLevel, getRiskLevelVariant,
 } from '@/hooks/useRiskRegister';
 import { RISK_REGISTER_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
@@ -34,6 +34,7 @@ const emptyRisk = {
   risk_title: '',
   risk_description: '',
   risk_category: 'Operational',
+  risk_source: '',
   inherent_likelihood: 3,
   inherent_impact: 3,
   residual_likelihood: 2,
@@ -102,6 +103,7 @@ export default function RiskRegister() {
       risk_title: row.risk_title || '',
       risk_description: row.risk_description || '',
       risk_category: row.risk_category || 'Operational',
+      risk_source: row.risk_source || '',
       inherent_likelihood: row.inherent_likelihood || 3,
       inherent_impact: row.inherent_impact || 3,
       residual_likelihood: row.residual_likelihood || 2,
@@ -248,6 +250,13 @@ export default function RiskRegister() {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Risk Source</Label>
+            <Select value={form.risk_source || ''} onValueChange={v => setForm(f => ({ ...f, risk_source: v }))}>
+              <SelectTrigger><SelectValue placeholder="Select source..." /></SelectTrigger>
+              <SelectContent>{RISK_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Control Effectiveness</Label>
             <Select value={form.control_effectiveness} onValueChange={v => setForm(f => ({ ...f, control_effectiveness: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -345,17 +354,19 @@ export default function RiskRegister() {
 function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) {
   const { data: actions = [] } = useRiskMitigationActions(risk.id);
   const { data: reviews = [] } = useRiskReviews(risk.id);
+  const { data: templates = [] } = useMitigationTemplates(risk.risk_category);
   const mitigationMut = useRiskMitigationMutations();
   const reviewMut = useRiskReviewMutations();
   const { userCode } = useAuditFields();
 
-  const [actionForm, setActionForm] = useState({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '' });
+  const [actionForm, setActionForm] = useState({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '', template_id: '' });
   const [showActionForm, setShowActionForm] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
 
   const handleAddAction = () => {
     if (!actionForm.action_title.trim()) return;
-    mitigationMut.create.mutate({ ...actionForm, risk_id: risk.id }, { onSuccess: () => { setShowActionForm(false); setActionForm({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '' }); } });
+    const payload = { ...actionForm, risk_id: risk.id, template_id: actionForm.template_id || null };
+    mitigationMut.create.mutate(payload, { onSuccess: () => { setShowActionForm(false); setActionForm({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '', template_id: '' }); } });
   };
 
   const handleAddReview = () => {
@@ -388,6 +399,7 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
           <div><span className="text-muted-foreground">Inherent:</span> <Badge variant={getRiskLevelVariant(risk.inherent_risk_level)}>{risk.inherent_risk_score} ({risk.inherent_risk_level})</Badge></div>
           <div><span className="text-muted-foreground">Residual:</span> <Badge variant={getRiskLevelVariant(risk.residual_risk_level)}>{risk.residual_risk_score} ({risk.residual_risk_level})</Badge></div>
           <div><span className="text-muted-foreground">Control:</span> {risk.control_effectiveness}</div>
+          <div><span className="text-muted-foreground">Source:</span> {risk.risk_source || '—'}</div>
           <div><span className="text-muted-foreground">Fiscal Year:</span> {risk.fiscal_year || '—'}</div>
         </div>
         {risk.risk_description && <p className="text-sm mb-4">{risk.risk_description}</p>}
@@ -424,6 +436,20 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
               <Card>
                 <CardContent className="p-3 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
+                    {templates.length > 0 && (
+                      <div className="space-y-1 col-span-2">
+                        <Label className="text-xs">From Template</Label>
+                        <Select value={actionForm.template_id || ''} onValueChange={v => {
+                          const tpl = templates.find((t: any) => t.id === v);
+                          if (tpl) {
+                            setActionForm(f => ({ ...f, template_id: v, action_title: tpl.template_name, action_description: tpl.template_description || '', priority: tpl.default_priority || 'Medium' }));
+                          }
+                        }}>
+                          <SelectTrigger><SelectValue placeholder="Select template (optional)..." /></SelectTrigger>
+                          <SelectContent>{templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="space-y-1 col-span-2">
                       <Label className="text-xs">Title *</Label>
                       <Input value={actionForm.action_title} onChange={e => setActionForm(f => ({ ...f, action_title: e.target.value }))} />
