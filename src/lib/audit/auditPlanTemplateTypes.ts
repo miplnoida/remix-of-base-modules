@@ -292,6 +292,15 @@ export interface AuditPlanDocumentOverride {
   watermarkText?: string;
   /** Override confidential label */
   confidentialLabel?: string;
+  /** Override plan summary split */
+  splitByType?: boolean;
+  /** Override governance labels */
+  preparedByLabel?: string;
+  approvedByLabel?: string;
+  /** Override board line visibility */
+  showBoardLine?: boolean;
+  /** Override risk coverage visibility */
+  riskCoverageEnabled?: boolean;
 }
 
 // ─── Section Library (canonical list of all supported sections) ───
