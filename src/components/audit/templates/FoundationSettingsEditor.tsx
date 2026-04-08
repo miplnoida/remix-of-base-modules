@@ -265,11 +265,29 @@ export function FoundationSettingsEditor() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Body Font</Label>
-              <Input value={draft.typography.fontFamily} onChange={(e) => setDraft((d) => ({ ...d, typography: { ...d.typography, fontFamily: e.target.value } }))} />
+              <Select value={draft.typography.fontFamily} onValueChange={(v) => setDraft((d) => ({ ...d, typography: { ...d.typography, fontFamily: v } }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Heading Font</Label>
-              <Input value={draft.typography.headingFont} onChange={(e) => setDraft((d) => ({ ...d, typography: { ...d.typography, headingFont: e.target.value } }))} />
+              <Select value={draft.typography.headingFont} onValueChange={(v) => setDraft((d) => ({ ...d, typography: { ...d.typography, headingFont: v } }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
