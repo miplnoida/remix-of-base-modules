@@ -218,7 +218,7 @@ import AuditConfig from '@/pages/audit/AuditConfig';
 const RiskSettings = lazy(() => import('@/pages/audit/RiskSettings'));
 const DocumentTemplateSettings = lazy(() => import('@/pages/audit/DocumentTemplateSettings'));
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
-const AuditUniverse = lazy(() => import('@/pages/audit/AuditUniverse'));
+
 const RiskRegister = lazy(() => import('@/pages/audit/RiskRegister'));
 const AuditorProfiles = lazy(() => import('@/pages/audit/AuditorProfiles'));
 const WorkloadCapacity = lazy(() => import('@/pages/audit/WorkloadCapacity'));
