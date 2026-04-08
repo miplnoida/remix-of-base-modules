@@ -305,7 +305,8 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 // ===== DETAILED PLAN PDF (REDESIGNED) =====
 async function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
-  gapFunctions: any[], config: ReportConfig
+  gapFunctions: any[], config: ReportConfig,
+  planTemplateConfig?: ReturnType<typeof mapPlanOutput>
 ): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
@@ -349,17 +350,21 @@ async function generateDetailedPlanPdf(
     doc.setFont(undefined as any, 'normal');
     doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 112, { align: 'center' });
 
-    // Main title — use splitTextToSize to prevent overlap
+    // Main title — use template config if available
+    const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
     doc.setFontSize(26);
     doc.setFont(undefined as any, 'bold');
     const titleY = ph * 0.40;
-    doc.text('Annual Internal', pw / 2, titleY, { align: 'center' });
-    doc.text('Audit Plan', pw / 2, titleY + 16, { align: 'center' });
+    const coverTitleLines = coverTitle.split('\n');
+    coverTitleLines.forEach((line: string, idx: number) => {
+      doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
+    });
 
-    // Fiscal year
+    // Fiscal year — use template config display if available
+    const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
     doc.setFontSize(16);
     doc.setFont(undefined as any, 'normal');
-    doc.text(`Fiscal Year ${dv(plan?.fiscal_year, 'N/A')}`, pw / 2, titleY + 40, { align: 'center' });
+    doc.text(`Fiscal Year ${fyDisplay}`, pw / 2, titleY + coverTitleLines.length * 16 + 24, { align: 'center' });
 
     // Metadata block — positioned with more breathing room
     const metaY = ph * 0.65;
