@@ -90,6 +90,8 @@ export interface AuditPlanSection {
   inToc: boolean;
   startNewPage: boolean;
   displayMode: SectionDisplayMode;
+  /** Whether this section is mandatory (cannot be disabled) */
+  mandatory: boolean;
   /** Optional user-customized label override */
   labelOverride?: string;
 }
