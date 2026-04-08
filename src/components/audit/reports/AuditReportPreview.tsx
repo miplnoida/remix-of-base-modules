@@ -75,14 +75,14 @@ export function AuditReportPreview({
         {/* ─── COVER PAGE ─── */}
         <div className="bg-white dark:bg-background shadow-lg print:shadow-none rounded-lg print:rounded-none overflow-hidden relative min-h-[900px] flex flex-col">
           {/* Draft Watermark */}
-          {isDraft && (
+          {resolved.showWatermark && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">DRAFT</p>
+              <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">{resolved.watermarkText}</p>
             </div>
           )}
 
           {/* Issued Stamp */}
-          {isFinal && (
+          {resolved.showIssuedStamp && (
             <div className="absolute top-16 right-8 z-10 pointer-events-none">
               <div className="border-4 border-emerald-600 rounded-lg px-5 py-2 rotate-12 opacity-60">
                 <p className="text-emerald-600 font-bold text-lg tracking-wider">ISSUED</p>
@@ -96,14 +96,15 @@ export function AuditReportPreview({
             <div className="bg-[#0E5F3A] text-white px-12 py-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <img src={logo} alt="SSB Logo" className="h-14 mb-2 brightness-0 invert" />
-                  <h1 className="text-lg font-bold tracking-wide">SOCIAL SECURITY BOARD</h1>
-                  <p className="text-sm opacity-80">ST. KITTS AND NEVIS</p>
+                  {resolved.branding.showLogo && (
+                    <img src={logo} alt="Logo" className="h-14 mb-2 brightness-0 invert" />
+                  )}
+                  <h1 className="text-lg font-bold tracking-wide">{resolved.branding.orgName}</h1>
+                  <p className="text-sm opacity-80">{resolved.branding.country}</p>
                 </div>
                 <div className="text-right text-xs opacity-70">
-                  <p>Bay Road, P.O. Box 79</p>
-                  <p>Basseterre, St. Kitts</p>
-                  <p>Tel: (869) 465-2521</p>
+                  <p>{resolved.branding.address}</p>
+                  <p>Tel: {resolved.branding.phone}</p>
                 </div>
               </div>
             </div>
@@ -113,10 +114,12 @@ export function AuditReportPreview({
             {/* Cover Content */}
             <div className="flex-1 flex flex-col items-center justify-center px-12 py-16 text-center">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] mb-4">Internal Audit Department</p>
-              <h2 className="text-3xl font-bold text-foreground leading-tight mb-4">{reportData.title || 'Audit Report'}</h2>
+              <h2 className="text-3xl font-bold text-foreground leading-tight mb-4">{reportData.title || resolved.coverPage.reportTitle}</h2>
               
               <div className="flex items-center gap-3 mb-8">
-                {reportData.report_type && <Badge variant="outline" className="text-sm px-3 py-1">{reportData.report_type}</Badge>}
+                {resolved.coverPage.showSubtitle && reportData.report_type && (
+                  <Badge variant="outline" className="text-sm px-3 py-1">{reportData.report_type || resolved.coverPage.subtitleText}</Badge>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm mt-4 max-w-md">
