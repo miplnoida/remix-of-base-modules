@@ -68,8 +68,19 @@ export function AuditPlanTemplateEditor() {
 
   // Load config from selected template
   const loadTemplateConfig = useCallback((config: AuditPlanTemplateConfig) => {
-    setDraft(config);
-    setExportDefaults(config.exportDefaults ?? PRESET_AUDIT_BLUE_MINIMAL.exportDefaults);
+    // Deep merge with defaults to ensure all nested keys exist
+    const merged: AuditPlanTemplateConfig = {
+      ...PRESET_AUDIT_BLUE_MINIMAL,
+      ...config,
+      planSummary: { ...PRESET_AUDIT_BLUE_MINIMAL.planSummary, ...(config.planSummary ?? {}) },
+      resourcePlan: { ...PRESET_AUDIT_BLUE_MINIMAL.resourcePlan, ...(config.resourcePlan ?? {}) },
+      governance: { ...PRESET_AUDIT_BLUE_MINIMAL.governance, ...(config.governance ?? {}) },
+      riskCoverage: { ...PRESET_AUDIT_BLUE_MINIMAL.riskCoverage, ...(config.riskCoverage ?? {}) },
+      columnsBySection: config.columnsBySection ?? PRESET_AUDIT_BLUE_MINIMAL.columnsBySection,
+      exportDefaults: { ...PRESET_AUDIT_BLUE_MINIMAL.exportDefaults, ...(config.exportDefaults ?? {}) },
+    };
+    setDraft(merged);
+    setExportDefaults(merged.exportDefaults);
     setSectionConfig(config.sections ?? [...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
   }, []);
 
