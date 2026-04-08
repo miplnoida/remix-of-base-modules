@@ -193,6 +193,8 @@ export default function WizPaymentsHistory() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="AUTHORIZED">AUTHORIZED</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="SUCCESS">SUCCESS</SelectItem>
                   <SelectItem value="DECLINED">DECLINED</SelectItem>
                   <SelectItem value="INVALID_REQUEST">INVALID_REQUEST</SelectItem>
                 </SelectContent>
