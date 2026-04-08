@@ -17,9 +17,9 @@ import {
   useRiskRegister, useRiskRegisterMutations,
   useRiskMitigationActions, useRiskMitigationMutations,
   useRiskReviews, useRiskReviewMutations,
-  useDuplicateRiskCheck,
+  useDuplicateRiskCheck, useMitigationTemplates,
   RISK_CATEGORIES, RISK_STATUSES, CONTROL_EFFECTIVENESS,
-  MITIGATION_STATUSES, MITIGATION_PRIORITIES,
+  MITIGATION_STATUSES, MITIGATION_PRIORITIES, RISK_SOURCES,
   calculateRiskLevel, getRiskLevelVariant,
 } from '@/hooks/useRiskRegister';
 import { RISK_REGISTER_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
@@ -34,6 +34,7 @@ const emptyRisk = {
   risk_title: '',
   risk_description: '',
   risk_category: 'Operational',
+  risk_source: '',
   inherent_likelihood: 3,
   inherent_impact: 3,
   residual_likelihood: 2,
@@ -102,6 +103,7 @@ export default function RiskRegister() {
       risk_title: row.risk_title || '',
       risk_description: row.risk_description || '',
       risk_category: row.risk_category || 'Operational',
+      risk_source: row.risk_source || '',
       inherent_likelihood: row.inherent_likelihood || 3,
       inherent_impact: row.inherent_impact || 3,
       residual_likelihood: row.residual_likelihood || 2,
