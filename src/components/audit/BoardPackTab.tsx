@@ -263,12 +263,12 @@ async function generateDetailedPlanPdf(
   gapFunctions: any[], config: ReportConfig,
   planTemplateConfig?: ReturnType<typeof mapPlanOutput>
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ orientation: config.pageOrientation });
+  const doc = new jsPDF({ orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
-  const theme = getTheme(config);
+  const theme = getThemeFromTemplate(config, planTemplateConfig);
   const logoData = await getLogoBase64();
 
   // ===== A. COVER PAGE — delegates to unified primitives =====
