@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AuditFindingCard } from './AuditFindingCard';
 import { generateAuditReportPDF } from './AuditReportPDFExport';
+import { resolveReportTemplate, type ResolvedReportOutput } from '@/lib/audit/documentTemplateResolver';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import logo from '@/assets/stkitts-logo.png';
 
 interface AuditReportPreviewProps {
@@ -16,6 +18,7 @@ interface AuditReportPreviewProps {
   actions: any[];
   engagement?: any;
   departmentName?: string;
+  templateConfig?: AuditReportTemplateConfig;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -28,14 +31,16 @@ const OPINION_STYLES: Record<string, { bg: string; text: string; border: string 
 };
 
 export function AuditReportPreview({
-  reportData, findings, responses, actions, engagement, departmentName, onClose, onPrint,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, onClose, onPrint,
 }: AuditReportPreviewProps) {
+  const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  const resolved = resolveReportTemplate(config, reportData.status);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
 
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config });
   };
 
   // Section numbering
