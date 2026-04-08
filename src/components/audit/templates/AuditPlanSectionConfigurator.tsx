@@ -17,7 +17,7 @@ import {
   Lock,
   RotateCcw,
   BookOpen,
-  FileBreak,
+  SeparatorHorizontal,
 } from 'lucide-react';
 import type { AuditPlanSection, SectionDisplayMode } from '@/lib/audit/auditPlanTemplateTypes';
 import { normalizeSectionOrder, reorderSection, validateSectionConfig } from '@/lib/audit/auditPlanSectionEngine';
@@ -133,9 +133,9 @@ export function AuditPlanSectionConfigurator({
           </div>
         )}
         {validation.warnings.length > 0 && (
-          <div className="mb-3 p-2 rounded-md bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <div className="mb-3 p-2 rounded-md bg-accent/50 border border-border">
             {validation.warnings.map((w, i) => (
-              <p key={i} className="text-xs text-yellow-700 dark:text-yellow-400">{w}</p>
+              <p key={i} className="text-xs text-muted-foreground">{w}</p>
             ))}
           </div>
         )}
@@ -143,7 +143,7 @@ export function AuditPlanSectionConfigurator({
         {/* Legend */}
         <div className="flex flex-wrap gap-3 mb-3 text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
           <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> TOC</span>
-          <span className="flex items-center gap-1"><FileBreak className="h-3 w-3" /> New Page</span>
+          <span className="flex items-center gap-1"><SeparatorHorizontal className="h-3 w-3" /> New Page</span>
           <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Mandatory</span>
         </div>
 
