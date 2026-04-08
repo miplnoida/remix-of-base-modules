@@ -88,7 +88,7 @@ export default function AuditUniverse() {
     }
   };
 
-  const columns: DataTableColumn[] = [
+  const columns: DataTableColumn<any>[] = [
     { key: 'entity_name', header: 'Entity Name' },
     { key: 'entity_type', header: 'Type', render: (v: string) => <Badge variant="outline">{v}</Badge> },
     { key: 'entity_code', header: 'Code' },
@@ -134,7 +134,7 @@ export default function AuditUniverse() {
             searchValue={search}
             onSearchChange={setSearch}
             searchPlaceholder="Search entities..."
-            filterFields={filterFields}
+            filters={filterFields}
             filterValues={{ entity_type: typeFilter, status: statusFilter }}
             onFilterChange={(k, v) => { if (k === 'entity_type') setTypeFilter(v); if (k === 'status') setStatusFilter(v); }}
           />

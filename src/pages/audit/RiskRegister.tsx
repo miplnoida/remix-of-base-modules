@@ -129,7 +129,7 @@ export default function RiskRegister() {
     }
   };
 
-  const columns: DataTableColumn[] = [
+  const columns: DataTableColumn<any>[] = [
     { key: 'risk_title', header: 'Risk Title', render: (v: string, row: any) => (
       <button className="text-left text-primary hover:underline font-medium" onClick={() => setDetailRisk(row)}>{v}</button>
     )},
@@ -184,7 +184,7 @@ export default function RiskRegister() {
             searchValue={search}
             onSearchChange={setSearch}
             searchPlaceholder="Search risks..."
-            filterFields={filterFields}
+            filters={filterFields}
             filterValues={{ entity: entityFilter, status: statusFilter, category: categoryFilter }}
             onFilterChange={(k, v) => {
               if (k === 'entity') setEntityFilter(v);
