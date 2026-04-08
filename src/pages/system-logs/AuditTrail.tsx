@@ -12,13 +12,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, RefreshCw, History, ChevronLeft, ChevronRight, Globe, Database, Monitor, UserCheck, AlertTriangle, Separator } from 'lucide-react';
+import { Loader2, RefreshCw, History, ChevronLeft, ChevronRight, Globe, Database, Monitor, UserCheck, AlertTriangle } from 'lucide-react';
 import { formatAuditDateTime } from '@/lib/dateFormat';
 import { Label } from '@/components/ui/label';
 import ApiLogsTab from '@/components/admin/ApiLogsTab';
 import { ExportDropdown } from '@/components/common/ExportDropdown';
 import { buildMetadata } from '@/lib/auditReportExports';
-import { useSupabaseAuth } from '@/integrations/supabase/auth';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types & Constants
