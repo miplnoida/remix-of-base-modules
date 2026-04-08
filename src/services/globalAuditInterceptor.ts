@@ -133,6 +133,7 @@ export const DB_TRIGGER_TABLES = new Set([
   'bema_payment_plans', 'bema_waivers',
   // Internal Audit
   'ia_findings', 'ia_audit_engagements', 'ia_risk_assessments', 'ia_audit_reports',
+  'ia_risk_register', 'ia_risk_mitigation_actions', 'ia_risk_reviews',
   // Configuration & Settings
   'system_settings', 'security_policy_config', 'ip_access_rules',
   'c3_calculation_config', 'payment_module_config',
