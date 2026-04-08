@@ -262,7 +262,7 @@ export default function RiskRegister() {
         <MetricCard title="Total Risks" value={risks.length} icon={Shield} />
         <MetricCard title="Open Risks" value={openCount} icon={AlertTriangle} />
         <MetricCard title="Critical" value={criticalCount} icon={AlertTriangle} />
-        <MetricCard title="Entities Covered" value={new Set(risks.map((r: any) => r.audit_universe_id)).size} icon={Eye} />
+        <MetricCard title="Departments Covered" value={new Set(risks.map((r: any) => r.audit_universe_id).filter(Boolean)).size} icon={Eye} />
       </div>
 
       <Card>
