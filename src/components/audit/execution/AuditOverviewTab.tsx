@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/common';
-import { Briefcase, User, Shield, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { Briefcase, User, Shield, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle, Clock, MessageSquare, Paperclip, FolderOpen, ClipboardCheck, Search, BarChart3, ArrowRight } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { LaunchReadinessPanel } from '@/components/audit/LaunchReadinessPanel';
 import { AuditNextActionsPanel, deriveNextActions } from '@/components/audit/workspace/AuditNextActionsPanel';
@@ -14,6 +14,20 @@ function InfoRow({ label, value, highlight }: { label: string; value: any; highl
       <span className={`text-sm font-medium text-right max-w-[60%] truncate ${highlight ? 'text-primary font-semibold' : ''}`}>{value ?? '—'}</span>
     </div>
   );
+}
+
+interface WorkspaceCounts {
+  activities: number;
+  evidence: number;
+  workingPapers: number;
+  controlTests: number;
+  findings: number;
+  openFindings: number;
+  responses: number;
+  pendingResponses: number;
+  actions: number;
+  overdueActions: number;
+  followUps: number;
 }
 
 interface AuditOverviewTabProps {
@@ -30,15 +44,17 @@ interface AuditOverviewTabProps {
   getFunctionName: (id: string) => string;
   getAuditorName: (id: string) => string;
   getPlanTitle: (id: string) => string;
+  workspaceCounts?: WorkspaceCounts;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export function AuditOverviewTab({
   audit, auditId, execStatus, auditFindings, auditResponses, auditActions,
   openFindings, overdueActionsCount, pendingResponsesCount,
   getDeptName, getFunctionName, getAuditorName, getPlanTitle,
+  workspaceCounts, onNavigateTab,
 }: AuditOverviewTabProps) {
-  // Calculate progress
-  const totalSteps = 6; // prep, fieldwork, findings, responses, actions, report
+  const totalSteps = 6;
   let completedSteps = 0;
   if (['Fieldwork In Progress', 'Findings Drafting', 'Management Response Pending', 'Final Report Issued', 'Follow-up Monitoring', 'Closed'].includes(execStatus)) completedSteps++;
   if (['Findings Drafting', 'Management Response Pending', 'Final Report Issued', 'Follow-up Monitoring', 'Closed'].includes(execStatus)) completedSteps++;
@@ -51,6 +67,8 @@ export function AuditOverviewTab({
   const sourceLabel = audit?.engagement_type === 'Ad Hoc' ? 'Ad Hoc Audit' :
     audit?.engagement_type === 'Supplementary' ? 'Supplementary Plan' :
     audit?.annual_plan_id ? 'Annual Plan' : 'Ad Hoc Audit';
+
+  const goTo = (tab: string) => onNavigateTab?.(tab);
 
   return (
     <div className="grid gap-5 md:grid-cols-3">
@@ -74,7 +92,26 @@ export function AuditOverviewTab({
           </CardContent>
         </Card>
 
-        {/* Audit Identity */}
+        {/* Quick Jump Cards */}
+        {workspaceCounts && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Workspace Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <QuickJumpCard icon={ClipboardCheck} label="Activities" count={workspaceCounts.activities} onClick={() => goTo('activities')} />
+                <QuickJumpCard icon={Paperclip} label="Evidence" count={workspaceCounts.evidence} onClick={() => goTo('evidence')} />
+                <QuickJumpCard icon={FolderOpen} label="Working Papers" count={workspaceCounts.workingPapers} onClick={() => goTo('working-papers')} />
+                <QuickJumpCard icon={AlertTriangle} label="Findings" count={workspaceCounts.findings} subtitle={workspaceCounts.openFindings > 0 ? `${workspaceCounts.openFindings} open` : undefined} variant={workspaceCounts.openFindings > 0 ? 'warning' : 'default'} onClick={() => goTo('findings')} />
+                <QuickJumpCard icon={MessageSquare} label="Responses" count={workspaceCounts.responses} subtitle={workspaceCounts.pendingResponses > 0 ? `${workspaceCounts.pendingResponses} pending` : undefined} variant={workspaceCounts.pendingResponses > 0 ? 'warning' : 'default'} onClick={() => goTo('responses')} />
+                <QuickJumpCard icon={CheckCircle} label="Actions" count={workspaceCounts.actions} subtitle={workspaceCounts.overdueActions > 0 ? `${workspaceCounts.overdueActions} overdue` : undefined} variant={workspaceCounts.overdueActions > 0 ? 'danger' : 'default'} onClick={() => goTo('actions')} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Audit Details */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Audit Details</CardTitle></CardHeader>
           <CardContent>
@@ -166,5 +203,34 @@ function MiniStat({ icon: Icon, label, value, color }: { icon: any; label: strin
         <p className="text-sm font-bold">{value}</p>
       </div>
     </div>
+  );
+}
+
+function QuickJumpCard({ icon: Icon, label, count, subtitle, variant = 'default', onClick }: {
+  icon: any; label: string; count: number; subtitle?: string; variant?: 'default' | 'warning' | 'danger'; onClick?: () => void;
+}) {
+  const borderColor = variant === 'danger' ? 'border-destructive/30 hover:border-destructive/50' :
+    variant === 'warning' ? 'border-amber-200 hover:border-amber-300 dark:border-amber-800/30 dark:hover:border-amber-700/50' :
+    'border-border/50 hover:border-border';
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} bg-background hover:bg-muted/30 transition-all text-left group cursor-pointer`}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold">{count}</p>
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+        </div>
+        {subtitle && (
+          <p className={`text-[10px] font-medium mt-0.5 ${variant === 'danger' ? 'text-destructive' : variant === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </button>
   );
 }
