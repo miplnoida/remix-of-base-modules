@@ -136,8 +136,7 @@ export function AuditReportPreview({
             <div className="border-t px-12 py-5 bg-muted/30 print:bg-gray-50">
               <p className="text-[10px] text-muted-foreground text-center font-medium uppercase tracking-wider mb-1">Confidential</p>
               <p className="text-[10px] text-muted-foreground text-center leading-relaxed max-w-lg mx-auto">
-                This document is the property of the Social Security Board, St. Kitts and Nevis. It contains confidential information
-                intended solely for the use of the addressee. Unauthorized distribution, copying, or disclosure is strictly prohibited.
+                {resolved.coverPage.confidentialityText}
               </p>
             </div>
           </div>
@@ -358,19 +357,22 @@ export function AuditReportPreview({
             <div>
               <SectionHeading number={nextSection()}>Approval & Sign-off</SectionHeading>
               <div className="grid gap-12 mt-8">
-                {[
-                  { label: 'Prepared By', name: reportData.prepared_by, role: 'Internal Auditor' },
-                  { label: 'Reviewed By', name: reportData.reviewed_by, role: 'Manager, Internal Audit' },
-                  { label: 'Approved By', name: reportData.approved_by || 'Director, Social Security Board', role: 'Director' },
-                ].map((sig) => (
-                  <div key={sig.label}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
-                    <div className="mt-8 border-t border-foreground/40 w-72" />
-                    <p className="text-sm font-semibold mt-2">{sig.name || '—'}</p>
-                    <p className="text-xs text-muted-foreground">{sig.role}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
-                  </div>
-                ))}
+                {resolved.signatories.map((sig) => {
+                  const name = sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
+                               sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
+                               sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
+                               sig.defaultName;
+                  return (
+                    <div key={sig.label}>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
+                      <div className="mt-8 border-t border-foreground/40 w-72" />
+                      <p className="text-sm font-semibold mt-2">{name || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{sig.roleTitle}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
+                    </div>
+                  );
+                })}
+              </div>
               </div>
             </div>
 
