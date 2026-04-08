@@ -250,6 +250,13 @@ export default function RiskRegister() {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Risk Source</Label>
+            <Select value={form.risk_source || ''} onValueChange={v => setForm(f => ({ ...f, risk_source: v }))}>
+              <SelectTrigger><SelectValue placeholder="Select source..." /></SelectTrigger>
+              <SelectContent>{RISK_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Control Effectiveness</Label>
             <Select value={form.control_effectiveness} onValueChange={v => setForm(f => ({ ...f, control_effectiveness: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
