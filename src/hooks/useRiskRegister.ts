@@ -41,13 +41,20 @@ export function useRiskRegisterMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const { calculateScore: calcScore, getRiskRating: getRating, engineConfig } = useRiskRatingCalculator();
+
+  /** Compute score + level using centralized engine config */
+  const computeScoreAndLevel = (likelihood: number, impact: number) => {
+    const score = calcScore(likelihood, impact);
+    const rating = getRating(score);
+    return { score, level: rating.label };
+  };
 
   const create = useMutation({
     mutationKey: ['Internal Audit', 'ia_risk_register', 'create'],
     mutationFn: async (risk: any) => {
-      const inherentScore = (risk.inherent_likelihood || 0) * (risk.inherent_impact || 0);
-      const residualScore = (risk.residual_likelihood || 0) * (risk.residual_impact || 0);
-      // Sanitize empty strings to null for date/optional fields
+      const inherent = computeScoreAndLevel(risk.inherent_likelihood || 0, risk.inherent_impact || 0);
+      const residual = computeScoreAndLevel(risk.residual_likelihood || 0, risk.residual_impact || 0);
       const sanitized = Object.fromEntries(
         Object.entries(risk).map(([k, v]) => [k, v === '' ? null : v])
       );
@@ -55,8 +62,10 @@ export function useRiskRegisterMutations() {
         .from('ia_risk_register' as any)
         .insert({
           ...sanitized,
-          inherent_risk_level: calculateRiskLevel(inherentScore),
-          residual_risk_level: calculateRiskLevel(residualScore),
+          inherent_risk_score: inherent.score,
+          inherent_risk_level: inherent.level,
+          residual_risk_score: residual.score,
+          residual_risk_level: residual.level,
           ...getCreateFields(),
         })
         .select()
@@ -79,14 +88,16 @@ export function useRiskRegisterMutations() {
       const sanitized = Object.fromEntries(
         Object.entries(updates).map(([k, v]) => [k, v === '' ? null : v])
       );
-      const inherentScore = (sanitized.inherent_likelihood || 0) * (sanitized.inherent_impact || 0);
-      const residualScore = (sanitized.residual_likelihood || 0) * (sanitized.residual_impact || 0);
+      const inherent = computeScoreAndLevel(sanitized.inherent_likelihood || 0, sanitized.inherent_impact || 0);
+      const residual = computeScoreAndLevel(sanitized.residual_likelihood || 0, sanitized.residual_impact || 0);
       const { data, error } = await supabase
         .from('ia_risk_register' as any)
         .update({
           ...sanitized,
-          inherent_risk_level: calculateRiskLevel(inherentScore),
-          residual_risk_level: calculateRiskLevel(residualScore),
+          inherent_risk_score: inherent.score,
+          inherent_risk_level: inherent.level,
+          residual_risk_score: residual.score,
+          residual_risk_level: residual.level,
           ...getUpdateFields(),
         })
         .eq('id', id)
