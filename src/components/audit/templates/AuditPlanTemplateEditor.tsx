@@ -20,9 +20,10 @@ export function AuditPlanTemplateEditor() {
   const mutation = useAuditDocumentTemplateMutation();
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditPlanTemplateConfig>(DEFAULT_AUDIT_PLAN_CONFIG);
+  const [sectionConfig, setSectionConfig] = useState<AuditPlanSection[]>([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    coverPage: true, planSummary: false, columns: false, resourcePlan: false, governance: false,
+    coverPage: true, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
   });
 
   useEffect(() => {
