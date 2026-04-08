@@ -3,6 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuditReportTemplate } from '@/hooks/useAuditDocumentTemplates';
 import { Button } from '@/components/ui/button';
+import type { ReportTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
+import { applyReportOverrides, createEmptyReportOverride, hasReportOverrides } from '@/lib/audit/documentTemplateOverrides';
+import { ReportOverridePanel } from '@/components/audit/templates/ReportOverridePanel';
+import { LiveDocumentPreview } from '@/components/audit/templates/LiveDocumentPreview';
+import { DEFAULT_AUDIT_REPORT_CONFIG } from '@/lib/audit/documentTemplateDefaults';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,6 +89,8 @@ export function AuditReportBuilderStudio() {
   const [showVersions, setShowVersions] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [sections, setSections] = useState<BuilderSection[]>(ALL_SECTIONS);
+  const [reportOverrides, setReportOverrides] = useState<ReportTemplateOverride>(createEmptyReportOverride());
+  const [showOverridePanel, setShowOverridePanel] = useState(false);
 
   const [reportData, setReportData] = useState({
     title: '',
