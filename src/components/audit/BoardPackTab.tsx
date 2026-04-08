@@ -58,9 +58,31 @@ function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
+/** Convert hex color to RGB tuple */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
+}
+
+/** Build theme from resolved plan template config (template takes priority) */
+function getThemeFromTemplate(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>) {
+  if (!templateConfig?.resolved?.branding?.colorPalette) {
+    return getTheme(config);
+  }
+  const palette = templateConfig.resolved.branding.colorPalette;
+  return {
+    primary: hexToRgb(palette.primary),
+    secondary: hexToRgb(palette.secondary),
+    accent: hexToRgb(palette.accent),
+    altRow: hexToRgb(palette.tableStripe),
+    label: 'Template',
+    description: 'From template config',
+  };
+}
+
 /** Build ExportBranding from ReportConfig theme */
-function buildBranding(config: ReportConfig): ExportBranding {
-  const theme = getTheme(config);
+function buildBranding(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>): ExportBranding {
+  const theme = templateConfig ? getThemeFromTemplate(config, templateConfig) : getTheme(config);
   return {
     ...DEFAULT_AUDIT_BRANDING,
     orgName: config.headerTitle || DEFAULT_AUDIT_BRANDING.orgName,
@@ -241,17 +263,17 @@ async function generateDetailedPlanPdf(
   gapFunctions: any[], config: ReportConfig,
   planTemplateConfig?: ReturnType<typeof mapPlanOutput>
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ orientation: config.pageOrientation });
+  const doc = new jsPDF({ orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
-  const theme = getTheme(config);
+  const theme = getThemeFromTemplate(config, planTemplateConfig);
   const logoData = await getLogoBase64();
 
   // ===== A. COVER PAGE — delegates to unified primitives =====
   if (config.includeCoverPage) {
-    const branding = buildBranding(config);
+    const branding = buildBranding(config, planTemplateConfig);
     branding.logoBase64 = logoData;
     const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
     const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
@@ -571,7 +593,12 @@ async function generateDetailedPlanPdf(
     });
     y = (doc as any).lastAutoTable.finalY + 12;
 
-    // Recommendation box
+    // Recommendation box — check if enough space remains (need ~30pt)
+    if (y + 30 > ph - 30) {
+      doc.addPage();
+      addHeader(doc, 'Risk Coverage / Gap Analysis (cont.)', plan?.fiscal_year || '', version, config);
+      y = 50;
+    }
     doc.setFillColor(255, 248, 235);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'F');
     doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
