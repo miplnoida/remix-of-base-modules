@@ -456,18 +456,18 @@ async function generateDetailedPlanPdf(
     });
   }
 
-  // ===== D. ENGAGEMENT SCHEDULE — REDESIGNED =====
+  // ===== D. AUDIT SCHEDULE — REDESIGNED =====
   if (config.includeEngagementSchedule) {
     // Primary schedule summary table
     doc.addPage();
-    addHeader(doc, 'Engagement Schedule', plan?.fiscal_year || '', version, config);
+    addHeader(doc, 'Audit Schedule', plan?.fiscal_year || '', version, config);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Engagement Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
 
     // Clean summary table with readable columns
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Code', 'Engagement Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
+      head: [['#', 'Code', 'Audit Title', 'Department', 'Function', 'Risk', 'Lead Auditor', 'Q', 'Start', 'End', 'Days', 'Status']],
       body: engagements.map((e: any, i: number) => {
         const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
         const endDate = ef(e, 'planned_end_date', 'end_date', 'actual_end_date');
@@ -862,11 +862,11 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       } else if (artifactType === 'excel_annex') {
         const ExcelJS = (await import('exceljs')).default;
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Audit Engagements');
+        const sheet = workbook.addWorksheet('Audit Schedule');
         sheet.columns = [
           { header: '#', key: 'seq', width: 5 },
           { header: 'Code', key: 'code', width: 16 },
-          { header: 'Engagement Title', key: 'title', width: 35 },
+          { header: 'Audit Title', key: 'title', width: 35 },
           { header: 'Department', key: 'dept', width: 25 },
           { header: 'Function', key: 'func', width: 25 },
           { header: 'Risk', key: 'risk', width: 10 },

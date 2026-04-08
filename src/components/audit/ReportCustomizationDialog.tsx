@@ -181,7 +181,7 @@ export function ReportCustomizationDialog({
                 { key: 'includeCoverPage', label: 'Cover Page', always: false },
                 { key: 'includeExecutiveSummary', label: 'Executive Summary', always: false },
                 { key: 'includeRiskCoverage', label: 'Risk Coverage Summary', always: false },
-                { key: 'includeEngagementSchedule', label: 'Engagement Schedule', always: true },
+                { key: 'includeEngagementSchedule', label: 'Audit Schedule', always: true },
                 { key: 'includeResourceSummary', label: 'Resource Summary', always: false },
                 { key: 'includeAuditorBreakdown', label: 'Auditor Breakdown', always: false },
                 { key: 'includeQuarterBreakdown', label: 'Quarter Breakdown', always: false },

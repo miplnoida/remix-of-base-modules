@@ -102,7 +102,7 @@ export function AuditPlanTemplateEditor() {
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, titleOverride: e.target.value } }))
                 }
-                placeholder="e.g. Engagement Schedule"
+                placeholder="e.g. Audit Schedule"
               />
             </div>
             <div className="flex items-center justify-between">

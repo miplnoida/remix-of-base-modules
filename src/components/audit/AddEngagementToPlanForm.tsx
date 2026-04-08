@@ -152,7 +152,7 @@ export function AddEngagementToPlanForm({ planId, onSave, isSaving }: AddEngagem
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Engagement Title *</Label>
+          <Label>Audit Title *</Label>
           <Input value={form.engagement_name} onChange={e => setForm(f => ({ ...f, engagement_name: e.target.value }))} placeholder="e.g. IT Security Audit" />
         </div>
         <div>
