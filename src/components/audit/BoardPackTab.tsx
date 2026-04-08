@@ -16,6 +16,9 @@ import autoTable from 'jspdf-autotable';
 import { ReportCustomizationDialog, DEFAULT_REPORT_CONFIG, THEME_COLORS } from './ReportCustomizationDialog';
 import type { ReportConfig } from './ReportCustomizationDialog';
 import ssbLogoPng from '@/assets/ssb-logo.png';
+import { useAuditPlanTemplate } from '@/hooks/useAuditDocumentTemplates';
+import { resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
+import { mapPlanOutput } from '@/lib/audit/planOutputMapper';
 
 interface BoardPackTabProps {
   planId: string;
