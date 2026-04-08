@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AlertTriangle, MessageSquare, CheckCircle2, User, CalendarDays, FileText, Link2 } from 'lucide-react';
+import { getRiskColor } from '@/lib/audit/riskEngine';
 
 interface AuditFindingCardProps {
   finding: any;
@@ -14,12 +15,16 @@ interface AuditFindingCardProps {
   compact?: boolean;
 }
 
-const RISK_COLORS: Record<string, { border: string; bg: string; text: string; dot: string; headerBg: string }> = {
-  Critical: { border: 'border-l-red-600', bg: 'bg-red-50 dark:bg-red-950/20', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500', headerBg: 'bg-red-50/80 dark:bg-red-950/30' },
-  High: { border: 'border-l-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/20', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500', headerBg: 'bg-orange-50/80 dark:bg-orange-950/30' },
-  Medium: { border: 'border-l-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', headerBg: 'bg-amber-50/80 dark:bg-amber-950/30' },
-  Low: { border: 'border-l-green-500', bg: 'bg-green-50 dark:bg-green-950/20', text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500', headerBg: 'bg-green-50/80 dark:bg-green-950/30' },
-};
+// Derive presentational colors from configured risk color
+function buildFindingColors(level: string) {
+  const color = getRiskColor(level);
+  return {
+    borderColor: color,
+    dotColor: color,
+  };
+}
+
+const FALLBACK_COLORS = { borderColor: '#9ca3af', dotColor: '#9ca3af' };
 
 export function AuditFindingCard({ finding, index, responses = [], actions = [], compact = false }: AuditFindingCardProps) {
   const risk = finding.risk_rating || 'Unrated';
