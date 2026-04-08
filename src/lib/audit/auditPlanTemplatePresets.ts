@@ -117,6 +117,11 @@ export const PRESET_AUDIT_BLUE_MINIMAL: AuditPlanFullTemplateConfig = {
     position: 'bottom-center',
     pageBreakBetweenSections: true,
   },
+  pageLayout: {
+    pageSize: 'letter',
+    orientation: 'portrait',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+  },
   sections: buildSections({
     // Defaults are fine for this template — 14 enabled, 8 disabled
   }),
@@ -137,6 +142,9 @@ export const PRESET_AUDIT_BLUE_MINIMAL: AuditPlanFullTemplateConfig = {
     borderColor: '#D1D5DB',
     repeatHeaderOnPageBreak: true,
     fontSize: 'normal',
+    autoFitMode: 'auto_fit_window',
+    boldTotalRows: true,
+    cellPadding: 4,
   },
   typography: {
     fontFamily: 'Arial',
@@ -145,6 +153,12 @@ export const PRESET_AUDIT_BLUE_MINIMAL: AuditPlanFullTemplateConfig = {
     headingColor: '#1E3A5F',
     bodyColor: '#1A1A1A',
     lineHeight: 1.5,
+    h1Size: 16,
+    h2Size: 13,
+    h3Size: 11,
+    paragraphSpacingBefore: 0,
+    paragraphSpacingAfter: 6,
+    headingSizePreset: 'standard',
   },
   exportDefaults: {
     defaultFormat: 'pdf',
@@ -214,6 +228,11 @@ export const PRESET_GOVERNMENT_FORMAL: AuditPlanFullTemplateConfig = {
     position: 'bottom-center',
     pageBreakBetweenSections: true,
   },
+  pageLayout: {
+    pageSize: 'letter',
+    orientation: 'portrait',
+    margins: { top: 1.25, bottom: 1.25, left: 1.25, right: 1.25 },
+  },
   sections: buildSections({
     // Enable ALL sections for government formal
     audit_criteria: { enabled: true },
@@ -242,6 +261,9 @@ export const PRESET_GOVERNMENT_FORMAL: AuditPlanFullTemplateConfig = {
     borderColor: '#C4C9CF',
     repeatHeaderOnPageBreak: true,
     fontSize: 'normal',
+    autoFitMode: 'auto_fit_window',
+    boldTotalRows: true,
+    cellPadding: 5,
   },
   typography: {
     fontFamily: 'Times New Roman',
@@ -250,6 +272,12 @@ export const PRESET_GOVERNMENT_FORMAL: AuditPlanFullTemplateConfig = {
     headingColor: '#1B2838',
     bodyColor: '#111111',
     lineHeight: 1.6,
+    h1Size: 18,
+    h2Size: 14,
+    h3Size: 12,
+    paragraphSpacingBefore: 0,
+    paragraphSpacingAfter: 8,
+    headingSizePreset: 'spacious',
   },
   exportDefaults: {
     defaultFormat: 'pdf',
@@ -319,6 +347,11 @@ export const PRESET_PROFESSIONAL_MINIMAL: AuditPlanFullTemplateConfig = {
     position: 'bottom-right',
     pageBreakBetweenSections: false,
   },
+  pageLayout: {
+    pageSize: 'a4',
+    orientation: 'portrait',
+    margins: { top: 0.8, bottom: 0.8, left: 0.8, right: 0.8 },
+  },
   sections: buildSections({
     document_control: { enabled: false, inToc: false },
     approval_signoff: { label: 'Approval' },
@@ -352,6 +385,9 @@ export const PRESET_PROFESSIONAL_MINIMAL: AuditPlanFullTemplateConfig = {
     borderColor: '#E5E7EB',
     repeatHeaderOnPageBreak: true,
     fontSize: 'small',
+    autoFitMode: 'auto_fit_content',
+    boldTotalRows: false,
+    cellPadding: 3,
   },
   typography: {
     fontFamily: 'Calibri',
@@ -360,6 +396,12 @@ export const PRESET_PROFESSIONAL_MINIMAL: AuditPlanFullTemplateConfig = {
     headingColor: '#2C3E50',
     bodyColor: '#2C3E50',
     lineHeight: 1.4,
+    h1Size: 14,
+    h2Size: 12,
+    h3Size: 11,
+    paragraphSpacingBefore: 0,
+    paragraphSpacingAfter: 4,
+    headingSizePreset: 'compact',
   },
   exportDefaults: {
     defaultFormat: 'pdf',
@@ -429,6 +471,11 @@ export const PRESET_AUDIT_COMMITTEE_PACK: AuditPlanFullTemplateConfig = {
     position: 'bottom-center',
     pageBreakBetweenSections: true,
   },
+  pageLayout: {
+    pageSize: 'letter',
+    orientation: 'portrait',
+    margins: { top: 1, bottom: 1, left: 1.25, right: 1.25 },
+  },
   sections: buildSections({
     focus_areas: { label: 'Key Focus Areas' },
     methodology: { label: 'Audit Methodology' },
@@ -455,6 +502,9 @@ export const PRESET_AUDIT_COMMITTEE_PACK: AuditPlanFullTemplateConfig = {
     borderColor: '#C5CAE9',
     repeatHeaderOnPageBreak: true,
     fontSize: 'normal',
+    autoFitMode: 'auto_fit_window',
+    boldTotalRows: true,
+    cellPadding: 4,
   },
   typography: {
     fontFamily: 'Arial',
@@ -463,6 +513,12 @@ export const PRESET_AUDIT_COMMITTEE_PACK: AuditPlanFullTemplateConfig = {
     headingColor: '#1A237E',
     bodyColor: '#1A1A2E',
     lineHeight: 1.5,
+    h1Size: 16,
+    h2Size: 13,
+    h3Size: 11,
+    paragraphSpacingBefore: 0,
+    paragraphSpacingAfter: 6,
+    headingSizePreset: 'standard',
   },
   exportDefaults: {
     defaultFormat: 'pdf',
@@ -533,6 +589,11 @@ export const PRESET_WORKING_DRAFT: AuditPlanFullTemplateConfig = {
     position: 'bottom-right',
     pageBreakBetweenSections: false,
   },
+  pageLayout: {
+    pageSize: 'letter',
+    orientation: 'portrait',
+    margins: { top: 0.75, bottom: 0.75, left: 0.75, right: 0.75 },
+  },
   sections: buildSections({
     document_control: { enabled: false, inToc: false },
     approval_signoff: { enabled: false, label: 'Approval', inToc: false },
@@ -569,6 +630,9 @@ export const PRESET_WORKING_DRAFT: AuditPlanFullTemplateConfig = {
     borderColor: '#CFD8DC',
     repeatHeaderOnPageBreak: true,
     fontSize: 'small',
+    autoFitMode: 'auto_fit_content',
+    boldTotalRows: false,
+    cellPadding: 3,
   },
   typography: {
     fontFamily: 'Calibri',
@@ -577,6 +641,12 @@ export const PRESET_WORKING_DRAFT: AuditPlanFullTemplateConfig = {
     headingColor: '#455A64',
     bodyColor: '#37474F',
     lineHeight: 1.4,
+    h1Size: 14,
+    h2Size: 12,
+    h3Size: 10,
+    paragraphSpacingBefore: 0,
+    paragraphSpacingAfter: 3,
+    headingSizePreset: 'compact',
   },
   exportDefaults: {
     defaultFormat: 'pdf',
