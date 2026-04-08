@@ -285,6 +285,10 @@ export function AuditReportBuilderStudio() {
   };
 
   const { data: reportTemplateConfig } = useAuditReportTemplate();
+  const effectiveTemplateConfig = useMemo(
+    () => applyReportOverrides(reportTemplateConfig || DEFAULT_AUDIT_REPORT_CONFIG, reportOverrides),
+    [reportTemplateConfig, reportOverrides]
+  );
 
   if (showPreview) {
     return (
@@ -295,9 +299,12 @@ export function AuditReportBuilderStudio() {
         actions={engagementActions}
         engagement={selectedEngagement}
         departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
-        templateConfig={reportTemplateConfig}
+        templateConfig={effectiveTemplateConfig}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
+      />
+    );
+  }
       />
     );
   }
