@@ -40,8 +40,8 @@ export function useRiskRegister(filters?: { audit_universe_id?: string; status?:
 export function useRiskRegisterMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { getCreateFields, getUpdateFields } = useAuditFields();
-  const { calculateScore: calcScore, getRiskRating: getRating, engineConfig } = useRiskRatingCalculator();
+  const { getCreateFields, getUpdateFields, userCode } = useAuditFields();
+  const { calculateScore: calcScore, getRiskRating: getRating } = useRiskRatingCalculator();
 
   /** Compute score + level using centralized engine config */
   const computeScoreAndLevel = (likelihood: number, impact: number) => {
@@ -53,21 +53,46 @@ export function useRiskRegisterMutations() {
   const create = useMutation({
     mutationKey: ['Internal Audit', 'ia_risk_register', 'create'],
     mutationFn: async (risk: any) => {
-      const inherent = computeScoreAndLevel(risk.inherent_likelihood || 0, risk.inherent_impact || 0);
-      const residual = computeScoreAndLevel(risk.residual_likelihood || 0, risk.residual_impact || 0);
       const sanitized = Object.fromEntries(
         Object.entries(risk).map(([k, v]) => [k, v === '' ? null : v])
       );
-      const { data, error } = await supabase
-        .from('ia_risk_register' as any)
-        .insert({
-          ...sanitized,
+
+      // If caller provides override fields, honour them; otherwise compute
+      const isOverride = !!sanitized.is_score_overridden;
+      let scoreFields: Record<string, any>;
+
+      if (isOverride) {
+        // Manual override — require justification
+        if (!sanitized.override_justification) {
+          throw new Error('Override justification is required when manually overriding risk scores.');
+        }
+        scoreFields = {
+          inherent_risk_score: sanitized.inherent_risk_score,
+          inherent_risk_level: sanitized.inherent_risk_level,
+          residual_risk_score: sanitized.residual_risk_score,
+          residual_risk_level: sanitized.residual_risk_level,
+          is_score_overridden: true,
+          override_justification: sanitized.override_justification,
+          override_by: userCode || 'SYSTEM',
+          override_at: new Date().toISOString(),
+          override_approved_by: null,
+          override_approved_at: null,
+        };
+      } else {
+        const inherent = computeScoreAndLevel(sanitized.inherent_likelihood || 0, sanitized.inherent_impact || 0);
+        const residual = computeScoreAndLevel(sanitized.residual_likelihood || 0, sanitized.residual_impact || 0);
+        scoreFields = {
           inherent_risk_score: inherent.score,
           inherent_risk_level: inherent.level,
           residual_risk_score: residual.score,
           residual_risk_level: residual.level,
-          ...getCreateFields(),
-        })
+          is_score_overridden: false,
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('ia_risk_register' as any)
+        .insert({ ...sanitized, ...scoreFields, ...getCreateFields() })
         .select()
         .single();
       if (error) throw error;
@@ -88,18 +113,47 @@ export function useRiskRegisterMutations() {
       const sanitized = Object.fromEntries(
         Object.entries(updates).map(([k, v]) => [k, v === '' ? null : v])
       );
-      const inherent = computeScoreAndLevel(sanitized.inherent_likelihood || 0, sanitized.inherent_impact || 0);
-      const residual = computeScoreAndLevel(sanitized.residual_likelihood || 0, sanitized.residual_impact || 0);
-      const { data, error } = await supabase
-        .from('ia_risk_register' as any)
-        .update({
-          ...sanitized,
+
+      const isOverride = !!sanitized.is_score_overridden;
+      let scoreFields: Record<string, any>;
+
+      if (isOverride) {
+        if (!sanitized.override_justification) {
+          throw new Error('Override justification is required when manually overriding risk scores.');
+        }
+        scoreFields = {
+          inherent_risk_score: sanitized.inherent_risk_score,
+          inherent_risk_level: sanitized.inherent_risk_level,
+          residual_risk_score: sanitized.residual_risk_score,
+          residual_risk_level: sanitized.residual_risk_level,
+          is_score_overridden: true,
+          override_justification: sanitized.override_justification,
+          override_by: userCode || 'SYSTEM',
+          override_at: new Date().toISOString(),
+          // Approval is NOT auto-granted — must be set separately
+          override_approved_by: sanitized.override_approved_by || null,
+          override_approved_at: sanitized.override_approved_at || null,
+        };
+      } else {
+        const inherent = computeScoreAndLevel(sanitized.inherent_likelihood || 0, sanitized.inherent_impact || 0);
+        const residual = computeScoreAndLevel(sanitized.residual_likelihood || 0, sanitized.residual_impact || 0);
+        scoreFields = {
           inherent_risk_score: inherent.score,
           inherent_risk_level: inherent.level,
           residual_risk_score: residual.score,
           residual_risk_level: residual.level,
-          ...getUpdateFields(),
-        })
+          is_score_overridden: false,
+          override_justification: null,
+          override_by: null,
+          override_at: null,
+          override_approved_by: null,
+          override_approved_at: null,
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('ia_risk_register' as any)
+        .update({ ...sanitized, ...scoreFields, ...getUpdateFields() })
         .eq('id', id)
         .select()
         .single();
@@ -133,7 +187,70 @@ export function useRiskRegisterMutations() {
     },
   });
 
-  return { create, update, remove };
+  /** Approve a pending score override */
+  const approveOverride = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_register', 'approve_override'],
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('ia_risk_register' as any)
+        .update({
+          override_approved_by: userCode || 'SYSTEM',
+          override_approved_at: new Date().toISOString(),
+          ...getUpdateFields(),
+        })
+        .eq('id', id)
+        .eq('is_score_overridden', true)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_register'] });
+      toast({ title: 'Override Approved', description: 'Risk score override has been approved.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  /** Reject/clear an override — recalculates using engine */
+  const rejectOverride = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_register', 'reject_override'],
+    mutationFn: async ({ id, currentRisk }: { id: string; currentRisk: any }) => {
+      const inherent = computeScoreAndLevel(currentRisk.inherent_likelihood || 0, currentRisk.inherent_impact || 0);
+      const residual = computeScoreAndLevel(currentRisk.residual_likelihood || 0, currentRisk.residual_impact || 0);
+      const { data, error } = await supabase
+        .from('ia_risk_register' as any)
+        .update({
+          inherent_risk_score: inherent.score,
+          inherent_risk_level: inherent.level,
+          residual_risk_score: residual.score,
+          residual_risk_level: residual.level,
+          is_score_overridden: false,
+          override_justification: null,
+          override_by: null,
+          override_at: null,
+          override_approved_by: null,
+          override_approved_at: null,
+          ...getUpdateFields(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ia_risk_register'] });
+      toast({ title: 'Override Rejected', description: 'Risk score recalculated using standard formula.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  return { create, update, remove, approveOverride, rejectOverride };
 }
 
 // ============= MITIGATION ACTIONS =============
