@@ -19,8 +19,8 @@ export function useAuditDocumentTemplate<T = AuditReportTemplateConfig | AuditPl
   return useQuery({
     queryKey: ['ia_document_template_settings', templateType],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ia_document_template_settings' as any)
+      const { data, error } = await (supabase as any)
+        .from('ia_document_template_settings')
         .select('config_json')
         .eq('template_type', templateType)
         .maybeSingle();
@@ -30,13 +30,14 @@ export function useAuditDocumentTemplate<T = AuditReportTemplateConfig | AuditPl
         return getDefault(templateType) as T;
       }
 
-      if (!data || !data.config_json) {
+      const row = data as { config_json: Record<string, any> } | null;
+      if (!row || !row.config_json) {
         return getDefault(templateType) as T;
       }
 
       // Deep merge with defaults to ensure new keys are present
       const defaults = getDefault(templateType);
-      return { ...defaults, ...(data.config_json as any) } as T;
+      return { ...defaults, ...row.config_json } as T;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -63,13 +64,13 @@ export function useAuditDocumentTemplateMutation() {
       configJson: Record<string, any>;
       updatedBy: string;
     }) => {
-      const { data, error } = await supabase
-        .from('ia_document_template_settings' as any)
+      const { data, error } = await (supabase as any)
+        .from('ia_document_template_settings')
         .update({
           config_json: configJson,
           updated_by: updatedBy,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq('template_type', templateType)
         .select()
         .single();
