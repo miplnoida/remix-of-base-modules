@@ -14782,6 +14782,7 @@ export type Database = {
           payer_id: string
           payer_type: string
           payment_id: number
+          payment_reference_id: string | null
           remarks: string | null
           status: string | null
         }
@@ -14792,6 +14793,7 @@ export type Database = {
           payer_id: string
           payer_type: string
           payment_id?: number
+          payment_reference_id?: string | null
           remarks?: string | null
           status?: string | null
         }
@@ -14802,6 +14804,7 @@ export type Database = {
           payer_id?: string
           payer_type?: string
           payment_id?: number
+          payment_reference_id?: string | null
           remarks?: string | null
           status?: string | null
         }
