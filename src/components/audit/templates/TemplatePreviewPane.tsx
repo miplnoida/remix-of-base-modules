@@ -258,6 +258,37 @@ function PlanPreview({
         {/* Accent divider */}
         <div className="h-0.5" style={{ backgroundColor: secondaryColor }} />
 
+        {/* TOC Preview */}
+        {toc?.enabled && (
+          <>
+            <div className="px-4 py-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: primaryColor }}>
+                {toc.title}
+              </p>
+              <div className="space-y-0.5">
+                {[
+                  { label: 'Executive Summary', page: '1' },
+                  { label: 'Audit Objective', page: '2' },
+                  { label: 'Risk Assessment', page: '4' },
+                  { label: 'Resource Plan', page: '6' },
+                ].map((entry, i) => (
+                  <div key={i} className="flex items-baseline text-[9px]">
+                    <span>{entry.label}</span>
+                    {toc.showLeaderDots && (
+                      <span className="flex-1 mx-1 border-b border-dotted border-muted-foreground/40 min-w-[16px]" />
+                    )}
+                    {!toc.showLeaderDots && <span className="flex-1" />}
+                    {toc.showPageNumbers && (
+                      <span className="text-muted-foreground tabular-nums">{entry.page}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
         {/* Summary */}
         <div className="px-4 py-3">
           <p className="text-xs font-semibold mb-2" style={{ color: primaryColor }}>
