@@ -16,6 +16,9 @@ import autoTable from 'jspdf-autotable';
 import { ReportCustomizationDialog, DEFAULT_REPORT_CONFIG, THEME_COLORS } from './ReportCustomizationDialog';
 import type { ReportConfig } from './ReportCustomizationDialog';
 import ssbLogoPng from '@/assets/ssb-logo.png';
+import { useAuditPlanTemplate } from '@/hooks/useAuditDocumentTemplates';
+import { resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
+import { mapPlanOutput } from '@/lib/audit/planOutputMapper';
 
 interface BoardPackTabProps {
   planId: string;
@@ -302,7 +305,8 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 // ===== DETAILED PLAN PDF (REDESIGNED) =====
 async function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
-  gapFunctions: any[], config: ReportConfig
+  gapFunctions: any[], config: ReportConfig,
+  planTemplateConfig?: ReturnType<typeof mapPlanOutput>
 ): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: config.pageOrientation });
   const pw = doc.internal.pageSize.getWidth();
@@ -346,17 +350,21 @@ async function generateDetailedPlanPdf(
     doc.setFont(undefined as any, 'normal');
     doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 112, { align: 'center' });
 
-    // Main title — use splitTextToSize to prevent overlap
+    // Main title — use template config if available
+    const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
     doc.setFontSize(26);
     doc.setFont(undefined as any, 'bold');
     const titleY = ph * 0.40;
-    doc.text('Annual Internal', pw / 2, titleY, { align: 'center' });
-    doc.text('Audit Plan', pw / 2, titleY + 16, { align: 'center' });
+    const coverTitleLines = coverTitle.split('\n');
+    coverTitleLines.forEach((line: string, idx: number) => {
+      doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
+    });
 
-    // Fiscal year
+    // Fiscal year — use template config display if available
+    const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
     doc.setFontSize(16);
     doc.setFont(undefined as any, 'normal');
-    doc.text(`Fiscal Year ${dv(plan?.fiscal_year, 'N/A')}`, pw / 2, titleY + 40, { align: 'center' });
+    doc.text(`Fiscal Year ${fyDisplay}`, pw / 2, titleY + coverTitleLines.length * 16 + 24, { align: 'center' });
 
     // Metadata block — positioned with more breathing room
     const metaY = ph * 0.65;
@@ -723,15 +731,19 @@ async function generateDetailedPlanPdf(
       y += 30;
     }
 
-    y = addKvTable(doc, y, [
-      ['Board / Audit Committee', dv(plan?.board_committee_name, 'Not yet specified')],
+    const govRows: [string, string][] = [];
+    if (planTemplateConfig?.governance.showBoardLine !== false) {
+      govRows.push(['Board / Audit Committee', dv(plan?.board_committee_name, 'Not yet specified')]);
+    }
+    govRows.push(
       ['Minutes Reference', dv(plan?.minutes_reference)],
       ['Approval Note', dv(plan?.approval_note || plan?.approval_comments)],
       ['Submitted By', dv(plan?.submitted_by, isPending ? 'Pending' : '')],
       ['Submitted Date', plan?.submitted_date ? formatDateForDisplay(plan.submitted_date) : (isPending ? 'Pending' : '')],
       ['Approved By', dv(plan?.approved_by, isPending ? 'Pending' : '')],
       ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : (isPending ? 'Pending' : '')],
-    ], theme);
+    );
+    y = addKvTable(doc, y, govRows, theme);
 
     // Sign-off placeholders
     y += 10;
@@ -740,16 +752,20 @@ async function generateDetailedPlanPdf(
     doc.setFont(undefined as any, 'normal');
 
     const signoffY = y + 20;
+    const prepLabel = planTemplateConfig?.governance.preparedByLabel || 'Prepared By';
+    const apprLabel = planTemplateConfig?.governance.approvedByLabel || 'Approved By';
     // Prepared by
-    doc.text('Prepared By:', 20, signoffY);
+    doc.text(`${prepLabel}:`, 20, signoffY);
     doc.line(60, signoffY + 1, 120, signoffY + 1);
     doc.text('Date:', 130, signoffY);
     doc.line(145, signoffY + 1, pw - 20, signoffY + 1);
     // Approved by
-    doc.text('Approved By:', 20, signoffY + 20);
-    doc.line(60, signoffY + 21, 120, signoffY + 21);
-    doc.text('Date:', 130, signoffY + 20);
-    doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+    if (planTemplateConfig?.governance.showApprovedByBlock !== false) {
+      doc.text(`${apprLabel}:`, 20, signoffY + 20);
+      doc.line(60, signoffY + 21, 120, signoffY + 21);
+      doc.text('Date:', 130, signoffY + 20);
+      doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+    }
   }
 
   addFooter(doc, version, artVersion, plan?.status, config);
@@ -766,10 +782,14 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const { data: functions = [] } = useIADepartmentFunctions('all');
   const { data: auditors = [] } = useIAActiveAuditors();
   const { data: assessments = [] } = useIARiskAssessments();
+  const { data: planTemplateConfig } = useAuditPlanTemplate();
   const [generating, setGenerating] = useState<string | null>(null);
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
   const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
+
+  // Resolve plan template for PDF generation
+  const resolvedPlanTemplate = planTemplateConfig ? mapPlanOutput(resolvePlanTemplate(planTemplateConfig), plan) : undefined;
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
@@ -822,7 +842,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
-          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg);
+          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, resolvedPlanTemplate);
 
         const pdfBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });

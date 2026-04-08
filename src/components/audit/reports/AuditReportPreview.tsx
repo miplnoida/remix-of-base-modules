@@ -7,8 +7,9 @@ import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AuditFindingCard } from './AuditFindingCard';
 import { generateAuditReportPDF } from './AuditReportPDFExport';
-import { resolveReportTemplate, type ResolvedReportOutput } from '@/lib/audit/documentTemplateResolver';
+import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
+import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 import logo from '@/assets/stkitts-logo.png';
 
 interface AuditReportPreviewProps {
@@ -35,6 +36,7 @@ export function AuditReportPreview({
 }: AuditReportPreviewProps) {
   const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   const resolved = resolveReportTemplate(config, reportData.status);
+  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
@@ -43,9 +45,235 @@ export function AuditReportPreview({
     generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config });
   };
 
-  // Section numbering
+  // Section numbering — driven by mapped output
   let sectionNum = 0;
   const nextSection = () => ++sectionNum;
+
+  // Build section renderers keyed by ID
+  const sectionRenderers: Record<string, () => React.ReactNode> = {
+    executive_summary: () => reportData.executive_summary ? (
+      <div key="executive_summary">
+        <SectionHeading number={nextSection()}>Executive Summary</SectionHeading>
+        {reportData.overall_assessment && (
+          <div className="mb-4"><OpinionIndicator opinion={reportData.overall_assessment} /></div>
+        )}
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.executive_summary}</p>
+      </div>
+    ) : null,
+
+    background: () => reportData.background ? (
+      <div key="background">
+        <SectionHeading number={nextSection()}>Audit Background</SectionHeading>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.background}</p>
+      </div>
+    ) : null,
+
+    objective: () => reportData.audit_objective ? (
+      <div key="objective">
+        <SectionHeading number={nextSection()}>Audit Objective</SectionHeading>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.audit_objective}</p>
+      </div>
+    ) : null,
+
+    scope: () => reportData.audit_scope ? (
+      <div key="scope">
+        <SectionHeading number={nextSection()}>Scope</SectionHeading>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.audit_scope}</p>
+      </div>
+    ) : null,
+
+    methodology: () => reportData.methodology ? (
+      <div key="methodology">
+        <SectionHeading number={nextSection()}>Methodology</SectionHeading>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.methodology}</p>
+      </div>
+    ) : null,
+
+    risk_overview: () => (reportData.risk_rating || findings.length > 0) ? (
+      <div key="risk_overview">
+        <SectionHeading number={nextSection()}>Risk Overview</SectionHeading>
+        {findings.length > 0 && (
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            {['Critical', 'High', 'Medium', 'Low'].map((level) => {
+              const count = findings.filter((f: any) => f.risk_rating === level).length;
+              const colors: Record<string, string> = {
+                Critical: 'border-red-300 bg-red-50 text-red-800 print:bg-white print:text-red-700',
+                High: 'border-orange-300 bg-orange-50 text-orange-800 print:bg-white print:text-orange-700',
+                Medium: 'border-amber-300 bg-amber-50 text-amber-800 print:bg-white print:text-amber-700',
+                Low: 'border-green-300 bg-green-50 text-green-800 print:bg-white print:text-green-700',
+              };
+              return (
+                <div key={level} className={`rounded-lg border-2 p-3 text-center ${colors[level]}`}>
+                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-xs font-semibold">{level}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {reportData.risk_rating && <p className="text-sm leading-relaxed">{reportData.risk_rating}</p>}
+      </div>
+    ) : null,
+
+    key_findings: () => findings.length > 0 ? (
+      <div key="key_findings">
+        <SectionHeading number={nextSection()}>Key Findings Snapshot</SectionHeading>
+        <div className="rounded-lg border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#0E5F3A] text-white text-xs">
+                <th className="text-left p-2.5 font-medium">#</th>
+                <th className="text-left p-2.5 font-medium">Finding</th>
+                <th className="text-left p-2.5 font-medium">Risk Rating</th>
+                <th className="text-left p-2.5 font-medium">Impact Area</th>
+                <th className="text-left p-2.5 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {findings.map((f: any, i: number) => (
+                <tr key={f.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
+                  <td className="p-2.5 font-bold">{i + 1}</td>
+                  <td className="p-2.5 font-medium">{f.title || 'Untitled'}</td>
+                  <td className="p-2.5"><Badge variant="outline" className="text-xs">{f.risk_rating || '—'}</Badge></td>
+                  <td className="p-2.5 text-xs">{f.impact_area || '—'}</td>
+                  <td className="p-2.5"><StatusBadge status={f.status || 'Open'} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : null,
+
+    detailed_findings: () => findings.length > 0 ? (
+      <div key="detailed_findings">
+        <SectionHeading number={nextSection()}>Detailed Findings</SectionHeading>
+        <div className="space-y-5">
+          {findings.map((f: any, i: number) => {
+            const findingResponses = mapped.showInlineManagementResponse
+              ? responses.filter((r: any) => r.finding_id === f.id)
+              : [];
+            return (
+              <div key={f.id}>
+                <AuditFindingCard finding={f} index={i + 1} responses={mapped.showInlineManagementResponse ? findingResponses : []} actions={actions} />
+                {mapped.showInlineManagementResponse && findingResponses.length > 0 && (
+                  <div className="ml-4 mt-2 space-y-2">
+                    {findingResponses.map((r: any) => (
+                      <div key={r.id} className="border-l-4 border-l-blue-400 pl-4 py-2 print:border-l-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase">Management Response</p>
+                        <p className="text-sm leading-relaxed mt-1">{r.response_text || '—'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : null,
+
+    management_responses: () => responses.length > 0 ? (
+      <div key="management_responses">
+        <SectionHeading number={nextSection()}>Management Responses</SectionHeading>
+        <div className="space-y-3">
+          {responses.map((r: any, i: number) => {
+            const finding = findings.find((f: any) => f.id === r.finding_id);
+            return (
+              <div key={r.id} className="border-l-4 border-l-blue-400 pl-4 py-3 print:border-l-2">
+                <p className="text-sm font-semibold">{finding?.title || `Response ${i + 1}`}</p>
+                <p className="text-sm leading-relaxed mt-1">{r.response_text || '—'}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : null,
+
+    action_plan: () => actions.length > 0 ? (
+      <div key="action_plan">
+        <SectionHeading number={nextSection()}>Agreed Action Plan</SectionHeading>
+        <div className="rounded-lg border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#0E5F3A] text-white text-xs">
+                <th className="text-left p-2.5 font-medium">#</th>
+                {mapped.actionPlanColumnKeys.includes('finding') && <th className="text-left p-2.5 font-medium">Finding</th>}
+                {mapped.actionPlanColumnKeys.includes('action') && <th className="text-left p-2.5 font-medium">Action</th>}
+                {mapped.actionPlanColumnKeys.includes('owner') && <th className="text-left p-2.5 font-medium">Owner</th>}
+                {mapped.actionPlanColumnKeys.includes('due_date') && <th className="text-left p-2.5 font-medium">Due Date</th>}
+                {mapped.actionPlanColumnKeys.includes('status') && <th className="text-left p-2.5 font-medium">Status</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {actions.map((a: any, i: number) => {
+                const finding = findings.find((f: any) => f.id === a.finding_id);
+                return (
+                  <tr key={a.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
+                    <td className="p-2.5 font-medium">{i + 1}</td>
+                    {mapped.actionPlanColumnKeys.includes('finding') && <td className="p-2.5">{finding?.title || '—'}</td>}
+                    {mapped.actionPlanColumnKeys.includes('action') && <td className="p-2.5">{a.action_description || '—'}</td>}
+                    {mapped.actionPlanColumnKeys.includes('owner') && <td className="p-2.5">{a.responsible_person || '—'}</td>}
+                    {mapped.actionPlanColumnKeys.includes('due_date') && <td className="p-2.5">{a.target_date ? formatDateForDisplay(a.target_date) : '—'}</td>}
+                    {mapped.actionPlanColumnKeys.includes('status') && <td className="p-2.5"><StatusBadge status={a.status || 'Open'} /></td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : null,
+
+    conclusion: () => (reportData.conclusion || reportData.follow_up_actions) ? (
+      <div key="conclusion">
+        <SectionHeading number={nextSection()}>Conclusion</SectionHeading>
+        {reportData.conclusion && <p className="text-sm leading-relaxed whitespace-pre-wrap mb-4">{reportData.conclusion}</p>}
+        {reportData.follow_up_actions && (
+          <div className="rounded-lg border bg-muted/20 p-4 print:bg-gray-50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Follow-up Expectations</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.follow_up_actions}</p>
+          </div>
+        )}
+      </div>
+    ) : null,
+
+    distribution: () => reportData.distribution_list ? (
+      <div key="distribution">
+        <SectionHeading number={nextSection()}>Distribution</SectionHeading>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.distribution_list}</p>
+      </div>
+    ) : null,
+
+    approval: () => (
+      <div key="approval">
+        <SectionHeading number={nextSection()}>Approval & Sign-off</SectionHeading>
+        <div className="grid gap-12 mt-8">
+          {resolved.signatories.map((sig) => {
+            const name = sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
+                         sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
+                         sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
+                         sig.defaultName;
+            return (
+              <div key={sig.label}>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
+                <div className="mt-8 border-t border-foreground/40 w-72" />
+                <p className="text-sm font-semibold mt-2">{name || '—'}</p>
+                <p className="text-xs text-muted-foreground">{sig.roleTitle}</p>
+                <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ),
+  };
+
+  // Build TOC from ordered sections
+  const tocItems = mapped.orderedSections.map((id, i) => {
+    const section = resolved.sections.find((s) => s.id === id);
+    return `${i + 1}. ${section?.label || id}`;
+  });
 
   return (
     <div className="min-h-screen bg-muted/30 print:bg-white">
@@ -122,13 +350,11 @@ export function AuditReportPreview({
                 )}
               </div>
 
+              {/* Cover metadata in configured order */}
               <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm mt-4 max-w-md">
-                <CoverMeta label="Fiscal Year" value={reportData.fiscal_year} />
-                <CoverMeta label="Department" value={departmentName || '—'} />
-                <CoverMeta label="Report Number" value={reportData.report_number || '—'} />
-                <CoverMeta label="Date" value={reportDate} />
-                <CoverMeta label="Prepared By" value={reportData.prepared_by || '—'} />
-                <CoverMeta label="Version" value={isFinal ? 'Final' : 'Draft'} />
+                {mapped.coverMetadata.map((meta) => (
+                  <CoverMeta key={meta.label} label={meta.label} value={meta.value} />
+                ))}
               </div>
             </div>
 
@@ -146,10 +372,10 @@ export function AuditReportPreview({
         <PageBreak />
 
         {/* ─── TABLE OF CONTENTS ─── */}
-        <ReportPage isDraft={isDraft}>
+        <ReportPage isDraft={isDraft} watermarkText={resolved.showWatermark ? resolved.watermarkText : undefined}>
           <SectionHeading>Table of Contents</SectionHeading>
           <div className="space-y-1.5 text-sm">
-            {buildTOC(reportData, findings, responses, actions).map((item, i) => (
+            {tocItems.map((item, i) => (
               <div key={i} className="flex items-center justify-between py-1.5 border-b border-dotted border-muted-foreground/20">
                 <span className="font-medium">{item}</span>
               </div>
@@ -159,232 +385,24 @@ export function AuditReportPreview({
 
         <PageBreak />
 
-        {/* ─── REPORT BODY ─── */}
-        <ReportPage isDraft={isDraft}>
+        {/* ─── REPORT BODY — Sections rendered in configured order ─── */}
+        <ReportPage isDraft={isDraft} watermarkText={resolved.showWatermark ? resolved.watermarkText : undefined}>
           <div className="space-y-10">
-            {/* Executive Summary */}
-            {reportData.executive_summary && (
-              <div>
-                <SectionHeading number={nextSection()}>Executive Summary</SectionHeading>
-                {reportData.overall_assessment && (
-                  <div className="mb-4">
-                    <OpinionIndicator opinion={reportData.overall_assessment} />
-                  </div>
-                )}
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.executive_summary}</p>
-              </div>
+            {mapped.orderedSections.map((sectionId) => {
+              const renderer = sectionRenderers[sectionId];
+              return renderer ? renderer() : null;
+            })}
+          </div>
+
+          {/* Page Footer */}
+          <div className="pt-10 border-t mt-10 text-center space-y-1 print:mt-0">
+            <div className="h-0.5 bg-[#0E5F3A] mb-3" />
+            <p className="text-[10px] text-muted-foreground">{resolved.branding.orgName} · {resolved.branding.address}</p>
+            <p className="text-[10px] text-muted-foreground">Internal Audit Department</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">CONFIDENTIAL — For Authorized Recipients Only</p>
+            {reportData.report_number && (
+              <p className="text-[10px] text-muted-foreground">Ref: {reportData.report_number}</p>
             )}
-
-            {/* Background */}
-            {reportData.background && (
-              <div>
-                <SectionHeading number={nextSection()}>Audit Background</SectionHeading>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.background}</p>
-              </div>
-            )}
-
-            {/* Objective */}
-            {reportData.audit_objective && (
-              <div>
-                <SectionHeading number={nextSection()}>Audit Objective</SectionHeading>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.audit_objective}</p>
-              </div>
-            )}
-
-            {/* Scope */}
-            {reportData.audit_scope && (
-              <div>
-                <SectionHeading number={nextSection()}>Scope</SectionHeading>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.audit_scope}</p>
-              </div>
-            )}
-
-            {/* Methodology */}
-            {reportData.methodology && (
-              <div>
-                <SectionHeading number={nextSection()}>Methodology</SectionHeading>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.methodology}</p>
-              </div>
-            )}
-
-            {/* Risk Overview */}
-            {(reportData.risk_rating || findings.length > 0) && (
-              <div>
-                <SectionHeading number={nextSection()}>Risk Overview</SectionHeading>
-                {findings.length > 0 && (
-                  <div className="grid grid-cols-4 gap-3 mb-4">
-                    {['Critical', 'High', 'Medium', 'Low'].map((level) => {
-                      const count = findings.filter((f: any) => f.risk_rating === level).length;
-                      const colors: Record<string, string> = {
-                        Critical: 'border-red-300 bg-red-50 text-red-800 print:bg-white print:text-red-700',
-                        High: 'border-orange-300 bg-orange-50 text-orange-800 print:bg-white print:text-orange-700',
-                        Medium: 'border-amber-300 bg-amber-50 text-amber-800 print:bg-white print:text-amber-700',
-                        Low: 'border-green-300 bg-green-50 text-green-800 print:bg-white print:text-green-700',
-                      };
-                      return (
-                        <div key={level} className={`rounded-lg border-2 p-3 text-center ${colors[level]}`}>
-                          <p className="text-2xl font-bold">{count}</p>
-                          <p className="text-xs font-semibold">{level}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {reportData.risk_rating && <p className="text-sm leading-relaxed">{reportData.risk_rating}</p>}
-              </div>
-            )}
-
-            {/* Key Findings Snapshot */}
-            {findings.length > 0 && (
-              <div>
-                <SectionHeading number={nextSection()}>Key Findings Snapshot</SectionHeading>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#0E5F3A] text-white text-xs">
-                        <th className="text-left p-2.5 font-medium">#</th>
-                        <th className="text-left p-2.5 font-medium">Finding</th>
-                        <th className="text-left p-2.5 font-medium">Risk Rating</th>
-                        <th className="text-left p-2.5 font-medium">Impact Area</th>
-                        <th className="text-left p-2.5 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {findings.map((f: any, i: number) => (
-                        <tr key={f.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
-                          <td className="p-2.5 font-bold">{i + 1}</td>
-                          <td className="p-2.5 font-medium">{f.title || 'Untitled'}</td>
-                          <td className="p-2.5"><Badge variant="outline" className="text-xs">{f.risk_rating || '—'}</Badge></td>
-                          <td className="p-2.5 text-xs">{f.impact_area || '—'}</td>
-                          <td className="p-2.5"><StatusBadge status={f.status || 'Open'} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Detailed Findings */}
-            {findings.length > 0 && (
-              <div>
-                <SectionHeading number={nextSection()}>Detailed Findings</SectionHeading>
-                <div className="space-y-5">
-                  {findings.map((f: any, i: number) => (
-                    <AuditFindingCard key={f.id} finding={f} index={i + 1} responses={responses} actions={actions} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Management Responses */}
-            {responses.length > 0 && (
-              <div>
-                <SectionHeading number={nextSection()}>Management Responses</SectionHeading>
-                <div className="space-y-3">
-                  {responses.map((r: any, i: number) => {
-                    const finding = findings.find((f: any) => f.id === r.finding_id);
-                    return (
-                      <div key={r.id} className="border-l-4 border-l-blue-400 pl-4 py-3 print:border-l-2">
-                        <p className="text-sm font-semibold">{finding?.title || `Response ${i + 1}`}</p>
-                        <p className="text-sm leading-relaxed mt-1">{r.response_text || '—'}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Agreed Action Plan */}
-            {actions.length > 0 && (
-              <div>
-                <SectionHeading number={nextSection()}>Agreed Action Plan</SectionHeading>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#0E5F3A] text-white text-xs">
-                        <th className="text-left p-2.5 font-medium">#</th>
-                        <th className="text-left p-2.5 font-medium">Finding</th>
-                        <th className="text-left p-2.5 font-medium">Action</th>
-                        <th className="text-left p-2.5 font-medium">Owner</th>
-                        <th className="text-left p-2.5 font-medium">Due Date</th>
-                        <th className="text-left p-2.5 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {actions.map((a: any, i: number) => {
-                        const finding = findings.find((f: any) => f.id === a.finding_id);
-                        return (
-                          <tr key={a.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
-                            <td className="p-2.5 font-medium">{i + 1}</td>
-                            <td className="p-2.5">{finding?.title || '—'}</td>
-                            <td className="p-2.5">{a.action_description || '—'}</td>
-                            <td className="p-2.5">{a.responsible_person || '—'}</td>
-                            <td className="p-2.5">{a.target_date ? formatDateForDisplay(a.target_date) : '—'}</td>
-                            <td className="p-2.5"><StatusBadge status={a.status || 'Open'} /></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Conclusion */}
-            {(reportData.conclusion || reportData.follow_up_actions) && (
-              <div>
-                <SectionHeading number={nextSection()}>Conclusion</SectionHeading>
-                {reportData.conclusion && <p className="text-sm leading-relaxed whitespace-pre-wrap mb-4">{reportData.conclusion}</p>}
-                {reportData.follow_up_actions && (
-                  <div className="rounded-lg border bg-muted/20 p-4 print:bg-gray-50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Follow-up Expectations</p>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.follow_up_actions}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Distribution */}
-            {reportData.distribution_list && (
-              <div>
-                <SectionHeading number={nextSection()}>Distribution</SectionHeading>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{reportData.distribution_list}</p>
-              </div>
-            )}
-
-            {/* Signatures */}
-            <div>
-              <SectionHeading number={nextSection()}>Approval & Sign-off</SectionHeading>
-              <div className="grid gap-12 mt-8">
-                {resolved.signatories.map((sig) => {
-                  const name = sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
-                               sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
-                               sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
-                               sig.defaultName;
-                  return (
-                    <div key={sig.label}>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sig.label}</p>
-                      <div className="mt-8 border-t border-foreground/40 w-72" />
-                      <p className="text-sm font-semibold mt-2">{name || '—'}</p>
-                      <p className="text-xs text-muted-foreground">{sig.roleTitle}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Date: _______________</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Page Footer */}
-            <div className="pt-10 border-t mt-10 text-center space-y-1 print:mt-0">
-              <div className="h-0.5 bg-[#0E5F3A] mb-3" />
-              <p className="text-[10px] text-muted-foreground">Social Security Board · Bay Road, P.O. Box 79, Basseterre, St. Kitts</p>
-              <p className="text-[10px] text-muted-foreground">Internal Audit Department</p>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">CONFIDENTIAL — For Authorized Recipients Only</p>
-              {reportData.report_number && (
-                <p className="text-[10px] text-muted-foreground">Ref: {reportData.report_number}</p>
-              )}
-            </div>
           </div>
         </ReportPage>
       </div>
@@ -394,12 +412,12 @@ export function AuditReportPreview({
 
 // ─── Helper Components ───
 
-function ReportPage({ children, isDraft }: { children: React.ReactNode; isDraft: boolean }) {
+function ReportPage({ children, isDraft, watermarkText }: { children: React.ReactNode; isDraft: boolean; watermarkText?: string }) {
   return (
     <div className="bg-white dark:bg-background shadow-lg print:shadow-none rounded-lg print:rounded-none overflow-hidden relative">
-      {isDraft && (
+      {isDraft && watermarkText && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">DRAFT</p>
+          <p className="text-[100px] font-bold text-gray-300/[0.12] -rotate-45 select-none tracking-widest">{watermarkText}</p>
         </div>
       )}
       <div className="relative z-20 p-12 print:p-8">{children}</div>
@@ -445,25 +463,4 @@ function OpinionIndicator({ opinion }: { opinion: string }) {
       <span className={`text-sm font-bold ${style.text}`}>Overall Assessment: {opinion}</span>
     </div>
   );
-}
-
-function buildTOC(reportData: any, findings: any[], responses: any[], actions: any[]): string[] {
-  const items: string[] = [];
-  let n = 0;
-  if (reportData.executive_summary) items.push(`${++n}. Executive Summary`);
-  if (reportData.background) items.push(`${++n}. Audit Background`);
-  if (reportData.audit_objective) items.push(`${++n}. Audit Objective`);
-  if (reportData.audit_scope) items.push(`${++n}. Scope`);
-  if (reportData.methodology) items.push(`${++n}. Methodology`);
-  if (reportData.risk_rating || findings.length > 0) items.push(`${++n}. Risk Overview`);
-  if (findings.length > 0) {
-    items.push(`${++n}. Key Findings Snapshot`);
-    items.push(`${++n}. Detailed Findings`);
-  }
-  if (responses.length > 0) items.push(`${++n}. Management Responses`);
-  if (actions.length > 0) items.push(`${++n}. Agreed Action Plan`);
-  if (reportData.conclusion || reportData.follow_up_actions) items.push(`${++n}. Conclusion`);
-  if (reportData.distribution_list) items.push(`${++n}. Distribution`);
-  items.push(`${++n}. Approval & Sign-off`);
-  return items;
 }

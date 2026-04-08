@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuditReportTemplate } from '@/hooks/useAuditDocumentTemplates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -276,6 +277,8 @@ export function AuditReportBuilderStudio() {
     applyTemplate(template);
   };
 
+  const { data: reportTemplateConfig } = useAuditReportTemplate();
+
   if (showPreview) {
     return (
       <AuditReportPreview
@@ -285,6 +288,7 @@ export function AuditReportBuilderStudio() {
         actions={engagementActions}
         engagement={selectedEngagement}
         departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
+        templateConfig={reportTemplateConfig}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />
