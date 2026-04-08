@@ -34,25 +34,26 @@ export const auditMenuItems = [
         description: "Audit overview and KPIs"
       },
       {
-        title: "Auditable Entities",
-        url: "/audit/universe",
+        title: "Audit Universe",
         icon: Grid3X3,
         requiresPermission: "configure_audit_system",
-        description: "Registry of all auditable entities"
-      },
-      {
-        title: "Departments",
-        url: "/audit/departments",
-        icon: Users,
-        requiresPermission: "configure_audit_system",
-        description: "Manage department information"
-      },
-      {
-        title: "Functions",
-        url: "/audit/functions",
-        icon: FileSearch,
-        requiresPermission: "configure_audit_system",
-        description: "Manage department functions"
+        description: "Departments and business functions",
+        items: [
+          {
+            title: "Departments",
+            url: "/audit/departments",
+            icon: Users,
+            requiresPermission: "configure_audit_system",
+            description: "Manage department information"
+          },
+          {
+            title: "Business Functions",
+            url: "/audit/functions",
+            icon: FileSearch,
+            requiresPermission: "configure_audit_system",
+            description: "Manage department functions"
+          },
+        ]
       },
       {
         title: "Risk Assessment",
