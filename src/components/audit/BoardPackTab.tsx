@@ -1075,6 +1075,8 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           overrides={planOverrides}
         />
       </div>
+
+      <Card>
         <CardHeader>
           <CardTitle className="text-sm">Artifact History</CardTitle>
         </CardHeader>
