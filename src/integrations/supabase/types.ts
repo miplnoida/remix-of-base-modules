@@ -19344,6 +19344,101 @@ export type Database = {
           },
         ]
       }
+      ia_audit_plan_profiles: {
+        Row: {
+          audience: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fiscal_year: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          profile_name: string
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fiscal_year?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          profile_name: string
+          template_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fiscal_year?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          profile_name?: string
+          template_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_audit_plan_profiles_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ia_audit_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_audit_plan_templates: {
+        Row: {
+          config_json: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          template_key: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          template_key: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          template_key?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_audit_procedures: {
         Row: {
           audit_program_id: string | null
