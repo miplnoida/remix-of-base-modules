@@ -990,7 +990,7 @@ export const AppRoutes = () => {
       {/* Audit Module Routes — Simplified Department Function Audit */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
       <Route path="/audit/departments" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_DEPARTMENT_MASTER"><DepartmentMaster /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/universe" element={<ProtectedLayout><Suspense fallback={<div />}><AuditUniverse /></Suspense></ProtectedLayout>} />
+      <Route path="/audit/universe" element={<Navigate to="/audit/departments" replace />} />
       <Route path="/audit/risk-register" element={<ProtectedLayout><Suspense fallback={<div />}><RiskRegister /></Suspense></ProtectedLayout>} />
       <Route path="/audit/functions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FUNCTION_MASTER"><FunctionMaster /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
