@@ -23966,8 +23966,14 @@ export type Database = {
           inherent_risk_level: string | null
           inherent_risk_score: number | null
           is_active: boolean
+          is_score_overridden: boolean
           linked_risk_id: string | null
           notes: string | null
+          override_approved_at: string | null
+          override_approved_by: string | null
+          override_at: string | null
+          override_by: string | null
+          override_justification: string | null
           residual_impact: number | null
           residual_likelihood: number | null
           residual_risk_level: string | null
@@ -23995,8 +24001,14 @@ export type Database = {
           inherent_risk_level?: string | null
           inherent_risk_score?: number | null
           is_active?: boolean
+          is_score_overridden?: boolean
           linked_risk_id?: string | null
           notes?: string | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_justification?: string | null
           residual_impact?: number | null
           residual_likelihood?: number | null
           residual_risk_level?: string | null
@@ -24024,8 +24036,14 @@ export type Database = {
           inherent_risk_level?: string | null
           inherent_risk_score?: number | null
           is_active?: boolean
+          is_score_overridden?: boolean
           linked_risk_id?: string | null
           notes?: string | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_justification?: string | null
           residual_impact?: number | null
           residual_likelihood?: number | null
           residual_risk_level?: string | null
@@ -39019,6 +39037,10 @@ export type Database = {
       ia_persist_plan_engagements: {
         Args: { p_created_by?: string; p_engagements: Json; p_plan_id: string }
         Returns: Json
+      }
+      ia_recalculate_all_risks: {
+        Args: { p_reason?: string; p_triggered_by?: string }
+        Returns: number
       }
       ia_record_communication_stage:
         | {
