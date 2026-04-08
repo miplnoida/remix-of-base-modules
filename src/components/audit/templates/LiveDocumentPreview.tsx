@@ -169,7 +169,7 @@ function LivePlanPreview({ baseConfig, overrides }: LivePlanPreviewProps) {
       <CardContent className="p-0">
         {/* Cover */}
         <div className="bg-[hsl(var(--primary))] text-primary-foreground px-4 py-3">
-          {resolved.coverPage.showDepartmentLine && (
+          {resolved.coverPage.showOrgName && (
             <p className="text-[9px] opacity-70 mb-1">Internal Audit Department</p>
           )}
           <p className="text-sm font-bold">{resolved.coverPage.titleText}</p>
@@ -200,7 +200,7 @@ function LivePlanPreview({ baseConfig, overrides }: LivePlanPreviewProps) {
 
         {/* Governance */}
         <div className="px-4 py-3 space-y-1">
-          {resolved.riskCoverageEnabled && (
+          {resolved.riskCoverage.enabled && (
             <p className="text-[9px]">✓ Risk Coverage Analysis</p>
           )}
           {resolved.governance.showBoardLine && (
