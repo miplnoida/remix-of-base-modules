@@ -78,6 +78,24 @@ export interface AuditPlanPaginationConfig {
   pageBreakBetweenSections: boolean;
 }
 
+// ─── Page Layout ───
+
+export type PageSize = 'letter' | 'a4' | 'legal';
+export type PageOrientation = 'portrait' | 'landscape';
+
+export interface AuditPlanPageMargins {
+  top: number;    // inches
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export interface AuditPlanPageLayout {
+  pageSize: PageSize;
+  orientation: PageOrientation;
+  margins: AuditPlanPageMargins;
+}
+
 // ─── Section Configuration ───
 
 export type SectionDisplayMode = 'narrative' | 'table' | 'auto';
@@ -113,6 +131,7 @@ export interface AuditPlanApprovalConfig {
 // ─── Table & Typography ───
 
 export type TableFontSize = 'small' | 'normal';
+export type TableAutoFitMode = 'fixed' | 'auto_fit_content' | 'auto_fit_window';
 
 export interface AuditPlanTableStyle {
   headerBackground: string;
@@ -122,7 +141,15 @@ export interface AuditPlanTableStyle {
   borderColor: string;
   repeatHeaderOnPageBreak: boolean;
   fontSize: TableFontSize;
+  /** Auto-fit behavior for table column widths */
+  autoFitMode: TableAutoFitMode;
+  /** Bold the last (total) row in summary tables */
+  boldTotalRows: boolean;
+  /** Cell padding in pt */
+  cellPadding: number;
 }
+
+export type HeadingSize = 'compact' | 'standard' | 'spacious';
 
 export interface AuditPlanTypography {
   fontFamily: string;
@@ -131,6 +158,18 @@ export interface AuditPlanTypography {
   headingColor: string;
   bodyColor: string;
   lineHeight: number;
+  /** H1 size in pt */
+  h1Size: number;
+  /** H2 size in pt */
+  h2Size: number;
+  /** H3 size in pt */
+  h3Size: number;
+  /** Space before paragraphs in pt */
+  paragraphSpacingBefore: number;
+  /** Space after paragraphs in pt */
+  paragraphSpacingAfter: number;
+  /** Heading size preset */
+  headingSizePreset: HeadingSize;
 }
 
 // ─── Export Defaults ───
@@ -151,6 +190,7 @@ export interface AuditPlanFullTemplateConfig {
   coverPage: AuditPlanCoverPageConfig;
   toc: AuditPlanTocConfig;
   pagination: AuditPlanPaginationConfig;
+  pageLayout: AuditPlanPageLayout;
   sections: AuditPlanSection[];
   approval: AuditPlanApprovalConfig;
   tableStyle: AuditPlanTableStyle;

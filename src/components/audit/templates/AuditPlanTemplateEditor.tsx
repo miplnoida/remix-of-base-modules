@@ -15,6 +15,7 @@ import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
 import { CoverBrandingConfigurator } from './CoverBrandingConfigurator';
 import { TocPaginationConfigurator } from './TocPaginationConfigurator';
+import { TypographyLayoutConfigurator } from './TypographyLayoutConfigurator';
 import {
   AUDIT_PLAN_SECTION_LIBRARY,
   type AuditPlanSection,
@@ -22,6 +23,9 @@ import {
   type AuditPlanCoverPageConfig,
   type AuditPlanTocConfig,
   type AuditPlanPaginationConfig,
+  type AuditPlanTypography,
+  type AuditPlanTableStyle,
+  type AuditPlanPageLayout,
 } from '@/lib/audit/auditPlanTemplateTypes';
 import { PRESET_AUDIT_BLUE_MINIMAL } from '@/lib/audit/auditPlanTemplatePresets';
 
@@ -35,9 +39,12 @@ export function AuditPlanTemplateEditor() {
   const [coverPageConfig, setCoverPageConfig] = useState<AuditPlanCoverPageConfig>(PRESET_AUDIT_BLUE_MINIMAL.coverPage);
   const [tocConfig, setTocConfig] = useState<AuditPlanTocConfig>(PRESET_AUDIT_BLUE_MINIMAL.toc);
   const [paginationConfig, setPaginationConfig] = useState<AuditPlanPaginationConfig>(PRESET_AUDIT_BLUE_MINIMAL.pagination);
+  const [typographyConfig, setTypographyConfig] = useState<AuditPlanTypography>(PRESET_AUDIT_BLUE_MINIMAL.typography);
+  const [tableStyleConfig, setTableStyleConfig] = useState<AuditPlanTableStyle>(PRESET_AUDIT_BLUE_MINIMAL.tableStyle);
+  const [pageLayoutConfig, setPageLayoutConfig] = useState<AuditPlanPageLayout>(PRESET_AUDIT_BLUE_MINIMAL.pageLayout);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    coverBranding: true, tocPagination: false, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
+    coverBranding: true, tocPagination: false, typographyLayout: false, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
   });
 
   useEffect(() => {
@@ -91,6 +98,18 @@ export function AuditPlanTemplateEditor() {
             pagination={paginationConfig}
             onTocChange={setTocConfig}
             onPaginationChange={setPaginationConfig}
+          />
+        </SettingsCard>
+
+        {/* Typography, Layout & Tables */}
+        <SettingsCard title="Typography, Layout & Tables" cardKey="typographyLayout" open={openSections.typographyLayout} onToggle={toggleCard}>
+          <TypographyLayoutConfigurator
+            typography={typographyConfig}
+            tableStyle={tableStyleConfig}
+            pageLayout={pageLayoutConfig}
+            onTypographyChange={setTypographyConfig}
+            onTableStyleChange={setTableStyleConfig}
+            onPageLayoutChange={setPageLayoutConfig}
           />
         </SettingsCard>
 
