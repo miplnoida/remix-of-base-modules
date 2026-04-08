@@ -8,3 +8,4 @@ export type { ReportTemplate } from './AuditReportTemplateSelector';
 export { AuditReportWorkflowBar } from './AuditReportWorkflowBar';
 export { AuditPortfolioSection } from './sections/AuditPortfolioSection';
 export { AuditExecutiveDashboardSection } from './sections/AuditExecutiveDashboardSection';
+export { ManagementResponseReportPreview } from './ManagementResponseReportPreview';
