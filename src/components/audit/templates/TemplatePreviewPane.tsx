@@ -3,18 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
-import type { AuditPlanBranding, AuditPlanCoverPageConfig } from '@/lib/audit/auditPlanTemplateTypes';
+import type { AuditPlanBranding, AuditPlanCoverPageConfig, AuditPlanTocConfig, AuditPlanPaginationConfig } from '@/lib/audit/auditPlanTemplateTypes';
 
 interface TemplatePreviewPaneProps {
   templateType: 'audit_report' | 'audit_plan';
   config: AuditReportTemplateConfig | AuditPlanTemplateConfig;
-  /** Enhanced branding config (for audit_plan only) */
   brandingConfig?: AuditPlanBranding;
-  /** Enhanced cover page config (for audit_plan only) */
   coverPageConfig?: AuditPlanCoverPageConfig;
+  tocConfig?: AuditPlanTocConfig;
+  paginationConfig?: AuditPlanPaginationConfig;
 }
 
-export function TemplatePreviewPane({ templateType, config, brandingConfig, coverPageConfig }: TemplatePreviewPaneProps) {
+export function TemplatePreviewPane({ templateType, config, brandingConfig, coverPageConfig, tocConfig, paginationConfig }: TemplatePreviewPaneProps) {
   if (templateType === 'audit_report') {
     return <ReportPreview config={config as AuditReportTemplateConfig} />;
   }
@@ -23,6 +23,8 @@ export function TemplatePreviewPane({ templateType, config, brandingConfig, cove
       config={config as AuditPlanTemplateConfig}
       branding={brandingConfig}
       coverPage={coverPageConfig}
+      toc={tocConfig}
+      pagination={paginationConfig}
     />
   );
 }
@@ -114,10 +116,14 @@ function PlanPreview({
   config,
   branding,
   coverPage,
+  toc,
+  pagination,
 }: {
   config: AuditPlanTemplateConfig;
   branding?: AuditPlanBranding;
   coverPage?: AuditPlanCoverPageConfig;
+  toc?: AuditPlanTocConfig;
+  pagination?: AuditPlanPaginationConfig;
 }) {
   // Use enhanced config if available, otherwise fall back to basic
   const primaryColor = branding?.colorPalette.primary || '#1E3A5F';
@@ -252,6 +258,37 @@ function PlanPreview({
         {/* Accent divider */}
         <div className="h-0.5" style={{ backgroundColor: secondaryColor }} />
 
+        {/* TOC Preview */}
+        {toc?.enabled && (
+          <>
+            <div className="px-4 py-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: primaryColor }}>
+                {toc.title}
+              </p>
+              <div className="space-y-0.5">
+                {[
+                  { label: 'Executive Summary', page: '1' },
+                  { label: 'Audit Objective', page: '2' },
+                  { label: 'Risk Assessment', page: '4' },
+                  { label: 'Resource Plan', page: '6' },
+                ].map((entry, i) => (
+                  <div key={i} className="flex items-baseline text-[9px]">
+                    <span>{entry.label}</span>
+                    {toc.showLeaderDots && (
+                      <span className="flex-1 mx-1 border-b border-dotted border-muted-foreground/40 min-w-[16px]" />
+                    )}
+                    {!toc.showLeaderDots && <span className="flex-1" />}
+                    {toc.showPageNumbers && (
+                      <span className="text-muted-foreground tabular-nums">{entry.page}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
         {/* Summary */}
         <div className="px-4 py-3">
           <p className="text-xs font-semibold mb-2" style={{ color: primaryColor }}>
@@ -303,6 +340,31 @@ function PlanPreview({
             </div>
           )}
         </div>
+
+        {/* Pagination preview */}
+        {pagination?.showPageNumbers && (
+          <>
+            <Separator />
+            <div className="px-4 py-2">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-1">Page Numbering</p>
+              <div className="flex items-center gap-2 text-[9px]">
+                <span className="text-muted-foreground">Position:</span>
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
+                  {pagination.position.replace('-', ' ')}
+                </Badge>
+                <span className="text-muted-foreground">Body:</span>
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
+                  {pagination.bodyStyle}
+                </Badge>
+                {pagination.hideOnCover && (
+                  <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5">
+                    cover hidden
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Palette preview strip */}
         {branding && (
