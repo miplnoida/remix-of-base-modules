@@ -42,17 +42,17 @@ export function generateAuditReportPDF({
   doc.setTextColor(...colors.white);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(SSB_BRAND.name, margin, 18);
+  doc.text(resolved.branding.orgName, margin, 18);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(SSB_BRAND.country, margin, 27);
+  doc.text(resolved.branding.country, margin, 27);
   doc.setFontSize(9);
   doc.text('Internal Audit Department', margin, 35);
 
   // Address right
   doc.setFontSize(7);
-  doc.text(SSB_BRAND.address, pw - margin, 18, { align: 'right' });
-  doc.text(`Tel: ${SSB_BRAND.phone}`, pw - margin, 24, { align: 'right' });
+  doc.text(resolved.branding.address, pw - margin, 18, { align: 'right' });
+  doc.text(`Tel: ${resolved.branding.phone}`, pw - margin, 24, { align: 'right' });
 
   // Report Title
   let y = 80;
@@ -112,14 +112,14 @@ export function generateAuditReportPDF({
   doc.text(confLines, pw / 2, y, { align: 'center' });
 
   // Draft watermark on cover
-  if (isDraft) addDraftWatermark(doc);
+  if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText);
 
   // ─── CONTENT PAGES ───
   doc.addPage();
   y = 20;
 
   const addSectionHeader = (title: string, num?: number) => {
-    if (y > ph - 50) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+    if (y > ph - 50) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
     doc.setFillColor(...colors.primary);
     doc.rect(margin, y - 4, 3, 12, 'F');
     doc.setTextColor(...colors.primary);
@@ -139,7 +139,7 @@ export function generateAuditReportPDF({
     doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(text, contentWidth);
     lines.forEach((line: string) => {
-      if (y > ph - 25) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+      if (y > ph - 25) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
       doc.text(line, margin, y);
       y += 5;
     });
