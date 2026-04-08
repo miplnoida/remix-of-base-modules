@@ -273,7 +273,7 @@ async function generateDetailedPlanPdf(
 
   // ===== A. COVER PAGE — delegates to unified primitives =====
   if (config.includeCoverPage) {
-    const branding = buildBranding(config);
+    const branding = buildBranding(config, planTemplateConfig);
     branding.logoBase64 = logoData;
     const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
     const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
