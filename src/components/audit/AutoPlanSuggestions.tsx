@@ -48,6 +48,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
   const manualOverride = useManualOverride(planId);
   const capacitySchedule = useCapacitySchedule(planId);
   const convertCandidates = useConvertCandidates(planId);
+  const { bands } = useRiskRatingCalculator();
 
   const [rejectDialog, setRejectDialog] = useState<{ id: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
