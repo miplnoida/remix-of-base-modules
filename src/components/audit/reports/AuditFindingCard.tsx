@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AlertTriangle, MessageSquare, CheckCircle2, User, CalendarDays, FileText, Link2 } from 'lucide-react';
+import { getRiskColor } from '@/lib/audit/riskEngine';
 
 interface AuditFindingCardProps {
   finding: any;
@@ -14,24 +15,28 @@ interface AuditFindingCardProps {
   compact?: boolean;
 }
 
-const RISK_COLORS: Record<string, { border: string; bg: string; text: string; dot: string; headerBg: string }> = {
-  Critical: { border: 'border-l-red-600', bg: 'bg-red-50 dark:bg-red-950/20', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500', headerBg: 'bg-red-50/80 dark:bg-red-950/30' },
-  High: { border: 'border-l-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/20', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500', headerBg: 'bg-orange-50/80 dark:bg-orange-950/30' },
-  Medium: { border: 'border-l-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', headerBg: 'bg-amber-50/80 dark:bg-amber-950/30' },
-  Low: { border: 'border-l-green-500', bg: 'bg-green-50 dark:bg-green-950/20', text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500', headerBg: 'bg-green-50/80 dark:bg-green-950/30' },
-};
+// Derive presentational colors from configured risk color
+function buildFindingColors(level: string) {
+  const color = getRiskColor(level);
+  return {
+    borderColor: color,
+    dotColor: color,
+  };
+}
+
+const FALLBACK_COLORS = { borderColor: '#9ca3af', dotColor: '#9ca3af' };
 
 export function AuditFindingCard({ finding, index, responses = [], actions = [], compact = false }: AuditFindingCardProps) {
   const risk = finding.risk_rating || 'Unrated';
-  const colors = RISK_COLORS[risk] || { border: 'border-l-gray-400', bg: 'bg-muted/30', text: 'text-muted-foreground', dot: 'bg-gray-400', headerBg: 'bg-muted/30' };
+  const fc = risk !== 'Unrated' ? buildFindingColors(risk) : FALLBACK_COLORS;
 
   const linkedResponses = responses.filter((r: any) => r.finding_id === finding.id);
   const linkedActions = actions.filter((a: any) => a.finding_id === finding.id);
 
   return (
-    <Card className={`border-l-4 ${colors.border} overflow-hidden print:shadow-none print:border`}>
+    <Card className="border-l-4 overflow-hidden print:shadow-none print:border" style={{ borderLeftColor: fc.borderColor }}>
       {/* Finding Header */}
-      <div className={`px-5 py-3 ${colors.headerBg} border-b`}>
+      <div className="px-5 py-3 bg-muted/30 border-b">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-primary-foreground bg-primary rounded-full h-7 w-7 flex items-center justify-center shrink-0 shadow-sm">
@@ -43,8 +48,8 @@ export function AuditFindingCard({ finding, index, responses = [], actions = [],
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge className={`${colors.bg} ${colors.text} border text-xs`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${colors.dot} mr-1.5 inline-block`} />
+            <Badge className="border text-xs" style={{ backgroundColor: `${fc.dotColor}20`, color: fc.dotColor }}>
+              <span className="h-1.5 w-1.5 rounded-full mr-1.5 inline-block" style={{ backgroundColor: fc.dotColor }} />
               {risk}
             </Badge>
             {finding.impact_area && (

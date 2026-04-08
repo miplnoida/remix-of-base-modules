@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle2, Clock, RotateCcw, TrendingDown } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { getRiskColor } from '@/lib/audit/riskEngine';
 
 interface AuditExecutiveDashboardSectionProps {
   findings: any[];
@@ -131,19 +132,14 @@ export function AuditExecutiveDashboardSection({ findings, actions }: AuditExecu
                 (f: any) => f.status !== 'Closed' && f.risk_rating === level
               ).length;
               const pct = metrics.openFindings > 0 ? Math.round((count / metrics.openFindings) * 100) : 0;
-              const barColors: Record<string, string> = {
-                Critical: 'bg-red-500',
-                High: 'bg-orange-500',
-                Medium: 'bg-amber-500',
-                Low: 'bg-green-500',
-              };
+              const levelColor = getRiskColor(level);
               return (
                 <div key={level} className="flex items-center gap-3">
                   <span className="text-xs w-16 text-muted-foreground font-medium">{level}</span>
                   <div className="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${barColors[level]} transition-all`}
-                      style={{ width: `${pct}%`, minWidth: count > 0 ? 8 : 0 }}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, minWidth: count > 0 ? 8 : 0, backgroundColor: levelColor }}
                     />
                   </div>
                   <span className="text-xs font-bold tabular-nums w-8 text-right">{count}</span>

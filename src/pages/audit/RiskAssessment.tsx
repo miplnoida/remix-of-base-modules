@@ -18,27 +18,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 const RISK_CATEGORIES = ['Operational', 'Financial', 'Compliance', 'IT', 'Strategic', 'Reputational'];
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
-
-function calculateRiskLevel(score: number): string {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
-
-function getRiskLevelColor(level: string): string {
-  switch (level) {
-    case 'Critical': return 'bg-red-600 text-white';
-    case 'High': return 'bg-red-400 text-white';
-    case 'Medium': return 'bg-amber-400 text-foreground';
-    case 'Low': return 'bg-green-500 text-white';
-    default: return 'bg-muted text-muted-foreground';
-  }
-}
 
 // ============= Risk Heat Map 5×5 Grid =============
 function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
@@ -65,7 +50,15 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
     return grid;
   }, [assessments]);
 
-  const getCellColor = (l: number, i: number) => getRiskLevelColor(calculateRiskLevel(l * i));
+  const getCellColor = (l: number, i: number) => {
+    const level = calculateRiskLevel(l * i);
+    const color = getRiskColor(level);
+    return '';
+  };
+  const getCellStyle = (l: number, i: number): React.CSSProperties => {
+    const level = calculateRiskLevel(l * i);
+    return { backgroundColor: getRiskColor(level), color: '#fff' };
+  };
 
   const selectedItems = selectedCell ? gridData[`${selectedCell.l}-${selectedCell.i}`] || [] : [];
   const likelihoodLabels = ['Rare', 'Unlikely', 'Possible', 'Likely', 'Almost Certain'];
@@ -92,7 +85,8 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                     const isSelected = selectedCell?.l === likelihood && selectedCell?.i === impact;
                     return (
                       <button key={impact} onClick={() => setSelectedCell(items.length > 0 ? { l: likelihood, i: impact } : null)}
-                        className={`rounded-md p-2 min-h-[60px] flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${getCellColor(likelihood, impact)} ${isSelected ? 'border-foreground ring-2 ring-ring' : 'border-transparent'} ${items.length > 0 ? 'hover:opacity-80' : 'opacity-60'}`}>
+                        style={getCellStyle(likelihood, impact)}
+                        className={`rounded-md p-2 min-h-[60px] flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${isSelected ? 'border-foreground ring-2 ring-ring' : 'border-transparent'} ${items.length > 0 ? 'hover:opacity-80' : 'opacity-60'}`}>
                         <span className="text-lg font-bold">{items.length}</span>
                         <span className="text-[10px]">{likelihood * impact}</span>
                       </button>
@@ -103,8 +97,8 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
             </div>
           </div>
           <div className="flex justify-center gap-4 mt-4">
-            {[{ label: 'Low (1-5)', cls: 'bg-green-500' }, { label: 'Medium (6-10)', cls: 'bg-amber-400' }, { label: 'High (11-15)', cls: 'bg-red-400' }, { label: 'Critical (16-25)', cls: 'bg-red-600' }].map(({ label, cls }) => (
-              <div key={label} className="flex items-center gap-1 text-xs"><div className={`w-3 h-3 rounded-full ${cls}`} />{label}</div>
+            {buildLegendEntries().map(({ label, range, color }) => (
+              <div key={label} className="flex items-center gap-1 text-xs"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />{label} ({range})</div>
             ))}
           </div>
         </CardContent>
@@ -128,7 +122,7 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                       <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
                       <p className="text-xs text-muted-foreground">{dept?.name || '—'} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
                     </div>
-                    <Badge className={`text-xs ${getRiskLevelColor(item.risk_level)}`}>{item.risk_level}</Badge>
+                    <Badge style={{ backgroundColor: getRiskColor(item.risk_level), color: '#fff' }} className="text-xs">{item.risk_level}</Badge>
                   </div>
                 );
               })}
@@ -186,10 +180,10 @@ function DepartmentRiskSummary({ assessments, deptMap, allFunctions }: {
                 <p className="text-xs text-muted-foreground">{d.total} assessments | Avg Score: {d.avgScore}</p>
               </div>
               <div className="flex gap-2">
-                {d.critical > 0 && <Badge className="bg-red-600 text-white text-xs">{d.critical} Critical</Badge>}
-                {d.high > 0 && <Badge className="bg-red-400 text-white text-xs">{d.high} High</Badge>}
-                {d.medium > 0 && <Badge className="bg-amber-400 text-foreground text-xs">{d.medium} Medium</Badge>}
-                {d.low > 0 && <Badge className="bg-green-500 text-white text-xs">{d.low} Low</Badge>}
+                {d.critical > 0 && <Badge style={{ backgroundColor: getRiskColor('Critical'), color: '#fff' }} className="text-xs">{d.critical} Critical</Badge>}
+                {d.high > 0 && <Badge style={{ backgroundColor: getRiskColor('High'), color: '#fff' }} className="text-xs">{d.high} High</Badge>}
+                {d.medium > 0 && <Badge style={{ backgroundColor: getRiskColor('Medium'), color: '#fff' }} className="text-xs">{d.medium} Medium</Badge>}
+                {d.low > 0 && <Badge style={{ backgroundColor: getRiskColor('Low'), color: '#fff' }} className="text-xs">{d.low} Low</Badge>}
               </div>
             </div>
           ))}

@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
+import { getRiskColor } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 interface AuditPlanFormProps {
   plan?: any;
@@ -181,11 +183,7 @@ export function AuditPlanForm({ plan, onClose }: AuditPlanFormProps) {
                       <p className="text-sm text-muted-foreground">Head: {dept.head}</p>
                       <p className="text-sm text-muted-foreground">{dept.location}</p>
                       {dept.risk_rating && (
-                        <Badge className={`mt-2 ${
-                          dept.risk_rating === 'High' ? 'bg-destructive' : 
-                          dept.risk_rating === 'Medium' ? 'bg-orange-600' : 
-                          'bg-green-500'
-                        }`}>
+                        <Badge style={{ backgroundColor: getRiskColor(dept.risk_rating), color: '#fff' }} className="mt-2">
                           {dept.risk_rating} Risk
                         </Badge>
                       )}

@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { BarChart3, CheckCircle2, Clock, AlertTriangle, Target } from 'lucide-react';
+import { getRiskColor } from '@/lib/audit/riskEngine';
 
 interface AuditPortfolioSectionProps {
   engagements: any[];
@@ -50,12 +51,7 @@ export function AuditPortfolioSection({ engagements, departments }: AuditPortfol
     return Object.values(deptMap).filter((d) => d.planned > 0).sort((a, b) => b.planned - a.planned);
   }, [engagements, departments]);
 
-  const RISK_COLORS: Record<string, string> = {
-    Critical: 'bg-red-500',
-    High: 'bg-orange-500',
-    Medium: 'bg-amber-500',
-    Low: 'bg-green-500',
-  };
+  const getRiskBadgeColor = (level: string) => getRiskColor(level);
 
   return (
     <div className="space-y-6">
@@ -105,8 +101,8 @@ export function AuditPortfolioSection({ engagements, departments }: AuditPortfol
                 <div key={level} className="flex-1 flex flex-col items-center gap-1.5">
                   <span className="text-xs font-bold tabular-nums">{count}</span>
                   <div
-                    className={`w-full rounded-t-md ${RISK_COLORS[level]} transition-all`}
-                    style={{ height: `${height}%`, minHeight: 4 }}
+                    className="w-full rounded-t-md transition-all"
+                    style={{ height: `${height}%`, minHeight: 4, backgroundColor: getRiskBadgeColor(level) }}
                   />
                   <span className="text-[10px] text-muted-foreground font-medium">{level}</span>
                 </div>

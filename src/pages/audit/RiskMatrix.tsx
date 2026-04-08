@@ -6,13 +6,8 @@ import { PageShell } from '@/components/common';
 import { Layers, Building2, ShieldAlert } from 'lucide-react';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { supabase } from '@/integrations/supabase/client';
-
-function getRiskLevel(score: number): 'Low' | 'Medium' | 'High' | 'Critical' {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
+import { calculateRiskLevel, getRiskColor } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 function getLevelClasses(level: string) {
   switch (level) {
@@ -30,6 +25,7 @@ function getLevelClasses(level: string) {
 export default function RiskMatrix() {
   const { data: assessments = [], isLoading } = useIARiskAssessments();
   const [selectedCell, setSelectedCell] = useState<{ likelihood: number; impact: number } | null>(null);
+  const { bands } = useRiskRatingCalculator();
 
   const { data: functions = [] } = useQuery({
     queryKey: ['ia_department_functions_all_for_matrix'],
@@ -104,7 +100,7 @@ export default function RiskMatrix() {
                   <div className="flex items-center justify-center rounded-md border bg-muted/40 p-2 text-center font-medium">{likelihood}</div>
                   {[1, 2, 3, 4, 5].map((impact) => {
                     const score = likelihood * impact;
-                    const level = getRiskLevel(score);
+                    const level = calculateRiskLevel(score, bands);
                     const items = cells[`${likelihood}-${impact}`] ?? [];
                     const isSelected = selectedCell?.likelihood === likelihood && selectedCell?.impact === impact;
 
@@ -142,7 +138,7 @@ export default function RiskMatrix() {
                 const fn = functionMap[item.function_id];
                 const dept = fn ? departmentMap.get(fn.department_id) : null;
                 const score = Number(item.overall_risk_score) || (Number(item.impact_score) || 0) * (Number(item.likelihood_score) || 0);
-                const level = item.risk_level || getRiskLevel(score);
+                const level = item.risk_level || calculateRiskLevel(score, bands);
 
                 return (
                   <div key={item.id} className="rounded-lg border bg-card p-3">
@@ -179,7 +175,7 @@ export default function RiskMatrix() {
                   const fn = functionMap[item.function_id];
                   const dept = fn ? departmentMap.get(fn.department_id) : null;
                   const score = Number(item.overall_risk_score) || (Number(item.impact_score) || 0) * (Number(item.likelihood_score) || 0);
-                  const level = item.risk_level || getRiskLevel(score);
+                  const level = item.risk_level || calculateRiskLevel(score, bands);
 
                   return (
                     <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
