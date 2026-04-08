@@ -77,12 +77,23 @@ export async function exportAuditPlanDocx(
         heading: HeadingLevel.HEADING_1,
         children: [new TextRun({ text: mapped.toc.title, bold: true, font: typo.headingFont, size: ptToHalfPt(typo.h1Size), color: primaryHex })],
       }),
-      new TableOfContents('Table of Contents', {
-        hyperlink: true,
-        headingStyleRange: `1-${mapped.toc.depth}`,
-      }),
-      new Paragraph({ children: [new PageBreak()] }),
     );
+    // TOC entries as styled paragraphs (TOC field is updated on open in Word)
+    for (const entry of tocEntries) {
+      const label = entry.sectionNumber ? `${entry.sectionNumber}. ${entry.label}` : entry.label;
+      const pageStr = mapped.toc.showPageNumbers && entry.pageNumber ? `  ${entry.pageNumber}` : '';
+      bodyChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: label, font: typo.fontFamily, size: ptToHalfPt(typo.baseFontSize) }),
+            ...(pageStr ? [new TextRun({ text: pageStr, font: typo.fontFamily, size: ptToHalfPt(typo.baseFontSize), color: '999999' })] : []),
+          ],
+          spacing: { after: ptToDxa(3) },
+          indent: { left: (entry.depth - 1) * 360 },
+        })
+      );
+    }
+    bodyChildren.push(new Paragraph({ children: [new PageBreak()] }));
   }
 
   // Content sections
