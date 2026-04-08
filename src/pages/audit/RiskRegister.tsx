@@ -12,7 +12,8 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTablePagination } from '@/hooks/useTablePagination';
-import { useActiveAuditUniverse } from '@/hooks/useAuditUniverse';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useRiskRegister, useRiskRegisterMutations,
   useRiskMitigationActions, useRiskMitigationMutations,
