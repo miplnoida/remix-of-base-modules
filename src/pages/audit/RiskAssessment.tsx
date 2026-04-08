@@ -206,11 +206,21 @@ export default function RiskAssessment() {
   const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
-  // Fetch all functions for display
-  const { data: allFunctions = [] } = useQuery({
-    queryKey: ['ia_department_functions_all'],
+  // Fetch ALL departments (including inactive) for display resolution
+  const { data: allDepartments = [] } = useQuery({
+    queryKey: ['ia_departments_all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_department_functions' as any).select('*').eq('is_active', true);
+      const { data, error } = await supabase.from('ia_departments' as any).select('*').order('name');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch all functions for display (including inactive for resolving existing assessments)
+  const { data: allFunctions = [] } = useQuery({
+    queryKey: ['ia_department_functions_all_incl_inactive'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_department_functions' as any).select('*');
       if (error) throw error;
       return data as any[];
     },
@@ -235,7 +245,8 @@ export default function RiskAssessment() {
 
   const { data: deptFunctions = [] } = useIADepartmentFunctions(selectedDeptId || undefined);
 
-  const deptMap = useMemo(() => new Map((departments as any[]).map((d: any) => [d.id, d])), [departments]);
+  // Use allDepartments for display so deactivated dept names resolve correctly
+  const deptMap = useMemo(() => new Map((allDepartments as any[]).map((d: any) => [d.id, d])), [allDepartments]);
   const funcMap = useMemo(() => {
     const map: Record<string, any> = {};
     allFunctions.forEach((f: any) => { map[f.id] = f; });
@@ -425,16 +436,28 @@ export default function RiskAssessment() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Department <span className="text-destructive">*</span></Label>
-              <Select value={selectedDeptId} onValueChange={(v) => { setSelectedDeptId(v); setSelectedFunctionId(''); }} disabled={isReadOnly}>
+              <Select value={selectedDeptId} onValueChange={(v) => { if (v !== selectedDeptId) { setSelectedDeptId(v); setSelectedFunctionId(''); } }} disabled={isReadOnly}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                <SelectContent>{(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  {/* Show deactivated department if currently selected but not in active list */}
+                  {selectedDeptId && !(departments as any[]).some((d: any) => d.id === selectedDeptId) && deptMap.has(selectedDeptId) && (
+                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{deptMap.get(selectedDeptId)?.name} (Deactivated)</SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Function <span className="text-destructive">*</span></Label>
               <Select value={selectedFunctionId} onValueChange={setSelectedFunctionId} disabled={isReadOnly || !selectedDeptId}>
                 <SelectTrigger><SelectValue placeholder={selectedDeptId ? 'Select function' : 'Select department first'} /></SelectTrigger>
-                <SelectContent>{(deptFunctions as any[]).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.function_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {(deptFunctions as any[]).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.function_name}</SelectItem>)}
+                  {/* Show current function if not in active dept functions list */}
+                  {selectedFunctionId && !(deptFunctions as any[]).some((f: any) => f.id === selectedFunctionId) && funcMap[selectedFunctionId] && (
+                    <SelectItem key={selectedFunctionId} value={selectedFunctionId}>{funcMap[selectedFunctionId].function_name} (Deactivated)</SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </div>
           </div>
