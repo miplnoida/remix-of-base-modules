@@ -19,6 +19,8 @@ import { CandidateDetailPanel } from './CandidateDetailPanel';
 import { useIAActiveAuditors, useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { isEditablePlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { classifyCompositeScore } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
