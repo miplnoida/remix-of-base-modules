@@ -19399,43 +19399,58 @@ export type Database = {
       }
       ia_audit_plan_templates: {
         Row: {
+          cloned_from_id: string | null
+          cloned_from_name: string | null
           config_json: Json
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           is_active: boolean
+          is_house_default: boolean
           is_system: boolean
+          status: string
           template_key: string
           template_name: string
           updated_at: string
           updated_by: string | null
+          version: number
         }
         Insert: {
+          cloned_from_id?: string | null
+          cloned_from_name?: string | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
+          is_house_default?: boolean
           is_system?: boolean
+          status?: string
           template_key: string
           template_name: string
           updated_at?: string
           updated_by?: string | null
+          version?: number
         }
         Update: {
+          cloned_from_id?: string | null
+          cloned_from_name?: string | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
+          is_house_default?: boolean
           is_system?: boolean
+          status?: string
           template_key?: string
           template_name?: string
           updated_at?: string
           updated_by?: string | null
+          version?: number
         }
         Relationships: []
       }
