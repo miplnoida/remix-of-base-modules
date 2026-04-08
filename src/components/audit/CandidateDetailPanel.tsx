@@ -11,6 +11,8 @@ import { StatusBadge } from '@/components/common';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useScoreExplanations, useResourceRecommendations, useGenerateResourceRecommendations } from '@/hooks/useAutoPlanEngine';
 import { useIAAuditors } from '@/hooks/useAuditData';
+import { classifyCompositeScore } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 interface CandidateDetailPanelProps {
   candidate: any;
@@ -50,16 +52,12 @@ export function CandidateDetailPanel({ candidate, planId, open, onOpenChange }: 
   const { data: recommendations = [] } = useResourceRecommendations(planId, candidate?.id);
   const { data: auditors = [] } = useIAAuditors();
   const generateRecs = useGenerateResourceRecommendations(planId);
+  const { bands } = useRiskRatingCalculator();
 
-  const explanation = explanations[0]; // Latest for this candidate
+  const explanation = explanations[0];
   const getAuditorName = (id: string) => auditors.find((a: any) => a.id === id)?.name || id;
 
-  const getRiskBadgeVariant = (score: number) => {
-    if (score >= 75) return 'Critical';
-    if (score >= 50) return 'High';
-    if (score >= 25) return 'Medium';
-    return 'Low';
-  };
+  const getRiskBadgeVariant = (score: number) => classifyCompositeScore(score, bands);
 
   if (!candidate) return null;
 

@@ -18,27 +18,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
+import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 
 const RISK_CATEGORIES = ['Operational', 'Financial', 'Compliance', 'IT', 'Strategic', 'Reputational'];
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
-
-function calculateRiskLevel(score: number): string {
-  if (score >= 16) return 'Critical';
-  if (score >= 11) return 'High';
-  if (score >= 6) return 'Medium';
-  return 'Low';
-}
-
-function getRiskLevelColor(level: string): string {
-  switch (level) {
-    case 'Critical': return 'bg-red-600 text-white';
-    case 'High': return 'bg-red-400 text-white';
-    case 'Medium': return 'bg-amber-400 text-foreground';
-    case 'Low': return 'bg-green-500 text-white';
-    default: return 'bg-muted text-muted-foreground';
-  }
-}
 
 // ============= Risk Heat Map 5×5 Grid =============
 function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
