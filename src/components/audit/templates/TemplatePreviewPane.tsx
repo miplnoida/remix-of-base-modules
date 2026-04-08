@@ -3,18 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
-import type { AuditPlanBranding, AuditPlanCoverPageConfig } from '@/lib/audit/auditPlanTemplateTypes';
+import type { AuditPlanBranding, AuditPlanCoverPageConfig, AuditPlanTocConfig, AuditPlanPaginationConfig } from '@/lib/audit/auditPlanTemplateTypes';
 
 interface TemplatePreviewPaneProps {
   templateType: 'audit_report' | 'audit_plan';
   config: AuditReportTemplateConfig | AuditPlanTemplateConfig;
-  /** Enhanced branding config (for audit_plan only) */
   brandingConfig?: AuditPlanBranding;
-  /** Enhanced cover page config (for audit_plan only) */
   coverPageConfig?: AuditPlanCoverPageConfig;
+  tocConfig?: AuditPlanTocConfig;
+  paginationConfig?: AuditPlanPaginationConfig;
 }
 
-export function TemplatePreviewPane({ templateType, config, brandingConfig, coverPageConfig }: TemplatePreviewPaneProps) {
+export function TemplatePreviewPane({ templateType, config, brandingConfig, coverPageConfig, tocConfig, paginationConfig }: TemplatePreviewPaneProps) {
   if (templateType === 'audit_report') {
     return <ReportPreview config={config as AuditReportTemplateConfig} />;
   }
@@ -23,6 +23,8 @@ export function TemplatePreviewPane({ templateType, config, brandingConfig, cove
       config={config as AuditPlanTemplateConfig}
       branding={brandingConfig}
       coverPage={coverPageConfig}
+      toc={tocConfig}
+      pagination={paginationConfig}
     />
   );
 }
@@ -114,10 +116,14 @@ function PlanPreview({
   config,
   branding,
   coverPage,
+  toc,
+  pagination,
 }: {
   config: AuditPlanTemplateConfig;
   branding?: AuditPlanBranding;
   coverPage?: AuditPlanCoverPageConfig;
+  toc?: AuditPlanTocConfig;
+  pagination?: AuditPlanPaginationConfig;
 }) {
   // Use enhanced config if available, otherwise fall back to basic
   const primaryColor = branding?.colorPalette.primary || '#1E3A5F';
