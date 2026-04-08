@@ -18,6 +18,24 @@ import {
   type FoundationSignatory,
 } from '@/lib/audit/documentFoundationTypes';
 
+const FONT_OPTIONS = [
+  { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+  { label: 'Times New Roman', value: 'Times New Roman, Times, serif' },
+  { label: 'Calibri', value: 'Calibri, Candara, sans-serif' },
+  { label: 'Cambria', value: 'Cambria, Georgia, serif' },
+  { label: 'Georgia', value: 'Georgia, Times New Roman, serif' },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  { label: 'Trebuchet MS', value: 'Trebuchet MS, Lucida Grande, sans-serif' },
+  { label: 'Garamond', value: 'Garamond, Baskerville, serif' },
+  { label: 'Palatino', value: 'Palatino Linotype, Book Antiqua, serif' },
+  { label: 'Century Gothic', value: 'Century Gothic, CenturyGothic, sans-serif' },
+  { label: 'Book Antiqua', value: 'Book Antiqua, Palatino, serif' },
+  { label: 'Courier New', value: 'Courier New, Courier, monospace' },
+  { label: 'Lucida Sans', value: 'Lucida Sans Unicode, Lucida Grande, sans-serif' },
+  { label: 'Segoe UI', value: 'Segoe UI, Tahoma, sans-serif' },
+];
+
 const SECTIONS = [
   { key: 'branding', label: 'Branding & Logo', icon: Palette },
   { key: 'colors', label: 'Color Palette', icon: Palette },
@@ -265,11 +283,29 @@ export function FoundationSettingsEditor() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Body Font</Label>
-              <Input value={draft.typography.fontFamily} onChange={(e) => setDraft((d) => ({ ...d, typography: { ...d.typography, fontFamily: e.target.value } }))} />
+              <Select value={draft.typography.fontFamily} onValueChange={(v) => setDraft((d) => ({ ...d, typography: { ...d.typography, fontFamily: v } }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Heading Font</Label>
-              <Input value={draft.typography.headingFont} onChange={(e) => setDraft((d) => ({ ...d, typography: { ...d.typography, headingFont: e.target.value } }))} />
+              <Select value={draft.typography.headingFont} onValueChange={(v) => setDraft((d) => ({ ...d, typography: { ...d.typography, headingFont: v } }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
