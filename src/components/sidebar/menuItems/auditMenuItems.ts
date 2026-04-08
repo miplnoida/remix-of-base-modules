@@ -71,13 +71,6 @@ export const auditMenuItems = [
         description: "Assess function-level risks"
       },
       {
-        title: "Risk Register",
-        url: "/audit/risk-register",
-        icon: Shield,
-        requiresPermission: "configure_audit_system",
-        description: "Manage entity-level risk register"
-      },
-      {
         title: "Risk Matrix",
         url: "/audit/risk-matrix",
         icon: Grid3X3,
