@@ -224,7 +224,7 @@ export default function RiskRegister() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'entity', label: 'Entity', type: 'select', options: [{ label: 'All Entities', value: 'all' }, ...universeEntities.map((e: any) => ({ label: e.entity_name, value: e.id }))] },
+    { key: 'entity', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...departments.map((d: any) => ({ label: d.name, value: d.id }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_STATUSES.map(s => ({ label: s, value: s }))] },
     { key: 'category', label: 'Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(c => ({ label: c, value: c }))] },
     { key: 'owner', label: 'Owner', type: 'select', options: [{ label: 'All Owners', value: 'all' }, ...ownerOptions.map(o => ({ label: o, value: o }))] },
@@ -244,14 +244,14 @@ export default function RiskRegister() {
     'Risk Register',
     filtered.length,
     [
-      { label: 'Entity', value: entityFilter !== 'all' ? universeEntities.find((e: any) => e.id === entityFilter)?.entity_name || entityFilter : 'all' },
+      { label: 'Department', value: entityFilter !== 'all' ? departments.find((d: any) => d.id === entityFilter)?.name || entityFilter : 'all' },
       { label: 'Status', value: statusFilter },
       { label: 'Category', value: categoryFilter },
       { label: 'Owner', value: ownerFilter },
       { label: 'Severity', value: severityFilter },
       { label: 'Review Due', value: reviewDueFilter },
     ],
-  ), [filtered.length, entityFilter, statusFilter, categoryFilter, ownerFilter, severityFilter, reviewDueFilter, universeEntities]);
+  ), [filtered.length, entityFilter, statusFilter, categoryFilter, ownerFilter, severityFilter, reviewDueFilter, departments]);
 
   const iScore = (form.inherent_likelihood || 0) * (form.inherent_impact || 0);
   const rScore = (form.residual_likelihood || 0) * (form.residual_impact || 0);
@@ -320,10 +320,10 @@ export default function RiskRegister() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2 md:col-span-2">
-            <Label>Entity *</Label>
+            <Label>Department *</Label>
             <Select value={form.audit_universe_id} onValueChange={v => setForm(f => ({ ...f, audit_universe_id: v }))}>
-              <SelectTrigger><SelectValue placeholder="Select entity..." /></SelectTrigger>
-              <SelectContent>{universeEntities.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.entity_name} ({e.entity_type})</SelectItem>)}</SelectContent>
+              <SelectTrigger><SelectValue placeholder="Select department..." /></SelectTrigger>
+              <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
