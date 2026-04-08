@@ -133,6 +133,11 @@ export function resolvePlanTemplate(
     tableStyle: config.tableStyle,
     typography: config.typography,
     exportDefaults: config.exportDefaults,
+    planSummary: config.planSummary,
+    columnsBySection: config.columnsBySection,
+    resourcePlan: config.resourcePlan,
+    riskCoverage: config.riskCoverage,
+    governance: config.governance,
     showWatermark: isDraft && (config.branding.showWatermark || config.exportDefaults.draftWatermark),
     watermarkText: overrides?.watermarkText || config.branding.watermarkText || config.exportDefaults.draftWatermarkText,
   };
