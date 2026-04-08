@@ -85,7 +85,8 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                     const isSelected = selectedCell?.l === likelihood && selectedCell?.i === impact;
                     return (
                       <button key={impact} onClick={() => setSelectedCell(items.length > 0 ? { l: likelihood, i: impact } : null)}
-                        className={`rounded-md p-2 min-h-[60px] flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${getCellColor(likelihood, impact)} ${isSelected ? 'border-foreground ring-2 ring-ring' : 'border-transparent'} ${items.length > 0 ? 'hover:opacity-80' : 'opacity-60'}`}>
+                        style={getCellStyle(likelihood, impact)}
+                        className={`rounded-md p-2 min-h-[60px] flex flex-col items-center justify-center cursor-pointer transition-all border-2 ${isSelected ? 'border-foreground ring-2 ring-ring' : 'border-transparent'} ${items.length > 0 ? 'hover:opacity-80' : 'opacity-60'}`}>
                         <span className="text-lg font-bold">{items.length}</span>
                         <span className="text-[10px]">{likelihood * impact}</span>
                       </button>
@@ -179,10 +180,10 @@ function DepartmentRiskSummary({ assessments, deptMap, allFunctions }: {
                 <p className="text-xs text-muted-foreground">{d.total} assessments | Avg Score: {d.avgScore}</p>
               </div>
               <div className="flex gap-2">
-                {d.critical > 0 && <Badge className="bg-red-600 text-white text-xs">{d.critical} Critical</Badge>}
-                {d.high > 0 && <Badge className="bg-red-400 text-white text-xs">{d.high} High</Badge>}
-                {d.medium > 0 && <Badge className="bg-amber-400 text-foreground text-xs">{d.medium} Medium</Badge>}
-                {d.low > 0 && <Badge className="bg-green-500 text-white text-xs">{d.low} Low</Badge>}
+                {d.critical > 0 && <Badge style={{ backgroundColor: getRiskColor('Critical'), color: '#fff' }} className="text-xs">{d.critical} Critical</Badge>}
+                {d.high > 0 && <Badge style={{ backgroundColor: getRiskColor('High'), color: '#fff' }} className="text-xs">{d.high} High</Badge>}
+                {d.medium > 0 && <Badge style={{ backgroundColor: getRiskColor('Medium'), color: '#fff' }} className="text-xs">{d.medium} Medium</Badge>}
+                {d.low > 0 && <Badge style={{ backgroundColor: getRiskColor('Low'), color: '#fff' }} className="text-xs">{d.low} Low</Badge>}
               </div>
             </div>
           ))}
