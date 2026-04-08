@@ -431,12 +431,12 @@ async function generateDetailedPlanPdf(
 
     // Summary metrics as a clean card-style table
     y = addKvTable(doc, y, [
-      ['Total Engagements', String(engagements.length)],
+      ['Total Audits', String(engagements.length)],
       ['Departments Covered', String(coveredDepts.size)],
       ['Functions Covered', String(coveredFuncs.size)],
       ['Total Planned Days', String(totalDays)],
       ['Total Planned Hours', String(totalHours)],
-      ...(boardPri > 0 ? [['Board Priority Engagements', String(boardPri)] as [string, string]] : []),
+      ...(boardPri > 0 ? [['Board Priority Audits', String(boardPri)] as [string, string]] : []),
     ], theme);
 
     // Risk distribution table
