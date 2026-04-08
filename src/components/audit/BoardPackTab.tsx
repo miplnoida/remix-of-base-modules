@@ -249,79 +249,23 @@ async function generateDetailedPlanPdf(
   const theme = getTheme(config);
   const logoData = await getLogoBase64();
 
-  // ===== A. COVER PAGE =====
+  // ===== A. COVER PAGE — delegates to unified primitives =====
   if (config.includeCoverPage) {
-    // Full green background
-    doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-    doc.rect(0, 0, pw, ph, 'F');
-
-    // Logo — real SSB logo or fallback text
-    if (logoData) {
-      doc.addImage(logoData, 'PNG', pw / 2 - 20, 25, 40, 40);
-    } else {
-      doc.setFillColor(255, 255, 255);
-      doc.circle(pw / 2, 45, 18, 'F');
-      doc.setFontSize(14);
-      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-      doc.setFont(undefined as any, 'bold');
-      doc.text('SSB', pw / 2, 48, { align: 'center' });
-    }
-
-    // Gold accent lines
-    doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-    doc.rect(pw * 0.2, 80, pw * 0.6, 2.5, 'F');
-    doc.rect(pw * 0.25, 85, pw * 0.5, 0.8, 'F');
-
-    // Organization name
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont(undefined as any, 'bold');
-    doc.text(config.headerTitle || 'Social Security Board', pw / 2, 100, { align: 'center' });
-
-    // Department
-    doc.setFontSize(12);
-    doc.setFont(undefined as any, 'normal');
-    doc.text(config.headerSubtitle || 'Internal Audit Department', pw / 2, 112, { align: 'center' });
-
-    // Main title — use template config if available
+    const branding = buildBranding(config);
+    branding.logoBase64 = logoData;
     const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
-    doc.setFontSize(26);
-    doc.setFont(undefined as any, 'bold');
-    const titleY = ph * 0.40;
-    const coverTitleLines = coverTitle.split('\n');
-    coverTitleLines.forEach((line: string, idx: number) => {
-      doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
-    });
-
-    // Fiscal year — use template config display if available
     const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
-    doc.setFontSize(16);
-    doc.setFont(undefined as any, 'normal');
-    doc.text(`Fiscal Year ${fyDisplay}`, pw / 2, titleY + coverTitleLines.length * 16 + 24, { align: 'center' });
-
-    // Metadata block — positioned with more breathing room
-    const metaY = ph * 0.65;
-    doc.setFontSize(10);
-    doc.setTextColor(200, 230, 210);
-    const metaLines = [
-      `Plan Version: v${version}`,
-      `Status: ${dv(plan?.status, 'Draft')}`,
-      `Prepared By: ${dv(plan?.created_by || plan?.plan_owner, 'Internal Audit Department')}`,
-    ];
-    if (plan?.approved_by) {
-      metaLines.push(`Approved By: ${plan.approved_by}`);
-      if (plan?.approved_date) metaLines.push(`Approved Date: ${formatDateForDisplay(plan.approved_date)}`);
-    }
-    metaLines.forEach((line, i) => {
-      doc.text(line, pw / 2, metaY + i * 10, { align: 'center' });
+    renderUnifiedCover(doc, branding, {
+      title: coverTitle,
+      fullPageCover: true,
+      fiscalYear: fyDisplay,
+      version: `v${version}`,
+      status: dv(plan?.status, 'Draft'),
+      preparedBy: dv(plan?.created_by || plan?.plan_owner, 'Internal Audit Department'),
+      approvedBy: plan?.approved_by || undefined,
+      approvedDate: plan?.approved_date ? formatDateForDisplay(plan.approved_date) : undefined,
+      showConfidentiality: true,
     });
-
-    // Confidentiality note at bottom
-    doc.setFontSize(8);
-    doc.setTextColor(160, 200, 170);
-    doc.text(config.confidentialityLabel, pw / 2, ph - 30, { align: 'center' });
-    doc.setFontSize(7);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 22, { align: 'center' });
   }
 
   // ===== B. EXECUTIVE SUMMARY =====
