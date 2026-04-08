@@ -94,7 +94,7 @@ export function AuditReportBuilderStudio() {
 
   const [reportData, setReportData] = useState({
     title: '',
-    report_type: 'Engagement Report',
+    report_type: 'Audit Report',
     engagement_id: '',
     department_id: '',
     executive_summary: '',
@@ -122,7 +122,7 @@ export function AuditReportBuilderStudio() {
     if (existingReport) {
       setReportData({
         title: existingReport.title || '',
-        report_type: existingReport.report_type || 'Engagement Report',
+        report_type: existingReport.report_type || 'Audit Report',
         engagement_id: existingReport.engagement_id || '',
         department_id: existingReport.department_id || '',
         executive_summary: existingReport.executive_summary || '',
@@ -276,7 +276,7 @@ export function AuditReportBuilderStudio() {
       risk_rating: prev.risk_rating || Object.entries(riskCounts).map(([k, v]) => `${k}: ${v}`).join(' | '),
       fiscal_year: selectedEngagement.planned_start_date ? String(new Date(selectedEngagement.planned_start_date).getFullYear()) : prev.fiscal_year,
     }));
-    toast({ title: 'Auto-populated from engagement data' });
+    toast({ title: 'Auto-populated from audit data' });
   };
 
   const handleTemplateSelect = (template: ReportTemplate) => {
@@ -481,7 +481,7 @@ export function AuditReportBuilderStudio() {
                   value={reportData.background}
                   onChange={(e) => updateField('background', e.target.value)}
                   disabled={isLocked}
-                  placeholder="Describe the background context for this audit engagement..."
+                  placeholder="Describe the background context for this audit..."
                   className="leading-relaxed text-sm"
                 />
               </SectionCard>
@@ -494,7 +494,7 @@ export function AuditReportBuilderStudio() {
                   value={reportData.audit_objective}
                   onChange={(e) => updateField('audit_objective', e.target.value)}
                   disabled={isLocked}
-                  placeholder="State the objective(s) of this audit engagement..."
+                  placeholder="State the objective(s) of this audit..."
                   className="leading-relaxed text-sm"
                 />
               </SectionCard>
