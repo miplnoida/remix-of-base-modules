@@ -101,6 +101,18 @@ export function AuditPlanTemplateEditor() {
           />
         </SettingsCard>
 
+        {/* Typography, Layout & Tables */}
+        <SettingsCard title="Typography, Layout & Tables" cardKey="typographyLayout" open={openSections.typographyLayout} onToggle={toggleCard}>
+          <TypographyLayoutConfigurator
+            typography={typographyConfig}
+            tableStyle={tableStyleConfig}
+            pageLayout={pageLayoutConfig}
+            onTypographyChange={setTypographyConfig}
+            onTableStyleChange={setTableStyleConfig}
+            onPageLayoutChange={setPageLayoutConfig}
+          />
+        </SettingsCard>
+
         {/* Section Configuration */}
         <SettingsCard title="Section Configuration" cardKey="sectionConfig" open={openSections.sectionConfig} onToggle={toggleCard}>
           <AuditPlanSectionConfigurator
