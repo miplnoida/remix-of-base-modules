@@ -12,6 +12,8 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
+import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
+import { AUDIT_PLAN_SECTION_LIBRARY, type AuditPlanSection } from '@/lib/audit/auditPlanTemplateTypes';
 
 export function AuditPlanTemplateEditor() {
   const { data: config, isLoading } = useAuditPlanTemplate();
