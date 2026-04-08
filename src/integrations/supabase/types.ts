@@ -21113,6 +21113,33 @@ export type Database = {
           },
         ]
       }
+      ia_document_template_settings: {
+        Row: {
+          config_json: Json
+          created_at: string
+          id: string
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          id?: string
+          template_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          id?: string
+          template_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_document_templates: {
         Row: {
           approved_at: string | null
