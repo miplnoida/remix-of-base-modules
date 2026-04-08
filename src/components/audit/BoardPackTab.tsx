@@ -102,118 +102,50 @@ function getSupportNames(e: any, auditorMap: Map<string, string>): string {
     .map((id: string) => auditorMap.get(id)).filter(Boolean).join(', ');
 }
 
-// ===== REDESIGNED PAGE HEADER =====
+// ===== PAGE HEADER — delegates to unified primitives =====
 function addHeader(doc: jsPDF, sectionTitle: string, fiscalYear: string, version: number, config: ReportConfig) {
-  const pw = doc.internal.pageSize.getWidth();
-  const theme = getTheme(config);
-
-  // Green header bar — taller for presence
-  doc.setFillColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.rect(0, 0, pw, 36, 'F');
-  // Gold accent stripe
-  doc.setFillColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-  doc.rect(0, 36, pw, 2.5, 'F');
-
-  // Organization name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont(undefined as any, 'bold');
-  doc.text(config.headerTitle || 'Social Security Board', 14, 14);
-  // Department
-  doc.setFontSize(9);
-  doc.setFont(undefined as any, 'normal');
-  doc.text(config.headerSubtitle || 'Internal Audit Department', 14, 21);
-  // Section title on left
-  doc.setFontSize(8);
-  doc.text(sectionTitle, 14, 29);
-  // FY + version on right
-  doc.text(`FY ${fiscalYear}  •  Plan v${version}`, pw - 14, 29, { align: 'right' });
+  const branding = buildBranding(config);
+  renderPageHeader(doc, branding, { sectionTitle, fiscalYear, version });
 }
 
-// ===== REDESIGNED FOOTER =====
+// ===== FOOTER — delegates to unified primitives =====
 function addFooter(doc: jsPDF, version: number, artifactVersion: number, status: string, config: ReportConfig) {
-  const pageCount = doc.getNumberOfPages();
-  const theme = getTheme(config);
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    const pw = doc.internal.pageSize.getWidth();
-    const ph = doc.internal.pageSize.getHeight();
-
-    // Thin gold line above footer
-    doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-    doc.setLineWidth(0.5);
-    doc.line(14, ph - 18, pw - 14, ph - 18);
-
-    doc.setFontSize(6.5);
-    doc.setTextColor(120, 120, 120);
-    doc.text(`${config.confidentialityLabel}`, 14, ph - 12);
-    doc.text(`Plan v${version}  •  Artifact v${artifactVersion}  •  Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 12, { align: 'center' });
-    doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 12, { align: 'right' });
-
-    // Draft watermark — visible diagonal watermark
-    if (status !== 'Approved' && config.showDraftWatermark) {
-      doc.saveGraphicsState();
-      (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
-      doc.setTextColor(120, 120, 120);
-      doc.setFontSize(80);
-      doc.setFont(undefined as any, 'bold');
-      doc.text('DRAFT', pw / 2, ph / 2, { align: 'center', angle: 40 });
-      doc.restoreGraphicsState();
-    }
+  const branding = buildBranding(config);
+  renderFooter(doc, branding, {
+    extraText: `Plan v${version}  •  Artifact v${artifactVersion}`,
+  });
+  // Draft watermark
+  if (status !== 'Approved' && config.showDraftWatermark) {
+    renderWatermarkAllPages(doc, 'DRAFT', 0.12);
   }
 }
 
-// ===== SECTION TITLE =====
+// ===== SECTION TITLE — delegates to unified primitives =====
 function drawSectionTitle(doc: jsPDF, y: number, title: string, theme: any): number {
-  const pw = doc.internal.pageSize.getWidth();
-  doc.setFontSize(14);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.text(title, 14, y);
-  // Thin accent line under title
-  doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
-  doc.setLineWidth(0.8);
-  doc.line(14, y + 2, pw / 3, y + 2);
-  return y + 10;
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+    accentColor: theme.accent,
+  };
+  return renderUnifiedSectionTitle(doc, branding, title, y);
 }
 
-// ===== NARRATIVE BLOCK =====
-function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, pw: number, theme: any): number {
-  if (!content) return y;
-  if (y > 250) { doc.addPage(); y = 52; }
-  // Section label
-  doc.setFontSize(11);
-  doc.setFont(undefined as any, 'bold');
-  doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
-  doc.text(title, 14, y);
-  y += 6;
-  // Content
-  doc.setFont(undefined as any, 'normal');
-  doc.setTextColor(40, 40, 40);
-  doc.setFontSize(10);
-  const lines = doc.splitTextToSize(content, pw - 32);
-  doc.text(lines, 16, y);
-  y += lines.length * 5 + 8;
-  return y;
+// ===== NARRATIVE BLOCK — delegates to unified primitives =====
+function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, _pw: number, theme: any): number {
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+  };
+  return renderNarrativeBlock(doc, branding, title, content, y);
 }
 
-// ===== KEY-VALUE PAIR TABLE =====
+// ===== KEY-VALUE PAIR TABLE — delegates to unified primitives =====
 function addKvTable(doc: jsPDF, y: number, pairs: [string, string][], theme: any): number {
-  // Filter out empty value pairs
-  const filtered = pairs.filter(([, v]) => v && v.trim() !== '');
-  if (filtered.length === 0) return y;
-  autoTable(doc, {
-    startY: y,
-    body: filtered,
-    styles: { fontSize: 10, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.3 },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 60, textColor: theme.primary },
-      1: { textColor: [40, 40, 40] },
-    },
-    theme: 'plain',
-    margin: { left: 14, right: 14 },
-  });
-  return (doc as any).lastAutoTable.finalY + 8;
+  const branding: ExportBranding = {
+    ...DEFAULT_AUDIT_BRANDING,
+    primaryColor: theme.primary,
+  };
+  return renderKvTable(doc, branding, pairs, y);
 }
 
 // ===== BOARD SUMMARY PDF (REDESIGNED) =====
