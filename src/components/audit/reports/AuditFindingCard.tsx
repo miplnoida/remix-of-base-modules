@@ -28,15 +28,15 @@ const FALLBACK_COLORS = { borderColor: '#9ca3af', dotColor: '#9ca3af' };
 
 export function AuditFindingCard({ finding, index, responses = [], actions = [], compact = false }: AuditFindingCardProps) {
   const risk = finding.risk_rating || 'Unrated';
-  const colors = RISK_COLORS[risk] || { border: 'border-l-gray-400', bg: 'bg-muted/30', text: 'text-muted-foreground', dot: 'bg-gray-400', headerBg: 'bg-muted/30' };
+  const fc = risk !== 'Unrated' ? buildFindingColors(risk) : FALLBACK_COLORS;
 
   const linkedResponses = responses.filter((r: any) => r.finding_id === finding.id);
   const linkedActions = actions.filter((a: any) => a.finding_id === finding.id);
 
   return (
-    <Card className={`border-l-4 ${colors.border} overflow-hidden print:shadow-none print:border`}>
+    <Card className="border-l-4 overflow-hidden print:shadow-none print:border" style={{ borderLeftColor: fc.borderColor }}>
       {/* Finding Header */}
-      <div className={`px-5 py-3 ${colors.headerBg} border-b`}>
+      <div className="px-5 py-3 bg-muted/30 border-b">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-primary-foreground bg-primary rounded-full h-7 w-7 flex items-center justify-center shrink-0 shadow-sm">
@@ -48,8 +48,8 @@ export function AuditFindingCard({ finding, index, responses = [], actions = [],
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge className={`${colors.bg} ${colors.text} border text-xs`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${colors.dot} mr-1.5 inline-block`} />
+            <Badge className="border text-xs" style={{ backgroundColor: `${fc.dotColor}20`, color: fc.dotColor }}>
+              <span className="h-1.5 w-1.5 rounded-full mr-1.5 inline-block" style={{ backgroundColor: fc.dotColor }} />
               {risk}
             </Badge>
             {finding.impact_area && (
