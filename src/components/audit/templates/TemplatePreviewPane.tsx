@@ -3,17 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
+import type { AuditPlanBranding, AuditPlanCoverPageConfig } from '@/lib/audit/auditPlanTemplateTypes';
 
 interface TemplatePreviewPaneProps {
   templateType: 'audit_report' | 'audit_plan';
   config: AuditReportTemplateConfig | AuditPlanTemplateConfig;
+  /** Enhanced branding config (for audit_plan only) */
+  brandingConfig?: AuditPlanBranding;
+  /** Enhanced cover page config (for audit_plan only) */
+  coverPageConfig?: AuditPlanCoverPageConfig;
 }
 
-export function TemplatePreviewPane({ templateType, config }: TemplatePreviewPaneProps) {
+export function TemplatePreviewPane({ templateType, config, brandingConfig, coverPageConfig }: TemplatePreviewPaneProps) {
   if (templateType === 'audit_report') {
     return <ReportPreview config={config as AuditReportTemplateConfig} />;
   }
-  return <PlanPreview config={config as AuditPlanTemplateConfig} />;
+  return (
+    <PlanPreview
+      config={config as AuditPlanTemplateConfig}
+      branding={brandingConfig}
+      coverPage={coverPageConfig}
+    />
+  );
 }
 
 function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
@@ -99,7 +110,43 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
   );
 }
 
-function PlanPreview({ config }: { config: AuditPlanTemplateConfig }) {
+function PlanPreview({
+  config,
+  branding,
+  coverPage,
+}: {
+  config: AuditPlanTemplateConfig;
+  branding?: AuditPlanBranding;
+  coverPage?: AuditPlanCoverPageConfig;
+}) {
+  // Use enhanced config if available, otherwise fall back to basic
+  const primaryColor = branding?.colorPalette.primary || '#1E3A5F';
+  const secondaryColor = branding?.colorPalette.secondary || '#4A7FB5';
+  const accentColor = branding?.colorPalette.accent || '#E8F0FE';
+  const textColor = branding?.colorPalette.text || '#1A1A1A';
+
+  const titleText = coverPage?.titleText || config.coverPage.titleText;
+  const orgName = branding?.orgName || '';
+  const showOrgName = coverPage?.showOrgName ?? true;
+  const showEntity = coverPage?.showAuditableEntity ?? true;
+  const showPeriod = coverPage?.showPeriodCovered ?? true;
+  const showVersion = coverPage?.showVersionNumber ?? true;
+  const showIssueDate = coverPage?.showIssueDate ?? true;
+  const showConfLabel = coverPage?.showConfidentialLabel ?? true;
+  const confidentialLabel = branding?.confidentialLabel || 'CONFIDENTIAL';
+  const fiscalMode = coverPage?.fiscalYearMode || config.coverPage.fiscalYearMode;
+  const coverStyle = coverPage?.coverStyle || 'minimal';
+  const logoMode = branding?.logoMode || 'cover_only';
+  const logoSize = branding?.logoSize || 'medium';
+  const logoAlign = branding?.logoAlignment || 'center';
+  const showWatermark = branding?.showWatermark ?? false;
+  const watermarkText = branding?.watermarkText || 'DRAFT';
+  const hasLogo = logoMode !== 'none';
+  const hasCustomLogo = branding?.logoSource && branding.logoSource !== 'default' && branding.logoSource.length > 10;
+
+  const logoSizePx = logoSize === 'small' ? 24 : logoSize === 'large' ? 40 : 32;
+  const logoJustify = logoAlign === 'left' ? 'justify-start' : logoAlign === 'right' ? 'justify-end' : 'justify-center';
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="py-2 px-4 bg-muted/40">
@@ -107,24 +154,113 @@ function PlanPreview({ config }: { config: AuditPlanTemplateConfig }) {
       </CardHeader>
       <CardContent className="p-0">
         {/* Mini cover */}
-        <div className="bg-[#0E5F3A] text-white px-4 py-3">
-          {config.coverPage.showDepartmentLine && (
-            <p className="text-[9px] opacity-70 mb-1">Internal Audit Department</p>
+        <div
+          className="px-4 py-4 relative"
+          style={{
+            backgroundColor: coverStyle === 'formal' ? primaryColor : '#FFFFFF',
+            color: coverStyle === 'formal' ? '#FFFFFF' : textColor,
+          }}
+        >
+          {/* Watermark */}
+          {showWatermark && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <p
+                className="text-2xl font-bold -rotate-45 select-none"
+                style={{ color: coverStyle === 'formal' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)' }}
+              >
+                {watermarkText}
+              </p>
+            </div>
           )}
-          <p className="text-sm font-bold">{config.coverPage.titleText}</p>
-          <p className="text-[9px] opacity-70 mt-1">
-            Fiscal Year: {config.coverPage.fiscalYearMode === 'range' ? '2025–2026' : '2026'}
-          </p>
+
+          {/* Accent bar for modern style */}
+          {coverStyle === 'modern' && (
+            <div
+              className="absolute left-0 top-0 bottom-0 w-1.5"
+              style={{ backgroundColor: primaryColor }}
+            />
+          )}
+
+          <div className={`relative z-10 ${coverStyle === 'formal' ? 'text-center' : coverStyle === 'modern' ? 'pl-3' : 'text-center'}`}>
+            {/* Logo */}
+            {hasLogo && (
+              <div className={`flex ${coverStyle === 'modern' ? 'justify-start' : logoJustify} mb-2`}>
+                {hasCustomLogo ? (
+                  <img
+                    src={branding!.logoSource}
+                    alt="Logo"
+                    style={{ width: logoSizePx, height: logoSizePx }}
+                    className="object-contain rounded"
+                  />
+                ) : (
+                  <div
+                    className="rounded flex items-center justify-center text-[7px] font-bold"
+                    style={{
+                      width: logoSizePx,
+                      height: logoSizePx,
+                      backgroundColor: coverStyle === 'formal' ? 'rgba(255,255,255,0.2)' : accentColor,
+                      color: coverStyle === 'formal' ? '#FFFFFF' : primaryColor,
+                    }}
+                  >
+                    LOGO
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Organization */}
+            {showOrgName && orgName && (
+              <p className="text-[9px] uppercase tracking-widest mb-1 opacity-70">{orgName}</p>
+            )}
+
+            {/* Title */}
+            <p
+              className="text-sm font-bold"
+              style={{ color: coverStyle === 'formal' ? '#FFFFFF' : primaryColor }}
+            >
+              {titleText}
+            </p>
+
+            {/* Subtitle elements */}
+            <div className={`mt-2 space-y-0.5 text-[9px] ${coverStyle === 'formal' ? 'opacity-80' : 'text-muted-foreground'}`}>
+              {showEntity && <p>Entity: Sample Department</p>}
+              {showPeriod && (
+                <p>Period: {fiscalMode === 'range' ? '2025–2026' : '2026'}</p>
+              )}
+              {showVersion && <p>Version: 1.0</p>}
+              {showIssueDate && <p>Issue Date: April 2026</p>}
+            </div>
+
+            {/* Confidential label */}
+            {showConfLabel && (
+              <div className="mt-2">
+                <Badge
+                  variant="outline"
+                  className="text-[8px] tracking-wider"
+                  style={{
+                    borderColor: coverStyle === 'formal' ? 'rgba(255,255,255,0.3)' : primaryColor,
+                    color: coverStyle === 'formal' ? '#FFFFFF' : primaryColor,
+                  }}
+                >
+                  {confidentialLabel}
+                </Badge>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="h-0.5 bg-[#F4C430]" />
+
+        {/* Accent divider */}
+        <div className="h-0.5" style={{ backgroundColor: secondaryColor }} />
 
         {/* Summary */}
         <div className="px-4 py-3">
-          <p className="text-xs font-semibold mb-2">{config.planSummary.titleOverride}</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: primaryColor }}>
+            {config.planSummary.titleOverride}
+          </p>
           {config.planSummary.splitByType ? (
             <div className="space-y-2">
               {config.planSummary.sections.filter((s) => s.enabled).map((sec) => (
-                <div key={sec.key} className="text-[9px] border-l-2 border-[#0E5F3A] pl-2">
+                <div key={sec.key} className="text-[9px] border-l-2 pl-2" style={{ borderColor: primaryColor }}>
                   <p className="font-semibold">{sec.label}</p>
                   <p className="text-muted-foreground">Sample rows…</p>
                 </div>
@@ -167,6 +303,23 @@ function PlanPreview({ config }: { config: AuditPlanTemplateConfig }) {
             </div>
           )}
         </div>
+
+        {/* Palette preview strip */}
+        {branding && (
+          <div className="px-4 py-2 border-t bg-muted/20">
+            <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-1">Palette</p>
+            <div className="flex gap-1">
+              {Object.entries(branding.colorPalette).map(([key, color]) => (
+                <div
+                  key={key}
+                  className="w-5 h-5 rounded border border-border"
+                  style={{ backgroundColor: color }}
+                  title={`${key}: ${color}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
