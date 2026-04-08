@@ -26,6 +26,8 @@ import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from '@/components/audit/reports/AuditReportPreview';
 import { AuditFindingCard } from '@/components/audit/reports/AuditFindingCard';
 import { AuditReportWorkflowBar } from '@/components/audit/reports/AuditReportWorkflowBar';
+import { ManagementResponseReportPreview } from '@/components/audit/reports/ManagementResponseReportPreview';
+import { mapManagementResponseReport } from '@/lib/audit/managementResponseReportMapper';
 import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers, useEngagementControlTests, useEngagementFollowUps } from '@/hooks/useEngagementData';
 import { useNavigate } from 'react-router-dom';
 
