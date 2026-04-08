@@ -748,16 +748,20 @@ async function generateDetailedPlanPdf(
     doc.setFont(undefined as any, 'normal');
 
     const signoffY = y + 20;
+    const prepLabel = planTemplateConfig?.governance.preparedByLabel || 'Prepared By';
+    const apprLabel = planTemplateConfig?.governance.approvedByLabel || 'Approved By';
     // Prepared by
-    doc.text('Prepared By:', 20, signoffY);
+    doc.text(`${prepLabel}:`, 20, signoffY);
     doc.line(60, signoffY + 1, 120, signoffY + 1);
     doc.text('Date:', 130, signoffY);
     doc.line(145, signoffY + 1, pw - 20, signoffY + 1);
     // Approved by
-    doc.text('Approved By:', 20, signoffY + 20);
-    doc.line(60, signoffY + 21, 120, signoffY + 21);
-    doc.text('Date:', 130, signoffY + 20);
-    doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+    if (planTemplateConfig?.governance.showApprovedByBlock !== false) {
+      doc.text(`${apprLabel}:`, 20, signoffY + 20);
+      doc.line(60, signoffY + 21, 120, signoffY + 21);
+      doc.text('Date:', 130, signoffY + 20);
+      doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+    }
   }
 
   addFooter(doc, version, artVersion, plan?.status, config);
