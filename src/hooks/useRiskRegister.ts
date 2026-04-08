@@ -153,6 +153,7 @@ export function useRiskMitigationMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_mitigation_actions', 'create'],
     mutationFn: async (action: any) => {
       const { data, error } = await supabase
         .from('ia_risk_mitigation_actions' as any)
@@ -172,6 +173,7 @@ export function useRiskMitigationMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_mitigation_actions', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_risk_mitigation_actions' as any)
@@ -217,6 +219,7 @@ export function useRiskReviewMutations() {
   const { getCreateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_reviews', 'risk_reviewed'],
     mutationFn: async (review: any) => {
       const { data, error } = await supabase
         .from('ia_risk_reviews' as any)
