@@ -38489,6 +38489,7 @@ export type Database = {
         }[]
       }
       get_app_security_state: { Args: never; Returns: Json }
+      get_audit_trail_filter_options: { Args: never; Returns: Json }
       get_batch_cheques_for_verification: {
         Args: { p_batch_number: string }
         Returns: {
@@ -38615,8 +38616,10 @@ export type Database = {
           p_module_filter?: string
           p_offset?: number
           p_route_filter?: string
+          p_severity_filter?: string
           p_sort_direction?: string
           p_sort_key?: string
+          p_source_filter?: string
           p_user_filter?: string
         }
         Returns: Json
