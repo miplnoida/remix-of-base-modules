@@ -109,7 +109,7 @@ const SelfEmployedContributionList: React.FC = () => {
         regNo: se.social_security_number,
         month: String(record.month_number),
         year: record.year,
-        schedule: '0',
+        schedule: String(record.schedule ?? '0'),
         payerType: 'SE',
       },
     });
@@ -206,6 +206,7 @@ const SelfEmployedContributionList: React.FC = () => {
                     <TableHead className="text-green-700 font-semibold">Fine</TableHead>
                     <TableHead className="text-green-700 font-semibold">Total</TableHead>
                     <TableHead className="text-green-700 font-semibold">Creation Date</TableHead>
+                    <TableHead className="text-green-700 font-semibold">Schedule</TableHead>
                     <TableHead className="text-green-700 font-semibold">Notes</TableHead>
                     <TableHead className="text-green-700 font-semibold">Is Submitted</TableHead>
                     <TableHead className="text-green-700 font-semibold">Preview</TableHead>
@@ -227,6 +228,13 @@ const SelfEmployedContributionList: React.FC = () => {
                       <TableCell>{formatCurrency(c.fine)}</TableCell>
                       <TableCell>{formatCurrency(c.total)}</TableCell>
                       <TableCell>{formatDate(c.creation_date)}</TableCell>
+                      <TableCell>
+                        {c.schedule != null ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            {c.schedule}
+                          </span>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell className="max-w-[100px] truncate">{c.notes}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${c.is_submitted ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

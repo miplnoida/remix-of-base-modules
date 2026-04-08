@@ -30,7 +30,7 @@ function formatCurrency(n: number | null | undefined) {
 function PaymentStatusBadge({ status }: { status: string }) {
   if (!status) return <span>—</span>;
   const upper = status.toUpperCase();
-  if (upper === 'AUTHORIZED') {
+  if (upper === 'AUTHORIZED' || upper === 'COMPLETED' || upper === 'SUCCESS') {
     return (
       <div className="flex items-center gap-1">
         <CheckCircle className="h-3 w-3 text-green-600" />
