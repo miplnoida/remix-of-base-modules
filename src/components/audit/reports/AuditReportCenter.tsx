@@ -23,7 +23,7 @@ import { AuditReportTemplateSelector, REPORT_TEMPLATES as TEMPLATES } from './Au
 import type { ReportTemplate } from './AuditReportTemplateSelector';
 
 const REPORT_TYPE_CARDS = [
-  { id: 'engagement', title: 'Engagement Report', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', matchTypes: ['Engagement Report'] },
+  { id: 'engagement', title: 'Audit Report', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', matchTypes: ['Engagement Report'] },
   { id: 'executive', title: 'Executive Summary', icon: Briefcase, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', matchTypes: ['Executive Summary'] },
   { id: 'committee', title: 'Committee / Board Pack', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', matchTypes: ['Committee Pack'] },
   { id: 'findings', title: 'Findings & Actions', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800', matchTypes: ['Findings & Actions Report'] },
@@ -178,7 +178,7 @@ export function AuditReportCenter() {
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{r.title || 'Untitled'}</p>
-                          <p className="text-xs text-muted-foreground">{r.report_type || 'Engagement Report'} · {r.generated_on ? formatDateForDisplay(r.generated_on) : '—'}</p>
+                          <p className="text-xs text-muted-foreground">{r.report_type === 'Engagement Report' ? 'Audit Report' : (r.report_type || 'Audit Report')} · {r.generated_on ? formatDateForDisplay(r.generated_on) : '—'}</p>
                         </div>
                         <StatusBadge status="Draft" />
                       </div>
@@ -243,7 +243,7 @@ export function AuditReportCenter() {
                     <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="Engagement Report">Engagement</SelectItem>
+                      <SelectItem value="Engagement Report">Audit Report</SelectItem>
                       <SelectItem value="Executive Summary">Executive</SelectItem>
                       <SelectItem value="Committee Pack">Committee</SelectItem>
                       <SelectItem value="Findings & Actions Report">Findings & Actions</SelectItem>
