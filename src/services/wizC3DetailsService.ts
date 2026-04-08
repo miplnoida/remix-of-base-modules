@@ -89,6 +89,7 @@ export interface SeContributionRecord {
   fine: number;
   total: number;
   creation_date: string;
+  schedule?: number | null;
   notes: string;
   is_submitted: boolean;
   is_finalized: boolean;

@@ -30,7 +30,7 @@ function formatCurrency(n: number | null | undefined) {
 function PaymentStatusBadge({ status }: { status: string }) {
   if (!status) return <span>—</span>;
   const upper = status.toUpperCase();
-  if (upper === 'AUTHORIZED') {
+  if (upper === 'AUTHORIZED' || upper === 'COMPLETED' || upper === 'SUCCESS') {
     return (
       <div className="flex items-center gap-1">
         <CheckCircle className="h-3 w-3 text-green-600" />
@@ -193,6 +193,8 @@ export default function WizPaymentsHistory() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="AUTHORIZED">AUTHORIZED</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="SUCCESS">SUCCESS</SelectItem>
                   <SelectItem value="DECLINED">DECLINED</SelectItem>
                   <SelectItem value="INVALID_REQUEST">INVALID_REQUEST</SelectItem>
                 </SelectContent>

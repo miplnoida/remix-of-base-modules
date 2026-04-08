@@ -365,6 +365,8 @@ export default function WizPaymentDetails() {
                 <SelectContent>
                   <SelectItem value={ALL}>All Status</SelectItem>
                   <SelectItem value="AUTHORIZED">AUTHORIZED</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="SUCCESS">SUCCESS</SelectItem>
                   <SelectItem value="DECLINED">DECLINED</SelectItem>
                   <SelectItem value="INVALID_REQUEST">INVALID_REQUEST</SelectItem>
                 </SelectContent>
@@ -577,7 +579,7 @@ export default function WizPaymentDetails() {
                           <div className="space-y-1">
                             {rec.pay_details?.map((pd, idx) => (
                               <div key={idx} className={`flex items-center gap-1 ${idx > 0 ? 'border-t pt-1' : ''}`}>
-                                {pd.transaction_status === 'AUTHORIZED' ? (
+                                {['AUTHORIZED', 'COMPLETED', 'SUCCESS'].includes(pd.transaction_status?.toUpperCase()) ? (
                                   <CheckCircle2 className="h-3 w-3 text-green-600" />
                                 ) : (
                                   <XCircle className="h-3 w-3 text-destructive" />
@@ -722,7 +724,7 @@ export default function WizPaymentDetails() {
                     <TableRow>
                       <TableCell className="font-medium">Status</TableCell>
                       <TableCell>
-                        <Badge variant={receipt.payment_status === 'AUTHORIZED' ? 'default' : 'destructive'}>
+                        <Badge variant={['AUTHORIZED', 'COMPLETED', 'SUCCESS'].includes(receipt.payment_status?.toUpperCase()) ? 'default' : 'destructive'}>
                           {receipt.payment_status}
                         </Badge>
                       </TableCell>
