@@ -82,19 +82,7 @@ async function getLogoBase64(): Promise<string | null> {
   }
 }
 
-/** Clean display value — no ugly dashes for empty data */
-function dv(val: any, fallback = ''): string {
-  if (val === null || val === undefined || val === '' || val === '—') return fallback;
-  return String(val);
-}
-
-/** Resolve engagement field with fallbacks */
-function ef(e: any, ...keys: string[]): any {
-  for (const k of keys) {
-    if (e[k] !== null && e[k] !== undefined && e[k] !== '') return e[k];
-  }
-  return null;
-}
+// dv and ef are now imported from auditExportPrimitives (displayValue, resolveField)
 
 /** Get rationale display from structured or legacy fields */
 function getRationaleDisplay(e: any): string {
