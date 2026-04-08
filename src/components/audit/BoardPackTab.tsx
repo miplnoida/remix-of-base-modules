@@ -24,6 +24,20 @@ import type { PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides
 import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
 import { PlanOverridePanel } from './templates/PlanOverridePanel';
 import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
+import {
+  DEFAULT_AUDIT_BRANDING,
+  renderCoverPage as renderUnifiedCover,
+  renderPageHeader,
+  renderFooter,
+  renderSectionTitle as renderUnifiedSectionTitle,
+  renderNarrativeBlock,
+  renderKvTable,
+  renderWatermarkAllPages,
+  loadLogoBase64,
+  displayValue as dv,
+  resolveField as ef,
+  type ExportBranding,
+} from '@/lib/audit/auditExportPrimitives';
 
 interface BoardPackTabProps {
   planId: string;
