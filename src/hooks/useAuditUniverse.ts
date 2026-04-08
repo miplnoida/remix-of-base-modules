@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuditFields } from '@/hooks/useAuditTrail';
 
 export const ENTITY_TYPES = [
-  'Ministry', 'Department', 'Division', 'Programme', 'Project',
+  'Ministry', 'Division', 'Programme', 'Project',
   'Fund', 'Process', 'System', 'Location', 'Agency', 'Committee', 'User/Role Domain',
 ] as const;
 
