@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Eye, EyeOff, Users, LayoutTemplate, Palette, BookOpen, Type, Table2, Layers, FileDown, MonitorSmartphone } from 'lucide-react';
-import { useAuditPlanTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
+import { Badge } from '@/components/ui/badge';
+import { Save, Eye, EyeOff, Users, LayoutTemplate, Palette, BookOpen, Type, Table2, Layers, FileDown, MonitorSmartphone, Lock, Loader2 } from 'lucide-react';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
@@ -32,6 +32,12 @@ import {
   type AuditPlanExportDefaults,
 } from '@/lib/audit/auditPlanTemplateTypes';
 import { PRESET_AUDIT_BLUE_MINIMAL } from '@/lib/audit/auditPlanTemplatePresets';
+import {
+  useAuditPlanTemplates,
+  useUpdateTemplateConfig,
+  useTemplatePermission,
+} from '@/hooks/useAuditPlanTemplateGovernance';
+import { isEditable, formatVersionLabel, getStatusLabel, type GovernedTemplateRow } from '@/lib/audit/auditPlanTemplateGovernance';
 
 const TABS = [
   { value: 'profiles', label: 'Profiles', icon: Users },
@@ -48,10 +54,16 @@ const TABS = [
 type TabValue = typeof TABS[number]['value'];
 
 export function AuditPlanTemplateEditor() {
-  const { data: config, isLoading } = useAuditPlanTemplate();
-  const mutation = useAuditDocumentTemplateMutation();
+  const { data: templates = [], isLoading: loadingTemplates } = useAuditPlanTemplates();
+  const updateMutation = useUpdateTemplateConfig();
+  const { canOnTemplate } = useTemplatePermission();
   const { userCode } = useUserCode();
+
   const [activeTab, setActiveTab] = useState<TabValue>('profiles');
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [showSidePreview, setShowSidePreview] = useState(false);
+
+  // Config state — loaded from selected template
   const [draft, setDraft] = useState<AuditPlanTemplateConfig>(DEFAULT_AUDIT_PLAN_CONFIG);
   const [sectionConfig, setSectionConfig] = useState<AuditPlanSection[]>([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
   const [brandingConfig, setBrandingConfig] = useState<AuditPlanBranding>(PRESET_AUDIT_BLUE_MINIMAL.branding);
@@ -62,27 +74,76 @@ export function AuditPlanTemplateEditor() {
   const [tableStyleConfig, setTableStyleConfig] = useState<AuditPlanTableStyle>(PRESET_AUDIT_BLUE_MINIMAL.tableStyle);
   const [pageLayoutConfig, setPageLayoutConfig] = useState<AuditPlanPageLayout>(PRESET_AUDIT_BLUE_MINIMAL.pageLayout);
   const [exportDefaults, setExportDefaults] = useState<AuditPlanExportDefaults>(PRESET_AUDIT_BLUE_MINIMAL.exportDefaults);
-  const [showSidePreview, setShowSidePreview] = useState(false);
-  const [activeTemplateId, setActiveTemplateId] = useState('tpl-1');
+
+  // Resolve selected template
+  const selectedTemplate: GovernedTemplateRow | undefined = templates.find((t) => t.id === activeTemplateId);
+  const canEdit = selectedTemplate ? isEditable(selectedTemplate) && canOnTemplate(selectedTemplate, 'edit') : false;
+
+  // Auto-select house default or first template
+  useEffect(() => {
+    if (!activeTemplateId && templates.length > 0) {
+      const houseDefault = templates.find((t) => t.is_house_default);
+      setActiveTemplateId(houseDefault?.id ?? templates[0].id);
+    }
+  }, [templates, activeTemplateId]);
+
+  // Load config from selected template
+  const loadTemplateConfig = useCallback((config: AuditPlanTemplateConfig) => {
+    setDraft(config);
+    setBrandingConfig(config.branding ?? PRESET_AUDIT_BLUE_MINIMAL.branding);
+    setCoverPageConfig(config.coverPage ?? PRESET_AUDIT_BLUE_MINIMAL.coverPage);
+    setTocConfig(config.toc ?? PRESET_AUDIT_BLUE_MINIMAL.toc);
+    setPaginationConfig(config.pagination ?? PRESET_AUDIT_BLUE_MINIMAL.pagination);
+    setTypographyConfig(config.typography ?? PRESET_AUDIT_BLUE_MINIMAL.typography);
+    setTableStyleConfig(config.tableStyle ?? PRESET_AUDIT_BLUE_MINIMAL.tableStyle);
+    setPageLayoutConfig(config.pageLayout ?? PRESET_AUDIT_BLUE_MINIMAL.pageLayout);
+    setExportDefaults(config.exportDefaults ?? PRESET_AUDIT_BLUE_MINIMAL.exportDefaults);
+    setSectionConfig(config.sections ?? [...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
+  }, []);
 
   useEffect(() => {
-    if (config) setDraft(config);
-  }, [config]);
+    if (selectedTemplate?.config_json) {
+      loadTemplateConfig(selectedTemplate.config_json);
+    }
+  }, [selectedTemplate?.id, selectedTemplate?.version, loadTemplateConfig]);
 
   const handleSave = () => {
-    mutation.mutate(
-      { templateType: 'audit_plan', configJson: draft as any, updatedBy: userCode || 'system' },
-      {
-        onSuccess: () => toast.success('Audit Plan template saved'),
-        onError: (e) => toast.error('Failed to save template', { description: String(e) }),
-      }
-    );
+    if (!selectedTemplate || !canEdit) {
+      toast.error('This template cannot be edited');
+      return;
+    }
+
+    const fullConfig: AuditPlanTemplateConfig = {
+      ...draft,
+      branding: brandingConfig,
+      coverPage: coverPageConfig,
+      toc: tocConfig,
+      pagination: paginationConfig,
+      typography: typographyConfig,
+      tableStyle: tableStyleConfig,
+      pageLayout: pageLayoutConfig,
+      exportDefaults,
+      sections: sectionConfig,
+    };
+
+    updateMutation.mutate({
+      templateId: selectedTemplate.id,
+      configJson: fullConfig as any,
+      updatedBy: userCode || 'system',
+      currentVersion: selectedTemplate.version,
+    });
   };
 
-  // Show side preview on config tabs
   const isConfigTab = !['profiles', 'templates', 'preview'].includes(activeTab);
 
-  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading template…</div>;
+  if (loadingTemplates) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+        <span className="text-sm text-muted-foreground">Loading engine…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -94,16 +155,28 @@ export function AuditPlanTemplateEditor() {
             Configure profiles, templates, and formatting settings for audit plan outputs.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {selectedTemplate && isConfigTab && (
+            <div className="flex items-center gap-1.5 mr-2">
+              <Badge variant="outline" className="text-[10px] h-5">{selectedTemplate.template_name}</Badge>
+              <Badge variant="secondary" className="text-[10px] h-5">{formatVersionLabel(selectedTemplate.version)}</Badge>
+              {selectedTemplate.is_system && (
+                <Badge variant="secondary" className="text-[10px] h-5 gap-1"><Lock className="h-2.5 w-2.5" /> Read-only</Badge>
+              )}
+            </div>
+          )}
           {isConfigTab && (
             <Button variant="outline" size="sm" onClick={() => setShowSidePreview(!showSidePreview)}>
               {showSidePreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
               {showSidePreview ? 'Hide Preview' : 'Preview'}
             </Button>
           )}
-          <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
-            <Save className="h-4 w-4 mr-1" /> Save
-          </Button>
+          {canEdit && isConfigTab && (
+            <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Save
+            </Button>
+          )}
         </div>
       </div>
 
@@ -125,17 +198,13 @@ export function AuditPlanTemplateEditor() {
 
             {/* 1. Profiles */}
             <TabsContent value="profiles" className="mt-4">
-              <AuditPlanProfilesTab
-                onSelectProfile={(id) => {
-                  setActiveTab('templates');
-                }}
-              />
+              <AuditPlanProfilesTab onSelectProfile={() => setActiveTab('templates')} />
             </TabsContent>
 
             {/* 2. Templates */}
             <TabsContent value="templates" className="mt-4">
               <AuditPlanTemplatesTab
-                activeTemplateId={activeTemplateId}
+                activeTemplateId={activeTemplateId ?? undefined}
                 onSelectTemplate={(id) => {
                   setActiveTemplateId(id);
                   setActiveTab('cover');
@@ -148,8 +217,8 @@ export function AuditPlanTemplateEditor() {
               <CoverBrandingConfigurator
                 branding={brandingConfig}
                 coverPage={coverPageConfig}
-                onBrandingChange={setBrandingConfig}
-                onCoverPageChange={setCoverPageConfig}
+                onBrandingChange={canEdit ? setBrandingConfig : () => {}}
+                onCoverPageChange={canEdit ? setCoverPageConfig : () => {}}
               />
             </TabsContent>
 
@@ -158,8 +227,8 @@ export function AuditPlanTemplateEditor() {
               <TocPaginationConfigurator
                 toc={tocConfig}
                 pagination={paginationConfig}
-                onTocChange={setTocConfig}
-                onPaginationChange={setPaginationConfig}
+                onTocChange={canEdit ? setTocConfig : () => {}}
+                onPaginationChange={canEdit ? setPaginationConfig : () => {}}
               />
             </TabsContent>
 
@@ -169,9 +238,9 @@ export function AuditPlanTemplateEditor() {
                 typography={typographyConfig}
                 tableStyle={tableStyleConfig}
                 pageLayout={pageLayoutConfig}
-                onTypographyChange={setTypographyConfig}
-                onTableStyleChange={setTableStyleConfig}
-                onPageLayoutChange={setPageLayoutConfig}
+                onTypographyChange={canEdit ? setTypographyConfig : () => {}}
+                onTableStyleChange={canEdit ? setTableStyleConfig : () => {}}
+                onPageLayoutChange={canEdit ? setPageLayoutConfig : () => {}}
               />
             </TabsContent>
 
@@ -179,7 +248,7 @@ export function AuditPlanTemplateEditor() {
             <TabsContent value="tables" className="mt-4">
               <TablesAppendicesConfigurator
                 tableStyle={tableStyleConfig}
-                onTableStyleChange={setTableStyleConfig}
+                onTableStyleChange={canEdit ? setTableStyleConfig : () => {}}
               />
             </TabsContent>
 
@@ -187,8 +256,8 @@ export function AuditPlanTemplateEditor() {
             <TabsContent value="sections" className="mt-4">
               <AuditPlanSectionConfigurator
                 sections={sectionConfig}
-                onChange={setSectionConfig}
-                onReset={() => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[])}
+                onChange={canEdit ? setSectionConfig : () => {}}
+                onReset={canEdit ? () => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]) : () => {}}
               />
             </TabsContent>
 
@@ -196,7 +265,7 @@ export function AuditPlanTemplateEditor() {
             <TabsContent value="export" className="mt-4">
               <ExportSettingsConfigurator
                 exportDefaults={exportDefaults}
-                onChange={setExportDefaults}
+                onChange={canEdit ? setExportDefaults : () => {}}
               />
             </TabsContent>
 
@@ -229,19 +298,17 @@ export function AuditPlanTemplateEditor() {
                       <Label>Title Override</Label>
                       <Input
                         value={draft.planSummary.titleOverride}
-                        onChange={(e) =>
-                          setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, titleOverride: e.target.value } }))
-                        }
+                        onChange={(e) => canEdit && setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, titleOverride: e.target.value } }))}
                         placeholder="e.g. Audit Schedule"
+                        readOnly={!canEdit}
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>Split by Engagement Type</Label>
                       <Switch
                         checked={draft.planSummary.splitByType}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, splitByType: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, splitByType: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     {draft.planSummary.splitByType && (
@@ -251,14 +318,14 @@ export function AuditPlanTemplateEditor() {
                           <div key={sec.key} className="flex items-center gap-3">
                             <Switch
                               checked={sec.enabled}
+                              disabled={!canEdit}
                               onCheckedChange={(v) => {
+                                if (!canEdit) return;
                                 setDraft((d) => ({
                                   ...d,
                                   planSummary: {
                                     ...d.planSummary,
-                                    sections: d.planSummary.sections.map((s, si) =>
-                                      si === i ? { ...s, enabled: v } : s
-                                    ),
+                                    sections: d.planSummary.sections.map((s, si) => si === i ? { ...s, enabled: v } : s),
                                   },
                                 }));
                               }}
@@ -272,9 +339,8 @@ export function AuditPlanTemplateEditor() {
                       <Label>Hide Exact Start/End Dates</Label>
                       <Switch
                         checked={draft.planSummary.hideExactDates}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, hideExactDates: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, planSummary: { ...d.planSummary, hideExactDates: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                   </div>
@@ -296,14 +362,14 @@ export function AuditPlanTemplateEditor() {
                             <div key={col.key} className="flex items-center gap-3">
                               <Switch
                                 checked={col.enabled}
+                                disabled={!canEdit}
                                 onCheckedChange={(v) => {
+                                  if (!canEdit) return;
                                   setDraft((d) => ({
                                     ...d,
                                     columnsBySection: {
                                       ...d.columnsBySection,
-                                      [sectionKey]: d.columnsBySection[sectionKey].map((c, i) =>
-                                        i === ci ? { ...c, enabled: v } : c
-                                      ),
+                                      [sectionKey]: d.columnsBySection[sectionKey].map((c, i) => i === ci ? { ...c, enabled: v } : c),
                                     },
                                   }));
                                 }}
@@ -329,18 +395,16 @@ export function AuditPlanTemplateEditor() {
                       <Label>Show Total Audit Staff First</Label>
                       <Switch
                         checked={draft.resourcePlan.showTotalStaffFirst}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, resourcePlan: { ...d.resourcePlan, showTotalStaffFirst: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, resourcePlan: { ...d.resourcePlan, showTotalStaffFirst: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>Show Percentages</Label>
                       <Switch
                         checked={draft.resourcePlan.showPercentages}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, resourcePlan: { ...d.resourcePlan, showPercentages: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, resourcePlan: { ...d.resourcePlan, showPercentages: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div>
@@ -355,7 +419,7 @@ export function AuditPlanTemplateEditor() {
                 </CardContent>
               </Card>
 
-              {/* Governance */}
+              {/* Risk & Governance */}
               <Card>
                 <CardHeader className="py-3 px-4">
                   <CardTitle className="text-sm font-semibold">Risk & Governance</CardTitle>
@@ -366,25 +430,24 @@ export function AuditPlanTemplateEditor() {
                       <Label>Show Risk Coverage Analysis</Label>
                       <Switch
                         checked={draft.riskCoverage.enabled}
-                        onCheckedChange={(v) => setDraft((d) => ({ ...d, riskCoverage: { enabled: v } }))}
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, riskCoverage: { enabled: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>Show Board/Audit Committee Line</Label>
                       <Switch
                         checked={draft.governance.showBoardLine}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, governance: { ...d.governance, showBoardLine: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, governance: { ...d.governance, showBoardLine: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>Show Approved By Block</Label>
                       <Switch
                         checked={draft.governance.showApprovedByBlock}
-                        onCheckedChange={(v) =>
-                          setDraft((d) => ({ ...d, governance: { ...d.governance, showApprovedByBlock: v } }))
-                        }
+                        onCheckedChange={(v) => canEdit && setDraft((d) => ({ ...d, governance: { ...d.governance, showApprovedByBlock: v } }))}
+                        disabled={!canEdit}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -392,18 +455,16 @@ export function AuditPlanTemplateEditor() {
                         <Label>Prepared By Label</Label>
                         <Input
                           value={draft.governance.preparedByLabel}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, governance: { ...d.governance, preparedByLabel: e.target.value } }))
-                          }
+                          onChange={(e) => canEdit && setDraft((d) => ({ ...d, governance: { ...d.governance, preparedByLabel: e.target.value } }))}
+                          readOnly={!canEdit}
                         />
                       </div>
                       <div>
                         <Label>Approved By Label</Label>
                         <Input
                           value={draft.governance.approvedByLabel}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, governance: { ...d.governance, approvedByLabel: e.target.value } }))
-                          }
+                          onChange={(e) => canEdit && setDraft((d) => ({ ...d, governance: { ...d.governance, approvedByLabel: e.target.value } }))}
+                          readOnly={!canEdit}
                         />
                       </div>
                     </div>
