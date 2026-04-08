@@ -750,13 +750,15 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           : `Engagement_Annex_FY${plan?.fiscal_year}_v${version}.${artVersion}.xlsx`;
       const filePath = `plans/${planId}/${fileName}`;
 
+      let generatedBlob: Blob | null = null;
+
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
           : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, resolvedPlanTemplate);
 
-        const pdfBlob = doc.output('blob');
-        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+        generatedBlob = doc.output('blob');
+        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, { contentType: 'application/pdf', upsert: true });
         if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
       } else if (artifactType === 'excel_annex') {
         const ExcelJS = (await import('exceljs')).default;
@@ -811,10 +813,16 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E5F3A' } };
         const buffer = await workbook.xlsx.writeBuffer();
-        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, new Blob([buffer]), {
+        generatedBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, {
           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', upsert: true,
         });
         if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Auto-download the generated file immediately
+      if (generatedBlob) {
+        triggerBlobDownload(generatedBlob, fileName);
       }
 
       await create.mutateAsync({
@@ -856,19 +864,33 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
     }
   };
 
+  const triggerBlobDownload = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
+
   const handleDownload = async (artifact: any) => {
     try {
+      // Try public URL first (bucket is public)
+      const { data: urlData } = supabase.storage.from('ia-artifacts').getPublicUrl(artifact.file_path);
+      if (urlData?.publicUrl) {
+        const response = await fetch(urlData.publicUrl);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        triggerBlobDownload(blob, artifact.file_name);
+        return;
+      }
+      // Fallback to SDK download
       const { data, error } = await supabase.storage.from('ia-artifacts').download(artifact.file_path);
       if (error) throw error;
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = artifact.file_name;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      triggerBlobDownload(data, artifact.file_name);
     } catch (err: any) {
       console.error('[Download] Error:', err);
       toast({ title: 'Download Failed', description: err.message, variant: 'destructive' });
