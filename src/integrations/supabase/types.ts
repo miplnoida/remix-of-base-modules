@@ -21226,6 +21226,54 @@ export type Database = {
           },
         ]
       }
+      ia_document_section_library: {
+        Row: {
+          applies_to: string[]
+          category: string
+          created_at: string
+          default_enabled: boolean
+          default_order: number
+          description: string | null
+          display_mode: string
+          id: string
+          is_mandatory: boolean
+          is_shared: boolean
+          label: string
+          section_key: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[]
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_order?: number
+          description?: string | null
+          display_mode?: string
+          id?: string
+          is_mandatory?: boolean
+          is_shared?: boolean
+          label: string
+          section_key: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[]
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_order?: number
+          description?: string | null
+          display_mode?: string
+          id?: string
+          is_mandatory?: boolean
+          is_shared?: boolean
+          label?: string
+          section_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ia_document_template_settings: {
         Row: {
           config_json: Json
@@ -22220,6 +22268,54 @@ export type Database = {
           notify_team_lead?: boolean
           target_roles?: string[] | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ia_org_document_foundation: {
+        Row: {
+          branding: Json
+          color_palette: Json
+          created_at: string
+          draft_rules: Json
+          foundation_key: string
+          id: string
+          page_layout: Json
+          pagination: Json
+          sign_off: Json
+          table_style: Json
+          typography: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          branding?: Json
+          color_palette?: Json
+          created_at?: string
+          draft_rules?: Json
+          foundation_key?: string
+          id?: string
+          page_layout?: Json
+          pagination?: Json
+          sign_off?: Json
+          table_style?: Json
+          typography?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          branding?: Json
+          color_palette?: Json
+          created_at?: string
+          draft_rules?: Json
+          foundation_key?: string
+          id?: string
+          page_layout?: Json
+          pagination?: Json
+          sign_off?: Json
+          table_style?: Json
+          typography?: Json
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
