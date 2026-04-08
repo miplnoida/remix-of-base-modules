@@ -1,35 +1,52 @@
 /**
  * Maps raw audit plan data + resolved plan template config into a render-ready structure.
  * BoardPackTab and future plan preview/export components consume this output.
+ *
+ * ARCHITECTURE:
+ * - Now consumes the full ResolvedPlanOutput from the consolidated resolver.
+ * - Preserves the same public API for downstream consumers.
  */
 import type { ResolvedPlanOutput } from './documentTemplateResolver';
 
 export interface MappedPlanCover {
   titleText: string;
-  showDepartmentLine: boolean;
+  showOrgName: boolean;
+  showAuditableEntity: boolean;
+  showPeriodCovered: boolean;
+  showVersionNumber: boolean;
+  showIssueDate: boolean;
+  showConfidentialLabel: boolean;
+  confidentialLabel: string;
+  coverStyle: string;
   fiscalYearDisplay: string;
 }
 
 export interface MappedPlanOutput {
   /** Cover page rendering config */
   cover: MappedPlanCover;
-  /** Plan summary title (may be overridden) */
-  planSummaryTitle: string;
-  /** Whether to split the summary into typed sections */
-  splitByType: boolean;
-  /** Enabled plan summary section keys */
-  enabledSummarySections: { key: string; label: string }[];
-  /** Whether to hide exact start/end dates in summary tables */
-  hideExactDates: boolean;
-  /** Enabled columns per section */
-  columnsBySection: Record<string, { key: string; label: string }[]>;
-  /** Resource plan settings */
+  /** Resolved sections for rendering */
+  sections: ResolvedPlanOutput['resolvedSections'];
+  /** Approval config */
+  approval: ResolvedPlanOutput['approval'];
+  /** Table styling */
+  tableStyle: ResolvedPlanOutput['tableStyle'];
+  /** Typography */
+  typography: ResolvedPlanOutput['typography'];
+  /** TOC config */
+  toc: ResolvedPlanOutput['toc'];
+  /** Pagination */
+  pagination: ResolvedPlanOutput['pagination'];
+  /** Page layout */
+  pageLayout: ResolvedPlanOutput['pageLayout'];
+  /** Export defaults */
+  exportDefaults: ResolvedPlanOutput['exportDefaults'];
+  planSummary: ResolvedPlanOutput['planSummary'];
+  columnsBySection: ResolvedPlanOutput['columnsBySection'];
   resourcePlan: ResolvedPlanOutput['resourcePlan'];
-  /** Whether risk coverage section is visible */
-  showRiskCoverage: boolean;
-  /** Governance labels and visibility */
+  riskCoverage: ResolvedPlanOutput['riskCoverage'];
   governance: ResolvedPlanOutput['governance'];
-  /** Full resolved output for advanced access */
+  showWatermark: boolean;
+  watermarkText: string;
   resolved: ResolvedPlanOutput;
 }
 
@@ -54,29 +71,34 @@ export function mapPlanOutput(
 ): MappedPlanOutput {
   const cover: MappedPlanCover = {
     titleText: resolved.coverPage.titleText,
-    showDepartmentLine: resolved.coverPage.showDepartmentLine,
+    showOrgName: resolved.coverPage.showOrgName,
+    showAuditableEntity: resolved.coverPage.showAuditableEntity,
+    showPeriodCovered: resolved.coverPage.showPeriodCovered,
+    showVersionNumber: resolved.coverPage.showVersionNumber,
+    showIssueDate: resolved.coverPage.showIssueDate,
+    showConfidentialLabel: resolved.coverPage.showConfidentialLabel,
+    confidentialLabel: resolved.branding.confidentialLabel,
+    coverStyle: resolved.coverPage.coverStyle,
     fiscalYearDisplay: formatFiscalYear(plan?.fiscal_year, resolved.coverPage.fiscalYearMode),
   };
 
-  const enabledSummarySections = resolved.planSummary.sections
-    .filter((s) => s.enabled)
-    .map((s) => ({ key: s.key, label: s.label }));
-
-  const columnsBySection: Record<string, { key: string; label: string }[]> = {};
-  for (const [section, cols] of Object.entries(resolved.columnsBySection)) {
-    columnsBySection[section] = cols.map((c) => ({ key: c.key, label: c.label }));
-  }
-
   return {
     cover,
-    planSummaryTitle: resolved.planSummary.titleOverride || 'Audit Plan Summary',
-    splitByType: resolved.planSummary.splitByType,
-    enabledSummarySections,
-    hideExactDates: resolved.planSummary.hideExactDates,
-    columnsBySection,
+    sections: resolved.resolvedSections,
+    approval: resolved.approval,
+    tableStyle: resolved.tableStyle,
+    typography: resolved.typography,
+    toc: resolved.toc,
+    pagination: resolved.pagination,
+    pageLayout: resolved.pageLayout,
+    exportDefaults: resolved.exportDefaults,
+    planSummary: resolved.planSummary,
+    columnsBySection: resolved.columnsBySection,
     resourcePlan: resolved.resourcePlan,
-    showRiskCoverage: resolved.riskCoverageEnabled,
+    riskCoverage: resolved.riskCoverage,
     governance: resolved.governance,
+    showWatermark: resolved.showWatermark,
+    watermarkText: resolved.watermarkText,
     resolved,
   };
 }

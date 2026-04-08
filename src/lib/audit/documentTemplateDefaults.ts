@@ -1,7 +1,15 @@
 /**
  * TypeScript interfaces and default configurations for Internal Audit Document Templates.
- * These defaults match the current hardcoded behavior exactly.
+ *
+ * ARCHITECTURE:
+ * - AuditReportTemplateConfig: Self-contained config for Audit Reports
+ * - AuditPlanTemplateConfig: Thin wrapper that re-exports AuditPlanFullTemplateConfig
+ *   from auditPlanTemplateTypes.ts — the single source of truth for plan formatting.
+ * - Shared types (TemplateColumn, TemplateSection, TemplateSignatory) are reused by both.
  */
+
+import type { AuditPlanFullTemplateConfig } from './auditPlanTemplateTypes';
+import { PRESET_AUDIT_BLUE_MINIMAL } from './auditPlanTemplatePresets';
 
 // ─── Shared Types ───
 
@@ -80,48 +88,10 @@ export interface AuditReportTemplateConfig {
 }
 
 // ─── Audit Plan Template Config ───
+// The full plan config lives in auditPlanTemplateTypes.ts.
+// This alias keeps backward compatibility for existing consumers.
 
-export interface AuditPlanCoverPage {
-  titleText: string;
-  showDepartmentLine: boolean;
-  fiscalYearMode: 'single' | 'range';
-}
-
-export interface AuditPlanSummarySection {
-  key: string;
-  label: string;
-  enabled: boolean;
-}
-
-export interface AuditPlanSummary {
-  titleOverride: string;
-  splitByType: boolean;
-  sections: AuditPlanSummarySection[];
-  hideExactDates: boolean;
-}
-
-export interface AuditPlanResourcePlan {
-  metricOrder: string[];
-  showTotalStaffFirst: boolean;
-  showPercentages: boolean;
-  dayTypes: string[];
-}
-
-export interface AuditPlanGovernance {
-  showBoardLine: boolean;
-  showApprovedByBlock: boolean;
-  preparedByLabel: string;
-  approvedByLabel: string;
-}
-
-export interface AuditPlanTemplateConfig {
-  coverPage: AuditPlanCoverPage;
-  planSummary: AuditPlanSummary;
-  columnsBySection: Record<string, TemplateColumn[]>;
-  resourcePlan: AuditPlanResourcePlan;
-  riskCoverage: { enabled: boolean };
-  governance: AuditPlanGovernance;
-}
+export type AuditPlanTemplateConfig = AuditPlanFullTemplateConfig;
 
 // ─── Defaults ───
 
@@ -184,43 +154,8 @@ export const DEFAULT_AUDIT_REPORT_CONFIG: AuditReportTemplateConfig = {
   finalRules: { showIssuedStamp: true },
 };
 
-export const DEFAULT_AUDIT_PLAN_CONFIG: AuditPlanTemplateConfig = {
-  coverPage: {
-    titleText: 'Internal Audit Plan',
-    showDepartmentLine: true,
-    fiscalYearMode: 'single',
-  },
-  planSummary: {
-    titleOverride: 'Audit Plan Summary',
-    splitByType: false,
-    sections: [
-      { key: 'assurance', label: 'Planned Assurance Engagements', enabled: true },
-      { key: 'advisory', label: 'Planned Advisory/Consulting Engagements', enabled: true },
-      { key: 'followup', label: 'Follow-up Reviews', enabled: true },
-    ],
-    hideExactDates: false,
-  },
-  columnsBySection: {
-    assurance: [
-      { key: 'engagement_name', label: 'Engagement', enabled: true },
-      { key: 'department', label: 'Department', enabled: true },
-      { key: 'risk_level', label: 'Risk Level', enabled: true },
-      { key: 'planned_start', label: 'Start Date', enabled: true },
-      { key: 'planned_end', label: 'End Date', enabled: true },
-      { key: 'lead_auditor', label: 'Lead Auditor', enabled: true },
-    ],
-  },
-  resourcePlan: {
-    metricOrder: ['total_staff', 'assurance_days', 'advisory_days', 'followup_days', 'admin_days', 'training_days'],
-    showTotalStaffFirst: true,
-    showPercentages: true,
-    dayTypes: ['Assurance', 'Advisory', 'Follow-up', 'Administration', 'Training'],
-  },
-  riskCoverage: { enabled: true },
-  governance: {
-    showBoardLine: true,
-    showApprovedByBlock: true,
-    preparedByLabel: 'Prepared By',
-    approvedByLabel: 'Approved By',
-  },
-};
+/**
+ * Default Audit Plan config — uses the Audit Blue Minimal preset.
+ * This is the single source of truth for plan defaults.
+ */
+export const DEFAULT_AUDIT_PLAN_CONFIG: AuditPlanTemplateConfig = PRESET_AUDIT_BLUE_MINIMAL;

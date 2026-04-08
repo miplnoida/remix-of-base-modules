@@ -183,9 +183,45 @@ export interface AuditPlanExportDefaults {
   draftWatermarkText: string;
 }
 
+// ─── Content-Specific Settings ───
+
+export interface AuditPlanSummarySection {
+  key: string;
+  label: string;
+  enabled: boolean;
+}
+
+export interface AuditPlanSummary {
+  titleOverride: string;
+  splitByType: boolean;
+  sections: AuditPlanSummarySection[];
+  hideExactDates: boolean;
+}
+
+export interface AuditPlanResourcePlan {
+  metricOrder: string[];
+  showTotalStaffFirst: boolean;
+  showPercentages: boolean;
+  dayTypes: string[];
+}
+
+export interface AuditPlanGovernance {
+  showBoardLine: boolean;
+  showApprovedByBlock: boolean;
+  preparedByLabel: string;
+  approvedByLabel: string;
+}
+
+export interface AuditPlanColumnConfig {
+  key: string;
+  label: string;
+  enabled: boolean;
+}
+
 // ─── Root Template Config ───
 
 export interface AuditPlanFullTemplateConfig {
+  // Formatting
   branding: AuditPlanBranding;
   coverPage: AuditPlanCoverPageConfig;
   toc: AuditPlanTocConfig;
@@ -196,6 +232,12 @@ export interface AuditPlanFullTemplateConfig {
   tableStyle: AuditPlanTableStyle;
   typography: AuditPlanTypography;
   exportDefaults: AuditPlanExportDefaults;
+  // Content-specific
+  planSummary: AuditPlanSummary;
+  columnsBySection: Record<string, AuditPlanColumnConfig[]>;
+  resourcePlan: AuditPlanResourcePlan;
+  riskCoverage: { enabled: boolean };
+  governance: AuditPlanGovernance;
 }
 
 // ─── Profile Metadata (mirrors DB row) ───
@@ -250,6 +292,15 @@ export interface AuditPlanDocumentOverride {
   watermarkText?: string;
   /** Override confidential label */
   confidentialLabel?: string;
+  /** Override plan summary split */
+  splitByType?: boolean;
+  /** Override governance labels */
+  preparedByLabel?: string;
+  approvedByLabel?: string;
+  /** Override board line visibility */
+  showBoardLine?: boolean;
+  /** Override risk coverage visibility */
+  riskCoverageEnabled?: boolean;
 }
 
 // ─── Section Library (canonical list of all supported sections) ───

@@ -1,14 +1,20 @@
 /**
  * Resolves raw report/plan data against a template configuration
  * to produce a render-ready structure for preview and PDF export.
+ *
+ * ARCHITECTURE:
+ * - Report: resolveReportTemplate() — status-aware (draft/final)
+ * - Plan: resolvePlanTemplate() — uses full AuditPlanFullTemplateConfig
+ *   and delegates section resolution to auditPlanSectionEngine.
  */
 import type {
   AuditReportTemplateConfig,
-  AuditPlanTemplateConfig,
   TemplateSection,
   TemplateColumn,
   TemplateSignatory,
 } from './documentTemplateDefaults';
+import type { AuditPlanFullTemplateConfig } from './auditPlanTemplateTypes';
+import { resolveSections, type ResolvedSectionList } from './auditPlanSectionEngine';
 
 // ─── Report Resolver ───
 
@@ -39,13 +45,11 @@ export function resolveReportTemplate(
   const isDraft = reportStatus === 'Draft' || reportStatus === 'In Review';
   const isFinal = reportStatus === 'Final';
 
-  // Resolve sections — only enabled, sorted by order
   const sections: ResolvedReportSection[] = config.sections
     .filter((s) => s.enabled)
     .sort((a, b) => a.order - b.order)
     .map((s) => ({ id: s.id, label: s.label, order: s.order }));
 
-  // Resolve action plan visibility
   let actionPlanVisible = false;
   switch (config.actionPlanSummary.visibility) {
     case 'always':
@@ -82,27 +86,59 @@ export function resolveReportTemplate(
 // ─── Plan Resolver ───
 
 export interface ResolvedPlanOutput {
-  coverPage: AuditPlanTemplateConfig['coverPage'];
-  planSummary: AuditPlanTemplateConfig['planSummary'];
-  columnsBySection: Record<string, TemplateColumn[]>;
-  resourcePlan: AuditPlanTemplateConfig['resourcePlan'];
-  riskCoverageEnabled: boolean;
-  governance: AuditPlanTemplateConfig['governance'];
+  branding: AuditPlanFullTemplateConfig['branding'];
+  coverPage: AuditPlanFullTemplateConfig['coverPage'];
+  toc: AuditPlanFullTemplateConfig['toc'];
+  pagination: AuditPlanFullTemplateConfig['pagination'];
+  pageLayout: AuditPlanFullTemplateConfig['pageLayout'];
+  resolvedSections: ResolvedSectionList;
+  approval: AuditPlanFullTemplateConfig['approval'];
+  tableStyle: AuditPlanFullTemplateConfig['tableStyle'];
+  typography: AuditPlanFullTemplateConfig['typography'];
+  exportDefaults: AuditPlanFullTemplateConfig['exportDefaults'];
+  planSummary: AuditPlanFullTemplateConfig['planSummary'];
+  columnsBySection: AuditPlanFullTemplateConfig['columnsBySection'];
+  resourcePlan: AuditPlanFullTemplateConfig['resourcePlan'];
+  riskCoverage: AuditPlanFullTemplateConfig['riskCoverage'];
+  governance: AuditPlanFullTemplateConfig['governance'];
+  /** Whether watermark is active */
+  showWatermark: boolean;
+  /** Watermark text */
+  watermarkText: string;
 }
 
-export function resolvePlanTemplate(config: AuditPlanTemplateConfig): ResolvedPlanOutput {
-  // Filter enabled columns per section
-  const columnsBySection: Record<string, TemplateColumn[]> = {};
-  for (const [section, cols] of Object.entries(config.columnsBySection)) {
-    columnsBySection[section] = cols.filter((c) => c.enabled);
-  }
+/**
+ * Resolves a full plan template config into a render-ready output.
+ * Delegates section resolution to the section engine.
+ */
+export function resolvePlanTemplate(
+  config: AuditPlanFullTemplateConfig,
+  overrides?: import('./auditPlanTemplateTypes').AuditPlanDocumentOverride
+): ResolvedPlanOutput {
+  // Resolve sections via the section engine (handles overrides, mandatory enforcement)
+  const resolvedSections = resolveSections(config, overrides);
+
+  // Determine watermark state
+  const isDraft = overrides?.outputMode === 'draft' ||
+    (!overrides?.outputMode && config.exportDefaults.draftWatermark);
 
   return {
+    branding: config.branding,
     coverPage: config.coverPage,
+    toc: config.toc,
+    pagination: config.pagination,
+    pageLayout: config.pageLayout,
+    resolvedSections,
+    approval: config.approval,
+    tableStyle: config.tableStyle,
+    typography: config.typography,
+    exportDefaults: config.exportDefaults,
     planSummary: config.planSummary,
-    columnsBySection,
+    columnsBySection: config.columnsBySection,
     resourcePlan: config.resourcePlan,
-    riskCoverageEnabled: config.riskCoverage.enabled,
+    riskCoverage: config.riskCoverage,
     governance: config.governance,
+    showWatermark: isDraft && (config.branding.showWatermark || config.exportDefaults.draftWatermark),
+    watermarkText: overrides?.watermarkText || config.branding.watermarkText || config.exportDefaults.draftWatermarkText,
   };
 }

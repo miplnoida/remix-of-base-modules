@@ -18,8 +18,46 @@
  * ★ = Recommended house default
  */
 
-import type { AuditPlanFullTemplateConfig, AuditPlanSection } from './auditPlanTemplateTypes';
+import type { AuditPlanFullTemplateConfig, AuditPlanSection, AuditPlanSummary, AuditPlanResourcePlan, AuditPlanGovernance, AuditPlanColumnConfig } from './auditPlanTemplateTypes';
 import { TEMPLATE_KEYS } from './auditPlanTemplateTypes';
+
+// ─── Shared content defaults (reused across presets) ───
+
+const DEFAULT_PLAN_SUMMARY: AuditPlanSummary = {
+  titleOverride: 'Audit Plan Summary',
+  splitByType: false,
+  sections: [
+    { key: 'assurance', label: 'Planned Assurance Engagements', enabled: true },
+    { key: 'advisory', label: 'Planned Advisory/Consulting Engagements', enabled: true },
+    { key: 'followup', label: 'Follow-up Reviews', enabled: true },
+  ],
+  hideExactDates: false,
+};
+
+const DEFAULT_COLUMNS_BY_SECTION: Record<string, AuditPlanColumnConfig[]> = {
+  assurance: [
+    { key: 'engagement_name', label: 'Engagement', enabled: true },
+    { key: 'department', label: 'Department', enabled: true },
+    { key: 'risk_level', label: 'Risk Level', enabled: true },
+    { key: 'planned_start', label: 'Start Date', enabled: true },
+    { key: 'planned_end', label: 'End Date', enabled: true },
+    { key: 'lead_auditor', label: 'Lead Auditor', enabled: true },
+  ],
+};
+
+const DEFAULT_RESOURCE_PLAN: AuditPlanResourcePlan = {
+  metricOrder: ['total_staff', 'assurance_days', 'advisory_days', 'followup_days', 'admin_days', 'training_days'],
+  showTotalStaffFirst: true,
+  showPercentages: true,
+  dayTypes: ['Assurance', 'Advisory', 'Follow-up', 'Administration', 'Training'],
+};
+
+const DEFAULT_GOVERNANCE: AuditPlanGovernance = {
+  showBoardLine: true,
+  showApprovedByBlock: true,
+  preparedByLabel: 'Prepared By',
+  approvedByLabel: 'Approved By',
+};
 
 // ─── Helper: create section list with selective overrides ───
 
@@ -166,6 +204,11 @@ export const PRESET_AUDIT_BLUE_MINIMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -285,6 +328,11 @@ export const PRESET_GOVERNMENT_FORMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -409,6 +457,11 @@ export const PRESET_PROFESSIONAL_MINIMAL: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -526,6 +579,11 @@ export const PRESET_AUDIT_COMMITTEE_PACK: AuditPlanFullTemplateConfig = {
     draftWatermark: false,
     draftWatermarkText: 'DRAFT',
   },
+  planSummary: DEFAULT_PLAN_SUMMARY,
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: true },
+  governance: DEFAULT_GOVERNANCE,
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -654,6 +712,11 @@ export const PRESET_WORKING_DRAFT: AuditPlanFullTemplateConfig = {
     draftWatermark: true,
     draftWatermarkText: 'WORKING DRAFT',
   },
+  planSummary: { ...DEFAULT_PLAN_SUMMARY, hideExactDates: true },
+  columnsBySection: DEFAULT_COLUMNS_BY_SECTION,
+  resourcePlan: DEFAULT_RESOURCE_PLAN,
+  riskCoverage: { enabled: false },
+  governance: { ...DEFAULT_GOVERNANCE, showBoardLine: false },
 };
 
 // ─── Registry: all presets keyed by template_key ───
