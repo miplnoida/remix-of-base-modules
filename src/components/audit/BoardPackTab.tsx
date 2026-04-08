@@ -778,10 +778,14 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const { data: functions = [] } = useIADepartmentFunctions('all');
   const { data: auditors = [] } = useIAActiveAuditors();
   const { data: assessments = [] } = useIARiskAssessments();
+  const { data: planTemplateConfig } = useAuditPlanTemplate();
   const [generating, setGenerating] = useState<string | null>(null);
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
   const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
+
+  // Resolve plan template for PDF generation
+  const resolvedPlanTemplate = planTemplateConfig ? mapPlanOutput(resolvePlanTemplate(planTemplateConfig), plan) : undefined;
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
