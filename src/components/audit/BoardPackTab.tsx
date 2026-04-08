@@ -236,7 +236,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     ['Status', dv(plan?.status, 'Draft')],
     ['Plan Version', `v${version}`],
     ['Prepared By', dv(plan?.created_by || plan?.plan_owner)],
-    ['Total Engagements', String(engagements.length)],
+    ['Total Audits', String(engagements.length)],
     ['Total Planned Days', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0))],
     ['Approved By', dv(plan?.approved_by)],
     ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : ''],
@@ -257,7 +257,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     });
     autoTable(doc, {
       startY: y,
-      head: [['Risk Level', 'Engagements', '% of Plan']],
+      head: [['Risk Level', 'Audits', '% of Plan']],
       body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
       styles: { fontSize: 10, cellPadding: 4 },
       headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
@@ -268,11 +268,11 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 
   if (config.includeEngagementSchedule) {
     if (y > 180) { doc.addPage(); y = 52; }
-    y = drawSectionTitle(doc, y, 'Engagement Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
 
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Engagement Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
+      head: [['#', 'Audit Title', 'Department', 'Risk', 'Lead Auditor', 'Quarter', 'Days', 'Status']],
       body: engagements.map((e: any, i: number) => {
         const startDate = ef(e, 'planned_start_date', 'start_date', 'actual_start_date');
         const quarter = ef(e, 'quarter') || (startDate ? `Q${Math.ceil((new Date(startDate).getMonth() + 1) / 3)}` : '');
