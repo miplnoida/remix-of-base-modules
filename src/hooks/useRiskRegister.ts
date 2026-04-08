@@ -79,8 +79,8 @@ export function useRiskRegisterMutations() {
           override_approved_at: null,
         };
       } else {
-        const inherent = computeScoreAndLevel(sanitized.inherent_likelihood || 0, sanitized.inherent_impact || 0);
-        const residual = computeScoreAndLevel(sanitized.residual_likelihood || 0, sanitized.residual_impact || 0);
+        const inherent = computeScoreAndLevel(Number(sanitized.inherent_likelihood) || 0, Number(sanitized.inherent_impact) || 0);
+        const residual = computeScoreAndLevel(Number(sanitized.residual_likelihood) || 0, Number(sanitized.residual_impact) || 0);
         scoreFields = {
           inherent_risk_score: inherent.score,
           inherent_risk_level: inherent.level,
