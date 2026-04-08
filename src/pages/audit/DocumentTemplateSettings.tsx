@@ -5,6 +5,7 @@ import { FoundationSettingsEditor } from '@/components/audit/templates/Foundatio
 import { SectionLibraryViewer } from '@/components/audit/templates/SectionLibraryViewer';
 import { AuditReportTemplateEditor } from '@/components/audit/templates/AuditReportTemplateEditor';
 import { AuditPlanTemplateEditor } from '@/components/audit/templates/AuditPlanTemplateEditor';
+import { ManagementResponseTemplateEditor } from '@/components/audit/templates/ManagementResponseTemplateEditor';
 
 export default function DocumentTemplateSettings() {
   const [activeTab, setActiveTab] = useState('foundation');
@@ -36,9 +37,9 @@ export default function DocumentTemplateSettings() {
             <ClipboardList className="h-4 w-4" />
             Internal Audit Plan
           </TabsTrigger>
-          <TabsTrigger value="mgmt_response" className="gap-2 hidden">
+          <TabsTrigger value="mgmt_response" className="gap-2">
             <FileCheck className="h-4 w-4" />
-            Mgmt Response
+            Management Response
           </TabsTrigger>
         </TabsList>
 
@@ -59,9 +60,7 @@ export default function DocumentTemplateSettings() {
         </TabsContent>
 
         <TabsContent value="mgmt_response">
-          <div className="py-8 text-center text-muted-foreground text-sm">
-            Management Response Report template configuration coming soon.
-          </div>
+          <ManagementResponseTemplateEditor />
         </TabsContent>
       </Tabs>
     </div>
