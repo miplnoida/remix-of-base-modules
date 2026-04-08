@@ -704,7 +704,7 @@ export default function RiskSettings() {
     <PageShell
       title="Risk Configuration"
       subtitle="Centralized risk methodology settings — likelihood, impact, formula, rating bands, and department risk derivation"
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Risk Configuration' }]}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Configuration' }, { label: 'Risk Configuration' }]}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>

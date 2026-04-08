@@ -571,9 +571,9 @@ export default function AuditConfig() {
 
   return (
     <PageShell
-      title="System Configuration"
+      title="Audit Configuration"
       subtitle="Configure Internal Audit system settings — workflow defaults, notifications, SLA, and general module behavior"
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'System Configuration' }]}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Configuration' }, { label: 'Audit Configuration' }]}
       isLoading={isLoading}
     >
       {pageContent}

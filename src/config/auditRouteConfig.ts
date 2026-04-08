@@ -9,7 +9,7 @@ export interface AuditRouteEntry {
   path: string;
   permission: string;
   enabled: boolean;
-  category: 'dashboard' | 'master' | 'risk' | 'planning' | 'execution' | 'followup' | 'reports';
+  category: 'dashboard' | 'reference' | 'risk' | 'planning' | 'execution' | 'followup' | 'reports' | 'configuration';
   component: string;
 }
 
@@ -72,9 +72,9 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   // ===== Dashboard =====
   { moduleKey: 'dashboard', label: 'Dashboard', path: '/audit/dashboard', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_DASHBOARD, category: 'dashboard', component: 'AuditDashboard' },
 
-  // ===== Master Data =====
-  { moduleKey: 'department-master', label: 'Departments', path: '/audit/departments', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_DEPARTMENT_MASTER, category: 'master', component: 'DepartmentMaster' },
-  { moduleKey: 'function-master', label: 'Functions', path: '/audit/functions', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FUNCTION_MASTER, category: 'master', component: 'FunctionMaster' },
+  // ===== Reference Data =====
+  { moduleKey: 'department-master', label: 'Departments', path: '/audit/departments', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_DEPARTMENT_MASTER, category: 'reference', component: 'DepartmentMaster' },
+  { moduleKey: 'function-master', label: 'Business Functions', path: '/audit/functions', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_FUNCTION_MASTER, category: 'reference', component: 'FunctionMaster' },
 
   // ===== Risk =====
   { moduleKey: 'risk-assessment', label: 'Risk Assessment', path: '/audit/risk-assessment', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_RISK_ASSESSMENT, category: 'risk', component: 'RiskAssessment' },
@@ -83,7 +83,6 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   // ===== Planning =====
   { moduleKey: 'plans', label: 'Audit Plans', path: '/audit/audit-plans', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLANS, category: 'planning', component: 'AuditPlansNew' },
   { moduleKey: 'plan-approval', label: 'Plan Approval', path: '/audit/plan-approval', permission: 'approve_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_PLAN_APPROVAL, category: 'planning', component: 'PlanApproval' },
-  
 
   // ===== Execution =====
   { moduleKey: 'engagements', label: 'Audits', path: '/audit/audits', permission: 'create_audit_plans', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_ENGAGEMENTS, category: 'execution', component: 'AuditEngagements' },
@@ -93,16 +92,17 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   { moduleKey: 'workload-capacity', label: 'Workload & Capacity', path: '/audit/workload', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_WORKLOAD_CAPACITY, category: 'planning', component: 'WorkloadCapacity' },
   { moduleKey: 'time-tracking', label: 'Time Tracking', path: '/audit/time-tracking', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_TIME_TRACKING, category: 'planning', component: 'TimeTracking' },
   { moduleKey: 'leave-management', label: 'Auditor Leave', path: '/audit/leave', permission: 'view_audit_assignments', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_LEAVE_MANAGEMENT, category: 'planning', component: 'AuditorLeaveManagement' },
-  
-
 
   // ===== Reports =====
-  { moduleKey: 'reports', label: 'Reports', path: '/audit/audit-reports', permission: 'generate_reports', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS, category: 'reports', component: 'AuditReports' },
+  { moduleKey: 'reports', label: 'Report Center', path: '/audit/audit-reports', permission: 'generate_reports', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_REPORTS, category: 'reports', component: 'AuditReports' },
 
-  // ===== Settings =====
-  { moduleKey: 'system-config', label: 'System Configuration', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'master', component: 'AuditConfig' },
-  { moduleKey: 'risk-settings', label: 'Risk Configuration', path: '/audit/risk-settings', permission: 'configure_audit_system', enabled: true, category: 'master', component: 'RiskSettings' },
-  { moduleKey: 'document-templates', label: 'Document Templates', path: '/audit/document-templates', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'master', component: 'DocumentTemplateSettings' },
+  // ===== Configuration =====
+  { moduleKey: 'system-config', label: 'Audit Configuration', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'configuration', component: 'AuditConfig' },
+  { moduleKey: 'risk-settings', label: 'Risk Configuration', path: '/audit/risk-settings', permission: 'configure_audit_system', enabled: true, category: 'configuration', component: 'RiskSettings' },
+  { moduleKey: 'document-templates', label: 'Document & Output Settings', path: '/audit/document-templates', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'configuration', component: 'DocumentTemplateSettings' },
+
+  // ===== Reference Data =====
+  { moduleKey: 'communication-templates', label: 'Communication Templates', path: '/audit/templates', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'reference', component: 'TemplatesManagement' },
 ];
 
 export function getAuditRouteByPath(path: string): AuditRouteEntry | undefined {
