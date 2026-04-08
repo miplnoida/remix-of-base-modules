@@ -159,8 +159,8 @@ export function AuditPlanTemplateEditor() {
       <Alert className="border-primary/20 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs">
-          Branding, typography, pagination, table style, sign-off, and draft/final rules are managed in the <strong>Foundation</strong> tab and apply to all document types.
-          Configure only plan-specific settings below.
+          <strong>Structure only.</strong> All formatting (branding, typography, colors, pagination, table style, sign-off, draft/final rules) is inherited from the <strong>Foundation</strong> tab and cannot be overridden here.
+          Sections are referenced from the <strong>Section Library</strong>. Configure only plan-specific structure and content settings below.
         </AlertDescription>
       </Alert>
 
