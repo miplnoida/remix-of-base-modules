@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   FileText, Briefcase, Users, AlertTriangle, TrendingUp, CheckCircle2,
-  ArrowRight
+  ArrowRight, MessageSquare
 } from 'lucide-react';
 
 export interface ReportTemplate {
@@ -80,6 +80,16 @@ export const REPORT_TEMPLATES: ReportTemplate[] = [
     bg: 'bg-teal-50 dark:bg-teal-950/30',
     reportType: 'Follow-up Validation Report',
     sections: ['metadata', 'executive_summary', 'actions', 'conclusion', 'approval'],
+  },
+  {
+    id: 'mgmt_response',
+    label: 'Management Response Report',
+    description: 'Shareable report combining findings, management responses, agreed actions, ownership, and due dates. Designed for external auditor distribution.',
+    icon: MessageSquare,
+    color: 'text-rose-600',
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    reportType: 'Management Response Report',
+    sections: ['metadata', 'findings', 'responses', 'actions'],
   },
 ];
 

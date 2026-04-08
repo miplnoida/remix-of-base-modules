@@ -26,6 +26,8 @@ import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from '@/components/audit/reports/AuditReportPreview';
 import { AuditFindingCard } from '@/components/audit/reports/AuditFindingCard';
 import { AuditReportWorkflowBar } from '@/components/audit/reports/AuditReportWorkflowBar';
+import { ManagementResponseReportPreview } from '@/components/audit/reports/ManagementResponseReportPreview';
+import { mapManagementResponseReport } from '@/lib/audit/managementResponseReportMapper';
 import { useEngagementActivities, useEngagementEvidence, useEngagementWorkingPapers, useEngagementControlTests, useEngagementFollowUps } from '@/hooks/useEngagementData';
 import { useNavigate } from 'react-router-dom';
 
@@ -87,6 +89,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
 
   const [activeSection, setActiveSection] = useState('metadata');
   const [showPreview, setShowPreview] = useState(false);
+  const [showMgmtResponsePreview, setShowMgmtResponsePreview] = useState(false);
   const [sections, setSections] = useState<BuilderSection[]>(ALL_SECTIONS);
   const [saving, setSaving] = useState(false);
 
@@ -287,7 +290,23 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
     }
   };
 
-  // Show preview
+  // Management Response Report data
+  const mgmtResponseData = useMemo(
+    () => mapManagementResponseReport(audit, auditFindings, auditResponses, auditActions, departmentName),
+    [audit, auditFindings, auditResponses, auditActions, departmentName]
+  );
+
+  // Show management response preview
+  if (showMgmtResponsePreview) {
+    return (
+      <ManagementResponseReportPreview
+        data={mgmtResponseData}
+        onClose={() => setShowMgmtResponsePreview(false)}
+      />
+    );
+  }
+
+  // Show audit report preview
   if (showPreview) {
     return (
       <AuditReportPreview
@@ -328,6 +347,9 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
             disabled={!existingReport}
           />
           <Separator orientation="vertical" className="h-6" />
+          <Button variant="outline" size="sm" onClick={() => setShowMgmtResponsePreview(true)}>
+            <MessageSquare className="h-3.5 w-3.5 mr-1" /> Mgmt Response Report
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1" /> Preview
           </Button>

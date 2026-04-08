@@ -27,6 +27,7 @@ const REPORT_TYPE_CARDS = [
   { id: 'executive', title: 'Executive Summary', icon: Briefcase, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', matchTypes: ['Executive Summary'] },
   { id: 'committee', title: 'Committee / Board Pack', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', matchTypes: ['Committee Pack'] },
   { id: 'findings', title: 'Findings & Actions', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800', matchTypes: ['Findings & Actions Report'] },
+  { id: 'mgmt_response', title: 'Management Response', icon: MessageSquare, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-950/30', border: 'border-rose-200 dark:border-rose-800', matchTypes: ['Management Response Report'] },
   { id: 'portfolio', title: 'Portfolio Performance', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-200 dark:border-indigo-800', matchTypes: ['Portfolio Performance Report', 'Plan Summary'] },
   { id: 'followup', title: 'Follow-up Validation', icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-950/30', border: 'border-teal-200 dark:border-teal-800', matchTypes: ['Follow-up Validation Report'] },
 ];
