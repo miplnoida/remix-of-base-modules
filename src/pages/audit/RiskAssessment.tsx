@@ -206,11 +206,21 @@ export default function RiskAssessment() {
   const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
-  // Fetch all functions for display
-  const { data: allFunctions = [] } = useQuery({
-    queryKey: ['ia_department_functions_all'],
+  // Fetch ALL departments (including inactive) for display resolution
+  const { data: allDepartments = [] } = useQuery({
+    queryKey: ['ia_departments_all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_department_functions' as any).select('*').eq('is_active', true);
+      const { data, error } = await supabase.from('ia_departments' as any).select('*').order('name');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch all functions for display (including inactive for resolving existing assessments)
+  const { data: allFunctions = [] } = useQuery({
+    queryKey: ['ia_department_functions_all_incl_inactive'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('ia_department_functions' as any).select('*');
       if (error) throw error;
       return data as any[];
     },
