@@ -54,6 +54,7 @@ export function useRiskRegisterMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_register', 'create'],
     mutationFn: async (risk: any) => {
       const inherentScore = (risk.inherent_likelihood || 0) * (risk.inherent_impact || 0);
       const residualScore = (risk.residual_likelihood || 0) * (risk.residual_impact || 0);
@@ -80,6 +81,7 @@ export function useRiskRegisterMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_register', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const inherentScore = (updates.inherent_likelihood || 0) * (updates.inherent_impact || 0);
       const residualScore = (updates.residual_likelihood || 0) * (updates.residual_impact || 0);
@@ -107,6 +109,7 @@ export function useRiskRegisterMutations() {
   });
 
   const remove = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_register', 'delete'],
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('ia_risk_register' as any)
@@ -150,6 +153,7 @@ export function useRiskMitigationMutations() {
   const { getCreateFields, getUpdateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_mitigation_actions', 'create'],
     mutationFn: async (action: any) => {
       const { data, error } = await supabase
         .from('ia_risk_mitigation_actions' as any)
@@ -169,6 +173,7 @@ export function useRiskMitigationMutations() {
   });
 
   const update = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_mitigation_actions', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('ia_risk_mitigation_actions' as any)
@@ -214,6 +219,7 @@ export function useRiskReviewMutations() {
   const { getCreateFields } = useAuditFields();
 
   const create = useMutation({
+    mutationKey: ['Internal Audit', 'ia_risk_reviews', 'risk_reviewed'],
     mutationFn: async (review: any) => {
       const { data, error } = await supabase
         .from('ia_risk_reviews' as any)
