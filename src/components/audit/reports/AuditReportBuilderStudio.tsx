@@ -3,6 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuditReportTemplate } from '@/hooks/useAuditDocumentTemplates';
 import { Button } from '@/components/ui/button';
+import type { ReportTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
+import { applyReportOverrides, createEmptyReportOverride, hasReportOverrides } from '@/lib/audit/documentTemplateOverrides';
+import { ReportOverridePanel } from '@/components/audit/templates/ReportOverridePanel';
+import { LiveDocumentPreview } from '@/components/audit/templates/LiveDocumentPreview';
+import { DEFAULT_AUDIT_REPORT_CONFIG } from '@/lib/audit/documentTemplateDefaults';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,6 +89,8 @@ export function AuditReportBuilderStudio() {
   const [showVersions, setShowVersions] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [sections, setSections] = useState<BuilderSection[]>(ALL_SECTIONS);
+  const [reportOverrides, setReportOverrides] = useState<ReportTemplateOverride>(createEmptyReportOverride());
+  const [showOverridePanel, setShowOverridePanel] = useState(false);
 
   const [reportData, setReportData] = useState({
     title: '',
@@ -278,6 +285,10 @@ export function AuditReportBuilderStudio() {
   };
 
   const { data: reportTemplateConfig } = useAuditReportTemplate();
+  const effectiveTemplateConfig = useMemo(
+    () => applyReportOverrides(reportTemplateConfig || DEFAULT_AUDIT_REPORT_CONFIG, reportOverrides),
+    [reportTemplateConfig, reportOverrides]
+  );
 
   if (showPreview) {
     return (
@@ -288,7 +299,7 @@ export function AuditReportBuilderStudio() {
         actions={engagementActions}
         engagement={selectedEngagement}
         departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
-        templateConfig={reportTemplateConfig}
+        templateConfig={effectiveTemplateConfig}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />
@@ -728,7 +739,7 @@ export function AuditReportBuilderStudio() {
         </div>
 
         {/* Right Sidebar - Metadata/Settings */}
-        <div className="w-64 border-l bg-muted/10 shrink-0 overflow-y-auto">
+        <div className="w-72 border-l bg-muted/10 shrink-0 overflow-y-auto">
           <div className="p-4 space-y-5">
             {/* Completeness */}
             <div>
@@ -771,6 +782,10 @@ export function AuditReportBuilderStudio() {
                 <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowPreview(true)}>
                   <Eye className="h-4 w-4 mr-2" /> Preview Report
                 </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowOverridePanel(!showOverridePanel)}>
+                  <Settings2 className="h-4 w-4 mr-2" /> {showOverridePanel ? 'Hide' : 'Show'} Overrides
+                  {hasReportOverrides(reportOverrides) && <Badge variant="secondary" className="ml-auto text-[9px]">Active</Badge>}
+                </Button>
                 <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => window.print()}>
                   <Printer className="h-4 w-4 mr-2" /> Print
                 </Button>
@@ -779,6 +794,28 @@ export function AuditReportBuilderStudio() {
                 </Button>
               </div>
             </div>
+
+            {/* Override Panel */}
+            {showOverridePanel && reportTemplateConfig && (
+              <>
+                <Separator />
+                <ReportOverridePanel
+                  baseConfig={reportTemplateConfig}
+                  overrides={reportOverrides}
+                  onChange={setReportOverrides}
+                  onReset={() => setReportOverrides(createEmptyReportOverride())}
+                />
+              </>
+            )}
+
+            {/* Live Preview */}
+            <Separator />
+            <LiveDocumentPreview
+              type="report"
+              baseConfig={reportTemplateConfig || DEFAULT_AUDIT_REPORT_CONFIG}
+              overrides={reportOverrides}
+              reportStatus={reportData.status}
+            />
 
             {showVersions && (
               <>

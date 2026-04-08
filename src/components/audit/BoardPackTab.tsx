@@ -19,6 +19,11 @@ import ssbLogoPng from '@/assets/ssb-logo.png';
 import { useAuditPlanTemplate } from '@/hooks/useAuditDocumentTemplates';
 import { resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
 import { mapPlanOutput } from '@/lib/audit/planOutputMapper';
+import { DEFAULT_AUDIT_PLAN_CONFIG } from '@/lib/audit/documentTemplateDefaults';
+import type { PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
+import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
+import { PlanOverridePanel } from './templates/PlanOverridePanel';
+import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
 
 interface BoardPackTabProps {
   planId: string;
@@ -787,9 +792,16 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
   const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
+  const [planOverrides, setPlanOverrides] = useState<PlanTemplateOverride>(createEmptyPlanOverride());
+  const [showPlanOverrides, setShowPlanOverrides] = useState(false);
+
+  // Apply overrides before resolving
+  const effectivePlanConfig = planTemplateConfig
+    ? applyPlanOverrides(planTemplateConfig, planOverrides)
+    : DEFAULT_AUDIT_PLAN_CONFIG;
 
   // Resolve plan template for PDF generation
-  const resolvedPlanTemplate = planTemplateConfig ? mapPlanOutput(resolvePlanTemplate(planTemplateConfig), plan) : undefined;
+  const resolvedPlanTemplate = mapPlanOutput(resolvePlanTemplate(effectivePlanConfig), plan);
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
@@ -1032,6 +1044,37 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Plan Template Overrides & Live Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mb-3 gap-2"
+            onClick={() => setShowPlanOverrides(!showPlanOverrides)}
+          >
+            <Settings2 className="h-4 w-4" />
+            {showPlanOverrides ? 'Hide' : 'Show'} Template Overrides
+            {hasPlanOverrides(planOverrides) && (
+              <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">Active</span>
+            )}
+          </Button>
+          {showPlanOverrides && (
+            <PlanOverridePanel
+              baseConfig={planTemplateConfig || DEFAULT_AUDIT_PLAN_CONFIG}
+              overrides={planOverrides}
+              onChange={setPlanOverrides}
+              onReset={() => setPlanOverrides(createEmptyPlanOverride())}
+            />
+          )}
+        </div>
+        <LiveDocumentPreview
+          type="plan"
+          baseConfig={planTemplateConfig || DEFAULT_AUDIT_PLAN_CONFIG}
+          overrides={planOverrides}
+        />
+      </div>
 
       <Card>
         <CardHeader>
