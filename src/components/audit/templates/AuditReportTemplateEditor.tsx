@@ -8,15 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2 } from 'lucide-react';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
+import { useDocumentSectionLibrary } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
-import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSection } from '@/lib/audit/documentTemplateDefaults';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 
 export function AuditReportTemplateEditor() {
   const { data: config, isLoading } = useAuditReportTemplate();
+  const { data: librarySections = [] } = useDocumentSectionLibrary('audit_report');
   const mutation = useAuditDocumentTemplateMutation();
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditReportTemplateConfig>(DEFAULT_AUDIT_REPORT_CONFIG);
@@ -27,15 +29,24 @@ export function AuditReportTemplateEditor() {
   });
 
   useEffect(() => {
-    if (config) setDraft(config);
+    if (config) {
+      // Normalize: ensure sectionRefs is populated from legacy sections field
+      const normalized = { ...config };
+      if (!normalized.sectionRefs && normalized.sections) {
+        normalized.sectionRefs = normalized.sections;
+      }
+      setDraft(normalized);
+    }
   }, [config]);
 
   const toggleCard = (key: string) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleSave = () => {
+    // Sync sectionRefs → sections for backward compat
+    const toSave = { ...draft, sections: draft.sectionRefs };
     mutation.mutate(
-      { templateType: 'audit_report', configJson: draft as any, updatedBy: userCode || 'system' },
+      { templateType: 'audit_report', configJson: toSave as any, updatedBy: userCode || 'system' },
       {
         onSuccess: () => toast.success('Audit Report template saved'),
         onError: (e) => toast.error('Failed to save template', { description: String(e) }),
@@ -46,15 +57,16 @@ export function AuditReportTemplateEditor() {
   const updateCover = (key: string, value: any) =>
     setDraft((d) => ({ ...d, coverPage: { ...d.coverPage, [key]: value } }));
 
-  const updateSection = (id: string, updates: Partial<TemplateSection>) =>
+  const updateSectionRef = (id: string, updates: Partial<TemplateSectionRef>) =>
     setDraft((d) => ({
       ...d,
-      sections: d.sections.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      sectionRefs: (d.sectionRefs || []).map((s) => (s.id === id ? { ...s, ...updates } : s)),
     }));
 
   const moveSection = (id: string, direction: 'up' | 'down') => {
     setDraft((d) => {
-      const sorted = [...d.sections].sort((a, b) => a.order - b.order);
+      const refs = d.sectionRefs || [];
+      const sorted = [...refs].sort((a, b) => a.order - b.order);
       const idx = sorted.findIndex((s) => s.id === id);
       if ((direction === 'up' && idx <= 0) || (direction === 'down' && idx >= sorted.length - 1)) return d;
       const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -63,13 +75,13 @@ export function AuditReportTemplateEditor() {
         if (i === swapIdx) return { ...s, order: idx + 1 };
         return { ...s, order: i + 1 };
       });
-      return { ...d, sections: newSections };
+      return { ...d, sectionRefs: newSections };
     });
   };
 
   if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading template…</div>;
 
-  const sortedSections = [...draft.sections].sort((a, b) => a.order - b.order);
+  const sortedSections = [...(draft.sectionRefs || [])].sort((a, b) => a.order - b.order);
 
   return (
     <div className="flex gap-6">
@@ -90,8 +102,15 @@ export function AuditReportTemplateEditor() {
         <Alert className="border-primary/20 bg-primary/5">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Branding, typography, pagination, table style, sign-off, and draft/final rules are managed in the <strong>Foundation</strong> tab and apply to all document types.
-            Configure only report-specific settings below.
+            <strong>Structure only.</strong> All formatting (branding, typography, colors, pagination, table style, sign-off, draft/final rules) is inherited from the <strong>Foundation</strong> tab and cannot be overridden here.
+            Sections are referenced from the <strong>Section Library</strong>. Configure only report-specific structure and content settings below.
+          </AlertDescription>
+        </Alert>
+
+        <Alert className="border-muted bg-muted/30">
+          <Building2 className="h-4 w-4" />
+          <AlertDescription className="text-[11px] text-muted-foreground">
+            To change branding, typography, colors, pagination, table style, or sign-off settings, go to the <strong>Foundation</strong> tab — those changes apply to all documents.
           </AlertDescription>
         </Alert>
 
@@ -123,13 +142,21 @@ export function AuditReportTemplateEditor() {
           </div>
         </SettingsCard>
 
-        {/* Sections */}
+        {/* Sections — references from Section Library */}
         <SettingsCard title="Sections & Order" cardKey="sections" open={openSections.sections} onToggle={toggleCard}>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            Sections are defined in the <strong>Section Library</strong>. Here you control which sections appear, their order, and optional label overrides for this template.
+          </p>
           <div className="space-y-2">
             {sortedSections.map((section) => (
               <div key={section.id} className="flex items-center gap-3 p-2 rounded-md border bg-muted/30">
                 <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-sm flex-1 font-medium">{section.label}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium">{section.labelOverride || section.label}</span>
+                  {section.labelOverride && (
+                    <span className="text-[10px] text-muted-foreground ml-1">(Library: {section.label})</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(section.id, 'up')}>
                     <ChevronUp className="h-3.5 w-3.5" />
@@ -140,7 +167,7 @@ export function AuditReportTemplateEditor() {
                 </div>
                 <Switch
                   checked={section.enabled}
-                  onCheckedChange={(v) => updateSection(section.id, { enabled: v })}
+                  onCheckedChange={(v) => updateSectionRef(section.id, { enabled: v })}
                 />
               </div>
             ))}

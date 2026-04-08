@@ -3,36 +3,41 @@
  * Overrides are ephemeral (not persisted) — they modify template output
  * for a single generation without changing the org-level defaults.
  *
- * ARCHITECTURE:
- * - ReportTemplateOverride: For Audit Reports (status-aware, signatory-level)
- * - PlanTemplateOverride: For Audit Plans — now covers the full
- *   AuditPlanFullTemplateConfig surface (branding, TOC, pagination, etc.)
+ * ARCHITECTURE (Foundation-First):
+ * ═══════════════════════════════
+ * Overrides can only modify TEMPLATE-LEVEL settings (structure, content).
+ * Foundation-owned settings (branding, typography, sign-off, draft rules)
+ * CANNOT be overridden per-document — they are organization-wide.
  *
- * Both use the same pattern: deep-clone base → selectively patch → return new config.
+ * - ReportTemplateOverride: For Audit Reports (section visibility, content toggles)
+ * - PlanTemplateOverride: For Audit Plans (section visibility, content toggles)
  */
 import type {
   AuditReportTemplateConfig,
-  TemplateSignatory,
 } from './documentTemplateDefaults';
 import type {
   AuditPlanFullTemplateConfig,
   AuditPlanDocumentOverride,
-  AuditPlanSignatory,
-  CoverStyle,
-  NumberingStyle,
 } from './auditPlanTemplateTypes';
 
-// ─── Report Overrides (unchanged) ───
+// ─── Report Overrides ───
 
 export interface ReportTemplateOverride {
+  /** Override cover subtitle visibility */
   showSubtitle?: boolean;
+  /** Override cover subtitle text */
   subtitleText?: string;
+  /** Override section visibility/order */
   sectionOverrides?: { id: string; enabled?: boolean; order?: number }[];
-  signatoryOverrides?: Partial<TemplateSignatory>[];
+  /** Override action plan column visibility */
   actionPlanColumnOverrides?: { key: string; enabled: boolean }[];
+  /** Force draft/final output mode */
   outputMode?: 'draft' | 'final' | 'auto';
+  /** Override risk distribution visibility */
   riskDistributionEnabled?: boolean;
+  /** Override action plan visibility */
   actionPlanVisibility?: AuditReportTemplateConfig['actionPlanSummary']['visibility'];
+  /** Override inline management response display */
   showManagementResponseAfterRecommendation?: boolean;
 }
 
@@ -53,7 +58,8 @@ export function applyReportOverrides(
 
   if (overrides.sectionOverrides?.length) {
     const overrideMap = new Map(overrides.sectionOverrides.map((o) => [o.id, o]));
-    merged.sections = merged.sections.map((s) => {
+    const sections = merged.sectionRefs || merged.sections || [];
+    const updated = sections.map((s) => {
       const ov = overrideMap.get(s.id);
       if (!ov) return s;
       return {
@@ -62,18 +68,8 @@ export function applyReportOverrides(
         order: ov.order !== undefined ? ov.order : s.order,
       };
     });
-  }
-
-  if (overrides.signatoryOverrides?.length) {
-    merged.signOff.signatories = merged.signOff.signatories.map((sig, i) => {
-      const ov = overrides.signatoryOverrides?.[i];
-      if (!ov) return sig;
-      return {
-        label: ov.label ?? sig.label,
-        defaultName: ov.defaultName ?? sig.defaultName,
-        roleTitle: ov.roleTitle ?? sig.roleTitle,
-      };
-    });
+    merged.sectionRefs = updated;
+    merged.sections = updated;
   }
 
   if (overrides.actionPlanColumnOverrides?.length) {
@@ -95,25 +91,18 @@ export function applyReportOverrides(
       overrides.showManagementResponseAfterRecommendation;
   }
 
-  if (overrides.outputMode === 'draft') {
-    merged.draftRules.showWatermark = true;
-    merged.finalRules.showIssuedStamp = false;
-  } else if (overrides.outputMode === 'final') {
-    merged.draftRules.showWatermark = false;
-    merged.finalRules.showIssuedStamp = true;
-  }
-
   return merged;
 }
 
-// ─── Plan Overrides (extended for full config) ───
+// ─── Plan Overrides ───
 
 // Re-export the canonical override type from auditPlanTemplateTypes
 export type PlanTemplateOverride = AuditPlanDocumentOverride;
 
 /**
  * Apply per-document overrides onto an org-default plan config.
- * Now handles the full AuditPlanFullTemplateConfig surface.
+ * Only modifies template-level (structure/content) settings.
+ * Foundation formatting cannot be overridden.
  */
 export function applyPlanOverrides(
   base: AuditPlanFullTemplateConfig,
@@ -123,7 +112,7 @@ export function applyPlanOverrides(
 
   const merged: AuditPlanFullTemplateConfig = JSON.parse(JSON.stringify(base));
 
-  // Cover page
+  // Cover page (template-owned)
   if (overrides.titleText !== undefined) {
     merged.coverPage.titleText = overrides.titleText;
   }
@@ -131,19 +120,7 @@ export function applyPlanOverrides(
     merged.coverPage.fiscalYearMode = overrides.fiscalYearMode;
   }
 
-  // Branding
-  if (overrides.confidentialLabel !== undefined) {
-    merged.branding.confidentialLabel = overrides.confidentialLabel;
-  }
-  if (overrides.watermarkText !== undefined) {
-    merged.branding.watermarkText = overrides.watermarkText;
-    merged.exportDefaults.draftWatermarkText = overrides.watermarkText;
-  }
-
-  // Sections (delegated to section engine at resolve time, but stored here)
-  // The sectionOverrides are passed through to resolveSections() at generation time.
-
-  // Signatories
+  // Signatories — these override the Foundation defaults at generation time only
   if (overrides.signatoryOverrides?.length) {
     merged.approval.signatories = merged.approval.signatories.map((sig, i) => {
       const ov = overrides.signatoryOverrides?.[i];
@@ -158,10 +135,8 @@ export function applyPlanOverrides(
 
   // Output mode
   if (overrides.outputMode === 'draft') {
-    merged.branding.showWatermark = true;
     merged.exportDefaults.draftWatermark = true;
   } else if (overrides.outputMode === 'final') {
-    merged.branding.showWatermark = false;
     merged.exportDefaults.draftWatermark = false;
   }
 

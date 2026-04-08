@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import type { AuditPlanBranding, AuditPlanCoverPageConfig, AuditPlanTocConfig, AuditPlanPaginationConfig } from '@/lib/audit/auditPlanTemplateTypes';
+import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 
 interface TemplatePreviewPaneProps {
   templateType: 'audit_report' | 'audit_plan';
@@ -30,7 +31,15 @@ export function TemplatePreviewPane({ templateType, config, brandingConfig, cove
 }
 
 function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
-  const enabledSections = [...config.sections].filter((s) => s.enabled).sort((a, b) => a.order - b.order);
+  // Use Foundation for all formatting
+  const { data: foundation } = useDocumentFoundation();
+  const f = foundation;
+
+  const sections = config.sectionRefs || config.sections || [];
+  const enabledSections = [...sections].filter((s) => s.enabled).sort((a, b) => a.order - b.order);
+
+  const primaryColor = f?.colorPalette.primary || '#1E3A5F';
+  const goldColor = f?.colorPalette.gold || '#C4A756';
 
   return (
     <Card className="overflow-hidden">
@@ -38,28 +47,28 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
         <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Report Preview</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Mini cover page */}
-        <div className="bg-[#0E5F3A] text-white px-4 py-3 relative">
-          {config.draftRules.showWatermark && (
+        {/* Mini cover page — uses Foundation branding */}
+        <div className="text-white px-4 py-3 relative" style={{ backgroundColor: primaryColor }}>
+          {f?.draftRules.showWatermark && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <p className="text-2xl font-bold text-white/10 -rotate-45">{config.draftRules.watermarkText}</p>
+              <p className="text-2xl font-bold text-white/10 -rotate-45">{f.draftRules.watermarkText}</p>
             </div>
           )}
           <div className="flex items-center justify-between relative z-10">
             <div>
-              {config.branding.showLogo && (
+              {f?.branding.showLogo && (
                 <div className="w-6 h-6 rounded bg-white/20 mb-1 flex items-center justify-center text-[8px] font-bold">LOGO</div>
               )}
-              <p className="text-xs font-bold">{config.branding.orgName}</p>
-              <p className="text-[9px] opacity-70">{config.branding.country}</p>
+              <p className="text-xs font-bold">{f?.branding.orgName || 'Organization'}</p>
+              <p className="text-[9px] opacity-70">{f?.branding.country || ''}</p>
             </div>
             <div className="text-[8px] opacity-60 text-right">
-              <p>{config.branding.address}</p>
-              <p>Tel: {config.branding.phone}</p>
+              <p>{f?.branding.address || ''}</p>
+              <p>Tel: {f?.branding.phone || ''}</p>
             </div>
           </div>
         </div>
-        <div className="h-0.5 bg-[#F4C430]" />
+        <div className="h-0.5" style={{ backgroundColor: goldColor }} />
 
         {/* Cover content */}
         <div className="px-4 py-4 text-center border-b">
@@ -78,21 +87,24 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
           <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-1">Sections</p>
           {enabledSections.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2">
-              <span className="text-[9px] font-bold text-white bg-[#0E5F3A] rounded-full h-4 w-4 flex items-center justify-center shrink-0">
+              <span
+                className="text-[9px] font-bold text-white rounded-full h-4 w-4 flex items-center justify-center shrink-0"
+                style={{ backgroundColor: primaryColor }}
+              >
                 {i + 1}
               </span>
-              <span className="text-xs">{s.label}</span>
+              <span className="text-xs">{s.labelOverride || s.label}</span>
             </div>
           ))}
         </div>
 
         <Separator />
 
-        {/* Sign-off preview */}
+        {/* Sign-off preview — from Foundation */}
         <div className="px-4 py-3">
-          <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-2">Sign-off</p>
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-2">Sign-off (from Foundation)</p>
           <div className="space-y-2">
-            {config.signOff.signatories.map((sig, i) => (
+            {(f?.signOff || []).map((sig, i) => (
               <div key={i} className="text-[9px]">
                 <p className="font-semibold text-muted-foreground">{sig.label}</p>
                 <div className="border-t border-foreground/30 w-20 mt-2 mb-0.5" />
@@ -105,7 +117,9 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
 
         {/* Confidentiality footer */}
         <div className="px-4 py-2 bg-muted/30 border-t">
-          <p className="text-[8px] text-muted-foreground text-center uppercase tracking-wider font-medium">Confidential</p>
+          <p className="text-[8px] text-muted-foreground text-center uppercase tracking-wider font-medium">
+            {f?.branding.confidentialLabel || 'Confidential'}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -125,28 +139,31 @@ function PlanPreview({
   toc?: AuditPlanTocConfig;
   pagination?: AuditPlanPaginationConfig;
 }) {
-  // Use enhanced config if available, otherwise fall back to basic
-  const primaryColor = branding?.colorPalette.primary || '#1E3A5F';
-  const secondaryColor = branding?.colorPalette.secondary || '#4A7FB5';
-  const accentColor = branding?.colorPalette.accent || '#E8F0FE';
-  const textColor = branding?.colorPalette.text || '#1A1A1A';
+  // Use Foundation for formatting
+  const { data: foundation } = useDocumentFoundation();
+  const f = foundation;
+
+  const primaryColor = f?.colorPalette.primary || branding?.colorPalette.primary || '#1E3A5F';
+  const secondaryColor = f?.colorPalette.secondary || branding?.colorPalette.secondary || '#4A7FB5';
+  const accentColor = f?.colorPalette.accent || branding?.colorPalette.accent || '#E8F0FE';
+  const textColor = f?.colorPalette.text || branding?.colorPalette.text || '#1A1A1A';
 
   const titleText = coverPage?.titleText || config.coverPage.titleText;
-  const orgName = branding?.orgName || '';
+  const orgName = f?.branding.orgName || branding?.orgName || '';
   const showOrgName = coverPage?.showOrgName ?? true;
   const showEntity = coverPage?.showAuditableEntity ?? true;
   const showPeriod = coverPage?.showPeriodCovered ?? true;
   const showVersion = coverPage?.showVersionNumber ?? true;
   const showIssueDate = coverPage?.showIssueDate ?? true;
   const showConfLabel = coverPage?.showConfidentialLabel ?? true;
-  const confidentialLabel = branding?.confidentialLabel || 'CONFIDENTIAL';
+  const confidentialLabel = f?.branding.confidentialLabel || branding?.confidentialLabel || 'CONFIDENTIAL';
   const fiscalMode = coverPage?.fiscalYearMode || config.coverPage.fiscalYearMode;
   const coverStyle = coverPage?.coverStyle || 'minimal';
   const logoMode = branding?.logoMode || 'cover_only';
   const logoSize = branding?.logoSize || 'medium';
   const logoAlign = branding?.logoAlignment || 'center';
-  const showWatermark = branding?.showWatermark ?? false;
-  const watermarkText = branding?.watermarkText || 'DRAFT';
+  const showWatermark = f?.draftRules.showWatermark ?? branding?.showWatermark ?? false;
+  const watermarkText = f?.draftRules.watermarkText || branding?.watermarkText || 'DRAFT';
   const hasLogo = logoMode !== 'none';
   const hasCustomLogo = branding?.logoSource && branding.logoSource !== 'default' && branding.logoSource.length > 10;
 
@@ -167,7 +184,6 @@ function PlanPreview({
             color: coverStyle === 'formal' ? '#FFFFFF' : textColor,
           }}
         >
-          {/* Watermark */}
           {showWatermark && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <p
@@ -179,7 +195,6 @@ function PlanPreview({
             </div>
           )}
 
-          {/* Accent bar for modern style */}
           {coverStyle === 'modern' && (
             <div
               className="absolute left-0 top-0 bottom-0 w-1.5"
@@ -188,7 +203,6 @@ function PlanPreview({
           )}
 
           <div className={`relative z-10 ${coverStyle === 'formal' ? 'text-center' : coverStyle === 'modern' ? 'pl-3' : 'text-center'}`}>
-            {/* Logo */}
             {hasLogo && (
               <div className={`flex ${coverStyle === 'modern' ? 'justify-start' : logoJustify} mb-2`}>
                 {hasCustomLogo ? (
@@ -214,12 +228,10 @@ function PlanPreview({
               </div>
             )}
 
-            {/* Organization */}
             {showOrgName && orgName && (
               <p className="text-[9px] uppercase tracking-widest mb-1 opacity-70">{orgName}</p>
             )}
 
-            {/* Title */}
             <p
               className="text-sm font-bold"
               style={{ color: coverStyle === 'formal' ? '#FFFFFF' : primaryColor }}
@@ -227,7 +239,6 @@ function PlanPreview({
               {titleText}
             </p>
 
-            {/* Subtitle elements */}
             <div className={`mt-2 space-y-0.5 text-[9px] ${coverStyle === 'formal' ? 'opacity-80' : 'text-muted-foreground'}`}>
               {showEntity && <p>Entity: Sample Department</p>}
               {showPeriod && (
@@ -237,7 +248,6 @@ function PlanPreview({
               {showIssueDate && <p>Issue Date: April 2026</p>}
             </div>
 
-            {/* Confidential label */}
             {showConfLabel && (
               <div className="mt-2">
                 <Badge
@@ -255,7 +265,6 @@ function PlanPreview({
           </div>
         </div>
 
-        {/* Accent divider */}
         <div className="h-0.5" style={{ backgroundColor: secondaryColor }} />
 
         {/* TOC Preview */}
@@ -341,37 +350,12 @@ function PlanPreview({
           )}
         </div>
 
-        {/* Pagination preview */}
-        {pagination?.showPageNumbers && (
-          <>
-            <Separator />
-            <div className="px-4 py-2">
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-1">Page Numbering</p>
-              <div className="flex items-center gap-2 text-[9px]">
-                <span className="text-muted-foreground">Position:</span>
-                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
-                  {pagination.position.replace('-', ' ')}
-                </Badge>
-                <span className="text-muted-foreground">Body:</span>
-                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
-                  {pagination.bodyStyle}
-                </Badge>
-                {pagination.hideOnCover && (
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5">
-                    cover hidden
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Palette preview strip */}
-        {branding && (
+        {/* Foundation formatting info */}
+        {f && (
           <div className="px-4 py-2 border-t bg-muted/20">
-            <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-1">Palette</p>
+            <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-1">Foundation Palette</p>
             <div className="flex gap-1">
-              {Object.entries(branding.colorPalette).map(([key, color]) => (
+              {Object.entries(f.colorPalette).map(([key, color]) => (
                 <div
                   key={key}
                   className="w-5 h-5 rounded border border-border"

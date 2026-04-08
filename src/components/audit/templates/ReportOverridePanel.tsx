@@ -27,6 +27,8 @@ export function ReportOverridePanel({ baseConfig, overrides, onChange, onReset }
     onChange({ ...overrides, ...partial });
   };
 
+  const sections = baseConfig.sectionRefs || baseConfig.sections || [];
+
   return (
     <Card className="border-dashed border-primary/30">
       <CardHeader className="py-3 px-4">
@@ -47,6 +49,7 @@ export function ReportOverridePanel({ baseConfig, overrides, onChange, onReset }
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5">
           These changes apply only to this document and do not affect organization defaults.
+          Formatting (branding, typography, sign-off) is controlled in Foundation.
         </p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-3">
@@ -85,7 +88,7 @@ export function ReportOverridePanel({ baseConfig, overrides, onChange, onReset }
             <ChevronDown className="h-3 w-3" />
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
-            {baseConfig.sections.map((sec) => {
+            {sections.map((sec) => {
               const ov = overrides.sectionOverrides?.find((s) => s.id === sec.id);
               const isEnabled = ov?.enabled ?? sec.enabled;
               return (
@@ -167,36 +170,7 @@ export function ReportOverridePanel({ baseConfig, overrides, onChange, onReset }
 
         <Separator />
 
-        {/* Sign-off */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
-            Sign-off Labels
-            <ChevronDown className="h-3 w-3" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-3">
-            {baseConfig.signOff.signatories.map((sig, i) => {
-              const ov = overrides.signatoryOverrides?.[i];
-              return (
-                <div key={i} className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground uppercase">{sig.label}</Label>
-                  <Input
-                    className="h-7 text-xs"
-                    placeholder={sig.roleTitle}
-                    value={ov?.roleTitle ?? sig.roleTitle}
-                    onChange={(e) => {
-                      const arr = [...(overrides.signatoryOverrides || baseConfig.signOff.signatories.map(() => ({})))];
-                      arr[i] = { ...arr[i], roleTitle: e.target.value };
-                      update({ signatoryOverrides: arr });
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </CollapsibleContent>
-        </Collapsible>
-
         {/* Action Plan Columns */}
-        <Separator />
         <Collapsible>
           <CollapsibleTrigger className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
             Action Plan Columns
