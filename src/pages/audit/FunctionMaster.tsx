@@ -305,7 +305,7 @@ export default function FunctionMaster() {
     <PageShell
       title="Function Master"
       subtitle="Manage department functions and risk matrices for audit planning"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Function Master' }]}
+      breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Reference Data' }, { label: 'Business Functions' }]}
       isLoading={deptsLoading || funcsLoading}
       actions={
         <div className="flex items-center gap-2">

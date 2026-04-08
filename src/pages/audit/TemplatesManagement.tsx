@@ -92,9 +92,9 @@ export default function TemplatesManagement() {
 
   return (
     <PageShell
-      title="Document Templates"
+      title="Communication Templates"
       subtitle="Manage reusable document templates for letters, reports, and notices"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/audit/plans' }, { label: 'Templates' }]}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Reference Data' }, { label: 'Communication Templates' }]}
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Template</Button>}
     >

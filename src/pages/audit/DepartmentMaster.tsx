@@ -334,7 +334,7 @@ export default function DepartmentMaster() {
     <PageShell
       title="Department Master"
       subtitle="Manage SSB department information for audit planning"
-      breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Department Master' }]}
+      breadcrumbs={[{ label: 'Internal Audit', href: '/' }, { label: 'Reference Data' }, { label: 'Departments' }]}
       isLoading={isLoading}
       error={isError ? 'Failed to load departments' : null}
       actions={
