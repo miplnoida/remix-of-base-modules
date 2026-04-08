@@ -135,7 +135,7 @@ export default function AuditQueries() {
     <PageShell
       title="Audit Queries"
       subtitle="Communication between audit team and departments"
-      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Queries' }]}
+      breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Execution' }, { label: 'Queries' }]}
       isLoading={isLoading}
       actions={<Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Query</Button>}
     >

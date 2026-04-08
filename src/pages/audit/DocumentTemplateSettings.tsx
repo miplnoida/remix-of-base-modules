@@ -12,7 +12,7 @@ export default function DocumentTemplateSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Document Templates</h1>
+        <h1 className="text-2xl font-bold text-foreground">Document & Output Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Configure shared foundation settings inherited by all audit documents, manage the master section library, and customize type-specific templates.
         </p>
