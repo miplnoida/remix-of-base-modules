@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Shield, AlertTriangle, Eye, Edit, Trash2, Link2, Clock } from 'lucide-react';
+import { Plus, Shield, AlertTriangle, Eye, Edit, Trash2, Link2, Clock, XCircle } from 'lucide-react';
 import { PageShell, StandardSearchFilterBar, DataTable, StandardModal, StatusBadge, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -25,9 +25,12 @@ import {
 import { RISK_REGISTER_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useAuditFields } from '@/hooks/useAuditTrail';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
 
 const exportColumns = toExportColumns(RISK_REGISTER_SCHEMA);
+const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 
 const emptyRisk = {
   audit_universe_id: '',
@@ -57,6 +60,7 @@ const emptyAction = {
   status: 'Planned',
   priority: 'Medium',
   evidence_notes: '',
+  template_id: '',
 };
 
 export default function RiskRegister() {
@@ -64,6 +68,9 @@ export default function RiskRegister() {
   const [entityFilter, setEntityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const [reviewDueFilter, setReviewDueFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   const { data: risks = [], isLoading } = useRiskRegister();
@@ -73,28 +80,48 @@ export default function RiskRegister() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyRisk);
   const [detailRisk, setDetailRisk] = useState<any>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<string | null>(null);
+  const [closeRiskId, setCloseRiskId] = useState<string | null>(null);
+  const [closeComment, setCloseComment] = useState('');
 
   // Duplicate check
   const { data: dupes = [] } = useDuplicateRiskCheck(form.audit_universe_id, form.risk_title, form.risk_category);
   const showDupeWarning = !editingId && dupes.length > 0;
+
+  // Unique owners for filter
+  const ownerOptions = useMemo(() => {
+    const owners = new Set<string>();
+    risks.forEach((r: any) => { if (r.risk_owner) owners.add(r.risk_owner); });
+    return Array.from(owners).sort();
+  }, [risks]);
+
+  const today = new Date().toISOString().slice(0, 10);
 
   const filtered = useMemo(() => {
     return risks.filter((r: any) => {
       if (entityFilter !== 'all' && r.audit_universe_id !== entityFilter) return false;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (categoryFilter !== 'all' && r.risk_category !== categoryFilter) return false;
+      if (ownerFilter !== 'all' && r.risk_owner !== ownerFilter) return false;
+      if (severityFilter !== 'all' && r.residual_risk_level !== severityFilter) return false;
+      if (reviewDueFilter === 'overdue' && (!r.review_date || r.review_date >= today)) return false;
+      if (reviewDueFilter === 'upcoming') {
+        if (!r.review_date) return false;
+        const diff = (new Date(r.review_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+        if (diff < 0 || diff > 30) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         return (r.risk_title?.toLowerCase().includes(s) || r.risk_owner?.toLowerCase().includes(s) || r.ia_audit_universe?.entity_name?.toLowerCase().includes(s));
       }
       return true;
     });
-  }, [risks, entityFilter, statusFilter, categoryFilter, search]);
+  }, [risks, entityFilter, statusFilter, categoryFilter, ownerFilter, severityFilter, reviewDueFilter, search, today]);
 
   const { paginatedData, pagination, goToPage } = useTablePagination(filtered, 15);
 
   const openCount = risks.filter((r: any) => r.status === 'Open').length;
-  const criticalCount = risks.filter((r: any) => r.inherent_risk_level === 'Critical' || r.residual_risk_level === 'Critical').length;
+  const criticalCount = risks.filter((r: any) => r.residual_risk_level === 'Critical').length;
 
   const openCreate = () => { setForm(emptyRisk); setEditingId(null); setModalOpen(true); };
   const openEdit = (row: any) => {
@@ -123,12 +150,41 @@ export default function RiskRegister() {
 
   const handleSave = () => {
     if (!form.risk_title.trim() || !form.audit_universe_id) return;
-    const payload = { ...form, linked_risk_id: form.linked_risk_id || null };
+    const payload = { ...form, linked_risk_id: form.linked_risk_id || null, risk_source: form.risk_source || null };
     if (editingId) {
       update.mutate({ id: editingId, ...payload }, { onSuccess: () => setModalOpen(false) });
     } else {
       create.mutate(payload, { onSuccess: () => setModalOpen(false) });
     }
+  };
+
+  const handleConfirmDeactivate = () => {
+    if (confirmDeactivate) {
+      remove.mutate(confirmDeactivate, { onSuccess: () => setConfirmDeactivate(null) });
+    }
+  };
+
+  // Close risk workflow
+  const reviewMut = useRiskReviewMutations();
+  const { userCode } = useAuditFields();
+
+  const handleCloseRisk = () => {
+    if (!closeRiskId || !closeComment.trim()) return;
+    const risk = risks.find((r: any) => r.id === closeRiskId);
+    // Add closing review comment
+    reviewMut.create.mutate({
+      risk_id: closeRiskId,
+      reviewed_by: userCode || 'SYSTEM',
+      previous_risk_level: risk?.residual_risk_level || 'Unknown',
+      new_risk_level: risk?.residual_risk_level || 'Unknown',
+      previous_score: risk?.residual_risk_score || 0,
+      new_score: risk?.residual_risk_score || 0,
+      comments: `Risk closed: ${closeComment}`,
+    });
+    // Update status to Closed
+    update.mutate({ id: closeRiskId, status: 'Closed', inherent_likelihood: risk?.inherent_likelihood, inherent_impact: risk?.inherent_impact, residual_likelihood: risk?.residual_likelihood, residual_impact: risk?.residual_impact }, {
+      onSuccess: () => { setCloseRiskId(null); setCloseComment(''); },
+    });
   };
 
   const columns: DataTableColumn<any>[] = [
@@ -137,6 +193,7 @@ export default function RiskRegister() {
     )},
     { key: 'ia_audit_universe', header: 'Entity', render: (row: any) => row.ia_audit_universe?.entity_name || '—' },
     { key: 'risk_category', header: 'Category', render: (row: any) => <Badge variant="outline">{row.risk_category}</Badge> },
+    { key: 'risk_source', header: 'Source', render: (row: any) => row.risk_source || '—' },
     { key: 'inherent_risk_score', header: 'Inherent', render: (row: any) => (
       <Badge variant={getRiskLevelVariant(row.inherent_risk_level)}>{row.inherent_risk_score} ({row.inherent_risk_level})</Badge>
     )},
@@ -148,8 +205,11 @@ export default function RiskRegister() {
     {
       key: 'actions', header: 'Actions', render: (row: any) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Edit className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" onClick={() => remove.mutate(row.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => openEdit(row)} title="Edit"><Edit className="h-4 w-4" /></Button>
+          {row.status !== 'Closed' && (
+            <Button variant="ghost" size="icon" onClick={() => setCloseRiskId(row.id)} title="Close Risk"><XCircle className="h-4 w-4 text-muted-foreground" /></Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => setConfirmDeactivate(row.id)} title="Deactivate"><Trash2 className="h-4 w-4 text-destructive" /></Button>
         </div>
       ),
     },
@@ -159,6 +219,9 @@ export default function RiskRegister() {
     { key: 'entity', label: 'Entity', type: 'select', options: [{ label: 'All Entities', value: 'all' }, ...universeEntities.map((e: any) => ({ label: e.entity_name, value: e.id }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_STATUSES.map(s => ({ label: s, value: s }))] },
     { key: 'category', label: 'Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(c => ({ label: c, value: c }))] },
+    { key: 'owner', label: 'Owner', type: 'select', options: [{ label: 'All Owners', value: 'all' }, ...ownerOptions.map(o => ({ label: o, value: o }))] },
+    { key: 'severity', label: 'Severity', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_LEVELS.map(l => ({ label: l, value: l }))] },
+    { key: 'reviewDue', label: 'Review Due', type: 'select', options: [{ label: 'All', value: 'all' }, { label: 'Overdue', value: 'overdue' }, { label: 'Next 30 Days', value: 'upcoming' }] },
   ];
 
   const iScore = (form.inherent_likelihood || 0) * (form.inherent_impact || 0);
@@ -177,7 +240,7 @@ export default function RiskRegister() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Risk Register</CardTitle>
           <div className="flex gap-2">
-            <ExportDropdown data={filtered.map((r: any) => ({ ...r, entity_name: r.ia_audit_universe?.entity_name || '' }))} columns={exportColumns} fileName="risk-register" title="Risk Register" />
+            <ExportDropdown data={filtered.map((r: any) => ({ ...r, entity_name: r.ia_audit_universe?.entity_name || '', risk_source: r.risk_source || '' }))} columns={exportColumns} fileName="risk-register" title="Risk Register" />
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Risk</Button>
           </div>
         </CardHeader>
@@ -187,14 +250,27 @@ export default function RiskRegister() {
             onSearchChange={setSearch}
             searchPlaceholder="Search risks..."
             filters={filterFields}
-            filterValues={{ entity: entityFilter, status: statusFilter, category: categoryFilter }}
+            filterValues={{ entity: entityFilter, status: statusFilter, category: categoryFilter, owner: ownerFilter, severity: severityFilter, reviewDue: reviewDueFilter }}
             onFilterChange={(k, v) => {
               if (k === 'entity') setEntityFilter(v);
               if (k === 'status') setStatusFilter(v);
               if (k === 'category') setCategoryFilter(v);
+              if (k === 'owner') setOwnerFilter(v);
+              if (k === 'severity') setSeverityFilter(v);
+              if (k === 'reviewDue') setReviewDueFilter(v);
             }}
           />
-          <DataTable columns={columns} data={paginatedData} isLoading={isLoading} emptyMessage="No risks found." />
+          {!isLoading && risks.length === 0 ? (
+            <AuditEmptyState
+              icon={Shield}
+              title="No risks registered"
+              description="Start by adding a risk linked to an entity in the audit universe."
+              actionLabel="Add Risk"
+              onAction={openCreate}
+            />
+          ) : (
+            <DataTable columns={columns} data={paginatedData} isLoading={isLoading} emptyMessage="No risks match your filters." />
+          )}
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
               <span className="text-sm text-muted-foreground">
@@ -251,9 +327,12 @@ export default function RiskRegister() {
           </div>
           <div className="space-y-2">
             <Label>Risk Source</Label>
-            <Select value={form.risk_source || ''} onValueChange={v => setForm(f => ({ ...f, risk_source: v }))}>
+            <Select value={form.risk_source || '__none__'} onValueChange={v => setForm(f => ({ ...f, risk_source: v === '__none__' ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Select source..." /></SelectTrigger>
-              <SelectContent>{RISK_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__none__">— None —</SelectItem>
+                {RISK_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
@@ -264,7 +343,6 @@ export default function RiskRegister() {
             </Select>
           </div>
 
-          {/* Inherent Risk */}
           <div className="space-y-2">
             <Label>Inherent Likelihood (1-5)</Label>
             <Select value={String(form.inherent_likelihood)} onValueChange={v => setForm(f => ({ ...f, inherent_likelihood: Number(v) }))}>
@@ -280,7 +358,6 @@ export default function RiskRegister() {
             </Select>
           </div>
 
-          {/* Residual Risk */}
           <div className="space-y-2">
             <Label>Residual Likelihood (1-5)</Label>
             <Select value={String(form.residual_likelihood)} onValueChange={v => setForm(f => ({ ...f, residual_likelihood: Number(v) }))}>
@@ -296,7 +373,6 @@ export default function RiskRegister() {
             </Select>
           </div>
 
-          {/* Score preview */}
           <div className="md:col-span-2 flex gap-4">
             <div className="flex-1 p-3 rounded-md bg-muted text-center">
               <p className="text-xs text-muted-foreground">Inherent Risk</p>
@@ -333,7 +409,15 @@ export default function RiskRegister() {
           </div>
           <div className="space-y-2">
             <Label>Linked Risk</Label>
-            <Input value={form.linked_risk_id} onChange={e => setForm(f => ({ ...f, linked_risk_id: e.target.value }))} placeholder="UUID of linked risk (optional)" />
+            <Select value={form.linked_risk_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, linked_risk_id: v === '__none__' ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— None —</SelectItem>
+                {risks.filter((r: any) => r.id !== editingId).map((r: any) => (
+                  <SelectItem key={r.id} value={r.id}>{r.risk_title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Notes</Label>
@@ -342,16 +426,60 @@ export default function RiskRegister() {
         </div>
       </StandardModal>
 
+      {/* DEACTIVATION CONFIRMATION */}
+      <ConfirmDialog
+        open={!!confirmDeactivate}
+        onOpenChange={(open) => { if (!open) setConfirmDeactivate(null); }}
+        title="Deactivate Risk"
+        description="This risk will be deactivated and hidden from active views. Associated mitigations and reviews will be retained. Continue?"
+        confirmLabel="Deactivate"
+        variant="destructive"
+        onConfirm={handleConfirmDeactivate}
+        isLoading={remove.isPending}
+      />
+
+      {/* CLOSE RISK DIALOG */}
+      <ConfirmDialog
+        open={!!closeRiskId}
+        onOpenChange={(open) => { if (!open) { setCloseRiskId(null); setCloseComment(''); } }}
+        title="Close Risk"
+        description=""
+        confirmLabel="Close Risk"
+        variant="default"
+        onConfirm={handleCloseRisk}
+        isLoading={update.isPending || reviewMut.create.isPending}
+      />
+      {closeRiskId && (
+        <Dialog open={!!closeRiskId} onOpenChange={(open) => { if (!open) { setCloseRiskId(null); setCloseComment(''); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Close Risk</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-3">Provide a closing review comment before marking this risk as closed.</p>
+            <Textarea
+              placeholder="Reason for closing this risk..."
+              value={closeComment}
+              onChange={e => setCloseComment(e.target.value)}
+              rows={3}
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <Button variant="outline" onClick={() => { setCloseRiskId(null); setCloseComment(''); }}>Cancel</Button>
+              <Button onClick={handleCloseRisk} disabled={!closeComment.trim() || update.isPending}>Close Risk</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* DETAIL PANEL */}
       {detailRisk && (
-        <RiskDetailPanel risk={detailRisk} onClose={() => setDetailRisk(null)} />
+        <RiskDetailPanel risk={detailRisk} allRisks={risks} onClose={() => setDetailRisk(null)} />
       )}
     </PageShell>
   );
 }
 
 // ============= RISK DETAIL PANEL =============
-function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) {
+function RiskDetailPanel({ risk, allRisks, onClose }: { risk: any; allRisks: any[]; onClose: () => void }) {
   const { data: actions = [] } = useRiskMitigationActions(risk.id);
   const { data: reviews = [] } = useRiskReviews(risk.id);
   const { data: templates = [] } = useMitigationTemplates(risk.risk_category);
@@ -361,12 +489,47 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
 
   const [actionForm, setActionForm] = useState({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '', template_id: '' });
   const [showActionForm, setShowActionForm] = useState(false);
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [reviewComment, setReviewComment] = useState('');
+  const [confirmDeleteAction, setConfirmDeleteAction] = useState<string | null>(null);
 
   const handleAddAction = () => {
     if (!actionForm.action_title.trim()) return;
     const payload = { ...actionForm, risk_id: risk.id, template_id: actionForm.template_id || null };
-    mitigationMut.create.mutate(payload, { onSuccess: () => { setShowActionForm(false); setActionForm({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '', template_id: '' }); } });
+    if (editingActionId) {
+      mitigationMut.update.mutate({ id: editingActionId, ...payload }, {
+        onSuccess: () => { setShowActionForm(false); setEditingActionId(null); resetActionForm(); },
+      });
+    } else {
+      mitigationMut.create.mutate(payload, {
+        onSuccess: () => { setShowActionForm(false); resetActionForm(); },
+      });
+    }
+  };
+
+  const resetActionForm = () => setActionForm({ action_title: '', action_description: '', assigned_to: '', due_date: '', status: 'Planned', priority: 'Medium', evidence_notes: '', template_id: '' });
+
+  const startEditAction = (a: any) => {
+    setActionForm({
+      action_title: a.action_title || '',
+      action_description: a.action_description || '',
+      assigned_to: a.assigned_to || '',
+      due_date: a.due_date || '',
+      status: a.status || 'Planned',
+      priority: a.priority || 'Medium',
+      evidence_notes: a.evidence_notes || '',
+      template_id: a.template_id || '',
+    });
+    setEditingActionId(a.id);
+    setShowActionForm(true);
+  };
+
+  const handleDeleteAction = () => {
+    if (confirmDeleteAction) {
+      mitigationMut.update.mutate({ id: confirmDeleteAction, is_active: false }, {
+        onSuccess: () => setConfirmDeleteAction(null),
+      });
+    }
   };
 
   const handleAddReview = () => {
@@ -381,6 +544,8 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
       comments: reviewComment,
     }, { onSuccess: () => setReviewComment('') });
   };
+
+  const linkedRisk = risk.linked_risk_id ? allRisks.find((r: any) => r.id === risk.linked_risk_id) : null;
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
@@ -401,6 +566,10 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
           <div><span className="text-muted-foreground">Control:</span> {risk.control_effectiveness}</div>
           <div><span className="text-muted-foreground">Source:</span> {risk.risk_source || '—'}</div>
           <div><span className="text-muted-foreground">Fiscal Year:</span> {risk.fiscal_year || '—'}</div>
+          <div><span className="text-muted-foreground">Review Date:</span> {risk.review_date ? formatDateForDisplay(risk.review_date) : '—'}</div>
+          {linkedRisk && (
+            <div className="col-span-2"><span className="text-muted-foreground">Linked Risk:</span> <span className="font-medium">{linkedRisk.risk_title}</span></div>
+          )}
         </div>
         {risk.risk_description && <p className="text-sm mb-4">{risk.risk_description}</p>}
 
@@ -411,14 +580,19 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
           </TabsList>
 
           <TabsContent value="mitigations" className="space-y-3">
+            {actions.length === 0 && !showActionForm && (
+              <p className="text-sm text-muted-foreground text-center py-4">No mitigation actions yet.</p>
+            )}
             {actions.map((a: any) => (
               <Card key={a.id}>
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{a.action_title}</span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Badge variant="outline">{a.priority}</Badge>
                       <StatusBadge status={a.status} />
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => startEditAction(a)}><Edit className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setConfirmDeleteAction(a.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                     </div>
                   </div>
                   {a.action_description && <p className="text-xs text-muted-foreground mt-1">{a.action_description}</p>}
@@ -431,7 +605,7 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
             ))}
 
             {!showActionForm ? (
-              <Button variant="outline" size="sm" onClick={() => setShowActionForm(true)}><Plus className="h-3 w-3 mr-1" />Add Mitigation</Button>
+              <Button variant="outline" size="sm" onClick={() => { resetActionForm(); setEditingActionId(null); setShowActionForm(true); }}><Plus className="h-3 w-3 mr-1" />Add Mitigation</Button>
             ) : (
               <Card>
                 <CardContent className="p-3 space-y-3">
@@ -439,20 +613,28 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
                     {templates.length > 0 && (
                       <div className="space-y-1 col-span-2">
                         <Label className="text-xs">From Template</Label>
-                        <Select value={actionForm.template_id || ''} onValueChange={v => {
+                        <Select value={actionForm.template_id || '__none__'} onValueChange={v => {
+                          if (v === '__none__') return;
                           const tpl = templates.find((t: any) => t.id === v);
                           if (tpl) {
                             setActionForm(f => ({ ...f, template_id: v, action_title: tpl.template_name, action_description: tpl.template_description || '', priority: tpl.default_priority || 'Medium' }));
                           }
                         }}>
                           <SelectTrigger><SelectValue placeholder="Select template (optional)..." /></SelectTrigger>
-                          <SelectContent>{templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>)}</SelectContent>
+                          <SelectContent>
+                            <SelectItem value="__none__">— None —</SelectItem>
+                            {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>)}
+                          </SelectContent>
                         </Select>
                       </div>
                     )}
                     <div className="space-y-1 col-span-2">
                       <Label className="text-xs">Title *</Label>
                       <Input value={actionForm.action_title} onChange={e => setActionForm(f => ({ ...f, action_title: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs">Description</Label>
+                      <Textarea value={actionForm.action_description} onChange={e => setActionForm(f => ({ ...f, action_description: e.target.value }))} rows={2} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Assigned To</Label>
@@ -478,15 +660,29 @@ function RiskDetailPanel({ risk, onClose }: { risk: any; onClose: () => void }) 
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddAction} disabled={mitigationMut.create.isPending}>Save</Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowActionForm(false)}>Cancel</Button>
+                    <Button size="sm" onClick={handleAddAction} disabled={mitigationMut.create.isPending || mitigationMut.update.isPending}>{editingActionId ? 'Update' : 'Save'}</Button>
+                    <Button size="sm" variant="outline" onClick={() => { setShowActionForm(false); setEditingActionId(null); resetActionForm(); }}>Cancel</Button>
                   </div>
                 </CardContent>
               </Card>
             )}
+
+            <ConfirmDialog
+              open={!!confirmDeleteAction}
+              onOpenChange={(open) => { if (!open) setConfirmDeleteAction(null); }}
+              title="Remove Mitigation Action"
+              description="This action will be removed from the risk. Continue?"
+              confirmLabel="Remove"
+              variant="destructive"
+              onConfirm={handleDeleteAction}
+              isLoading={mitigationMut.update.isPending}
+            />
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-3">
+            {reviews.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No reviews yet.</p>
+            )}
             {reviews.map((r: any) => (
               <div key={r.id} className="flex items-start gap-3 text-sm border-l-2 border-primary pl-3 py-1">
                 <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
