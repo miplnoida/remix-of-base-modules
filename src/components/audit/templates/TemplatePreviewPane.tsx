@@ -341,6 +341,31 @@ function PlanPreview({
           )}
         </div>
 
+        {/* Pagination preview */}
+        {pagination?.showPageNumbers && (
+          <>
+            <Separator />
+            <div className="px-4 py-2">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-1">Page Numbering</p>
+              <div className="flex items-center gap-2 text-[9px]">
+                <span className="text-muted-foreground">Position:</span>
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
+                  {pagination.position.replace('-', ' ')}
+                </Badge>
+                <span className="text-muted-foreground">Body:</span>
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">
+                  {pagination.bodyStyle}
+                </Badge>
+                {pagination.hideOnCover && (
+                  <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5">
+                    cover hidden
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Palette preview strip */}
         {branding && (
           <div className="px-4 py-2 border-t bg-muted/20">
