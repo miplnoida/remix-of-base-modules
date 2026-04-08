@@ -332,7 +332,7 @@ export function EditEngagementDialog({
 
   const validate = (): string[] => {
     const errors: string[] = [];
-    if (!form.engagement_name.trim()) errors.push('Engagement title is required');
+    if (!form.engagement_name.trim()) errors.push('Audit title is required');
     if (!form.department_id) errors.push('Department is required');
     if (!form.function_id) errors.push('Business function is required');
     if (!form.lead_auditor_id) errors.push('Lead auditor is required');
@@ -466,8 +466,8 @@ export function EditEngagementDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            {isEditMode ? 'Edit Engagement' : 'Add Engagement to Plan'}
+           <DialogTitle className="flex items-center gap-2 text-lg">
+            {isEditMode ? 'Edit Audit' : 'Add Audit to Plan'}
             {isApprovedPlan && isEditMode && (
               <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Amendment Required</span>
             )}
@@ -486,11 +486,11 @@ export function EditEngagementDialog({
           <TabsContent value="identity" className="space-y-5 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Engagement Title <span className="text-destructive">*</span></Label>
+                <Label>Audit Title <span className="text-destructive">*</span></Label>
                 <Input value={form.engagement_name} onChange={e => updateField('engagement_name', e.target.value)} placeholder="e.g. IT Security Audit" />
               </div>
               <div>
-                <Label>Engagement Type</Label>
+                <Label>Audit Type</Label>
                 <Select value={form.engagement_type} onValueChange={v => updateField('engagement_type', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{ENGAGEMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>

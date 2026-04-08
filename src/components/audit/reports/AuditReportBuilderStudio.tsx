@@ -269,7 +269,7 @@ export function AuditReportBuilderStudio() {
       ...prev,
       title: prev.title || `Audit Report — ${selectedEngagement.engagement_name || selectedEngagement.engagement_code}`,
       department_id: selectedEngagement.department_id || prev.department_id,
-      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} engagement conducted for ${dept?.name || 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
+      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} audit conducted for ${dept?.name || 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
       audit_objective: prev.audit_objective || selectedEngagement.objectives || '',
       audit_scope: prev.audit_scope || selectedEngagement.scope || '',
       methodology: prev.methodology || selectedEngagement.methodology || '',
@@ -411,9 +411,9 @@ export function AuditReportBuilderStudio() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Audit Engagement</Label>
+                    <Label>Linked Audit</Label>
                       <Select value={reportData.engagement_id} onValueChange={(v) => updateField('engagement_id', v)} disabled={isLocked}>
-                        <SelectTrigger><SelectValue placeholder="Select engagement..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select audit..." /></SelectTrigger>
                         <SelectContent>
                           {engagements.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.engagement_name || e.engagement_code}</SelectItem>)}
                         </SelectContent>
