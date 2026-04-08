@@ -347,6 +347,9 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
             disabled={!existingReport}
           />
           <Separator orientation="vertical" className="h-6" />
+          <Button variant="outline" size="sm" onClick={() => setShowMgmtResponsePreview(true)}>
+            <MessageSquare className="h-3.5 w-3.5 mr-1" /> Mgmt Response Report
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1" /> Preview
           </Button>
