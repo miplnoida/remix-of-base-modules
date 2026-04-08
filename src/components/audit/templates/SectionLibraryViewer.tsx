@@ -91,10 +91,10 @@ export function SectionLibraryViewer() {
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm font-medium truncate">{section.label}</span>
                               {section.is_mandatory && (
-                                <Lock className="h-3 w-3 text-amber-500 shrink-0" />
+                                <Lock className="h-3 w-3 text-warning shrink-0" />
                               )}
                               {section.is_shared && (
-                                <Share2 className="h-3 w-3 text-blue-500 shrink-0" />
+                                <Share2 className="h-3 w-3 text-primary shrink-0" />
                               )}
                             </div>
                             {section.description && (
