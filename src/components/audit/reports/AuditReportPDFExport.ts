@@ -231,7 +231,7 @@ export function generateAuditReportPDF({
     // Detailed findings
     addSectionHeader('Detailed Findings', ++sn);
     findings.forEach((f: any, i: number) => {
-      if (y > ph - 60) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+      if (y > ph - 60) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...colors.primary);
@@ -314,12 +314,16 @@ export function generateAuditReportPDF({
 
   // Signatures
   addSectionHeader('Approval & Sign-off', ++sn);
-  [
-    { label: 'Prepared By', name: reportData.prepared_by, role: 'Internal Auditor' },
-    { label: 'Reviewed By', name: reportData.reviewed_by, role: 'Manager, Internal Audit' },
-    { label: 'Approved By', name: reportData.approved_by || 'Director', role: 'Director' },
-  ].forEach((sig) => {
-    if (y > ph - 40) { doc.addPage(); y = 20; if (isDraft) addDraftWatermark(doc); }
+  const signatories = resolved.signatories.map((sig) => ({
+    label: sig.label,
+    name: sig.label === 'Prepared By' ? (reportData.prepared_by || sig.defaultName) :
+          sig.label === 'Reviewed By' ? (reportData.reviewed_by || sig.defaultName) :
+          sig.label === 'Approved By' ? (reportData.approved_by || sig.defaultName || 'Director') :
+          sig.defaultName,
+    role: sig.roleTitle,
+  }));
+  signatories.forEach((sig) => {
+    if (y > ph - 40) { doc.addPage(); y = 20; if (resolved.showWatermark) addDraftWatermark(doc, resolved.watermarkText); }
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...colors.mutedText);
@@ -351,13 +355,13 @@ export function generateAuditReportPDF({
   doc.save(`${fileName}.pdf`);
 }
 
-function addDraftWatermark(doc: jsPDF) {
+function addDraftWatermark(doc: jsPDF, text: string = 'DRAFT') {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   doc.setTextColor(200, 200, 200);
   doc.setFontSize(60);
   doc.setFont('helvetica', 'bold');
-  doc.text('DRAFT', pw / 2, ph / 2, {
+  doc.text(text, pw / 2, ph / 2, {
     align: 'center',
     angle: 45,
     renderingMode: 'fill',
