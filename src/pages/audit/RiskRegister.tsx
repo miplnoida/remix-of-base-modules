@@ -224,8 +224,8 @@ export default function RiskRegister() {
             <Input value={form.risk_title} onChange={e => setForm(f => ({ ...f, risk_title: e.target.value }))} />
           </div>
           {showDupeWarning && (
-            <div className="md:col-span-2 p-3 border border-amber-300 bg-amber-50 dark:bg-amber-950 rounded-md">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200 flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Similar risks found on this entity:</p>
+            <div className="md:col-span-2 p-3 border border-border bg-muted rounded-md">
+              <p className="text-sm font-medium text-foreground flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> Similar risks found on this entity:</p>
               <ul className="mt-1 space-y-1">
                 {dupes.map((d: any) => (
                   <li key={d.id} className="text-sm flex items-center justify-between">
