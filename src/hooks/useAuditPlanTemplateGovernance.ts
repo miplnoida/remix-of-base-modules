@@ -88,7 +88,7 @@ export function useTemplatePermission() {
   const getBlockReason = (template: GovernedTemplateRow, action: TemplateAction): string | null => {
     if (!can(action)) return 'You do not have permission to perform this action.';
     const result = checkTemplateAction(template, action);
-    return result.allowed ? null : result.reason;
+    return result.allowed ? null : (result as { allowed: false; reason: string }).reason;
   };
 
   return { can, canOnTemplate, getBlockReason, isAdmin };
