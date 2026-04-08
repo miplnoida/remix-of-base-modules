@@ -40,11 +40,13 @@ export interface MappedPlanOutput {
   pageLayout: ResolvedPlanOutput['pageLayout'];
   /** Export defaults */
   exportDefaults: ResolvedPlanOutput['exportDefaults'];
-  /** Whether watermark is active */
+  planSummary: ResolvedPlanOutput['planSummary'];
+  columnsBySection: ResolvedPlanOutput['columnsBySection'];
+  resourcePlan: ResolvedPlanOutput['resourcePlan'];
+  riskCoverage: ResolvedPlanOutput['riskCoverage'];
+  governance: ResolvedPlanOutput['governance'];
   showWatermark: boolean;
-  /** Watermark text */
   watermarkText: string;
-  /** Full resolved output for advanced access */
   resolved: ResolvedPlanOutput;
 }
 
