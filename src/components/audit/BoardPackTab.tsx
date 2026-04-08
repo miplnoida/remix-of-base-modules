@@ -856,19 +856,33 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
     }
   };
 
+  const triggerBlobDownload = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
+
   const handleDownload = async (artifact: any) => {
     try {
+      // Try public URL first (bucket is public)
+      const { data: urlData } = supabase.storage.from('ia-artifacts').getPublicUrl(artifact.file_path);
+      if (urlData?.publicUrl) {
+        const response = await fetch(urlData.publicUrl);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        triggerBlobDownload(blob, artifact.file_name);
+        return;
+      }
+      // Fallback to SDK download
       const { data, error } = await supabase.storage.from('ia-artifacts').download(artifact.file_path);
       if (error) throw error;
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = artifact.file_name;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      triggerBlobDownload(data, artifact.file_name);
     } catch (err: any) {
       console.error('[Download] Error:', err);
       toast({ title: 'Download Failed', description: err.message, variant: 'destructive' });
