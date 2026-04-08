@@ -142,10 +142,35 @@
   @media print {
     .print-hidden, .no-print { display: none !important; }
     .id-card { width: 85.6mm; height: 53.98mm; page-break-inside: avoid; page-break-after: always; }
-    body { background: white; color: black; }
+    body { background: white !important; color: black !important; font-size: 10pt; line-height: 1.4; }
     .recharts-wrapper, .recharts-surface { max-width: 100% !important; }
     .page-break { page-break-after: always; }
+    .page-break-before { page-break-before: always; }
     .card, table { page-break-inside: avoid; }
+
+    /* Hide app chrome for clean printout */
+    nav, aside, header, footer,
+    [data-sidebar], .sidebar,
+    button, [role="dialog"] { display: none !important; }
+    main { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+
+    /* Table print optimization */
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr { page-break-inside: avoid; }
+    table { font-size: 9pt; border-collapse: collapse; width: 100%; }
+    th {
+      background: #0E5F3A !important;
+      color: white !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-weight: bold;
+    }
+    td, th { border: 1px solid #ddd; padding: 4px 8px; }
+
+    /* Typography for print */
+    h1 { font-size: 16pt !important; }
+    h2, h3 { page-break-after: avoid; font-size: 13pt !important; }
   }
 }
 

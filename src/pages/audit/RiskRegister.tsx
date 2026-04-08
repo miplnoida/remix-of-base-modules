@@ -571,12 +571,22 @@ function RiskDetailPanel({ risk, allRisks, onClose }: { risk: any; allRisks: any
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" /> {risk.risk_title}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2"><Shield className="h-5 w-5" /> {risk.risk_title}</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="no-print" onClick={() => exportRiskDetailPDF(risk, actions, reviews, `risk-detail-${risk.risk_title?.slice(0, 20)}`)}>
+                  <FileDown className="h-3 w-3 mr-1" />PDF
+                </Button>
+                {actions.length > 0 && (
+                  <Button variant="outline" size="sm" className="no-print" onClick={() => exportMitigationPlanPDF([risk], actions, `mitigation-plan-${risk.risk_title?.slice(0, 20)}`)}>
+                    <FileDown className="h-3 w-3 mr-1" />Mitigation Plan
+                  </Button>
+                )}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div><span className="text-muted-foreground">Entity:</span> {risk.ia_audit_universe?.entity_name || '—'}</div>
