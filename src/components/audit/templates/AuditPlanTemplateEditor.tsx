@@ -95,6 +95,15 @@ export function AuditPlanTemplateEditor() {
           </div>
         </SettingsCard>
 
+        {/* Section Configuration */}
+        <SettingsCard title="Section Configuration" cardKey="sectionConfig" open={openSections.sectionConfig} onToggle={toggleCard}>
+          <AuditPlanSectionConfigurator
+            sections={sectionConfig}
+            onChange={setSectionConfig}
+            onReset={() => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[])}
+          />
+        </SettingsCard>
+
         {/* Plan Summary */}
         <SettingsCard title="Plan Summary" cardKey="planSummary" open={openSections.planSummary} onToggle={toggleCard}>
           <div className="grid gap-4">
