@@ -393,7 +393,7 @@ export default function RiskAssessment() {
         <TabsList>
           <TabsTrigger value="register">Risk Register</TabsTrigger>
           <TabsTrigger value="heatmap">Risk Heat Map</TabsTrigger>
-          <TabsTrigger value="summary">Department Summary</TabsTrigger>
+          <TabsTrigger value="summary">Entity Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="register" className="space-y-4">

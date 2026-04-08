@@ -316,6 +316,7 @@ export const RISK_REGISTER_SCHEMA: ModuleSchema = {
     { key: 'fiscal_year', label: 'Fiscal Year', type: 'string', showInTable: false, showInExport: true, sortOrder: 11 },
     { key: 'review_date', label: 'Review Date', type: 'date', showInTable: false, showInExport: true, sortOrder: 12 },
     { key: 'due_date', label: 'Due Date', type: 'date', showInTable: false, showInExport: true, sortOrder: 13 },
-    { key: 'notes', label: 'Notes', type: 'string', showInTable: false, showInExport: true, sortOrder: 14 },
+    { key: 'risk_source', label: 'Risk Source', type: 'string', showInTable: false, showInExport: true, sortOrder: 14 },
+    { key: 'notes', label: 'Notes', type: 'string', showInTable: false, showInExport: true, sortOrder: 15 },
   ],
 };
