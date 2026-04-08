@@ -89,6 +89,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
 
   const [activeSection, setActiveSection] = useState('metadata');
   const [showPreview, setShowPreview] = useState(false);
+  const [showMgmtResponsePreview, setShowMgmtResponsePreview] = useState(false);
   const [sections, setSections] = useState<BuilderSection[]>(ALL_SECTIONS);
   const [saving, setSaving] = useState(false);
 
