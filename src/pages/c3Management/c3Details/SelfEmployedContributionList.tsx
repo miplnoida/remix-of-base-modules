@@ -238,7 +238,7 @@ const SelfEmployedContributionList: React.FC = () => {
                       <TableCell className="max-w-[100px] truncate">{c.notes}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${c.is_submitted ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          Yes
+                          {c.is_submitted ? 'Yes' : 'No'}
                         </span>
                       </TableCell>
                       <TableCell>
