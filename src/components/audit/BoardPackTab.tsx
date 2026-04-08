@@ -53,33 +53,27 @@ function buildLookups(departments: any[], functions: any[], auditors: any[]) {
   return { deptMap, funcMap, auditorMap };
 }
 
-// ===== PDF HELPERS (SSB BRANDED — REDESIGNED) =====
+// ===== PDF HELPERS — delegating to unified auditExportPrimitives =====
 function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
-/** Load logo image as base64 for jsPDF embedding */
-let _logoBase64: string | null = null;
-let _logoLoaded = false;
+/** Build ExportBranding from ReportConfig theme */
+function buildBranding(config: ReportConfig): ExportBranding {
+  const theme = getTheme(config);
+  return {
+    ...DEFAULT_AUDIT_BRANDING,
+    orgName: config.headerTitle || DEFAULT_AUDIT_BRANDING.orgName,
+    department: config.headerSubtitle || DEFAULT_AUDIT_BRANDING.department,
+    primaryColor: theme.primary,
+    accentColor: theme.accent,
+    altRowColor: theme.altRow,
+    confidentialityText: config.confidentialityLabel || DEFAULT_AUDIT_BRANDING.confidentialityText,
+  };
+}
+
 async function getLogoBase64(): Promise<string | null> {
-  if (_logoLoaded) return _logoBase64;
-  try {
-    const resp = await fetch(ssbLogoPng);
-    const blob = await resp.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        _logoBase64 = reader.result as string;
-        _logoLoaded = true;
-        resolve(_logoBase64);
-      };
-      reader.onerror = () => { _logoLoaded = true; resolve(null); };
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    _logoLoaded = true;
-    return null;
-  }
+  return loadLogoBase64(ssbLogoPng);
 }
 
 // dv and ef are now imported from auditExportPrimitives (displayValue, resolveField)
