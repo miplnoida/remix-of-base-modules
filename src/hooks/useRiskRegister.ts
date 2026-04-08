@@ -58,10 +58,14 @@ export function useRiskRegisterMutations() {
     mutationFn: async (risk: any) => {
       const inherentScore = (risk.inherent_likelihood || 0) * (risk.inherent_impact || 0);
       const residualScore = (risk.residual_likelihood || 0) * (risk.residual_impact || 0);
+      // Sanitize empty strings to null for date/optional fields
+      const sanitized = Object.fromEntries(
+        Object.entries(risk).map(([k, v]) => [k, v === '' ? null : v])
+      );
       const { data, error } = await supabase
         .from('ia_risk_register' as any)
         .insert({
-          ...risk,
+          ...sanitized,
           inherent_risk_level: calculateRiskLevel(inherentScore),
           residual_risk_level: calculateRiskLevel(residualScore),
           ...getCreateFields(),
@@ -83,12 +87,15 @@ export function useRiskRegisterMutations() {
   const update = useMutation({
     mutationKey: ['Internal Audit', 'ia_risk_register', 'update'],
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
-      const inherentScore = (updates.inherent_likelihood || 0) * (updates.inherent_impact || 0);
-      const residualScore = (updates.residual_likelihood || 0) * (updates.residual_impact || 0);
+      const sanitized = Object.fromEntries(
+        Object.entries(updates).map(([k, v]) => [k, v === '' ? null : v])
+      );
+      const inherentScore = (sanitized.inherent_likelihood || 0) * (sanitized.inherent_impact || 0);
+      const residualScore = (sanitized.residual_likelihood || 0) * (sanitized.residual_impact || 0);
       const { data, error } = await supabase
         .from('ia_risk_register' as any)
         .update({
-          ...updates,
+          ...sanitized,
           inherent_risk_level: calculateRiskLevel(inherentScore),
           residual_risk_level: calculateRiskLevel(residualScore),
           ...getUpdateFields(),
