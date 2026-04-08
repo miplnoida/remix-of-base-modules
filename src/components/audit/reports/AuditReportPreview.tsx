@@ -373,7 +373,6 @@ export function AuditReportPreview({
                   );
                 })}
               </div>
-              </div>
             </div>
 
             {/* Page Footer */}
