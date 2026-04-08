@@ -1,85 +1,70 @@
 
 
-# Risk Management Data Model — Status & Gap Analysis
+# Frontend Refactor: Audit Universe and Risk Management
 
-## What Already Exists (Built Earlier Today)
+## Current State Assessment
 
-All four core tables are **already created and fully operational** with 0 records:
+The pages `/audit/universe` (AuditUniverse.tsx, 215 lines) and `/audit/risk-register` (RiskRegister.tsx, 513 lines) are already production-connected with:
+- Real data via `useAuditUniverse`, `useRiskRegister`, `useRiskMitigationActions`, `useRiskReviews` hooks
+- Functional filters (entity type, status, category, search)
+- CRUD operations (create, edit, soft-delete)
+- Export dropdown (PDF, XLSX, CSV)
+- Duplicate risk detection with link/merge
+- Detail panel with mitigations and review timeline
+- Pagination
 
-| Table | Status | Triggers | Indexes | FKs |
-|---|---|---|---|---|
-| `ia_audit_universe` | Exists | `fn_audit_row_change` via `ia_risk_register` ref | PK only | dept FK |
-| `ia_risk_register` | Exists | audit + updated_at | universe, status, category | universe FK, self-FK for linked risks |
-| `ia_risk_mitigation_actions` | Exists | audit + updated_at | risk_id | risk FK (CASCADE) |
-| `ia_risk_reviews` | Exists | audit + updated_at | risk_id | risk FK (CASCADE) |
+No ministry-specific wording exists in the audit pages — terminology is already entity-neutral. The `RiskAssessment.tsx` page (separate, older page) has one "Department Summary" tab label that should be updated.
 
-**Key features already in place:**
-- Generated columns for `inherent_risk_score` and `residual_risk_score` (likelihood × impact)
-- Self-referencing `linked_risk_id` on risk register for deduplication/merge
-- CHECK constraints for 1-5 scoring on likelihood/impact
-- Realtime enabled on `ia_risk_register`
-- All 3 new tables have `fn_audit_row_change` triggers for audit trail
-- Frontend pages at `/audit/universe` and `/audit/risk-register` with full CRUD, filters, exports, duplicate detection, mitigation panel, and review timeline
+## What Needs Refactoring
 
-## Gaps to Address
+### 1. AuditUniverse.tsx — Enhancements
+- Add **owner filter** and **risk category filter** (currently only type and status)
+- Add **entity detail view** (click entity name to see a side panel with linked risks count, last audit date, etc.)
+- Add **confirmation dialog** before deactivating an entity
+- Improve **empty state** with a descriptive message and "Add Entity" CTA button
 
-The existing schema covers ~90% of the requirements. Here are the remaining gaps:
+### 2. RiskRegister.tsx — Enhancements
+- Add **owner filter** and **risk level/severity filter** (currently missing)
+- Add **review due filter** (risks with review_date approaching or past due)
+- Add **risk_source** to export schema and table columns
+- Improve the **detail panel**: add edit/delete actions for mitigation items, add description field to mitigation form
+- Add **risk close workflow** (status change to "Closed" with required review comment)
+- Improve **linked risk** field — use a Select dropdown referencing existing risks instead of raw UUID text input
+- Add **confirmation dialog** before deactivating a risk
 
-### 1. Audit Universe — Missing audit trigger
-`ia_audit_universe` itself does NOT have the `fn_audit_row_change` trigger attached. Only the downstream tables do.
+### 3. RiskAssessment.tsx — Terminology
+- Rename "Department Summary" tab to "Entity Summary"
 
-### 2. Audit Universe — Missing indexes
-No indexes on `entity_type`, `status`, or `is_active` for filter performance.
+### 4. Export Schema Updates
+- Add `risk_source` field to `RISK_REGISTER_SCHEMA` in `moduleFieldSchemas.ts`
+- Add `risk_source` to export columns
 
-### 3. Shared/Common Mitigation Patterns
-Currently mitigations are 1:1 with risks. There's no way to define a reusable mitigation template that can be applied across multiple risks/entities.
+### 5. Empty States
+- Both pages already use DataTable's built-in `emptyMessage`. Enhance with custom empty state component for the initial "no data" experience.
 
-**Proposed new table: `ia_mitigation_templates`**
-- `id` (UUID PK)
-- `template_name` (TEXT, NOT NULL)
-- `template_description` (TEXT)
-- `category` (TEXT) — maps to risk category
-- `default_priority` (TEXT, default 'Medium')
-- `is_active` (BOOLEAN, default true)
-- `created_at`, `created_by`, `updated_at`, `updated_by`
+### 6. Hooks Cleanup
+- `useMitigationTemplateMutations` has unused `getUpdateFields` import — remove
 
-Then add `template_id` (UUID, FK, nullable) to `ia_risk_mitigation_actions` so actions can optionally reference a shared template.
+## File Change Plan
 
-### 4. Duplicate Prevention — Missing unique constraint
-The app-level duplicate check exists (title ILIKE match), but there's no DB-level constraint preventing exact duplicates. 
+| File | Changes |
+|------|---------|
+| `src/pages/audit/AuditUniverse.tsx` | Add owner/category filters, entity detail panel, deactivation confirmation, enhanced empty state |
+| `src/pages/audit/RiskRegister.tsx` | Add owner/severity/review-due filters, close-risk workflow, linked-risk select, edit/delete mitigation actions, deactivation confirmation |
+| `src/pages/audit/RiskAssessment.tsx` | Rename "Department Summary" to "Entity Summary" |
+| `src/config/moduleFieldSchemas.ts` | Add `risk_source` to RISK_REGISTER_SCHEMA |
+| `src/hooks/useRiskRegister.ts` | Minor cleanup of unused imports |
 
-**Proposed:** Add a unique index on `(audit_universe_id, lower(risk_title))` WHERE `is_active = true` to prevent exact-match duplicates at the database level.
+## No new hooks/services needed
+All data operations are already handled by existing hooks. The refactoring is purely frontend UX improvements.
 
-### 5. Risk Register — Missing `risk_source` field
-No way to record where a risk was identified (e.g., "Previous Audit", "Self-Assessment", "External Review", "Regulatory").
-
-## Migration Plan
-
-One migration to close the gaps:
-
-1. Add `fn_audit_row_change` trigger to `ia_audit_universe`
-2. Add indexes on `ia_audit_universe(entity_type)`, `ia_audit_universe(status)`, `ia_audit_universe(is_active)`
-3. Create `ia_mitigation_templates` table with audit trigger
-4. Add `template_id` FK column to `ia_risk_mitigation_actions`
-5. Add `risk_source` column to `ia_risk_register`
-6. Add unique partial index on `ia_risk_register(audit_universe_id, lower(risk_title)) WHERE is_active = true`
-
-## Frontend Updates
-
-- Update the mitigation action form to optionally select from templates
-- Add a small "Mitigation Templates" management section in Risk settings
-- Add `risk_source` field to the Risk Register create/edit form
-- Update the `useRiskRegister` hook to include `risk_source`
-
-## Audit Logging Integration
-
-All tables already route through `fn_audit_row_change` → `system_audit_trail`. The only missing trigger is on `ia_audit_universe` itself and the new `ia_mitigation_templates` table. Both will be added in the migration.
-
-## Summary of Work
-
-| Step | Description |
-|---|---|
-| 1 | Migration: triggers, indexes, new table, new columns, unique constraint |
-| 2 | Hook updates: add `risk_source`, template support |
-| 3 | UI updates: risk source field, template selector in mitigation form |
+## UX Improvements Summary
+1. Richer filter bar (5 filters on Risk Register instead of 3)
+2. Confirmation dialogs before destructive actions
+3. Close-risk workflow requiring a review comment
+4. Linked risk selector using a dropdown instead of raw UUID
+5. Editable/deletable mitigation actions in detail panel
+6. Entity detail side panel showing linked risks
+7. "Entity Summary" terminology replacing "Department Summary"
+8. Enhanced empty states with action buttons
 
