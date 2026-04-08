@@ -457,7 +457,7 @@ export async function exportDocx(
   });
 
   const buffer = await Packer.toBuffer(doc);
-  saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), `${fileName}.docx`);
+  saveAs(new Blob([buffer as unknown as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), `${fileName}.docx`);
 }
 
 // ────────────────────────────────────────────
