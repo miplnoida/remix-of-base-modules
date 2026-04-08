@@ -13,7 +13,14 @@ import { toast } from 'sonner';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
-import { AUDIT_PLAN_SECTION_LIBRARY, type AuditPlanSection } from '@/lib/audit/auditPlanTemplateTypes';
+import { CoverBrandingConfigurator } from './CoverBrandingConfigurator';
+import {
+  AUDIT_PLAN_SECTION_LIBRARY,
+  type AuditPlanSection,
+  type AuditPlanBranding,
+  type AuditPlanCoverPageConfig,
+} from '@/lib/audit/auditPlanTemplateTypes';
+import { PRESET_AUDIT_BLUE_MINIMAL } from '@/lib/audit/auditPlanTemplatePresets';
 
 export function AuditPlanTemplateEditor() {
   const { data: config, isLoading } = useAuditPlanTemplate();
@@ -21,9 +28,11 @@ export function AuditPlanTemplateEditor() {
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditPlanTemplateConfig>(DEFAULT_AUDIT_PLAN_CONFIG);
   const [sectionConfig, setSectionConfig] = useState<AuditPlanSection[]>([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]);
+  const [brandingConfig, setBrandingConfig] = useState<AuditPlanBranding>(PRESET_AUDIT_BLUE_MINIMAL.branding);
+  const [coverPageConfig, setCoverPageConfig] = useState<AuditPlanCoverPageConfig>(PRESET_AUDIT_BLUE_MINIMAL.coverPage);
   const [showPreview, setShowPreview] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    coverPage: true, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
+    coverBranding: true, sectionConfig: false, planSummary: false, columns: false, resourcePlan: false, governance: false,
   });
 
   useEffect(() => {
@@ -60,39 +69,14 @@ export function AuditPlanTemplateEditor() {
           </div>
         </div>
 
-        {/* Cover Page */}
-        <SettingsCard title="Cover Page" cardKey="coverPage" open={openSections.coverPage} onToggle={toggleCard}>
-          <div className="grid gap-4">
-            <div>
-              <Label>Title Text</Label>
-              <Input
-                value={draft.coverPage.titleText}
-                onChange={(e) => setDraft((d) => ({ ...d, coverPage: { ...d.coverPage, titleText: e.target.value } }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Show "Internal Audit Department" Line</Label>
-              <Switch
-                checked={draft.coverPage.showDepartmentLine}
-                onCheckedChange={(v) => setDraft((d) => ({ ...d, coverPage: { ...d.coverPage, showDepartmentLine: v } }))}
-              />
-            </div>
-            <div>
-              <Label>Fiscal Year Display</Label>
-              <Select
-                value={draft.coverPage.fiscalYearMode}
-                onValueChange={(v: 'single' | 'range') =>
-                  setDraft((d) => ({ ...d, coverPage: { ...d.coverPage, fiscalYearMode: v } }))
-                }
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Single Year (e.g. 2026)</SelectItem>
-                  <SelectItem value="range">Year Range (e.g. 2025–2026)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        {/* Cover & Branding */}
+        <SettingsCard title="Cover & Branding" cardKey="coverBranding" open={openSections.coverBranding} onToggle={toggleCard}>
+          <CoverBrandingConfigurator
+            branding={brandingConfig}
+            coverPage={coverPageConfig}
+            onBrandingChange={setBrandingConfig}
+            onCoverPageChange={setCoverPageConfig}
+          />
         </SettingsCard>
 
         {/* Section Configuration */}
@@ -280,7 +264,12 @@ export function AuditPlanTemplateEditor() {
 
       {showPreview && (
         <div className="w-[45%] sticky top-4 self-start">
-          <TemplatePreviewPane templateType="audit_plan" config={draft} />
+          <TemplatePreviewPane
+            templateType="audit_plan"
+            config={draft}
+            brandingConfig={brandingConfig}
+            coverPageConfig={coverPageConfig}
+          />
         </div>
       )}
     </div>
