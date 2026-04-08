@@ -1,5 +1,19 @@
 
 
+
+## ✅ Completed: C3-Wizard Integration Fixes (4 Issues)
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| Database migration | Added `payment_reference_id TEXT` column to `cn_payment_header`; updated `public_api_payment_save` RPC to extract and persist `paymentReferenceId` from payload |
+| `src/services/wizC3DetailsService.ts` | Added `schedule?: number \| null` to `SeContributionRecord` interface |
+| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Added Schedule column with blue badge; updated `handlePayment` to use dynamic `record.schedule` |
+| `src/pages/c3Management/reports/WizPaymentsHistory.tsx` | Expanded `PaymentStatusBadge` to treat `COMPLETED` and `SUCCESS` as green/success; added filter options |
+| `src/pages/c3Management/payments/WizPaymentDetails.tsx` | Expanded transaction status icon and badge logic for `COMPLETED`/`SUCCESS`; added filter options |
+| Issue 3 (BIMA) | Verified — `is_imported_from_bema` is already used only for badge display; `payment_status` alone controls Pay button. No change needed |
+
 ## ✅ Completed: Configurable Document Template Settings for Internal Audit Module
 
 ### Changes Made
