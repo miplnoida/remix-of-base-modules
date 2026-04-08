@@ -86,26 +86,21 @@ export function resolveReportTemplate(
 // ─── Plan Resolver ───
 
 export interface ResolvedPlanOutput {
-  /** Full branding config */
   branding: AuditPlanFullTemplateConfig['branding'];
-  /** Cover page config */
   coverPage: AuditPlanFullTemplateConfig['coverPage'];
-  /** TOC config */
   toc: AuditPlanFullTemplateConfig['toc'];
-  /** Pagination config */
   pagination: AuditPlanFullTemplateConfig['pagination'];
-  /** Page layout */
   pageLayout: AuditPlanFullTemplateConfig['pageLayout'];
-  /** Resolved sections (from section engine) */
   resolvedSections: ResolvedSectionList;
-  /** Approval/sign-off config */
   approval: AuditPlanFullTemplateConfig['approval'];
-  /** Table styling */
   tableStyle: AuditPlanFullTemplateConfig['tableStyle'];
-  /** Typography */
   typography: AuditPlanFullTemplateConfig['typography'];
-  /** Export defaults */
   exportDefaults: AuditPlanFullTemplateConfig['exportDefaults'];
+  planSummary: AuditPlanFullTemplateConfig['planSummary'];
+  columnsBySection: AuditPlanFullTemplateConfig['columnsBySection'];
+  resourcePlan: AuditPlanFullTemplateConfig['resourcePlan'];
+  riskCoverage: AuditPlanFullTemplateConfig['riskCoverage'];
+  governance: AuditPlanFullTemplateConfig['governance'];
   /** Whether watermark is active */
   showWatermark: boolean;
   /** Watermark text */
