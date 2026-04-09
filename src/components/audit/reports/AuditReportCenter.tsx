@@ -399,7 +399,7 @@ export function AuditReportCenter() {
                 <Card
                   key={type.id}
                   className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${type.border}`}
-                  onClick={() => navigate(`/audit/report-builder?template=${type.id}${engagementQuerySuffix}`)}}
+                  onClick={() => navigate(`/audit/report-builder?template=${type.id}${engagementQuerySuffix}`)
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
