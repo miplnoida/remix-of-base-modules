@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2, BookOpen, FileBreak } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2, BookOpen, SeparatorHorizontal } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
 import { useDocumentSectionLibrary, useDocumentFoundation } from '@/hooks/useDocumentFoundation';
