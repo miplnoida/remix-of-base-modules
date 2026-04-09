@@ -111,6 +111,29 @@ export function AuditReportCenter() {
 
   return (
     <div className="space-y-8">
+      {/* Engagement Context Banner */}
+      {engagementFilter !== 'all' && (() => {
+        const eng = engagements.find((e: any) => e.id === engagementFilter);
+        return eng ? (
+          <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <Briefcase className="h-4 w-4 text-primary shrink-0" />
+            <div className="flex-1 text-sm">
+              <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
+              <span className="font-semibold text-foreground">{eng.engagement_code || eng.title}</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate(`/audit/audits/${eng.id}`)}>
+              <ArrowRight className="h-3 w-3 mr-1" /> Back to Engagement
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              setEngagementFilter('all');
+              setSearchParams({}, { replace: true });
+            }}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
+            </Button>
+          </div>
+        ) : null;
+      })()}
+
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-primary/5 via-primary/2 to-background p-6 md:p-8">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
