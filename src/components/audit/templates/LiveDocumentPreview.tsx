@@ -31,6 +31,8 @@ interface LivePlanPreviewProps {
   outputMode?: 'draft' | 'final';
   /** Show export buttons */
   showExport?: boolean;
+  /** Whether to overlay DB section overrides on top of the provided template config */
+  useDbSectionOverrides?: boolean;
 }
 
 type LiveDocumentPreviewProps = LiveReportPreviewProps | LivePlanPreviewProps;
@@ -155,6 +157,7 @@ function LivePlanPreview({
   planData = {},
   outputMode,
   showExport = false,
+  useDbSectionOverrides = true,
 }: LivePlanPreviewProps) {
   const [exporting, setExporting] = useState(false);
   const { sectionRefs: dbPlanSections } = useDocumentTemplateSections('audit_plan');
@@ -167,7 +170,7 @@ function LivePlanPreview({
 
   // Convert DB section refs to plan overrides format
   const dbSectionOverrides = useMemo(() => {
-    if (!dbPlanSections || dbPlanSections.length === 0) return undefined;
+    if (!useDbSectionOverrides || !dbPlanSections || dbPlanSections.length === 0) return undefined;
     return dbPlanSections.map((s) => ({
       id: s.id,
       enabled: s.enabled,
@@ -177,7 +180,7 @@ function LivePlanPreview({
       inToc: s.includeInToc,
       startNewPage: s.startOnNewPage,
     }));
-  }, [dbPlanSections]);
+  }, [dbPlanSections, useDbSectionOverrides]);
 
   const renderPlan = useMemo(
     () => buildRenderPlan({
@@ -365,7 +368,7 @@ function LivePlanPreview({
           <Separator />
 
           {/* ── Approval Block ── */}
-          {mapped.approval.signatories.length > 0 && (
+          {pages.some((page) => page.sectionId === 'approval_signoff' || page.sectionId === 'approval') && mapped.approval.signatories.length > 0 && (
             <>
               <div className="px-4 py-3">
                 <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Approval & Sign-off</p>
