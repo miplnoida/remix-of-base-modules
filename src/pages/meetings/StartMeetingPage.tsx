@@ -136,6 +136,13 @@ export default function StartMeetingPage() {
     save: saveDependantsEdit,
   } = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'dependants');
 
+  const {
+    savedData: savedOwners,
+    hasSavedData: hasPersistedOwners,
+    isLoading: ownersEditLoading,
+    save: saveOwnersEdit,
+  } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'owners');
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
@@ -187,7 +194,7 @@ export default function StartMeetingPage() {
   useEffect(() => {
     if (!applicationData) return;
     // Wait for persistence hooks to finish loading before deciding
-    if (isEmployerMeeting && locationsEditLoading) return;
+    if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
     if (isIPMeeting && dependantsEditLoading) return;
 
     const merged: Record<string, any> = { ...applicationData };
@@ -197,13 +204,18 @@ export default function StartMeetingPage() {
       merged.locations = savedLocations;
     }
 
+    // Employer: overlay persisted owners
+    if (isEmployerMeeting && hasPersistedOwners && savedOwners) {
+      merged.owners = savedOwners;
+    }
+
     // IP: overlay persisted dependants
     if (isIPMeeting && hasPersistedDependants && savedDependants) {
       merged.dependants = savedDependants;
     }
 
     setEditedData(merged);
-  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedDependants, savedDependants]);
+  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants]);
 
   const handleFieldChange = (field: string, value: any) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -669,6 +681,11 @@ export default function StartMeetingPage() {
                 if (isEmployerMeeting && Array.isArray(newData.locations)) {
                   const originalLocations = applicationData ? (applicationData as any).locations : undefined;
                   saveLocationsEdit(newData.locations, originalLocations, userCode || undefined).catch(console.error);
+                }
+                // Auto-persist owners for employer meetings
+                if (isEmployerMeeting && Array.isArray(newData.owners)) {
+                  const originalOwners = applicationData ? (applicationData as any).owners : undefined;
+                  saveOwnersEdit(newData.owners, originalOwners, userCode || undefined).catch(console.error);
                 }
                 // Auto-persist dependants for IP meetings
                 if (isIPMeeting && Array.isArray(newData.dependants)) {
