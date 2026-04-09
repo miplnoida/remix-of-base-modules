@@ -14,6 +14,7 @@ import { exportAuditPlanPdf } from '@/lib/audit/auditPlanPdfExport';
 import { exportAuditPlanDocx } from '@/lib/audit/auditPlanDocxExport';
 import { getSectionZone } from '@/lib/audit/auditPlanPaginationEngine';
 import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
+import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 
 interface LiveReportPreviewProps {
   type: 'report';
@@ -43,6 +44,7 @@ export function LiveDocumentPreview(props: LiveDocumentPreviewProps) {
 
 function LiveReportPreview({ baseConfig, overrides, reportStatus = 'Draft' }: LiveReportPreviewProps) {
   const { sectionRefs: dbReportSections } = useDocumentTemplateSections('audit_report');
+  const { data: foundation } = useDocumentFoundation();
 
   const effectiveConfig = useMemo(() => {
     const base = applyReportOverrides(baseConfig, overrides);
@@ -53,9 +55,10 @@ function LiveReportPreview({ baseConfig, overrides, reportStatus = 'Draft' }: Li
     return base;
   }, [baseConfig, overrides, dbReportSections]);
 
+  // Pass foundation so resolver uses DB-saved org settings
   const resolved = useMemo(
-    () => resolveReportTemplate(effectiveConfig, reportStatus),
-    [effectiveConfig, reportStatus]
+    () => resolveReportTemplate(effectiveConfig, reportStatus, foundation),
+    [effectiveConfig, reportStatus, foundation]
   );
   const hasOv = hasReportOverrides(overrides);
   const isDraft = reportStatus === 'Draft' || reportStatus === 'In Review';
