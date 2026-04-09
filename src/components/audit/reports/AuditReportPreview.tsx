@@ -48,7 +48,7 @@ export function AuditReportPreview({
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
 
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs });
   };
 
   // Section numbering — driven by mapped output
