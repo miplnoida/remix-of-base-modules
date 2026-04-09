@@ -116,6 +116,49 @@ export function AuditReportTemplateEditor() {
           </AlertDescription>
         </Alert>
 
+        {/* Foundation Inherited Settings (read-only) */}
+        {foundation && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FoundationInheritedSummary
+              sectionTitle="Branding"
+              items={[
+                { label: 'Organization', value: foundation.branding.orgName },
+                { label: 'Logo', value: foundation.branding.showLogo ? 'Enabled' : 'Disabled' },
+                { label: 'Confidential', value: foundation.branding.confidentialLabel },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Typography"
+              items={[
+                { label: 'Body Font', value: foundation.typography.fontFamily.split(',')[0] },
+                { label: 'Base Size', value: `${foundation.typography.baseFontSize}pt` },
+                { label: 'Line Height', value: String(foundation.typography.lineHeight) },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Page Layout"
+              items={[
+                { label: 'Size', value: foundation.pageLayout.pageSize.toUpperCase() },
+                { label: 'Orientation', value: foundation.pageLayout.orientation },
+                { label: 'Margins', value: `${foundation.pageLayout.margins.top}" / ${foundation.pageLayout.margins.left}"` },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Table Style"
+              items={[
+                { label: 'Header', value: (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded border" style={{ backgroundColor: foundation.tableStyle.headerBackground }} />
+                    {foundation.tableStyle.headerBackground}
+                  </span>
+                )},
+                { label: 'Striped Rows', value: foundation.tableStyle.stripedRows ? 'Yes' : 'No' },
+                { label: 'Font Size', value: foundation.tableStyle.fontSize },
+              ]}
+            />
+          </div>
+        )}
+
         {/* Cover Page */}
         <SettingsCard title="Cover Page" cardKey="coverPage" open={openSections.coverPage} onToggle={toggleCard}>
           <div className="grid gap-4">
