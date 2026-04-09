@@ -719,26 +719,30 @@ async function generateDetailedPlanPdf(
     );
     y = addKvTable(doc, y, govRows, branding);
 
-    // Sign-off placeholders
-    y += 10;
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    doc.setFont(undefined as any, 'normal');
+    // Sign-off placeholders — only if approval section is enabled in template
+    const approvalSectionEnabled = !planTemplateConfig?.sections?.sections ||
+      planTemplateConfig.sections.sections.some((s: any) => (s.id === 'approval' || s.id === 'approval_signoff') && s.visible !== false);
+    if (approvalSectionEnabled) {
+      y += 10;
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      doc.setFont('helvetica', 'normal');
 
-    const signoffY = y + 20;
-    const prepLabel = planTemplateConfig?.governance.preparedByLabel || 'Prepared By';
-    const apprLabel = planTemplateConfig?.governance.approvedByLabel || 'Approved By';
-    // Prepared by
-    doc.text(`${prepLabel}:`, 20, signoffY);
-    doc.line(60, signoffY + 1, 120, signoffY + 1);
-    doc.text('Date:', 130, signoffY);
-    doc.line(145, signoffY + 1, pw - 20, signoffY + 1);
-    // Approved by
-    if (planTemplateConfig?.governance.showApprovedByBlock !== false) {
-      doc.text(`${apprLabel}:`, 20, signoffY + 20);
-      doc.line(60, signoffY + 21, 120, signoffY + 21);
-      doc.text('Date:', 130, signoffY + 20);
-      doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+      const signoffY = y + 20;
+      const prepLabel = planTemplateConfig?.governance.preparedByLabel || 'Prepared By';
+      const apprLabel = planTemplateConfig?.governance.approvedByLabel || 'Approved By';
+      // Prepared by
+      doc.text(`${prepLabel}:`, 20, signoffY);
+      doc.line(60, signoffY + 1, 120, signoffY + 1);
+      doc.text('Date:', 130, signoffY);
+      doc.line(145, signoffY + 1, pw - 20, signoffY + 1);
+      // Approved by
+      if (planTemplateConfig?.governance.showApprovedByBlock !== false) {
+        doc.text(`${apprLabel}:`, 20, signoffY + 20);
+        doc.line(60, signoffY + 21, 120, signoffY + 21);
+        doc.text('Date:', 130, signoffY + 20);
+        doc.line(145, signoffY + 21, pw - 20, signoffY + 21);
+      }
     }
   }
 
