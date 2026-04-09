@@ -233,10 +233,17 @@ export function useStartMeeting() {
   return useMutation({
     mutationKey: ['Workflow', 'meetings', 'status_change'],
     mutationFn: async ({ meetingId }: { meetingId: string }) => {
+      // Send client's local date/time so the edge function stores business time correctly
+      const now = new Date();
+      const clientDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const clientTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
         body: {
           action: 'start_meeting',
-          meetingId
+          meetingId,
+          clientDate,
+          clientTime
         }
       });
 

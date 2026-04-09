@@ -237,10 +237,10 @@ Deno.serve(async (req) => {
           throw new Error('Meeting not found')
         }
 
-        // Determine server date/time (UTC)
+        // Use client-provided local date/time for business fields; fall back to UTC if not provided
         const nowUtc = new Date()
-        const todayDate = nowUtc.toISOString().split('T')[0] // YYYY-MM-DD
-        const currentTimeHHMM = `${nowUtc.getUTCHours().toString().padStart(2, '0')}:${nowUtc.getUTCMinutes().toString().padStart(2, '0')}` // HH:MM UTC
+        const todayDate = body.clientDate || nowUtc.toISOString().split('T')[0] // YYYY-MM-DD (client local)
+        const currentTimeHHMM = body.clientTime || `${nowUtc.getUTCHours().toString().padStart(2, '0')}:${nowUtc.getUTCMinutes().toString().padStart(2, '0')}` // HH:MM (client local)
 
         // Check if the meeting is scheduled for a FUTURE date OR same day but at a future time
         // e.g. meeting at 14:00, user clicks Start at 10:00 → needs auto-reschedule to now
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
         const isSameDayFutureTime = meeting.meeting_date === todayDate && meeting.meeting_time.substring(0, 5) > currentTimeHHMM
         const needsAutoReschedule = isFutureDate || isSameDayFutureTime
 
-        // The "current time" to stamp on the new meeting is UTC HH:MM
+        // The "current time" to stamp on the new meeting is client local HH:MM
         const currentTime = currentTimeHHMM
 
         if (needsAutoReschedule) {
