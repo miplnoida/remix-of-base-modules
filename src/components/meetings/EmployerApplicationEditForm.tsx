@@ -838,12 +838,12 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <DialogTitle>{ownerEditIndex !== null ? 'Edit Owner' : 'Add Owner'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <EditField label="Name" value={ownerForm.name} onChange={(v) => setOwnerForm(p => ({ ...p, name: v }))} maxLength={40} />
-            <EditField label="Title" value={ownerForm.title} onChange={(v) => setOwnerForm(p => ({ ...p, title: v }))} maxLength={30} />
-            <EditField label="Phone" value={ownerForm.phone} onChange={(v) => setOwnerForm(p => ({ ...p, phone: v }))} maxLength={10} />
-            <EditField label="Mobile" value={ownerForm.mobile} onChange={(v) => setOwnerForm(p => ({ ...p, mobile: v }))} maxLength={10} />
-            <EditField label="Email" value={ownerForm.email} onChange={(v) => setOwnerForm(p => ({ ...p, email: v }))} type="email" maxLength={40} />
-            <EditField label="SSN" value={ownerForm.ssn} onChange={(v) => setOwnerForm(p => ({ ...p, ssn: v }))} maxLength={6} />
+            <EditField label="Name *" value={ownerForm.name} onChange={(v) => handleOwnerFieldChange('name', v)} maxLength={ER_FIELD_LIMITS.owner_name} error={ownerErrors.name} />
+            <EditField label="Title" value={ownerForm.title} onChange={(v) => handleOwnerFieldChange('title', v)} maxLength={ER_FIELD_LIMITS.owner_title} error={ownerErrors.title} />
+            <EditField label="Phone" value={ownerForm.phone} onChange={(v) => handleOwnerFieldChange('phone', v)} maxLength={ER_FIELD_LIMITS.owner_phone} error={ownerErrors.phone} />
+            <EditField label="Mobile" value={ownerForm.mobile} onChange={(v) => handleOwnerFieldChange('mobile', v)} maxLength={ER_FIELD_LIMITS.owner_mobile} error={ownerErrors.mobile} />
+            <EditField label="Email" value={ownerForm.email} onChange={(v) => handleOwnerFieldChange('email', v)} type="email" maxLength={ER_FIELD_LIMITS.owner_email} error={ownerErrors.email} />
+            <EditField label="SSN *" value={ownerForm.ssn} onChange={(v) => handleOwnerFieldChange('ssn', v)} maxLength={ER_FIELD_LIMITS.owner_ssn} error={ownerErrors.ssn} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOwnerDialogOpen(false)}>Cancel</Button>
@@ -873,10 +873,10 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <DialogTitle>{locEditIndex !== null ? 'Edit Location' : 'Add Location'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <EditField label="Trade Name" value={locForm.trade_name} onChange={(v) => setLocForm(p => ({ ...p, trade_name: v }))} maxLength={40} className="col-span-2" />
-            <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => setLocForm(p => ({ ...p, address1: v }))} maxLength={25} />
-            <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => setLocForm(p => ({ ...p, address2: v }))} maxLength={25} />
-            <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => setLocForm(p => ({ ...p, activity_type: v }))} maxLength={50} className="col-span-2" />
+            <EditField label="Trade Name *" value={locForm.trade_name} onChange={(v) => handleLocFieldChange('trade_name', v)} maxLength={ER_FIELD_LIMITS.loc_trade_name} className="col-span-2" error={locErrors.trade_name} />
+            <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => handleLocFieldChange('address1', v)} maxLength={ER_FIELD_LIMITS.loc_addr1} error={locErrors.address1} />
+            <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => handleLocFieldChange('address2', v)} maxLength={ER_FIELD_LIMITS.loc_addr2} error={locErrors.address2} />
+            <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => handleLocFieldChange('activity_type', v)} maxLength={ER_FIELD_LIMITS.loc_activity_type} className="col-span-2" error={locErrors.activity_type} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLocDialogOpen(false)}>Cancel</Button>
