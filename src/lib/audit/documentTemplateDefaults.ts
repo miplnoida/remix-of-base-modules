@@ -38,8 +38,8 @@ export interface TemplateColumn {
 
 /**
  * Reference to a section from the Section Library.
- * Templates only control: enabled, order, labelOverride.
- * The section definition (key, display_mode, mandatory, category) lives in the library.
+ * Templates control: enabled, order, labelOverride, required, includeInToc, startOnNewPage.
+ * The section definition (key, display_mode, category) lives in the library.
  */
 export interface TemplateSectionRef {
   /** Section key matching ia_document_section_library.section_key */
@@ -52,6 +52,12 @@ export interface TemplateSectionRef {
   order: number;
   /** Optional label override (if different from library default) */
   labelOverride?: string;
+  /** Whether this section is mandatory (cannot be disabled by user) */
+  required?: boolean;
+  /** Whether to include this section in the Table of Contents */
+  includeInToc?: boolean;
+  /** Whether this section should start on a new page */
+  startOnNewPage?: boolean;
 }
 
 /** @deprecated Use TemplateSectionRef instead */
