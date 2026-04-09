@@ -346,8 +346,8 @@ export function AuditReportCenter() {
                     <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Engagement" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Engagements</SelectItem>
-                      {engagements.map((e: any) => (
-                        <SelectItem key={e.id} value={e.id}>{e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
+                      {allEngagements.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.engagement_name || e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
