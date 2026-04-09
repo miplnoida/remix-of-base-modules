@@ -58,16 +58,16 @@ export const DEFAULT_AUDIT_BRANDING: ExportBranding = {
   address: 'Bay Road, P.O. Box 79, Basseterre, St. Kitts',
   phone: '(869) 465-2521',
   website: 'www.socialsecurity.kn',
-  primaryColor: [14, 95, 58],        // #0E5F3A — SSB Green
-  accentColor: [196, 167, 86],       // #C4A756 — Gold
-  altRowColor: [240, 248, 244],      // Light green tint
+  primaryColor: [27, 54, 93],         // #1B365D — Deep blue
+  accentColor: [196, 167, 86],        // #C4A756 — Gold
+  altRowColor: [247, 248, 250],       // #F7F8FA — Very light neutral
   white: [255, 255, 255],
   lightGray: [248, 250, 252],
-  darkText: [26, 26, 26],
-  mutedText: [128, 128, 128],
+  darkText: [45, 55, 72],             // #2D3748 — Charcoal
+  mutedText: [113, 128, 150],         // #718096 — Slate grey
   confidentialityText: 'CONFIDENTIAL — This document contains information intended solely for the use of the addressee.',
   logoBase64: null,
-  gapHeaderColor: [183, 28, 28],     // #B71C1C — Dark red
+  gapHeaderColor: [183, 28, 28],      // #B71C1C — Dark red
 };
 
 /**
@@ -165,59 +165,74 @@ export function renderCoverPage(
 ): number {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  const margin = 16;
+  const margin = 20;
 
   if (options.fullPageCover) {
     return renderFullCoverPage(doc, branding, options);
   }
 
-  // Band-style cover
-  doc.setFillColor(...branding.primaryColor);
-  doc.rect(0, 0, pw, 42, 'F');
-  doc.setFillColor(...branding.accentColor);
-  doc.rect(0, 42, pw, 2.5, 'F');
+  // ─── Clean white cover with thin accent lines ───
 
-  // Org name
-  doc.setTextColor(...branding.white);
-  doc.setFontSize(16);
+  // Top thin accent line
+  doc.setDrawColor(...branding.primaryColor);
+  doc.setLineWidth(1.5);
+  doc.line(margin, 18, pw - margin, 18);
+  doc.setDrawColor(...branding.accentColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, 21, pw - margin, 21);
+
+  // Org name — small caps style
+  let y = 34;
+  doc.setTextColor(...branding.primaryColor);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(branding.orgName.toUpperCase(), margin, 16);
+  doc.text(branding.orgName.toUpperCase(), margin, y);
+
+  // Country & department
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(branding.country, margin, 24);
-  doc.text(branding.department, margin, 32);
+  doc.setTextColor(...branding.mutedText);
+  doc.text(branding.country, margin, y + 7);
+  doc.text(branding.department, margin, y + 14);
 
-  // Address right
-  doc.setFontSize(7);
-  doc.text(branding.address, pw - margin, 16, { align: 'right' });
-  doc.text(`Tel: ${branding.phone}`, pw - margin, 22, { align: 'right' });
-
-  // Logo
+  // Logo on right
   if (branding.logoBase64) {
     try {
-      doc.addImage(branding.logoBase64, 'PNG', pw - margin - 30, 8, 26, 26);
+      doc.addImage(branding.logoBase64, 'PNG', pw - margin - 24, 24, 22, 22);
     } catch { /* ignore logo errors */ }
   }
 
-  // Title
-  let y = 64;
+  // Address right-aligned
+  doc.setFontSize(7);
+  doc.setTextColor(...branding.mutedText);
+  doc.text(branding.address, pw - margin, 52, { align: 'right' });
+  doc.text(`Tel: ${branding.phone}`, pw - margin, 58, { align: 'right' });
+
+  // Divider
+  y = 68;
+  doc.setDrawColor(210, 215, 220);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pw - margin, y);
+
+  // Title — large, clean
+  y = 88;
   doc.setTextColor(...branding.primaryColor);
-  doc.setFontSize(20);
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   const titleLines = doc.splitTextToSize(options.title, pw - margin * 2);
-  doc.text(titleLines, pw / 2, y, { align: 'center' });
-  y += titleLines.length * 10 + 8;
+  doc.text(titleLines, margin, y);
+  y += titleLines.length * 10 + 6;
 
   // Subtitle
   if (options.subtitle) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...branding.mutedText);
-    doc.text(options.subtitle, pw / 2, y, { align: 'center' });
+    doc.text(options.subtitle, margin, y);
     y += 14;
   }
 
-  // Metadata grid
+  // Metadata — two-column layout
   const allMeta = options.metadata || [];
   if (options.fiscalYear) allMeta.unshift({ label: 'Fiscal Year', value: options.fiscalYear });
   if (options.version) allMeta.push({ label: 'Version', value: options.version });
@@ -225,33 +240,34 @@ export function renderCoverPage(
   if (options.preparedBy) allMeta.push({ label: 'Prepared By', value: options.preparedBy });
 
   if (allMeta.length > 0) {
-    y += 4;
-    doc.setFontSize(8);
+    y += 8;
     const colWidth = (pw - margin * 2) / 2;
     allMeta.forEach((meta, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const xPos = margin + col * colWidth;
-      const yPos = y + row * 12;
+      const yPos = y + row * 14;
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...branding.mutedText);
-      doc.text(meta.label, xPos, yPos);
+      doc.text(meta.label.toUpperCase(), xPos, yPos);
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
       doc.setTextColor(...branding.darkText);
-      doc.text(meta.value, xPos, yPos + 5);
+      doc.text(meta.value, xPos, yPos + 6);
     });
-    y += Math.ceil(allMeta.length / 2) * 12 + 10;
+    y += Math.ceil(allMeta.length / 2) * 14 + 10;
   }
 
-  // Confidentiality
+  // Confidentiality footer
   if (options.showConfidentiality !== false) {
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(210, 215, 220);
     doc.setLineWidth(0.3);
     doc.line(margin, y, pw - margin, y);
     y += 6;
     doc.setFontSize(6.5);
     doc.setTextColor(...branding.mutedText);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'italic');
     doc.text(branding.confidentialityText, pw / 2, y, { align: 'center' });
   }
 
@@ -265,72 +281,93 @@ function renderFullCoverPage(
 ): number {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
+  const margin = 24;
 
-  // Full background
+  // ─── White cover with refined typography ───
+
+  // Top accent band — thin, elegant
   doc.setFillColor(...branding.primaryColor);
-  doc.rect(0, 0, pw, ph, 'F');
+  doc.rect(0, 0, pw, 6, 'F');
+  doc.setFillColor(...branding.accentColor);
+  doc.rect(0, 6, pw, 1.5, 'F');
 
-  // Logo
+  // Logo centered
   if (branding.logoBase64) {
     try {
-      doc.addImage(branding.logoBase64, 'PNG', pw / 2 - 20, 25, 40, 40);
+      doc.addImage(branding.logoBase64, 'PNG', pw / 2 - 18, 22, 36, 36);
     } catch { /* ignore */ }
   }
 
-  // Accent lines
-  doc.setFillColor(...branding.accentColor);
-  doc.rect(pw * 0.2, 80, pw * 0.6, 2.5, 'F');
-  doc.rect(pw * 0.25, 85, pw * 0.5, 0.8, 'F');
-
   // Org name
-  doc.setTextColor(...branding.white);
-  doc.setFontSize(18);
+  let y = 72;
+  doc.setTextColor(...branding.primaryColor);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(branding.orgName, pw / 2, 100, { align: 'center' });
+  doc.text(branding.orgName.toUpperCase(), pw / 2, y, { align: 'center' });
 
   // Department
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(branding.department, pw / 2, 112, { align: 'center' });
+  doc.setTextColor(...branding.mutedText);
+  doc.text(branding.department, pw / 2, y + 9, { align: 'center' });
 
-  // Title — positioned well below department to avoid overlap
-  doc.setFontSize(26);
+  // Thin rule
+  y = 92;
+  doc.setDrawColor(...branding.accentColor);
+  doc.setLineWidth(0.8);
+  doc.line(pw * 0.25, y, pw * 0.75, y);
+
+  // Title
+  y = 120;
+  doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
-  const titleY = 145;
-  const titleLines = options.title.split('\n');
-  titleLines.forEach((line, idx) => {
-    doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
+  doc.setTextColor(...branding.primaryColor);
+  const titleLines = doc.splitTextToSize(options.title, pw - margin * 2);
+  titleLines.forEach((line: string, idx: number) => {
+    doc.text(line, pw / 2, y + idx * 14, { align: 'center' });
   });
+  y += titleLines.length * 14 + 10;
 
   // Fiscal year
   if (options.fiscalYear) {
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fiscal Year ${options.fiscalYear}`, pw / 2, titleY + titleLines.length * 16 + 24, { align: 'center' });
+    doc.setTextColor(...branding.mutedText);
+    doc.text(`Fiscal Year ${options.fiscalYear}`, pw / 2, y, { align: 'center' });
+    y += 16;
   }
 
-  // Metadata
-  const metaY = ph * 0.65;
-  doc.setFontSize(10);
-  doc.setTextColor(200, 210, 230);
-  const metaLines = [];
+  // Metadata block — centered, clean
+  const metaY = ph * 0.58;
+  doc.setFontSize(9);
+  const metaLines: string[] = [];
   if (options.version) metaLines.push(`Plan Version: ${options.version}`);
   if (options.status) metaLines.push(`Status: ${options.status}`);
   if (options.preparedBy) metaLines.push(`Prepared By: ${options.preparedBy}`);
   if (options.approvedBy) metaLines.push(`Approved By: ${options.approvedBy}`);
   if (options.approvedDate) metaLines.push(`Approved Date: ${options.approvedDate}`);
   metaLines.forEach((line, i) => {
+    doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
+    doc.setTextColor(...branding.darkText);
     doc.text(line, pw / 2, metaY + i * 10, { align: 'center' });
   });
 
-  // Confidentiality at bottom
+  // Bottom confidentiality
   if (options.showConfidentiality !== false) {
-    doc.setFontSize(8);
-    doc.setTextColor(160, 175, 200);
-    doc.text('CONFIDENTIAL', pw / 2, ph - 30, { align: 'center' });
+    doc.setDrawColor(210, 215, 220);
+    doc.setLineWidth(0.3);
+    doc.line(margin, ph - 40, pw - margin, ph - 40);
     doc.setFontSize(7);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 22, { align: 'center' });
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...branding.mutedText);
+    doc.text('CONFIDENTIAL', pw / 2, ph - 34, { align: 'center' });
+    doc.setFontSize(6.5);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pw / 2, ph - 28, { align: 'center' });
   }
+
+  // Bottom accent band
+  doc.setFillColor(...branding.primaryColor);
+  doc.rect(0, ph - 6, pw, 6, 'F');
 
   return 0; // Full cover page — no Y continuation
 }
@@ -344,7 +381,7 @@ export interface PageHeaderOptions {
 }
 
 /**
- * Renders a branded header band on continuation pages.
+ * Renders a clean header on continuation pages — no heavy colored blocks.
  * Returns Y position after header.
  */
 export function renderPageHeader(
@@ -353,45 +390,54 @@ export function renderPageHeader(
   options: PageHeaderOptions
 ): number {
   const pw = doc.internal.pageSize.getWidth();
+  const margin = 14;
 
-  doc.setFillColor(...branding.primaryColor);
-  doc.rect(0, 0, pw, 36, 'F');
-  doc.setFillColor(...branding.accentColor);
-  doc.rect(0, 36, pw, 2.5, 'F');
-
-  doc.setTextColor(...branding.white);
-  doc.setFontSize(14);
+  // Org name — left
+  doc.setTextColor(...branding.primaryColor);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(branding.orgName, 14, 14);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(branding.department, 14, 21);
-  doc.setFontSize(8);
-  doc.text(options.sectionTitle, 14, 29);
+  doc.text(branding.orgName, margin, 12);
 
+  // Section title — left
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...branding.mutedText);
+  doc.text(`${branding.department}  —  ${options.sectionTitle}`, margin, 18);
+
+  // Right: fiscal year
   if (options.fiscalYear) {
     const rightText = options.version
       ? `FY ${options.fiscalYear}  •  v${options.version}`
       : `FY ${options.fiscalYear}`;
-    doc.text(rightText, pw - 14, 29, { align: 'right' });
+    doc.text(rightText, pw - margin, 18, { align: 'right' });
   }
 
-  return 50;
+  // Thin divider
+  doc.setDrawColor(...branding.primaryColor);
+  doc.setLineWidth(0.6);
+  doc.line(margin, 22, pw - margin, 22);
+  doc.setDrawColor(...branding.accentColor);
+  doc.setLineWidth(0.3);
+  doc.line(margin, 23.5, pw - margin, 23.5);
+
+  return 32;
 }
 
 /**
- * Renders a mini header on table continuation pages.
+ * Renders a mini header on table continuation pages — clean line style.
  */
 export function renderMiniHeader(doc: jsPDF, branding: ExportBranding): void {
   const pw = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...branding.primaryColor);
-  doc.rect(0, 0, pw, 12, 'F');
-  doc.setFillColor(...branding.accentColor);
-  doc.rect(0, 12, pw, 1, 'F');
-  doc.setTextColor(...branding.white);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`${branding.orgName} — Continued`, 14, 9);
+  const margin = 14;
+
+  doc.setTextColor(...branding.mutedText);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${branding.orgName} — Continued`, margin, 9);
+
+  doc.setDrawColor(...branding.primaryColor);
+  doc.setLineWidth(0.4);
+  doc.line(margin, 12, pw - margin, 12);
 }
 
 // ─── Footer ───

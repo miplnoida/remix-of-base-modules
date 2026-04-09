@@ -31,10 +31,11 @@ export function generateManagementResponsePDF(data: MgmtResponseReportData) {
     showConfidentiality: true,
   });
 
-  // Summary counts on cover
+  // Summary counts — clean, no colored background
   let y = 120;
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(margin, y, pw - margin * 2, 14, 2, 2, 'F');
+  doc.setDrawColor(210, 215, 220);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, y, pw - margin * 2, 14, 2, 2, 'S');
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...branding.primaryColor);
