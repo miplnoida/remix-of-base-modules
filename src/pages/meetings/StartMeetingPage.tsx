@@ -448,19 +448,19 @@ export default function StartMeetingPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Meeting Reference</Label>
-              <p className="font-semibold">{meeting.meeting_reference}</p>
+              <p className="font-semibold text-sm">{meeting.meeting_reference}</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Application Reference</Label>
-              <p className="font-semibold">{meeting.application_reference}</p>
+              <p className="font-semibold text-sm">{meeting.application_reference}</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Applicant Type</Label>
-              <Badge variant="outline">{meetingTypeLabels[meeting.meeting_type]}</Badge>
+              <p className="font-semibold text-sm">{meetingTypeLabels[meeting.meeting_type]}</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Scheduled Date/Time</Label>
-              <p className="font-medium flex items-center gap-1">
+              <p className="font-medium flex items-center gap-1 text-sm">
                 <Calendar className="h-4 w-4" />
                 {formatDisplayDate(meeting.meeting_date)}
                 <Clock className="h-4 w-4 ml-2" />
@@ -469,7 +469,7 @@ export default function StartMeetingPage() {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Current Workflow Step</Label>
-              <p className="font-medium">{meeting.workflow_steps?.step_name || 'N/A'}</p>
+              <p className="font-medium text-sm">{meeting.workflow_steps?.step_name || 'N/A'}</p>
             </div>
           </div>
         </CardContent>
