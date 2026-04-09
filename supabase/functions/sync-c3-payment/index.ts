@@ -204,10 +204,19 @@ Deno.serve(async (req) => {
         : undefined;
     }
 
+    // Map SE payment codes to C3-Wizard accepted codes
+    const mapPaymentCode = (code: string): string => {
+      const codeMap: Record<string, string> = {
+        SSE: "SSC", // Self-Employed SS Employee → SS Combined
+        SEF: "SSF", // Self-Employed SS Employer → SS Fund
+      };
+      return codeMap[code] || code;
+    };
+
     // Build payment_components array from all fetched components
     const payment_components = (components || []).map((c) => ({
       fund_code: c.fund_code,
-      payment_code: c.payment_code,
+      payment_code: mapPaymentCode(c.payment_code),
       amount: Number(c.component_amount) || 0,
     }));
 
@@ -267,6 +276,14 @@ Deno.serve(async (req) => {
             typeof lastResponseBody === "object" && lastResponseBody !== null
               ? (lastResponseBody as Record<string, unknown>)
               : {};
+
+          // Check business-level success — if the API returns { success: false },
+          // treat it as a failure even though HTTP status was 200
+          if (parsed.success === false) {
+            lastError = `Business error: ${parsed.message || parsed.error || JSON.stringify(parsed)}`;
+            break; // Non-retryable business rejection
+          }
+
           syncSuccess = true;
           externalPaymentId = parsed.payment_id
             ? String(parsed.payment_id)
