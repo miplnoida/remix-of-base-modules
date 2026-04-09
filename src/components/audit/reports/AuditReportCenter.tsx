@@ -104,9 +104,11 @@ export function AuditReportCenter() {
   const recentDrafts = useMemo(() => reports.filter((r: any) => r.status === 'Draft').slice(0, 5), [reports]);
   const recentFinals = useMemo(() => reports.filter((r: any) => r.status === 'Final').slice(0, 5), [reports]);
 
+  const engagementQuerySuffix = engagementFilter !== 'all' ? `&engagementId=${engagementFilter}` : '';
+
   const handleTemplateSelect = (template: ReportTemplate) => {
     setShowTemplateSelector(false);
-    navigate(`/audit/report-builder?template=${template.id}`);
+    navigate(`/audit/report-builder?template=${template.id}${engagementQuerySuffix}`);
   };
 
   return (
@@ -147,10 +149,10 @@ export function AuditReportCenter() {
             <Button onClick={() => setShowTemplateSelector(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" /> New Report
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/audit/report-builder?template=committee')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/audit/report-builder?template=committee${engagementQuerySuffix}`)}>
               <Users className="h-4 w-4 mr-2" /> Board Pack
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/audit/report-builder?template=findings')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/audit/report-builder?template=findings${engagementQuerySuffix}`)}>
               <ClipboardList className="h-4 w-4 mr-2" /> Findings Export
             </Button>
           </div>
@@ -397,7 +399,7 @@ export function AuditReportCenter() {
                 <Card
                   key={type.id}
                   className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${type.border}`}
-                  onClick={() => navigate(`/audit/report-builder?template=${type.id}`)}
+                  onClick={() => navigate(`/audit/report-builder?template=${type.id}${engagementQuerySuffix}`)}
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">

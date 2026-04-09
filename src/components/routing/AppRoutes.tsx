@@ -205,6 +205,7 @@ import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
 import AuditReports from '@/pages/audit/AuditReports';
+const AuditReportBuilder = lazy(() => import('@/pages/audit/AuditReportBuilder'));
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
@@ -1003,6 +1004,7 @@ export const AppRoutes = () => {
       <Route path="/audit/audits" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/audits/:id" element={<ProtectedLayout><EngagementDetail /></ProtectedLayout>} />
       <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/report-builder" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><AuditReportBuilder /></Suspense></ProtectedLayout>} />
       <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
       <Route path="/audit/config" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate></ProtectedLayout>} />
       <Route path="/audit/risk-settings" element={<ProtectedLayout><Suspense fallback={<div />}><RiskSettings /></Suspense></ProtectedLayout>} />
