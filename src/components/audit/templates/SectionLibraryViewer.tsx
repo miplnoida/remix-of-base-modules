@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Lock, Share2, Search, Filter } from 'lucide-react';
+import { Loader2, Lock, Share2, Search, Filter, BookOpen, SeparatorHorizontal } from 'lucide-react';
 import { useDocumentSectionLibrary } from '@/hooks/useDocumentFoundation';
 import { DOCUMENT_TYPE_LABELS, type AuditDocumentType } from '@/lib/audit/documentFoundationTypes';
 
@@ -154,6 +154,19 @@ export function SectionLibraryViewer() {
                         </div>
                         {section.description && (
                           <p className="text-[10px] text-muted-foreground truncate">{section.description}</p>
+                        )}
+                      </div>
+                      {/* TOC and Page Break indicators */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {section.default_include_in_toc && (
+                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5" title="Included in TOC by default">
+                            <BookOpen className="h-3 w-3" /> TOC
+                          </span>
+                        )}
+                        {section.default_start_on_new_page && (
+                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5" title="Starts on new page by default">
+                            <SeparatorHorizontal className="h-3 w-3" /> Page
+                          </span>
                         )}
                       </div>
                       {/* Document type tags */}
