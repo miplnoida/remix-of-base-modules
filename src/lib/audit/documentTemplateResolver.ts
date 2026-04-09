@@ -14,7 +14,13 @@ import type {
   TemplateSectionRef,
   TemplateColumn,
 } from './documentTemplateDefaults';
-import type { DocumentFoundationConfig, FoundationSignatory } from './documentFoundationTypes';
+import type {
+  DocumentFoundationConfig,
+  FoundationSignatory,
+  FoundationTypography,
+  FoundationPageLayout,
+  FoundationTableStyle,
+} from './documentFoundationTypes';
 import { DEFAULT_FOUNDATION } from './documentFoundationTypes';
 import type { AuditPlanFullTemplateConfig } from './auditPlanTemplateTypes';
 import { resolveSections, type ResolvedSectionList } from './auditPlanSectionEngine';
@@ -69,6 +75,12 @@ export interface ResolvedReportOutput {
   showWatermark: boolean;
   watermarkText: string;
   showIssuedStamp: boolean;
+  /** Typography from Foundation — consistent with Plan resolver */
+  typography: FoundationTypography;
+  /** Page layout from Foundation — consistent with Plan resolver */
+  pageLayout: FoundationPageLayout;
+  /** Table style from Foundation — consistent with Plan resolver */
+  tableStyle: FoundationTableStyle;
 }
 
 /**
@@ -131,6 +143,10 @@ export function resolveReportTemplate(
     showWatermark: isDraft && f.draftRules.showWatermark,
     watermarkText: f.draftRules.watermarkText,
     showIssuedStamp: isFinal && f.draftRules.showIssuedStamp,
+    // Foundation formatting — parity with Plan resolver
+    typography: f.typography,
+    pageLayout: f.pageLayout,
+    tableStyle: f.tableStyle,
   };
 }
 
