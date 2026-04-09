@@ -1,58 +1,58 @@
 
 
-# Fix: Search Reference AND Filter — OR Logic for Reference Fields
+# Fix: Disable Past Time Slots Based on Live Local Time
 
 ## Problem
-When `searchTerm` is passed, `ManageMeetingsPage` sets **both** `applicationReference` and `meetingReference` to the same value. In `useMeetings.ts`, these are applied as two sequential `.filter()` calls (AND logic) — meaning a meeting must match the term in **both** `application_reference` AND `meeting_reference` simultaneously. This is why no results appear.
+Both `ScheduleMeetingDialog` and `RescheduleMeetingDialog` compute `nowTimeMinutes` using `useMemo(() => ..., [])` — this captures the current time **once at mount** and never updates. If a user opens the dialog at 10:00 AM and spends 15 minutes configuring, time slots like 10:00 and 10:10 remain selectable because `nowTimeMinutes` is still frozen at the mount-time value.
+
+Additionally, if a user selects a time slot that was valid when clicked but becomes past by the time they submit, the submit guard uses the same stale value.
 
 ## Solution
-Replace the two separate AND filters in `useMeetings.ts` with a single OR block: if both `applicationReference` and `meetingReference` are provided, match against **either** field. If only one is provided, filter by that one alone.
+Replace the static `useMemo` with a live-updating value that refreshes every 60 seconds. Both dialogs get the same fix.
 
 ## Changes
 
-**File: `src/hooks/useMeetings.ts`** (lines 47-57)
+### File: `src/components/meetings/ScheduleMeetingDialog.tsx`
 
-Replace:
+**Line 150** — Replace:
 ```typescript
-if (filters?.applicationReference) {
-  meetings = meetings.filter(m =>
-    m.application_reference?.toLowerCase().includes(filters.applicationReference!.toLowerCase())
-  );
-}
-if (filters?.meetingReference) {
-  meetings = meetings.filter(m =>
-    m.meeting_reference?.toLowerCase().includes(filters.meetingReference!.toLowerCase())
-  );
-}
+const nowTimeMinutes = useMemo(() => today.getHours() * 60 + today.getMinutes(), []);
+```
+With a `useState` + `useEffect` that updates every 60 seconds:
+```typescript
+const [nowTimeMinutes, setNowTimeMinutes] = useState(() => {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+});
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const n = new Date();
+    setNowTimeMinutes(n.getHours() * 60 + n.getMinutes());
+  }, 60_000);
+  return () => clearInterval(interval);
+}, []);
 ```
 
-With:
-```typescript
-if (filters?.applicationReference || filters?.meetingReference) {
-  meetings = meetings.filter(m => {
-    const appRef = filters.applicationReference?.toLowerCase();
-    const meetRef = filters.meetingReference?.toLowerCase();
-    const matchesApp = appRef
-      ? m.application_reference?.toLowerCase().includes(appRef)
-      : false;
-    const matchesMeet = meetRef
-      ? m.meeting_reference?.toLowerCase().includes(meetRef)
-      : false;
-    // OR logic: match either field
-    return matchesApp || matchesMeet;
-  });
-}
-```
+This ensures:
+- Time slots become disabled in real-time as minutes pass
+- The submit guard (`isSlotInPast`) always checks against the current time
+- If a previously-selected slot becomes past, the UI visually disables it and the submit guard rejects it
 
-This ensures the search term matches meetings where **either** the application reference or meeting reference contains the text, while still applying as AND with all other filter criteria (status, type, date range).
+### File: `src/components/meetings/RescheduleMeetingDialog.tsx`
+
+**Line 138** — Same replacement as above.
 
 ## Files Modified
+
 | File | Change |
 |---|---|
-| `src/hooks/useMeetings.ts` | Replace sequential AND reference filters with single OR block |
+| `src/components/meetings/ScheduleMeetingDialog.tsx` | Replace stale `useMemo` with live-updating `nowTimeMinutes` |
+| `src/components/meetings/RescheduleMeetingDialog.tsx` | Same fix |
 
 ## What Is NOT Changed
-- Filter bar logic — status, type, date range remain AND conditions as expected
-- Stats query — unchanged
-- No backend/database changes
+- Time slot generation logic — unchanged
+- Overlap validation — unchanged
+- Submit guards — already use `isSlotInPast`, which will now use live time
+- Backend/database — no changes
 
