@@ -148,6 +148,11 @@ export function WorkflowActionButtons({
     setSelectedAction(null);
     refetch();
 
+    // Fire onActionComplete immediately so meeting buttons render instantly
+    if (onActionComplete) {
+      onActionComplete('Schedule Meeting', null);
+    }
+
     // Trigger the configured external API for ScheduleMeeting action (non-blocking)
     if (workflowId && currentStepId && instanceId && taskId) {
       try {
@@ -202,10 +207,6 @@ export function WorkflowActionButtons({
       } catch (err) {
         console.error('[WorkflowActionButtons] Failed to invoke workflow action API (non-blocking):', err);
       }
-    }
-
-    if (onActionComplete) {
-      onActionComplete('Schedule Meeting', null);
     }
   };
 
