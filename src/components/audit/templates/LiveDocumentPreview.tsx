@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Eye, FileDown, FileText, Printer, ChevronRight } from 'lucide-react';
-import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
+import type { AuditReportTemplateConfig, AuditPlanTemplateConfig, TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import type { ReportTemplateOverride, PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
 import { applyReportOverrides, applyPlanOverrides, hasReportOverrides, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
 import { resolveReportTemplate, resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
@@ -13,6 +13,7 @@ import { buildRenderPlan, type RenderPlan } from '@/lib/audit/auditPlanRenderEng
 import { exportAuditPlanPdf } from '@/lib/audit/auditPlanPdfExport';
 import { exportAuditPlanDocx } from '@/lib/audit/auditPlanDocxExport';
 import { getSectionZone } from '@/lib/audit/auditPlanPaginationEngine';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 
 interface LiveReportPreviewProps {
   type: 'report';
