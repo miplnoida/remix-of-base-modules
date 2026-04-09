@@ -21,6 +21,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
+import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
 
 interface PDFExportParams {
   reportData: any;
@@ -32,17 +33,20 @@ interface PDFExportParams {
   templateConfig?: AuditReportTemplateConfig;
   /** DB-driven section configuration */
   dbSectionRefs?: TemplateSectionRef[];
+  /** DB-loaded foundation config */
+  foundation?: DocumentFoundationConfig;
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation,
 }: PDFExportParams) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config
   const config = dbSectionRefs && dbSectionRefs.length > 0
     ? { ...baseConfig, sectionRefs: dbSectionRefs, sections: dbSectionRefs }
     : baseConfig;
-  const resolved = resolveReportTemplate(config, reportData.status);
+  // Pass foundation so resolver uses DB-saved org settings
+  const resolved = resolveReportTemplate(config, reportData.status, foundation);
   const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
   const doc = new jsPDF({ orientation: 'portrait' });
   const pw = doc.internal.pageSize.getWidth();

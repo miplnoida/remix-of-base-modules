@@ -118,6 +118,8 @@ export interface RenderPipelineInput {
     inToc?: boolean;
     startNewPage?: boolean;
   }>;
+  /** DB-loaded foundation config — uses saved org settings for branding, typography, colors */
+  foundation?: import('./documentFoundationTypes').DocumentFoundationConfig;
 }
 
 /**
@@ -136,6 +138,7 @@ export function buildRenderPlan(input: RenderPipelineInput): RenderPlan {
     planData = {},
     outputMode: forcedMode,
     dbSectionOverrides,
+    foundation,
   } = input;
 
   // Apply DB section overrides to template sections before resolution
@@ -158,8 +161,8 @@ export function buildRenderPlan(input: RenderPipelineInput): RenderPlan {
     templateConfig = { ...templateConfig, sections: updatedSections };
   }
 
-  // Step 1: Resolve
-  const resolved: ResolvedPlanOutput = resolvePlanTemplate(templateConfig, overrides);
+  // Step 1: Resolve — pass foundation so it uses DB-saved org settings
+  const resolved: ResolvedPlanOutput = resolvePlanTemplate(templateConfig, overrides, foundation);
 
   // Step 2: Map
   const mapped: MappedPlanOutput = mapPlanOutput(resolved, planData);
