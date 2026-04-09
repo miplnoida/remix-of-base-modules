@@ -257,6 +257,18 @@ export default function ManageMeetingsPage() {
     meetingReference: searchTerm || undefined
   });
 
+  // Filters WITHOUT status — for stat card counts (always show global counts)
+  const statsFilters = useMemo(() => {
+    const { status, ...rest } = filters;
+    return rest;
+  }, [filters]);
+
+  const { data: allMeetingsForStats } = useMeetings({
+    ...statsFilters,
+    applicationReference: searchTerm || undefined,
+    meetingReference: searchTerm || undefined
+  });
+
   // Collect unique application references for name lookup
   const appRefs = useMemo(() => {
     if (!meetings) return [];
@@ -265,16 +277,16 @@ export default function ManageMeetingsPage() {
 
   const { data: appNames } = useApplicationNames(appRefs);
 
-  // Compute stats
+  // Compute stats from unfiltered data (excludes status filter)
   const stats = useMemo(() => {
-    if (!meetings) return { total: 0, scheduled: 0, inProgress: 0, closed: 0 };
+    if (!allMeetingsForStats) return { total: 0, scheduled: 0, inProgress: 0, closed: 0 };
     return {
-      total: meetings.length,
-      scheduled: meetings.filter(m => m.status === 'Scheduled').length,
-      inProgress: meetings.filter(m => m.status === 'InProgress').length,
-      closed: meetings.filter(m => CLOSED_STATUSES.includes(m.status)).length,
+      total: allMeetingsForStats.length,
+      scheduled: allMeetingsForStats.filter(m => m.status === 'Scheduled').length,
+      inProgress: allMeetingsForStats.filter(m => m.status === 'InProgress').length,
+      closed: allMeetingsForStats.filter(m => CLOSED_STATUSES.includes(m.status)).length,
     };
-  }, [meetings]);
+  }, [allMeetingsForStats]);
 
   // Sort meetings by date and time
   const sortedMeetings = useMemo(() => {
