@@ -662,7 +662,20 @@ export default function StartMeetingPage() {
               meetingType={meeting.meeting_type}
               data={editedData}
               onChange={handleFieldChange}
-              onDataChange={(newData) => { setEditedData(newData); setHasChanges(true); }}
+              onDataChange={(newData) => {
+                setEditedData(newData);
+                setHasChanges(true);
+                // Auto-persist locations for employer meetings
+                if (isEmployerMeeting && Array.isArray(newData.locations)) {
+                  const originalLocations = applicationData ? (applicationData as any).locations : undefined;
+                  saveLocationsEdit(newData.locations, originalLocations, userCode || undefined).catch(console.error);
+                }
+                // Auto-persist dependants for IP meetings
+                if (isIPMeeting && Array.isArray(newData.dependants)) {
+                  const originalDeps = applicationData ? (applicationData as any).dependants : undefined;
+                  saveDependantsEdit(newData.dependants, originalDeps, userCode || undefined).catch(console.error);
+                }
+              }}
               meetingId={meetingId}
               applicationReference={applicationReference}
               replacedDocCategories={replacedDocCategories}
