@@ -96,7 +96,7 @@ export function useDocumentSectionLibrary(documentType?: AuditDocumentType) {
     queryFn: async (): Promise<DocumentSectionEntry[]> => {
       let query = (supabase as any)
         .from('ia_document_section_library')
-        .select('*')
+        .select('*, default_include_in_toc, default_start_on_new_page')
         .order('default_order', { ascending: true });
 
       if (documentType) {
@@ -108,7 +108,11 @@ export function useDocumentSectionLibrary(documentType?: AuditDocumentType) {
         console.error('Failed to fetch section library:', error);
         return [];
       }
-      return (data || []) as DocumentSectionEntry[];
+      return (data || []).map((row: any) => ({
+        ...row,
+        default_include_in_toc: row.default_include_in_toc ?? true,
+        default_start_on_new_page: row.default_start_on_new_page ?? false,
+      })) as DocumentSectionEntry[];
     },
     staleTime: 5 * 60 * 1000,
   });
