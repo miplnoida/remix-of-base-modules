@@ -7,7 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Save, ChevronDown, ChevronUp, Palette, Type, LayoutGrid, Hash, Table2, ShieldCheck, Loader2, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Save, ChevronDown, ChevronUp, Palette, Type, LayoutGrid, Hash, Table2, ShieldCheck, Loader2, Upload, Image as ImageIcon, X, Sparkles, Check } from 'lucide-react';
 import { useDocumentFoundation, useDocumentFoundationMutation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
@@ -16,6 +18,10 @@ import {
   DEFAULT_FOUNDATION,
   type DocumentFoundationConfig,
 } from '@/lib/audit/documentFoundationTypes';
+import {
+  FOUNDATION_PRESETS,
+  FOUNDATION_PRESET_METADATA,
+} from '@/lib/audit/documentFoundationPresets';
 
 const FONT_OPTIONS = [
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
