@@ -53,6 +53,29 @@ export function AuditReportCenter() {
 
   const engagementIdFromUrl = searchParams.get('engagementId');
 
+  // Fetch the specific engagement from URL if it's not in the main list
+  const { data: urlEngagement } = useQuery({
+    queryKey: ['engagement_by_id', engagementIdFromUrl],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_audit_engagements' as any)
+        .select('*')
+        .eq('id', engagementIdFromUrl!)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!engagementIdFromUrl && !engagements.find((e: any) => e.id === engagementIdFromUrl),
+  });
+
+  // Merge URL engagement into the list if missing
+  const allEngagements = useMemo(() => {
+    if (urlEngagement && !engagements.find((e: any) => e.id === urlEngagement.id)) {
+      return [...engagements, urlEngagement];
+    }
+    return engagements;
+  }, [engagements, urlEngagement]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -71,8 +94,8 @@ export function AuditReportCenter() {
     [departments]
   );
   const engagementById = useMemo(
-    () => Object.fromEntries(engagements.map((e: any) => [e.id, e])),
-    [engagements]
+    () => Object.fromEntries(allEngagements.map((e: any) => [e.id, e])),
+    [allEngagements]
   );
 
   const stats = useMemo(() => {
