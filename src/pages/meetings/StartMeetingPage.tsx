@@ -190,7 +190,7 @@ export default function StartMeetingPage() {
     if (isEmployerMeeting && locationsEditLoading) return;
     if (isIPMeeting && dependantsEditLoading) return;
 
-    const merged = { ...applicationData };
+    const merged: Record<string, any> = { ...applicationData };
 
     // Employer: overlay persisted locations
     if (isEmployerMeeting && hasPersistedLocations && savedLocations) {
