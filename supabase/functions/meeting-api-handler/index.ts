@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
               outcome: 'Reschedule',
               outcome_remarks: isFutureDate
                 ? `Rescheduled: next meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
-                : `Rescheduled: next meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
+                : `Rescheduled: next meeting started at ${currentTimeHHMM} before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
               updated_at: nowUtc.toISOString(),
               updated_by: userName?.substring(0, 10) || null
             })
@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
             new_time: currentTime,
             remarks: isFutureDate
               ? `Rescheduled: next meeting started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
-              : `Rescheduled: next meeting started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
+              : `Rescheduled: next meeting started at ${currentTimeHHMM} before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
             performed_by: userId,
             performed_by_name: userName
           })
@@ -292,30 +292,30 @@ Deno.serve(async (req) => {
           const { data: refData } = await supabase.rpc('generate_meeting_reference')
           const newMeetingRef = refData || `MTG-${Date.now()}`
 
-          // ─── STEP 4: Create new meeting for today at current server time ───
-          const { data: newMeeting, error: newMeetingError } = await supabase
-            .from('meetings')
-            .insert({
-              meeting_reference: newMeetingRef,
-              application_reference: meeting.application_reference,
-              workflow_instance_id: meeting.workflow_instance_id,
-              workflow_id: meeting.workflow_id,
-              step_id: meeting.step_id,
-              action_config_id: meeting.action_config_id,
-              meeting_type: meeting.meeting_type,
-              status: 'InProgress',           // New meeting goes straight to InProgress
-              meeting_date: todayDate,
-              meeting_time: currentTime,
-              contact_person: meeting.contact_person,
-              contact_email: meeting.contact_email,
-              contact_phone: meeting.contact_phone,
-              office_address: meeting.office_address,
-              office_code: meeting.office_code,
-              department_id: meeting.department_id,
-              assigned_user_id: meeting.assigned_user_id,
-              remarks: isFutureDate
-                ? `Auto-created: meeting started today (${todayDate}), next meeting from ${meeting.meeting_reference} (was ${meeting.meeting_date})`
-                : `Auto-created: meeting started early at ${currentTimeHHMM} UTC, next meeting from ${meeting.meeting_reference} (was scheduled at ${meeting.meeting_time.substring(0, 5)})`,
+           // ─── STEP 4: Create new meeting for today at current local time ───
+           const { data: newMeeting, error: newMeetingError } = await supabase
+             .from('meetings')
+             .insert({
+               meeting_reference: newMeetingRef,
+               application_reference: meeting.application_reference,
+               workflow_instance_id: meeting.workflow_instance_id,
+               workflow_id: meeting.workflow_id,
+               step_id: meeting.step_id,
+               action_config_id: meeting.action_config_id,
+               meeting_type: meeting.meeting_type,
+               status: 'InProgress',           // New meeting goes straight to InProgress
+               meeting_date: todayDate,
+               meeting_time: currentTime,
+               contact_person: meeting.contact_person,
+               contact_email: meeting.contact_email,
+               contact_phone: meeting.contact_phone,
+               office_address: meeting.office_address,
+               office_code: meeting.office_code,
+               department_id: meeting.department_id,
+               assigned_user_id: meeting.assigned_user_id,
+               remarks: isFutureDate
+                 ? `Auto-created: meeting started today (${todayDate}), next meeting from ${meeting.meeting_reference} (was ${meeting.meeting_date})`
+                 : `Auto-created: meeting started early at ${currentTimeHHMM}, next meeting from ${meeting.meeting_reference} (was scheduled at ${meeting.meeting_time.substring(0, 5)})`,
               parent_meeting_id: body.meetingId,
               reschedule_count: (meeting.reschedule_count || 0) + 1,
               scheduled_by: userId,
