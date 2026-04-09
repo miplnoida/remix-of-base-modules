@@ -136,6 +136,13 @@ export default function StartMeetingPage() {
     save: saveDependantsEdit,
   } = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'dependants');
 
+  const {
+    savedData: savedOwners,
+    hasSavedData: hasPersistedOwners,
+    isLoading: ownersEditLoading,
+    save: saveOwnersEdit,
+  } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'owners');
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
