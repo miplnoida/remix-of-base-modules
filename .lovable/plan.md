@@ -1,63 +1,58 @@
 
 
-# Fix: Stat Card Counts Changing on Filter Selection
+# Fix: Search Reference AND Filter — OR Logic for Reference Fields
 
 ## Problem
-The stat cards ("Total", "Scheduled", "In Progress", "Closed/Done") and the meeting list both consume the same `useMeetings(filters)` query. When a stat card applies a status filter, the query returns only meetings matching that status — so the other cards' counts drop to 0, confusing users.
+When `searchTerm` is passed, `ManageMeetingsPage` sets **both** `applicationReference` and `meetingReference` to the same value. In `useMeetings.ts`, these are applied as two sequential `.filter()` calls (AND logic) — meaning a meeting must match the term in **both** `application_reference` AND `meeting_reference` simultaneously. This is why no results appear.
 
 ## Solution
-Separate the data source for **stat cards** (always unfiltered by status) from the **meeting list** (filtered). Use two queries:
-
-1. **Stats query**: `useMeetings` with all filters **except** `status` — always returns the full set for counting
-2. **List query**: `useMeetings` with all filters **including** `status` — returns filtered results for display
-
-This is a minimal change — no new hooks, no backend changes.
+Replace the two separate AND filters in `useMeetings.ts` with a single OR block: if both `applicationReference` and `meetingReference` are provided, match against **either** field. If only one is provided, filter by that one alone.
 
 ## Changes
 
-**File: `src/pages/meetings/ManageMeetingsPage.tsx`**
+**File: `src/hooks/useMeetings.ts`** (lines 47-57)
 
-1. Add a second `useMeetings` call for stats that excludes the `status` filter:
+Replace:
 ```typescript
-// Filters WITHOUT status — for stat card counts
-const statsFilters = useMemo(() => {
-  const { status, ...rest } = filters;
-  return rest;
-}, [filters]);
-
-const { data: allMeetingsForStats } = useMeetings({
-  ...statsFilters,
-  applicationReference: searchTerm || undefined,
-  meetingReference: searchTerm || undefined,
-});
+if (filters?.applicationReference) {
+  meetings = meetings.filter(m =>
+    m.application_reference?.toLowerCase().includes(filters.applicationReference!.toLowerCase())
+  );
+}
+if (filters?.meetingReference) {
+  meetings = meetings.filter(m =>
+    m.meeting_reference?.toLowerCase().includes(filters.meetingReference!.toLowerCase())
+  );
+}
 ```
 
-2. Compute `stats` from `allMeetingsForStats` instead of `meetings`:
+With:
 ```typescript
-const stats = useMemo(() => {
-  if (!allMeetingsForStats) return { total: 0, scheduled: 0, inProgress: 0, closed: 0 };
-  return {
-    total: allMeetingsForStats.length,
-    scheduled: allMeetingsForStats.filter(m => m.status === 'Scheduled').length,
-    inProgress: allMeetingsForStats.filter(m => m.status === 'InProgress').length,
-    closed: allMeetingsForStats.filter(m => CLOSED_STATUSES.includes(m.status)).length,
-  };
-}, [allMeetingsForStats]);
+if (filters?.applicationReference || filters?.meetingReference) {
+  meetings = meetings.filter(m => {
+    const appRef = filters.applicationReference?.toLowerCase();
+    const meetRef = filters.meetingReference?.toLowerCase();
+    const matchesApp = appRef
+      ? m.application_reference?.toLowerCase().includes(appRef)
+      : false;
+    const matchesMeet = meetRef
+      ? m.meeting_reference?.toLowerCase().includes(meetRef)
+      : false;
+    // OR logic: match either field
+    return matchesApp || matchesMeet;
+  });
+}
 ```
 
-3. Keep the existing `useMeetings` call (with status filter) for the list — no change needed there.
-
-4. Update the stats cards visibility condition to use `allMeetingsForStats` instead of `meetings`.
+This ensures the search term matches meetings where **either** the application reference or meeting reference contains the text, while still applying as AND with all other filter criteria (status, type, date range).
 
 ## Files Modified
-
 | File | Change |
 |---|---|
-| `src/pages/meetings/ManageMeetingsPage.tsx` | Add stats-only query, compute counts from unfiltered data |
+| `src/hooks/useMeetings.ts` | Replace sequential AND reference filters with single OR block |
 
 ## What Is NOT Changed
-- `useMeetings` hook — no modifications
-- Backend/database — no changes
-- Meeting list filtering, grouping, or rendering logic
-- Any other page or component
+- Filter bar logic — status, type, date range remain AND conditions as expected
+- Stats query — unchanged
+- No backend/database changes
 
