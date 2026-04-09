@@ -600,7 +600,7 @@ const EMERALD_GOLD: DocumentFoundationConfig = {
 // ─── Preset Registry ───
 
 export const FOUNDATION_PRESETS: Record<string, DocumentFoundationConfig> = {
-  ssb_green: SSB_PROFESSIONAL,
+  ssb_green: SSB_GREEN,
   audit_navy: AUDIT_NAVY,
   government_formal: GOVERNMENT_FORMAL,
   corporate_charcoal: CORPORATE_CHARCOAL,
@@ -621,7 +621,7 @@ export const FOUNDATION_PRESETS: Record<string, DocumentFoundationConfig> = {
 };
 
 export const FOUNDATION_PRESET_METADATA: FoundationPresetMeta[] = [
-  { key: 'ssb_green', name: 'SSB Professional Blue', description: 'Deep blue board-ready standard', category: 'professional', swatches: ['#1B365D', '#2F855A', '#C4A756'] },
+  { key: 'ssb_green', name: 'SSB Institutional Green', description: 'Official SSB Green & Gold brand identity', category: 'professional', swatches: ['#0E5F3A', '#1A7A4E', '#C4A756'] },
   { key: 'audit_navy', name: 'Audit Navy', description: 'Classic navy blue audit standard', category: 'professional', swatches: ['#1E3A5F', '#4A6D8C', '#C4A756'] },
   { key: 'government_formal', name: 'Government Formal', description: 'Traditional serif for regulatory reports', category: 'government', swatches: ['#1B2838', '#37474F', '#8D6E37'] },
   { key: 'corporate_charcoal', name: 'Corporate Charcoal', description: 'Modern Calibri corporate style', category: 'corporate', swatches: ['#2C3E50', '#5D6D7E', '#D4A847'] },
