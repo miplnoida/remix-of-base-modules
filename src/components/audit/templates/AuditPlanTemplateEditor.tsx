@@ -199,7 +199,8 @@ export function AuditPlanTemplateEditor() {
             ]}
           />
         </div>
-      )
+      )}
+
 
       {/* Main content area */}
       <div className="flex gap-6">
