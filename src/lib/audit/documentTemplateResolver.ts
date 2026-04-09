@@ -19,6 +19,28 @@ import { DEFAULT_FOUNDATION } from './documentFoundationTypes';
 import type { AuditPlanFullTemplateConfig } from './auditPlanTemplateTypes';
 import { resolveSections, type ResolvedSectionList } from './auditPlanSectionEngine';
 
+// ─── Inheritance Guard ───
+// These keys on a template config are FOUNDATION-OWNED.
+// The resolver strips them before merging so templates can never override formatting.
+
+const FOUNDATION_OWNED_REPORT_KEYS: (keyof AuditReportTemplateConfig)[] = [
+  'branding', 'signOff', 'draftRules', 'finalRules',
+];
+
+/**
+ * Strips any Foundation-owned formatting fields from a template config.
+ * Ensures templates can never leak formatting overrides into the pipeline.
+ */
+function stripFormattingFromReportTemplate(
+  config: AuditReportTemplateConfig
+): AuditReportTemplateConfig {
+  const clean = { ...config };
+  for (const key of FOUNDATION_OWNED_REPORT_KEYS) {
+    delete (clean as any)[key];
+  }
+  return clean;
+}
+
 // ─── Report Resolver ───
 
 export interface ResolvedReportSection {
@@ -54,11 +76,13 @@ export interface ResolvedReportOutput {
  * Foundation provides ALL formatting; template provides ONLY structure/content.
  */
 export function resolveReportTemplate(
-  config: AuditReportTemplateConfig,
+  rawConfig: AuditReportTemplateConfig,
   reportStatus: string,
   foundation?: DocumentFoundationConfig
 ): ResolvedReportOutput {
   const f = foundation || DEFAULT_FOUNDATION;
+  // INHERITANCE GUARD: Strip any formatting fields from template before resolution
+  const config = stripFormattingFromReportTemplate(rawConfig);
   const isDraft = reportStatus === 'Draft' || reportStatus === 'In Review';
   const isFinal = reportStatus === 'Final';
 
@@ -151,6 +175,7 @@ export function resolvePlanTemplate(
   foundation?: DocumentFoundationConfig
 ): ResolvedPlanOutput {
   const f = foundation || DEFAULT_FOUNDATION;
+  // INHERITANCE GUARD: Foundation formatting always wins — template values are fallbacks only
 
   // Resolve sections via the section engine (handles overrides, mandatory enforcement)
   const resolvedSections = resolveSections(config, overrides);

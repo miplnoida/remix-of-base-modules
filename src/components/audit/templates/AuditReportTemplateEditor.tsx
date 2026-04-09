@@ -10,15 +10,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2 } from 'lucide-react';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
-import { useDocumentSectionLibrary } from '@/hooks/useDocumentFoundation';
+import { useDocumentSectionLibrary, useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
+import { FoundationInheritedSummary } from './InheritedFromFoundation';
 
 export function AuditReportTemplateEditor() {
   const { data: config, isLoading } = useAuditReportTemplate();
   const { data: librarySections = [] } = useDocumentSectionLibrary('audit_report');
+  const { data: foundation } = useDocumentFoundation();
   const mutation = useAuditDocumentTemplateMutation();
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditReportTemplateConfig>(DEFAULT_AUDIT_REPORT_CONFIG);
@@ -113,6 +115,49 @@ export function AuditReportTemplateEditor() {
             To change branding, typography, colors, pagination, table style, or sign-off settings, go to the <strong>Foundation</strong> tab — those changes apply to all documents.
           </AlertDescription>
         </Alert>
+
+        {/* Foundation Inherited Settings (read-only) */}
+        {foundation && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FoundationInheritedSummary
+              sectionTitle="Branding"
+              items={[
+                { label: 'Organization', value: foundation.branding.orgName },
+                { label: 'Logo', value: foundation.branding.showLogo ? 'Enabled' : 'Disabled' },
+                { label: 'Confidential', value: foundation.branding.confidentialLabel },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Typography"
+              items={[
+                { label: 'Body Font', value: foundation.typography.fontFamily.split(',')[0] },
+                { label: 'Base Size', value: `${foundation.typography.baseFontSize}pt` },
+                { label: 'Line Height', value: String(foundation.typography.lineHeight) },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Page Layout"
+              items={[
+                { label: 'Size', value: foundation.pageLayout.pageSize.toUpperCase() },
+                { label: 'Orientation', value: foundation.pageLayout.orientation },
+                { label: 'Margins', value: `${foundation.pageLayout.margins.top}" / ${foundation.pageLayout.margins.left}"` },
+              ]}
+            />
+            <FoundationInheritedSummary
+              sectionTitle="Table Style"
+              items={[
+                { label: 'Header', value: (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded border" style={{ backgroundColor: foundation.tableStyle.headerBackground }} />
+                    {foundation.tableStyle.headerBackground}
+                  </span>
+                )},
+                { label: 'Striped Rows', value: foundation.tableStyle.stripedRows ? 'Yes' : 'No' },
+                { label: 'Font Size', value: foundation.tableStyle.fontSize },
+              ]}
+            />
+          </div>
+        )}
 
         {/* Cover Page */}
         <SettingsCard title="Cover Page" cardKey="coverPage" open={openSections.coverPage} onToggle={toggleCard}>

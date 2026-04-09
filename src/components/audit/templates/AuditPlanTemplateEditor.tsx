@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, Eye, EyeOff, Users, LayoutTemplate, Layers, FileDown, MonitorSmartphone, Lock, Loader2, Info } from 'lucide-react';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { toast } from 'sonner';
+import { FoundationInheritedSummary } from './InheritedFromFoundation';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
@@ -41,6 +43,7 @@ type TabValue = typeof TABS[number]['value'];
 
 export function AuditPlanTemplateEditor() {
   const { data: templates = [], isLoading: loadingTemplates } = useAuditPlanTemplates();
+  const { data: foundation } = useDocumentFoundation();
   const updateMutation = useUpdateTemplateConfig();
   const { canOnTemplate } = useTemplatePermission();
   const { userCode } = useUserCode();
@@ -163,6 +166,41 @@ export function AuditPlanTemplateEditor() {
           Sections are referenced from the <strong>Section Library</strong>. Configure only plan-specific structure and content settings below.
         </AlertDescription>
       </Alert>
+
+      {/* Foundation Inherited Settings (read-only) */}
+      {foundation && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <FoundationInheritedSummary
+            sectionTitle="Branding"
+            items={[
+              { label: 'Organization', value: foundation.branding.orgName },
+              { label: 'Logo', value: foundation.branding.showLogo ? 'Enabled' : 'Disabled' },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Typography"
+            items={[
+              { label: 'Body Font', value: foundation.typography.fontFamily.split(',')[0] },
+              { label: 'Base Size', value: `${foundation.typography.baseFontSize}pt` },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Pagination"
+            items={[
+              { label: 'Position', value: foundation.pagination.position },
+              { label: 'Body Style', value: foundation.pagination.bodyStyle },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Table Style"
+            items={[
+              { label: 'Striped', value: foundation.tableStyle.stripedRows ? 'Yes' : 'No' },
+              { label: 'Font', value: foundation.tableStyle.fontSize },
+            ]}
+          />
+        </div>
+      )}
+
 
       {/* Main content area */}
       <div className="flex gap-6">
