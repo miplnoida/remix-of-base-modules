@@ -488,52 +488,7 @@ export function FoundationSettingsEditor() {
         </div>
       </SettingsCard>
 
-      {/* Sign-off */}
-      <SettingsCard sectionKey="signOff" open={openSections.signOff} onToggle={toggleSection} title="Sign-off & Governance" icon={FileSignature}>
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">Default signatories applied to all document types. Can be overridden per document at generation time.</p>
-          {draft.signOff.map((sig, i) => (
-            <div key={i} className="grid grid-cols-3 gap-3 items-end p-3 border rounded-md bg-muted/20">
-              <div>
-                <Label className="text-xs">Label</Label>
-                <Input value={sig.label} onChange={(e) => {
-                  const updated = [...draft.signOff];
-                  updated[i] = { ...updated[i], label: e.target.value };
-                  setDraft((d) => ({ ...d, signOff: updated }));
-                }} placeholder="e.g. Prepared By" />
-              </div>
-              <div>
-                <Label className="text-xs">Default Name</Label>
-                <Input value={sig.defaultName} onChange={(e) => {
-                  const updated = [...draft.signOff];
-                  updated[i] = { ...updated[i], defaultName: e.target.value };
-                  setDraft((d) => ({ ...d, signOff: updated }));
-                }} placeholder="Optional" />
-              </div>
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <Label className="text-xs">Role Title</Label>
-                  <Input value={sig.roleTitle} onChange={(e) => {
-                    const updated = [...draft.signOff];
-                    updated[i] = { ...updated[i], roleTitle: e.target.value };
-                    setDraft((d) => ({ ...d, signOff: updated }));
-                  }} placeholder="e.g. Internal Auditor" />
-                </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => {
-                  setDraft((d) => ({ ...d, signOff: d.signOff.filter((_, idx) => idx !== i) }));
-                }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => {
-            setDraft((d) => ({ ...d, signOff: [...d.signOff, { label: '', defaultName: '', roleTitle: '' }] }));
-          }}>
-            <Plus className="h-4 w-4 mr-1" /> Add Signatory
-          </Button>
-        </div>
-      </SettingsCard>
+      {/* Sign-off signatories are now managed per document template in the Sections panel */}
 
       {/* Draft & Final Rules */}
       <SettingsCard sectionKey="draftRules" open={openSections.draftRules} onToggle={toggleSection} title="Draft & Final Rules" icon={ShieldCheck}>
