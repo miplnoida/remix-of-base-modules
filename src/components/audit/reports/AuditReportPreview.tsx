@@ -11,7 +11,7 @@ import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
-import logo from '@/assets/stkitts-logo.png';
+import logo from '@/assets/ssb-logo.png';
 
 interface AuditReportPreviewProps {
   reportData: any;
@@ -344,7 +344,7 @@ export function AuditReportPreview({
               <div className="flex items-center justify-between">
                 <div>
                   {resolved.branding.showLogo && (
-                    <img src={resolvedLogoSrc} alt="Logo" className="h-14 mb-2 object-contain max-w-[200px]" />
+                    <img src={resolvedLogoSrc} alt="Logo" className="h-14 mb-2 object-contain brightness-0 invert" />
                   )}
                   <h1 className="text-lg font-bold tracking-wide">{resolved.branding.orgName}</h1>
                   <p className="text-sm opacity-80">{resolved.branding.country}</p>
