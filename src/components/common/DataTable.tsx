@@ -85,7 +85,7 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((col) => (
                 <TableHead key={col.key} className={col.className}>{col.header}</TableHead>
               ))}
-              {hasActions && <TableHead className="w-[100px] text-right">Actions</TableHead>}
+              {hasActions && <TableHead className="w-[120px] text-right sticky right-0 bg-muted z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
