@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, ChevronDown, ChevronUp, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TemplateSectionsPanel } from './TemplateSectionsPanel';
 
 /**
  * Management Response Report — Template Editor
@@ -107,6 +108,9 @@ export function ManagementResponseTemplateEditor() {
           Configure only management response–specific settings below.
         </AlertDescription>
       </Alert>
+
+      {/* DB-driven Section Visibility */}
+      <TemplateSectionsPanel documentType="mgmt_response" editable={true} />
 
       {/* Cover Page */}
       <SettingsCard title="Cover Page" cardKey="coverPage" open={openSections.coverPage} onToggle={toggleCard}>
