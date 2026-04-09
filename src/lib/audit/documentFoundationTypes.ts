@@ -164,6 +164,7 @@ export const DEFAULT_FOUNDATION: DocumentFoundationConfig = {
     tableStripe: '#F0F8F4',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
