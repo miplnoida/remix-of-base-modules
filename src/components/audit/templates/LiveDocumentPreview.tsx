@@ -158,6 +158,7 @@ function LivePlanPreview({
 }: LivePlanPreviewProps) {
   const [exporting, setExporting] = useState(false);
   const { sectionRefs: dbPlanSections } = useDocumentTemplateSections('audit_plan');
+  const { data: foundation } = useDocumentFoundation();
 
   const effectiveConfig = useMemo(
     () => applyPlanOverrides(baseConfig, overrides),
@@ -184,8 +185,9 @@ function LivePlanPreview({
       planData,
       outputMode,
       dbSectionOverrides,
+      foundation,
     }),
-    [effectiveConfig, planData, outputMode, dbSectionOverrides]
+    [effectiveConfig, planData, outputMode, dbSectionOverrides, foundation]
   );
 
   const hasOv = hasPlanOverrides(overrides);
