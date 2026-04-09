@@ -189,75 +189,8 @@ export function AuditReportTemplateEditor() {
           </div>
         </SettingsCard>
 
-        {/* Sections — references from Section Library */}
-        <SettingsCard title="Sections & Order" cardKey="sections" open={openSections.sections} onToggle={toggleCard}>
-          <p className="text-[10px] text-muted-foreground mb-3">
-            Sections are defined in the <strong>Section Library</strong>. Here you control which sections appear, their order, and optional label overrides for this template.
-          </p>
-          <div className="space-y-2">
-            {sortedSections.map((section) => (
-              <div key={section.id} className="flex items-center gap-3 p-2 rounded-md border bg-muted/30">
-                <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium">{section.labelOverride || section.label}</span>
-                    {section.required && (
-                      <Badge variant="secondary" className="text-[9px] h-4 px-1">Required</Badge>
-                    )}
-                    {section.labelOverride && (
-                      <span className="text-[10px] text-muted-foreground">(Library: {section.label})</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => updateSectionRef(section.id, { includeInToc: !(section.includeInToc ?? true) })}
-                            className={`flex items-center gap-0.5 text-[10px] ${(section.includeInToc ?? true) ? 'text-foreground/70' : 'text-muted-foreground/40'}`}
-                          >
-                            <BookOpen className="h-3 w-3" />
-                            TOC
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs">Include in Table of Contents</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => updateSectionRef(section.id, { startOnNewPage: !(section.startOnNewPage ?? false) })}
-                            className={`flex items-center gap-0.5 text-[10px] ${(section.startOnNewPage ?? false) ? 'text-foreground/70' : 'text-muted-foreground/40'}`}
-                          >
-                            <SeparatorHorizontal className="h-3 w-3" />
-                            New Page
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs">Start on new page</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(section.id, 'up')}>
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(section.id, 'down')}>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <Switch
-                  checked={section.enabled}
-                  disabled={section.required}
-                  onCheckedChange={(v) => updateSectionRef(section.id, { enabled: v })}
-                />
-              </div>
-            ))}
-          </div>
-        </SettingsCard>
+        {/* Sections — DB-driven from Section Library + template mapping */}
+        <TemplateSectionsPanel documentType="audit_report" editable={true} />
 
         {/* Findings Layout */}
         <SettingsCard title="Findings Layout" cardKey="findings" open={openSections.findings} onToggle={toggleCard}>
