@@ -165,59 +165,74 @@ export function renderCoverPage(
 ): number {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  const margin = 16;
+  const margin = 20;
 
   if (options.fullPageCover) {
     return renderFullCoverPage(doc, branding, options);
   }
 
-  // Band-style cover
-  doc.setFillColor(...branding.primaryColor);
-  doc.rect(0, 0, pw, 42, 'F');
-  doc.setFillColor(...branding.accentColor);
-  doc.rect(0, 42, pw, 2.5, 'F');
+  // ─── Clean white cover with thin accent lines ───
 
-  // Org name
-  doc.setTextColor(...branding.white);
-  doc.setFontSize(16);
+  // Top thin accent line
+  doc.setDrawColor(...branding.primaryColor);
+  doc.setLineWidth(1.5);
+  doc.line(margin, 18, pw - margin, 18);
+  doc.setDrawColor(...branding.accentColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, 21, pw - margin, 21);
+
+  // Org name — small caps style
+  let y = 34;
+  doc.setTextColor(...branding.primaryColor);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(branding.orgName.toUpperCase(), margin, 16);
+  doc.text(branding.orgName.toUpperCase(), margin, y);
+
+  // Country & department
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(branding.country, margin, 24);
-  doc.text(branding.department, margin, 32);
+  doc.setTextColor(...branding.mutedText);
+  doc.text(branding.country, margin, y + 7);
+  doc.text(branding.department, margin, y + 14);
 
-  // Address right
-  doc.setFontSize(7);
-  doc.text(branding.address, pw - margin, 16, { align: 'right' });
-  doc.text(`Tel: ${branding.phone}`, pw - margin, 22, { align: 'right' });
-
-  // Logo
+  // Logo on right
   if (branding.logoBase64) {
     try {
-      doc.addImage(branding.logoBase64, 'PNG', pw - margin - 30, 8, 26, 26);
+      doc.addImage(branding.logoBase64, 'PNG', pw - margin - 24, 24, 22, 22);
     } catch { /* ignore logo errors */ }
   }
 
-  // Title
-  let y = 64;
+  // Address right-aligned
+  doc.setFontSize(7);
+  doc.setTextColor(...branding.mutedText);
+  doc.text(branding.address, pw - margin, 52, { align: 'right' });
+  doc.text(`Tel: ${branding.phone}`, pw - margin, 58, { align: 'right' });
+
+  // Divider
+  y = 68;
+  doc.setDrawColor(210, 215, 220);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pw - margin, y);
+
+  // Title — large, clean
+  y = 88;
   doc.setTextColor(...branding.primaryColor);
-  doc.setFontSize(20);
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   const titleLines = doc.splitTextToSize(options.title, pw - margin * 2);
-  doc.text(titleLines, pw / 2, y, { align: 'center' });
-  y += titleLines.length * 10 + 8;
+  doc.text(titleLines, margin, y);
+  y += titleLines.length * 10 + 6;
 
   // Subtitle
   if (options.subtitle) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...branding.mutedText);
-    doc.text(options.subtitle, pw / 2, y, { align: 'center' });
+    doc.text(options.subtitle, margin, y);
     y += 14;
   }
 
-  // Metadata grid
+  // Metadata — two-column layout
   const allMeta = options.metadata || [];
   if (options.fiscalYear) allMeta.unshift({ label: 'Fiscal Year', value: options.fiscalYear });
   if (options.version) allMeta.push({ label: 'Version', value: options.version });
@@ -225,33 +240,34 @@ export function renderCoverPage(
   if (options.preparedBy) allMeta.push({ label: 'Prepared By', value: options.preparedBy });
 
   if (allMeta.length > 0) {
-    y += 4;
-    doc.setFontSize(8);
+    y += 8;
     const colWidth = (pw - margin * 2) / 2;
     allMeta.forEach((meta, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const xPos = margin + col * colWidth;
-      const yPos = y + row * 12;
+      const yPos = y + row * 14;
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...branding.mutedText);
-      doc.text(meta.label, xPos, yPos);
+      doc.text(meta.label.toUpperCase(), xPos, yPos);
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
       doc.setTextColor(...branding.darkText);
-      doc.text(meta.value, xPos, yPos + 5);
+      doc.text(meta.value, xPos, yPos + 6);
     });
-    y += Math.ceil(allMeta.length / 2) * 12 + 10;
+    y += Math.ceil(allMeta.length / 2) * 14 + 10;
   }
 
-  // Confidentiality
+  // Confidentiality footer
   if (options.showConfidentiality !== false) {
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(210, 215, 220);
     doc.setLineWidth(0.3);
     doc.line(margin, y, pw - margin, y);
     y += 6;
     doc.setFontSize(6.5);
     doc.setTextColor(...branding.mutedText);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'italic');
     doc.text(branding.confidentialityText, pw / 2, y, { align: 'center' });
   }
 
