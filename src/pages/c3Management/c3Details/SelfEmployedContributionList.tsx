@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Search, Eye, Trash2, CheckCircle2, Printer, Home } from 'lucide-react';
+import { Search, Eye, Trash2, CheckCircle2, Printer, Home, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -16,11 +16,13 @@ import {
   getSelfEmployedDropdown,
   deleteContribution,
   getSeContributionPreview,
+  resyncPayment,
   type SeContributionRecord,
   type SelfEmployedDropdownItem,
 } from '@/services/wizC3DetailsService';
 import SeContributionPreview from './previews/SeContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
+import { BIMASourceIndicator } from '@/components/c3/BIMASourceIndicator';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
@@ -52,6 +54,10 @@ const SelfEmployedContributionList: React.FC = () => {
   // Receipt modal (Paid button)
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptModalRecord, setReceiptModalRecord] = useState<SeContributionRecord | null>(null);
+
+  // Resync state
+  const [resyncConfirmRecord, setResyncConfirmRecord] = useState<SeContributionRecord | null>(null);
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     getSelfEmployedDropdown().then(res => setSeList(res.data?.self_employed || [])).catch(() => {});
@@ -119,6 +125,21 @@ const SelfEmployedContributionList: React.FC = () => {
   const handlePaid = (record: SeContributionRecord) => {
     setReceiptModalRecord(record);
     setReceiptModalOpen(true);
+  };
+
+  const handleResync = async () => {
+    if (!resyncConfirmRecord?.payment_id) return;
+    setResyncing(true);
+    try {
+      await resyncPayment(resyncConfirmRecord.payment_id);
+      toast.success('Payment resync initiated successfully');
+      setResyncConfirmRecord(null);
+      handleSearch();
+    } catch (err: any) {
+      toast.error(err.message || 'Resync failed');
+    } finally {
+      setResyncing(false);
+    }
   };
 
   return (
@@ -253,38 +274,47 @@ const SelfEmployedContributionList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {c.payment_status === 'Paid' ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
-                              onClick={() => handlePaid(c)}
-                              title="Download Payment Receipt"
+                          {c.has_sync_error ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-orange-400 text-orange-600 text-xs h-7 gap-1"
+                              onClick={() => setResyncConfirmRecord(c)}
                             >
-                              Paid <Printer className="h-3 w-3 text-green-600" />
-                            </span>
-                          ) : c.payment_status === 'Partial' ? (
-                            <div className="flex flex-col items-start gap-0.5">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-blue-500 text-blue-600 text-xs h-7"
-                                onClick={() => handlePayment(c)}
-                              >
-                                Payment
-                              </Button>
-                              <span className="text-[10px] text-orange-600 font-medium">
-                                Pending: {formatCurrency(c.pending_amount ?? 0)}
-                              </span>
-                            </div>
-                          ) : c.payment_status === '$ Pay' ? (
-                            <Button variant="outline" size="sm" className="border-blue-500 text-blue-600 text-xs h-7"
-                              onClick={() => handlePayment(c)}>
-                              Payment
+                              <RefreshCw className="h-3 w-3" /> Resync
                             </Button>
-                          ) : null}
-                          {c.is_imported_from_bema && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border ml-1">
-                              BIMA
-                            </span>
+                          ) : (
+                            <>
+                              {c.payment_status === 'Paid' ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs text-muted-foreground cursor-pointer hover:bg-muted/50"
+                                  onClick={() => handlePaid(c)}
+                                  title="Download Payment Receipt"
+                                >
+                                  Paid <Printer className="h-3 w-3 text-green-600" />
+                                </span>
+                              ) : c.payment_status === 'Partial' ? (
+                                <div className="flex flex-col items-start gap-0.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-blue-500 text-blue-600 text-xs h-7"
+                                    onClick={() => handlePayment(c)}
+                                  >
+                                    Payment
+                                  </Button>
+                                  <span className="text-[10px] text-orange-600 font-medium">
+                                    Pending: {formatCurrency(c.pending_amount ?? 0)}
+                                  </span>
+                                </div>
+                              ) : c.payment_status === '$ Pay' ? (
+                                <Button variant="outline" size="sm" className="border-blue-500 text-blue-600 text-xs h-7"
+                                  onClick={() => handlePayment(c)}>
+                                  Payment
+                                </Button>
+                              ) : null}
+                              {c.is_imported_from_bema && <BIMASourceIndicator />}
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -304,6 +334,25 @@ const SelfEmployedContributionList: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting...' : 'Delete'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resync Confirmation */}
+      <Dialog open={resyncConfirmRecord !== null} onOpenChange={(open) => !open && setResyncConfirmRecord(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Confirm Resync</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Retry syncing payment #{resyncConfirmRecord?.payment_id} to SSB Admin?
+          </p>
+          {resyncConfirmRecord?.sync_error_message && (
+            <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+              Last error: {resyncConfirmRecord.sync_error_message}
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResyncConfirmRecord(null)}>Cancel</Button>
+            <Button onClick={handleResync} disabled={resyncing}>{resyncing ? 'Resyncing...' : 'Resync'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
