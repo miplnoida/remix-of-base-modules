@@ -71,7 +71,7 @@ export function useMeetingEditData(
 
       const { error } = await supabase
         .from('meeting_edit_data')
-        .upsert(payload, { onConflict: 'meeting_id,data_type' });
+        .upsert(payload as any, { onConflict: 'meeting_id,data_type' });
 
       if (error) throw error;
     },
