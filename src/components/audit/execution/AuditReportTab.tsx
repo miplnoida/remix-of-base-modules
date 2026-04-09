@@ -318,6 +318,7 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
         actions={auditActions}
         engagement={audit}
         departmentName={departmentName}
+        dbSectionRefs={dbSectionRefs}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />

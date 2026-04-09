@@ -302,6 +302,7 @@ export function AuditReportBuilderStudio() {
         engagement={selectedEngagement}
         departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
         templateConfig={effectiveTemplateConfig}
+        dbSectionRefs={dbSectionRefs}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />
