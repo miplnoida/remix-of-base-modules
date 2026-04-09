@@ -19,7 +19,7 @@ import {
 } from '@/lib/audit/auditExportPrimitives';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
-import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
+import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 
 interface PDFExportParams {
@@ -30,12 +30,18 @@ interface PDFExportParams {
   engagement?: any;
   departmentName?: string;
   templateConfig?: AuditReportTemplateConfig;
+  /** DB-driven section configuration */
+  dbSectionRefs?: TemplateSectionRef[];
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs,
 }: PDFExportParams) {
-  const config = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
+  // If DB sections are provided, inject them into the config
+  const config = dbSectionRefs && dbSectionRefs.length > 0
+    ? { ...baseConfig, sectionRefs: dbSectionRefs, sections: dbSectionRefs }
+    : baseConfig;
   const resolved = resolveReportTemplate(config, reportData.status);
   const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
   const doc = new jsPDF({ orientation: 'portrait' });
