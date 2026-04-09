@@ -67,6 +67,7 @@ import { checkWorkflowEligibility, type WorkflowEligibilityResult } from '@/serv
 import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
+import { useMeetingEditData } from '@/hooks/useMeetingEditData';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
