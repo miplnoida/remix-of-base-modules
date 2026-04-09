@@ -111,7 +111,7 @@ export function DataTable<T extends Record<string, any>>({
                     </TableCell>
                   ))}
                   {hasActions && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">
                       <div className="flex items-center justify-end gap-1">
                         {renderActions ? renderActions(row) : (
                           <>
