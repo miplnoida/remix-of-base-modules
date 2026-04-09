@@ -24,6 +24,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from '@/components/audit/reports/AuditReportPreview';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 import { AuditFindingCard } from '@/components/audit/reports/AuditFindingCard';
 import { AuditReportWorkflowBar } from '@/components/audit/reports/AuditReportWorkflowBar';
 import { ManagementResponseReportPreview } from '@/components/audit/reports/ManagementResponseReportPreview';
