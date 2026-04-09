@@ -18676,9 +18676,11 @@ export type Database = {
           artifact_version_number: number | null
           assigned_auditor: string | null
           audit_scope: string | null
+          auditor_count: number | null
           auto_notify_on_approval: boolean | null
           board_committee_name: string | null
           board_pack_status: string | null
+          buffer_pct: number | null
           closed_by: string | null
           closed_date: string | null
           committee_email_proof_url: string | null
@@ -18709,6 +18711,7 @@ export type Database = {
           methodology: string | null
           methodology_notes: string | null
           minutes_reference: string | null
+          monthly_working_hours: number | null
           objective: string | null
           outsourced_support_notes: string | null
           plan_owner: string | null
@@ -18735,6 +18738,7 @@ export type Database = {
           total_department_audits: number | null
           updated_at: string | null
           updated_by: string | null
+          utilization_pct: number | null
           workflow_instance_id: string | null
         }
         Insert: {
@@ -18745,9 +18749,11 @@ export type Database = {
           artifact_version_number?: number | null
           assigned_auditor?: string | null
           audit_scope?: string | null
+          auditor_count?: number | null
           auto_notify_on_approval?: boolean | null
           board_committee_name?: string | null
           board_pack_status?: string | null
+          buffer_pct?: number | null
           closed_by?: string | null
           closed_date?: string | null
           committee_email_proof_url?: string | null
@@ -18778,6 +18784,7 @@ export type Database = {
           methodology?: string | null
           methodology_notes?: string | null
           minutes_reference?: string | null
+          monthly_working_hours?: number | null
           objective?: string | null
           outsourced_support_notes?: string | null
           plan_owner?: string | null
@@ -18804,6 +18811,7 @@ export type Database = {
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          utilization_pct?: number | null
           workflow_instance_id?: string | null
         }
         Update: {
@@ -18814,9 +18822,11 @@ export type Database = {
           artifact_version_number?: number | null
           assigned_auditor?: string | null
           audit_scope?: string | null
+          auditor_count?: number | null
           auto_notify_on_approval?: boolean | null
           board_committee_name?: string | null
           board_pack_status?: string | null
+          buffer_pct?: number | null
           closed_by?: string | null
           closed_date?: string | null
           committee_email_proof_url?: string | null
@@ -18847,6 +18857,7 @@ export type Database = {
           methodology?: string | null
           methodology_notes?: string | null
           minutes_reference?: string | null
+          monthly_working_hours?: number | null
           objective?: string | null
           outsourced_support_notes?: string | null
           plan_owner?: string | null
@@ -18873,6 +18884,7 @@ export type Database = {
           total_department_audits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          utilization_pct?: number | null
           workflow_instance_id?: string | null
         }
         Relationships: [

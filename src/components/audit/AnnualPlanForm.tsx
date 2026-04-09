@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Calendar, FileText, Users, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { Loader2, Calendar, FileText, Users, ChevronRight, ChevronLeft, Check, BarChart3 } from 'lucide-react';
+import { calculateCapacity, type CapacityConfig } from '@/lib/audit/capacityPlanner';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ interface AnnualPlanFormProps {
 const STEPS = [
   { id: 'header', label: 'Plan Details', icon: Calendar, description: 'Fiscal year & title' },
   { id: 'narrative', label: 'Planning Narrative', icon: FileText, description: 'Strategy & methodology' },
+  { id: 'capacity', label: 'Team Capacity', icon: BarChart3, description: 'Capacity & utilization' },
   { id: 'resources', label: 'Resource Notes', icon: Users, description: 'Constraints & notes' },
 ];
 
@@ -44,6 +46,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
     outsourcedSupportNotes: plan?.outsourced_support_notes || '',
     skillsConstraints: plan?.skills_constraints || '',
     boardCommitteeName: plan?.board_committee_name || '',
+    auditorCount: plan?.auditor_count || '',
+    monthlyWorkingHours: plan?.monthly_working_hours || '160',
+    utilizationPct: plan?.utilization_pct || '85',
+    bufferPct: plan?.buffer_pct || '10',
   });
 
   const set = (key: string, value: string) => setFormData(prev => ({ ...prev, [key]: value }));
@@ -63,6 +69,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       outsourced_support_notes: formData.outsourcedSupportNotes,
       skills_constraints: formData.skillsConstraints,
       board_committee_name: formData.boardCommitteeName,
+      auditor_count: formData.auditorCount ? Number(formData.auditorCount) : null,
+      monthly_working_hours: formData.monthlyWorkingHours ? Number(formData.monthlyWorkingHours) : 160,
+      utilization_pct: formData.utilizationPct ? Number(formData.utilizationPct) : 85,
+      buffer_pct: formData.bufferPct ? Number(formData.bufferPct) : 10,
       status,
     };
     if (!plan) {
@@ -254,21 +264,99 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
         {currentStep === 2 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">Resource Notes & Constraints</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Team Capacity Configuration</h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Capacity totals (days, weeks, utilization) are <strong>auto-calculated</strong> from your engagements. 
-                Use this section for qualitative notes only.
+                Define team size and capacity parameters. These drive effort-based planning and balanced quarter allocation.
               </p>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
-              <p className="text-xs font-medium text-foreground">How resource capacity works:</p>
-              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                <li><strong>Total Planned Days & Weeks</strong> — summed automatically from all engagements in this plan.</li>
-                <li><strong>Available Days</strong> — calculated from the number of auditors in your department × working days in the fiscal year.</li>
-                <li><strong>Contingency</strong> — reserved automatically as a percentage of available capacity (configurable in Audit Settings). Default is 10%.</li>
-                <li><strong>Utilization %</strong> — shown in the plan Overview once engagements are added.</li>
-              </ul>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Number of Auditors <span className="text-destructive">*</span></Label>
+                <Input type="number" min="1" max="50" value={formData.auditorCount} onChange={e => set('auditorCount', e.target.value)} placeholder="e.g. 5" />
+                <p className="text-[10px] text-muted-foreground">Available for this plan year</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Monthly Hours / Auditor</Label>
+                <Input type="number" min="40" max="200" value={formData.monthlyWorkingHours} onChange={e => set('monthlyWorkingHours', e.target.value)} placeholder="160" />
+                <p className="text-[10px] text-muted-foreground">Working hours per month</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Target Utilization %</Label>
+                <Input type="number" min="50" max="100" value={formData.utilizationPct} onChange={e => set('utilizationPct', e.target.value)} placeholder="85" />
+                <p className="text-[10px] text-muted-foreground">% of time on audit work</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Buffer / Contingency %</Label>
+                <Input type="number" min="0" max="30" value={formData.bufferPct} onChange={e => set('bufferPct', e.target.value)} placeholder="10" />
+                <p className="text-[10px] text-muted-foreground">Reserved for ad-hoc work</p>
+              </div>
+            </div>
+
+            {/* Live capacity preview */}
+            {formData.auditorCount && Number(formData.auditorCount) > 0 && (() => {
+              const capConfig: CapacityConfig = {
+                auditorCount: Number(formData.auditorCount) || 0,
+                monthlyWorkingHours: Number(formData.monthlyWorkingHours) || 160,
+                utilizationPct: Number(formData.utilizationPct) || 85,
+                bufferPct: Number(formData.bufferPct) || 10,
+              };
+              const cap = calculateCapacity(capConfig);
+              return (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                  <p className="text-xs font-medium text-primary">Computed Capacity Preview</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block">Annual Gross Hours</span>
+                      <span className="font-semibold text-foreground">{cap.annualGrossHours.toLocaleString()}h</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Effective (after util.)</span>
+                      <span className="font-semibold text-foreground">{cap.annualEffectiveHours.toLocaleString()}h</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Net Available</span>
+                      <span className="font-semibold text-primary">{cap.annualNetHours.toLocaleString()}h</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Buffer Reserved</span>
+                      <span className="font-semibold text-amber-600">{cap.bufferHours.toLocaleString()}h</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-primary/10 pt-2 grid grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block">Quarterly Net</span>
+                      <span className="font-semibold">{cap.quarterlyNetHours.toLocaleString()}h / quarter</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Per Auditor / Year</span>
+                      <span className="font-semibold">{cap.perAuditorAnnualHours.toLocaleString()}h</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Per Auditor / Quarter</span>
+                      <span className="font-semibold">{cap.perAuditorQuarterlyHours.toLocaleString()}h</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">
+                <strong>Formula:</strong> Net Capacity = Auditors × Monthly Hours × 12 × Utilization% − Buffer%. 
+                Quarterly capacity is divided evenly. Engagements are compared against quarterly capacity in the Capacity & Schedule tab.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 3 && (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Resource Notes & Constraints</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Qualitative notes about resource constraints, outsourced support, and skill gaps.
+              </p>
             </div>
 
             <div className="space-y-4">

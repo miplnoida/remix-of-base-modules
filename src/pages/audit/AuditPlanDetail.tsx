@@ -4,7 +4,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit, Send, Undo2 } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, AlertTriangle, ShieldCheck, Edit, Send, Undo2, BarChart3 } from 'lucide-react';
+import { configFromPlan, calculateCapacity, analyzeDistribution, getEngagementHours } from '@/lib/audit/capacityPlanner';
 import { useIAAnnualPlans, useIAAnnualPlanMutations, useIADepartments, useIAAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIAPlanChangeLog, useIAPlanChangeLogMutations, useIAPlanEngagements } from '@/hooks/useAuditPlanChangeLog';
 import { EngagementBuilder } from '@/components/audit/EngagementBuilder';
@@ -295,53 +296,54 @@ export default function AuditPlanDetail() {
               {/* Resource & Governance Summary */}
               <div className="grid gap-4 md:grid-cols-2 mt-4">
               <Card>
-                  <CardHeader><CardTitle className="text-sm">Resource Summary (Auto-Computed)</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-sm">Resource & Capacity Summary</CardTitle></CardHeader>
                   <CardContent>
-                    <DetailRow label="Total Planned Days" value={stats.totalDays > 0 ? `${stats.totalDays} days` : 'No engagements yet'} />
-                    <DetailRow label="Total Planned Weeks" value={stats.totalWeeks > 0 ? `${stats.totalWeeks} weeks` : '—'} />
-                    <DetailRow label="Unique Resources Assigned" value={(() => {
-                      const resourceSet = new Set<string>();
-                      (engagements || []).forEach((e: any) => {
-                        if (e.lead_auditor) resourceSet.add(e.lead_auditor);
-                        if (e.support_auditors) {
-                          const arr = typeof e.support_auditors === 'string' ? e.support_auditors.split(',') : (Array.isArray(e.support_auditors) ? e.support_auditors : []);
-                          arr.forEach((a: string) => { if (a.trim()) resourceSet.add(a.trim()); });
-                        }
-                      });
-                      return resourceSet.size > 0 ? `${resourceSet.size} auditor(s)` : '—';
-                    })()} />
-                    <DetailRow label="Available Days (Team)" value={(() => {
-                      const resourceSet = new Set<string>();
-                      (engagements || []).forEach((e: any) => {
-                        if (e.lead_auditor) resourceSet.add(e.lead_auditor);
-                      });
-                      const auditorCount = Math.max(resourceSet.size, 1);
-                      const workingDaysPerYear = 240;
-                      return stats.total > 0 ? `~${auditorCount * workingDaysPerYear} days (${auditorCount} × ${workingDaysPerYear})` : 'Add engagements to calculate';
-                    })()} />
-                    <DetailRow label="Contingency (10%)" value={(() => {
-                      const resourceSet = new Set<string>();
-                      (engagements || []).forEach((e: any) => { if (e.lead_auditor) resourceSet.add(e.lead_auditor); });
-                      const available = Math.max(resourceSet.size, 1) * 240;
-                      const contingency = Math.round(available * 0.1);
-                      const netAvailable = available - contingency;
-                      return stats.total > 0 ? `${contingency} days reserved (${netAvailable} net available)` : '—';
-                    })()} />
-                    {stats.total > 0 && (() => {
-                      const resourceSet = new Set<string>();
-                      (engagements || []).forEach((e: any) => { if (e.lead_auditor) resourceSet.add(e.lead_auditor); });
-                      const available = Math.max(resourceSet.size, 1) * 240;
-                      const contingency = Math.round(available * 0.1);
-                      const net = available - contingency;
-                      const utilPct = net > 0 ? Math.round((stats.totalDays / net) * 100) : 0;
+                    {(() => {
+                      const capConfig = configFromPlan(plan);
+                      const hasCapacity = capConfig.auditorCount > 0;
+                      const totalHours = (engagements || []).reduce((s: number, e: any) => s + getEngagementHours(e), 0);
+                      
+                      if (hasCapacity) {
+                        const cap = calculateCapacity(capConfig);
+                        const dist = analyzeDistribution(capConfig, engagements || []);
+                        return (
+                          <>
+                            <DetailRow label="Team Size" value={`${capConfig.auditorCount} auditor(s)`} />
+                            <DetailRow label="Annual Net Capacity" value={`${cap.annualNetHours.toLocaleString()}h`} />
+                            <DetailRow label="Total Planned Hours" value={totalHours > 0 ? `${totalHours.toLocaleString()}h` : 'No engagements yet'} />
+                            <DetailRow label="Total Planned Days" value={stats.totalDays > 0 ? `${stats.totalDays} days` : '—'} />
+                            <DetailRow label="Buffer Reserved" value={`${cap.bufferHours.toLocaleString()}h (${capConfig.bufferPct}%)`} />
+                            <DetailRow label="Overall Utilization" value={
+                              <span className={cn("font-semibold", dist.overallUtilization > 100 ? "text-destructive" : dist.overallUtilization > 85 ? "text-amber-600" : "text-primary")}>
+                                {dist.overallUtilization}%
+                              </span>
+                            } />
+                            <DetailRow label="Balance Score" value={
+                              <span className={cn("font-semibold", dist.isBalanced ? "text-green-600" : "text-amber-600")}>
+                                {dist.balanceScore}/100 {dist.isBalanced ? '✓' : '⚠'}
+                              </span>
+                            } />
+                            <div className="mt-3 space-y-1.5">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Utilization ({totalHours}h of {cap.annualNetHours}h)</span>
+                                <span className={cn("font-semibold", dist.overallUtilization > 100 ? "text-destructive" : "text-primary")}>{dist.overallUtilization}%</span>
+                              </div>
+                              <Progress value={Math.min(100, dist.overallUtilization)} className="h-2" />
+                            </div>
+                          </>
+                        );
+                      }
+                      
+                      // Fallback: no capacity config
                       return (
-                        <div className="mt-3 space-y-1.5">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Utilization ({stats.totalDays}d of {net}d net)</span>
-                            <span className={cn("font-semibold", utilPct > 95 ? "text-destructive" : utilPct > 80 ? "text-warning" : "text-primary")}>{utilPct}%</span>
+                        <>
+                          <DetailRow label="Total Planned Days" value={stats.totalDays > 0 ? `${stats.totalDays} days` : 'No engagements yet'} />
+                          <DetailRow label="Total Planned Hours" value={totalHours > 0 ? `${totalHours}h` : '—'} />
+                          <div className="mt-3 p-2 rounded border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 text-xs text-amber-700 dark:text-amber-400">
+                            <BarChart3 className="h-3.5 w-3.5 inline mr-1" />
+                            Configure <strong>Team Capacity</strong> in plan settings to enable effort-based planning.
                           </div>
-                          <Progress value={Math.min(100, utilPct)} className="h-2" />
-                        </div>
+                        </>
                       );
                     })()}
                     {plan.resource_constraints && (
@@ -385,7 +387,7 @@ export default function AuditPlanDetail() {
 
         {/* Capacity & Schedule Tab */}
         <TabsContent value="capacity">
-          <CapacityCalendarPanel planId={id!} />
+          <CapacityCalendarPanel planId={id!} plan={plan} />
         </TabsContent>
 
         {/* Auto Plan Tab */}
