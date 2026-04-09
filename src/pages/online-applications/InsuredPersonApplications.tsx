@@ -7,13 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Users, Filter, RefreshCw, Eye, CheckCircle, XCircle, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Users, Filter, RefreshCw, Eye, AlertTriangle, Info, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { useInsuredPersonApplications, useApproveApplication, useRejectApplication, InsuredPersonApplication } from '@/hooks/useOnlineApplications';
+import { useInsuredPersonApplications } from '@/hooks/useOnlineApplications';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getStatusVariant, formatStatusDisplay } from '@/types/externalApplication';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -30,13 +28,6 @@ export default function InsuredPersonApplications() {
   const [refFilter, setRefFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('Pending');
   
-  // Action dialog state
-  const [actionDialog, setActionDialog] = useState<{
-    open: boolean;
-    type: 'approve' | 'reject';
-    application: InsuredPersonApplication | null;
-  }>({ open: false, type: 'approve', application: null });
-  const [actionRemarks, setActionRemarks] = useState('');
 
   // Fetch applications from external API
   const { 
@@ -48,12 +39,6 @@ export default function InsuredPersonApplications() {
     dataUpdatedAt 
   } = useInsuredPersonApplications();
 
-  const approveApplication = useApproveApplication();
-  const rejectApplication = useRejectApplication();
-
-  const isAdmin = user?.role === 'admin' || hasPermission('system_administration');
-  const isOfficer = hasPermission('process_claims') || hasPermission('approve_benefits');
-  const canApprove = isAdmin || isOfficer;
 
   const getStatusBadge = (status: string) => {
     return <Badge variant={getStatusVariant(status)}>{formatStatusDisplay(status)}</Badge>;
@@ -125,36 +110,6 @@ export default function InsuredPersonApplications() {
     resetPagination();
   }, [nameFilter, refFilter, statusFilter]);
 
-  const handleApprove = (application: InsuredPersonApplication) => {
-    setActionDialog({ open: true, type: 'approve', application });
-    setActionRemarks('');
-  };
-
-  const handleReject = (application: InsuredPersonApplication) => {
-    setActionDialog({ open: true, type: 'reject', application });
-    setActionRemarks('');
-  };
-
-  const handleConfirmAction = async () => {
-    if (!actionDialog.application) return;
-
-    const applicationRef = actionDialog.application.referenceNumber || actionDialog.application.applicationId;
-
-    if (actionDialog.type === 'approve') {
-      await approveApplication.mutateAsync({
-        applicationId: applicationRef,
-        remarks: actionRemarks,
-      });
-    } else {
-      await rejectApplication.mutateAsync({
-        applicationId: applicationRef,
-        remarks: actionRemarks,
-      });
-    }
-
-    setActionDialog({ open: false, type: 'approve', application: null });
-    setActionRemarks('');
-  };
 
   if (isLoading) {
     return (
@@ -398,28 +353,6 @@ export default function InsuredPersonApplications() {
                               <Eye className="h-4 w-4" />
                               View
                             </Button>
-                            {canApprove && app.status?.toLowerCase() === 'pending' && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="gap-1 text-primary hover:text-primary/80"
-                                  onClick={() => handleApprove(app)}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  Approve
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="gap-1 text-destructive hover:text-destructive"
-                                  onClick={() => handleReject(app)}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  Reject
-                                </Button>
-                              </>
-                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -447,76 +380,6 @@ export default function InsuredPersonApplications() {
         </CardContent>
       </Card>
 
-      {/* Approve/Reject Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
-        onOpenChange={(open) => !open && setActionDialog({ open: false, type: 'approve', application: null })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {actionDialog.type === 'approve' ? (
-                <CheckCircle className="h-5 w-5 text-primary" />
-              ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'} Application
-            </DialogTitle>
-            <DialogDescription>
-              {actionDialog.type === 'approve' 
-                ? 'This will approve the application and notify the applicant.'
-                : 'This will reject the application. Please provide a reason.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">Reference No: {actionDialog.application?.referenceNumber || actionDialog.application?.applicationId}</p>
-              <p className="text-sm text-muted-foreground">
-                {actionDialog.application?.fullName}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="remarks">
-                Remarks {actionDialog.type === 'reject' && <span className="text-destructive">*</span>}
-              </Label>
-              <Textarea
-                id="remarks"
-                value={actionRemarks}
-                onChange={(e) => setActionRemarks(e.target.value)}
-                placeholder={actionDialog.type === 'approve' 
-                  ? 'Optional remarks for the approval...'
-                  : 'Please provide a reason for rejection...'}
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setActionDialog({ open: false, type: 'approve', application: null })}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={actionDialog.type === 'approve' ? 'default' : 'destructive'}
-              onClick={handleConfirmAction}
-              disabled={
-                (actionDialog.type === 'reject' && !actionRemarks.trim()) ||
-                approveApplication.isPending ||
-                rejectApplication.isPending
-              }
-            >
-              {(approveApplication.isPending || rejectApplication.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {actionDialog.type === 'approve' ? 'Approve' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
