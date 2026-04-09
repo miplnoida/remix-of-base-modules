@@ -288,7 +288,7 @@ function renderSectionPage(
   let y = ctx.marginT + 20;
 
   // Approval block
-  if (page.sectionId === 'approval_signoff' && mapped.approval.signatories.length > 0) {
+  if ((page.sectionId === 'approval' || page.sectionId === 'approval_signoff') && mapped.approval.signatories.length > 0) {
     renderApprovalBlock(doc, plan, { y, marginL: ctx.marginL, contentW: ctx.contentW, textColor: ctx.textColor, primaryColor: ctx.primaryColor });
     return;
   }

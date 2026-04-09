@@ -722,10 +722,7 @@ async function generateDetailedPlanPdf(
     y = addKvTable(doc, y, govRows, branding);
 
     // Sign-off placeholders — only if approval section is enabled in template
-    const shouldRenderApprovalSection = approvalSectionEnabled ?? (
-      !planTemplateConfig?.sections?.sections ||
-      planTemplateConfig.sections.sections.some((s: any) => s.id === 'approval' || s.id === 'approval_signoff')
-    );
+    const shouldRenderApprovalSection = approvalSectionEnabled === true;
     if (shouldRenderApprovalSection) {
       y += 10;
       doc.setFontSize(9);
