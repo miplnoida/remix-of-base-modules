@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type {
@@ -230,7 +231,7 @@ export function useTriggerMeetingApi() {
 export function useStartMeeting() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useBlockingMutation({
     mutationKey: ['Workflow', 'meetings', 'status_change'],
     mutationFn: async ({ meetingId }: { meetingId: string }) => {
       // Send client's local date/time so the edge function stores business time correctly
@@ -275,14 +276,14 @@ export function useStartMeeting() {
       console.error('Start meeting error:', error);
       toast.error(error.message || 'Failed to start meeting');
     }
-  });
+  }, 'Starting meeting...');
 }
 
 // Cancel a meeting
 export function useCancelMeeting() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useBlockingMutation({
     mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async ({ meetingId, remarks }: { meetingId: string; remarks: string }) => {
       const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
@@ -311,14 +312,14 @@ export function useCancelMeeting() {
       console.error('Cancel meeting error:', error);
       toast.error(error.message || 'Failed to cancel meeting');
     }
-  });
+  }, 'Cancelling meeting...');
 }
 
 // Reschedule a meeting
 export function useRescheduleMeeting() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useBlockingMutation({
     mutationKey: ['Workflow', 'meetings', 'mutation'],
     mutationFn: async ({ 
       meetingId, 
@@ -385,14 +386,14 @@ export function useRescheduleMeeting() {
       console.error('Schedule next meeting error:', error);
       toast.error(error.message || 'Failed to schedule next meeting');
     }
-  });
+  }, 'Rescheduling meeting...');
 }
 
 // Close meeting with approval (from Start Meeting page) — direct Supabase queries
 export function useCloseMeetingWithApproval() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useBlockingMutation({
     mutationKey: ['Workflow', 'meetings', 'approve'],
     mutationFn: async ({ 
       meetingId, 
@@ -480,14 +481,14 @@ export function useCloseMeetingWithApproval() {
       console.error('Close meeting accepted error:', error);
       toast.error(error.message || 'Failed to accept application');
     }
-  });
+  }, 'Approving application...');
 }
 
 // Close meeting with rejection (from Start Meeting page) — direct Supabase queries
 export function useCloseMeetingWithRejection() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useBlockingMutation({
     mutationKey: ['Workflow', 'meetings', 'reject'],
     mutationFn: async ({ 
       meetingId, 
@@ -573,7 +574,7 @@ export function useCloseMeetingWithRejection() {
       console.error('Close meeting rejected error:', error);
       toast.error(error.message || 'Failed to reject application');
     }
-  });
+  }, 'Rejecting application...');
 }
 
 // Fetch workflow action types
