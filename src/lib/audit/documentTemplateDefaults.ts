@@ -152,7 +152,12 @@ export type AuditPlanTemplateConfig = AuditPlanFullTemplateConfig;
 
 // ─── Defaults ───
 
-const DEFAULT_SECTION_REFS: TemplateSectionRef[] = [
+/**
+ * @deprecated Hardcoded section list — sections should come from Section Library (DB).
+ * Kept only as a last-resort fallback if the library query fails.
+ * Templates should populate sectionRefs from ia_document_section_library at load time.
+ */
+const FALLBACK_SECTION_REFS: TemplateSectionRef[] = [
   { id: 'executive_summary', label: 'Executive Summary', enabled: true, order: 1 },
   { id: 'background', label: 'Audit Background', enabled: true, order: 2 },
   { id: 'objective', label: 'Audit Objective', enabled: true, order: 3 },
@@ -178,9 +183,9 @@ export const DEFAULT_AUDIT_REPORT_CONFIG: AuditReportTemplateConfig = {
       'This document is the property of the Social Security Board, St. Kitts and Nevis. It contains confidential information intended solely for the use of the addressee. Unauthorized distribution, copying, or disclosure is strictly prohibited.',
     fieldOrder: ['fiscal_year', 'department', 'report_number', 'date', 'prepared_by', 'version'],
   },
-  sectionRefs: DEFAULT_SECTION_REFS,
+  sectionRefs: FALLBACK_SECTION_REFS,
   // Legacy alias for backward compat
-  sections: DEFAULT_SECTION_REFS,
+  sections: FALLBACK_SECTION_REFS,
   findingsLayout: {
     showManagementResponseAfterRecommendation: false,
     detailedFindingFields: ['criteria', 'condition', 'cause', 'effect', 'recommendation'],

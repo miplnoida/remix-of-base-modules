@@ -6,13 +6,15 @@
  * consume these primitives to ensure consistent branding, colors, typography,
  * page structure, headers, footers, tables, and watermarks.
  *
- * IMPORTANT: No audit export should use SSB_BRAND or hardcoded colors directly.
- * Instead, call these functions with an ExportBranding object resolved from
- * the active template/profile configuration.
+ * ARCHITECTURE: Export branding should be resolved from the Document Foundation.
+ * Use `brandingFromFoundation()` to convert Foundation config into ExportBranding.
+ * The `DEFAULT_AUDIT_BRANDING` constant is a fallback only — Foundation is the
+ * single source of truth for organization-wide formatting.
  */
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { DocumentFoundationConfig } from './documentFoundationTypes';
 
 // ─── Branding Config (resolved from template) ───
 
@@ -44,8 +46,8 @@ export interface ExportBranding {
 }
 
 /**
- * Default SSB branding — Navy/Gold professional palette.
- * Avoids green-heavy styling per formatting engine guidelines.
+ * @deprecated Use `brandingFromFoundation()` instead.
+ * Hardcoded fallback — Foundation is the single source of truth.
  */
 export const DEFAULT_AUDIT_BRANDING: ExportBranding = {
   orgName: 'Social Security Board',
@@ -64,6 +66,30 @@ export const DEFAULT_AUDIT_BRANDING: ExportBranding = {
   confidentialityText: 'CONFIDENTIAL — This document contains information intended solely for the use of the addressee.',
   logoBase64: null,
 };
+
+/**
+ * Build ExportBranding from the Document Foundation config.
+ * This is the PREFERRED factory — Foundation is the single source of truth.
+ */
+export function brandingFromFoundation(foundation: DocumentFoundationConfig): ExportBranding {
+  return {
+    orgName: foundation.branding.orgName || DEFAULT_AUDIT_BRANDING.orgName,
+    country: foundation.branding.country || DEFAULT_AUDIT_BRANDING.country,
+    department: 'Internal Audit Department',
+    address: foundation.branding.address || DEFAULT_AUDIT_BRANDING.address,
+    phone: foundation.branding.phone || DEFAULT_AUDIT_BRANDING.phone,
+    website: DEFAULT_AUDIT_BRANDING.website,
+    primaryColor: hexToRgb(foundation.colorPalette.primary),
+    accentColor: hexToRgb(foundation.colorPalette.gold || foundation.colorPalette.secondary),
+    altRowColor: hexToRgb(foundation.tableStyle.stripeColor),
+    white: [255, 255, 255],
+    lightGray: [248, 250, 252],
+    darkText: hexToRgb(foundation.colorPalette.text),
+    mutedText: [128, 128, 128],
+    confidentialityText: foundation.branding.confidentialLabel || DEFAULT_AUDIT_BRANDING.confidentialityText,
+    logoBase64: foundation.branding.logoSource !== 'default' ? foundation.branding.logoSource : null,
+  };
+}
 
 /**
  * Build ExportBranding from an AuditReportTemplateConfig branding block.

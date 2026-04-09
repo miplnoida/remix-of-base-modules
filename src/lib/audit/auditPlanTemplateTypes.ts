@@ -219,20 +219,29 @@ export interface AuditPlanColumnConfig {
 }
 
 // ─── Root Template Config ───
+// NOTE: branding, pagination, pageLayout, approval, tableStyle, and typography
+// are FOUNDATION-OWNED settings. They exist in this interface for backward
+// compatibility with stored configs, but the resolver ALWAYS sources them
+// from Foundation at render time. Templates cannot override these.
 
 export interface AuditPlanFullTemplateConfig {
-  // Formatting
+  /** @deprecated Foundation-owned. Present for stored-config compatibility. Resolver ignores. */
   branding: AuditPlanBranding;
   coverPage: AuditPlanCoverPageConfig;
   toc: AuditPlanTocConfig;
+  /** @deprecated Foundation-owned. Resolver uses Foundation values. */
   pagination: AuditPlanPaginationConfig;
+  /** @deprecated Foundation-owned. Resolver uses Foundation values. */
   pageLayout: AuditPlanPageLayout;
   sections: AuditPlanSection[];
+  /** @deprecated Foundation-owned (signatories). Resolver uses Foundation sign-off. */
   approval: AuditPlanApprovalConfig;
+  /** @deprecated Foundation-owned. Resolver uses Foundation values. */
   tableStyle: AuditPlanTableStyle;
+  /** @deprecated Foundation-owned. Resolver uses Foundation values. */
   typography: AuditPlanTypography;
   exportDefaults: AuditPlanExportDefaults;
-  // Content-specific
+  // Content-specific (template-owned)
   planSummary: AuditPlanSummary;
   columnsBySection: Record<string, AuditPlanColumnConfig[]>;
   resourcePlan: AuditPlanResourcePlan;
