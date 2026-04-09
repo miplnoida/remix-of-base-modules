@@ -78,6 +78,8 @@ export interface NwdContributionRecord {
   payment_amount?: number | null;
   pending_amount?: number | null;
   is_partially_paid?: boolean;
+  has_sync_error?: boolean;
+  sync_error_message?: string | null;
 }
 
 export interface SeContributionRecord {
