@@ -175,6 +175,7 @@ export function resolvePlanTemplate(
   foundation?: DocumentFoundationConfig
 ): ResolvedPlanOutput {
   const f = foundation || DEFAULT_FOUNDATION;
+  // INHERITANCE GUARD: Foundation formatting always wins — template values are fallbacks only
 
   // Resolve sections via the section engine (handles overrides, mandatory enforcement)
   const resolvedSections = resolveSections(config, overrides);
