@@ -252,18 +252,15 @@ Deno.serve(async (req) => {
         const currentTime = currentTimeHHMM
 
         if (needsAutoReschedule) {
-          // ─── STEP 1: Mark future meeting as Closed with NextSchedule outcome ───
+          // ─── STEP 1: Mark future meeting as Rescheduled ───
           const { error: rescheduleUpdateError } = await supabase
             .from('meetings')
             .update({
-              status: 'Closed',
-              outcome: 'NextSchedule',
+              status: 'Rescheduled',
+              outcome: 'Reschedule',
               outcome_remarks: isFutureDate
-                ? `Closed: next meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
-                : `Closed: next meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
-              closed_by: userId,
-              closed_by_name: userName,
-              closed_at: nowUtc.toISOString(),
+                ? `Rescheduled: next meeting started early on ${todayDate} before scheduled date ${meeting.meeting_date}`
+                : `Rescheduled: next meeting started at ${currentTimeHHMM} UTC before scheduled time ${meeting.meeting_time.substring(0, 5)} on ${todayDate}`,
               updated_at: nowUtc.toISOString(),
               updated_by: userName?.substring(0, 10) || null
             })
@@ -271,20 +268,20 @@ Deno.serve(async (req) => {
 
           if (rescheduleUpdateError) throw rescheduleUpdateError
 
-          // ─── STEP 2: Log history for the closed previous meeting ───
+          // ─── STEP 2: Log history for the rescheduled previous meeting ───
           const { error: histErr1 } = await supabase.from('meeting_history').insert({
             meeting_id: body.meetingId,
             old_status: meeting.status,
-            new_status: 'Closed',
-            action_taken: 'CLOSED_NEXT_SCHEDULED',
-            outcome: 'NextSchedule',
+            new_status: 'Rescheduled',
+            action_taken: 'RESCHEDULED',
+            outcome: 'Reschedule',
             old_date: meeting.meeting_date,
             old_time: meeting.meeting_time,
             new_date: todayDate,
             new_time: currentTime,
             remarks: isFutureDate
-              ? `Closed because next meeting was started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
-              : `Closed because next meeting was started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
+              ? `Rescheduled: next meeting started today (${todayDate}) before the scheduled date (${meeting.meeting_date})`
+              : `Rescheduled: next meeting started at ${currentTimeHHMM} UTC before the scheduled time (${meeting.meeting_time.substring(0, 5)}) on ${todayDate}`,
             performed_by: userId,
             performed_by_name: userName
           })
@@ -643,16 +640,13 @@ Deno.serve(async (req) => {
         const oldAssignedUserId: string | null = meeting.assigned_user_id
         const oldContactPerson: string | null = meeting.contact_person
 
-        // Update current meeting to Closed status with NextSchedule outcome
+        // Update current meeting to Rescheduled status
         const { error: updateOldErr } = await supabase
           .from('meetings')
           .update({
-            status: 'Closed',
-            outcome: 'NextSchedule',
+            status: 'Rescheduled',
+            outcome: 'Reschedule',
             outcome_remarks: body.remarks,
-            closed_by: userId,
-            closed_by_name: userName,
-            closed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             updated_by: userName?.substring(0, 10) || null
           })
@@ -660,13 +654,13 @@ Deno.serve(async (req) => {
 
         if (updateOldErr) throw updateOldErr
 
-        // Add history for old meeting
+        // Add history for rescheduled meeting
         const { error: hist1Err } = await supabase.from('meeting_history').insert({
           meeting_id: body.meetingId,
           old_status: meeting.status,
-          new_status: 'Closed',
-          action_taken: 'CLOSED_NEXT_SCHEDULED',
-          outcome: 'NextSchedule',
+          new_status: 'Rescheduled',
+          action_taken: 'RESCHEDULED',
+          outcome: 'Reschedule',
           old_date: oldMeetingDate,
           old_time: oldMeetingTime,
           new_date: body.newDate,
