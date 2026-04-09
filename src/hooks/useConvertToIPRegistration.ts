@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useGlobalBlocking } from '@/contexts/GlobalBlockingContext';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
-import type { ExternalApplicationDetail } from '@/types/externalApplication';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
 
