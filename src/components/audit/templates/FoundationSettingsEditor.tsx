@@ -155,18 +155,61 @@ export function FoundationSettingsEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
           <p className="text-xs text-muted-foreground">
             Global formatting and output defaults inherited by <strong>all</strong> audit document types.
             Controls branding, typography, page layout, table styling, and watermark rules only.
             Section visibility, ordering, and sign-off configuration are managed per document template.
           </p>
         </div>
-        <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
-          {mutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-          Save Foundation
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Popover open={presetOpen} onOpenChange={setPresetOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Sparkles className="h-4 w-4 mr-1" />
+                Apply Preset
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[420px] p-0" align="end">
+              <div className="p-3 border-b">
+                <p className="text-sm font-semibold">Document Style Presets</p>
+                <p className="text-[10px] text-muted-foreground">Select a preset to apply its colors, typography, and table styles. Branding text and logo are preserved.</p>
+              </div>
+              <ScrollArea className="h-[360px]">
+                <div className="p-2 space-y-1">
+                  {FOUNDATION_PRESET_METADATA.map((meta) => (
+                    <button
+                      key={meta.key}
+                      onClick={() => applyPreset(meta.key)}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-muted/60 transition-colors group"
+                    >
+                      <div className="flex gap-0.5 shrink-0">
+                        {meta.swatches.map((color, i) => (
+                          <div
+                            key={i}
+                            className="w-4 h-8 first:rounded-l last:rounded-r"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{meta.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{meta.description}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] shrink-0 capitalize">{meta.category}</Badge>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+          <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
+            {mutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            Save Foundation
+          </Button>
+        </div>
+      </div>
       </div>
 
       {/* Branding */}
