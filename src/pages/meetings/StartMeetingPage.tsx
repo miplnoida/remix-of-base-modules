@@ -67,6 +67,7 @@ import { checkWorkflowEligibility, type WorkflowEligibilityResult } from '@/serv
 import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService';
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
+import { useMeetingEditData } from '@/hooks/useMeetingEditData';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
@@ -120,6 +121,21 @@ export default function StartMeetingPage() {
   const isEmployerMeeting = meetingType === 'Employer-Registration';
   const isIPMeeting = meetingType === 'IP-Registration';
 
+  // ─── Persistent edit-data hooks ──────────────────────────────────────────
+  const {
+    savedData: savedLocations,
+    hasSavedData: hasPersistedLocations,
+    isLoading: locationsEditLoading,
+    save: saveLocationsEdit,
+  } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'locations');
+
+  const {
+    savedData: savedDependants,
+    hasSavedData: hasPersistedDependants,
+    isLoading: dependantsEditLoading,
+    save: saveDependantsEdit,
+  } = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'dependants');
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
@@ -167,12 +183,27 @@ export default function StartMeetingPage() {
     return validateEmployerApplicationForConversion(dataToValidate);
   }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
 
-  // Initialize edited data when application loads
+  // Initialize edited data when application loads — merge persisted tab data
   useEffect(() => {
-    if (applicationData) {
-      setEditedData({ ...applicationData });
+    if (!applicationData) return;
+    // Wait for persistence hooks to finish loading before deciding
+    if (isEmployerMeeting && locationsEditLoading) return;
+    if (isIPMeeting && dependantsEditLoading) return;
+
+    const merged: Record<string, any> = { ...applicationData };
+
+    // Employer: overlay persisted locations
+    if (isEmployerMeeting && hasPersistedLocations && savedLocations) {
+      merged.locations = savedLocations;
     }
-  }, [applicationData]);
+
+    // IP: overlay persisted dependants
+    if (isIPMeeting && hasPersistedDependants && savedDependants) {
+      merged.dependants = savedDependants;
+    }
+
+    setEditedData(merged);
+  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedDependants, savedDependants]);
 
   const handleFieldChange = (field: string, value: any) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -631,7 +662,20 @@ export default function StartMeetingPage() {
               meetingType={meeting.meeting_type}
               data={editedData}
               onChange={handleFieldChange}
-              onDataChange={(newData) => { setEditedData(newData); setHasChanges(true); }}
+              onDataChange={(newData) => {
+                setEditedData(newData);
+                setHasChanges(true);
+                // Auto-persist locations for employer meetings
+                if (isEmployerMeeting && Array.isArray(newData.locations)) {
+                  const originalLocations = applicationData ? (applicationData as any).locations : undefined;
+                  saveLocationsEdit(newData.locations, originalLocations, userCode || undefined).catch(console.error);
+                }
+                // Auto-persist dependants for IP meetings
+                if (isIPMeeting && Array.isArray(newData.dependants)) {
+                  const originalDeps = applicationData ? (applicationData as any).dependants : undefined;
+                  saveDependantsEdit(newData.dependants, originalDeps, userCode || undefined).catch(console.error);
+                }
+              }}
               meetingId={meetingId}
               applicationReference={applicationReference}
               replacedDocCategories={replacedDocCategories}
