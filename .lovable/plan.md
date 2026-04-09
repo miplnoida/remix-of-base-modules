@@ -1,43 +1,63 @@
 
 
-# Fix: Meeting Action Buttons — Instant Appearance & Responsive Layout
+# Fix: Stat Card Counts Changing on Filter Selection
 
-## Problem 1: Buttons Don't Appear After Scheduling
+## Problem
+The stat cards ("Total", "Scheduled", "In Progress", "Closed/Done") and the meeting list both consume the same `useMeetings(filters)` query. When a stat card applies a status filter, the query returns only meetings matching that status — so the other cards' counts drop to 0, confusing users.
 
-**Root cause**: In `WorkflowActionButtons.tsx`, `handleMeetingSuccess` is async and **awaits** the `workflow-action-api` edge function call (lines 155-204) before reaching `onActionComplete()` at line 207. This edge function can take several seconds, during which `invalidateMeeting()` is never called — so the meeting query cache stays stale and buttons don't render.
+## Solution
+Separate the data source for **stat cards** (always unfiltered by status) from the **meeting list** (filtered). Use two queries:
 
-**Fix**: Move `onActionComplete()` call to fire **immediately** after `setShowMeetingDialog(false)` and `refetch()`, before the async API call. The API notification is non-blocking by design (comment on line 151 even says "non-blocking"), so it should not gate the UI update.
+1. **Stats query**: `useMeetings` with all filters **except** `status` — always returns the full set for counting
+2. **List query**: `useMeetings` with all filters **including** `status` — returns filtered results for display
 
-```text
-handleMeetingSuccess:
-  1. setShowMeetingDialog(false)      ← existing
-  2. refetch()                         ← existing
-  3. onActionComplete(...)             ← MOVE HERE (was at end)
-  4. await workflow-action-api(...)    ← non-blocking, runs after UI updates
+This is a minimal change — no new hooks, no backend changes.
+
+## Changes
+
+**File: `src/pages/meetings/ManageMeetingsPage.tsx`**
+
+1. Add a second `useMeetings` call for stats that excludes the `status` filter:
+```typescript
+// Filters WITHOUT status — for stat card counts
+const statsFilters = useMemo(() => {
+  const { status, ...rest } = filters;
+  return rest;
+}, [filters]);
+
+const { data: allMeetingsForStats } = useMeetings({
+  ...statsFilters,
+  applicationReference: searchTerm || undefined,
+  meetingReference: searchTerm || undefined,
+});
 ```
 
-**File**: `src/components/workflow/WorkflowActionButtons.tsx` — reorder `handleMeetingSuccess` so `onActionComplete` fires before the async API call.
+2. Compute `stats` from `allMeetingsForStats` instead of `meetings`:
+```typescript
+const stats = useMemo(() => {
+  if (!allMeetingsForStats) return { total: 0, scheduled: 0, inProgress: 0, closed: 0 };
+  return {
+    total: allMeetingsForStats.length,
+    scheduled: allMeetingsForStats.filter(m => m.status === 'Scheduled').length,
+    inProgress: allMeetingsForStats.filter(m => m.status === 'InProgress').length,
+    closed: allMeetingsForStats.filter(m => CLOSED_STATUSES.includes(m.status)).length,
+  };
+}, [allMeetingsForStats]);
+```
 
-## Problem 2: Responsive Layout
+3. Keep the existing `useMeetings` call (with status filter) for the list — no change needed there.
 
-**IP Page** (`ApplicationDetailPage.tsx`): Header container at line 194 uses `flex items-center justify-between` without `flex-wrap` or `gap`, causing overflow on narrow screens.
-
-**Fix**: Add `flex-wrap gap-4` to the header container (line 194) — matching the employer page pattern. Also wrap the action buttons section (line 209) with `flex-wrap` to allow stacking.
-
-**Employer Page** (`EmployerApplicationDetailPage.tsx`): Already has `flex-wrap gap-4` on the outer container (line 175) and inner actions (line 191). No changes needed.
-
-**MeetingActionButtons** (`MeetingActionButtons.tsx`): Already uses `flex flex-wrap gap-2`. No changes needed.
+4. Update the stats cards visibility condition to use `allMeetingsForStats` instead of `meetings`.
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `src/components/workflow/WorkflowActionButtons.tsx` | Move `onActionComplete()` before the async API call in `handleMeetingSuccess` |
-| `src/pages/online-applications/ApplicationDetailPage.tsx` | Add `flex-wrap gap-4` to header container for responsive layout |
+| `src/pages/meetings/ManageMeetingsPage.tsx` | Add stats-only query, compute counts from unfiltered data |
 
 ## What Is NOT Changed
-- `useApplicationMeeting` hook — already has realtime subscription, works correctly once cache is invalidated
-- `MeetingActionButtons` component — already responsive with `flex-wrap`
-- Employer detail page — already responsive
-- No database changes needed
+- `useMeetings` hook — no modifications
+- Backend/database — no changes
+- Meeting list filtering, grouping, or rendering logic
+- Any other page or component
 
