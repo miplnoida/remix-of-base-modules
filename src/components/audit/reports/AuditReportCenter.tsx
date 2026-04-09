@@ -272,8 +272,25 @@ export function AuditReportCenter() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || deptFilter !== 'all') && (
-                    <Button variant="ghost" size="sm" className="h-9" onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDeptFilter('all'); }}>
+                  <Select value={engagementFilter} onValueChange={(val) => {
+                    setEngagementFilter(val);
+                    const newParams = new URLSearchParams(searchParams);
+                    if (val === 'all') { newParams.delete('engagementId'); } else { newParams.set('engagementId', val); }
+                    setSearchParams(newParams, { replace: true });
+                  }}>
+                    <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Engagement" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Engagements</SelectItem>
+                      {engagements.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || deptFilter !== 'all' || engagementFilter !== 'all') && (
+                    <Button variant="ghost" size="sm" className="h-9" onClick={() => {
+                      setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDeptFilter('all'); setEngagementFilter('all');
+                      setSearchParams({}, { replace: true });
+                    }}>
                       <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
                     </Button>
                   )}
