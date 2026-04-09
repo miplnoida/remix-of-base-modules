@@ -44,16 +44,19 @@ export function useMeetings(filters?: MeetingFilters) {
 
       let meetings: Meeting[] = (data || []) as unknown as Meeting[];
 
-      // Client-side filtering for reference searches
-      if (filters?.applicationReference) {
-        meetings = meetings.filter(m =>
-          m.application_reference?.toLowerCase().includes(filters.applicationReference!.toLowerCase())
-        );
-      }
-      if (filters?.meetingReference) {
-        meetings = meetings.filter(m =>
-          m.meeting_reference?.toLowerCase().includes(filters.meetingReference!.toLowerCase())
-        );
+      // Client-side filtering for reference searches (OR logic across fields)
+      if (filters?.applicationReference || filters?.meetingReference) {
+        meetings = meetings.filter(m => {
+          const appRef = filters.applicationReference?.toLowerCase();
+          const meetRef = filters.meetingReference?.toLowerCase();
+          const matchesApp = appRef
+            ? m.application_reference?.toLowerCase().includes(appRef)
+            : false;
+          const matchesMeet = meetRef
+            ? m.meeting_reference?.toLowerCase().includes(meetRef)
+            : false;
+          return matchesApp || matchesMeet;
+        });
       }
 
       return meetings;
