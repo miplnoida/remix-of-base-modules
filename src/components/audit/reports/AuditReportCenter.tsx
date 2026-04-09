@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +53,29 @@ export function AuditReportCenter() {
 
   const engagementIdFromUrl = searchParams.get('engagementId');
 
+  // Fetch the specific engagement from URL if it's not in the main list
+  const { data: urlEngagement } = useQuery({
+    queryKey: ['engagement_by_id', engagementIdFromUrl],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ia_audit_engagements' as any)
+        .select('*')
+        .eq('id', engagementIdFromUrl!)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!engagementIdFromUrl && !engagements.find((e: any) => e.id === engagementIdFromUrl),
+  });
+
+  // Merge URL engagement into the list if missing
+  const allEngagements = useMemo(() => {
+    if (urlEngagement && !engagements.find((e: any) => e.id === urlEngagement.id)) {
+      return [...engagements, urlEngagement];
+    }
+    return engagements;
+  }, [engagements, urlEngagement]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -69,8 +94,8 @@ export function AuditReportCenter() {
     [departments]
   );
   const engagementById = useMemo(
-    () => Object.fromEntries(engagements.map((e: any) => [e.id, e])),
-    [engagements]
+    () => Object.fromEntries(allEngagements.map((e: any) => [e.id, e])),
+    [allEngagements]
   );
 
   const stats = useMemo(() => {
@@ -115,13 +140,13 @@ export function AuditReportCenter() {
     <div className="space-y-8">
       {/* Engagement Context Banner */}
       {engagementFilter !== 'all' && (() => {
-        const eng = engagements.find((e: any) => e.id === engagementFilter);
+        const eng = allEngagements.find((e: any) => e.id === engagementFilter);
         return eng ? (
           <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
             <Briefcase className="h-4 w-4 text-primary shrink-0" />
             <div className="flex-1 text-sm">
               <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
-              <span className="font-semibold text-foreground">{eng.engagement_code || eng.title}</span>
+              <span className="font-semibold text-foreground">{eng.engagement_name || eng.engagement_code || eng.title}</span>
             </div>
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate(`/audit/audits/${eng.id}`)}>
               <ArrowRight className="h-3 w-3 mr-1" /> Back to Engagement
@@ -133,7 +158,22 @@ export function AuditReportCenter() {
               <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
             </Button>
           </div>
-        ) : null;
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+            <Briefcase className="h-4 w-4 text-amber-600 shrink-0" />
+            <div className="flex-1 text-sm">
+              <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
+              <span className="font-semibold text-foreground">{engagementFilter.slice(0, 8)}…</span>
+              <span className="text-xs text-muted-foreground ml-2">(engagement not found)</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              setEngagementFilter('all');
+              setSearchParams({}, { replace: true });
+            }}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
+            </Button>
+          </div>
+        );
       })()}
 
       {/* Hero Banner */}
@@ -306,8 +346,8 @@ export function AuditReportCenter() {
                     <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Engagement" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Engagements</SelectItem>
-                      {engagements.map((e: any) => (
-                        <SelectItem key={e.id} value={e.id}>{e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
+                      {allEngagements.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.engagement_name || e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -326,8 +366,16 @@ export function AuditReportCenter() {
               {filteredReports.length === 0 ? (
                 <div className="text-center py-12">
                   <Layers className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">No reports found</p>
-                  <p className="text-xs text-muted-foreground mt-1">Create a new report to get started</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {engagementFilter !== 'all'
+                      ? `No reports yet for this engagement`
+                      : 'No reports found'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {engagementFilter !== 'all'
+                      ? 'Create a new report for this audit engagement to get started'
+                      : 'Create a new report to get started'}
+                  </p>
                   <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowTemplateSelector(true)}>
                     <Plus className="h-4 w-4 mr-2" /> New Report
                   </Button>
