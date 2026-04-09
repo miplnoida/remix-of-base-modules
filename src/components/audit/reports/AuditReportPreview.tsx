@@ -275,8 +275,8 @@ export function AuditReportPreview({
     ),
   };
 
-  // Build TOC from ordered sections
-  const tocItems = mapped.orderedSections.map((id, i) => {
+  // Build TOC from sections marked includeInToc (not all ordered sections)
+  const tocItems = mapped.tocSections.map((id, i) => {
     const section = resolved.sections.find((s) => s.id === id);
     return `${i + 1}. ${section?.label || id}`;
   });
