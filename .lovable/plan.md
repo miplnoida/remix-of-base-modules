@@ -1,81 +1,59 @@
 
 
-# Fix: Meeting Time Stored as UTC During Auto-Reschedule
+# Fix: Payment Amount Field Mismatch — `amount` vs `paymentAmount`
 
 ## Problem
-When a user clicks "Start Meeting" on a future-dated meeting, the edge function auto-reschedules it to "now". It computes the current time using `getUTCHours()`/`getUTCMinutes()`, storing UTC time (e.g., `03:30`) in `meeting_time`. But `meeting_time` is a **business field** — when users schedule meetings for "11:20 AM", that's their local time. The frontend `formatTime()` then displays this UTC value as-is, showing "3:30 AM" instead of "7:30 AM".
+
+The `public_api_payment_save` RPC reads each payment header's amount using `v_header->>'amount'`, but the C3-Wizard sends the field as `paymentAmount` (camelCase). This causes `COALESCE((v_header->>'amount')::NUMERIC, 0)` to always resolve to `0`, resulting in:
+
+- `cn_payment.payment_amount = 0` for every synced line
+- `cn_receipt.receipt_total = 0` (sum of zero lines)
+- `c3_payment_components.component_amount = 0`
+
+This affects **all** C3-Wizard synced payments (ER and SE), confirming the root cause for Payment IDs 53, 59, and likely others.
 
 ## Root Cause
-- `supabase/functions/meeting-api-handler/index.ts` line ~243: `getUTCHours()` / `getUTCMinutes()` used to compute `currentTimeHHMM`
-- This value is stored directly in `meeting_time` for the new auto-rescheduled meeting
-- Frontend treats `meeting_time` as local time (correct for all other meetings), so UTC value displays incorrectly
 
-## Fix Strategy
-Since `meeting_time` is a business field (local time, no TZ conversion), the **client must send its local time** when starting a meeting. The edge function should use the client-provided time instead of computing UTC.
-
-## Changes
-
-### 1. Frontend: Send client local time with start_meeting call
-**File:** `src/hooks/useMeetings.ts`
-
-Update `useStartMeeting` mutation to include the client's current local date and time in the request body:
-```typescript
-mutationFn: async ({ meetingId }: { meetingId: string }) => {
-  const now = new Date();
-  const clientDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const clientTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  const { data, error } = await supabase.functions.invoke('meeting-api-handler', {
-    body: {
-      action: 'start_meeting',
-      meetingId,
-      clientDate,   // "2026-04-09" in user's local TZ
-      clientTime,   // "07:30" in user's local TZ
-    }
-  });
-  ...
-}
+In the latest migration (`20260408124826`), lines 90, 99, and 114:
+```sql
+COALESCE((v_header->>'amount')::NUMERIC, 0)   -- reads 'amount'
+-- C3-Wizard sends: { "paymentAmount": 50.00, "paymentCode": "SSC", ... }
 ```
 
-### 2. Edge Function: Use client-provided time instead of UTC
-**File:** `supabase/functions/meeting-api-handler/index.ts`
+The field name mismatch means the amount is never extracted.
 
-In the `start_meeting` handler (~line 240-252):
-- Read `body.clientDate` and `body.clientTime` from the request
-- Fall back to UTC if not provided (backward compatibility)
-- Use these values for `todayDate`, `currentTimeHHMM`, and `currentTime` instead of the UTC-derived values
-- Keep the UTC `nowUtc` only for `updated_at` audit timestamps (which correctly use ISO strings)
+## Fix — Single Database Migration
 
-```text
-Before:
-  const nowUtc = new Date()
-  const todayDate = nowUtc.toISOString().split('T')[0]
-  const currentTimeHHMM = `${nowUtc.getUTCHours()...}:${nowUtc.getUTCMinutes()...}`
-  const currentTime = currentTimeHHMM
+Update `public_api_payment_save` to read `paymentAmount` instead of `amount` in all three locations:
 
-After:
-  const nowUtc = new Date()
-  const todayDate = body.clientDate || nowUtc.toISOString().split('T')[0]
-  const currentTimeHHMM = body.clientTime || `${nowUtc.getUTCHours()...}:${nowUtc.getUTCMinutes()...}`
-  const currentTime = currentTimeHHMM
+```sql
+-- Line 90 (cn_payment insert)
+COALESCE((v_header->>'paymentAmount')::NUMERIC, 0)
+
+-- Line 99 (total accumulator)
+v_total := v_total + COALESCE((v_header->>'paymentAmount')::NUMERIC, 0);
+
+-- Line 114 (c3_payment_components insert)
+COALESCE((v_header->>'paymentAmount')::NUMERIC, 0)
 ```
 
-Update remarks strings to remove "UTC" suffix from time references.
+No other files need changes. The edge function (`public-api/index.ts`) passes the raw payload through to the RPC without transformation, which is correct.
 
-### 3. No display-layer changes needed
-The existing `formatTime()` functions in `StartMeetingPage.tsx`, `ManageMeetingsPage.tsx`, `MeetingDetailView.tsx`, and `MeetingCalendarModal.tsx` already treat `meeting_time` as local time — which is correct. Once the stored value is local time, all displays will be correct automatically.
+## Confirmation to C3-Wizard Team
+
+The C3-Wizard team's analysis is **correct**:
+- The field name is `paymentAmount` (camelCase) ✓
+- Our RPC was reading `amount` instead — now fixed ✓
+- This is the same root cause for Payment 53 (SE) and Payment 59 (ER) ✓
+- All future synced payments will reflect correct amounts after this fix
+
+## Post-Fix: Existing Data
+
+Payments already synced with `amount = 0` (IDs 53, 59, and any others) will need a one-time data correction to update `cn_payment.payment_amount`, `c3_payment_components.component_amount`, and `cn_receipt.receipt_total` with the correct values. This can be done via a targeted migration or by asking the C3-Wizard to resend those payments.
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `src/hooks/useMeetings.ts` | Send `clientDate` and `clientTime` in start_meeting request |
-| `supabase/functions/meeting-api-handler/index.ts` | Use client-provided local date/time for auto-reschedule instead of UTC |
-
-## What Is NOT Changed
-- Scheduling dialog — already sends user-selected local time
-- Reschedule dialog — already sends user-selected local time
-- All display functions — already treat meeting_time as local time
-- `updated_at` / `created_at` audit fields — remain UTC (correct)
-- All other meeting actions (close, cancel, approve, reject)
+| New SQL migration | Recreate `public_api_payment_save` reading `paymentAmount` instead of `amount` |
 
