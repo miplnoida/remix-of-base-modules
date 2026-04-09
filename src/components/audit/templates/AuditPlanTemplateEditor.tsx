@@ -15,6 +15,7 @@ import { FoundationInheritedSummary } from './InheritedFromFoundation';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
+import { TemplateSectionsPanel } from './TemplateSectionsPanel';
 import { ExportSettingsConfigurator } from './ExportSettingsConfigurator';
 import { AuditPlanProfilesTab } from './AuditPlanProfilesTab';
 import { AuditPlanTemplatesTab } from './AuditPlanTemplatesTab';
