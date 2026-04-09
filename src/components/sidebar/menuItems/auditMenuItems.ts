@@ -72,7 +72,7 @@ export const auditMenuItems = [
         description: "Assess function-level risks"
       },
       {
-        title: "Entity Summary",
+        title: "Entity Risk Summary",
         url: "/audit/entity-summary",
         icon: Building2,
         requiresPermission: "view_audit_assignments",
