@@ -627,7 +627,17 @@ async function generateDetailedPlanPdf(
     doc.addPage();
     addHeader(doc, branding, 'Risk Coverage / Gap Analysis', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Risk Coverage Gap Analysis', branding);
+
+    // Section title with warning icon styling
+    doc.setFontSize(14);
+    doc.setFont(undefined as any, 'bold');
+    doc.setTextColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
+    doc.text('⚠  Risk Coverage Gap Analysis', 14, y);
+    y += 4;
+    doc.setDrawColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
+    doc.setLineWidth(0.8);
+    doc.line(14, y, pw - 14, y);
+    y += 10;
 
     doc.setFontSize(10);
     doc.setFont(undefined as any, 'normal');
@@ -637,31 +647,37 @@ async function generateDetailedPlanPdf(
     doc.text(introLines, 16, y);
     y += introLines.length * 5 + 8;
 
+    // Gap analysis table with RED header
     autoTable(doc, {
       startY: y,
       head: [['Business Function', 'Department', 'Risk Level', 'Coverage Status']],
       body: gapFunctions.map((g: any) => [g.functionName, g.departmentName, g.riskLevel, 'Not Covered']),
       styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: branding.primaryColor, fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: branding.gapHeaderColor, textColor: [255, 255, 255], fontSize: 9, cellPadding: 4 },
+      bodyStyles: { textColor: [40, 40, 40] },
+      alternateRowStyles: { fillColor: [255, 245, 245] },
+      columnStyles: {
+        3: { textColor: branding.gapHeaderColor, fontStyle: 'bold' },
+      },
       margin: { left: 14, right: 14 },
     });
     y = (doc as any).lastAutoTable.finalY + 12;
 
-    // Recommendation box — check if enough space remains (need ~30pt)
+    // Recommendation box
     if (y + 30 > ph - 30) {
       doc.addPage();
       addHeader(doc, branding, 'Risk Coverage / Gap Analysis (cont.)', plan?.fiscal_year || '', version);
       y = 50;
     }
-    doc.setFillColor(255, 248, 235);
+    doc.setFillColor(255, 243, 243);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'F');
-    doc.setDrawColor(branding.accentColor[0], branding.accentColor[1], branding.accentColor[2]);
+    doc.setDrawColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
     doc.setLineWidth(0.5);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'S');
     doc.setFontSize(9);
     doc.setFont(undefined as any, 'bold');
-    doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
-    doc.text('Recommendation', 20, y + 8);
+    doc.setTextColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
+    doc.text('⚠  Recommendation', 20, y + 8);
     doc.setFont(undefined as any, 'normal');
     doc.setTextColor(60, 60, 60);
     doc.setFontSize(8.5);
