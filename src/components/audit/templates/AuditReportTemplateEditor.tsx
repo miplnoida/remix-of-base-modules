@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2 } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2, BookOpen, SeparatorHorizontal } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
 import { useDocumentSectionLibrary, useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -197,10 +199,47 @@ export function AuditReportTemplateEditor() {
               <div key={section.id} className="flex items-center gap-3 p-2 rounded-md border bg-muted/30">
                 <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{section.labelOverride || section.label}</span>
-                  {section.labelOverride && (
-                    <span className="text-[10px] text-muted-foreground ml-1">(Library: {section.label})</span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium">{section.labelOverride || section.label}</span>
+                    {section.required && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1">Required</Badge>
+                    )}
+                    {section.labelOverride && (
+                      <span className="text-[10px] text-muted-foreground">(Library: {section.label})</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => updateSectionRef(section.id, { includeInToc: !(section.includeInToc ?? true) })}
+                            className={`flex items-center gap-0.5 text-[10px] ${(section.includeInToc ?? true) ? 'text-foreground/70' : 'text-muted-foreground/40'}`}
+                          >
+                            <BookOpen className="h-3 w-3" />
+                            TOC
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Include in Table of Contents</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => updateSectionRef(section.id, { startOnNewPage: !(section.startOnNewPage ?? false) })}
+                            className={`flex items-center gap-0.5 text-[10px] ${(section.startOnNewPage ?? false) ? 'text-foreground/70' : 'text-muted-foreground/40'}`}
+                          >
+                            <SeparatorHorizontal className="h-3 w-3" />
+                            New Page
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">Start on new page</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSection(section.id, 'up')}>
@@ -212,6 +251,7 @@ export function AuditReportTemplateEditor() {
                 </div>
                 <Switch
                   checked={section.enabled}
+                  disabled={section.required}
                   onCheckedChange={(v) => updateSectionRef(section.id, { enabled: v })}
                 />
               </div>

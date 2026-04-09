@@ -38,8 +38,8 @@ export interface TemplateColumn {
 
 /**
  * Reference to a section from the Section Library.
- * Templates only control: enabled, order, labelOverride.
- * The section definition (key, display_mode, mandatory, category) lives in the library.
+ * Templates control: enabled, order, labelOverride, required, includeInToc, startOnNewPage.
+ * The section definition (key, display_mode, category) lives in the library.
  */
 export interface TemplateSectionRef {
   /** Section key matching ia_document_section_library.section_key */
@@ -52,6 +52,12 @@ export interface TemplateSectionRef {
   order: number;
   /** Optional label override (if different from library default) */
   labelOverride?: string;
+  /** Whether this section is mandatory (cannot be disabled by user) */
+  required?: boolean;
+  /** Whether to include this section in the Table of Contents */
+  includeInToc?: boolean;
+  /** Whether this section should start on a new page */
+  startOnNewPage?: boolean;
 }
 
 /** @deprecated Use TemplateSectionRef instead */
@@ -158,19 +164,19 @@ export type AuditPlanTemplateConfig = AuditPlanFullTemplateConfig;
  * Templates should populate sectionRefs from ia_document_section_library at load time.
  */
 const FALLBACK_SECTION_REFS: TemplateSectionRef[] = [
-  { id: 'executive_summary', label: 'Executive Summary', enabled: true, order: 1 },
-  { id: 'background', label: 'Audit Background', enabled: true, order: 2 },
-  { id: 'objective', label: 'Audit Objective', enabled: true, order: 3 },
-  { id: 'scope', label: 'Scope', enabled: true, order: 4 },
-  { id: 'methodology', label: 'Methodology', enabled: true, order: 5 },
-  { id: 'risk_overview', label: 'Risk Overview', enabled: true, order: 6 },
-  { id: 'key_findings', label: 'Key Findings Snapshot', enabled: true, order: 7 },
-  { id: 'detailed_findings', label: 'Detailed Findings', enabled: true, order: 8 },
-  { id: 'management_responses', label: 'Management Responses', enabled: true, order: 9 },
-  { id: 'action_plan', label: 'Agreed Action Plan', enabled: true, order: 10 },
-  { id: 'conclusion', label: 'Conclusion', enabled: true, order: 11 },
-  { id: 'distribution', label: 'Distribution', enabled: true, order: 12 },
-  { id: 'approval', label: 'Approval & Sign-off', enabled: true, order: 13 },
+  { id: 'executive_summary', label: 'Executive Summary', enabled: true, order: 1, required: true, includeInToc: true, startOnNewPage: false },
+  { id: 'background', label: 'Audit Background', enabled: true, order: 2, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'objective', label: 'Audit Objective', enabled: true, order: 3, required: true, includeInToc: true, startOnNewPage: false },
+  { id: 'scope', label: 'Scope', enabled: true, order: 4, required: true, includeInToc: true, startOnNewPage: false },
+  { id: 'methodology', label: 'Methodology', enabled: true, order: 5, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'risk_overview', label: 'Risk Overview', enabled: true, order: 6, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'key_findings', label: 'Key Findings Snapshot', enabled: true, order: 7, required: false, includeInToc: true, startOnNewPage: true },
+  { id: 'detailed_findings', label: 'Detailed Findings', enabled: true, order: 8, required: false, includeInToc: true, startOnNewPage: true },
+  { id: 'management_responses', label: 'Management Responses', enabled: true, order: 9, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'action_plan', label: 'Agreed Action Plan', enabled: true, order: 10, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'conclusion', label: 'Conclusion', enabled: true, order: 11, required: false, includeInToc: true, startOnNewPage: false },
+  { id: 'distribution', label: 'Distribution', enabled: true, order: 12, required: false, includeInToc: false, startOnNewPage: false },
+  { id: 'approval', label: 'Approval & Sign-off', enabled: true, order: 13, required: false, includeInToc: true, startOnNewPage: true },
 ];
 
 export const DEFAULT_AUDIT_REPORT_CONFIG: AuditReportTemplateConfig = {
