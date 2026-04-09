@@ -19,6 +19,28 @@ import { DEFAULT_FOUNDATION } from './documentFoundationTypes';
 import type { AuditPlanFullTemplateConfig } from './auditPlanTemplateTypes';
 import { resolveSections, type ResolvedSectionList } from './auditPlanSectionEngine';
 
+// ─── Inheritance Guard ───
+// These keys on a template config are FOUNDATION-OWNED.
+// The resolver strips them before merging so templates can never override formatting.
+
+const FOUNDATION_OWNED_REPORT_KEYS: (keyof AuditReportTemplateConfig)[] = [
+  'branding', 'signOff', 'draftRules', 'finalRules',
+];
+
+/**
+ * Strips any Foundation-owned formatting fields from a template config.
+ * Ensures templates can never leak formatting overrides into the pipeline.
+ */
+function stripFormattingFromReportTemplate(
+  config: AuditReportTemplateConfig
+): AuditReportTemplateConfig {
+  const clean = { ...config };
+  for (const key of FOUNDATION_OWNED_REPORT_KEYS) {
+    delete (clean as any)[key];
+  }
+  return clean;
+}
+
 // ─── Report Resolver ───
 
 export interface ResolvedReportSection {
