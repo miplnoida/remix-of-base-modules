@@ -237,7 +237,16 @@ export function AuditPlanTemplateEditor() {
 
             {/* 3. Section Configuration */}
             <TabsContent value="sections" className="mt-4">
-              <TemplateSectionsPanel documentType="audit_plan" editable={canEdit} />
+              <TemplateSectionsPanel documentType="audit_plan" editable={true} />
+
+              {!canEdit && selectedTemplate?.is_system && (
+                <Alert className="mt-4 border-border bg-muted/30">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    This built-in template remains read-only, but <strong>section visibility and order</strong> can still be changed here because those settings are managed separately for the document type.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Plan-specific content configuration */}
               <div className="space-y-4 mt-4">
