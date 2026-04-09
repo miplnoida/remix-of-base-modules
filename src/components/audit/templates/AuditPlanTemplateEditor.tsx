@@ -43,6 +43,7 @@ type TabValue = typeof TABS[number]['value'];
 
 export function AuditPlanTemplateEditor() {
   const { data: templates = [], isLoading: loadingTemplates } = useAuditPlanTemplates();
+  const { data: foundation } = useDocumentFoundation();
   const updateMutation = useUpdateTemplateConfig();
   const { canOnTemplate } = useTemplatePermission();
   const { userCode } = useUserCode();
