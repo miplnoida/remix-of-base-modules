@@ -757,25 +757,27 @@ export function resolveField(obj: any, ...keys: string[]): any {
 }
 
 /** Load logo image as base64 for jsPDF embedding */
-let _logoCache: string | null = null;
-let _logoLoaded = false;
+const _logoCache = new Map<string, string | null>();
 export async function loadLogoBase64(logoSrc: string): Promise<string | null> {
-  if (_logoLoaded) return _logoCache;
+  if (_logoCache.has(logoSrc)) return _logoCache.get(logoSrc) ?? null;
   try {
     const resp = await fetch(logoSrc);
     const blob = await resp.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        _logoCache = reader.result as string;
-        _logoLoaded = true;
-        resolve(_logoCache);
+        const value = reader.result as string;
+        _logoCache.set(logoSrc, value);
+        resolve(value);
       };
-      reader.onerror = () => { _logoLoaded = true; resolve(null); };
+      reader.onerror = () => {
+        _logoCache.set(logoSrc, null);
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
   } catch {
-    _logoLoaded = true;
+    _logoCache.set(logoSrc, null);
     return null;
   }
 }
