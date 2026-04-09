@@ -43,6 +43,8 @@ export interface ExportBranding {
   confidentialityText: string;
   /** Logo base64 data URL (optional) */
   logoBase64?: string | null;
+  /** Gap analysis / warning table header color (defaults to red) */
+  gapHeaderColor: [number, number, number];
 }
 
 /**
