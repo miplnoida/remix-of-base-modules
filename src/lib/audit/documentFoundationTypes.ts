@@ -38,6 +38,8 @@ export interface FoundationColorPalette {
   tableStripe: string;
   text: string;
   gold: string;
+  /** Header color for gap analysis / warning tables */
+  gapAnalysisHeader: string;
 }
 
 // ─── Foundation Typography ───
