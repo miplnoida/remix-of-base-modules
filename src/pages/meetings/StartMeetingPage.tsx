@@ -121,6 +121,21 @@ export default function StartMeetingPage() {
   const isEmployerMeeting = meetingType === 'Employer-Registration';
   const isIPMeeting = meetingType === 'IP-Registration';
 
+  // ─── Persistent edit-data hooks ──────────────────────────────────────────
+  const {
+    savedData: savedLocations,
+    hasSavedData: hasPersistedLocations,
+    isLoading: locationsEditLoading,
+    save: saveLocationsEdit,
+  } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'locations');
+
+  const {
+    savedData: savedDependants,
+    hasSavedData: hasPersistedDependants,
+    isLoading: dependantsEditLoading,
+    save: saveDependantsEdit,
+  } = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'dependants');
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
@@ -168,12 +183,27 @@ export default function StartMeetingPage() {
     return validateEmployerApplicationForConversion(dataToValidate);
   }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
 
-  // Initialize edited data when application loads
+  // Initialize edited data when application loads — merge persisted tab data
   useEffect(() => {
-    if (applicationData) {
-      setEditedData({ ...applicationData });
+    if (!applicationData) return;
+    // Wait for persistence hooks to finish loading before deciding
+    if (isEmployerMeeting && locationsEditLoading) return;
+    if (isIPMeeting && dependantsEditLoading) return;
+
+    const merged = { ...applicationData };
+
+    // Employer: overlay persisted locations
+    if (isEmployerMeeting && hasPersistedLocations && savedLocations) {
+      merged.locations = savedLocations;
     }
-  }, [applicationData]);
+
+    // IP: overlay persisted dependants
+    if (isIPMeeting && hasPersistedDependants && savedDependants) {
+      merged.dependants = savedDependants;
+    }
+
+    setEditedData(merged);
+  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedDependants, savedDependants]);
 
   const handleFieldChange = (field: string, value: any) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
