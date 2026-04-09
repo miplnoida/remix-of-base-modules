@@ -21274,6 +21274,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_document_template_sections: {
+        Row: {
+          created_at: string
+          id: string
+          include_in_toc: boolean
+          is_enabled: boolean
+          is_required: boolean
+          section_key: string
+          sort_order: number
+          start_on_new_page: boolean
+          template_type: string
+          title_override: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          include_in_toc?: boolean
+          is_enabled?: boolean
+          is_required?: boolean
+          section_key: string
+          sort_order?: number
+          start_on_new_page?: boolean
+          template_type: string
+          title_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          include_in_toc?: boolean
+          is_enabled?: boolean
+          is_required?: boolean
+          section_key?: string
+          sort_order?: number
+          start_on_new_page?: boolean
+          template_type?: string
+          title_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_doc_tmpl_sections_section_fk"
+            columns: ["section_key"]
+            isOneToOne: false
+            referencedRelation: "ia_document_section_library"
+            referencedColumns: ["section_key"]
+          },
+        ]
+      }
       ia_document_template_settings: {
         Row: {
           config_json: Json
