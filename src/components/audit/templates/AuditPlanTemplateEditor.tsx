@@ -167,6 +167,40 @@ export function AuditPlanTemplateEditor() {
         </AlertDescription>
       </Alert>
 
+      {/* Foundation Inherited Settings (read-only) */}
+      {foundation && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <FoundationInheritedSummary
+            sectionTitle="Branding"
+            items={[
+              { label: 'Organization', value: foundation.branding.orgName },
+              { label: 'Logo', value: foundation.branding.showLogo ? 'Enabled' : 'Disabled' },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Typography"
+            items={[
+              { label: 'Body Font', value: foundation.typography.fontFamily.split(',')[0] },
+              { label: 'Base Size', value: `${foundation.typography.baseFontSize}pt` },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Pagination"
+            items={[
+              { label: 'Position', value: foundation.pagination.position },
+              { label: 'Body Style', value: foundation.pagination.bodyStyle },
+            ]}
+          />
+          <FoundationInheritedSummary
+            sectionTitle="Table Style"
+            items={[
+              { label: 'Striped', value: foundation.tableStyle.stripedRows ? 'Yes' : 'No' },
+              { label: 'Font', value: foundation.tableStyle.fontSize },
+            ]}
+          />
+        </div>
+      )
+
       {/* Main content area */}
       <div className="flex gap-6">
         <div className={`flex-1 min-w-0 ${showSidePreview && isConfigTab ? 'max-w-[58%]' : ''}`}>
