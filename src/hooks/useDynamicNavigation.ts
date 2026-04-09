@@ -202,7 +202,7 @@ interface IAGroupDef {
 
 const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
   { groupTitle: 'Dashboard', icon: LayoutDashboard, paths: ['/audit/dashboard'] },
-  { groupTitle: 'Risk Management', icon: Shield, paths: ['/audit/risk-assessment', '/audit/risk-matrix'] },
+  { groupTitle: 'Risk Management', icon: Shield, paths: ['/audit/risk-assessment', '/audit/entity-summary', '/audit/risk-matrix'] },
   { groupTitle: 'Planning', icon: ClipboardCheck, paths: ['/audit/audit-plans', '/audit/plan-approval'] },
   { groupTitle: 'Execution', icon: Briefcase, paths: ['/audit/audits', '/audit/queries'] },
   {
@@ -217,6 +217,7 @@ const IA_WORKFLOW_GROUPS: IAGroupDef[] = [
 const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; description?: string }> = {
   '/audit/dashboard':        { title: 'Dashboard',               icon: LayoutDashboard, description: 'Audit overview and KPIs' },
   '/audit/risk-assessment':  { title: 'Risk Assessment',         icon: Shield,          description: 'Assess function-level risks' },
+  '/audit/entity-summary':   { title: 'Entity Risk Summary',     icon: Building2,       description: 'Department-level risk overview' },
   '/audit/risk-matrix':      { title: 'Risk Matrix',             icon: BarChart3,       description: 'View the 5×5 risk heatmap' },
   '/audit/audit-plans':      { title: 'Audit Plans',             icon: ClipboardList,   description: 'Create risk-driven audit plans' },
   '/audit/plan-approval':    { title: 'Plan Approval',           icon: ClipboardCheck,  description: 'Review and approve submitted plans' },
