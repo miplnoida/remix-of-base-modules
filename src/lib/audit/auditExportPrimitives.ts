@@ -92,8 +92,9 @@ export function brandingFromFoundation(foundation: DocumentFoundationConfig): Ex
 }
 
 /**
- * Build ExportBranding from an AuditReportTemplateConfig branding block.
- * Falls back to DEFAULT_AUDIT_BRANDING for missing fields.
+ * @deprecated Use `brandingFromFoundation()` instead.
+ * This function bypasses Foundation and builds branding from a report config fragment.
+ * Kept only for backward compatibility with legacy callers.
  */
 export function brandingFromReportConfig(branding: {
   orgName?: string;
@@ -111,7 +112,9 @@ export function brandingFromReportConfig(branding: {
 }
 
 /**
- * Build ExportBranding from a plan template colorPalette (hex strings).
+ * @deprecated Use `brandingFromFoundation()` instead.
+ * This function bypasses Foundation and builds branding from plan config fragments.
+ * Kept only for backward compatibility with legacy callers.
  */
 export function brandingFromPlanConfig(config: {
   orgName?: string;
