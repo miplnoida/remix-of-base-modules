@@ -53,6 +53,9 @@ export interface ResolvedReportSection {
   id: string;
   label: string;
   order: number;
+  required: boolean;
+  includeInToc: boolean;
+  startOnNewPage: boolean;
 }
 
 export interface ResolvedReportOutput {
@@ -103,7 +106,14 @@ export function resolveReportTemplate(
   const sections: ResolvedReportSection[] = rawSections
     .filter((s) => s.enabled)
     .sort((a, b) => a.order - b.order)
-    .map((s) => ({ id: s.id, label: s.labelOverride || s.label, order: s.order }));
+    .map((s) => ({
+      id: s.id,
+      label: s.labelOverride || s.label,
+      order: s.order,
+      required: s.required ?? false,
+      includeInToc: s.includeInToc ?? true,
+      startOnNewPage: s.startOnNewPage ?? false,
+    }));
 
   let actionPlanVisible = false;
   switch (config.actionPlanSummary.visibility) {
