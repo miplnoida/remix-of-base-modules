@@ -236,11 +236,7 @@ export function AuditPlanTemplateEditor() {
 
             {/* 3. Section Configuration */}
             <TabsContent value="sections" className="mt-4">
-              <AuditPlanSectionConfigurator
-                sections={sectionConfig}
-                onChange={canEdit ? setSectionConfig : () => {}}
-                onReset={canEdit ? () => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]) : () => {}}
-              />
+              <TemplateSectionsPanel documentType="audit_plan" editable={canEdit} />
 
               {/* Plan-specific content configuration */}
               <div className="space-y-4 mt-4">

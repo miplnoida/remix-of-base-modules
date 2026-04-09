@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { FoundationInheritedSummary } from './InheritedFromFoundation';
+import { TemplateSectionsPanel } from './TemplateSectionsPanel';
 
 export function AuditReportTemplateEditor() {
   const { data: config, isLoading } = useAuditReportTemplate();
