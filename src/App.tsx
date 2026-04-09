@@ -6,6 +6,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { NewBenefitAuthProvider } from '@/contexts/NewBenefitAuthContext';
 import { LegalAuthProvider } from '@/contexts/LegalAuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { GlobalBlockingProvider } from '@/contexts/GlobalBlockingContext';
+import { BlockingOverlay } from '@/components/ui/BlockingOverlay';
 import { LegalCaseProvider } from '@/contexts/LegalCaseContext';
 import { LegalRoleProvider } from '@/contexts/LegalRoleContext';
 import { SupabaseAuthProvider } from '@/contexts/SupabaseAuthContext';
@@ -130,6 +132,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <GlobalBlockingProvider>
           <SupabaseAuthProvider>
             <IPAccessGate>
               <SystemSettingsProvider>
@@ -146,6 +149,7 @@ function App() {
                                   <Toaster />
                                   <SonnerToaster />
                                   <PIIUnlockDialog />
+                                  <BlockingOverlay />
                                 </div>
                               </SystemLoggingProvider>
                             </PIIMaskingProvider>
@@ -158,6 +162,7 @@ function App() {
               </SystemSettingsProvider>
             </IPAccessGate>
           </SupabaseAuthProvider>
+          </GlobalBlockingProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
