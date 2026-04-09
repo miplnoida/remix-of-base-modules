@@ -79,6 +79,33 @@ export function TemplateSectionsPanel({
   const [isDirty, setIsDirty] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
+  const persistSections = useCallback((nextDraft: MergedTemplateSection[], silent = false) => {
+    const rows = nextDraft.map((s) => ({
+      template_type: documentType,
+      section_key: s.sectionKey,
+      is_enabled: s.enabled,
+      is_required: s.required,
+      sort_order: s.sortOrder,
+      title_override: s.titleOverride,
+      include_in_toc: s.includeInToc,
+      start_on_new_page: s.startOnNewPage,
+    }));
+
+    bulkUpsert.mutate(
+      { templateType: documentType, sections: rows, updatedBy: userCode || 'system' },
+      {
+        onSuccess: () => {
+          if (!silent) {
+            toast.success('Section configuration saved');
+          }
+          setIsDirty(false);
+          onSaved?.(nextDraft);
+        },
+        onError: (e) => toast.error('Failed to save sections', { description: String(e) }),
+      }
+    );
+  }, [bulkUpsert, documentType, onSaved, userCode]);
+
   // Load from DB
   useEffect(() => {
     if (dbSections.length > 0) {
@@ -90,12 +117,18 @@ export function TemplateSectionsPanel({
   const sorted = useMemo(() => [...draft].sort((a, b) => a.sortOrder - b.sortOrder), [draft]);
   const enabledCount = draft.filter((s) => s.enabled).length;
 
-  const updateSection = useCallback((sectionKey: string, updates: Partial<MergedTemplateSection>) => {
-    setDraft((prev) =>
-      prev.map((s) => (s.sectionKey === sectionKey ? { ...s, ...updates } : s))
-    );
+  const updateSection = useCallback((
+    sectionKey: string,
+    updates: Partial<MergedTemplateSection>,
+    options?: { persist?: boolean }
+  ) => {
+    const nextDraft = draft.map((s) => (s.sectionKey === sectionKey ? { ...s, ...updates } : s));
+    setDraft(nextDraft);
     setIsDirty(true);
-  }, []);
+    if (options?.persist) {
+      persistSections(nextDraft, true);
+    }
+  }, [draft, persistSections]);
 
   const moveSection = useCallback((sectionKey: string, direction: 'up' | 'down') => {
     setDraft((prev) => {
@@ -116,29 +149,8 @@ export function TemplateSectionsPanel({
   }, []);
 
   const handleSave = useCallback(() => {
-    const rows = draft.map((s) => ({
-      template_type: documentType,
-      section_key: s.sectionKey,
-      is_enabled: s.enabled,
-      is_required: s.required,
-      sort_order: s.sortOrder,
-      title_override: s.titleOverride,
-      include_in_toc: s.includeInToc,
-      start_on_new_page: s.startOnNewPage,
-    }));
-
-    bulkUpsert.mutate(
-      { templateType: documentType, sections: rows, updatedBy: userCode || 'system' },
-      {
-        onSuccess: () => {
-          toast.success('Section configuration saved');
-          setIsDirty(false);
-          onSaved?.(draft);
-        },
-        onError: (e) => toast.error('Failed to save sections', { description: String(e) }),
-      }
-    );
-  }, [draft, documentType, userCode, bulkUpsert, onSaved]);
+    persistSections(draft);
+  }, [draft, persistSections]);
 
   const handleReset = useCallback(() => {
     setDraft(dbSections);
@@ -292,7 +304,7 @@ export function TemplateSectionsPanel({
                           <Switch
                             checked={section.enabled}
                             disabled={!editable || section.required}
-                            onCheckedChange={(v) => updateSection(section.sectionKey, { enabled: v })}
+                            onCheckedChange={(v) => updateSection(section.sectionKey, { enabled: v }, { persist: true })}
                           />
                         </div>
                       </TooltipTrigger>
