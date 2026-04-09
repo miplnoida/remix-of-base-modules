@@ -42,10 +42,17 @@ export function LiveDocumentPreview(props: LiveDocumentPreviewProps) {
 }
 
 function LiveReportPreview({ baseConfig, overrides, reportStatus = 'Draft' }: LiveReportPreviewProps) {
-  const effectiveConfig = useMemo(
-    () => applyReportOverrides(baseConfig, overrides),
-    [baseConfig, overrides]
-  );
+  const { sectionRefs: dbReportSections } = useDocumentTemplateSections('audit_report');
+
+  const effectiveConfig = useMemo(() => {
+    const base = applyReportOverrides(baseConfig, overrides);
+    // Inject DB sections if available
+    if (dbReportSections && dbReportSections.length > 0) {
+      return { ...base, sectionRefs: dbReportSections, sections: dbReportSections };
+    }
+    return base;
+  }, [baseConfig, overrides, dbReportSections]);
+
   const resolved = useMemo(
     () => resolveReportTemplate(effectiveConfig, reportStatus),
     [effectiveConfig, reportStatus]
