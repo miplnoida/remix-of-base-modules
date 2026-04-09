@@ -76,11 +76,13 @@ export interface ResolvedReportOutput {
  * Foundation provides ALL formatting; template provides ONLY structure/content.
  */
 export function resolveReportTemplate(
-  config: AuditReportTemplateConfig,
+  rawConfig: AuditReportTemplateConfig,
   reportStatus: string,
   foundation?: DocumentFoundationConfig
 ): ResolvedReportOutput {
   const f = foundation || DEFAULT_FOUNDATION;
+  // INHERITANCE GUARD: Strip any formatting fields from template before resolution
+  const config = stripFormattingFromReportTemplate(rawConfig);
   const isDraft = reportStatus === 'Draft' || reportStatus === 'In Review';
   const isFinal = reportStatus === 'Final';
 
