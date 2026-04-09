@@ -204,10 +204,19 @@ Deno.serve(async (req) => {
         : undefined;
     }
 
+    // Map SE payment codes to C3-Wizard accepted codes
+    const mapPaymentCode = (code: string): string => {
+      const codeMap: Record<string, string> = {
+        SSE: "SSC", // Self-Employed SS Employee → SS Combined
+        SEF: "SSF", // Self-Employed SS Employer → SS Fund
+      };
+      return codeMap[code] || code;
+    };
+
     // Build payment_components array from all fetched components
     const payment_components = (components || []).map((c) => ({
       fund_code: c.fund_code,
-      payment_code: c.payment_code,
+      payment_code: mapPaymentCode(c.payment_code),
       amount: Number(c.component_amount) || 0,
     }));
 
