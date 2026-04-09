@@ -112,7 +112,9 @@ export function brandingFromReportConfig(branding: {
 }
 
 /**
- * Build ExportBranding from a plan template colorPalette (hex strings).
+ * @deprecated Use `brandingFromFoundation()` instead.
+ * This function bypasses Foundation and builds branding from plan config fragments.
+ * Kept only for backward compatibility with legacy callers.
  */
 export function brandingFromPlanConfig(config: {
   orgName?: string;
