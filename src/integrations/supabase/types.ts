@@ -21232,7 +21232,9 @@ export type Database = {
           category: string
           created_at: string
           default_enabled: boolean
+          default_include_in_toc: boolean
           default_order: number
+          default_start_on_new_page: boolean
           description: string | null
           display_mode: string
           id: string
@@ -21247,7 +21249,9 @@ export type Database = {
           category?: string
           created_at?: string
           default_enabled?: boolean
+          default_include_in_toc?: boolean
           default_order?: number
+          default_start_on_new_page?: boolean
           description?: string | null
           display_mode?: string
           id?: string
@@ -21262,7 +21266,9 @@ export type Database = {
           category?: string
           created_at?: string
           default_enabled?: boolean
+          default_include_in_toc?: boolean
           default_order?: number
+          default_start_on_new_page?: boolean
           description?: string | null
           display_mode?: string
           id?: string

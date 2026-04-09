@@ -312,8 +312,13 @@ export interface AuditPlanDocumentOverride {
   riskCoverageEnabled?: boolean;
 }
 
-// ─── Section Library (canonical list of all supported sections) ───
+// ─── Section Library ───
+// DEPRECATED: This hardcoded array is superseded by the ia_document_section_library
+// and ia_document_template_sections DB tables. Kept only as a last-resort fallback
+// if the DB query fails. Templates should load sections from the DB via
+// useTemplateSectionConfigs() + useDocumentSectionLibrary().
 
+/** @deprecated Use DB-driven section loading via useTemplateSectionConfigs() */
 export const AUDIT_PLAN_SECTION_LIBRARY: Readonly<AuditPlanSection[]> = [
   { id: 'cover_page', label: 'Cover Page', enabled: true, order: 1, inToc: false, startNewPage: false, displayMode: 'auto', mandatory: true },
   { id: 'document_control', label: 'Document Control', enabled: true, order: 2, inToc: true, startNewPage: false, displayMode: 'table', mandatory: false },

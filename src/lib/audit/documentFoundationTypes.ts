@@ -133,6 +133,10 @@ export interface DocumentSectionEntry {
   is_mandatory: boolean;
   category: 'cover' | 'front_matter' | 'body' | 'appendix';
   description: string | null;
+  /** Default TOC inclusion — can be overridden per template */
+  default_include_in_toc: boolean;
+  /** Default page-break behavior — can be overridden per template */
+  default_start_on_new_page: boolean;
 }
 
 // ─── Defaults ───
