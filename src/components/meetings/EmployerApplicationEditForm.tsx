@@ -188,16 +188,47 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const openAddOwner = () => {
     setOwnerEditIndex(null);
     setOwnerForm({ id: `temp-${Date.now()}`, name: '', title: '', phone: '', phone_dial_code: '', email: '', ssn: '', mobile: '' });
+    setOwnerErrors({});
     setOwnerDialogOpen(true);
   };
 
   const openEditOwner = (index: number) => {
     setOwnerEditIndex(index);
     setOwnerForm({ ...owners[index] });
+    setOwnerErrors({});
     setOwnerDialogOpen(true);
   };
 
+  const handleOwnerFieldChange = useCallback((field: string, value: string) => {
+    let sanitized = value;
+    if (field === 'phone' || field === 'mobile') {
+      sanitized = sanitizePhoneInput(value);
+    }
+    if (field === 'ssn') {
+      sanitized = value.replace(/\D/g, '');
+    }
+    setOwnerForm(p => ({ ...p, [field]: sanitized }));
+    const result = validateField(`owner.${field}`, sanitized);
+    setOwnerErrors(prev => {
+      const next = { ...prev };
+      if (result.valid) delete next[field];
+      else next[field] = result.error!;
+      return next;
+    });
+  }, []);
+
   const saveOwner = () => {
+    const allErrors = validateForm('owner', ownerForm);
+    if (Object.keys(allErrors).length > 0) {
+      setOwnerErrors(allErrors);
+      const firstError = Object.values(allErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return;
+    }
     const updated = [...owners];
     if (ownerEditIndex !== null) {
       updated[ownerEditIndex] = ownerForm;
@@ -221,16 +252,40 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const openAddLocation = () => {
     setLocEditIndex(null);
     setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '' });
+    setLocErrors({});
     setLocDialogOpen(true);
   };
 
   const openEditLocation = (index: number) => {
     setLocEditIndex(index);
     setLocForm({ ...locations[index] });
+    setLocErrors({});
     setLocDialogOpen(true);
   };
 
+  const handleLocFieldChange = useCallback((field: string, value: string) => {
+    setLocForm(p => ({ ...p, [field]: value }));
+    const result = validateField(`location.${field}`, value);
+    setLocErrors(prev => {
+      const next = { ...prev };
+      if (result.valid) delete next[field];
+      else next[field] = result.error!;
+      return next;
+    });
+  }, []);
+
   const saveLocation = () => {
+    const allErrors = validateForm('location', locForm);
+    if (Object.keys(allErrors).length > 0) {
+      setLocErrors(allErrors);
+      const firstError = Object.values(allErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return;
+    }
     const updated = [...locations];
     if (locEditIndex !== null) {
       updated[locEditIndex] = locForm;
