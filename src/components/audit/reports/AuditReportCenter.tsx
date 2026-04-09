@@ -89,6 +89,44 @@ export function AuditReportCenter() {
     }
   }, [engagementIdFromUrl]);
 
+  // Auto-create a draft report when navigating from an engagement with no reports
+  const [autoCreating, setAutoCreating] = useState(false);
+  useEffect(() => {
+    if (!engagementIdFromUrl || autoCreating) return;
+    // Wait until reports and engagement data are loaded
+    if (!reports || !allEngagements.length) return;
+
+    const engReports = reports.filter((r: any) => r.engagement_id === engagementIdFromUrl);
+    if (engReports.length > 0) return;
+
+    const eng = allEngagements.find((e: any) => e.id === engagementIdFromUrl);
+    if (!eng) return;
+
+    setAutoCreating(true);
+    const newReport = {
+      title: `Audit Report – ${eng.engagement_name || eng.engagement_code || eng.title || 'Untitled'}`,
+      report_type: 'Engagement Report',
+      engagement_id: engagementIdFromUrl,
+      department_id: eng.department_id || null,
+      status: 'Draft',
+      generated_on: new Date().toISOString().split('T')[0],
+    };
+
+    supabase
+      .from('ia_audit_reports')
+      .insert(newReport as any)
+      .select()
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          navigate(`/audit/report-builder?id=${(data as any).id}`, { replace: true });
+        } else {
+          console.error('Auto-create report failed', error);
+          setAutoCreating(false);
+        }
+      });
+  }, [engagementIdFromUrl, reports, allEngagements, autoCreating, navigate]);
+
   const departmentNameById = useMemo(
     () => Object.fromEntries(departments.map((d: any) => [d.id, d.name])),
     [departments]
