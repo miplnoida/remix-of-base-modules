@@ -513,7 +513,7 @@ export default function ManageMeetingsPage() {
       </div>
 
       {/* Stats Cards */}
-      {!isLoading && meetings && meetings.length > 0 && (
+      {!isLoading && allMeetingsForStats && allMeetingsForStats.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             label="Total Meetings"
