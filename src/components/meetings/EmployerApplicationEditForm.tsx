@@ -169,12 +169,14 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const [ownerEditIndex, setOwnerEditIndex] = useState<number | null>(null);
   const [ownerForm, setOwnerForm] = useState<Record<string, any>>({});
   const [ownerDeleteIndex, setOwnerDeleteIndex] = useState<number | null>(null);
+  const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
 
   // Location CRUD state
   const [locDialogOpen, setLocDialogOpen] = useState(false);
   const [locEditIndex, setLocEditIndex] = useState<number | null>(null);
   const [locForm, setLocForm] = useState<Record<string, any>>({});
   const [locDeleteIndex, setLocDeleteIndex] = useState<number | null>(null);
+  const [locErrors, setLocErrors] = useState<Record<string, string>>({});
 
   const owners: any[] = Array.isArray(data.owners) ? data.owners : [];
   const locations: any[] = Array.isArray(data.locations) ? data.locations : [];
