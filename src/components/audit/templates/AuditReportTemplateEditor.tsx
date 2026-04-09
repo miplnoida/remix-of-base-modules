@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2 } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2, BookOpen, FileBreak } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
 import { useDocumentSectionLibrary, useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
