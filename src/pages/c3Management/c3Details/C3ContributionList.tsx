@@ -389,6 +389,29 @@ const C3ContributionList: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Resync Confirmation */}
+      <Dialog open={resyncConfirmRecord !== null} onOpenChange={(open) => !open && setResyncConfirmRecord(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Resync</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Retry syncing payment #{resyncConfirmRecord?.payment_id} to SSB Admin?
+          </p>
+          {resyncConfirmRecord?.sync_error_message && (
+            <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+              Last error: {resyncConfirmRecord.sync_error_message}
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResyncConfirmRecord(null)}>Cancel</Button>
+            <Button onClick={handleResync} disabled={resyncing}>
+              {resyncing ? 'Resyncing...' : 'Resync'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Preview Modal */}
       <C3ContributionPreview
         open={previewOpen}
