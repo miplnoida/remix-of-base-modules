@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Calendar, FileText, Users, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { Loader2, Calendar, FileText, Users, ChevronRight, ChevronLeft, Check, BarChart3 } from 'lucide-react';
+import { calculateCapacity, type CapacityConfig } from '@/lib/audit/capacityPlanner';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ interface AnnualPlanFormProps {
 const STEPS = [
   { id: 'header', label: 'Plan Details', icon: Calendar, description: 'Fiscal year & title' },
   { id: 'narrative', label: 'Planning Narrative', icon: FileText, description: 'Strategy & methodology' },
+  { id: 'capacity', label: 'Team Capacity', icon: BarChart3, description: 'Capacity & utilization' },
   { id: 'resources', label: 'Resource Notes', icon: Users, description: 'Constraints & notes' },
 ];
 
@@ -44,6 +46,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
     outsourcedSupportNotes: plan?.outsourced_support_notes || '',
     skillsConstraints: plan?.skills_constraints || '',
     boardCommitteeName: plan?.board_committee_name || '',
+    auditorCount: plan?.auditor_count || '',
+    monthlyWorkingHours: plan?.monthly_working_hours || '160',
+    utilizationPct: plan?.utilization_pct || '85',
+    bufferPct: plan?.buffer_pct || '10',
   });
 
   const set = (key: string, value: string) => setFormData(prev => ({ ...prev, [key]: value }));
@@ -63,6 +69,10 @@ export function AnnualPlanForm({ plan, onClose, onSuccess, onCreate, onUpdate }:
       outsourced_support_notes: formData.outsourcedSupportNotes,
       skills_constraints: formData.skillsConstraints,
       board_committee_name: formData.boardCommitteeName,
+      auditor_count: formData.auditorCount ? Number(formData.auditorCount) : null,
+      monthly_working_hours: formData.monthlyWorkingHours ? Number(formData.monthlyWorkingHours) : 160,
+      utilization_pct: formData.utilizationPct ? Number(formData.utilizationPct) : 85,
+      buffer_pct: formData.bufferPct ? Number(formData.bufferPct) : 10,
       status,
     };
     if (!plan) {
