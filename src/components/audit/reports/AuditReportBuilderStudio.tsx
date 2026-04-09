@@ -83,6 +83,7 @@ export function AuditReportBuilderStudio() {
   const { data: findings = [] } = useIAFindings();
   const { data: responses = [] } = useIAManagementResponses();
   const { data: actions = [] } = useIAActionTracking();
+  const { sectionRefs: dbSectionRefs } = useDocumentTemplateSections('audit_report');
   const { create, update } = useIAAuditReportMutations();
 
   const [activeSection, setActiveSection] = useState('metadata');

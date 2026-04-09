@@ -76,6 +76,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
   const { data: reports = [] } = useIAAuditReports();
   const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAuditReportMutations();
+  const { sectionRefs: dbSectionRefs } = useDocumentTemplateSections('audit_report');
 
   // Fetch additional workspace data for auto-population
   const { data: activities = [] } = useEngagementActivities(auditId);
