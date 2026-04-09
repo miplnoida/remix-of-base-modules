@@ -366,8 +366,16 @@ export function AuditReportCenter() {
               {filteredReports.length === 0 ? (
                 <div className="text-center py-12">
                   <Layers className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">No reports found</p>
-                  <p className="text-xs text-muted-foreground mt-1">Create a new report to get started</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {engagementFilter !== 'all'
+                      ? `No reports yet for this engagement`
+                      : 'No reports found'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {engagementFilter !== 'all'
+                      ? 'Create a new report for this audit engagement to get started'
+                      : 'Create a new report to get started'}
+                  </p>
                   <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowTemplateSelector(true)}>
                     <Plus className="h-4 w-4 mr-2" /> New Report
                   </Button>
