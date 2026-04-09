@@ -1,117 +1,129 @@
 
 
-# Persistent Editable Locations & Dependants in Meeting Workbench
+# Global Interaction-Blocking Overlay for Critical Actions
 
 ## Problem
-When reviewing online applications at `/meetings/start/:id`, users can edit Locations (employer) and Dependants (IP) in-memory, but changes are **lost** when navigating away. The external API is re-fetched every time, overwriting edits.
+When a user clicks an action button (e.g., "Start Meeting", "Approve", "Save"), a local spinner shows but the rest of the UI — including the left navigation menu — remains interactive. Users can navigate away or trigger duplicate actions, causing inconsistent state and data integrity issues.
 
-## Architecture Decision: Use `meeting_edit_data` Table
+## Architecture
 
-Rather than overloading the existing `meetings.metadata` JSONB column (which stores meeting-level config), we create a dedicated table to store per-tab edited datasets. This keeps concerns separated and enables audit tracking.
-
-```text
-┌─────────────────────────┐
-│   External API          │──(first load only)──▶ editedData state
-└─────────────────────────┘
-                                                       │
-                                                  (user edits)
-                                                       │
-                                                       ▼
-┌─────────────────────────┐                    ┌──────────────┐
-│  meeting_edit_data      │◀──(auto-save)──────│  UI State    │
-│  (Supabase table)       │──(reload on visit)─│  editedData  │
-└─────────────────────────┘                    └──────┬───────┘
-                                                       │
-                                               (on Approve)
-                                                       ▼
-                                              Conversion RPCs
-                                          (uses latest editedData)
-```
-
-## Changes
-
-### 1. New Database Table: `meeting_edit_data`
-
-```sql
-CREATE TABLE public.meeting_edit_data (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  meeting_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-  data_type TEXT NOT NULL,          -- 'locations' | 'dependants' | 'owners' etc.
-  data_json JSONB NOT NULL DEFAULT '[]',
-  original_api_json JSONB,         -- snapshot of original API data for audit
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  modified_by TEXT,
-  UNIQUE(meeting_id, data_type)
-);
-```
-
-- `data_type` allows extending to other tabs (owners, remarks) in the future
-- `original_api_json` preserves the original API response for audit comparison
-- `UNIQUE(meeting_id, data_type)` ensures one record per tab per meeting — upsert pattern
-
-### 2. New Hook: `useMeetingEditData`
-
-**File:** `src/hooks/useMeetingEditData.ts`
-
-A reusable hook that:
-- **Loads** saved data from `meeting_edit_data` for a given `meetingId` + `dataType`
-- **Returns** `{ savedData, hasSavedData, save, isLoading, isSaving }`
-- **`save(data, originalData, userCode)`**: Upserts to `meeting_edit_data` with the current array and original snapshot
-- Uses React Query for caching with key `['meeting-edit-data', meetingId, dataType]`
-
-### 3. Integration: Employer Locations Tab
-
-**File:** `src/pages/meetings/StartMeetingPage.tsx` (or `EmployerApplicationEditForm.tsx`)
-
-Modify the initialization flow:
-1. On mount, call `useMeetingEditData(meetingId, 'locations')`
-2. If `hasSavedData` → use `savedData` as initial `locations` in `editedData`
-3. If no saved data → use API response (current behavior)
-4. On every location add/edit/delete → call `save()` to persist immediately
-5. Add a "Save Progress" button or auto-save on change (debounced)
-
-The existing `saveLocation`, `confirmDeleteLocation`, `openAddLocation` functions in `EmployerApplicationEditForm.tsx` already update `onDataChange`. We wrap those to also persist.
-
-### 4. Integration: IP Dependants Tab
-
-**File:** `src/pages/meetings/StartMeetingPage.tsx` (InsuredPersonEditForm section)
-
-Same pattern:
-1. `useMeetingEditData(meetingId, 'dependants')`
-2. If saved data exists → seed dependants from DB instead of API
-3. On `saveDependant` / `confirmDeleteDependant` → persist to `meeting_edit_data`
-
-### 5. Data Flow During Conversion
-
-**No changes needed to conversion hooks.** Both `useConvertToIPRegistration` and `useConvertToEmployerRegistration` already consume from `editedData` (which merges API data + user edits). Since we're seeding `editedData` from persisted data on reload, the conversion automatically uses the latest user-modified state.
-
-### 6. Initialization Logic (pseudocode)
+A lightweight **global blocking overlay** managed via React context. Any component can call `startBlocking()` / `stopBlocking()` to activate a full-screen overlay that disables all pointer events. A reference counter handles concurrent operations (overlay stays until ALL operations complete).
 
 ```text
-useEffect when applicationData loads:
-  1. Check meeting_edit_data for 'locations' (or 'dependants')
-  2. IF saved data exists:
-       → setEditedData(prev => ({ ...prev, locations: savedData }))
-       → Skip API data for this field
-  3. ELSE:
-       → Use applicationData.locations as-is (current behavior)
-       → Optionally save original snapshot to original_api_json
+┌──────────────────────────────────┐
+│  GlobalBlockingContext            │
+│  ┌────────────────────────────┐  │
+│  │ activeCount (ref counter)  │  │
+│  │ startBlocking(label?)      │  │
+│  │ stopBlocking()             │  │
+│  │ isBlocking: boolean        │  │
+│  └────────────────────────────┘  │
+└──────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│  <BlockingOverlay />             │
+│  fixed inset-0 z-[9999]         │
+│  pointer-events: all            │
+│  semi-transparent backdrop      │
+│  centered Loader2 + label       │
+└──────────────────────────────────┘
 ```
+
+## Implementation
+
+### 1. New Context: `GlobalBlockingContext`
+**File:** `src/contexts/GlobalBlockingContext.tsx`
+
+- `activeCount` ref (integer) — incremented by `startBlocking()`, decremented by `stopBlocking()`
+- `isBlocking` state derived from `activeCount > 0`
+- Optional `label` parameter for display text (e.g., "Saving..." or "Processing...")
+- Safety: `stopBlocking` never decrements below 0
+- **Timeout guard**: If blocking persists >30s, auto-release with error toast
+
+### 2. New Component: `BlockingOverlay`
+**File:** `src/components/ui/BlockingOverlay.tsx`
+
+- Renders only when `isBlocking === true`
+- `fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center pointer-events-auto`
+- Shows `Loader2` spinner + label text
+- Sits above everything including nav sidebar and modals
+
+### 3. New Hook: `useBlockingMutation`
+**File:** `src/hooks/useBlockingMutation.ts`
+
+A thin wrapper around `useMutation` that automatically calls `startBlocking()` before the mutation and `stopBlocking()` on success/error/settled. Drop-in replacement for critical actions:
+
+```typescript
+export function useBlockingMutation<TData, TError, TVariables>(
+  options: UseMutationOptions<TData, TError, TVariables>,
+  blockingLabel?: string
+) {
+  const { startBlocking, stopBlocking } = useGlobalBlocking();
+  return useMutation({
+    ...options,
+    onMutate: async (vars) => {
+      startBlocking(blockingLabel);
+      return options.onMutate?.(vars);
+    },
+    onSettled: (data, error, vars, ctx) => {
+      stopBlocking();
+      options.onSettled?.(data, error, vars, ctx);
+    },
+  });
+}
+```
+
+### 4. Wire Into App.tsx
+Add `GlobalBlockingProvider` wrapping the app content (inside `ThemeProvider`, outside `Router`), and render `<BlockingOverlay />` as a sibling to `<AppRoutes />`.
+
+### 5. Integrate With Critical Actions
+Update the following high-impact mutation hooks to use `useBlockingMutation` or manually call `startBlocking`/`stopBlocking`:
+
+| Hook/Component | Action |
+|---|---|
+| `useStartMeeting` | Start Meeting button |
+| `useProcessMeetingOutcome` | Approve/Reject/Defer outcome |
+| `useConvertToIPRegistration` | Convert IP application |
+| `useConvertToEmployerRegistration` | Convert ER application |
+| `useCancelMeeting` / `useRescheduleMeeting` | Cancel/Reschedule |
+| `useBnBulkPayableAction` | Bulk payable actions |
+| `useBnScheduleRowAction` | Bulk schedule actions |
+| Form submission handlers (registration steps) | Save/Submit forms |
+| Document upload handlers | File uploads |
+
+For each, replace `useMutation` with `useBlockingMutation` or wrap the async call with `startBlocking`/`stopBlocking`.
+
+### 6. Error & Timeout Handling
+- On mutation error: `stopBlocking()` is called via `onSettled`, overlay clears, error toast shown
+- 30-second timeout: If `isBlocking` stays true for 30s, auto-clear with warning toast "Operation timed out — please check your data"
+- `stopBlocking` is idempotent — multiple calls are safe
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| New migration SQL | Create `meeting_edit_data` table |
-| `src/hooks/useMeetingEditData.ts` (new) | Reusable load/save hook for per-tab edited data |
-| `src/components/meetings/EmployerApplicationEditForm.tsx` | Wire locations CRUD to auto-persist via hook |
-| `src/pages/meetings/StartMeetingPage.tsx` | Wire dependants CRUD to auto-persist; seed from saved data on load |
+| `src/contexts/GlobalBlockingContext.tsx` (new) | Context with ref counter, start/stop, timeout |
+| `src/components/ui/BlockingOverlay.tsx` (new) | Full-screen overlay component |
+| `src/hooks/useBlockingMutation.ts` (new) | Drop-in blocking mutation wrapper |
+| `src/App.tsx` | Add `GlobalBlockingProvider` + `<BlockingOverlay />` |
+| `src/hooks/useMeetings.ts` | Switch critical mutations to `useBlockingMutation` |
+| `src/hooks/useProcessMeetingOutcome.ts` | Switch to `useBlockingMutation` |
+| `src/hooks/useConvertToIPRegistration.ts` | Switch to `useBlockingMutation` |
+| `src/hooks/useConvertToEmployerRegistration.ts` | Switch to `useBlockingMutation` |
+| `src/hooks/bn/useBnPayablesQueue.ts` | Switch bulk action to `useBlockingMutation` |
+| `src/hooks/bn/useBnSchedule.ts` | Switch bulk action to `useBlockingMutation` |
 
 ## What Is NOT Changed
-- Conversion RPCs — already consume `editedData`
-- External API fetch hooks — still called, but data is overridden by saved edits when present
-- Meeting scheduling, rescheduling, calendar — unaffected
-- Document upload/verification — separate mechanism, unaffected
-- Owners tab — not in scope (same pattern can be applied later)
+- No database changes needed — this is purely a frontend interaction pattern
+- No changes to existing API/RPC logic
+- No changes to React Query cache or audit interceptor
+- Local component spinners remain as secondary visual feedback inside buttons
+
+## Scalability
+Any future feature can use either:
+1. `useBlockingMutation(options, 'Saving...')` — automatic blocking
+2. `const { startBlocking, stopBlocking } = useGlobalBlocking()` — manual control
+
+This becomes the enforced standard per the governance policy.
 
