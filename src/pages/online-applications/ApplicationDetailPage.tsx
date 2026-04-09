@@ -191,7 +191,7 @@ export default function ApplicationDetailPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -206,7 +206,7 @@ export default function ApplicationDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge variant={getStatusVariant(application.status)} className="text-sm px-3 py-1">
             {formatStatusDisplay(application.status)}
           </Badge>
