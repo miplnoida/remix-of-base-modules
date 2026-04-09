@@ -134,8 +134,18 @@ export function RescheduleMeetingDialog({
 
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
-  // Capture current time in minutes at render time
-  const nowTimeMinutes = useMemo(() => today.getHours() * 60 + today.getMinutes(), []);
+  const [nowTimeMinutes, setNowTimeMinutes] = useState(() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const n = new Date();
+      setNowTimeMinutes(n.getHours() * 60 + n.getMinutes());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Returns true if a time slot string "HH:MM" is in the past relative to now, when today is selected
   const isSlotInPast = (slot: string): boolean => {

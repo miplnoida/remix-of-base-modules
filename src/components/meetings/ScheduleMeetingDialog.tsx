@@ -146,8 +146,18 @@ export function ScheduleMeetingDialog({
   useEffect(() => { if (usersInDept.length > 0 && !usersInDept.find(u => u.id === selectedUserId)) setSelectedUserId(usersInDept[0].id); }, [usersInDept, selectedUserId]);
 
   const today = new Date();
-  // Capture current HH:MM at render time – re-evaluated every time the component renders
-  const nowTimeMinutes = useMemo(() => today.getHours() * 60 + today.getMinutes(), []);
+  const [nowTimeMinutes, setNowTimeMinutes] = useState(() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const n = new Date();
+      setNowTimeMinutes(n.getHours() * 60 + n.getMinutes());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Build strict 4-week aligned calendar
   const { paddingCount, days: calendarDays } = useMemo(() => buildFourWeekDays(today, weekStartDay), [weekStartDay]);
