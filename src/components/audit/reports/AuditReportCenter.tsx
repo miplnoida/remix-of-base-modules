@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,17 +42,27 @@ const DASHBOARD_LINKS = [
 
 export function AuditReportCenter() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: reports = [] } = useIAAuditReports();
   const { data: engagements = [] } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: findings = [] } = useIAFindings();
   const { data: actions = [] } = useIAActionTracking();
 
+  const engagementIdFromUrl = searchParams.get('engagementId');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [deptFilter, setDeptFilter] = useState('all');
+  const [engagementFilter, setEngagementFilter] = useState<string>(engagementIdFromUrl || 'all');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+
+  useEffect(() => {
+    if (engagementIdFromUrl) {
+      setEngagementFilter(engagementIdFromUrl);
+    }
+  }, [engagementIdFromUrl]);
 
   const departmentNameById = useMemo(
     () => Object.fromEntries(departments.map((d: any) => [d.id, d.name])),
@@ -86,9 +96,10 @@ export function AuditReportCenter() {
       const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
       const matchesType = typeFilter === 'all' || r.report_type === typeFilter;
       const matchesDept = deptFilter === 'all' || r.department_id === deptFilter;
-      return matchesSearch && matchesStatus && matchesType && matchesDept;
+      const matchesEngagement = engagementFilter === 'all' || r.engagement_id === engagementFilter;
+      return matchesSearch && matchesStatus && matchesType && matchesDept && matchesEngagement;
     });
-  }, [reports, searchTerm, statusFilter, typeFilter, deptFilter]);
+  }, [reports, searchTerm, statusFilter, typeFilter, deptFilter, engagementFilter]);
 
   const recentDrafts = useMemo(() => reports.filter((r: any) => r.status === 'Draft').slice(0, 5), [reports]);
   const recentFinals = useMemo(() => reports.filter((r: any) => r.status === 'Final').slice(0, 5), [reports]);
