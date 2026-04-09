@@ -10,15 +10,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, ChevronDown, ChevronUp, GripVertical, Eye, Info, Building2 } from 'lucide-react';
 import { useAuditReportTemplate, useAuditDocumentTemplateMutation } from '@/hooks/useAuditDocumentTemplates';
-import { useDocumentSectionLibrary } from '@/hooks/useDocumentFoundation';
+import { useDocumentSectionLibrary, useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
+import { FoundationInheritedSummary } from './InheritedFromFoundation';
 
 export function AuditReportTemplateEditor() {
   const { data: config, isLoading } = useAuditReportTemplate();
   const { data: librarySections = [] } = useDocumentSectionLibrary('audit_report');
+  const { data: foundation } = useDocumentFoundation();
   const mutation = useAuditDocumentTemplateMutation();
   const { userCode } = useUserCode();
   const [draft, setDraft] = useState<AuditReportTemplateConfig>(DEFAULT_AUDIT_REPORT_CONFIG);
