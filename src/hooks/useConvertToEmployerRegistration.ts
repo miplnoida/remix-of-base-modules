@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useGlobalBlocking } from '@/contexts/GlobalBlockingContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -153,6 +154,7 @@ export function useConvertToEmployerRegistration() {
   const queryClient = useQueryClient();
   const [isConverting, setIsConverting] = useState(false);
   const [conversionErrors, setConversionErrors] = useState<EmployerConversionValidationError[]>([]);
+  const { startBlocking, stopBlocking } = useGlobalBlocking();
 
   const convert = useCallback(async ({
     applicationData,
@@ -163,6 +165,7 @@ export function useConvertToEmployerRegistration() {
   }: EmployerConversionParams): Promise<EmployerConversionResult> => {
     setIsConverting(true);
     setConversionErrors([]);
+    startBlocking('Converting to Employer Registration...');
 
     try {
       // ── Step 1: Client-side preflight ──────────────────────────────────
@@ -283,8 +286,9 @@ export function useConvertToEmployerRegistration() {
       return { success: false, message };
     } finally {
       setIsConverting(false);
+      stopBlocking();
     }
-  }, [queryClient]);
+  }, [queryClient, startBlocking, stopBlocking]);
 
   return { convert, isConverting, conversionErrors };
 }

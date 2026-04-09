@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useGlobalBlocking } from '@/contexts/GlobalBlockingContext';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
@@ -253,6 +254,7 @@ export function useConvertToIPRegistration() {
   const queryClient = useQueryClient();
   const [isConverting, setIsConverting] = useState(false);
   const [conversionErrors, setConversionErrors] = useState<ConversionValidationError[]>([]);
+  const { startBlocking, stopBlocking } = useGlobalBlocking();
 
   const convert = useCallback(async ({
     applicationDetail,
@@ -264,6 +266,7 @@ export function useConvertToIPRegistration() {
   }: ConversionParams): Promise<ConversionResult> => {
     setIsConverting(true);
     setConversionErrors([]);
+    startBlocking('Converting to IP Registration...');
 
     try {
       // ── Step 1: Client-side preflight ────────────────────────────────────
@@ -465,8 +468,9 @@ export function useConvertToIPRegistration() {
       return { success: false, message };
     } finally {
       setIsConverting(false);
+      stopBlocking();
     }
-  }, [queryClient]);
+  }, [queryClient, startBlocking, stopBlocking]);
 
   return { convert, isConverting, conversionErrors, setConversionErrors };
 }
