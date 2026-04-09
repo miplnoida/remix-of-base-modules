@@ -1,7 +1,8 @@
 /**
  * React Query hooks for Payment Schedule Management
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import {
   fetchScheduleRows,
   fetchScheduleSummary,
@@ -32,7 +33,7 @@ export function useBnScheduleSummary(entitlementId: string | null) {
 
 export function useBnScheduleRowAction() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: ExecuteScheduleActionParams) => executeScheduleRowAction(params),
     onSuccess: (_, vars) => {
       toast.success(`Schedule ${vars.action.toLowerCase().replace(/_/g, ' ')} completed`);
@@ -43,12 +44,12 @@ export function useBnScheduleRowAction() {
     onError: (err: any) => {
       toast.error('Action failed', { description: err.message });
     },
-  });
+  }, 'Processing schedule action...');
 }
 
 export function useBnSuspendFutureRows() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: { entitlementId: string; performedBy: string; narrative: string; reasonCodeId: string }) =>
       suspendFutureRows(params.entitlementId, params.performedBy, params.narrative, params.reasonCodeId),
     onSuccess: (count) => {
@@ -59,12 +60,12 @@ export function useBnSuspendFutureRows() {
     onError: (err: any) => {
       toast.error('Suspend failed', { description: err.message });
     },
-  });
+  }, 'Suspending future rows...');
 }
 
 export function useBnRegenerateSchedule() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: { entitlementId: string; performedBy: string; narrative: string }) =>
       regenerateSchedule(params.entitlementId, params.performedBy, params.narrative),
     onSuccess: (result) => {
@@ -75,12 +76,12 @@ export function useBnRegenerateSchedule() {
     onError: (err: any) => {
       toast.error('Regeneration failed', { description: err.message });
     },
-  });
+  }, 'Regenerating schedule...');
 }
 
 export function useBnGenerateArrears() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: { entitlementId: string; arrearsFrom: string; arrearsTo: string; performedBy: string; narrative: string }) =>
       generateArrearsRows(params.entitlementId, params.arrearsFrom, params.arrearsTo, params.performedBy, params.narrative),
     onSuccess: (count) => {
@@ -91,5 +92,5 @@ export function useBnGenerateArrears() {
     onError: (err: any) => {
       toast.error('Arrears generation failed', { description: err.message });
     },
-  });
+  }, 'Generating arrears...');
 }

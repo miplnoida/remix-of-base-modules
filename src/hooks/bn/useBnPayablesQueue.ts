@@ -1,7 +1,8 @@
 /**
  * React Query hooks for the Payables Queue
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import {
   fetchPayables,
   fetchPayableDetail,
@@ -30,7 +31,7 @@ export function useBnPayableDetail(instructionId: string | null) {
 
 export function useBnPayableAction() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: ExecutePayableActionParams) => executePayableAction(params),
     onSuccess: (_, vars) => {
       toast.success(`Payable ${vars.action.toLowerCase().replace(/_/g, ' ')} completed`);
@@ -41,12 +42,12 @@ export function useBnPayableAction() {
     onError: (err: any) => {
       toast.error('Action failed', { description: err.message });
     },
-  });
+  }, 'Processing payable action...');
 }
 
 export function useBnBulkPayableAction() {
   const qc = useQueryClient();
-  return useMutation({
+  return useBlockingMutation({
     mutationFn: (params: { ids: string[]; action: string; performedBy: string; narrative?: string }) =>
       executeBulkPayableAction(params.ids, params.action, params.performedBy, params.narrative),
     onSuccess: (result) => {
@@ -56,5 +57,5 @@ export function useBnBulkPayableAction() {
     onError: (err: any) => {
       toast.error('Bulk action failed', { description: err.message });
     },
-  });
+  }, 'Processing bulk payable action...');
 }
