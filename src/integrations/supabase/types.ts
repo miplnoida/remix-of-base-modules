@@ -28454,6 +28454,47 @@ export type Database = {
           },
         ]
       }
+      meeting_edit_data: {
+        Row: {
+          created_at: string
+          data_json: Json
+          data_type: string
+          id: string
+          meeting_id: string
+          modified_by: string | null
+          original_api_json: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_json?: Json
+          data_type: string
+          id?: string
+          meeting_id: string
+          modified_by?: string | null
+          original_api_json?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_json?: Json
+          data_type?: string
+          id?: string
+          meeting_id?: string
+          modified_by?: string | null
+          original_api_json?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_edit_data_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_history: {
         Row: {
           action_taken: string
