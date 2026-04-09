@@ -66,6 +66,7 @@ export function validatePhone(
   fieldName: string = 'phone',
   label: string = 'Phone number',
   required: boolean = false,
+  maxLenOverride?: number,
 ): ValidationResult {
   const trimmed = (value ?? '').trim();
 
@@ -79,7 +80,7 @@ export function validatePhone(
     return { valid: false, error: `${label} must contain only digits (and optional leading +)` };
   }
 
-  const maxLen = PHONE_MAX_LENGTHS[fieldName] ?? PHONE_MAX_LENGTHS.default;
+  const maxLen = maxLenOverride ?? PHONE_MAX_LENGTHS[fieldName] ?? PHONE_MAX_LENGTHS.default;
   if (trimmed.length > maxLen) {
     return { valid: false, error: `${label} exceeds maximum length of ${maxLen} characters` };
   }
@@ -99,6 +100,7 @@ export function validateEmail(
   fieldName: string = 'email',
   label: string = 'Email',
   required: boolean = false,
+  maxLenOverride?: number,
 ): ValidationResult {
   const trimmed = (value ?? '').trim();
 
@@ -108,13 +110,45 @@ export function validateEmail(
       : { valid: true };
   }
 
-  const maxLen = EMAIL_MAX_LENGTHS[fieldName] ?? EMAIL_MAX_LENGTHS.default;
+  const maxLen = maxLenOverride ?? EMAIL_MAX_LENGTHS[fieldName] ?? EMAIL_MAX_LENGTHS.default;
   if (trimmed.length > maxLen) {
     return { valid: false, error: `${label} exceeds maximum length of ${maxLen} characters` };
   }
 
   if (!EMAIL_PATTERN.test(trimmed)) {
     return { valid: false, error: `Invalid ${label.toLowerCase()} format (e.g. user@example.com)` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate an SSN value.
+ * @param value - Raw input value
+ * @param label - Human-readable label for error messages
+ * @param required - Whether the field is mandatory
+ * @param exactLength - Required exact digit count (default: 6)
+ */
+export function validateSSN(
+  value: string | null | undefined,
+  label: string = 'SSN',
+  required: boolean = true,
+  exactLength: number = 6,
+): ValidationResult {
+  const trimmed = (value ?? '').trim();
+
+  if (!trimmed) {
+    return required
+      ? { valid: false, error: `${label} is required` }
+      : { valid: true };
+  }
+
+  if (!/^\d+$/.test(trimmed)) {
+    return { valid: false, error: `${label} must contain only digits` };
+  }
+
+  if (trimmed.length !== exactLength) {
+    return { valid: false, error: `${label} must be exactly ${exactLength} digits` };
   }
 
   return { valid: true };
