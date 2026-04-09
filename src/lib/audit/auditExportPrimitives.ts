@@ -91,6 +91,9 @@ export function brandingFromFoundation(foundation: DocumentFoundationConfig): Ex
     mutedText: [128, 128, 128],
     confidentialityText: foundation.branding.confidentialLabel || DEFAULT_AUDIT_BRANDING.confidentialityText,
     logoBase64: foundation.branding.logoSource !== 'default' ? foundation.branding.logoSource : null,
+    gapHeaderColor: foundation.colorPalette.gapAnalysisHeader
+      ? hexToRgb(foundation.colorPalette.gapAnalysisHeader)
+      : DEFAULT_AUDIT_BRANDING.gapHeaderColor,
   };
 }
 
