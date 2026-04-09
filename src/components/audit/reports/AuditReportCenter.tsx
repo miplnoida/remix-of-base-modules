@@ -140,13 +140,13 @@ export function AuditReportCenter() {
     <div className="space-y-8">
       {/* Engagement Context Banner */}
       {engagementFilter !== 'all' && (() => {
-        const eng = engagements.find((e: any) => e.id === engagementFilter);
+        const eng = allEngagements.find((e: any) => e.id === engagementFilter);
         return eng ? (
           <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
             <Briefcase className="h-4 w-4 text-primary shrink-0" />
             <div className="flex-1 text-sm">
               <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
-              <span className="font-semibold text-foreground">{eng.engagement_code || eng.title}</span>
+              <span className="font-semibold text-foreground">{eng.engagement_name || eng.engagement_code || eng.title}</span>
             </div>
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate(`/audit/audits/${eng.id}`)}>
               <ArrowRight className="h-3 w-3 mr-1" /> Back to Engagement
@@ -158,7 +158,22 @@ export function AuditReportCenter() {
               <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
             </Button>
           </div>
-        ) : null;
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+            <Briefcase className="h-4 w-4 text-amber-600 shrink-0" />
+            <div className="flex-1 text-sm">
+              <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
+              <span className="font-semibold text-foreground">{engagementFilter.slice(0, 8)}…</span>
+              <span className="text-xs text-muted-foreground ml-2">(engagement not found)</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              setEngagementFilter('all');
+              setSearchParams({}, { replace: true });
+            }}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
+            </Button>
+          </div>
+        );
       })()}
 
       {/* Hero Banner */}
