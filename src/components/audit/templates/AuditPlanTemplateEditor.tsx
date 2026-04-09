@@ -15,6 +15,7 @@ import { FoundationInheritedSummary } from './InheritedFromFoundation';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import { TemplatePreviewPane } from './TemplatePreviewPane';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
+import { TemplateSectionsPanel } from './TemplateSectionsPanel';
 import { ExportSettingsConfigurator } from './ExportSettingsConfigurator';
 import { AuditPlanProfilesTab } from './AuditPlanProfilesTab';
 import { AuditPlanTemplatesTab } from './AuditPlanTemplatesTab';
@@ -236,11 +237,7 @@ export function AuditPlanTemplateEditor() {
 
             {/* 3. Section Configuration */}
             <TabsContent value="sections" className="mt-4">
-              <AuditPlanSectionConfigurator
-                sections={sectionConfig}
-                onChange={canEdit ? setSectionConfig : () => {}}
-                onReset={canEdit ? () => setSectionConfig([...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[]) : () => {}}
-              />
+              <TemplateSectionsPanel documentType="audit_plan" editable={canEdit} />
 
               {/* Plan-specific content configuration */}
               <div className="space-y-4 mt-4">
