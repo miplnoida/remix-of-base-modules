@@ -32,6 +32,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from './AuditReportPreview';
 import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
+import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { AuditFindingCard } from './AuditFindingCard';
 import { AuditReportVersionTimeline } from './AuditReportVersionTimeline';
 import { AuditReportWorkflowBar } from './AuditReportWorkflowBar';
@@ -84,6 +85,7 @@ export function AuditReportBuilderStudio() {
   const { data: responses = [] } = useIAManagementResponses();
   const { data: actions = [] } = useIAActionTracking();
   const { sectionRefs: dbSectionRefs } = useDocumentTemplateSections('audit_report');
+  const { data: foundation } = useDocumentFoundation();
   const { create, update } = useIAAuditReportMutations();
 
   const [activeSection, setActiveSection] = useState('metadata');
@@ -303,6 +305,7 @@ export function AuditReportBuilderStudio() {
         departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
         templateConfig={effectiveTemplateConfig}
         dbSectionRefs={dbSectionRefs}
+        foundation={foundation}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />
