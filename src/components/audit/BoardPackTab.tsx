@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Lock, Loader2, AlertTriangle, Info, Settings2 } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { supabase } from '@/integrations/supabase/client';
 import { useIADepartments, useIADepartmentFunctions, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
+import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReportCustomizationDialog, DEFAULT_REPORT_CONFIG, THEME_COLORS } from './ReportCustomizationDialog';
@@ -33,6 +34,7 @@ import {
   renderNarrativeBlock,
   renderKvTable,
   renderWatermarkAllPages,
+  brandingFromFoundation,
   loadLogoBase64,
   displayValue as dv,
   resolveField as ef,
@@ -58,15 +60,21 @@ function getTheme(config: ReportConfig) {
   return THEME_COLORS[config.colorTheme] || THEME_COLORS['ssb-green'];
 }
 
+function toJsPdfFormat(pageSize?: string): 'letter' | 'a4' | 'legal' {
+  if (pageSize === 'a4' || pageSize === 'legal') return pageSize;
+  return 'letter';
+}
+
 /** Convert hex color to RGB tuple */
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
 }
 
-/** Build theme from resolved plan template config (template takes priority) */
+/** Build theme from resolved plan template config (template/foundation take priority) */
 function getThemeFromTemplate(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>) {
-  if (!templateConfig?.resolved?.branding?.colorPalette) {
+  const shouldUseCustomTheme = config.colorTheme !== DEFAULT_REPORT_CONFIG.colorTheme;
+  if (shouldUseCustomTheme || !templateConfig?.resolved?.branding?.colorPalette) {
     return getTheme(config);
   }
   const palette = templateConfig.resolved.branding.colorPalette;
@@ -80,22 +88,73 @@ function getThemeFromTemplate(config: ReportConfig, templateConfig?: ReturnType<
   };
 }
 
-/** Build ExportBranding from ReportConfig theme */
-function buildBranding(config: ReportConfig, templateConfig?: ReturnType<typeof mapPlanOutput>): ExportBranding {
-  const theme = templateConfig ? getThemeFromTemplate(config, templateConfig) : getTheme(config);
+function isCustomHeaderTitle(config: ReportConfig) {
+  return config.headerTitle.trim() !== DEFAULT_REPORT_CONFIG.headerTitle;
+}
+
+function isCustomHeaderSubtitle(config: ReportConfig) {
+  return config.headerSubtitle.trim() !== DEFAULT_REPORT_CONFIG.headerSubtitle;
+}
+
+function isCustomConfidentialityLabel(config: ReportConfig) {
+  return config.confidentialityLabel.trim() !== DEFAULT_REPORT_CONFIG.confidentialityLabel;
+}
+
+function buildDefaultReportConfig(templateConfig?: ReturnType<typeof mapPlanOutput>, foundation?: any): ReportConfig {
   return {
-    ...DEFAULT_AUDIT_BRANDING,
-    orgName: config.headerTitle || DEFAULT_AUDIT_BRANDING.orgName,
-    department: config.headerSubtitle || DEFAULT_AUDIT_BRANDING.department,
-    primaryColor: theme.primary,
-    accentColor: theme.accent,
-    altRowColor: theme.altRow,
-    confidentialityText: config.confidentialityLabel || DEFAULT_AUDIT_BRANDING.confidentialityText,
+    ...DEFAULT_REPORT_CONFIG,
+    headerTitle:
+      templateConfig?.resolved?.branding?.orgName ||
+      foundation?.branding?.orgName ||
+      DEFAULT_REPORT_CONFIG.headerTitle,
+    confidentialityLabel:
+      templateConfig?.cover?.confidentialLabel ||
+      foundation?.branding?.confidentialLabel ||
+      DEFAULT_REPORT_CONFIG.confidentialityLabel,
+    showDraftWatermark:
+      templateConfig?.showWatermark ??
+      foundation?.draftRules?.showWatermark ??
+      DEFAULT_REPORT_CONFIG.showDraftWatermark,
+    pageOrientation:
+      templateConfig?.pageLayout?.orientation ||
+      DEFAULT_REPORT_CONFIG.pageOrientation,
   };
 }
 
-async function getLogoBase64(): Promise<string | null> {
-  return loadLogoBase64(ssbLogoPng);
+/** Build ExportBranding from Document & Output Settings with optional one-off overrides */
+function buildBranding(
+  config: ReportConfig,
+  templateConfig?: ReturnType<typeof mapPlanOutput>,
+  foundation?: any
+): ExportBranding {
+  const baseBranding = foundation
+    ? brandingFromFoundation(foundation)
+    : { ...DEFAULT_AUDIT_BRANDING };
+  const theme = templateConfig ? getThemeFromTemplate(config, templateConfig) : getTheme(config);
+
+  return {
+    ...baseBranding,
+    orgName:
+      isCustomHeaderTitle(config)
+        ? config.headerTitle
+        : (templateConfig?.resolved?.branding?.orgName || baseBranding.orgName),
+    department: isCustomHeaderSubtitle(config) ? config.headerSubtitle : baseBranding.department,
+    primaryColor: theme.primary,
+    accentColor: theme.accent,
+    altRowColor: theme.altRow,
+    confidentialityText:
+      isCustomConfidentialityLabel(config)
+        ? config.confidentialityLabel
+        : (templateConfig?.cover?.confidentialLabel || baseBranding.confidentialityText),
+  };
+}
+
+async function getLogoBase64(foundation?: any): Promise<string | null> {
+  if (foundation?.branding?.showLogo === false) return null;
+  const logoSrc = foundation?.branding?.logoSource && foundation.branding.logoSource !== 'default'
+    ? foundation.branding.logoSource
+    : ssbLogoPng;
+  return loadLogoBase64(logoSrc);
 }
 
 // dv and ef are now imported from auditExportPrimitives (displayValue, resolveField)
@@ -125,60 +184,49 @@ function getSupportNames(e: any, auditorMap: Map<string, string>): string {
 }
 
 // ===== PAGE HEADER — delegates to unified primitives =====
-function addHeader(doc: jsPDF, sectionTitle: string, fiscalYear: string, version: number, config: ReportConfig) {
-  const branding = buildBranding(config);
+function addHeader(doc: jsPDF, branding: ExportBranding, sectionTitle: string, fiscalYear: string, version: number) {
   renderPageHeader(doc, branding, { sectionTitle, fiscalYear, version });
 }
 
 // ===== FOOTER — delegates to unified primitives =====
-function addFooter(doc: jsPDF, version: number, artifactVersion: number, status: string, config: ReportConfig) {
-  const branding = buildBranding(config);
+function addFooter(doc: jsPDF, branding: ExportBranding, version: number, artifactVersion: number) {
   renderFooter(doc, branding, {
     extraText: `Plan v${version}  •  Artifact v${artifactVersion}`,
   });
-  // Draft watermark
-  if (status !== 'Approved' && config.showDraftWatermark) {
-    renderWatermarkAllPages(doc, 'DRAFT', 0.12);
-  }
 }
 
 // ===== SECTION TITLE — delegates to unified primitives =====
-function drawSectionTitle(doc: jsPDF, y: number, title: string, theme: any): number {
-  const branding: ExportBranding = {
-    ...DEFAULT_AUDIT_BRANDING,
-    primaryColor: theme.primary,
-    accentColor: theme.accent,
-  };
+function drawSectionTitle(doc: jsPDF, y: number, title: string, branding: ExportBranding): number {
   return renderUnifiedSectionTitle(doc, branding, title, y);
 }
 
 // ===== NARRATIVE BLOCK — delegates to unified primitives =====
-function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, _pw: number, theme: any): number {
-  const branding: ExportBranding = {
-    ...DEFAULT_AUDIT_BRANDING,
-    primaryColor: theme.primary,
-  };
+function addNarrativeBlock(doc: jsPDF, y: number, title: string, content: string | null | undefined, _pw: number, branding: ExportBranding): number {
   return renderNarrativeBlock(doc, branding, title, content, y);
 }
 
 // ===== KEY-VALUE PAIR TABLE — delegates to unified primitives =====
-function addKvTable(doc: jsPDF, y: number, pairs: [string, string][], theme: any): number {
-  const branding: ExportBranding = {
-    ...DEFAULT_AUDIT_BRANDING,
-    primaryColor: theme.primary,
-  };
+function addKvTable(doc: jsPDF, y: number, pairs: [string, string][], branding: ExportBranding): number {
   return renderKvTable(doc, branding, pairs, y);
 }
 
 // ===== BOARD SUMMARY PDF (REDESIGNED) =====
-function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>, config: ReportConfig): jsPDF {
-  const doc = new jsPDF({ orientation: config.pageOrientation });
-  const pw = doc.internal.pageSize.getWidth();
+function generateBoardSummaryPdf(
+  plan: any,
+  engagements: any[],
+  lookups: ReturnType<typeof buildLookups>,
+  config: ReportConfig,
+  branding: ExportBranding,
+  planTemplateConfig?: ReturnType<typeof mapPlanOutput>
+): jsPDF {
+  const doc = new jsPDF({
+    orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation,
+    format: toJsPdfFormat(planTemplateConfig?.pageLayout?.pageSize),
+  });
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
-  const theme = getTheme(config);
 
-  addHeader(doc, 'Board Summary — Annual Audit Plan', plan?.fiscal_year || 'N/A', version, config);
+  addHeader(doc, branding, 'Board Summary — Annual Audit Plan', plan?.fiscal_year || 'N/A', version);
 
   let y = 50;
   y = addKvTable(doc, y, [
@@ -190,16 +238,16 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     ['Total Planned Days', String(engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0))],
     ['Approved By', dv(plan?.approved_by)],
     ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : ''],
-  ], theme);
+  ], branding);
 
   if (config.includeExecutiveSummary) {
-    y = addNarrativeBlock(doc, y, 'Executive Summary', plan?.executive_summary, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Planning Methodology', plan?.methodology || plan?.methodology_notes, pw, theme);
+    y = addNarrativeBlock(doc, y, 'Executive Summary', plan?.executive_summary, 0, branding);
+    y = addNarrativeBlock(doc, y, 'Planning Methodology', plan?.methodology || plan?.methodology_notes, 0, branding);
   }
 
   if (config.includeRiskCoverage) {
     if (y > 210) { doc.addPage(); y = 52; }
-    y = drawSectionTitle(doc, y, 'Risk Coverage Summary', theme);
+    y = drawSectionTitle(doc, y, 'Risk Coverage Summary', branding);
     const riskDist = { Critical: 0, High: 0, Medium: 0, Low: 0 };
     engagements.forEach((e: any) => {
       const r = e.engagement_risk_rating as keyof typeof riskDist;
@@ -210,7 +258,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
       head: [['Risk Level', 'Audits', '% of Plan']],
       body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
       styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: branding.primaryColor, fontSize: 10, cellPadding: 4 },
       margin: { left: 14, right: 14 },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
@@ -218,7 +266,7 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 
   if (config.includeEngagementSchedule) {
     if (y > 180) { doc.addPage(); y = 52; }
-    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', branding);
 
     autoTable(doc, {
       startY: y,
@@ -239,8 +287,8 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
         ];
       }),
       styles: { fontSize: 8.5, cellPadding: 3 },
-      headStyles: { fillColor: theme.primary, fontSize: 8.5, cellPadding: 3 },
-      alternateRowStyles: { fillColor: theme.altRow },
+      headStyles: { fillColor: branding.primaryColor, fontSize: 8.5, cellPadding: 3 },
+      alternateRowStyles: { fillColor: branding.altRowColor },
       margin: { left: 14, right: 14 },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
@@ -250,10 +298,13 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
     if (y > 230) { doc.addPage(); y = 52; }
     const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
     y = addNarrativeBlock(doc, y, 'Resource Summary',
-      `Available Days: ${dv(plan?.total_available_hours, 'Not yet calculated')}\nPlanned Days: ${totalDays}\nContingency Days: ${dv(plan?.contingency_hours, 'Not yet calculated')}`, pw, theme);
+      `Available Days: ${dv(plan?.total_available_hours, 'Not yet calculated')}\nPlanned Days: ${totalDays}\nContingency Days: ${dv(plan?.contingency_hours, 'Not yet calculated')}`, 0, branding);
   }
 
-  addFooter(doc, version, artVersion, plan?.status, config);
+  addFooter(doc, branding, version, artVersion);
+  if (plan?.status !== 'Approved' && (planTemplateConfig?.showWatermark ?? config.showDraftWatermark)) {
+    renderWatermarkAllPages(doc, planTemplateConfig?.watermarkText || 'DRAFT', 0.12);
+  }
   return doc;
 }
 
@@ -261,23 +312,26 @@ function generateBoardSummaryPdf(plan: any, engagements: any[], lookups: ReturnT
 async function generateDetailedPlanPdf(
   plan: any, engagements: any[], lookups: ReturnType<typeof buildLookups>,
   gapFunctions: any[], config: ReportConfig,
-  planTemplateConfig?: ReturnType<typeof mapPlanOutput>
+  branding: ExportBranding,
+  planTemplateConfig?: ReturnType<typeof mapPlanOutput>,
+  foundation?: any
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation });
+  const doc = new jsPDF({
+    orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation,
+    format: toJsPdfFormat(planTemplateConfig?.pageLayout?.pageSize),
+  });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const version = plan?.current_version_number || 1;
   const artVersion = (plan?.artifact_version_number || 0) + 1;
-  const theme = getThemeFromTemplate(config, planTemplateConfig);
-  const logoData = await getLogoBase64();
+  const logoData = await getLogoBase64(foundation);
 
   // ===== A. COVER PAGE — delegates to unified primitives =====
   if (config.includeCoverPage) {
-    const branding = buildBranding(config, planTemplateConfig);
-    branding.logoBase64 = logoData;
+    const coverBranding = { ...branding, logoBase64: logoData };
     const coverTitle = planTemplateConfig?.cover.titleText || 'Annual Internal\nAudit Plan';
     const fyDisplay = planTemplateConfig?.cover.fiscalYearDisplay || dv(plan?.fiscal_year, 'N/A');
-    renderUnifiedCover(doc, branding, {
+    renderUnifiedCover(doc, coverBranding, {
       title: coverTitle,
       fullPageCover: true,
       fiscalYear: fyDisplay,
@@ -293,24 +347,24 @@ async function generateDetailedPlanPdf(
   // ===== B. EXECUTIVE SUMMARY =====
   if (config.includeExecutiveSummary) {
     doc.addPage();
-    addHeader(doc, 'Executive Summary', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Executive Summary', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Executive Summary', theme);
+    y = drawSectionTitle(doc, y, 'Executive Summary', branding);
 
-    y = addNarrativeBlock(doc, y, 'Annual Audit Strategy', plan?.executive_summary, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Planning Basis & Methodology', plan?.methodology || plan?.methodology_notes, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Major Assumptions', plan?.planning_assumptions, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Exclusions / Out-of-Scope', plan?.exclusions, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Resource Constraints', plan?.resource_constraints, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Objective', plan?.objective, pw, theme);
+    y = addNarrativeBlock(doc, y, 'Annual Audit Strategy', plan?.executive_summary, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Planning Basis & Methodology', plan?.methodology || plan?.methodology_notes, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Major Assumptions', plan?.planning_assumptions, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Exclusions / Out-of-Scope', plan?.exclusions, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Resource Constraints', plan?.resource_constraints, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Objective', plan?.objective, pw, branding);
   }
 
   // ===== C. COVERAGE SUMMARY =====
   if (config.includeRiskCoverage) {
     doc.addPage();
-    addHeader(doc, 'Annual Coverage Summary', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Annual Coverage Summary', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Annual Coverage Summary', theme);
+    y = drawSectionTitle(doc, y, 'Annual Coverage Summary', branding);
 
     const coveredDepts = new Set(engagements.map((e: any) => e.department_id).filter(Boolean));
     const coveredFuncs = new Set(engagements.map((e: any) => e.function_id).filter(Boolean));
@@ -331,13 +385,13 @@ async function generateDetailedPlanPdf(
       ['Total Planned Days', String(totalDays)],
       ['Total Planned Hours', String(totalHours)],
       ...(boardPri > 0 ? [['Board Priority Audits', String(boardPri)] as [string, string]] : []),
-    ], theme);
+    ], branding);
 
     // Risk distribution table
     y += 4;
     doc.setFontSize(11);
     doc.setFont(undefined as any, 'bold');
-    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+    doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
     doc.text('Risk Distribution', 14, y);
     y += 6;
     autoTable(doc, {
@@ -345,7 +399,7 @@ async function generateDetailedPlanPdf(
       head: [['Risk Level', 'Count', '% of Plan']],
       body: Object.entries(riskDist).map(([k, v]) => [k, String(v), engagements.length ? `${Math.round((v / engagements.length) * 100)}%` : '0%']),
       styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: branding.primaryColor, fontSize: 10, cellPadding: 4 },
       margin: { left: 14, right: 14 },
     });
   }
@@ -354,9 +408,9 @@ async function generateDetailedPlanPdf(
   if (config.includeEngagementSchedule) {
     // Primary schedule summary table
     doc.addPage();
-    addHeader(doc, 'Audit Schedule', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Audit Schedule', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Audit Schedule', theme);
+    y = drawSectionTitle(doc, y, 'Audit Schedule', branding);
 
     // Clean summary table with readable columns
     autoTable(doc, {
@@ -383,8 +437,8 @@ async function generateDetailedPlanPdf(
         ];
       }),
       styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
-      headStyles: { fillColor: theme.primary, fontSize: 7.5, cellPadding: 2.5 },
-      alternateRowStyles: { fillColor: theme.altRow },
+      headStyles: { fillColor: branding.primaryColor, fontSize: 7.5, cellPadding: 2.5 },
+      alternateRowStyles: { fillColor: branding.altRowColor },
       columnStyles: {
         0: { cellWidth: 8 },
         1: { cellWidth: 22 },
@@ -398,14 +452,14 @@ async function generateDetailedPlanPdf(
 
     // Engagement detail cards — one per engagement on new pages
     doc.addPage();
-    addHeader(doc, 'Engagement Details', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Engagement Details', plan?.fiscal_year || '', version);
     y = 50;
-    y = drawSectionTitle(doc, y, 'Engagement Details', theme);
+    y = drawSectionTitle(doc, y, 'Engagement Details', branding);
 
     engagements.forEach((e: any, i: number) => {
       if (y > 220) {
         doc.addPage();
-        addHeader(doc, 'Engagement Details (cont.)', plan?.fiscal_year || '', version, config);
+          addHeader(doc, branding, 'Engagement Details (cont.)', plan?.fiscal_year || '', version);
         y = 50;
       }
 
@@ -414,7 +468,7 @@ async function generateDetailedPlanPdf(
       doc.roundedRect(12, y - 4, pw - 24, 10, 2, 2, 'F');
       doc.setFontSize(11);
       doc.setFont(undefined as any, 'bold');
-      doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+        doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
       const titleText = `${e.sequence_no || i + 1}. ${dv(e.engagement_name, 'Untitled Engagement')}`;
       doc.text(titleText, 16, y + 3);
 
@@ -453,7 +507,7 @@ async function generateDetailedPlanPdf(
       detailPairs.forEach(([label, val]) => {
         if (y > 270) {
           doc.addPage();
-          addHeader(doc, 'Engagement Details (cont.)', plan?.fiscal_year || '', version, config);
+          addHeader(doc, branding, 'Engagement Details (cont.)', plan?.fiscal_year || '', version);
           y = 50;
         }
         doc.setFont(undefined as any, 'bold');
@@ -479,7 +533,7 @@ async function generateDetailedPlanPdf(
       narratives.forEach(([label, content]) => {
         if (y > 255) {
           doc.addPage();
-          addHeader(doc, 'Engagement Details (cont.)', plan?.fiscal_year || '', version, config);
+          addHeader(doc, branding, 'Engagement Details (cont.)', plan?.fiscal_year || '', version);
           y = 50;
         }
         doc.setFont(undefined as any, 'bold');
@@ -507,9 +561,9 @@ async function generateDetailedPlanPdf(
   // ===== E. RESOURCE PLAN =====
   if (config.includeResourceSummary) {
     doc.addPage();
-    addHeader(doc, 'Resource Plan', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Resource Plan', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Resource Plan', theme);
+    y = drawSectionTitle(doc, y, 'Resource Plan', branding);
 
     const totalDays = engagements.reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0);
     const availDays = plan?.total_available_hours;
@@ -520,7 +574,7 @@ async function generateDetailedPlanPdf(
       ['Total Planned Days', String(totalDays)],
       ['Contingency Days', contDays ? String(contDays) : 'Not yet calculated'],
       ['Utilization', availDays && Number(availDays) > 0 ? `${Math.round((totalDays / Number(availDays)) * 100)}%` : 'Not yet calculated'],
-    ], theme);
+    ], branding);
 
     if (config.includeAuditorBreakdown) {
       const auditorDays = new Map<string, number>();
@@ -531,14 +585,14 @@ async function generateDetailedPlanPdf(
         }
       });
       if (auditorDays.size > 0) {
-        doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+        doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
         doc.text('Days by Lead Auditor', 14, y); y += 6;
         autoTable(doc, {
           startY: y,
           head: [['Auditor', 'Planned Days']],
           body: Array.from(auditorDays.entries()).map(([name, days]) => [name, String(days)]),
           styles: { fontSize: 10, cellPadding: 4 },
-          headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
+          headStyles: { fillColor: branding.primaryColor, fontSize: 10, cellPadding: 4 },
           margin: { left: 14, right: 14 },
         });
         y = (doc as any).lastAutoTable.finalY + 10;
@@ -551,29 +605,29 @@ async function generateDetailedPlanPdf(
         String(engagements.filter((e: any) => e.quarter === q).length),
         String(engagements.filter((e: any) => e.quarter === q).reduce((s: number, e: any) => s + (Number(e.estimated_days) || 0), 0)),
       ]);
-      doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+      doc.setFontSize(11); doc.setFont(undefined as any, 'bold'); doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
       doc.text('Days by Quarter', 14, y); y += 6;
       autoTable(doc, {
         startY: y,
         head: [['Quarter', 'Engagements', 'Days']],
         body: quarterDays,
         styles: { fontSize: 10, cellPadding: 4 },
-        headStyles: { fillColor: theme.primary, fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: branding.primaryColor, fontSize: 10, cellPadding: 4 },
         margin: { left: 14, right: 14 },
       });
       y = (doc as any).lastAutoTable.finalY + 10;
     }
 
-    y = addNarrativeBlock(doc, y, 'Outsourced Support', plan?.outsourced_support_notes, pw, theme);
-    y = addNarrativeBlock(doc, y, 'Skills Constraints', plan?.skills_constraints, pw, theme);
+    y = addNarrativeBlock(doc, y, 'Outsourced Support', plan?.outsourced_support_notes, pw, branding);
+    y = addNarrativeBlock(doc, y, 'Skills Constraints', plan?.skills_constraints, pw, branding);
   }
 
   // ===== F. GAP ANALYSIS =====
   if (config.includeGapAnalysis && gapFunctions.length > 0) {
     doc.addPage();
-    addHeader(doc, 'Risk Coverage / Gap Analysis', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Risk Coverage / Gap Analysis', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Risk Coverage Gap Analysis', theme);
+    y = drawSectionTitle(doc, y, 'Risk Coverage Gap Analysis', branding);
 
     doc.setFontSize(10);
     doc.setFont(undefined as any, 'normal');
@@ -588,7 +642,7 @@ async function generateDetailedPlanPdf(
       head: [['Business Function', 'Department', 'Risk Level', 'Coverage Status']],
       body: gapFunctions.map((g: any) => [g.functionName, g.departmentName, g.riskLevel, 'Not Covered']),
       styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: [180, 40, 40] as [number, number, number], fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: branding.primaryColor, fontSize: 9, cellPadding: 4 },
       margin: { left: 14, right: 14 },
     });
     y = (doc as any).lastAutoTable.finalY + 12;
@@ -596,17 +650,17 @@ async function generateDetailedPlanPdf(
     // Recommendation box — check if enough space remains (need ~30pt)
     if (y + 30 > ph - 30) {
       doc.addPage();
-      addHeader(doc, 'Risk Coverage / Gap Analysis (cont.)', plan?.fiscal_year || '', version, config);
+      addHeader(doc, branding, 'Risk Coverage / Gap Analysis (cont.)', plan?.fiscal_year || '', version);
       y = 50;
     }
     doc.setFillColor(255, 248, 235);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'F');
-    doc.setDrawColor(theme.accent[0], theme.accent[1], theme.accent[2]);
+    doc.setDrawColor(branding.accentColor[0], branding.accentColor[1], branding.accentColor[2]);
     doc.setLineWidth(0.5);
     doc.roundedRect(14, y, pw - 28, 22, 2, 2, 'S');
     doc.setFontSize(9);
     doc.setFont(undefined as any, 'bold');
-    doc.setTextColor(theme.primary[0], theme.primary[1], theme.primary[2]);
+    doc.setTextColor(branding.primaryColor[0], branding.primaryColor[1], branding.primaryColor[2]);
     doc.text('Recommendation', 20, y + 8);
     doc.setFont(undefined as any, 'normal');
     doc.setTextColor(60, 60, 60);
@@ -617,9 +671,9 @@ async function generateDetailedPlanPdf(
   // ===== G. GOVERNANCE =====
   if (config.includeGovernance) {
     doc.addPage();
-    addHeader(doc, 'Approval & Governance', plan?.fiscal_year || '', version, config);
+    addHeader(doc, branding, 'Approval & Governance', plan?.fiscal_year || '', version);
     let y = 50;
-    y = drawSectionTitle(doc, y, 'Approval & Governance', theme);
+    y = drawSectionTitle(doc, y, 'Approval & Governance', branding);
 
     const isApproved = plan?.status === 'Approved';
     const isPending = !isApproved;
@@ -647,7 +701,7 @@ async function generateDetailedPlanPdf(
       ['Approved By', dv(plan?.approved_by, isPending ? 'Pending' : '')],
       ['Approved Date', plan?.approved_date ? formatDateForDisplay(plan.approved_date) : (isPending ? 'Pending' : '')],
     );
-    y = addKvTable(doc, y, govRows, theme);
+    y = addKvTable(doc, y, govRows, branding);
 
     // Sign-off placeholders
     y += 10;
@@ -672,7 +726,10 @@ async function generateDetailedPlanPdf(
     }
   }
 
-  addFooter(doc, version, artVersion, plan?.status, config);
+  addFooter(doc, branding, version, artVersion);
+  if (plan?.status !== 'Approved' && (planTemplateConfig?.showWatermark ?? config.showDraftWatermark)) {
+    renderWatermarkAllPages(doc, planTemplateConfig?.watermarkText || 'DRAFT', 0.12);
+  }
   return doc;
 }
 
@@ -687,20 +744,40 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const { data: auditors = [] } = useIAActiveAuditors();
   const { data: assessments = [] } = useIARiskAssessments();
   const { data: planTemplateConfig } = useAuditPlanTemplate();
+  const { data: foundation } = useDocumentFoundation();
   const [generating, setGenerating] = useState<string | null>(null);
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
   const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
   const [pendingArtifactType, setPendingArtifactType] = useState<string>('');
   const [planOverrides, setPlanOverrides] = useState<PlanTemplateOverride>(createEmptyPlanOverride());
   const [showPlanOverrides, setShowPlanOverrides] = useState(false);
+  const [reportConfigInitialized, setReportConfigInitialized] = useState(false);
 
   // Apply overrides before resolving
-  const effectivePlanConfig = planTemplateConfig
-    ? applyPlanOverrides(planTemplateConfig, planOverrides)
-    : DEFAULT_AUDIT_PLAN_CONFIG;
+  const effectivePlanConfig = useMemo(
+    () => planTemplateConfig
+      ? applyPlanOverrides(planTemplateConfig, planOverrides)
+      : DEFAULT_AUDIT_PLAN_CONFIG,
+    [planTemplateConfig, planOverrides]
+  );
 
   // Resolve plan template for PDF generation
-  const resolvedPlanTemplate = mapPlanOutput(resolvePlanTemplate(effectivePlanConfig), plan);
+  const resolvedPlanTemplate = useMemo(
+    () => mapPlanOutput(resolvePlanTemplate(effectivePlanConfig, undefined, foundation), plan),
+    [effectivePlanConfig, foundation, plan]
+  );
+
+  const defaultReportConfig = useMemo(
+    () => buildDefaultReportConfig(resolvedPlanTemplate, foundation),
+    [resolvedPlanTemplate, foundation]
+  );
+
+  useEffect(() => {
+    if (!reportConfigInitialized && foundation) {
+      setReportConfig(defaultReportConfig);
+      setReportConfigInitialized(true);
+    }
+  }, [defaultReportConfig, foundation, reportConfigInitialized]);
 
   const isApproved = plan?.status === 'Approved';
   const isDraft = ['Draft', 'Submitted', 'Under Review'].includes(plan?.status);
@@ -751,11 +828,12 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       const filePath = `plans/${planId}/${fileName}`;
 
       let generatedBlob: Blob | null = null;
+      const exportBranding = buildBranding(cfg, resolvedPlanTemplate, foundation);
 
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
-          ? generateBoardSummaryPdf(plan, engagements, lookups, cfg)
-          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, resolvedPlanTemplate);
+          ? generateBoardSummaryPdf(plan, engagements, lookups, cfg, exportBranding, resolvedPlanTemplate)
+          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, exportBranding, resolvedPlanTemplate, foundation);
 
         generatedBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, { contentType: 'application/pdf', upsert: true });
@@ -965,7 +1043,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Click the <Settings2 className="inline h-3 w-3" /> icon to customize report format, sections, and color theme before generating. PDFs use SSB official branding.
+            Click the <Settings2 className="inline h-3 w-3" /> icon to customize output before generating. By default, PDFs inherit the current Document & Output Settings.
           </p>
         </CardContent>
       </Card>

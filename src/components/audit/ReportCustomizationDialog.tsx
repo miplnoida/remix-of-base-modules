@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -86,6 +86,12 @@ export function ReportCustomizationDialog({
 }: ReportCustomizationDialogProps) {
   const [localConfig, setLocalConfig] = useState<ReportConfig>(config);
 
+  useEffect(() => {
+    if (open) {
+      setLocalConfig(config);
+    }
+  }, [config, open]);
+
   const update = (key: keyof ReportConfig, value: any) => {
     setLocalConfig(prev => ({ ...prev, [key]: value }));
   };
@@ -107,7 +113,7 @@ export function ReportCustomizationDialog({
             <Settings2 className="h-5 w-5 text-primary" />
             Customize Report — {reportLabel}
           </DialogTitle>
-          <DialogDescription>Configure the format and content of your report before generating.</DialogDescription>
+          <DialogDescription>By default the output inherits Document & Output Settings; use these options only when you want a one-off override.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
