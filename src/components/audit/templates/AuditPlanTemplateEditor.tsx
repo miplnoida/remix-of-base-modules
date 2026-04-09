@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,8 @@ import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
 import { toast } from 'sonner';
 import { FoundationInheritedSummary } from './InheritedFromFoundation';
 import { DEFAULT_AUDIT_PLAN_CONFIG, type AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
-import { TemplatePreviewPane } from './TemplatePreviewPane';
+import { LiveDocumentPreview } from './LiveDocumentPreview';
 import { AuditPlanSectionConfigurator } from './AuditPlanSectionConfigurator';
-import { TemplateSectionsPanel } from './TemplateSectionsPanel';
 import { ExportSettingsConfigurator } from './ExportSettingsConfigurator';
 import { AuditPlanProfilesTab } from './AuditPlanProfilesTab';
 import { AuditPlanTemplatesTab } from './AuditPlanTemplatesTab';
@@ -93,6 +92,12 @@ export function AuditPlanTemplateEditor() {
       loadTemplateConfig(selectedTemplate.config_json);
     }
   }, [selectedTemplate?.id, selectedTemplate?.version, loadTemplateConfig]);
+
+  const previewConfig = useMemo<AuditPlanTemplateConfig>(() => ({
+    ...draft,
+    exportDefaults,
+    sections: sectionConfig,
+  }), [draft, exportDefaults, sectionConfig]);
 
   const handleSave = () => {
     if (!selectedTemplate || !canEdit) {
@@ -237,13 +242,18 @@ export function AuditPlanTemplateEditor() {
 
             {/* 3. Section Configuration */}
             <TabsContent value="sections" className="mt-4">
-              <TemplateSectionsPanel documentType="audit_plan" editable={true} />
+              <AuditPlanSectionConfigurator
+                sections={sectionConfig}
+                onChange={setSectionConfig}
+                onReset={() => setSectionConfig(selectedTemplate?.config_json?.sections ?? [...AUDIT_PLAN_SECTION_LIBRARY] as AuditPlanSection[])}
+                editable={canEdit}
+              />
 
               {!canEdit && selectedTemplate?.is_system && (
                 <Alert className="mt-4 border-border bg-muted/30">
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    This built-in template remains read-only, but <strong>section visibility and order</strong> can still be changed here because those settings are managed separately for the document type.
+                    This built-in template is read-only. Clone it from the <strong>Templates</strong> tab to edit section visibility, order, TOC, and Sign-off/Approval behavior.
                   </AlertDescription>
                 </Alert>
               )}
@@ -448,9 +458,10 @@ export function AuditPlanTemplateEditor() {
             {/* 5. Preview */}
             <TabsContent value="preview" className="mt-4">
               <div className="max-w-lg mx-auto">
-                <TemplatePreviewPane
-                  templateType="audit_plan"
-                  config={draft}
+                <LiveDocumentPreview
+                  type="plan"
+                  baseConfig={previewConfig}
+                  useDbSectionOverrides={false}
                 />
               </div>
             </TabsContent>
@@ -460,9 +471,10 @@ export function AuditPlanTemplateEditor() {
         {/* Side Preview */}
         {showSidePreview && isConfigTab && (
           <div className="w-[42%] sticky top-4 self-start">
-            <TemplatePreviewPane
-              templateType="audit_plan"
-              config={draft}
+            <LiveDocumentPreview
+              type="plan"
+              baseConfig={previewConfig}
+              useDbSectionOverrides={false}
             />
           </div>
         )}

@@ -26,6 +26,7 @@ interface AuditPlanSectionConfiguratorProps {
   sections: AuditPlanSection[];
   onChange: (sections: AuditPlanSection[]) => void;
   onReset?: () => void;
+  editable?: boolean;
 }
 
 const DISPLAY_MODE_ICONS: Record<SectionDisplayMode, React.ReactNode> = {
@@ -44,6 +45,7 @@ export function AuditPlanSectionConfigurator({
   sections,
   onChange,
   onReset,
+  editable = true,
 }: AuditPlanSectionConfiguratorProps) {
   const sorted = [...sections].sort((a, b) => a.order - b.order);
   const enabledCount = sections.filter((s) => s.enabled).length;
@@ -52,54 +54,60 @@ export function AuditPlanSectionConfigurator({
   const handleToggle = useCallback(
     (id: string, enabled: boolean) => {
       const section = sections.find((s) => s.id === id);
-      if (section?.mandatory) return; // Cannot disable mandatory
+      if (!editable || section?.mandatory) return; // Cannot disable mandatory
       onChange(sections.map((s) => (s.id === id ? { ...s, enabled } : s)));
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleMove = useCallback(
     (id: string, direction: 'up' | 'down') => {
+      if (!editable) return;
       onChange(reorderSection(sections, id, direction));
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleLabelChange = useCallback(
     (id: string, value: string) => {
+      if (!editable) return;
       onChange(
         sections.map((s) =>
           s.id === id ? { ...s, labelOverride: value || undefined } : s
         )
       );
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleDisplayModeChange = useCallback(
     (id: string, mode: SectionDisplayMode) => {
+      if (!editable) return;
       onChange(sections.map((s) => (s.id === id ? { ...s, displayMode: mode } : s)));
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleInTocChange = useCallback(
     (id: string, inToc: boolean) => {
+      if (!editable) return;
       onChange(sections.map((s) => (s.id === id ? { ...s, inToc } : s)));
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleStartNewPageChange = useCallback(
     (id: string, startNewPage: boolean) => {
+      if (!editable) return;
       onChange(sections.map((s) => (s.id === id ? { ...s, startNewPage } : s)));
     },
-    [sections, onChange]
+    [editable, sections, onChange]
   );
 
   const handleNormalize = useCallback(() => {
+    if (!editable) return;
     onChange(normalizeSectionOrder(sections));
-  }, [sections, onChange]);
+  }, [editable, sections, onChange]);
 
   return (
     <Card>
@@ -112,11 +120,11 @@ export function AuditPlanSectionConfigurator({
             </p>
           </div>
           <div className="flex gap-1.5">
-            <Button variant="ghost" size="sm" onClick={handleNormalize} className="text-xs h-7">
+              <Button variant="ghost" size="sm" onClick={handleNormalize} className="text-xs h-7" disabled={!editable}>
               Re-number
             </Button>
             {onReset && (
-              <Button variant="ghost" size="sm" onClick={onReset} className="text-xs h-7">
+                <Button variant="ghost" size="sm" onClick={onReset} className="text-xs h-7" disabled={!editable}>
                 <RotateCcw className="h-3 w-3 mr-1" /> Reset
               </Button>
             )}
@@ -162,6 +170,7 @@ export function AuditPlanSectionConfigurator({
                 onDisplayModeChange={handleDisplayModeChange}
                 onInTocChange={handleInTocChange}
                 onStartNewPageChange={handleStartNewPageChange}
+                editable={editable}
               />
             ))}
           </TooltipProvider>
@@ -177,6 +186,7 @@ interface SectionRowProps {
   section: AuditPlanSection;
   index: number;
   totalCount: number;
+  editable: boolean;
   onToggle: (id: string, enabled: boolean) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
   onLabelChange: (id: string, value: string) => void;
@@ -189,6 +199,7 @@ function SectionRow({
   section,
   index,
   totalCount,
+  editable,
   onToggle,
   onMove,
   onLabelChange,
@@ -218,7 +229,7 @@ function SectionRow({
       <Switch
         checked={section.enabled}
         onCheckedChange={(v) => onToggle(section.id, v)}
-        disabled={section.mandatory}
+        disabled={!editable || section.mandatory}
         className="shrink-0"
       />
 
@@ -229,6 +240,7 @@ function SectionRow({
           onChange={(e) => onLabelChange(section.id, e.target.value)}
           className="h-7 text-xs border-0 bg-transparent px-1 focus-visible:ring-1"
           placeholder={section.label}
+          disabled={!editable}
         />
       </div>
 
@@ -254,6 +266,7 @@ function SectionRow({
               checked={section.inToc}
               onCheckedChange={(v) => onInTocChange(section.id, !!v)}
               className="h-3.5 w-3.5"
+              disabled={!editable}
             />
           </div>
         </TooltipTrigger>
@@ -268,6 +281,7 @@ function SectionRow({
               checked={section.startNewPage}
               onCheckedChange={(v) => onStartNewPageChange(section.id, !!v)}
               className="h-3.5 w-3.5"
+              disabled={!editable}
             />
           </div>
         </TooltipTrigger>
@@ -278,6 +292,7 @@ function SectionRow({
       <Select
         value={section.displayMode}
         onValueChange={(v) => onDisplayModeChange(section.id, v as SectionDisplayMode)}
+        disabled={!editable}
       >
         <SelectTrigger className="h-7 w-[90px] text-[10px] shrink-0">
           <div className="flex items-center gap-1">
@@ -303,7 +318,7 @@ function SectionRow({
           variant="ghost"
           size="icon"
           className="h-4 w-4"
-          disabled={index === 0}
+          disabled={!editable || index === 0}
           onClick={() => onMove(section.id, 'up')}
         >
           <ArrowUp className="h-3 w-3" />
@@ -312,7 +327,7 @@ function SectionRow({
           variant="ghost"
           size="icon"
           className="h-4 w-4"
-          disabled={index === totalCount - 1}
+          disabled={!editable || index === totalCount - 1}
           onClick={() => onMove(section.id, 'down')}
         >
           <ArrowDown className="h-3 w-3" />
