@@ -339,12 +339,12 @@ export function AuditReportPreview({
           )}
 
           <div className="relative z-20 flex-1 flex flex-col">
-            {/* Green Header Band */}
-            <div className="bg-[#0E5F3A] text-white px-12 py-6">
+            {/* Header Band — uses Foundation primary color */}
+            <div style={{ backgroundColor: primaryColor }} className="text-white px-12 py-6">
               <div className="flex items-center justify-between">
                 <div>
                   {resolved.branding.showLogo && (
-                    <img src={logo} alt="Logo" className="h-14 mb-2 brightness-0 invert" />
+                    <img src={resolvedLogoSrc} alt="Logo" className="h-14 mb-2 brightness-0 invert" />
                   )}
                   <h1 className="text-lg font-bold tracking-wide">{resolved.branding.orgName}</h1>
                   <p className="text-sm opacity-80">{resolved.branding.country}</p>
@@ -355,8 +355,8 @@ export function AuditReportPreview({
                 </div>
               </div>
             </div>
-            {/* Gold Accent */}
-            <div className="h-1 bg-[#F4C430]" />
+            {/* Gold Accent — uses Foundation gold color */}
+            <div style={{ backgroundColor: goldColor }} className="h-1" />
 
             {/* Cover Content */}
             <div className="flex-1 flex flex-col items-center justify-center px-12 py-16 text-center">
