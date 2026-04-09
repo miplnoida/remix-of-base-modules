@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,6 +43,9 @@ import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { EmployerMeetingDocumentsTab as EmployerMeetingDocumentsTabComponent } from './EmployerMeetingDocumentsTab';
+import { ER_FIELD_LIMITS } from '@/validations/employerValidationSchema';
+import { validateField, validateForm } from '@/lib/fieldValidationRegistry';
+import { sanitizePhoneInput } from '@/lib/contactValidation';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -86,6 +89,7 @@ function EditField({
   type = 'text',
   maxLength,
   className,
+  error,
 }: {
   label: string;
   value: any;
@@ -93,6 +97,7 @@ function EditField({
   type?: 'text' | 'email' | 'date' | 'number';
   maxLength?: number;
   className?: string;
+  error?: string;
 }) {
   return (
     <div className={`space-y-1.5 ${className || ''}`}>
@@ -102,8 +107,9 @@ function EditField({
         value={value ?? ''}
         onChange={(e) => onChange(type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
         maxLength={maxLength}
-        className="h-9"
+        className={`h-9 ${error ? 'border-destructive focus-visible:ring-destructive' : ''}`}
       />
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   );
 }
