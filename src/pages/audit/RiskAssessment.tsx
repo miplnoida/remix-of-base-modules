@@ -15,7 +15,6 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { RISK_ASSESSMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
