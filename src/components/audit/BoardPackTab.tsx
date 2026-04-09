@@ -25,6 +25,7 @@ import type { PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides
 import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
 import { PlanOverridePanel } from './templates/PlanOverridePanel';
 import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 import {
   DEFAULT_AUDIT_BRANDING,
   renderCoverPage as renderUnifiedCover,
@@ -314,7 +315,8 @@ async function generateDetailedPlanPdf(
   gapFunctions: any[], config: ReportConfig,
   branding: ExportBranding,
   planTemplateConfig?: ReturnType<typeof mapPlanOutput>,
-  foundation?: any
+  foundation?: any,
+  approvalSectionEnabled?: boolean
 ): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: planTemplateConfig?.pageLayout?.orientation || config.pageOrientation,
@@ -720,9 +722,11 @@ async function generateDetailedPlanPdf(
     y = addKvTable(doc, y, govRows, branding);
 
     // Sign-off placeholders — only if approval section is enabled in template
-    const approvalSectionEnabled = !planTemplateConfig?.sections?.sections ||
-      planTemplateConfig.sections.sections.some((s: any) => (s.id === 'approval' || s.id === 'approval_signoff') && s.visible !== false);
-    if (approvalSectionEnabled) {
+    const shouldRenderApprovalSection = approvalSectionEnabled ?? (
+      !planTemplateConfig?.sections?.sections ||
+      planTemplateConfig.sections.sections.some((s: any) => s.id === 'approval' || s.id === 'approval_signoff')
+    );
+    if (shouldRenderApprovalSection) {
       y += 10;
       doc.setFontSize(9);
       doc.setTextColor(80, 80, 80);
@@ -764,6 +768,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
   const { data: auditors = [] } = useIAActiveAuditors();
   const { data: assessments = [] } = useIARiskAssessments();
   const { data: planTemplateConfig } = useAuditPlanTemplate();
+  const { sectionRefs: dbPlanSections } = useDocumentTemplateSections('audit_plan');
   const { data: foundation } = useDocumentFoundation();
   const [generating, setGenerating] = useState<string | null>(null);
   const [reportConfig, setReportConfig] = useState<ReportConfig>(DEFAULT_REPORT_CONFIG);
@@ -786,6 +791,11 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
     () => mapPlanOutput(resolvePlanTemplate(effectivePlanConfig, undefined, foundation), plan),
     [effectivePlanConfig, foundation, plan]
   );
+
+  const approvalSectionEnabled = useMemo(() => {
+    const approvalSection = dbPlanSections.find((section) => section.id === 'approval' || section.id === 'approval_signoff');
+    return approvalSection ? approvalSection.enabled : undefined;
+  }, [dbPlanSections]);
 
   const defaultReportConfig = useMemo(
     () => buildDefaultReportConfig(resolvedPlanTemplate, foundation),
@@ -853,7 +863,17 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       if (artifactType === 'board_summary_pdf' || artifactType === 'detailed_plan_pdf') {
         const doc = artifactType === 'board_summary_pdf'
           ? generateBoardSummaryPdf(plan, engagements, lookups, cfg, exportBranding, resolvedPlanTemplate)
-          : await generateDetailedPlanPdf(plan, engagements, lookups, gapFunctions, cfg, exportBranding, resolvedPlanTemplate, foundation);
+          : await generateDetailedPlanPdf(
+              plan,
+              engagements,
+              lookups,
+              gapFunctions,
+              cfg,
+              exportBranding,
+              resolvedPlanTemplate,
+              foundation,
+              approvalSectionEnabled
+            );
 
         generatedBlob = doc.output('blob');
         const { error: uploadError } = await supabase.storage.from('ia-artifacts').upload(filePath, generatedBlob, { contentType: 'application/pdf', upsert: true });
