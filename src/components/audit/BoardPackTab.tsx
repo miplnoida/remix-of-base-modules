@@ -640,7 +640,7 @@ async function generateDetailedPlanPdf(
     y += 10;
 
     doc.setFontSize(10);
-    doc.setFont(undefined as any, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(60, 60, 60);
     const introText = 'The following high-risk business functions are not covered by the current annual audit plan. These should be considered for inclusion in subsequent planning cycles or addressed through supplementary engagements.';
     const introLines = doc.splitTextToSize(introText, pw - 32);
