@@ -1,157 +1,96 @@
 
 
-# Export and Print for Audit Universe and Risk Management
+# BIMA Badge Replacement & Payment Resync Implementation
 
-## Current State
+## Summary
 
-- `ExportDropdown` component already provides PDF (via `generateSSBReport`), XLSX (via ExcelJS), and CSV exports
-- Both `AuditUniverse.tsx` and `RiskRegister.tsx` already use `ExportDropdown` with their filtered data
-- SSB-branded report template (`reportTemplate.ts`) handles PDF headers/footers/table styling
-- Print CSS exists in `index.css` with `.no-print` class support
-- **Missing**: DOCX export, print-friendly view, grouped reports, metadata (filters applied), risk detail export, mitigation action plan export
+Two changes across all three C3 Details screens (C3 Contribution, NW Director, Self-Employed):
 
-## Architecture
+1. **Replace BIMA badge** with a subtle Info icon + tooltip ("Data sourced from SSB Admin")
+2. **Add Resync button** for records where payment succeeded but sync to BIMA failed
 
-### 1. Enhanced `ExportDropdown` Component
-Add DOCX and Print options to the existing dropdown. Add support for metadata (filters, user, date) and grouped export modes.
+---
 
-### 2. New Utility: `src/lib/auditReportExports.ts`
-Centralized export functions for audit/risk modules:
-- `exportAuditUniversePDF(data, filters, groupBy?)` — filtered register with metadata
-- `exportRiskRegisterPDF(data, filters, groupBy?)` — risk register with metadata
-- `exportRiskDetailPDF(risk, actions, reviews)` — single risk detail report
-- `exportMitigationPlanPDF(risks, actions)` — mitigation action plan grouped by risk
-- `exportAuditDocx(title, columns, data, metadata)` — DOCX export using `docx` npm package
-- `exportGroupedReport(data, groupByField, columns, title)` — grouped PDF/XLSX with section headers
+## Impacted Files
 
-### 3. Print View
-- Extend `index.css` print styles with table header repetition, proper typography, and page breaks
-- Add a `PrintableReport` wrapper component that renders a print-optimized layout when `window.print()` is called
-- Hide sidebar, navigation, filters, and action buttons during print
+| File | Change |
+|---|---|
+| `src/components/c3/BIMASourceIndicator.tsx` | **New** — reusable Info icon + tooltip component |
+| `src/services/wizC3DetailsService.ts` | Add `has_sync_error` and `sync_error_message` to all 3 record interfaces; add `resyncPayment()` function |
+| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Replace BIMA badge with new payment cell logic |
+| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Same replacement |
+| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Same replacement |
 
-## File Changes
+---
 
-| File | Changes |
-|------|------|
-| `package.json` | Add `docx` dependency for DOCX generation |
-| `src/lib/auditReportExports.ts` | **New** — All export functions for audit/risk modules |
-| `src/components/common/ExportDropdown.tsx` | Add DOCX + Print options; add `metadata`, `groupByOptions`, `onPrint` props |
-| `src/pages/audit/AuditUniverse.tsx` | Pass filter metadata to ExportDropdown; add grouped export support |
-| `src/pages/audit/RiskRegister.tsx` | Pass filter metadata; add risk detail export button in detail panel; add mitigation plan export |
-| `src/index.css` | Enhanced print styles — table header repeat, sidebar hide, typography, page breaks |
+## Change 1: BIMASourceIndicator Component
 
-## Export Functions Detail
+Create `src/components/c3/BIMASourceIndicator.tsx` — a 14px `Info` icon (lucide-react) in `text-muted-foreground` wrapped in a Tooltip reading "Data sourced from SSB Admin". Includes `aria-label` and `tabIndex={0}` for accessibility.
 
-### `auditReportExports.ts`
+---
 
-**Metadata object** passed to all exports:
-```typescript
-interface ExportMetadata {
-  title: string;
-  generatedDate: string;
-  generatedBy?: string;
-  filtersApplied: { label: string; value: string }[];
-  totalRecords: number;
-}
+## Change 2: Payment Cell Logic
+
+In all 3 list components, replace the current BIMA badge rendering with a priority-based decision:
+
+```text
+if (has_sync_error)       → Show orange "Resync" button (RefreshCw icon)
+else if (is_imported_from_bema) → Show Payment button + BIMASourceIndicator
+else                      → Show Payment button (existing logic)
 ```
 
-**PDF exports** use existing `addSSBHeader`, `getSSBTableConfig`, `addSSBFooter` from `reportTemplate.ts`.
+`has_sync_error` takes precedence over `is_imported_from_bema`.
 
-**DOCX exports** use `docx` npm library:
-- SSB-branded header (green header row, gold accent)
-- Professional table with column headers
-- Metadata section showing filters applied
-- Footer with generation date and page numbers
+---
 
-**Grouped reports** (by entity, owner, status, category, severity):
-- Each group gets a section header
-- Subtotals per group
-- Page break between groups in PDF
+## Change 3: Resync API Integration
 
-### Risk Detail Export (PDF only)
-Single-risk report containing:
-- Risk summary card (title, entity, scores, status, owner)
-- Inherent vs residual scoring table
-- Mitigation actions table
-- Review history timeline
-- Generated date and user
-
-### Mitigation Action Plan Export
-- Grouped by risk title
-- Shows action title, assigned to, due date, status, priority
-- Summary counts at top (planned, in progress, completed, overdue)
-
-## Print Stylesheet Enhancements
-
-```css
-@media print {
-  /* Hide app chrome */
-  .sidebar, nav, .no-print, header, footer { display: none !important; }
-  main { margin: 0 !important; padding: 0 !important; }
-  
-  /* Table headers repeat on each page */
-  thead { display: table-header-group; }
-  tr { page-break-inside: avoid; }
-  
-  /* Typography */
-  body { font-size: 10pt; line-height: 1.4; }
-  table { font-size: 9pt; border-collapse: collapse; width: 100%; }
-  th { background: #0E5F3A !important; color: white !important; -webkit-print-color-adjust: exact; }
-  td, th { border: 1px solid #ddd; padding: 4px 8px; }
-  
-  /* Page breaks */
-  .page-break-before { page-break-before: always; }
-  h2, h3 { page-break-after: avoid; }
-}
-```
-
-## ExportDropdown Enhanced Props
+Add to `wizC3DetailsService.ts`:
 
 ```typescript
-interface ExportDropdownProps {
-  data: any[];
-  columns: ExportColumn[];
-  fileName: string;
-  title?: string;
-  metadata?: ExportMetadata;           // NEW: filters applied, user, date
-  groupByOptions?: { label: string; key: string }[];  // NEW: grouped export
-  onPrint?: () => void;                // NEW: print action
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
+export async function resyncPayment(paymentId: number) {
+  const res = await fetch(WIZ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-api-key': WIZ_ADMIN_API_KEY,
+    },
+    body: JSON.stringify({ action: 'resync_payment', payment_id: paymentId }),
+  });
+  const data = await res.json();
+  if (data.status === 'error') throw new Error(data.error);
+  return data;
 }
 ```
 
-The dropdown menu will show:
-- Export as Excel
-- Export as CSV
-- Export as PDF
-- Export as DOCX (new)
-- Print (new)
-- Submenu: "Grouped Report" with options (entity, owner, status, category, severity)
+---
 
-## Implementation Order
+## Change 4: Resync Click Flow
 
-| Step | Work |
-|------|------|
-| 1 | Install `docx` package |
-| 2 | Create `auditReportExports.ts` with all export functions |
-| 3 | Enhance `ExportDropdown` with DOCX, Print, grouped, and metadata support |
-| 4 | Update `AuditUniverse.tsx` — pass metadata, add print handler |
-| 5 | Update `RiskRegister.tsx` — pass metadata, add risk detail export, mitigation plan export |
-| 6 | Enhance print CSS in `index.css` |
+Each list component gets a `handleResync` function:
 
-## Test Checklist
+1. User clicks Resync → confirmation dialog appears ("Retry syncing payment #X to SSB Admin?")
+2. On confirm → call `resyncPayment(record.payment_id)`
+3. On success → success toast + refresh list data
+4. On failure → error toast with `sync_error_message` details
 
-- [ ] Export Audit Universe as PDF — verify SSB header, filters shown in metadata, all columns present
-- [ ] Export Audit Universe as XLSX — verify branded header, all data rows match filtered view
-- [ ] Export Audit Universe as DOCX — verify professional table, metadata section, readable columns
-- [ ] Export Risk Register as PDF/XLSX/DOCX — same checks
-- [ ] Export Risk Detail (single risk) as PDF — verify scoring, mitigations, reviews shown
-- [ ] Export Mitigation Action Plan as PDF — verify grouped by risk, action statuses correct
-- [ ] Grouped report by entity — verify section headers and subtotals
-- [ ] Grouped report by severity — verify correct grouping
-- [ ] Print from browser — verify no sidebar/nav, table headers repeat, clean typography
-- [ ] Verify metadata shows correct filters applied and generation date
-- [ ] Verify empty data shows appropriate "No records" message in exports
-- [ ] Verify large datasets (100+ rows) paginate correctly in PDF
+---
+
+## Type Updates
+
+Add to all 3 interfaces (`ContributionRecord`, `NwdContributionRecord`, `SeContributionRecord`):
+
+```typescript
+has_sync_error?: boolean;
+sync_error_message?: string | null;
+```
+
+---
+
+## Assumptions
+
+- The C3-Wizard API already returns `has_sync_error` and `sync_error_message` in list responses — no backend changes needed
+- The `resync_payment` action is already deployed on the wizard side
+- Existing payment flow (Partial, $ Pay, Paid badges) remains unchanged
+- The resync confirmation dialog uses the existing `Dialog` component pattern already in these files
 
