@@ -149,10 +149,10 @@ export function AuditReportCenter() {
             <Button onClick={() => setShowTemplateSelector(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" /> New Report
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/audit/report-builder?template=committee')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/audit/report-builder?template=committee${engagementQuerySuffix}`)}>
               <Users className="h-4 w-4 mr-2" /> Board Pack
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/audit/report-builder?template=findings')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/audit/report-builder?template=findings${engagementQuerySuffix}`)}>
               <ClipboardList className="h-4 w-4 mr-2" /> Findings Export
             </Button>
           </div>
