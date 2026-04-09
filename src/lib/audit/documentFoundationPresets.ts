@@ -73,6 +73,7 @@ const SSB_GREEN: DocumentFoundationConfig = {
     tableStripe: '#F0F8F4',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
@@ -113,6 +114,7 @@ const AUDIT_NAVY: DocumentFoundationConfig = {
     tableStripe: '#F0F4F8',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
@@ -141,6 +143,7 @@ const GOVERNMENT_FORMAL: DocumentFoundationConfig = {
     tableStripe: '#F5F5F5',
     text: '#212121',
     gold: '#8D6E37',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Times New Roman, Times, serif',
@@ -169,6 +172,7 @@ const CORPORATE_CHARCOAL: DocumentFoundationConfig = {
     tableStripe: '#F8F9FA',
     text: '#2C3E50',
     gold: '#D4A847',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Calibri, Candara, sans-serif',
@@ -197,6 +201,7 @@ const EXECUTIVE_BURGUNDY: DocumentFoundationConfig = {
     tableStripe: '#FDF2F4',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Georgia, Times New Roman, serif',
@@ -225,6 +230,7 @@ const ROYAL_BLUE: DocumentFoundationConfig = {
     tableStripe: '#F3F4FC',
     text: '#1A1A1A',
     gold: '#FFB300',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
@@ -253,6 +259,7 @@ const FOREST_GREEN: DocumentFoundationConfig = {
     tableStripe: '#F1F8F2',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Cambria, Georgia, serif',
@@ -281,6 +288,7 @@ const SLATE_MODERN: DocumentFoundationConfig = {
     tableStripe: '#F5F7F8',
     text: '#263238',
     gold: '#FFA000',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Calibri, Candara, sans-serif',
@@ -309,6 +317,7 @@ const TEAL_PROFESSIONAL: DocumentFoundationConfig = {
     tableStripe: '#F0FAF8',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Verdana, Geneva, sans-serif',
@@ -337,6 +346,7 @@ const OXFORD_NAVY_GOLD: DocumentFoundationConfig = {
     tableStripe: '#FAFAF5',
     text: '#1A1A1A',
     gold: '#D4A843',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Garamond, Baskerville, serif',
@@ -365,6 +375,7 @@ const STEEL_BLUE: DocumentFoundationConfig = {
     tableStripe: '#F4F7F9',
     text: '#212121',
     gold: '#B8860B',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Segoe UI, Tahoma, sans-serif',
@@ -393,6 +404,7 @@ const MIDNIGHT_BLACK: DocumentFoundationConfig = {
     tableStripe: '#F5F5F8',
     text: '#1A1A1A',
     gold: '#E6B422',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
@@ -421,6 +433,7 @@ const CARIBBEAN_TEAL: DocumentFoundationConfig = {
     tableStripe: '#F0FAFB',
     text: '#1A1A1A',
     gold: '#F4C430',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Calibri, Candara, sans-serif',
@@ -449,6 +462,7 @@ const CLASSIC_BROWN: DocumentFoundationConfig = {
     tableStripe: '#FAF6F4',
     text: '#3E2723',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Palatino Linotype, Book Antiqua, serif',
@@ -477,6 +491,7 @@ const PLUM_EXECUTIVE: DocumentFoundationConfig = {
     tableStripe: '#FAF5FC',
     text: '#1A1A1A',
     gold: '#FFB300',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Georgia, Times New Roman, serif',
@@ -505,6 +520,7 @@ const AMBER_WARM: DocumentFoundationConfig = {
     tableStripe: '#FFFAF4',
     text: '#1A1A1A',
     gold: '#F4C430',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Trebuchet MS, Lucida Grande, sans-serif',
@@ -533,6 +549,7 @@ const MONOCHROME_CLEAN: DocumentFoundationConfig = {
     tableStripe: '#FAFAFA',
     text: '#1A1A1A',
     gold: '#999999',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
@@ -561,6 +578,7 @@ const EMERALD_GOLD: DocumentFoundationConfig = {
     tableStripe: '#FDFCF5',
     text: '#1A1A1A',
     gold: '#C4A756',
+    gapAnalysisHeader: '#B71C1C',
   },
   typography: {
     fontFamily: 'Garamond, Baskerville, serif',
