@@ -385,7 +385,7 @@ export default function AuditPlanDetail() {
 
         {/* Capacity & Schedule Tab */}
         <TabsContent value="capacity">
-          <CapacityCalendarPanel planId={id!} />
+          <CapacityCalendarPanel planId={id!} plan={plan} />
         </TabsContent>
 
         {/* Auto Plan Tab */}
