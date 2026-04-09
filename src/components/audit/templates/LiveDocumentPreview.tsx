@@ -147,19 +147,35 @@ function LivePlanPreview({
   showExport = false,
 }: LivePlanPreviewProps) {
   const [exporting, setExporting] = useState(false);
+  const { sectionRefs: dbPlanSections } = useDocumentTemplateSections('audit_plan');
 
   const effectiveConfig = useMemo(
     () => applyPlanOverrides(baseConfig, overrides),
     [baseConfig, overrides]
   );
 
+  // Convert DB section refs to plan overrides format
+  const dbSectionOverrides = useMemo(() => {
+    if (!dbPlanSections || dbPlanSections.length === 0) return undefined;
+    return dbPlanSections.map((s) => ({
+      id: s.id,
+      enabled: s.enabled,
+      required: s.required,
+      order: s.order,
+      label: s.labelOverride || s.label,
+      inToc: s.includeInToc,
+      startNewPage: s.startOnNewPage,
+    }));
+  }, [dbPlanSections]);
+
   const renderPlan = useMemo(
     () => buildRenderPlan({
       templateConfig: effectiveConfig,
       planData,
       outputMode,
+      dbSectionOverrides,
     }),
-    [effectiveConfig, planData, outputMode]
+    [effectiveConfig, planData, outputMode, dbSectionOverrides]
   );
 
   const hasOv = hasPlanOverrides(overrides);
