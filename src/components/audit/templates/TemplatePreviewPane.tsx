@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
 import type { AuditPlanBranding, AuditPlanCoverPageConfig, AuditPlanTocConfig, AuditPlanPaginationConfig } from '@/lib/audit/auditPlanTemplateTypes';
 import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 
 interface TemplatePreviewPaneProps {
   templateType: 'audit_report' | 'audit_plan';
@@ -33,6 +34,7 @@ export function TemplatePreviewPane({ templateType, config, brandingConfig, cove
 function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
   // Use Foundation for all formatting
   const { data: foundation } = useDocumentFoundation();
+  const { sectionRefs } = useDocumentTemplateSections('audit_report');
   const f = foundation;
 
   const sections = config.sectionRefs || config.sections || [];
@@ -40,6 +42,7 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
 
   const primaryColor = f?.colorPalette.primary || '#1E3A5F';
   const goldColor = f?.colorPalette.gold || '#C4A756';
+  const isSignOffEnabled = sectionRefs.some((s) => (s.id === 'approval' || s.id === 'approval_signoff') && s.enabled);
 
   return (
     <Card className="overflow-hidden">
@@ -98,22 +101,24 @@ function ReportPreview({ config }: { config: AuditReportTemplateConfig }) {
           ))}
         </div>
 
-        <Separator />
-
-        {/* Sign-off preview — from Foundation */}
-        <div className="px-4 py-3">
-          <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-2">Sign-off (from Foundation)</p>
-          <div className="space-y-2">
-            {(f?.signOff || []).map((sig, i) => (
-              <div key={i} className="text-[9px]">
-                <p className="font-semibold text-muted-foreground">{sig.label}</p>
-                <div className="border-t border-foreground/30 w-20 mt-2 mb-0.5" />
-                <p className="font-medium">{sig.defaultName || '(Name)'}</p>
-                <p className="text-muted-foreground">{sig.roleTitle}</p>
+        {isSignOffEnabled && (
+          <>
+            <Separator />
+            <div className="px-4 py-3">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase mb-2">Sign-off (from Foundation)</p>
+              <div className="space-y-2">
+                {(f?.signOff || []).map((sig, i) => (
+                  <div key={i} className="text-[9px]">
+                    <p className="font-semibold text-muted-foreground">{sig.label}</p>
+                    <div className="border-t border-foreground/30 w-20 mt-2 mb-0.5" />
+                    <p className="font-medium">{sig.defaultName || '(Name)'}</p>
+                    <p className="text-muted-foreground">{sig.roleTitle}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Confidentiality footer */}
         <div className="px-4 py-2 bg-muted/30 border-t">
