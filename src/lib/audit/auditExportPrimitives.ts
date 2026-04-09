@@ -58,15 +58,16 @@ export const DEFAULT_AUDIT_BRANDING: ExportBranding = {
   address: 'Bay Road, P.O. Box 79, Basseterre, St. Kitts',
   phone: '(869) 465-2521',
   website: 'www.socialsecurity.kn',
-  primaryColor: [30, 58, 95],       // #1E3A5F — Navy
-  accentColor: [196, 167, 86],      // #C4A756 — Gold
-  altRowColor: [248, 250, 252],     // Slate-50
+  primaryColor: [14, 95, 58],        // #0E5F3A — SSB Green
+  accentColor: [196, 167, 86],       // #C4A756 — Gold
+  altRowColor: [240, 248, 244],      // Light green tint
   white: [255, 255, 255],
   lightGray: [248, 250, 252],
-  darkText: [30, 30, 30],
+  darkText: [26, 26, 26],
   mutedText: [128, 128, 128],
   confidentialityText: 'CONFIDENTIAL — This document contains information intended solely for the use of the addressee.',
   logoBase64: null,
+  gapHeaderColor: [183, 28, 28],     // #B71C1C — Dark red
 };
 
 /**
