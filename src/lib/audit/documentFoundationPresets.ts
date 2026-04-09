@@ -61,17 +61,17 @@ const signOff = [
 ];
 
 // ════════════════════════════════════════════════════════════════
-// 1. SSB PROFESSIONAL BLUE ★ (Default)
+// 1. SSB INSTITUTIONAL GREEN ★ (Default)
 // ════════════════════════════════════════════════════════════════
-const SSB_PROFESSIONAL: DocumentFoundationConfig = {
+const SSB_GREEN: DocumentFoundationConfig = {
   ...SHARED_BASE,
   colorPalette: {
-    primary: '#1B365D',
-    secondary: '#2F855A',
-    accent: '#E8EDF3',
-    tableHeader: '#1B365D',
-    tableStripe: '#F7F8FA',
-    text: '#2D3748',
+    primary: '#0E5F3A',
+    secondary: '#1A7A4E',
+    accent: '#D4EDDA',
+    tableHeader: '#0E5F3A',
+    tableStripe: '#F0F8F4',
+    text: '#1A1A1A',
     gold: '#C4A756',
     gapAnalysisHeader: '#B71C1C',
   },
@@ -82,18 +82,18 @@ const SSB_PROFESSIONAL: DocumentFoundationConfig = {
     h1Size: 20,
     h2Size: 14,
     h3Size: 12,
-    headingColor: '#1B365D',
-    bodyColor: '#2D3748',
+    headingColor: '#0E5F3A',
+    bodyColor: '#1A1A1A',
     lineHeight: 1.5,
     paragraphSpacingBefore: 6,
     paragraphSpacingAfter: 8,
   },
   tableStyle: {
-    headerBackground: '#1B365D',
+    headerBackground: '#0E5F3A',
     headerTextColor: '#FFFFFF',
     stripedRows: true,
-    stripeColor: '#F7F8FA',
-    borderColor: '#D2D6DC',
+    stripeColor: '#F0F8F4',
+    borderColor: '#C8D6CF',
     repeatHeaderOnPageBreak: true,
     fontSize: 'normal',
     autoFitMode: 'auto_fit_window',
@@ -600,7 +600,7 @@ const EMERALD_GOLD: DocumentFoundationConfig = {
 // ─── Preset Registry ───
 
 export const FOUNDATION_PRESETS: Record<string, DocumentFoundationConfig> = {
-  ssb_green: SSB_PROFESSIONAL,
+  ssb_green: SSB_GREEN,
   audit_navy: AUDIT_NAVY,
   government_formal: GOVERNMENT_FORMAL,
   corporate_charcoal: CORPORATE_CHARCOAL,
@@ -621,7 +621,7 @@ export const FOUNDATION_PRESETS: Record<string, DocumentFoundationConfig> = {
 };
 
 export const FOUNDATION_PRESET_METADATA: FoundationPresetMeta[] = [
-  { key: 'ssb_green', name: 'SSB Professional Blue', description: 'Deep blue board-ready standard', category: 'professional', swatches: ['#1B365D', '#2F855A', '#C4A756'] },
+  { key: 'ssb_green', name: 'SSB Institutional Green', description: 'Official SSB Green & Gold brand identity', category: 'professional', swatches: ['#0E5F3A', '#1A7A4E', '#C4A756'] },
   { key: 'audit_navy', name: 'Audit Navy', description: 'Classic navy blue audit standard', category: 'professional', swatches: ['#1E3A5F', '#4A6D8C', '#C4A756'] },
   { key: 'government_formal', name: 'Government Formal', description: 'Traditional serif for regulatory reports', category: 'government', swatches: ['#1B2838', '#37474F', '#8D6E37'] },
   { key: 'corporate_charcoal', name: 'Corporate Charcoal', description: 'Modern Calibri corporate style', category: 'corporate', swatches: ['#2C3E50', '#5D6D7E', '#D4A847'] },
