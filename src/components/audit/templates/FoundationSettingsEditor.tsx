@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Save, ChevronDown, ChevronUp, Plus, Trash2, Palette, Type, LayoutGrid, Hash, FileSignature, Table2, ShieldCheck, Loader2, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, Palette, Type, LayoutGrid, Hash, Table2, ShieldCheck, Loader2, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { useDocumentFoundation, useDocumentFoundationMutation } from '@/hooks/useDocumentFoundation';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
@@ -15,7 +15,6 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   DEFAULT_FOUNDATION,
   type DocumentFoundationConfig,
-  type FoundationSignatory,
 } from '@/lib/audit/documentFoundationTypes';
 
 const FONT_OPTIONS = [
@@ -41,10 +40,9 @@ const SECTIONS = [
   { key: 'colors', label: 'Color Palette', icon: Palette },
   { key: 'typography', label: 'Typography', icon: Type },
   { key: 'pageLayout', label: 'Page Layout', icon: LayoutGrid },
-  { key: 'pagination', label: 'Pagination', icon: Hash },
+  { key: 'pagination', label: 'Pagination & Page Numbering', icon: Hash },
   { key: 'tableStyle', label: 'Table Style', icon: Table2 },
-  { key: 'signOff', label: 'Sign-off & Governance', icon: FileSignature },
-  { key: 'draftRules', label: 'Draft & Final Rules', icon: ShieldCheck },
+  { key: 'draftRules', label: 'Watermark, Draft & Final Rules', icon: ShieldCheck },
 ] as const;
 
 export function FoundationSettingsEditor() {
@@ -138,8 +136,9 @@ export function FoundationSettingsEditor() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">
-            These settings are inherited by <strong>all</strong> audit document types (Reports, Plans, Management Response Reports).
-            Changes here automatically apply everywhere.
+            Global formatting and output defaults inherited by <strong>all</strong> audit document types.
+            Controls branding, typography, page layout, table styling, and watermark rules only.
+            Section visibility, ordering, and sign-off configuration are managed per document template.
           </p>
         </div>
         <Button size="sm" onClick={handleSave} disabled={mutation.isPending}>
