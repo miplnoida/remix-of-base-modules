@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,6 +43,9 @@ import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { EmployerMeetingDocumentsTab as EmployerMeetingDocumentsTabComponent } from './EmployerMeetingDocumentsTab';
+import { ER_FIELD_LIMITS } from '@/validations/employerValidationSchema';
+import { validateField, validateForm } from '@/lib/fieldValidationRegistry';
+import { sanitizePhoneInput } from '@/lib/contactValidation';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -86,6 +89,7 @@ function EditField({
   type = 'text',
   maxLength,
   className,
+  error,
 }: {
   label: string;
   value: any;
@@ -93,6 +97,7 @@ function EditField({
   type?: 'text' | 'email' | 'date' | 'number';
   maxLength?: number;
   className?: string;
+  error?: string;
 }) {
   return (
     <div className={`space-y-1.5 ${className || ''}`}>
@@ -102,8 +107,9 @@ function EditField({
         value={value ?? ''}
         onChange={(e) => onChange(type === 'number' ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
         maxLength={maxLength}
-        className="h-9"
+        className={`h-9 ${error ? 'border-destructive focus-visible:ring-destructive' : ''}`}
       />
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   );
 }
@@ -163,12 +169,14 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const [ownerEditIndex, setOwnerEditIndex] = useState<number | null>(null);
   const [ownerForm, setOwnerForm] = useState<Record<string, any>>({});
   const [ownerDeleteIndex, setOwnerDeleteIndex] = useState<number | null>(null);
+  const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
 
   // Location CRUD state
   const [locDialogOpen, setLocDialogOpen] = useState(false);
   const [locEditIndex, setLocEditIndex] = useState<number | null>(null);
   const [locForm, setLocForm] = useState<Record<string, any>>({});
   const [locDeleteIndex, setLocDeleteIndex] = useState<number | null>(null);
+  const [locErrors, setLocErrors] = useState<Record<string, string>>({});
 
   const owners: any[] = Array.isArray(data.owners) ? data.owners : [];
   const locations: any[] = Array.isArray(data.locations) ? data.locations : [];
@@ -180,16 +188,47 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const openAddOwner = () => {
     setOwnerEditIndex(null);
     setOwnerForm({ id: `temp-${Date.now()}`, name: '', title: '', phone: '', phone_dial_code: '', email: '', ssn: '', mobile: '' });
+    setOwnerErrors({});
     setOwnerDialogOpen(true);
   };
 
   const openEditOwner = (index: number) => {
     setOwnerEditIndex(index);
     setOwnerForm({ ...owners[index] });
+    setOwnerErrors({});
     setOwnerDialogOpen(true);
   };
 
+  const handleOwnerFieldChange = useCallback((field: string, value: string) => {
+    let sanitized = value;
+    if (field === 'phone' || field === 'mobile') {
+      sanitized = sanitizePhoneInput(value);
+    }
+    if (field === 'ssn') {
+      sanitized = value.replace(/\D/g, '');
+    }
+    setOwnerForm(p => ({ ...p, [field]: sanitized }));
+    const result = validateField(`owner.${field}`, sanitized);
+    setOwnerErrors(prev => {
+      const next = { ...prev };
+      if (result.valid) delete next[field];
+      else next[field] = result.error!;
+      return next;
+    });
+  }, []);
+
   const saveOwner = () => {
+    const allErrors = validateForm('owner', ownerForm);
+    if (Object.keys(allErrors).length > 0) {
+      setOwnerErrors(allErrors);
+      const firstError = Object.values(allErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return;
+    }
     const updated = [...owners];
     if (ownerEditIndex !== null) {
       updated[ownerEditIndex] = ownerForm;
@@ -213,16 +252,40 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const openAddLocation = () => {
     setLocEditIndex(null);
     setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '' });
+    setLocErrors({});
     setLocDialogOpen(true);
   };
 
   const openEditLocation = (index: number) => {
     setLocEditIndex(index);
     setLocForm({ ...locations[index] });
+    setLocErrors({});
     setLocDialogOpen(true);
   };
 
+  const handleLocFieldChange = useCallback((field: string, value: string) => {
+    setLocForm(p => ({ ...p, [field]: value }));
+    const result = validateField(`location.${field}`, value);
+    setLocErrors(prev => {
+      const next = { ...prev };
+      if (result.valid) delete next[field];
+      else next[field] = result.error!;
+      return next;
+    });
+  }, []);
+
   const saveLocation = () => {
+    const allErrors = validateForm('location', locForm);
+    if (Object.keys(allErrors).length > 0) {
+      setLocErrors(allErrors);
+      const firstError = Object.values(allErrors)[0];
+      toast.error('Please check the form for valid information!', {
+        description: firstError,
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return;
+    }
     const updated = [...locations];
     if (locEditIndex !== null) {
       updated[locEditIndex] = locForm;
@@ -775,12 +838,12 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <DialogTitle>{ownerEditIndex !== null ? 'Edit Owner' : 'Add Owner'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <EditField label="Name" value={ownerForm.name} onChange={(v) => setOwnerForm(p => ({ ...p, name: v }))} maxLength={40} />
-            <EditField label="Title" value={ownerForm.title} onChange={(v) => setOwnerForm(p => ({ ...p, title: v }))} maxLength={30} />
-            <EditField label="Phone" value={ownerForm.phone} onChange={(v) => setOwnerForm(p => ({ ...p, phone: v }))} maxLength={10} />
-            <EditField label="Mobile" value={ownerForm.mobile} onChange={(v) => setOwnerForm(p => ({ ...p, mobile: v }))} maxLength={10} />
-            <EditField label="Email" value={ownerForm.email} onChange={(v) => setOwnerForm(p => ({ ...p, email: v }))} type="email" maxLength={40} />
-            <EditField label="SSN" value={ownerForm.ssn} onChange={(v) => setOwnerForm(p => ({ ...p, ssn: v }))} maxLength={6} />
+            <EditField label="Name *" value={ownerForm.name} onChange={(v) => handleOwnerFieldChange('name', v)} maxLength={ER_FIELD_LIMITS.owner_name} error={ownerErrors.name} />
+            <EditField label="Title" value={ownerForm.title} onChange={(v) => handleOwnerFieldChange('title', v)} maxLength={ER_FIELD_LIMITS.owner_title} error={ownerErrors.title} />
+            <EditField label="Phone" value={ownerForm.phone} onChange={(v) => handleOwnerFieldChange('phone', v)} maxLength={ER_FIELD_LIMITS.owner_phone} error={ownerErrors.phone} />
+            <EditField label="Mobile" value={ownerForm.mobile} onChange={(v) => handleOwnerFieldChange('mobile', v)} maxLength={ER_FIELD_LIMITS.owner_mobile} error={ownerErrors.mobile} />
+            <EditField label="Email" value={ownerForm.email} onChange={(v) => handleOwnerFieldChange('email', v)} type="email" maxLength={ER_FIELD_LIMITS.owner_email} error={ownerErrors.email} />
+            <EditField label="SSN *" value={ownerForm.ssn} onChange={(v) => handleOwnerFieldChange('ssn', v)} maxLength={ER_FIELD_LIMITS.owner_ssn} error={ownerErrors.ssn} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOwnerDialogOpen(false)}>Cancel</Button>
@@ -810,10 +873,10 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <DialogTitle>{locEditIndex !== null ? 'Edit Location' : 'Add Location'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <EditField label="Trade Name" value={locForm.trade_name} onChange={(v) => setLocForm(p => ({ ...p, trade_name: v }))} maxLength={40} className="col-span-2" />
-            <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => setLocForm(p => ({ ...p, address1: v }))} maxLength={25} />
-            <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => setLocForm(p => ({ ...p, address2: v }))} maxLength={25} />
-            <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => setLocForm(p => ({ ...p, activity_type: v }))} maxLength={50} className="col-span-2" />
+            <EditField label="Trade Name *" value={locForm.trade_name} onChange={(v) => handleLocFieldChange('trade_name', v)} maxLength={ER_FIELD_LIMITS.loc_trade_name} className="col-span-2" error={locErrors.trade_name} />
+            <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => handleLocFieldChange('address1', v)} maxLength={ER_FIELD_LIMITS.loc_addr1} error={locErrors.address1} />
+            <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => handleLocFieldChange('address2', v)} maxLength={ER_FIELD_LIMITS.loc_addr2} error={locErrors.address2} />
+            <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => handleLocFieldChange('activity_type', v)} maxLength={ER_FIELD_LIMITS.loc_activity_type} className="col-span-2" error={locErrors.activity_type} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLocDialogOpen(false)}>Cancel</Button>
