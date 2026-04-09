@@ -6,7 +6,7 @@ export { AuditWorkingPapersTab } from './AuditWorkingPapersTab';
 export { AuditFindingsTab } from './AuditFindingsTab';
 export { AuditResponsesTab } from './AuditResponsesTab';
 export { AuditActionsTab } from './AuditActionsTab';
-export { AuditReportTab } from './AuditReportTab';
+
 export { AuditTimelineTab } from './AuditTimelineTab';
 export { AuditControlTestsTab } from './AuditControlTestsTab';
 export { AuditFollowUpsTab } from './AuditFollowUpsTab';
