@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, FileText, ClipboardList, Layers } from 'lucide-react';
+import { Building2, FileText, ClipboardList, Layers, MessageSquare } from 'lucide-react';
 import { FoundationSettingsEditor } from '@/components/audit/templates/FoundationSettingsEditor';
 import { SectionLibraryViewer } from '@/components/audit/templates/SectionLibraryViewer';
 import { AuditReportTemplateEditor } from '@/components/audit/templates/AuditReportTemplateEditor';
 import { AuditPlanTemplateEditor } from '@/components/audit/templates/AuditPlanTemplateEditor';
+import { ManagementResponseTemplateEditor } from '@/components/audit/templates/ManagementResponseTemplateEditor';
 
 export default function DocumentTemplateSettings() {
   const [activeTab, setActiveTab] = useState('foundation');
@@ -36,6 +37,10 @@ export default function DocumentTemplateSettings() {
             <ClipboardList className="h-4 w-4" />
             Internal Audit Plan
           </TabsTrigger>
+          <TabsTrigger value="mgmt_response" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Mgmt Response
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="foundation">
@@ -52,6 +57,10 @@ export default function DocumentTemplateSettings() {
 
         <TabsContent value="audit_plan">
           <AuditPlanTemplateEditor />
+        </TabsContent>
+
+        <TabsContent value="mgmt_response">
+          <ManagementResponseTemplateEditor />
         </TabsContent>
       </Tabs>
     </div>
