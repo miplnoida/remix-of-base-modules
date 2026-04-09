@@ -104,9 +104,11 @@ export function AuditReportCenter() {
   const recentDrafts = useMemo(() => reports.filter((r: any) => r.status === 'Draft').slice(0, 5), [reports]);
   const recentFinals = useMemo(() => reports.filter((r: any) => r.status === 'Final').slice(0, 5), [reports]);
 
+  const engagementQuerySuffix = engagementFilter !== 'all' ? `&engagementId=${engagementFilter}` : '';
+
   const handleTemplateSelect = (template: ReportTemplate) => {
     setShowTemplateSelector(false);
-    navigate(`/audit/report-builder?template=${template.id}`);
+    navigate(`/audit/report-builder?template=${template.id}${engagementQuerySuffix}`);
   };
 
   return (
