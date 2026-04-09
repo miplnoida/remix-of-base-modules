@@ -10,6 +10,7 @@ import { generateAuditReportPDF } from './AuditReportPDFExport';
 import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
+import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
 import logo from '@/assets/stkitts-logo.png';
 
 interface AuditReportPreviewProps {
@@ -22,6 +23,8 @@ interface AuditReportPreviewProps {
   templateConfig?: AuditReportTemplateConfig;
   /** DB-driven section configuration — overrides templateConfig.sectionRefs when provided */
   dbSectionRefs?: TemplateSectionRef[];
+  /** DB-loaded foundation config — uses saved org settings for branding, typography, colors */
+  foundation?: DocumentFoundationConfig;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -34,21 +37,31 @@ const OPINION_STYLES: Record<string, { bg: string; text: string; border: string 
 };
 
 export function AuditReportPreview({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, onClose, onPrint,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, onClose, onPrint,
 }: AuditReportPreviewProps) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config so the resolver uses them
   const config = dbSectionRefs && dbSectionRefs.length > 0
     ? { ...baseConfig, sectionRefs: dbSectionRefs, sections: dbSectionRefs }
     : baseConfig;
-  const resolved = resolveReportTemplate(config, reportData.status);
+  // Pass foundation so resolver uses DB-saved org settings (not defaults)
+  const resolved = resolveReportTemplate(config, reportData.status, foundation);
   const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
 
+  // Resolve logo: use foundation's uploaded logo if available, otherwise fallback to bundled asset
+  const resolvedLogoSrc = resolved.branding.logoSource && resolved.branding.logoSource !== 'default'
+    ? resolved.branding.logoSource
+    : logo;
+
+  // Resolve colors from foundation
+  const primaryColor = foundation?.colorPalette?.primary || '#0E5F3A';
+  const goldColor = foundation?.colorPalette?.gold || '#F4C430';
+
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs, foundation });
   };
 
   // Section numbering — driven by mapped output
