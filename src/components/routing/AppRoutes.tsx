@@ -205,6 +205,7 @@ import AuditDashboard from '@/pages/audit/AuditDashboard';
 import AuditPlansNew from '@/pages/audit/AuditPlansNew';
 const AuditPlanDetail = lazy(() => import('@/pages/audit/AuditPlanDetail'));
 import AuditReports from '@/pages/audit/AuditReports';
+const AuditReportBuilder = lazy(() => import('@/pages/audit/AuditReportBuilder'));
 import DepartmentMaster from '@/pages/audit/DepartmentMaster';
 import FunctionMaster from '@/pages/audit/FunctionMaster';
 import DepartmentView from '@/pages/audit/DepartmentView';
