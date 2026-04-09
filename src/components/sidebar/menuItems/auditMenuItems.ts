@@ -17,6 +17,7 @@ import {
   Database,
   Cog,
   Mail,
+  Building2,
 } from "lucide-react";
 
 export const auditMenuItems = [
@@ -69,6 +70,13 @@ export const auditMenuItems = [
         icon: Target,
         requiresPermission: "configure_audit_system",
         description: "Assess function-level risks"
+      },
+      {
+        title: "Entity Summary",
+        url: "/audit/entity-summary",
+        icon: Building2,
+        requiresPermission: "view_audit_assignments",
+        description: "Department-level risk overview"
       },
       {
         title: "Risk Matrix",

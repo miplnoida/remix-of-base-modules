@@ -15,7 +15,6 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { RISK_ASSESSMENT_SCHEMA, toExportColumns } from '@/config/moduleFieldSchemas';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
@@ -383,43 +382,25 @@ export default function RiskAssessment() {
         <MetricCard title="Avg Risk Score" value={stats.avgScore} icon={TrendingUp} variant="default" />
       </div>
 
-      <Tabs defaultValue="register" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="register">Risk Register</TabsTrigger>
-          <TabsTrigger value="heatmap">Risk Heat Map</TabsTrigger>
-          <TabsTrigger value="summary">Entity Summary</TabsTrigger>
-        </TabsList>
+      <Card><CardContent className="p-4">
+        <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search by department, function, category, owner..."
+          filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields}
+          onReset={() => { setSearchTerm(''); setFilters({ risk_level: 'all', department: 'all' }); }} />
+      </CardContent></Card>
 
-        <TabsContent value="register" className="space-y-4">
-          <Card><CardContent className="p-4">
-            <StandardSearchFilterBar searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Search by department, function, category, owner..."
-              filterValues={filters} onFilterChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} filters={filterFields}
-              onReset={() => { setSearchTerm(''); setFilters({ risk_level: 'all', department: 'all' }); }} />
-          </CardContent></Card>
-
-          <Card><CardContent>
-            <DataTable columns={columns} data={filtered} onView={openView}
-              renderActions={(row) => (
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openView(row); }}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-              )} />
-          </CardContent></Card>
-        </TabsContent>
-
-        <TabsContent value="heatmap">
-          <RiskHeatMapGrid assessments={data} allFunctions={allFunctions} deptMap={deptMap} />
-        </TabsContent>
-
-        <TabsContent value="summary">
-          <DepartmentRiskSummary assessments={data} deptMap={deptMap} allFunctions={allFunctions} />
-        </TabsContent>
-      </Tabs>
+      <Card><CardContent>
+        <DataTable columns={columns} data={filtered} onView={openView}
+          renderActions={(row) => (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openView(row); }}>
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+          )} />
+      </CardContent></Card>
 
       {/* Create / Edit / View Modal */}
       <StandardModal open={modalState.mode !== null} onOpenChange={() => { setModalState({ mode: null }); resetForm(); }}
