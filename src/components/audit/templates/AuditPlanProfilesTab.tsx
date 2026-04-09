@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import type { AuditPlanAudience } from '@/lib/audit/auditPlanTemplateTypes';
+import { useAuditPlanTemplates } from '@/hooks/useAuditPlanTemplateGovernance';
 
 const AUDIENCE_OPTIONS: { value: AuditPlanAudience; label: string; icon: React.ReactNode; description: string }[] = [
   { value: 'management', label: 'Management', icon: <Users className="h-3.5 w-3.5" />, description: 'For internal management stakeholders' },
@@ -43,14 +44,32 @@ interface AuditPlanProfilesTabProps {
 export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabProps) {
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
+  const { data: templates = [] } = useAuditPlanTemplates();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingProfile, setEditingProfile] = useState<ProfileRow | null>(null);
+  const availableTemplates = templates.filter((template) => template.is_active && template.status !== 'archived');
+  const defaultTemplateId =
+    availableTemplates.find((template) => template.is_house_default)?.id ??
+    availableTemplates.find((template) => template.status === 'published')?.id ??
+    availableTemplates[0]?.id ??
+    '';
   const [formData, setFormData] = useState({
     profile_name: '',
     description: '',
+    template_id: '',
     audience: 'management' as AuditPlanAudience,
     fiscal_year: new Date().getFullYear().toString(),
   });
+
+  useEffect(() => {
+    if (!showCreateDialog || editingProfile || !defaultTemplateId) return;
+
+    setFormData((current) => (
+      current.template_id
+        ? current
+        : { ...current, template_id: defaultTemplateId }
+    ));
+  }, [defaultTemplateId, editingProfile, showCreateDialog]);
 
   const QUERY_KEY = 'ia_audit_plan_profiles';
 
@@ -126,7 +145,13 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
   });
 
   const resetForm = () => {
-    setFormData({ profile_name: '', description: '', audience: 'management', fiscal_year: new Date().getFullYear().toString() });
+    setFormData({
+      profile_name: '',
+      description: '',
+      template_id: defaultTemplateId,
+      audience: 'management',
+      fiscal_year: new Date().getFullYear().toString(),
+    });
     setEditingProfile(null);
   };
 
@@ -135,12 +160,17 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
       toast.error('Profile name is required');
       return;
     }
+    if (!formData.template_id) {
+      toast.error('Linked template is required');
+      return;
+    }
     const code = userCode || 'system';
     if (editingProfile) {
       updateMutation.mutate({
         id: editingProfile.id,
         profile_name: formData.profile_name.trim(),
         description: formData.description.trim() || null,
+        template_id: formData.template_id,
         audience: formData.audience,
         fiscal_year: formData.fiscal_year.trim() || null,
         updated_by: code,
@@ -150,6 +180,7 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
       createMutation.mutate({
         profile_name: formData.profile_name.trim(),
         description: formData.description.trim() || null,
+        template_id: formData.template_id,
         audience: formData.audience,
         fiscal_year: formData.fiscal_year.trim() || null,
         is_active: true,
@@ -207,6 +238,7 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
     setFormData({
       profile_name: profile.profile_name,
       description: profile.description || '',
+      template_id: profile.template_id || defaultTemplateId,
       audience: profile.audience,
       fiscal_year: profile.fiscal_year || '',
     });
@@ -347,6 +379,29 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
               />
             </div>
             <div>
+              <Label>Linked Template *</Label>
+              <Select
+                value={formData.template_id || undefined}
+                onValueChange={(value) => setFormData((f) => ({ ...f, template_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an audit plan template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.template_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableTemplates.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No active templates are available. Create or activate an audit plan template first.
+                </p>
+              )}
+            </div>
+            <div>
               <Label>Audience</Label>
               <Select value={formData.audience} onValueChange={(v) => setFormData((f) => ({ ...f, audience: v as AuditPlanAudience }))}>
                 <SelectTrigger>
@@ -376,7 +431,7 @@ export function AuditPlanProfilesTab({ onSelectProfile }: AuditPlanProfilesTabPr
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); resetForm(); }}>Cancel</Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending || availableTemplates.length === 0}>
               {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               {editingProfile ? 'Update' : 'Create'}
             </Button>
