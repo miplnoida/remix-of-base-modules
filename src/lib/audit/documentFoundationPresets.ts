@@ -61,17 +61,17 @@ const signOff = [
 ];
 
 // ════════════════════════════════════════════════════════════════
-// 1. SSB PROFESSIONAL BLUE ★ (Default)
+// 1. SSB INSTITUTIONAL GREEN ★ (Default)
 // ════════════════════════════════════════════════════════════════
-const SSB_PROFESSIONAL: DocumentFoundationConfig = {
+const SSB_GREEN: DocumentFoundationConfig = {
   ...SHARED_BASE,
   colorPalette: {
-    primary: '#1B365D',
-    secondary: '#2F855A',
-    accent: '#E8EDF3',
-    tableHeader: '#1B365D',
-    tableStripe: '#F7F8FA',
-    text: '#2D3748',
+    primary: '#0E5F3A',
+    secondary: '#1A7A4E',
+    accent: '#D4EDDA',
+    tableHeader: '#0E5F3A',
+    tableStripe: '#F0F8F4',
+    text: '#1A1A1A',
     gold: '#C4A756',
     gapAnalysisHeader: '#B71C1C',
   },
@@ -82,18 +82,18 @@ const SSB_PROFESSIONAL: DocumentFoundationConfig = {
     h1Size: 20,
     h2Size: 14,
     h3Size: 12,
-    headingColor: '#1B365D',
-    bodyColor: '#2D3748',
+    headingColor: '#0E5F3A',
+    bodyColor: '#1A1A1A',
     lineHeight: 1.5,
     paragraphSpacingBefore: 6,
     paragraphSpacingAfter: 8,
   },
   tableStyle: {
-    headerBackground: '#1B365D',
+    headerBackground: '#0E5F3A',
     headerTextColor: '#FFFFFF',
     stripedRows: true,
-    stripeColor: '#F7F8FA',
-    borderColor: '#D2D6DC',
+    stripeColor: '#F0F8F4',
+    borderColor: '#C8D6CF',
     repeatHeaderOnPageBreak: true,
     fontSize: 'normal',
     autoFitMode: 'auto_fit_window',
