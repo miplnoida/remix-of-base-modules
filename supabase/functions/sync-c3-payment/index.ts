@@ -276,6 +276,14 @@ Deno.serve(async (req) => {
             typeof lastResponseBody === "object" && lastResponseBody !== null
               ? (lastResponseBody as Record<string, unknown>)
               : {};
+
+          // Check business-level success — if the API returns { success: false },
+          // treat it as a failure even though HTTP status was 200
+          if (parsed.success === false) {
+            lastError = `Business error: ${parsed.message || parsed.error || JSON.stringify(parsed)}`;
+            break; // Non-retryable business rejection
+          }
+
           syncSuccess = true;
           externalPaymentId = parsed.payment_id
             ? String(parsed.payment_id)
