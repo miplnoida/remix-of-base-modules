@@ -210,7 +210,6 @@ export function FoundationSettingsEditor() {
           </Button>
         </div>
       </div>
-      </div>
 
       {/* Branding */}
       <SettingsCard sectionKey="branding" open={openSections.branding} onToggle={toggleSection} title="Branding & Logo" icon={Palette}>
