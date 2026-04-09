@@ -6,13 +6,15 @@
  * consume these primitives to ensure consistent branding, colors, typography,
  * page structure, headers, footers, tables, and watermarks.
  *
- * IMPORTANT: No audit export should use SSB_BRAND or hardcoded colors directly.
- * Instead, call these functions with an ExportBranding object resolved from
- * the active template/profile configuration.
+ * ARCHITECTURE: Export branding should be resolved from the Document Foundation.
+ * Use `brandingFromFoundation()` to convert Foundation config into ExportBranding.
+ * The `DEFAULT_AUDIT_BRANDING` constant is a fallback only — Foundation is the
+ * single source of truth for organization-wide formatting.
  */
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { DocumentFoundationConfig } from './documentFoundationTypes';
 
 // ─── Branding Config (resolved from template) ───
 
