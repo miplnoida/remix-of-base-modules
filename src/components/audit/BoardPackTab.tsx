@@ -628,11 +628,11 @@ async function generateDetailedPlanPdf(
     addHeader(doc, branding, 'Risk Coverage / Gap Analysis', plan?.fiscal_year || '', version);
     let y = 50;
 
-    // Section title with warning icon styling
+    // Section title — no emoji, clean text only (jsPDF Helvetica doesn't support Unicode symbols)
     doc.setFontSize(14);
-    doc.setFont(undefined as any, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
-    doc.text('⚠  Risk Coverage Gap Analysis', 14, y);
+    doc.text('Risk Coverage & Gap Analysis', 14, y);
     y += 4;
     doc.setDrawColor(branding.gapHeaderColor[0], branding.gapHeaderColor[1], branding.gapHeaderColor[2]);
     doc.setLineWidth(0.8);
@@ -640,7 +640,7 @@ async function generateDetailedPlanPdf(
     y += 10;
 
     doc.setFontSize(10);
-    doc.setFont(undefined as any, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(60, 60, 60);
     const introText = 'The following high-risk business functions are not covered by the current annual audit plan. These should be considered for inclusion in subsequent planning cycles or addressed through supplementary engagements.';
     const introLines = doc.splitTextToSize(introText, pw - 32);
