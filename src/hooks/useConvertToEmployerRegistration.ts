@@ -286,8 +286,9 @@ export function useConvertToEmployerRegistration() {
       return { success: false, message };
     } finally {
       setIsConverting(false);
+      stopBlocking();
     }
-  }, [queryClient]);
+  }, [queryClient, startBlocking, stopBlocking]);
 
   return { convert, isConverting, conversionErrors };
 }
