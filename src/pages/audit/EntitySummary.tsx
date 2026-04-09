@@ -58,7 +58,7 @@ export default function EntitySummary() {
   }, [assessments, funcMap, deptMap]);
 
   return (
-    <PageShell title="Entity Summary" subtitle="Department-level risk overview across all assessed entities" isLoading={isLoading}>
+    <PageShell title="Entity Risk Summary" subtitle="Department-level risk overview across all assessed entities" isLoading={isLoading}>
       {deptSummary.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
