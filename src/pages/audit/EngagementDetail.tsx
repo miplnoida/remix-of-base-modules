@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Briefcase, Loader2, AlertTriangle, ClipboardCheck,
   FileText, MessageSquare, CheckCircle, BarChart3, Clock, Shield, ListChecks, Eye,
@@ -27,7 +27,6 @@ import {
   AuditFindingsTab,
   AuditResponsesTab,
   AuditActionsTab,
-  AuditReportTab,
   AuditTimelineTab,
   AuditControlTestsTab,
   AuditFollowUpsTab,
@@ -309,12 +308,21 @@ export default function EngagementDetail() {
             <TabSep />
 
             {/* === Output Group === */}
-            <TabsTrigger value="report" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />Report
-            </TabsTrigger>
             <TabsTrigger value="timeline" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Clock className="h-3.5 w-3.5 mr-1.5" />Timeline
             </TabsTrigger>
+
+            {/* === Report Center CTA === */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-3 gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => navigate(`/audit/audit-reports?engagementId=${id}`)}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Open Report Center
+              <ArrowRight className="h-3 w-3" />
+            </Button>
           </TabsList>
 
           <TabsContent value="overview">
@@ -360,9 +368,6 @@ export default function EngagementDetail() {
             <AuditFollowUpsTab auditId={id!} auditFindings={auditFindings} departmentId={audit?.department_id} />
           </TabsContent>
 
-          <TabsContent value="report">
-            <AuditReportTab auditId={id!} audit={audit} auditFindings={auditFindings} auditResponses={auditResponses} auditActions={auditActions} getDeptName={getDeptName} getAuditorName={getAuditorName} />
-          </TabsContent>
 
           <TabsContent value="timeline">
             <AuditTimelineTab auditId={id!} departmentId={audit?.department_id} />

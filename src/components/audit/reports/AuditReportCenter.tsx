@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,17 +42,27 @@ const DASHBOARD_LINKS = [
 
 export function AuditReportCenter() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: reports = [] } = useIAAuditReports();
   const { data: engagements = [] } = useIAEngagements();
   const { data: departments = [] } = useIADepartments();
   const { data: findings = [] } = useIAFindings();
   const { data: actions = [] } = useIAActionTracking();
 
+  const engagementIdFromUrl = searchParams.get('engagementId');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [deptFilter, setDeptFilter] = useState('all');
+  const [engagementFilter, setEngagementFilter] = useState<string>(engagementIdFromUrl || 'all');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+
+  useEffect(() => {
+    if (engagementIdFromUrl) {
+      setEngagementFilter(engagementIdFromUrl);
+    }
+  }, [engagementIdFromUrl]);
 
   const departmentNameById = useMemo(
     () => Object.fromEntries(departments.map((d: any) => [d.id, d.name])),
@@ -86,9 +96,10 @@ export function AuditReportCenter() {
       const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
       const matchesType = typeFilter === 'all' || r.report_type === typeFilter;
       const matchesDept = deptFilter === 'all' || r.department_id === deptFilter;
-      return matchesSearch && matchesStatus && matchesType && matchesDept;
+      const matchesEngagement = engagementFilter === 'all' || r.engagement_id === engagementFilter;
+      return matchesSearch && matchesStatus && matchesType && matchesDept && matchesEngagement;
     });
-  }, [reports, searchTerm, statusFilter, typeFilter, deptFilter]);
+  }, [reports, searchTerm, statusFilter, typeFilter, deptFilter, engagementFilter]);
 
   const recentDrafts = useMemo(() => reports.filter((r: any) => r.status === 'Draft').slice(0, 5), [reports]);
   const recentFinals = useMemo(() => reports.filter((r: any) => r.status === 'Final').slice(0, 5), [reports]);
@@ -100,6 +111,29 @@ export function AuditReportCenter() {
 
   return (
     <div className="space-y-8">
+      {/* Engagement Context Banner */}
+      {engagementFilter !== 'all' && (() => {
+        const eng = engagements.find((e: any) => e.id === engagementFilter);
+        return eng ? (
+          <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <Briefcase className="h-4 w-4 text-primary shrink-0" />
+            <div className="flex-1 text-sm">
+              <span className="text-muted-foreground">Filtered to engagement:</span>{' '}
+              <span className="font-semibold text-foreground">{eng.engagement_code || eng.title}</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate(`/audit/audits/${eng.id}`)}>
+              <ArrowRight className="h-3 w-3 mr-1" /> Back to Engagement
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              setEngagementFilter('all');
+              setSearchParams({}, { replace: true });
+            }}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Clear Filter
+            </Button>
+          </div>
+        ) : null;
+      })()}
+
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-primary/5 via-primary/2 to-background p-6 md:p-8">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -261,8 +295,25 @@ export function AuditReportCenter() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || deptFilter !== 'all') && (
-                    <Button variant="ghost" size="sm" className="h-9" onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDeptFilter('all'); }}>
+                  <Select value={engagementFilter} onValueChange={(val) => {
+                    setEngagementFilter(val);
+                    const newParams = new URLSearchParams(searchParams);
+                    if (val === 'all') { newParams.delete('engagementId'); } else { newParams.set('engagementId', val); }
+                    setSearchParams(newParams, { replace: true });
+                  }}>
+                    <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Engagement" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Engagements</SelectItem>
+                      {engagements.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.engagement_code || e.title || e.id.slice(0, 8)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || deptFilter !== 'all' || engagementFilter !== 'all') && (
+                    <Button variant="ghost" size="sm" className="h-9" onClick={() => {
+                      setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDeptFilter('all'); setEngagementFilter('all');
+                      setSearchParams({}, { replace: true });
+                    }}>
                       <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
                     </Button>
                   )}
