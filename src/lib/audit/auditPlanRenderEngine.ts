@@ -104,23 +104,59 @@ export interface RenderPipelineInput {
   planData?: Record<string, any>;
   /** Force output mode */
   outputMode?: 'draft' | 'final';
+  /**
+   * DB-driven section overrides from ia_document_template_sections.
+   * When provided, each entry's enabled/required/order/label/inToc/startNewPage
+   * values override the corresponding template section before resolution.
+   */
+  dbSectionOverrides?: Array<{
+    id: string;
+    enabled: boolean;
+    required?: boolean;
+    order?: number;
+    label?: string;
+    inToc?: boolean;
+    startNewPage?: boolean;
+  }>;
 }
 
 /**
  * Executes the full rendering pipeline:
- * 1. Resolve template config with overrides
- * 2. Map to cover/section structure
- * 3. Assign page numbers and TOC entries
- * 4. Generate CSS/layout values
- * 5. Build ordered render pages
+ * 1. Apply DB section overrides to template config
+ * 2. Resolve template config with overrides
+ * 3. Map to cover/section structure
+ * 4. Assign page numbers and TOC entries
+ * 5. Generate CSS/layout values
+ * 6. Build ordered render pages
  */
 export function buildRenderPlan(input: RenderPipelineInput): RenderPlan {
   const {
-    templateConfig,
+    templateConfig: rawTemplateConfig,
     overrides,
     planData = {},
     outputMode: forcedMode,
+    dbSectionOverrides,
   } = input;
+
+  // Apply DB section overrides to template sections before resolution
+  let templateConfig = rawTemplateConfig;
+  if (dbSectionOverrides && dbSectionOverrides.length > 0) {
+    const overrideMap = new Map(dbSectionOverrides.map((o) => [o.id, o]));
+    const updatedSections = templateConfig.sections.map((s) => {
+      const dbOv = overrideMap.get(s.id);
+      if (!dbOv) return s;
+      return {
+        ...s,
+        enabled: dbOv.enabled,
+        mandatory: dbOv.required ?? s.mandatory,
+        order: dbOv.order ?? s.order,
+        label: dbOv.label ?? s.label,
+        inToc: dbOv.inToc ?? s.inToc,
+        startNewPage: dbOv.startNewPage ?? s.startNewPage,
+      };
+    });
+    templateConfig = { ...templateConfig, sections: updatedSections };
+  }
 
   // Step 1: Resolve
   const resolved: ResolvedPlanOutput = resolvePlanTemplate(templateConfig, overrides);

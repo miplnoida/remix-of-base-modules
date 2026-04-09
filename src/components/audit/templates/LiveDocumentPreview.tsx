@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Eye, FileDown, FileText, Printer, ChevronRight } from 'lucide-react';
-import type { AuditReportTemplateConfig, AuditPlanTemplateConfig } from '@/lib/audit/documentTemplateDefaults';
+import type { AuditReportTemplateConfig, AuditPlanTemplateConfig, TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import type { ReportTemplateOverride, PlanTemplateOverride } from '@/lib/audit/documentTemplateOverrides';
 import { applyReportOverrides, applyPlanOverrides, hasReportOverrides, hasPlanOverrides } from '@/lib/audit/documentTemplateOverrides';
 import { resolveReportTemplate, resolvePlanTemplate } from '@/lib/audit/documentTemplateResolver';
@@ -13,6 +13,7 @@ import { buildRenderPlan, type RenderPlan } from '@/lib/audit/auditPlanRenderEng
 import { exportAuditPlanPdf } from '@/lib/audit/auditPlanPdfExport';
 import { exportAuditPlanDocx } from '@/lib/audit/auditPlanDocxExport';
 import { getSectionZone } from '@/lib/audit/auditPlanPaginationEngine';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 
 interface LiveReportPreviewProps {
   type: 'report';
@@ -41,10 +42,17 @@ export function LiveDocumentPreview(props: LiveDocumentPreviewProps) {
 }
 
 function LiveReportPreview({ baseConfig, overrides, reportStatus = 'Draft' }: LiveReportPreviewProps) {
-  const effectiveConfig = useMemo(
-    () => applyReportOverrides(baseConfig, overrides),
-    [baseConfig, overrides]
-  );
+  const { sectionRefs: dbReportSections } = useDocumentTemplateSections('audit_report');
+
+  const effectiveConfig = useMemo(() => {
+    const base = applyReportOverrides(baseConfig, overrides);
+    // Inject DB sections if available
+    if (dbReportSections && dbReportSections.length > 0) {
+      return { ...base, sectionRefs: dbReportSections, sections: dbReportSections };
+    }
+    return base;
+  }, [baseConfig, overrides, dbReportSections]);
+
   const resolved = useMemo(
     () => resolveReportTemplate(effectiveConfig, reportStatus),
     [effectiveConfig, reportStatus]
@@ -146,19 +154,35 @@ function LivePlanPreview({
   showExport = false,
 }: LivePlanPreviewProps) {
   const [exporting, setExporting] = useState(false);
+  const { sectionRefs: dbPlanSections } = useDocumentTemplateSections('audit_plan');
 
   const effectiveConfig = useMemo(
     () => applyPlanOverrides(baseConfig, overrides),
     [baseConfig, overrides]
   );
 
+  // Convert DB section refs to plan overrides format
+  const dbSectionOverrides = useMemo(() => {
+    if (!dbPlanSections || dbPlanSections.length === 0) return undefined;
+    return dbPlanSections.map((s) => ({
+      id: s.id,
+      enabled: s.enabled,
+      required: s.required,
+      order: s.order,
+      label: s.labelOverride || s.label,
+      inToc: s.includeInToc,
+      startNewPage: s.startOnNewPage,
+    }));
+  }, [dbPlanSections]);
+
   const renderPlan = useMemo(
     () => buildRenderPlan({
       templateConfig: effectiveConfig,
       planData,
       outputMode,
+      dbSectionOverrides,
     }),
-    [effectiveConfig, planData, outputMode]
+    [effectiveConfig, planData, outputMode, dbSectionOverrides]
   );
 
   const hasOv = hasPlanOverrides(overrides);

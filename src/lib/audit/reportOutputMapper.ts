@@ -31,6 +31,8 @@ export interface ReportCoverMeta {
 export interface MappedReportOutput {
   /** Ordered section IDs that should render (enabled + have content) */
   orderedSections: string[];
+  /** Section IDs to include in the Table of Contents (subset of orderedSections) */
+  tocSections: string[];
   /** Cover page metadata in configured order */
   coverMetadata: ReportCoverMeta[];
   /** Whether to show risk distribution cards in Risk Overview */
@@ -124,8 +126,14 @@ export function mapReportOutput(
     approval: content.approval,
   };
 
-  const orderedSections = resolved.sections
-    .filter((s) => contentCheck[s.id] !== false)
+  const enabledWithContent = resolved.sections
+    .filter((s) => contentCheck[s.id] !== false);
+
+  const orderedSections = enabledWithContent.map((s) => s.id);
+
+  // TOC only includes sections where includeInToc is true
+  const tocSections = enabledWithContent
+    .filter((s) => s.includeInToc)
     .map((s) => s.id);
 
   const coverMetadata = buildCoverMetadata(resolved, reportData, departmentName, isFinal);
@@ -134,6 +142,7 @@ export function mapReportOutput(
 
   return {
     orderedSections,
+    tocSections,
     coverMetadata,
     showRiskDistribution: resolved.riskDistributionEnabled,
     actionPlanVisible: resolved.actionPlanVisible,

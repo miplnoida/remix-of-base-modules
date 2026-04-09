@@ -24,6 +24,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from '@/components/audit/reports/AuditReportPreview';
+import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 import { AuditFindingCard } from '@/components/audit/reports/AuditFindingCard';
 import { AuditReportWorkflowBar } from '@/components/audit/reports/AuditReportWorkflowBar';
 import { ManagementResponseReportPreview } from '@/components/audit/reports/ManagementResponseReportPreview';
@@ -75,6 +76,7 @@ export function AuditReportTab({ auditId, audit, auditFindings, auditResponses, 
   const { data: reports = [] } = useIAAuditReports();
   const { data: departments = [] } = useIADepartments();
   const { create, update } = useIAAuditReportMutations();
+  const { sectionRefs: dbSectionRefs } = useDocumentTemplateSections('audit_report');
 
   // Fetch additional workspace data for auto-population
   const { data: activities = [] } = useEngagementActivities(auditId);
@@ -316,6 +318,7 @@ Follow-up reviews will be conducted to verify implementation of agreed correctiv
         actions={auditActions}
         engagement={audit}
         departmentName={departmentName}
+        dbSectionRefs={dbSectionRefs}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />
