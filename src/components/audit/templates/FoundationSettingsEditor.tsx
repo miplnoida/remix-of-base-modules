@@ -59,6 +59,22 @@ export function FoundationSettingsEditor() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ branding: true });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [presetOpen, setPresetOpen] = useState(false);
+
+  const applyPreset = (key: string) => {
+    const preset = FOUNDATION_PRESETS[key];
+    if (!preset) return;
+    // Apply colors, typography, and table style from preset while preserving branding text & logo
+    setDraft((d) => ({
+      ...d,
+      colorPalette: { ...preset.colorPalette },
+      typography: { ...preset.typography },
+      tableStyle: { ...preset.tableStyle },
+    }));
+    const meta = FOUNDATION_PRESET_METADATA.find((m) => m.key === key);
+    toast.success(`Applied "${meta?.name ?? key}" preset`, { description: 'Colors, typography, and table styles updated. Save to persist.' });
+    setPresetOpen(false);
+  };
 
   useEffect(() => {
     if (foundation) setDraft(foundation);
