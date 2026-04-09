@@ -344,7 +344,7 @@ export function AuditReportPreview({
               <div className="flex items-center justify-between">
                 <div>
                   {resolved.branding.showLogo && (
-                    <img src={resolvedLogoSrc} alt="Logo" className="h-14 mb-2 object-contain brightness-0 invert" />
+                    <img src={resolvedLogoSrc} alt="Logo" className="h-14 mb-2 object-contain max-w-[200px]" />
                   )}
                   <h1 className="text-lg font-bold tracking-wide">{resolved.branding.orgName}</h1>
                   <p className="text-sm opacity-80">{resolved.branding.country}</p>
