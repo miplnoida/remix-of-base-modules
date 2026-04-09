@@ -122,6 +122,11 @@ export interface RenderPipelineInput {
   foundation?: import('./documentFoundationTypes').DocumentFoundationConfig;
 }
 
+const PLAN_DB_SECTION_ID_ALIASES: Record<string, string> = {
+  approval: 'approval_signoff',
+  audit_background_plan: 'audit_background',
+};
+
 /**
  * Executes the full rendering pipeline:
  * 1. Apply DB section overrides to template config
@@ -144,7 +149,9 @@ export function buildRenderPlan(input: RenderPipelineInput): RenderPlan {
   // Apply DB section overrides to template sections before resolution
   let templateConfig = rawTemplateConfig;
   if (dbSectionOverrides && dbSectionOverrides.length > 0) {
-    const overrideMap = new Map(dbSectionOverrides.map((o) => [o.id, o]));
+    const overrideMap = new Map(
+      dbSectionOverrides.map((o) => [PLAN_DB_SECTION_ID_ALIASES[o.id] ?? o.id, o])
+    );
     const updatedSections = templateConfig.sections.map((s) => {
       const dbOv = overrideMap.get(s.id);
       if (!dbOv) return s;
