@@ -54,6 +54,8 @@ export interface C3ContributionRecord {
   payment_amount?: number | null;
   pending_amount?: number | null;
   is_partially_paid?: boolean;
+  has_sync_error?: boolean;
+  sync_error_message?: string | null;
 }
 
 export interface NwdContributionRecord {
@@ -103,6 +105,8 @@ export interface SeContributionRecord {
   payment_amount?: number | null;
   pending_amount?: number | null;
   is_partially_paid?: boolean;
+  has_sync_error?: boolean;
+  sync_error_message?: string | null;
 }
 
 export interface SelfEmployedDropdownItem {
@@ -336,5 +340,12 @@ export async function getTransactionReceipt(params: {
   entity_type: 'c3' | 'nw_director' | 'self_employed';
 }) {
   return callWizApi<TransactionReceiptData>('get_transaction_receipt', params);
+}
+
+/**
+ * Resync a payment that succeeded locally but failed to sync to SSB Admin (BIMA).
+ */
+export async function resyncPayment(paymentId: number) {
+  return callWizApi('resync_payment', { payment_id: paymentId });
 }
 
