@@ -287,10 +287,10 @@ function renderFullCoverPage(
   doc.setFont('helvetica', 'normal');
   doc.text(branding.department, pw / 2, 112, { align: 'center' });
 
-  // Title
+  // Title — positioned well below department to avoid overlap
   doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
-  const titleY = ph * 0.40;
+  const titleY = 145;
   const titleLines = options.title.split('\n');
   titleLines.forEach((line, idx) => {
     doc.text(line, pw / 2, titleY + idx * 16, { align: 'center' });
