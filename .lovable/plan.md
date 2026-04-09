@@ -1,129 +1,43 @@
 
 
-# Global Interaction-Blocking Overlay for Critical Actions
+# Fix: Meeting Action Buttons — Instant Appearance & Responsive Layout
 
-## Problem
-When a user clicks an action button (e.g., "Start Meeting", "Approve", "Save"), a local spinner shows but the rest of the UI — including the left navigation menu — remains interactive. Users can navigate away or trigger duplicate actions, causing inconsistent state and data integrity issues.
+## Problem 1: Buttons Don't Appear After Scheduling
 
-## Architecture
+**Root cause**: In `WorkflowActionButtons.tsx`, `handleMeetingSuccess` is async and **awaits** the `workflow-action-api` edge function call (lines 155-204) before reaching `onActionComplete()` at line 207. This edge function can take several seconds, during which `invalidateMeeting()` is never called — so the meeting query cache stays stale and buttons don't render.
 
-A lightweight **global blocking overlay** managed via React context. Any component can call `startBlocking()` / `stopBlocking()` to activate a full-screen overlay that disables all pointer events. A reference counter handles concurrent operations (overlay stays until ALL operations complete).
+**Fix**: Move `onActionComplete()` call to fire **immediately** after `setShowMeetingDialog(false)` and `refetch()`, before the async API call. The API notification is non-blocking by design (comment on line 151 even says "non-blocking"), so it should not gate the UI update.
 
 ```text
-┌──────────────────────────────────┐
-│  GlobalBlockingContext            │
-│  ┌────────────────────────────┐  │
-│  │ activeCount (ref counter)  │  │
-│  │ startBlocking(label?)      │  │
-│  │ stopBlocking()             │  │
-│  │ isBlocking: boolean        │  │
-│  └────────────────────────────┘  │
-└──────────────────────────────────┘
-         │
-         ▼
-┌──────────────────────────────────┐
-│  <BlockingOverlay />             │
-│  fixed inset-0 z-[9999]         │
-│  pointer-events: all            │
-│  semi-transparent backdrop      │
-│  centered Loader2 + label       │
-└──────────────────────────────────┘
+handleMeetingSuccess:
+  1. setShowMeetingDialog(false)      ← existing
+  2. refetch()                         ← existing
+  3. onActionComplete(...)             ← MOVE HERE (was at end)
+  4. await workflow-action-api(...)    ← non-blocking, runs after UI updates
 ```
 
-## Implementation
+**File**: `src/components/workflow/WorkflowActionButtons.tsx` — reorder `handleMeetingSuccess` so `onActionComplete` fires before the async API call.
 
-### 1. New Context: `GlobalBlockingContext`
-**File:** `src/contexts/GlobalBlockingContext.tsx`
+## Problem 2: Responsive Layout
 
-- `activeCount` ref (integer) — incremented by `startBlocking()`, decremented by `stopBlocking()`
-- `isBlocking` state derived from `activeCount > 0`
-- Optional `label` parameter for display text (e.g., "Saving..." or "Processing...")
-- Safety: `stopBlocking` never decrements below 0
-- **Timeout guard**: If blocking persists >30s, auto-release with error toast
+**IP Page** (`ApplicationDetailPage.tsx`): Header container at line 194 uses `flex items-center justify-between` without `flex-wrap` or `gap`, causing overflow on narrow screens.
 
-### 2. New Component: `BlockingOverlay`
-**File:** `src/components/ui/BlockingOverlay.tsx`
+**Fix**: Add `flex-wrap gap-4` to the header container (line 194) — matching the employer page pattern. Also wrap the action buttons section (line 209) with `flex-wrap` to allow stacking.
 
-- Renders only when `isBlocking === true`
-- `fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center pointer-events-auto`
-- Shows `Loader2` spinner + label text
-- Sits above everything including nav sidebar and modals
+**Employer Page** (`EmployerApplicationDetailPage.tsx`): Already has `flex-wrap gap-4` on the outer container (line 175) and inner actions (line 191). No changes needed.
 
-### 3. New Hook: `useBlockingMutation`
-**File:** `src/hooks/useBlockingMutation.ts`
-
-A thin wrapper around `useMutation` that automatically calls `startBlocking()` before the mutation and `stopBlocking()` on success/error/settled. Drop-in replacement for critical actions:
-
-```typescript
-export function useBlockingMutation<TData, TError, TVariables>(
-  options: UseMutationOptions<TData, TError, TVariables>,
-  blockingLabel?: string
-) {
-  const { startBlocking, stopBlocking } = useGlobalBlocking();
-  return useMutation({
-    ...options,
-    onMutate: async (vars) => {
-      startBlocking(blockingLabel);
-      return options.onMutate?.(vars);
-    },
-    onSettled: (data, error, vars, ctx) => {
-      stopBlocking();
-      options.onSettled?.(data, error, vars, ctx);
-    },
-  });
-}
-```
-
-### 4. Wire Into App.tsx
-Add `GlobalBlockingProvider` wrapping the app content (inside `ThemeProvider`, outside `Router`), and render `<BlockingOverlay />` as a sibling to `<AppRoutes />`.
-
-### 5. Integrate With Critical Actions
-Update the following high-impact mutation hooks to use `useBlockingMutation` or manually call `startBlocking`/`stopBlocking`:
-
-| Hook/Component | Action |
-|---|---|
-| `useStartMeeting` | Start Meeting button |
-| `useProcessMeetingOutcome` | Approve/Reject/Defer outcome |
-| `useConvertToIPRegistration` | Convert IP application |
-| `useConvertToEmployerRegistration` | Convert ER application |
-| `useCancelMeeting` / `useRescheduleMeeting` | Cancel/Reschedule |
-| `useBnBulkPayableAction` | Bulk payable actions |
-| `useBnScheduleRowAction` | Bulk schedule actions |
-| Form submission handlers (registration steps) | Save/Submit forms |
-| Document upload handlers | File uploads |
-
-For each, replace `useMutation` with `useBlockingMutation` or wrap the async call with `startBlocking`/`stopBlocking`.
-
-### 6. Error & Timeout Handling
-- On mutation error: `stopBlocking()` is called via `onSettled`, overlay clears, error toast shown
-- 30-second timeout: If `isBlocking` stays true for 30s, auto-clear with warning toast "Operation timed out — please check your data"
-- `stopBlocking` is idempotent — multiple calls are safe
+**MeetingActionButtons** (`MeetingActionButtons.tsx`): Already uses `flex flex-wrap gap-2`. No changes needed.
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `src/contexts/GlobalBlockingContext.tsx` (new) | Context with ref counter, start/stop, timeout |
-| `src/components/ui/BlockingOverlay.tsx` (new) | Full-screen overlay component |
-| `src/hooks/useBlockingMutation.ts` (new) | Drop-in blocking mutation wrapper |
-| `src/App.tsx` | Add `GlobalBlockingProvider` + `<BlockingOverlay />` |
-| `src/hooks/useMeetings.ts` | Switch critical mutations to `useBlockingMutation` |
-| `src/hooks/useProcessMeetingOutcome.ts` | Switch to `useBlockingMutation` |
-| `src/hooks/useConvertToIPRegistration.ts` | Switch to `useBlockingMutation` |
-| `src/hooks/useConvertToEmployerRegistration.ts` | Switch to `useBlockingMutation` |
-| `src/hooks/bn/useBnPayablesQueue.ts` | Switch bulk action to `useBlockingMutation` |
-| `src/hooks/bn/useBnSchedule.ts` | Switch bulk action to `useBlockingMutation` |
+| `src/components/workflow/WorkflowActionButtons.tsx` | Move `onActionComplete()` before the async API call in `handleMeetingSuccess` |
+| `src/pages/online-applications/ApplicationDetailPage.tsx` | Add `flex-wrap gap-4` to header container for responsive layout |
 
 ## What Is NOT Changed
-- No database changes needed — this is purely a frontend interaction pattern
-- No changes to existing API/RPC logic
-- No changes to React Query cache or audit interceptor
-- Local component spinners remain as secondary visual feedback inside buttons
-
-## Scalability
-Any future feature can use either:
-1. `useBlockingMutation(options, 'Saving...')` — automatic blocking
-2. `const { startBlocking, stopBlocking } = useGlobalBlocking()` — manual control
-
-This becomes the enforced standard per the governance policy.
+- `useApplicationMeeting` hook — already has realtime subscription, works correctly once cache is invalidated
+- `MeetingActionButtons` component — already responsive with `flex-wrap`
+- Employer detail page — already responsive
+- No database changes needed
 
