@@ -124,6 +124,19 @@ export function useMyPendingApprovals() {
 
       if (!tasks || tasks.length === 0) return [];
 
+      // Batch-fetch all step configurations in a single query (fixes N+1)
+      const uniqueStepIds = Array.from(new Set(tasks.map(t => t.step_id).filter(Boolean))) as string[];
+      let stepMap = new Map<string, any>();
+      if (uniqueStepIds.length > 0) {
+        const { data: stepsData } = await supabase
+          .from('workflow_steps')
+          .select('id, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
+          .in('id', uniqueStepIds);
+        if (stepsData) {
+          stepMap = new Map(stepsData.map(s => [s.id, s]));
+        }
+      }
+
       // Filter tasks that the current user can act on
       const userTasks: PendingApproval[] = [];
 
@@ -153,13 +166,9 @@ export function useMyPendingApprovals() {
           canAct = task.assigned_designation === userDesignationId;
         }
 
-        // Check step-level approver configuration
+        // Check step-level approver configuration (using pre-fetched batch data)
         if (!canAct) {
-          const { data: step } = await supabase
-            .from('workflow_steps')
-            .select('approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
-            .eq('id', task.step_id)
-            .single();
+          const step = stepMap.get(task.step_id);
 
           if (step) {
             const approverType = step.approver_type || 'role';
