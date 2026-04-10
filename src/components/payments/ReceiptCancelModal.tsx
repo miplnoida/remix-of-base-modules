@@ -44,7 +44,7 @@ export function ReceiptCancelModal({ open, onClose, onConfirm, isLoading, receip
 
         <div className="space-y-4 py-2">
           <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <strong>Warning:</strong> Cancelling this receipt may trigger recalculation of batch totals and downstream contribution updates. This action cannot be easily undone.
+            <strong>Note:</strong> This will submit a cancellation request for workflow approval. The receipt will not be cancelled until an approver grants permission.
           </div>
 
           <div className="space-y-1.5">

@@ -131,7 +131,7 @@ export const cashierMenuItems = [
         requiresPermission: "cashier_operations"
       },
       {
-        title: "Card Machine Change Requests",
+        title: "Batch Change Requests",
         url: "/cashier/card-machine-change-requests",
         icon: CreditCard,
         requiresPermission: "batch_detail_change_requests"
