@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     // Fetch payment header
     const { data: header, error: headerErr } = await supabase
       .from("cn_payment_header")
-      .select("payer_id, payer_type")
+      .select("payer_id, payer_type, is_for_director")
       .eq("payment_id", payment_id)
       .single();
     if (headerErr || !header) {
