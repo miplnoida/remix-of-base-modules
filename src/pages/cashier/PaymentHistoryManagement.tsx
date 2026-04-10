@@ -440,6 +440,7 @@ const PaymentHistoryManagement = () => {
 
   const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
   const isApprovedReady = activeCancelRequest?.status === 'Approved';
+  const [confirmApplyCancelOpen, setConfirmApplyCancelOpen] = useState(false);
 
   const handleCancelReceipt = useCallback(async (reason: string) => {
     if (!selectedRow || !detailReceipt) return;
@@ -776,7 +777,7 @@ const PaymentHistoryManagement = () => {
             )}
             {/* Apply Approved Cancellation */}
             {isApprovedReady && (
-              <Button variant="destructive" size="sm" onClick={handleApplyCancellation} disabled={applyCancellation.isPending}>
+              <Button variant="destructive" size="sm" onClick={() => setConfirmApplyCancelOpen(true)} disabled={applyCancellation.isPending}>
                 {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
                 Apply Approved Cancellation
               </Button>
@@ -815,6 +816,20 @@ const PaymentHistoryManagement = () => {
         onConfirm={handleCancelReceipt}
         isLoading={receiptActions.isLoading}
         receiptId={detailReceipt?.receipt_id}
+      />
+      <ConfirmDialog
+        open={confirmApplyCancelOpen}
+        onOpenChange={setConfirmApplyCancelOpen}
+        title="Confirm Receipt Cancellation"
+        description="Are you sure you want to apply this approved cancellation? This will permanently cancel the receipt and cannot be undone."
+        confirmLabel="Yes, Cancel Receipt"
+        cancelLabel="No, Go Back"
+        variant="destructive"
+        isLoading={applyCancellation.isPending}
+        onConfirm={async () => {
+          await handleApplyCancellation();
+          setConfirmApplyCancelOpen(false);
+        }}
       />
     </div>
   );
