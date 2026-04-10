@@ -194,7 +194,7 @@ const BatchClosing: React.FC = () => {
         await fetchTotals(batchNumber);
       }
     } catch (_) {}
-  }, [applyCancellation, batchNumber]);
+  }, [applyCancellation, batchNumber, fetchTotals]);
 
   useEffect(() => {
     const fetchMops = async () => {
