@@ -18,6 +18,7 @@ import {
   resyncPayment,
   type C3ContributionRecord,
 } from '@/services/wizC3DetailsService';
+import { useSessionPersistedSearch } from '@/hooks/useSessionPersistedSearch';
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import C3ContributionPreview from './previews/C3ContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';

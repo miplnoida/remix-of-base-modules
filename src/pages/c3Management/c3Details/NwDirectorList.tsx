@@ -18,6 +18,7 @@ import {
   resyncPayment,
   type NwdContributionRecord,
 } from '@/services/wizC3DetailsService';
+import { useSessionPersistedSearch } from '@/hooks/useSessionPersistedSearch';
 import { getNwCompanies, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import NwdContributionPreview from './previews/NwdContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';

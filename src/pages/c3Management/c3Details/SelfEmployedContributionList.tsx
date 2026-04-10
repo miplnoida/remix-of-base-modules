@@ -20,6 +20,7 @@ import {
   type SeContributionRecord,
   type SelfEmployedDropdownItem,
 } from '@/services/wizC3DetailsService';
+import { useSessionPersistedSearch } from '@/hooks/useSessionPersistedSearch';
 import SeContributionPreview from './previews/SeContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
 import { BIMASourceIndicator } from '@/components/c3/BIMASourceIndicator';
