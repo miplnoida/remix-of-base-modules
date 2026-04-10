@@ -194,6 +194,11 @@ Deno.serve(async (req) => {
       receipt_amount: String(receipt.receipt_total || 0),
     };
 
+    // Include is_for_director flag when true (NWD record)
+    if (header.is_for_director) {
+      payload.is_for_director = "true";
+    }
+
     // Conditional fields
     if (header.payer_type === "SE") {
       payload.ssn = header.payer_id;
