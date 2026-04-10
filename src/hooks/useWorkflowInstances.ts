@@ -98,24 +98,27 @@ export function useWorkflowInstances(
       
       if (error) throw error;
       
-      // Fetch current step names
-      const instances: WorkflowInstanceWithDetails[] = await Promise.all(
-        (data || []).map(async (instance) => {
-          let currentStepName = null;
-          if (instance.current_step_id) {
-            const { data: step } = await supabase
-              .from('workflow_steps')
-              .select('step_name')
-              .eq('id', instance.current_step_id)
-              .single();
-            currentStepName = step?.step_name;
-          }
-          return {
-            ...instance,
-            current_step_name: currentStepName,
-          };
-        })
-      );
+      // Batch-fetch all current step names in a single query (fixes N+1)
+      const stepIds = [...new Set(
+        (data || []).map(i => i.current_step_id).filter(Boolean) as string[]
+      )];
+      let stepNameMap = new Map<string, string>();
+      if (stepIds.length > 0) {
+        const { data: steps } = await supabase
+          .from('workflow_steps')
+          .select('id, step_name')
+          .in('id', stepIds);
+        if (steps) {
+          stepNameMap = new Map(steps.map(s => [s.id, s.step_name]));
+        }
+      }
+
+      const instances: WorkflowInstanceWithDetails[] = (data || []).map((instance) => ({
+        ...instance,
+        current_step_name: instance.current_step_id
+          ? stepNameMap.get(instance.current_step_id) || null
+          : null,
+      }));
       
       return {
         instances,
