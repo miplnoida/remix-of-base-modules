@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { usePaymentBatch } from '@/hooks/usePaymentBatch';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
 import { useReceiptActions } from '@/hooks/useReceiptActions';
@@ -391,6 +392,7 @@ const PaymentDataEntry = () => {
   const canCancel = isSaved && receipt.currentReceipt?.status === 'O' && !activeCancelRequest;
   const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
   const isApprovedReady = activeCancelRequest?.status === 'Approved';
+  const [confirmApplyCancelOpen, setConfirmApplyCancelOpen] = useState(false);
   const canReprint = isSaved && !!receipt.currentReceipt;
 
   return (
@@ -434,7 +436,7 @@ const PaymentDataEntry = () => {
           )}
 
           {isApprovedReady && (
-            <Button onClick={handleApplyCancellation} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
+            <Button onClick={() => setConfirmApplyCancelOpen(true)} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
               {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
               Apply Approved Cancellation
             </Button>
@@ -535,6 +537,20 @@ const PaymentDataEntry = () => {
           recipientEmail={pendingEmailDoc?.email || ''}
           documentType="receipt"
           documentNumber={pendingEmailDoc?.number}
+        />
+        <ConfirmDialog
+          open={confirmApplyCancelOpen}
+          onOpenChange={setConfirmApplyCancelOpen}
+          title="Confirm Receipt Cancellation"
+          description="Are you sure you want to apply this approved cancellation? This will permanently cancel the receipt and cannot be undone."
+          confirmLabel="Yes, Cancel Receipt"
+          cancelLabel="No, Go Back"
+          variant="destructive"
+          isLoading={applyCancellation.isPending}
+          onConfirm={async () => {
+            await handleApplyCancellation();
+            setConfirmApplyCancelOpen(false);
+          }}
         />
       </div>
     </BatchSelectionGuard>

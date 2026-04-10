@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { maskPIIValue } from '@/services/piiMaskingService';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
