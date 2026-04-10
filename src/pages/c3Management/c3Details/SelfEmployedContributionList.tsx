@@ -60,8 +60,25 @@ const SelfEmployedContributionList: React.FC = () => {
   const [resyncConfirmRecord, setResyncConfirmRecord] = useState<SeContributionRecord | null>(null);
   const [resyncing, setResyncing] = useState(false);
 
+  // Session persistence
+  interface SeFilters { entityId: string; periodFromMonth: string; periodFromYear: string; periodToMonth: string; periodToYear: string; }
+  const { save: saveSession, load: loadSession } = useSessionPersistedSearch<SeFilters, SeContributionRecord[]>('self-employed-c3');
+
   useEffect(() => {
-    getSelfEmployedDropdown().then(res => setSeList(res.data?.self_employed || [])).catch(() => {});
+    getSelfEmployedDropdown().then(res => {
+      const seData = res.data?.self_employed || [];
+      setSeList(seData);
+
+      const persisted = loadSession();
+      if (persisted && seData.length > 0) {
+        setSelectedSeId(persisted.filters.entityId);
+        setPeriodFromMonth(persisted.filters.periodFromMonth);
+        setPeriodFromYear(persisted.filters.periodFromYear);
+        setPeriodToMonth(persisted.filters.periodToMonth);
+        setPeriodToYear(persisted.filters.periodToYear);
+        setContributions(persisted.results);
+      }
+    }).catch(() => {});
   }, []);
 
   const handleSearch = useCallback(async () => {
@@ -71,7 +88,12 @@ const SelfEmployedContributionList: React.FC = () => {
       const periodFrom = periodFromMonth && periodFromYear ? `${periodFromMonth}-${periodFromYear}` : undefined;
       const periodTo = periodToMonth && periodToYear ? `${periodToMonth}-${periodToYear}` : undefined;
       const res = await getSeContributionList({ self_employed_id: Number(selectedSeId), period_from: periodFrom, period_to: periodTo });
-      setContributions(res.data?.contributions || []);
+      const data = res.data?.contributions || [];
+      setContributions(data);
+      saveSession(
+        { entityId: selectedSeId, periodFromMonth, periodFromYear, periodToMonth, periodToYear },
+        data
+      );
     } catch (err: any) {
       toast.error(err.message || 'Failed to load contributions');
     } finally { setLoading(false); }
