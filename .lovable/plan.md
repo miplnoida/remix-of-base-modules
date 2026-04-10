@@ -1,136 +1,129 @@
 
 
-# Workflow-Based Receipt Cancellation Approval
+# NWD Support: `is_for_director` Column in `cn_c3_reported`
 
-## Overview
-
-Replace direct receipt cancellation with a workflow-driven approval process across all 4 screens, mirroring the existing card-machine change request pattern.
+## Problem
+The `cn_c3_reported` table has no way to distinguish Non-Working Director (NWD) contributions from standard Employer (ER) records. Both share `payer_type = 'ER'`. The C3-Wizard team needs the system to accept, store, filter, and return `is_for_director` correctly across all ingestion and query APIs.
 
 ---
 
-## 1. Database: New `cn_receipt_cancel_requests` Table
+## Changes
 
-Create a table mirroring `cn_card_machine_change_requests`:
+### 1. Database Migration
 
+Add column to `cn_c3_reported`:
 ```sql
-CREATE TABLE public.cn_receipt_cancel_requests (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  batch_number text NOT NULL,
-  payment_id integer NOT NULL,
-  receipt_id integer NOT NULL,
-  receipt_total numeric,
-  workflow_instance_id uuid REFERENCES workflow_instances(id),
-  status text NOT NULL DEFAULT 'Pending',    -- Pending, InProgress, Approved, Rejected, Completed, Cancelled
-  reason text NOT NULL,
-  request_type text NOT NULL DEFAULT 'cancel_receipt',
-  requested_by text NOT NULL,
-  requested_at timestamptz NOT NULL DEFAULT now(),
-  completed_at timestamptz,
-  completed_by text,
-  skip_comment text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_cn_receipt_cancel_requests_batch ON cn_receipt_cancel_requests(batch_number);
-CREATE INDEX idx_cn_receipt_cancel_requests_status ON cn_receipt_cancel_requests(status);
-CREATE INDEX idx_cn_receipt_cancel_requests_payment ON cn_receipt_cancel_requests(payment_id);
-CREATE INDEX idx_cn_receipt_cancel_requests_receipt ON cn_receipt_cancel_requests(receipt_id);
+ALTER TABLE cn_c3_reported ADD COLUMN is_for_director BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX idx_cn_c3_reported_director ON cn_c3_reported(is_for_director);
 ```
 
-Also add workflow step actions (Approve/Reject) for the existing workflow `65f82f25-e422-438e-8c12-005a23d81d62` step `a072b471-3d03-4bab-86fa-bd45480a78d1` if not already present.
+### 2. RPC: `public_api_insert_c3_reported`
+
+Add parameter `p_is_for_director BOOLEAN DEFAULT FALSE` and include it in the INSERT statement. Return it in the success response.
+
+### 3. RPC: `public_api_c3_range`
+
+Filter by `is_for_director` based on `p_c3_type`:
+- `p_c3_type = 'NW'` → only `is_for_director = TRUE`
+- `p_c3_type = 'EE'` → only `is_for_director = FALSE`
+
+Include `is_for_director` in the response object.
+
+### 4. RPC: `public_api_c3_detail`
+
+Add `is_for_director` filter to the `cn_c3_reported` lookup (same logic as range). Include the field in the `c3Header` response.
+
+### 5. RPC: `public_api_c3_last_submitted`
+
+This delegates to `public_api_c3_detail`. The parent query that finds the latest record must also filter by `is_for_director` based on `p_c3_type`.
+
+### 6. RPC: `get_c3_component_balances`
+
+For NWD records (`is_for_director = TRUE`), only return LVC and LVF components (levy + levy fines), excluding SSC, PEC, SSF, PEF. Add an `p_is_for_director BOOLEAN DEFAULT FALSE` parameter, or detect from the stored record.
+
+### 7. RPC: `public_api_payment_save`
+
+Accept optional `isForDirector` (camelCase) from the payload. Store it on `cn_payment_header` as a new column `is_for_director BOOLEAN DEFAULT FALSE` so payment records are also tagged.
+
+### 8. Edge Function: `sync-c3-payment`
+
+When building the outbound payload to C3-Wizard, read `is_for_director` from `cn_payment_header` and include `is_for_director: true` in the sync payload when applicable.
+
+### 9. Edge Function: `public-api/index.ts`
+
+Update `handleC3ReportedInsert` to pass the new `is_for_director` field to the RPC:
+```typescript
+p_is_for_director: payload.is_for_director != null ? Boolean(payload.is_for_director) : false,
+```
+
+### 10. RPC: `public_api_verify_c3`
+
+The duplicate-check query inside `public_api_verify_c3` uses `payer_id + payer_type + period + sequence_no`. This remains unchanged since `is_for_director` is stored at row level and doesn't affect verification uniqueness.
 
 ---
 
-## 2. New Hook: `useReceiptCancelRequests.ts`
+## Files to Create/Modify
 
-Mirrors `useCardMachineChangeRequests.ts` exactly:
-
-- **Constants**: `CANCEL_WORKFLOW_ID = '65f82f25-e422-438e-8c12-005a23d81d62'`, `CANCEL_STEP_ID = 'a072b471-...'`
-- **`useReceiptCancelRequests(batchNumber)`** — fetch requests by batch
-- **`useReceiptCancelRequestByPayment(paymentId)`** — fetch active request for a payment
-- **`useCreateReceiptCancelRequest()`** — mutation: insert request → create workflow_instance (source_module: `receipt_cancellation`) → create task → log → update request status to InProgress
-- **`useApplyReceiptCancellation()`** — mutation: verify Approved status → update cn_receipt (status=C, cancel_reason, cancel_user, cancel_date) → mark request Completed → close workflow
-- **`useSkipReceiptCancellation()`** — mutation: mark request Cancelled with skip_comment
-- **`useReceiptCancelRequestsForApprover(filters)`** — fetch all requests with filters for the approval screen
-- **`getActiveCancelRequest(requests, paymentId)`** — helper to find active request
-
----
-
-## 3. Workflow Engine Integration: `useWorkflowActions.ts`
-
-Add a new `else if (sourceModule === 'receipt_cancellation')` block (alongside `batch_card_machine_change`) that updates `cn_receipt_cancel_requests.status` based on workflow outcome (Approved/Rejected).
+| Item | Type | Purpose |
+|---|---|---|
+| Migration SQL | New | Add `is_for_director` to `cn_c3_reported` and `cn_payment_header` |
+| `public_api_insert_c3_reported` | Recreate RPC | Accept + store `is_for_director` |
+| `public_api_c3_range` | Recreate RPC | Filter by `is_for_director` based on `c3_type` |
+| `public_api_c3_detail` | Recreate RPC | Filter + return `is_for_director` |
+| `public_api_c3_last_submitted` | Recreate RPC | Filter latest record by NWD flag |
+| `get_c3_component_balances` | Recreate RPC | Return only LVC/LVF for NWD records |
+| `public_api_payment_save` | Recreate RPC | Accept + store `isForDirector` |
+| `sync-c3-payment/index.ts` | Edit | Include `is_for_director` in outbound sync |
+| `public-api/index.ts` | Edit | Pass `is_for_director` to RPC |
 
 ---
 
-## 4. Screen Changes
+## C3-Wizard Integration Message (to share with them)
 
-### 4a. PaymentDataEntry (`/cashier/payment-data-entry`)
-- Replace `handleCancelReceipt` (direct DB update) with `useCreateReceiptCancelRequest`
-- Check for active cancel request; if InProgress/Pending → show "Pending Approval" badge, disable cancel button
-- If Approved → show "Apply Cancellation" button that calls `useApplyReceiptCancellation`
-- Update `ReceiptCancelModal.onConfirm` to submit workflow request instead of direct cancel
+After implementation, the following message should be shared:
 
-### 4b. C3Payments (`/cashier/c3-payments`)
-- Same changes as PaymentDataEntry
+**Subject: NWD `is_for_director` Field Now Supported**
 
-### 4c. PaymentHistoryManagement (`/cashier/payment-history-mgmt`)
-- Same changes in the detail popup cancel handler
+All C3 ingestion and query APIs now support `is_for_director`:
 
-### 4d. BatchClosing (`/cashier/batch-closing`) — Batch Transactions Section
-- Add a "Cancel Receipt" action button to each transaction row in the Batch Transactions table (lines 740-749)
-- Only show for receipts with status 'O'
-- Check active cancel requests per payment; show status badge if pending
-- Wire up `ReceiptCancelModal` and `useCreateReceiptCancelRequest`
+**1. C3 Reported Insert** (`POST /api/v1/c3-reported`):
+```json
+{
+  "payer_id": "658852",
+  "payer_type": "ER",
+  "is_for_director": true,
+  "sequence_no": 1,
+  "period": "2026-04-01",
+  "total_wages": 500,
+  "emp_levy_amt_calc": 40,
+  "emp_levy_penalty_amt": 0
+}
+```
+- Send `is_for_director: true` for NWD submissions, `false` or omit for standard ER.
 
----
+**2. C3 Range Query** (`GET .../range/{start}/{end,c3Type}`):
+- Use `c3Type=NW` to get only NWD records: `.../range/012026/042026,NW`
+- Use `c3Type=EE` to get only standard ER records (excludes NWD)
+- Response now includes `"isForDirector": true/false` per record.
 
-## 5. Approval Screen Extension: `CardMachineChangeRequests.tsx`
+**3. C3 Detail Query** (`GET .../C3Submitted/{month,year,seq,payerType,c3Type}`):
+- `c3Type=NW` fetches director record; `c3Type=EE` fetches standard.
+- Response `c3Header` includes `"isForDirector": true/false`.
 
-Rename/extend to handle both request types:
+**4. Payment Save** (`POST /api/v1/api/payment/save`):
+```json
+{
+  "payerId": "658852",
+  "payerType": "ER",
+  "isForDirector": true,
+  ...
+}
+```
+- NWD payments are tagged so receipt sync back to C3-Wizard includes `is_for_director: true`.
 
-- **Page title**: "Batch Change Requests" (or "Payment Change Requests")
-- **Add `request_type` filter**: "All", "Card Machine Change", "Cancel Receipt"
-- **Query both tables**: Fetch from `cn_card_machine_change_requests` AND `cn_receipt_cancel_requests`, merge with a `request_type` discriminator
-- **Table columns**: Add "Type" column with badge (Card Machine / Cancel Receipt)
-- **Detail modal**: Show type-specific fields (card machine details vs receipt/reason details)
-- **Workflow actions**: Use correct `sourceModule` per type (`batch_card_machine_change` vs `receipt_cancellation`)
-- **Menu item**: Update sidebar label to "Batch Change Requests"
+**5. Component Balances**:
+- NWD records return only LVC (Levy) and LVF (Levy Fines) components.
+- SSC, PEC, SSF, PEF are excluded for NWD.
 
----
-
-## 6. Audit Trail
-
-All actions already logged via:
-- `workflow_logs` entries at each step (request_submitted, approval, rejection, change_applied)
-- `system_audit_trail` triggers on the new table
-
----
-
-## Technical Details
-
-### Workflow IDs
-- Cancel Receipt Workflow: `65f82f25-e422-438e-8c12-005a23d81d62`
-- Step: `a072b471-3d03-4bab-86fa-bd45480a78d1` (Approval Pending)
-
-### Source Module Key
-- `receipt_cancellation` — used in `workflow_instances.source_module`
-
-### Files to Create
-| File | Purpose |
-|---|---|
-| `src/hooks/useReceiptCancelRequests.ts` | All CRUD + workflow hooks |
-| Migration SQL | `cn_receipt_cancel_requests` table + workflow step actions |
-
-### Files to Modify
-| File | Change |
-|---|---|
-| `src/hooks/useWorkflowActions.ts` | Add `receipt_cancellation` source module handler |
-| `src/pages/cashier/PaymentDataEntry.tsx` | Replace direct cancel with workflow request |
-| `src/pages/cashier/C3Payments.tsx` | Replace direct cancel with workflow request |
-| `src/pages/cashier/PaymentHistoryManagement.tsx` | Replace direct cancel with workflow request |
-| `src/pages/cashier/BatchClosing.tsx` | Add Cancel Receipt button to transaction rows |
-| `src/pages/cashier/CardMachineChangeRequests.tsx` | Extend to list both request types |
-| `src/components/payments/ReceiptCancelModal.tsx` | Minor: update description text for "request" vs "cancel" |
-| `src/components/sidebar/menuItems/cashierMenuItems.ts` | Update menu label |
+**Backward Compatibility**: All fields default to `false` when omitted.
 
