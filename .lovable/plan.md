@@ -1,43 +1,44 @@
+# Fix: "Payer Not Found" for NW Director Payments
 
+## Root Cause
 
-# Fix: Batch Closing Cancel Receipt Issues
+The NW Director list page navigates to C3 Payments with `payerType: 'NW'` (line 119 of `NwDirectorList.tsx`). However, `lookupPayer` in `usePaymentEntry.ts` only handles `'ER'`, `'SE'`, and `'AP'` explicitly. `'NW'` falls through to the `else` branch, which queries `ip_master` by SSN. Since the payer ID is an employer registration number (e.g., `658852`), it finds no match in `ip_master` and returns `null` — triggering "Payer not found."
 
-## Problems Identified
+**This is a mapping issue, not a data issue.** NWD contributions are filed under `payer_type = 'ER'` in the database. The payer is a valid employer in `er_master`. The `'NW'` type is only a UI/routing distinction to filter `is_for_director = TRUE` records.
 
-1. **No confirmation dialog** when clicking "Apply Cancel" — the cancellation executes immediately without user confirmation.
-2. **Cancel button reappears after cancellation** — after applying, the batch transactions data is not re-fetched, so the local `status` still shows `'O'` and the cancel request status is now `'Completed'` (not matching `isPending` or `isApproved`), causing the Cancel button to reappear.
-3. **Consistency** — other screens (PaymentDataEntry, C3Payments, PaymentHistoryManagement) also apply cancellation without a confirmation dialog; all should be aligned.
+## Fix
 
-## Changes
+### 1. `src/hooks/usePaymentEntry.ts` — Add `'NW'` case to `lookupPayer`
 
-### 1. BatchClosing.tsx — Add confirmation dialog for Apply Cancel
+Treat `'NW'` the same as `'ER'` — look up the payer in `er_master`:  
+Note: NW should not be payer_type as payer_type is ER but is_for_director = true means employer is paying or contributing for their non-wokring director.
 
-- Add state: `confirmApplyCancelOpen`, `applyCancelTarget` (to hold the cancel request)
-- When "Apply Cancel" is clicked, open a `ConfirmDialog` instead of calling `handleApplyBatchCancellation` directly
-- On confirm, execute the mutation
-- On success, re-fetch batch totals by calling `fetchTotals(batchNumber)` to refresh the transaction list (which filters out cancelled receipts via `r.status !== 'C'`)
-
-### 2. BatchClosing.tsx — Re-fetch data after cancellation
-
-- After `applyCancellation.mutateAsync` succeeds, call `fetchTotals(batchNumber)` to reload `batchPayments` from the database. This ensures cancelled receipts (status `'C'`) are filtered out and the Cancel button does not reappear.
-
-### 3. BatchClosing.tsx — Guard against Completed/Cancelled requests
-
-- Add `cancelReq?.status === 'Completed'` check so that completed requests don't fall through to the Cancel button condition. The condition on line 823 should also check `!cancelReq` OR `cancelReq.status` is not in any active state:
 ```typescript
-{p.status === 'O' && (!cancelReq || cancelReq.status === 'Rejected') && (
+if (payerType === 'ER' || payerType === 'NW') {
+  // Both standard Employer and Non-Working Director resolve from er_master
+  const { data, error } = await supabase
+    .from('er_master')
+    .select('regno, name, status')
+    .eq('regno', payerId)
+    .single();
+  if (error || !data) return null;
+  return { id: data.regno, name: data.name, status: data.status };
+}
 ```
 
-### 4. PaymentDataEntry, C3Payments, PaymentHistoryManagement — Add confirmation dialog (consistency)
+### 2. `src/hooks/usePaymentEntry.ts` — Add `'NW'` case to `searchPayers`
 
-- Add the same `ConfirmDialog` pattern before applying approved cancellations on all three screens, matching the BatchClosing behavior.
+Same pattern — the `searchPayers` function likely also needs to handle `'NW'` as `'ER'`.
+
+### 3. No other changes needed
+
+- The `get_c3_component_balances` RPC already receives `p_payer_type: 'NW'` and handles NWD filtering server-side via `is_for_director`.
+- The `create_c3_payment_with_receipt` RPC will receive the correct payer type.
+- No database or migration changes required.
 
 ## Files Modified
 
-| File | Change |
-|---|---|
-| `src/pages/cashier/BatchClosing.tsx` | Add confirm dialog for Apply Cancel; re-fetch data after success; fix Cancel button guard |
-| `src/pages/cashier/PaymentDataEntry.tsx` | Add confirm dialog before applying cancellation |
-| `src/pages/cashier/C3Payments.tsx` | Add confirm dialog before applying cancellation |
-| `src/pages/cashier/PaymentHistoryManagement.tsx` | Add confirm dialog before applying cancellation |
 
+| File                           | Change                                                   |
+| ------------------------------ | -------------------------------------------------------- |
+| `src/hooks/usePaymentEntry.ts` | Add `'NW'` to `lookupPayer` and `searchPayers` ER branch |
