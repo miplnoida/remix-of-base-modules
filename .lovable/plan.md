@@ -1,52 +1,69 @@
 
 
-# Persist Owners Tab Data (Mirror Locations Pattern)
+# Cross-App Auth Sharing + Sidebar URL Mapping
 
-## Current State
+## Overview
 
-**Locations tab** — fully persistent:
-1. `useMeetingEditData(meetingId, 'locations')` hook loads saved data on mount
-2. On initialization, `savedLocations` overlays the API data if present
-3. Every add/edit/delete auto-saves via `saveLocationsEdit()` in the `onDataChange` callback
+Three deliverables to enable this project as a central shell for satellite Lovable apps:
 
-**Owners tab** — NOT persistent:
-- No `useMeetingEditData` hook for `'owners'`
-- No seeding from saved data on revisit
-- No auto-save on change
-- All owner edits are lost on page refresh
+1. **Database: Add `base_url` column to `app_modules`** — allows each top-level module to point to an external app host
+2. **Sidebar: Cross-app navigation** — `SidebarMenuLink` detects external URLs and uses `window.location.href` instead of React Router
+3. **Documentation: Shared auth setup guide** — a markdown file with step-by-step instructions for connecting satellite projects
 
-## Changes
+---
 
-### File: `src/pages/meetings/StartMeetingPage.tsx`
+## Technical Details
 
-Three additions, mirroring the exact locations pattern:
+### 1. Database Migration
 
-**1. Add persistence hook** (after the locations hook ~line 130):
-```typescript
-const {
-  savedData: savedOwners,
-  hasSavedData: hasPersistedOwners,
-  isLoading: ownersEditLoading,
-  save: saveOwnersEdit,
-} = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'owners');
+Add an optional `base_url` column to `app_modules`:
+
+```sql
+ALTER TABLE public.app_modules
+  ADD COLUMN IF NOT EXISTS base_url text DEFAULT NULL;
+
+COMMENT ON COLUMN public.app_modules.base_url IS
+  'External host URL for cross-app modules (e.g. https://other-app.lovable.app). NULL = local route.';
 ```
 
-**2. Seed from saved data on load** (in the initialization `useEffect` ~line 196):
-- Add `ownersEditLoading` to the loading gate
-- Add overlay: `if (isEmployerMeeting && hasPersistedOwners && savedOwners) { merged.owners = savedOwners; }`
-- Add new state variables to the `useEffect` dependency array
+When set on a parent module, all its child routes will be prefixed with this URL. Example: if "Internal Audit" has `base_url = 'https://audit-app.lovable.app'`, then a child with `route = '/audit/dashboard'` resolves to `https://audit-app.lovable.app/audit/dashboard`.
 
-**3. Auto-persist on change** (in the `onDataChange` callback ~line 669):
-```typescript
-if (isEmployerMeeting && Array.isArray(newData.owners)) {
-  const originalOwners = applicationData ? (applicationData as any).owners : undefined;
-  saveOwnersEdit(newData.owners, originalOwners, userCode || undefined).catch(console.error);
-}
-```
+### 2. Sidebar Navigation Changes
 
-No new tables, no schema changes — the existing `meeting_edit_data` table supports arbitrary `data_type` values.
+**File: `src/hooks/useDynamicNavigation.ts`**
+- Extend `ModuleRow` interface to include `base_url: string | null`
+- In `buildMenuTree`, propagate `base_url` from parent to children
+- Add `base_url` prefix to `menuItem.url` when present (producing full external URLs like `https://audit-app.lovable.app/audit/dashboard`)
 
-| File | Action | Purpose |
+**File: `src/components/sidebar/SidebarMenuLink.tsx`**
+- Detect if `item.url` starts with `http://` or `https://`
+- If external: use `window.location.href = item.url` (same tab, preserves auth cookie) instead of `navigate()`
+- If local: keep existing React Router navigation
+
+**File: `src/components/sidebar/SidebarMenuGroup.tsx`**
+- Update `isAnyChildActive` to skip external URLs when matching against `currentPath`
+
+### 3. Shared Auth Documentation
+
+**File: `docs/SHARED_AUTH_SETUP.md`**
+
+A step-by-step guide for satellite projects covering:
+- Copy the Supabase URL and anon key into the satellite project's env
+- Copy `src/integrations/supabase/client.ts` pattern (same credentials)
+- Copy `src/contexts/SupabaseAuthContext.tsx` and supporting files
+- Copy `src/components/auth/ProtectedRoute.tsx`
+- Copy sidebar components + `useDynamicNavigation` hook (menus come from the shared DB)
+- Note: same-origin cookies ensure session sharing works automatically since all apps use the same Supabase auth endpoint
+
+---
+
+## Summary of Changes
+
+| Item | Type | Purpose |
 |---|---|---|
-| `src/pages/meetings/StartMeetingPage.tsx` | Edit | Add owners persistence hook, seed on load, auto-save on change |
+| `app_modules.base_url` column | Migration | Store external host URL per module |
+| `useDynamicNavigation.ts` | Edit | Propagate `base_url` into menu URLs |
+| `SidebarMenuLink.tsx` | Edit | External vs local navigation logic |
+| `SidebarMenuGroup.tsx` | Edit | Skip external URLs in active-child check |
+| `docs/SHARED_AUTH_SETUP.md` | New file | Integration guide for satellite projects |
 
