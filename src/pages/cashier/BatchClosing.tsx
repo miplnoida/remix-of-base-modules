@@ -1201,6 +1201,24 @@ const BatchClosing: React.FC = () => {
           isLoading={createCancelRequest.isPending}
           receiptId={cancelTargetPayment?.payment_id}
         />
+        {/* Apply Cancel Confirmation Dialog */}
+        <ConfirmDialog
+          open={confirmApplyCancelOpen}
+          onOpenChange={setConfirmApplyCancelOpen}
+          title="Confirm Receipt Cancellation"
+          description="Are you sure you want to apply this approved cancellation? This will permanently cancel the receipt and cannot be undone."
+          confirmLabel="Yes, Cancel Receipt"
+          cancelLabel="No, Go Back"
+          variant="destructive"
+          isLoading={applyCancellation.isPending}
+          onConfirm={async () => {
+            if (applyCancelTarget) {
+              await handleApplyBatchCancellation(applyCancelTarget);
+              setConfirmApplyCancelOpen(false);
+              setApplyCancelTarget(null);
+            }
+          }}
+        />
       </div>
     </BatchSelectionGuard>
   );
