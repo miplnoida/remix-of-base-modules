@@ -55,6 +55,7 @@ import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
 import { MeetingDepartmentConfig } from '@/components/workflow/MeetingDepartmentConfig';
 import { useUpdateMeetingNotifyConfig } from '@/hooks/useWorkflowMeetingDepartments';
+import { useActiveNotificationTypes } from '@/hooks/useNotificationTypes';
 // useWorkflowActionApiConfig now used internally by WorkflowActionApiConfig
 
 interface StepFormData {
@@ -1178,8 +1179,8 @@ export default function WorkflowForm() {
                                     <SelectValue placeholder="Select type" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {NOTIFICATION_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    {activeNotificationTypes.map((nt) => (
+                                      <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -1438,8 +1439,8 @@ export default function WorkflowForm() {
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="__none__">None</SelectItem>
-                                              {NOTIFICATION_TYPES.map((type) => (
-                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                              {activeNotificationTypes.map((nt) => (
+                                                <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
                                               ))}
                                             </SelectContent>
                                           </Select>

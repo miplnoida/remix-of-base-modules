@@ -10,6 +10,7 @@ import { FileText, Search, Download, Eye, Filter, Mail, MessageSquare, Bell, Ale
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatAuditDateTime, formatDateForStorage } from '@/lib/dateFormat';
+import { useActiveNotificationTypes } from "@/hooks/useNotificationTypes";
 
 interface NotificationLog {
   id: string;
