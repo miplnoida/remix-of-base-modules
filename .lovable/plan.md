@@ -1,133 +1,67 @@
 
 
-# Merged Plan: SMS/Push Provider Tabs + Notification Types Management
+# Fix: Payment History Popup Must Filter by Schedule/Sequence Number
 
-## Summary
+## Root Cause
 
-Refactor `/admin/notifications/providers` into a **4-tab layout**:
-1. **Email Providers** — existing functionality (no changes)
-2. **SMS Providers** — new CRUD for SMS provider configs
-3. **Push Providers** — new CRUD for Push provider configs
-4. **Notification Types** — new CRUD to manage dynamic notification types (replacing hardcoded arrays)
+`ExistingPaymentsPopup.tsx` fetches payment history using only `payer_id`, `payer_type`, and period month/year. It ignores the `sequence_no` (schedule number) of the selected C3 record. When multiple C3 records exist for the same payer and period with different schedules, all payments show up in every popup — displaying unrelated transactions.
 
-## Current State
+The `c3_payment_components` table already stores `sequence_no` per payment, but it's never queried.
 
-- `notification_providers` table already has a `channel` enum: `email | sms | push | in_app`
-- Page currently only queries `channel = 'email'` and renders email-specific forms
-- `email_provider_type` column exists but no equivalent for SMS/Push provider subtypes
-- `WorkflowForm.tsx` line 168: `const NOTIFICATION_TYPES = ['Email', 'SMS', 'Push', 'In-App']` — hardcoded
-- `NotificationTemplates.tsx` and `NotificationLogs.tsx` have hardcoded `CHANNELS` arrays
+## Fix
 
-## Database Changes
+### 1. Create an RPC — `get_c3_payment_history_by_schedule`
 
-### Migration 1: Add `notification_types` table + SMS/Push columns
+Create a database function that performs the correct join:
 
 ```sql
--- 1. Add provider subtype columns for SMS and Push
-ALTER TABLE public.notification_providers
-  ADD COLUMN IF NOT EXISTS sms_provider_type TEXT,
-  ADD COLUMN IF NOT EXISTS push_provider_type TEXT;
-
--- 2. Create notification_types table
-CREATE TABLE public.notification_types (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT NOT NULL UNIQUE,
-  display_name TEXT NOT NULL,
-  description TEXT,
-  icon TEXT,
-  display_order INT DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  metadata JSONB DEFAULT '{}',
-  created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_by TEXT,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 3. Seed existing types
-INSERT INTO public.notification_types (code, display_name, description, display_order)
-VALUES
-  ('Email', 'Email', 'Email notifications via configured provider', 1),
-  ('SMS', 'SMS', 'SMS text message notifications', 2),
-  ('Push', 'Push', 'Push notifications to devices', 3),
-  ('In-App', 'In-App', 'In-application notifications', 4);
-
--- 4. Create set_sms_provider_default and set_push_provider_default RPCs
--- (mirror existing set_email_provider_default logic)
+-- Joins: cn_payment_header → cn_receipt → cn_payment → c3_payment_components
+-- Filters: payer_id, payer_type, period (month/year), sequence_no, non-cancelled receipts, non-deleted headers
+-- Returns: payment_id, payment_date, payment_amount, payment_code, mop_code, receipt_number, receipt_status
 ```
 
-## UI Changes
+Parameters: `p_payer_id`, `p_payer_type`, `p_period_month` (1-based), `p_period_year`, `p_sequence_no`
 
-### File: `src/pages/admin/notifications/ProviderSettings.tsx`
+The RPC will:
+- Join `cn_payment_header` (payer_id, payer_type, status != 'deleted')
+- Join `cn_receipt` (status != 'C') for receipt info
+- Join `cn_payment` (period in month/year range, payment_code in allowed list)
+- **Join `c3_payment_components`** on `payment_id` filtering `sequence_no = p_sequence_no`
+- Return DISTINCT payment rows to avoid duplicates from multiple components
 
-Major refactor into tabbed layout:
+### 2. Update `ExistingPaymentsPopup.tsx`
 
-- **Tab 1 (Email Providers)**: Keep existing code as-is, wrapped in a `TabsContent`
-- **Tab 2 (SMS Providers)**: New provider form with SMS-specific fields:
-  - Provider subtypes: Twilio, MessageBird, Custom Gateway
-  - Fields: Account SID, Auth Token, From Number, API URL (varies by subtype)
-  - Test: Dialog asks for phone number, logs result
-- **Tab 3 (Push Providers)**: New provider form with Push-specific fields:
-  - Provider subtypes: FCM, OneSignal, Custom
-  - Fields: Server Key, Project ID, App ID, API Key (varies by subtype)
-  - Test: Dialog asks for device token/topic
-- **Tab 4 (Notification Types)**: CRUD management:
-  - Table listing all types with code, display name, active toggle
-  - Add/Edit dialog for code, display_name, description, display_order
-  - Inline toggle for is_active
+Replace the 4-step client-side query chain with a single RPC call:
 
-Each SMS/Push tab will use the same `notification_providers` table with `channel = 'sms'` or `channel = 'push'`, and store config in the existing `config` JSONB column.
+```typescript
+const { data, error } = await supabase.rpc('get_c3_payment_history_by_schedule', {
+  p_payer_id: regNo,
+  p_payer_type: payerType,
+  p_period_month: record.month_number,
+  p_period_year: parseInt(record.year),
+  p_sequence_no: record.schedule,
+});
+```
 
-### File: `src/hooks/useNotificationTypes.ts` (new)
+Map the RPC results directly to `PaymentDisplayRow[]`. No UI changes needed — same table, same columns, same footer.
 
-- `useNotificationTypes()` — fetch all types for admin CRUD
-- `useActiveNotificationTypes()` — fetch only `is_active = true` for dropdowns
-- Mutations for create, update, toggle
+### 3. Add Index for Performance
 
-### File: `src/pages/admin/workflows/WorkflowForm.tsx`
-
-- Remove `const NOTIFICATION_TYPES = ['Email', 'SMS', 'Push', 'In-App']` (line 168)
-- Import `useActiveNotificationTypes()` and use dynamic data in dropdowns (lines 1181, 1441)
-
-### File: `src/pages/admin/NotificationTemplates.tsx`
-
-- Replace hardcoded `CHANNELS` array with `useActiveNotificationTypes()` hook
-
-### File: `src/pages/admin/NotificationLogs.tsx`
-
-- Replace hardcoded `CHANNELS` array with `useActiveNotificationTypes()` hook
-
-## SMS Provider Config Fields by Subtype
-
-| Subtype | Fields |
-|---|---|
-| **Twilio** | Account SID, Auth Token (secret), From Number, Messaging Service SID |
-| **MessageBird** | API Key (secret), Originator |
-| **Custom Gateway** | API URL, API Key (secret), From Number, HTTP Method |
-
-## Push Provider Config Fields by Subtype
-
-| Subtype | Fields |
-|---|---|
-| **FCM** | Server Key (secret), Project ID, Sender ID |
-| **OneSignal** | App ID, REST API Key (secret) |
-| **Custom** | API URL, API Key (secret), Headers (JSON) |
+```sql
+CREATE INDEX IF NOT EXISTS idx_c3_payment_components_seq 
+  ON c3_payment_components(payment_id, sequence_no);
+```
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| **Migration** | Add `sms_provider_type`, `push_provider_type` columns; create `notification_types` table with seed data; create SMS/Push default RPCs |
-| `src/pages/admin/notifications/ProviderSettings.tsx` | Refactor into 4-tab layout with SMS, Push, and Notification Types management |
-| `src/hooks/useNotificationTypes.ts` | New hook for CRUD + active-only fetching |
-| `src/pages/admin/workflows/WorkflowForm.tsx` | Replace hardcoded array with dynamic hook |
-| `src/pages/admin/NotificationTemplates.tsx` | Replace hardcoded `CHANNELS` with hook |
-| `src/pages/admin/NotificationLogs.tsx` | Replace hardcoded `CHANNELS` with hook |
+| **Migration** | Create `get_c3_payment_history_by_schedule` RPC + index on `c3_payment_components` |
+| `src/components/c3/ExistingPaymentsPopup.tsx` | Replace 4-step client queries with single RPC call using `record.schedule` |
 
 ## Impact
 
-- No regression: existing email provider functionality unchanged
-- `notification_types` seeded with current hardcoded values for backward compatibility
-- Deactivating a type immediately removes it from all dropdowns
-- SMS/Push providers stored in existing table using the `channel` enum — no new tables needed for providers
+- No regression: existing payment data unchanged, only query filtering is tightened
+- Fallback: if RPC returns empty, the "No previous payments found" empty state already handles it
+- Backward compatible: existing payments with `sequence_no` populated will filter correctly
 
