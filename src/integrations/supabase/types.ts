@@ -39046,6 +39046,24 @@ export type Database = {
         }
         Returns: Json
       }
+      get_c3_payment_history_by_schedule: {
+        Args: {
+          p_payer_id: string
+          p_payer_type: string
+          p_period_month: number
+          p_period_year: number
+          p_sequence_no: number
+        }
+        Returns: {
+          mop_code: string
+          payment_amount: number
+          payment_code: string
+          payment_date: string
+          payment_id: number
+          receipt_number: string
+          receipt_status: string
+        }[]
+      }
       get_c3_records_filtered: {
         Args: {
           p_date_entered?: string

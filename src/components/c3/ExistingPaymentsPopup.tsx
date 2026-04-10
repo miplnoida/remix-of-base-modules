@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { C3ContributionRecord } from '@/services/wizC3DetailsService';
 
-const ALLOWED_PAYMENT_CODES = ['CON', 'LVC', 'LVF', 'PEC', 'PEF', 'SSE', 'SEF', 'SSC', 'SSF', 'VOC', 'VOL'];
+
 
 function fmt(val: number) {
   return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -66,77 +66,25 @@ export const ExistingPaymentsPopup: React.FC<ExistingPaymentsPopupProps> = ({
 
     async function fetchPaymentHistory() {
       try {
-        // Step 1: Get payment headers for this payer, excluding deleted
-        const { data: headers, error: headersErr } = await supabase
-          .from('cn_payment_header')
-          .select('payment_id')
-          .eq('payer_id', regNo)
-          .eq('payer_type', payerType)
-          .neq('status', 'deleted');
-
-        if (headersErr) throw headersErr;
-        if (!headers || headers.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        const paymentIds = headers.map(h => h.payment_id);
-
-        // Step 2: Get non-cancelled receipts for these payment_ids
-        const { data: receipts, error: receiptsErr } = await supabase
-          .from('cn_receipt')
-          .select('payment_id, receipt_number, status')
-          .in('payment_id', paymentIds)
-          .neq('status', 'C');
-
-        if (receiptsErr) throw receiptsErr;
-
-        // Build a set of valid payment_ids (those with non-cancelled receipts)
-        const receiptMap = new Map<number, { receipt_number: string | null; status: string | null }>();
-        (receipts || []).forEach(r => {
-          receiptMap.set(Number(r.payment_id), {
-            receipt_number: r.receipt_number,
-            status: r.status,
-          });
+        const { data, error } = await supabase.rpc('get_c3_payment_history_by_schedule', {
+          p_payer_id: regNo,
+          p_payer_type: payerType,
+          p_period_month: record.month_number,
+          p_period_year: parseInt(String(record.year)),
+          p_sequence_no: record.schedule,
         });
 
-        const validPaymentIds = Array.from(receiptMap.keys());
-        if (validPaymentIds.length === 0) {
-          setLoading(false);
-          return;
-        }
+        if (error) throw error;
 
-        // Step 3: Build period date range for the C3 month/year
-        const year = record.year;
-        const month = record.month_number; // 1-based
-        const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
-        const nextMonth = month === 12 ? 1 : month + 1;
-        const nextYear = month === 12 ? year + 1 : year;
-        const periodEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-
-        // Step 4: Get payment detail lines matching period and allowed codes
-        const { data: payments, error: paymentsErr } = await supabase
-          .from('cn_payment')
-          .select('payment_id, payment_date, payment_amount, payment_code, mop_code')
-          .in('payment_id', validPaymentIds)
-          .gte('period', periodStart)
-          .lt('period', periodEnd)
-          .in('payment_code', ALLOWED_PAYMENT_CODES);
-
-        if (paymentsErr) throw paymentsErr;
-
-        const displayRows: PaymentDisplayRow[] = (payments || []).map(p => {
-          const receipt = receiptMap.get(Number(p.payment_id));
-          return {
-            payment_id: Number(p.payment_id),
-            payment_date: p.payment_date,
-            payment_amount: Number(p.payment_amount) || 0,
-            payment_code: p.payment_code,
-            mop_code: p.mop_code,
-            receipt_number: receipt?.receipt_number || null,
-            receipt_status: receipt?.status || null,
-          };
-        });
+        const displayRows: PaymentDisplayRow[] = (data || []).map((p: any) => ({
+          payment_id: Number(p.payment_id),
+          payment_date: p.payment_date,
+          payment_amount: Number(p.payment_amount) || 0,
+          payment_code: p.payment_code,
+          mop_code: p.mop_code,
+          receipt_number: p.receipt_number || null,
+          receipt_status: p.receipt_status || null,
+        }));
 
         const paid = displayRows.reduce((sum, r) => sum + r.payment_amount, 0);
         setRows(displayRows);
