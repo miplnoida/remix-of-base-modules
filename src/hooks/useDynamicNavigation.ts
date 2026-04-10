@@ -197,7 +197,7 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   }
 
   rootModules.sort(sortModules);
-  return rootModules.map(buildMenuItem);
+  return rootModules.map(m => buildMenuItem(m, null));
 }
 
 // ── Internal Audit: workflow-based group definitions ──
