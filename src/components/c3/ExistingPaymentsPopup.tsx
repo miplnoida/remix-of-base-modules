@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { C3ContributionRecord } from '@/services/wizC3DetailsService';
 
-const ALLOWED_PAYMENT_CODES = ['CON', 'LVC', 'LVF', 'PEC', 'PEF', 'SSE', 'SEF', 'SSC', 'SSF', 'VOC', 'VOL'];
+
 
 function fmt(val: number) {
   return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
