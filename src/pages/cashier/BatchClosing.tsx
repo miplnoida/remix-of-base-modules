@@ -1210,6 +1210,10 @@ const BatchClosing: React.FC = () => {
           onConfirm={async () => {
             if (applyCancelTarget) {
               await handleApplyBatchCancellation(applyCancelTarget);
+              // Re-fetch batch data so cancelled receipts are filtered out
+              if (batchNumber) {
+                await fetchTotals(batchNumber);
+              }
               setConfirmApplyCancelOpen(false);
               setApplyCancelTarget(null);
             }
