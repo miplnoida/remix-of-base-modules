@@ -17,9 +17,15 @@ interface SidebarMenuLinkProps {
 const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) => {
   const navigate = useNavigate();
 
+  const isExternal = item.url.startsWith('http://') || item.url.startsWith('https://');
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate(item.url);
+    if (isExternal) {
+      window.location.href = item.url;
+    } else {
+      navigate(item.url);
+    }
   };
 
   const content = (

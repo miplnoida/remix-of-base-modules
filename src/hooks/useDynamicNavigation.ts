@@ -35,6 +35,7 @@ interface ModuleRow {
   parent_id: string | null;
   sort_order: number | null;
   description: string | null;
+  base_url: string | null;
 }
 
 // Map of icon names to Lucide icons
@@ -167,9 +168,12 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   const sortModules = (a: ModuleRow, b: ModuleRow) =>
     (a.sort_order ?? 999) - (b.sort_order ?? 999);
 
-  function buildMenuItem(module: ModuleRow): MenuItem {
+  function buildMenuItem(module: ModuleRow, parentBaseUrl?: string | null): MenuItem {
     const children = childrenMap.get(module.id) || [];
     children.sort(sortModules);
+
+    // Inherit base_url from parent if not set on this module
+    const effectiveBaseUrl = module.base_url || parentBaseUrl || null;
 
     const menuItem: MenuItem = {
       id: module.id,
@@ -179,11 +183,14 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
     };
 
     if (module.route) {
-      menuItem.url = module.route;
+      // Prepend base_url for cross-app modules
+      menuItem.url = effectiveBaseUrl
+        ? `${effectiveBaseUrl.replace(/\/+$/, '')}${module.route}`
+        : module.route;
     }
 
     if (children.length > 0) {
-      menuItem.subItems = children.map(buildMenuItem);
+      menuItem.subItems = children.map(child => buildMenuItem(child, effectiveBaseUrl));
     }
 
     return menuItem;

@@ -39,10 +39,12 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   
   const isAnyChildActive = (items?: SubItem[]): boolean => {
     if (!items) return false;
-    return items.some(child => 
-      (child.url && currentPath === child.url) || 
-      isAnyChildActive(child.subItems)
-    );
+    return items.some(child => {
+      // Skip external URLs — they can't match the current local path
+      const isExternal = child.url?.startsWith('http://') || child.url?.startsWith('https://');
+      return (!isExternal && child.url && currentPath === child.url) || 
+        isAnyChildActive(child.subItems);
+    });
   };
 
   const hasActiveChild = isAnyChildActive(item.subItems);
