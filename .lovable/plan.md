@@ -1,35 +1,57 @@
-# Fix: NWD "Fully Paid" Due to Missing `is_for_director` Filter in Payment Aggregation
+
+
+# Fix: NWD Overpayment Guard Missing `is_for_director` Filter
 
 ## Root Cause
 
-The `get_c3_component_balances` RPC aggregates paid amounts (lines 493-507) by joining `cn_payment_header` but does **not** filter on `h.is_for_director`. 
+The `create_c3_payment_with_receipt` RPC has **two problems** for NWD payments:
 
-For employer `658852`, the query sums ALL LVC payments regardless of the director flag:
+1. **Overpayment guard** (lines 87-109): Queries `cn_c3_reported` and `cn_payment` without filtering by `is_for_director`. For employer `658852`, it sums **all** LVC payments (regular ER: $3,637.13 + NWD: $100 = $3,737.13) against the NWD original of $202.56, computing balance=0 → "Overpayment detected."
 
-- Regular ER LVC payments: **$3,638.13** (`is_for_director = false`)
-- NWD LVC payments: **$100.00** (`is_for_director = true`)
-- **Total counted as paid: $3,738.13**
+2. **INSERT into `cn_payment_header`** (line 153-157): Does not set `is_for_director = TRUE` for NWD payments, so even after fix #1, future NWD payments would be invisible to the director filter.
 
-Since the NWD LVC due is only ~$202, the balance computes as 0 → "Fully Paid".  
-  
-Note/:- No it due 102 because 100 already paid by the employer.
+3. **C3Payments.tsx** (line 400-410): Does not pass `is_for_director` to the RPC — the RPC doesn't even accept it yet.
+
+This is the same class of bug as the `get_c3_component_balances` fix — the `is_for_director` discriminator is missing from payment creation.
 
 ## Fix
 
-Add `is_for_director` filter to the paid-amount aggregation query in the RPC. One line change:
+### 1. Database Migration — Update `create_c3_payment_with_receipt` RPC
 
-```sql
--- Add after line 503 (AND r.status != 'C'):
-AND COALESCE(h.is_for_director, FALSE) = COALESCE(p_is_for_director, FALSE)
+Add `p_is_for_director BOOLEAN DEFAULT FALSE` parameter, then:
+
+- **Overpayment guard `cn_c3_reported` lookup** (line 87-92): Add `AND is_for_director = COALESCE(p_is_for_director, FALSE)`
+- **Overpayment guard paid-amount query** (line 98-109): Add `AND COALESCE(h.is_for_director, FALSE) = COALESCE(p_is_for_director, FALSE)`
+- **INSERT into `cn_payment_header`** (line 153-157): Include `is_for_director` column with value `COALESCE(p_is_for_director, FALSE)`
+
+### 2. `src/pages/cashier/C3Payments.tsx` — Pass `is_for_director` to RPC
+
+Map `payerType === 'NW'` to pass `p_is_for_director: true` and `p_payer_type: 'ER'`:
+
+```typescript
+const { data: result, error: rpcErr } = await supabase.rpc('create_c3_payment_with_receipt' as any, {
+  p_batch_number: batchSel.selectedBatch.batch_number,
+  p_payer_type: payerType === 'NW' ? 'ER' : payerType,
+  p_payer_id: payerId.trim(),
+  p_date_received: dateRcvd,
+  p_remarks: remarks || null,
+  p_components: componentsJson,
+  p_methods: methodsJson,
+  p_receipt_total: totalPaymentReceived,
+  p_user_code: uCode,
+  p_is_for_director: payerType === 'NW',
+});
 ```
 
-This ensures NWD payments are only counted against NWD balances, and regular ER payments only against regular ER balances.
+### Impact
 
-## Change
+- **No regression**: `p_is_for_director` defaults to `FALSE`, so all existing ER/SE/VC flows are unaffected.
+- Fixes both the overpayment false-positive and ensures NWD payments are correctly tagged in `cn_payment_header`.
 
+## Files Modified
 
-| What       | Detail                                                                                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Type**   | Database migration (RPC update)                                                                                                                                                            |
-| **File**   | New migration to recreate `get_c3_component_balances`                                                                                                                                      |
-| **Impact** | Fixes NWD partial payment detection; no regression on ER/SE/VC flows since `p_is_for_director` defaults to `FALSE` `Make sure: other functionality should not be impacted by this change.` |
+| What | Change |
+|---|---|
+| **Migration** | Recreate `create_c3_payment_with_receipt` with `p_is_for_director` parameter and filtered guards |
+| **C3Payments.tsx** | Pass `p_is_for_director: payerType === 'NW'` and map payer type to `'ER'` |
+
