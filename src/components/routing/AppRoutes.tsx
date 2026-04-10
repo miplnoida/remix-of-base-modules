@@ -1199,7 +1199,7 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/log" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
       <Route path="/admin/notifications/logs" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
       <Route path="/admin/notifications/templates" element={<ProtectedLayout><AdminNotificationTemplates /></ProtectedLayout>} />
-      <Route path="/admin/notifications/email-templates" element={<ProtectedLayout><EmailTemplateManager /></ProtectedLayout>} />
+      <Route path="/admin/notifications/email-templates" element={<ProtectedLayout><NotificationTemplateManager /></ProtectedLayout>} />
       <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
       <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
       <Route path="/admin/email-campaigns" element={<ProtectedLayout><EmailCampaigns /></ProtectedLayout>} />
