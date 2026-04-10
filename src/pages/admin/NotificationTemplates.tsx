@@ -88,7 +88,7 @@ const NotificationTemplates = () => {
       const placeholders = extractPlaceholders(formData.body);
       const { error } = await supabase.from('notification_templates').insert({
         name: formData.name,
-        channel: formData.channel,
+        channel: formData.channel as any,
         subject: formData.subject || null,
         title: formData.title || null,
         body: formData.body,
@@ -117,7 +117,7 @@ const NotificationTemplates = () => {
         .from('notification_templates')
         .update({
           name: formData.name,
-          channel: formData.channel,
+          channel: formData.channel as any,
           subject: formData.subject || null,
           title: formData.title || null,
           body: formData.body,
