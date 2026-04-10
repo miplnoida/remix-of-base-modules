@@ -136,6 +136,10 @@ const BatchClosing: React.FC = () => {
   const [showBatchCancelModal, setShowBatchCancelModal] = useState(false);
   const [cancelTargetPayment, setCancelTargetPayment] = useState<BatchPaymentRow | null>(null);
 
+  // Apply cancel confirmation dialog
+  const [confirmApplyCancelOpen, setConfirmApplyCancelOpen] = useState(false);
+  const [applyCancelTarget, setApplyCancelTarget] = useState<ReceiptCancelRequest | null>(null);
+
   const officeCode = batchSel.selectedBatch?.office_code;
   const { allMachines } = useOfficeCardMachines(officeCode);
 
@@ -185,8 +189,12 @@ const BatchClosing: React.FC = () => {
         batchNumber: req.batch_number,
         reason: req.reason,
       });
+      // Re-fetch batch data so cancelled receipts are filtered out
+      if (batchNumber) {
+        await fetchTotals(batchNumber);
+      }
     } catch (_) {}
-  }, [applyCancellation]);
+  }, [applyCancellation, batchNumber]);
 
   useEffect(() => {
     const fetchMops = async () => {
