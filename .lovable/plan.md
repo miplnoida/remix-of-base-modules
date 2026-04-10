@@ -1,105 +1,93 @@
 
 
-# Analysis: Excessive `workflow_steps` Network Calls
+# Plan: Multi-Channel Notification Template Manager
 
-## Findings
+## Summary
 
-After thorough code analysis, I identified **three sources** of repeated `workflow_steps` queries. Two are genuine performance problems (N+1 patterns), and one is acceptable.
+Rename `EmailTemplateManager` to `NotificationTemplateManager`, add top-level channel tabs (Email, SMS, Push, In-App), and parameterize all queries/mutations by channel. The database already supports all four channels via the `notification_channel` enum — no schema migration needed.
 
----
+## Architecture
 
-## Source 1: `useWorkflowPendingApprovals.ts` — **CRITICAL N+1 Problem**
+The 975-line component will be restructured with a top-level channel tab bar. The existing Email tab content (templates list, audit logs, filters, editor, preview, version history, layout editor) stays unchanged. The three new channel tabs reuse the same template list, filters, CRUD dialogs, and audit log — differing only in:
 
-**Location**: Lines 157-162
+- **Query filter**: `.eq('channel', activeChannel)` instead of hardcoded `'email'`
+- **Editor fields**: Channel-specific fields in the create/edit dialog
+- **Layout Editor button**: Only visible on Email tab
+- **Preview rendering**: Plain text for SMS, structured card for Push/In-App
 
-This hook is called by `InAppNotificationBell` (always visible in the app header on every page), which calls `usePendingApprovalCount()`. It runs with:
-- `refetchInterval: 60000` (every 60 seconds)
-- `staleTime: 30000` (considered stale after 30 seconds)
+### Channel-Specific Editor Differences
 
-**The problem**: After fetching all pending tasks, it loops through each task and fires an **individual** `workflow_steps` query per task to check step-level approver configuration (lines 157-162):
+| Field | Email | SMS | Push | In-App |
+|-------|-------|-----|------|--------|
+| Subject | Yes | No | Yes (as Title) | Yes (as Title) |
+| HTML Body | Yes | No | No | No |
+| Plain Text Body | Toggle | Yes (with char counter) | Yes (255 max) | Yes (markdown) |
+| Action URL | No | No | Yes | Yes |
+| Layout Editor | Yes | No | No | No |
+| Character Counter | No | Yes (160/320) | Yes (255) | No |
 
-```typescript
-for (const task of tasks) {
-  // ... if canAct is still false after role/designation checks:
-  const { data: step } = await supabase
-    .from('workflow_steps')
-    .select('approver_type, approver_role_ids, ...')
-    .eq('id', task.step_id)
-    .single();
-}
+## Implementation Steps
+
+### 1. Rename file and component
+
+- Rename `src/pages/admin/notifications/EmailTemplateManager.tsx` → `NotificationTemplateManager.tsx`
+- Export `NotificationTemplateManager` as default
+- Update import in `AppRoutes.tsx`
+
+### 2. Add top-level channel tabs
+
+Above the existing "Templates / Audit Logs" tabs, add a channel selector:
 ```
-
-If there are 20 pending tasks where the user isn't directly assigned, this fires **20 individual queries** every 60 seconds. This is the primary source of the excessive calls.
-
-**Fix**: Batch-fetch all unique `step_id` values in a single query using `.in('id', uniqueStepIds)` before the loop, then look up from the local map.
-
----
-
-## Source 2: `useWorkflowInstances.ts` — **N+1 Problem (Lower Priority)**
-
-**Location**: Lines 102-118
-
-When listing workflow instances, it fetches the `step_name` for each instance's `current_step_id` individually inside a `Promise.all` map. With 25 instances per page, this fires up to 25 individual `workflow_steps` queries.
-
-**Fix**: Collect unique `current_step_id` values, batch-fetch in one query, then map locally.
-
----
-
-## Source 3: `useWorkflowActions.ts` — **Acceptable (Single Query)**
-
-**Location**: Lines 228-232 (inside `checkUserPermissionOptimized`)
-
-This fires exactly one `workflow_steps` query per record when checking permissions. It only runs when a specific record is being viewed, and has `staleTime: 60000`. This is appropriate and not a performance concern.
-
----
-
-## Recommended Fix Plan
-
-### Step 1: Fix `useWorkflowPendingApprovals.ts` (biggest impact)
-
-Before the `for (const task of tasks)` loop, batch-fetch all step configs:
-
-```typescript
-// Collect unique step IDs
-const uniqueStepIds = [...new Set(tasks.map(t => t.step_id).filter(Boolean))];
-
-// Single batch query
-const { data: stepsData } = await supabase
-  .from('workflow_steps')
-  .select('id, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
-  .in('id', uniqueStepIds);
-
-const stepMap = new Map(stepsData?.map(s => [s.id, s]) || []);
-
-// Then inside the loop, replace the individual query with:
-const step = stepMap.get(task.step_id);
+[Email] [SMS] [Push] [In-App]
 ```
+State: `const [activeChannel, setActiveChannel] = useState<'email'|'sms'|'push'|'in_app'>('email');`
 
-This reduces N queries to 1.
+### 3. Parameterize all data queries by channel
 
-### Step 2: Fix `useWorkflowInstances.ts` (secondary impact)
+- Template list query: `.eq('channel', activeChannel)` with query key `['templates-full', activeChannel]`
+- All mutation invalidations use the same channel-scoped key
+- Save mutation sets `channel: activeChannel` in payload
 
-Same batch pattern for `current_step_id` → `step_name` resolution:
+### 4. Channel-aware editor dialog
 
-```typescript
-const stepIds = data.filter(i => i.current_step_id).map(i => i.current_step_id);
-const { data: steps } = await supabase
-  .from('workflow_steps')
-  .select('id, step_name')
-  .in('id', [...new Set(stepIds)]);
-const stepNameMap = new Map(steps?.map(s => [s.id, s.step_name]) || []);
-```
+- Email tab: Current editor unchanged (HTML body, subject, layout notice)
+- SMS tab: Plain textarea with live character counter showing `N/160` or `N/320`, no subject field, no HTML toggle
+- Push tab: Title field (required), short body (255 char max), optional Action URL field
+- In-App tab: Title field, plain textarea body, optional Action URL field
 
-## Impact
+### 5. Channel-aware preview
 
-- **Before**: 20+ `workflow_steps` calls every 60 seconds from notifications alone, plus N calls per workflow list page load
-- **After**: 1 call every 60 seconds from notifications, 1 call per workflow list page load
-- No behavioral change — same data, same results, dramatically fewer network requests
+- Email: Current iframe preview with layout header/footer (unchanged)
+- SMS: Plain text card with phone mockup styling
+- Push: Card mimicking a push notification (icon, title, body)
+- In-App: Card with title, body, optional action link
+
+### 6. Conditional Layout Editor visibility
+
+Layout Editor button and Layout Status Cards only render when `activeChannel === 'email'`.
+
+### 7. Update sidebar menu item
+
+In `systemAdminMenuItems.ts`: rename "Email Templates" to "Notification Templates".
+
+### 8. Update AppRoutes.tsx
+
+Change import from `EmailTemplateManager` to `NotificationTemplateManager`. Route path stays the same (`/admin/notifications/email-templates`) for backward compatibility, or optionally add an alias.
+
+### 9. Activate SMS/Push notification types (data update)
+
+Set `is_active = true` for SMS and Push entries in `notification_types` table.
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `src/hooks/useWorkflowPendingApprovals.ts` | Replace N+1 step queries with single batch fetch |
-| `src/hooks/useWorkflowInstances.ts` | Replace N+1 step name queries with single batch fetch |
+| `src/pages/admin/notifications/EmailTemplateManager.tsx` | Rename to `NotificationTemplateManager.tsx`, add channel tabs, parameterize queries, add channel-specific editor/preview |
+| `src/components/routing/AppRoutes.tsx` | Update import to `NotificationTemplateManager` |
+| `src/components/sidebar/menuItems/systemAdminMenuItems.ts` | Rename menu item to "Notification Templates" |
+| **Data update** | `notification_types` — activate SMS and Push |
+
+## No Database Schema Changes
+
+The `notification_templates` table already has the `channel` column with enum values `email`, `sms`, `push`, `in_app`. All existing email templates continue to work unchanged.
 
