@@ -34,6 +34,8 @@ interface NotificationTemplate {
 
 const NotificationTemplates = () => {
   const { user } = useSupabaseAuth();
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
+  const CHANNELS = activeNotificationTypes.map(nt => nt.code.toLowerCase());
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<string>("all");

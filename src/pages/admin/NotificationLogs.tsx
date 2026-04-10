@@ -32,6 +32,8 @@ interface NotificationLog {
 const STATUSES = ['pending', 'sent', 'delivered', 'failed', 'bounced'];
 
 const NotificationLogs = () => {
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
+  const CHANNELS = activeNotificationTypes.map(nt => nt.code.toLowerCase());
   const [filters, setFilters] = useState<{
     channel?: string;
     status?: string;

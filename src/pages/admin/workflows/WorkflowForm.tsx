@@ -205,6 +205,7 @@ export default function WorkflowForm() {
   const { data: roles } = useDbRoles();
   const { data: designations } = useDesignations();
   const { data: dbActionTypes } = useWorkflowActionTypes();
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
   
   // refetchApiConfig kept for invalidation after save/delete (no longer needed for passing data)
   const refetchApiConfig = () => {};
