@@ -48,7 +48,7 @@ const NotificationTemplates = () => {
   const [testRecipient, setTestRecipient] = useState("");
   const [formData, setFormData] = useState({
     name: '',
-    channel: 'email' as typeof CHANNELS[number],
+    channel: 'email' as string,
     subject: '',
     title: '',
     body: '',
