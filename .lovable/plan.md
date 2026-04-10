@@ -1,69 +1,136 @@
 
 
-# Cross-App Auth Sharing + Sidebar URL Mapping
+# Workflow-Based Receipt Cancellation Approval
 
 ## Overview
 
-Three deliverables to enable this project as a central shell for satellite Lovable apps:
+Replace direct receipt cancellation with a workflow-driven approval process across all 4 screens, mirroring the existing card-machine change request pattern.
 
-1. **Database: Add `base_url` column to `app_modules`** — allows each top-level module to point to an external app host
-2. **Sidebar: Cross-app navigation** — `SidebarMenuLink` detects external URLs and uses `window.location.href` instead of React Router
-3. **Documentation: Shared auth setup guide** — a markdown file with step-by-step instructions for connecting satellite projects
+---
+
+## 1. Database: New `cn_receipt_cancel_requests` Table
+
+Create a table mirroring `cn_card_machine_change_requests`:
+
+```sql
+CREATE TABLE public.cn_receipt_cancel_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_number text NOT NULL,
+  payment_id integer NOT NULL,
+  receipt_id integer NOT NULL,
+  receipt_total numeric,
+  workflow_instance_id uuid REFERENCES workflow_instances(id),
+  status text NOT NULL DEFAULT 'Pending',    -- Pending, InProgress, Approved, Rejected, Completed, Cancelled
+  reason text NOT NULL,
+  request_type text NOT NULL DEFAULT 'cancel_receipt',
+  requested_by text NOT NULL,
+  requested_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  completed_by text,
+  skip_comment text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_cn_receipt_cancel_requests_batch ON cn_receipt_cancel_requests(batch_number);
+CREATE INDEX idx_cn_receipt_cancel_requests_status ON cn_receipt_cancel_requests(status);
+CREATE INDEX idx_cn_receipt_cancel_requests_payment ON cn_receipt_cancel_requests(payment_id);
+CREATE INDEX idx_cn_receipt_cancel_requests_receipt ON cn_receipt_cancel_requests(receipt_id);
+```
+
+Also add workflow step actions (Approve/Reject) for the existing workflow `65f82f25-e422-438e-8c12-005a23d81d62` step `a072b471-3d03-4bab-86fa-bd45480a78d1` if not already present.
+
+---
+
+## 2. New Hook: `useReceiptCancelRequests.ts`
+
+Mirrors `useCardMachineChangeRequests.ts` exactly:
+
+- **Constants**: `CANCEL_WORKFLOW_ID = '65f82f25-e422-438e-8c12-005a23d81d62'`, `CANCEL_STEP_ID = 'a072b471-...'`
+- **`useReceiptCancelRequests(batchNumber)`** — fetch requests by batch
+- **`useReceiptCancelRequestByPayment(paymentId)`** — fetch active request for a payment
+- **`useCreateReceiptCancelRequest()`** — mutation: insert request → create workflow_instance (source_module: `receipt_cancellation`) → create task → log → update request status to InProgress
+- **`useApplyReceiptCancellation()`** — mutation: verify Approved status → update cn_receipt (status=C, cancel_reason, cancel_user, cancel_date) → mark request Completed → close workflow
+- **`useSkipReceiptCancellation()`** — mutation: mark request Cancelled with skip_comment
+- **`useReceiptCancelRequestsForApprover(filters)`** — fetch all requests with filters for the approval screen
+- **`getActiveCancelRequest(requests, paymentId)`** — helper to find active request
+
+---
+
+## 3. Workflow Engine Integration: `useWorkflowActions.ts`
+
+Add a new `else if (sourceModule === 'receipt_cancellation')` block (alongside `batch_card_machine_change`) that updates `cn_receipt_cancel_requests.status` based on workflow outcome (Approved/Rejected).
+
+---
+
+## 4. Screen Changes
+
+### 4a. PaymentDataEntry (`/cashier/payment-data-entry`)
+- Replace `handleCancelReceipt` (direct DB update) with `useCreateReceiptCancelRequest`
+- Check for active cancel request; if InProgress/Pending → show "Pending Approval" badge, disable cancel button
+- If Approved → show "Apply Cancellation" button that calls `useApplyReceiptCancellation`
+- Update `ReceiptCancelModal.onConfirm` to submit workflow request instead of direct cancel
+
+### 4b. C3Payments (`/cashier/c3-payments`)
+- Same changes as PaymentDataEntry
+
+### 4c. PaymentHistoryManagement (`/cashier/payment-history-mgmt`)
+- Same changes in the detail popup cancel handler
+
+### 4d. BatchClosing (`/cashier/batch-closing`) — Batch Transactions Section
+- Add a "Cancel Receipt" action button to each transaction row in the Batch Transactions table (lines 740-749)
+- Only show for receipts with status 'O'
+- Check active cancel requests per payment; show status badge if pending
+- Wire up `ReceiptCancelModal` and `useCreateReceiptCancelRequest`
+
+---
+
+## 5. Approval Screen Extension: `CardMachineChangeRequests.tsx`
+
+Rename/extend to handle both request types:
+
+- **Page title**: "Batch Change Requests" (or "Payment Change Requests")
+- **Add `request_type` filter**: "All", "Card Machine Change", "Cancel Receipt"
+- **Query both tables**: Fetch from `cn_card_machine_change_requests` AND `cn_receipt_cancel_requests`, merge with a `request_type` discriminator
+- **Table columns**: Add "Type" column with badge (Card Machine / Cancel Receipt)
+- **Detail modal**: Show type-specific fields (card machine details vs receipt/reason details)
+- **Workflow actions**: Use correct `sourceModule` per type (`batch_card_machine_change` vs `receipt_cancellation`)
+- **Menu item**: Update sidebar label to "Batch Change Requests"
+
+---
+
+## 6. Audit Trail
+
+All actions already logged via:
+- `workflow_logs` entries at each step (request_submitted, approval, rejection, change_applied)
+- `system_audit_trail` triggers on the new table
 
 ---
 
 ## Technical Details
 
-### 1. Database Migration
+### Workflow IDs
+- Cancel Receipt Workflow: `65f82f25-e422-438e-8c12-005a23d81d62`
+- Step: `a072b471-3d03-4bab-86fa-bd45480a78d1` (Approval Pending)
 
-Add an optional `base_url` column to `app_modules`:
+### Source Module Key
+- `receipt_cancellation` — used in `workflow_instances.source_module`
 
-```sql
-ALTER TABLE public.app_modules
-  ADD COLUMN IF NOT EXISTS base_url text DEFAULT NULL;
+### Files to Create
+| File | Purpose |
+|---|---|
+| `src/hooks/useReceiptCancelRequests.ts` | All CRUD + workflow hooks |
+| Migration SQL | `cn_receipt_cancel_requests` table + workflow step actions |
 
-COMMENT ON COLUMN public.app_modules.base_url IS
-  'External host URL for cross-app modules (e.g. https://other-app.lovable.app). NULL = local route.';
-```
-
-When set on a parent module, all its child routes will be prefixed with this URL. Example: if "Internal Audit" has `base_url = 'https://audit-app.lovable.app'`, then a child with `route = '/audit/dashboard'` resolves to `https://audit-app.lovable.app/audit/dashboard`.
-
-### 2. Sidebar Navigation Changes
-
-**File: `src/hooks/useDynamicNavigation.ts`**
-- Extend `ModuleRow` interface to include `base_url: string | null`
-- In `buildMenuTree`, propagate `base_url` from parent to children
-- Add `base_url` prefix to `menuItem.url` when present (producing full external URLs like `https://audit-app.lovable.app/audit/dashboard`)
-
-**File: `src/components/sidebar/SidebarMenuLink.tsx`**
-- Detect if `item.url` starts with `http://` or `https://`
-- If external: use `window.location.href = item.url` (same tab, preserves auth cookie) instead of `navigate()`
-- If local: keep existing React Router navigation
-
-**File: `src/components/sidebar/SidebarMenuGroup.tsx`**
-- Update `isAnyChildActive` to skip external URLs when matching against `currentPath`
-
-### 3. Shared Auth Documentation
-
-**File: `docs/SHARED_AUTH_SETUP.md`**
-
-A step-by-step guide for satellite projects covering:
-- Copy the Supabase URL and anon key into the satellite project's env
-- Copy `src/integrations/supabase/client.ts` pattern (same credentials)
-- Copy `src/contexts/SupabaseAuthContext.tsx` and supporting files
-- Copy `src/components/auth/ProtectedRoute.tsx`
-- Copy sidebar components + `useDynamicNavigation` hook (menus come from the shared DB)
-- Note: same-origin cookies ensure session sharing works automatically since all apps use the same Supabase auth endpoint
-
----
-
-## Summary of Changes
-
-| Item | Type | Purpose |
-|---|---|---|
-| `app_modules.base_url` column | Migration | Store external host URL per module |
-| `useDynamicNavigation.ts` | Edit | Propagate `base_url` into menu URLs |
-| `SidebarMenuLink.tsx` | Edit | External vs local navigation logic |
-| `SidebarMenuGroup.tsx` | Edit | Skip external URLs in active-child check |
-| `docs/SHARED_AUTH_SETUP.md` | New file | Integration guide for satellite projects |
+### Files to Modify
+| File | Change |
+|---|---|
+| `src/hooks/useWorkflowActions.ts` | Add `receipt_cancellation` source module handler |
+| `src/pages/cashier/PaymentDataEntry.tsx` | Replace direct cancel with workflow request |
+| `src/pages/cashier/C3Payments.tsx` | Replace direct cancel with workflow request |
+| `src/pages/cashier/PaymentHistoryManagement.tsx` | Replace direct cancel with workflow request |
+| `src/pages/cashier/BatchClosing.tsx` | Add Cancel Receipt button to transaction rows |
+| `src/pages/cashier/CardMachineChangeRequests.tsx` | Extend to list both request types |
+| `src/components/payments/ReceiptCancelModal.tsx` | Minor: update description text for "request" vs "cancel" |
+| `src/components/sidebar/menuItems/cashierMenuItems.ts` | Update menu label |
 
