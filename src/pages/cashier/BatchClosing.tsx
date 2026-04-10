@@ -296,7 +296,7 @@ const BatchClosing: React.FC = () => {
               receipt_number: receipt?.receipt_number || '—',
               payer_id: h.payer_id,
               receipt_total: Number(receipt?.receipt_total || 0),
-              status: h.status,
+              status: receipt?.status || h.status,
             };
           });
         setBatchPayments(paymentRows);
