@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Receipt, Loader2, PlusCircle, RotateCcw, XCircle, Edit2, ChevronsUpDown, X, Eye, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
 import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { usePaymentEntry, PayerInfo } from '@/hooks/usePaymentEntry';
@@ -34,6 +35,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { logApplicationError } from '@/lib/globalErrorHandler';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
+import { useReceiptCancelRequestByPayment, useCreateReceiptCancelRequest, useApplyReceiptCancellation } from '@/hooks/useReceiptCancelRequests';
 
 /* ─── types ──────────────────────────────────────────── */
 
@@ -152,7 +154,6 @@ const C3Payments: React.FC = () => {
   const isEntry = flowState === 'entry';
   const isSaving = flowState === 'saving';
   const isSaved = flowState === 'saved';
-  const canCancel = isSaved && receiptActions.currentReceipt?.status === 'O';
   const canReprint = isSaved && !!receiptActions.currentReceipt;
 
   const MONTHS_LABELS: Record<string, string> = useMemo(() => {
@@ -491,6 +492,15 @@ const C3Payments: React.FC = () => {
     }
   }, [savedPaymentId, receiptActions, userCode]);
 
+  // --- Cancel Receipt (workflow-based) ---
+  const { data: activeCancelRequest } = useReceiptCancelRequestByPayment(savedPaymentId);
+  const createCancelRequest = useCreateReceiptCancelRequest();
+  const applyCancellation = useApplyReceiptCancellation();
+
+  const canCancel = isSaved && receiptActions.currentReceipt?.status === 'O' && !activeCancelRequest;
+  const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
+  const isApprovedReady = activeCancelRequest?.status === 'Approved';
+
   const handleCancelReceipt = useCallback(async (reason: string) => {
     if (!savedPaymentId || !receiptActions.currentReceipt) return;
     if (receiptActions.currentReceipt.status !== 'O') {
@@ -498,20 +508,35 @@ const C3Payments: React.FC = () => {
       setShowCancelModal(false);
       return;
     }
-    const uCode = userCode || 'SYS';
     try {
-      await supabase.from('cn_receipt').update({
-        status: 'C', cancel_reason: reason,
-        cancel_date: new Date().toISOString(), cancel_user: uCode,
-        updated_by: uCode, updated_at: new Date().toISOString(),
-      } as any).eq('receipt_id', receiptActions.currentReceipt.receipt_id);
-      await receiptActions.loadReceipt(savedPaymentId);
-      toast({ title: 'Receipt Cancelled' });
+      await createCancelRequest.mutateAsync({
+        batchNumber: batchSel.selectedBatch?.batch_number || '',
+        paymentId: savedPaymentId,
+        receiptId: receiptActions.currentReceipt.receipt_id,
+        receiptTotal: receiptActions.currentReceipt.receipt_total,
+        reason,
+      });
       setShowCancelModal(false);
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      // error handled by mutation
     }
-  }, [savedPaymentId, receiptActions, userCode]);
+  }, [savedPaymentId, receiptActions, batchSel.selectedBatch, createCancelRequest]);
+
+  const handleApplyCancellation = useCallback(async () => {
+    if (!activeCancelRequest || !receiptActions.currentReceipt || !savedPaymentId) return;
+    try {
+      await applyCancellation.mutateAsync({
+        requestId: activeCancelRequest.id,
+        receiptId: receiptActions.currentReceipt.receipt_id,
+        paymentId: savedPaymentId,
+        batchNumber: activeCancelRequest.batch_number,
+        reason: activeCancelRequest.reason,
+      });
+      await receiptActions.loadReceipt(savedPaymentId);
+    } catch (err: any) {
+      // error handled by mutation
+    }
+  }, [activeCancelRequest, receiptActions, savedPaymentId, applyCancellation]);
 
   const resetForm = useCallback(() => {
     setPayerType('ER');
@@ -587,6 +612,15 @@ const C3Payments: React.FC = () => {
           <Button onClick={handleReprint} variant="outline" size="sm" disabled={!canReprint}>
             <RotateCcw className="h-4 w-4 mr-1" /> Re-Print
           </Button>
+          {isPendingApproval && (
+            <Badge variant="warning" className="text-xs py-1">Pending Cancellation Approval</Badge>
+          )}
+          {isApprovedReady && (
+            <Button onClick={handleApplyCancellation} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
+              {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+              Apply Approved Cancellation
+            </Button>
+          )}
           <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" disabled={!canCancel}>
             <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
           </Button>
