@@ -1266,6 +1266,34 @@ async function updateSourceRecordStatus(
 
       console.log(`Card machine change request ${sourceRecordId} status updated to ${newStatus}`);
     }
+  } else if (sourceModule === 'receipt_cancellation') {
+    // Receipt cancellation request workflow
+    let newStatus: string | null = null;
+
+    if (configuredResultStatus) {
+      newStatus = configuredResultStatus;
+    } else if (endState === 'Approved') {
+      newStatus = 'Approved';
+    } else if (endState === 'Rejected') {
+      newStatus = 'Rejected';
+    }
+
+    if (newStatus) {
+      const { error } = await supabase
+        .from('cn_receipt_cancel_requests')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', sourceRecordId);
+
+      if (error) {
+        console.error('Error updating receipt cancel request status:', error);
+        throw error;
+      }
+
+      console.log(`Receipt cancel request ${sourceRecordId} status updated to ${newStatus}`);
+    }
   } else if (sourceModule === 'bn_claim') {
     // Benefit claim workflow
     let newStatus: string | null = null;

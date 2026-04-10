@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Filter, CheckCircle2, XCircle, Clock, Eye } from 'lucide-react';
+import { Loader2, Filter, Eye } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useCardMachineChangeRequestsForApprover, CardMachineChangeRequest } from '@/hooks/useCardMachineChangeRequests';
+import { useReceiptCancelRequestsForApprover, ReceiptCancelRequest } from '@/hooks/useReceiptCancelRequests';
 import { useWorkflowActions, useExecuteWorkflowAction } from '@/hooks/useWorkflowActions';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -20,6 +21,31 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 const ALL_STATUSES = ['Pending', 'InProgress', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
+
+type RequestType = 'all' | 'card_machine' | 'cancel_receipt';
+
+interface UnifiedRequest {
+  id: string;
+  request_type: 'card_machine' | 'cancel_receipt';
+  batch_number: string;
+  payment_id: number;
+  status: string;
+  requested_by: string;
+  requested_at: string;
+  comment: string;
+  // card machine specific
+  payment_sequence_no?: number;
+  current_card_machine_id?: string | null;
+  requested_card_machine_id?: string | null;
+  skip_comment?: string | null;
+  completed_at?: string | null;
+  completed_by?: string | null;
+  workflow_instance_id?: string | null;
+  // cancel receipt specific
+  receipt_id?: number;
+  receipt_total?: number | null;
+  reason?: string;
+}
 
 const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' | 'success' => {
   switch (status) {
@@ -33,22 +59,26 @@ const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' 
   }
 };
 
+const typeVariant = (type: string): 'default' | 'secondary' => {
+  return type === 'card_machine' ? 'default' : 'secondary';
+};
+
 function RequestDetailModal({
   request,
   open,
   onOpenChange,
 }: {
-  request: CardMachineChangeRequest | null;
+  request: UnifiedRequest | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const workflowCtx = useWorkflowActions(
-    'batch_card_machine_change',
-    request?.id || null
-  );
+  const sourceModule = request?.request_type === 'card_machine' ? 'batch_card_machine_change' : 'receipt_cancellation';
+  const workflowCtx = useWorkflowActions(sourceModule, request?.id || null);
 
-  // Fetch card machine names
-  const machineIds = [request?.current_card_machine_id, request?.requested_card_machine_id].filter(Boolean) as string[];
+  // Fetch card machine names (for card_machine type)
+  const machineIds = request?.request_type === 'card_machine'
+    ? [request.current_card_machine_id, request.requested_card_machine_id].filter(Boolean) as string[]
+    : [];
   const { data: machines } = useQuery({
     queryKey: ['card-machines-for-detail', machineIds],
     enabled: machineIds.length > 0 && open,
@@ -75,14 +105,13 @@ function RequestDetailModal({
     },
   });
 
-  const getMachineName = (id: string | null) => {
+  const getMachineName = (id: string | null | undefined) => {
     if (!id) return '—';
     const m = machines?.find(m => m.id === id);
     return m ? `${m.machine_code} — ${m.machine_name}` : id;
   };
 
   const [remarks, setRemarks] = useState('');
-  const { userCode } = useUserCode();
   const executeAction = useExecuteWorkflowAction();
   const queryClient = useQueryClient();
 
@@ -93,13 +122,14 @@ function RequestDetailModal({
         taskId: workflowCtx.taskId,
         actionId,
         comments: remarks || undefined,
-        sourceModule: 'batch_card_machine_change',
+        sourceModule,
         sourceRecordId: request.id,
       });
       toast.success('Workflow action completed successfully');
       setRemarks('');
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ['card-machine-change-requests-approver'] });
+      queryClient.invalidateQueries({ queryKey: ['receipt-cancel-requests-approver'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-logs-for-request'] });
       queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
     } catch (err: any) {
@@ -116,8 +146,11 @@ function RequestDetailModal({
           <DialogTitle className="flex items-center gap-2">
             Change Request Details
             <Badge variant={statusVariant(request.status)}>{request.status}</Badge>
+            <Badge variant={typeVariant(request.request_type)} className="text-xs">
+              {request.request_type === 'card_machine' ? 'Card Machine' : 'Cancel Receipt'}
+            </Badge>
           </DialogTitle>
-          <DialogDescription className="sr-only">View and manage card machine change request details</DialogDescription>
+          <DialogDescription className="sr-only">View and manage change request details</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -127,17 +160,39 @@ function RequestDetailModal({
               <p className="font-mono">{request.batch_number}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Payment ID / Seq</Label>
-              <p className="font-mono">{request.payment_id} / {request.payment_sequence_no}</p>
+              <Label className="text-xs text-muted-foreground">Payment ID</Label>
+              <p className="font-mono">
+                {request.payment_id}
+                {request.payment_sequence_no != null && ` / ${request.payment_sequence_no}`}
+              </p>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Current Card Machine</Label>
-              <p>{getMachineName(request.current_card_machine_id)}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Requested Card Machine</Label>
-              <p>{getMachineName(request.requested_card_machine_id)}</p>
-            </div>
+
+            {request.request_type === 'card_machine' && (
+              <>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Current Card Machine</Label>
+                  <p>{getMachineName(request.current_card_machine_id)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Requested Card Machine</Label>
+                  <p>{getMachineName(request.requested_card_machine_id)}</p>
+                </div>
+              </>
+            )}
+
+            {request.request_type === 'cancel_receipt' && (
+              <>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Receipt ID</Label>
+                  <p className="font-mono">{request.receipt_id}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Receipt Total</Label>
+                  <p className="font-mono">{request.receipt_total != null ? formatCurrency(request.receipt_total) : '—'}</p>
+                </div>
+              </>
+            )}
+
             <div>
               <Label className="text-xs text-muted-foreground">Requested By</Label>
               <p>{request.requested_by}</p>
@@ -149,7 +204,9 @@ function RequestDetailModal({
           </div>
 
           <div>
-            <Label className="text-xs text-muted-foreground">Reason for Change</Label>
+            <Label className="text-xs text-muted-foreground">
+              {request.request_type === 'card_machine' ? 'Reason for Change' : 'Cancellation Reason'}
+            </Label>
             <p className="text-sm bg-muted/50 p-2 rounded mt-1">{request.comment}</p>
           </div>
 
@@ -160,7 +217,7 @@ function RequestDetailModal({
             </div>
           )}
 
-          {/* Workflow Actions — rendered for approvers */}
+          {/* Workflow Actions */}
           {workflowCtx.hasWorkflow && workflowCtx.canPerformActions && workflowCtx.actions.length > 0 && (
             <div className="border-t pt-3">
               <Label className="text-xs text-muted-foreground mb-2 block">Workflow Actions</Label>
@@ -218,9 +275,10 @@ function RequestDetailModal({
 
 const CardMachineChangeRequests: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<RequestType>('all');
   const [cashierFilter, setCashierFilter] = useState('');
   const [batchFilter, setBatchFilter] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<CardMachineChangeRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<UnifiedRequest | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const filters = {
@@ -229,20 +287,84 @@ const CardMachineChangeRequests: React.FC = () => {
     batchNumber: batchFilter || undefined,
   };
 
-  const { data: requests, isLoading } = useCardMachineChangeRequestsForApprover(filters);
+  const { data: cardRequests, isLoading: cardLoading } = useCardMachineChangeRequestsForApprover(filters);
+  const { data: cancelRequests, isLoading: cancelLoading } = useReceiptCancelRequestsForApprover(filters);
+
+  const isLoading = cardLoading || cancelLoading;
+
+  // Merge both request types into unified list
+  const requests: UnifiedRequest[] = useMemo(() => {
+    const merged: UnifiedRequest[] = [];
+
+    if (typeFilter !== 'cancel_receipt' && cardRequests) {
+      cardRequests.forEach(r => merged.push({
+        id: r.id,
+        request_type: 'card_machine',
+        batch_number: r.batch_number,
+        payment_id: r.payment_id,
+        status: r.status,
+        requested_by: r.requested_by,
+        requested_at: r.requested_at,
+        comment: r.comment,
+        payment_sequence_no: r.payment_sequence_no,
+        current_card_machine_id: r.current_card_machine_id,
+        requested_card_machine_id: r.requested_card_machine_id,
+        skip_comment: r.skip_comment,
+        completed_at: r.completed_at,
+        completed_by: r.completed_by,
+        workflow_instance_id: r.workflow_instance_id,
+      }));
+    }
+
+    if (typeFilter !== 'card_machine' && cancelRequests) {
+      cancelRequests.forEach(r => merged.push({
+        id: r.id,
+        request_type: 'cancel_receipt',
+        batch_number: r.batch_number,
+        payment_id: r.payment_id,
+        status: r.status,
+        requested_by: r.requested_by,
+        requested_at: r.requested_at,
+        comment: r.reason,
+        receipt_id: r.receipt_id,
+        receipt_total: r.receipt_total,
+        skip_comment: r.skip_comment,
+        completed_at: r.completed_at,
+        completed_by: r.completed_by,
+        workflow_instance_id: r.workflow_instance_id,
+      }));
+    }
+
+    // Sort by date descending
+    merged.sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime());
+    return merged;
+  }, [cardRequests, cancelRequests, typeFilter]);
 
   return (
     <PermissionWrapper moduleName="batch_detail_change_requests">
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Card Machine Change Requests</h1>
-          <p className="text-muted-foreground text-sm">Review and manage card machine change requests from batch closing</p>
+          <h1 className="text-2xl font-bold">Batch Change Requests</h1>
+          <p className="text-muted-foreground text-sm">Review and manage card machine changes and receipt cancellation requests</p>
         </div>
 
         {/* Filters */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-end gap-4 flex-wrap">
+              <div className="flex-1 min-w-[150px]">
+                <Label className="text-xs">Request Type</Label>
+                <Select value={typeFilter} onValueChange={v => setTypeFilter(v as RequestType)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="card_machine">Card Machine Change</SelectItem>
+                    <SelectItem value="cancel_receipt">Cancel Receipt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex-1 min-w-[150px]">
                 <Label className="text-xs">Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -280,6 +402,7 @@ const CardMachineChangeRequests: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   setStatusFilter('all');
+                  setTypeFilter('all');
                   setCashierFilter('');
                   setBatchFilter('');
                 }}
@@ -309,6 +432,7 @@ const CardMachineChangeRequests: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Type</TableHead>
                     <TableHead>Batch #</TableHead>
                     <TableHead>Payment ID</TableHead>
                     <TableHead>Status</TableHead>
@@ -320,9 +444,17 @@ const CardMachineChangeRequests: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {requests.map(req => (
-                    <TableRow key={req.id}>
+                    <TableRow key={`${req.request_type}-${req.id}`}>
+                      <TableCell>
+                        <Badge variant={typeVariant(req.request_type)} className="text-[10px]">
+                          {req.request_type === 'card_machine' ? 'Card Machine' : 'Cancel Receipt'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{req.batch_number}</TableCell>
-                      <TableCell className="font-mono text-xs">{req.payment_id}/{req.payment_sequence_no}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {req.payment_id}
+                        {req.payment_sequence_no != null && `/${req.payment_sequence_no}`}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(req.status)} className="text-xs">
                           {req.status}

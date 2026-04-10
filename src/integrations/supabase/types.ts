@@ -15044,6 +15044,71 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_receipt_cancel_requests: {
+        Row: {
+          batch_number: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          payment_id: number
+          reason: string
+          receipt_id: number
+          receipt_total: number | null
+          request_type: string
+          requested_at: string
+          requested_by: string
+          skip_comment: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          batch_number: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          payment_id: number
+          reason: string
+          receipt_id: number
+          receipt_total?: number | null
+          request_type?: string
+          requested_at?: string
+          requested_by: string
+          skip_comment?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          batch_number?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          payment_id?: number
+          reason?: string
+          receipt_id?: number
+          receipt_total?: number | null
+          request_type?: string
+          requested_at?: string
+          requested_by?: string
+          skip_comment?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cn_receipt_cancel_requests_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cn_receipt_prints: {
         Row: {
           id: string

@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark, CreditCard, Send, SkipForward } from 'lucide-react';
+import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
+import {
+  useReceiptCancelRequests,
+  useCreateReceiptCancelRequest,
+  useApplyReceiptCancellation,
+  getActiveCancelRequest,
+  ReceiptCancelRequest,
+} from '@/hooks/useReceiptCancelRequests';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -124,6 +132,10 @@ const BatchClosing: React.FC = () => {
   // Batch close guard dialog
   const [batchCloseGuardOpen, setBatchCloseGuardOpen] = useState(false);
 
+  // Receipt cancel states
+  const [showBatchCancelModal, setShowBatchCancelModal] = useState(false);
+  const [cancelTargetPayment, setCancelTargetPayment] = useState<BatchPaymentRow | null>(null);
+
   const officeCode = batchSel.selectedBatch?.office_code;
   const { allMachines } = useOfficeCardMachines(officeCode);
 
@@ -133,6 +145,48 @@ const BatchClosing: React.FC = () => {
   const createChangeRequest = useCreateCardMachineChangeRequest();
   const applyChange = useApplyCardMachineChange();
   const skipApproval = useSkipApprovedChange();
+
+  // Receipt cancel requests for this batch
+  const { data: cancelRequests = [] } = useReceiptCancelRequests(batchNumber);
+  const createCancelRequest = useCreateReceiptCancelRequest();
+  const applyCancellation = useApplyReceiptCancellation();
+
+  const handleBatchCancelReceipt = useCallback(async (reason: string) => {
+    if (!cancelTargetPayment || !batchNumber) return;
+    // Find receipt for this payment
+    const { data: rcpt } = await supabase
+      .from('cn_receipt')
+      .select('receipt_id, receipt_total')
+      .eq('payment_id', cancelTargetPayment.payment_id)
+      .maybeSingle();
+    if (!rcpt) {
+      toast({ title: 'No receipt found', variant: 'destructive' });
+      return;
+    }
+    try {
+      await createCancelRequest.mutateAsync({
+        batchNumber,
+        paymentId: cancelTargetPayment.payment_id,
+        receiptId: rcpt.receipt_id,
+        receiptTotal: rcpt.receipt_total,
+        reason,
+      });
+      setShowBatchCancelModal(false);
+      setCancelTargetPayment(null);
+    } catch (_) {}
+  }, [cancelTargetPayment, batchNumber, createCancelRequest]);
+
+  const handleApplyBatchCancellation = useCallback(async (req: ReceiptCancelRequest) => {
+    try {
+      await applyCancellation.mutateAsync({
+        requestId: req.id,
+        receiptId: req.receipt_id,
+        paymentId: req.payment_id,
+        batchNumber: req.batch_number,
+        reason: req.reason,
+      });
+    } catch (_) {}
+  }, [applyCancellation]);
 
   useEffect(() => {
     const fetchMops = async () => {
@@ -734,22 +788,57 @@ const BatchClosing: React.FC = () => {
                             <TableHead>Receipt #</TableHead>
                             <TableHead>Payer</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="text-center">Cancel</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {batchPayments.map(p => (
-                            <TableRow
-                              key={p.payment_id}
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => handlePaymentRowClick(p)}
-                            >
-                              <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
-                              <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
-                              <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
-                            </TableRow>
-                          ))}
+                          {batchPayments.map(p => {
+                            const cancelReq = cancelRequests ? getActiveCancelRequest(cancelRequests, p.payment_id) : undefined;
+                            const isPending = cancelReq && ['Pending', 'InProgress'].includes(cancelReq.status);
+                            const isApproved = cancelReq?.status === 'Approved';
+                            return (
+                              <TableRow
+                                key={p.payment_id}
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => handlePaymentRowClick(p)}
+                              >
+                                <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
+                                <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
+                                <TableCell className="text-center" onClick={e => e.stopPropagation()}>
+                                  {isPending && (
+                                    <Badge variant="warning" className="text-[10px]">Pending</Badge>
+                                  )}
+                                  {isApproved && (
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="h-6 text-xs px-2"
+                                      disabled={applyCancellation.isPending}
+                                      onClick={() => handleApplyBatchCancellation(cancelReq!)}
+                                    >
+                                      Apply Cancel
+                                    </Button>
+                                  )}
+                                  {p.status === 'O' && !cancelReq && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 text-xs px-2 text-destructive hover:text-destructive"
+                                      onClick={() => {
+                                        setCancelTargetPayment(p);
+                                        setShowBatchCancelModal(true);
+                                      }}
+                                    >
+                                      <XCircle className="h-3 w-3 mr-1" />Cancel
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                           <TableRow className="border-t-2 font-semibold">
-                            <TableCell colSpan={2}>Grand Total</TableCell>
+                            <TableCell colSpan={3}>Grand Total</TableCell>
                             <TableCell className="text-right font-mono">
                               {formatCurrency(batchPayments.reduce((s, p) => s + p.receipt_total, 0))}
                             </TableCell>
@@ -1093,6 +1182,14 @@ const BatchClosing: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* Receipt Cancel Modal for Batch Transactions */}
+        <ReceiptCancelModal
+          open={showBatchCancelModal}
+          onClose={() => { setShowBatchCancelModal(false); setCancelTargetPayment(null); }}
+          onConfirm={handleBatchCancelReceipt}
+          isLoading={createCancelRequest.isPending}
+          receiptId={cancelTargetPayment?.payment_id}
+        />
       </div>
     </BatchSelectionGuard>
   );

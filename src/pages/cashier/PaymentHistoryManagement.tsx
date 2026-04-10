@@ -26,6 +26,8 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
 import { logApplicationError } from '@/lib/globalErrorHandler';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
+import { useReceiptCancelRequestByPayment, useCreateReceiptCancelRequest, useApplyReceiptCancellation } from '@/hooks/useReceiptCancelRequests';
+import { Badge as ShadBadge } from '@/components/ui/badge';
 
 // --- Types ---
 interface PaymentRow {
@@ -430,7 +432,14 @@ const PaymentHistoryManagement = () => {
     }
   }, [selectedRow, detailReceipt, userCode, fetchPayments]);
 
-  // --- Cancel Receipt (in popup) ---
+  // --- Cancel Receipt (workflow-based) ---
+  const { data: activeCancelRequest } = useReceiptCancelRequestByPayment(selectedRow?.payment_id ?? null);
+  const createCancelRequest = useCreateReceiptCancelRequest();
+  const applyCancellation = useApplyReceiptCancellation();
+
+  const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
+  const isApprovedReady = activeCancelRequest?.status === 'Approved';
+
   const handleCancelReceipt = useCallback(async (reason: string) => {
     if (!selectedRow || !detailReceipt) return;
     if (detailReceipt.status !== 'O') {
@@ -438,30 +447,38 @@ const PaymentHistoryManagement = () => {
       setShowCancelModal(false);
       return;
     }
-    const uCode = userCode || 'SYS';
     try {
-      const { error } = await supabase.from('cn_receipt').update({
-        status: 'C',
-        cancel_reason: reason,
-        cancel_date: new Date().toISOString(),
-        cancel_user: uCode,
-        updated_by: uCode,
-        updated_at: new Date().toISOString(),
-      } as any).eq('receipt_id', detailReceipt.receipt_id);
-      if (error) throw error;
-
-      toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
+      await createCancelRequest.mutateAsync({
+        batchNumber: selectedRow.batch_number,
+        paymentId: selectedRow.payment_id,
+        receiptId: detailReceipt.receipt_id,
+        receiptTotal: detailReceipt.receipt_total,
+        reason,
+      });
       setShowCancelModal(false);
+    } catch (err: any) {
+      await logApplicationError(err, { module: 'PaymentHistoryManagement', action: 'handleCancelReceipt', entity_type: 'cn_receipt', entity_id: String(detailReceipt.receipt_id) });
+    }
+  }, [selectedRow, detailReceipt, createCancelRequest]);
 
+  const handleApplyCancellation = useCallback(async () => {
+    if (!activeCancelRequest || !detailReceipt || !selectedRow) return;
+    try {
+      await applyCancellation.mutateAsync({
+        requestId: activeCancelRequest.id,
+        receiptId: detailReceipt.receipt_id,
+        paymentId: selectedRow.payment_id,
+        batchNumber: activeCancelRequest.batch_number,
+        reason: activeCancelRequest.reason,
+      });
       // Reload receipt
       const { data: rcpt } = await supabase.from('cn_receipt').select('*').eq('receipt_id', detailReceipt.receipt_id).single();
       setDetailReceipt(rcpt ? (rcpt as unknown as ReceiptData) : null);
       fetchPayments();
     } catch (err: any) {
-      await logApplicationError(err, { module: 'PaymentHistoryManagement', action: 'handleCancelReceipt', entity_type: 'cn_receipt', entity_id: String(detailReceipt.receipt_id) });
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      await logApplicationError(err, { module: 'PaymentHistoryManagement', action: 'handleApplyCancellation', entity_type: 'cn_receipt', entity_id: String(detailReceipt.receipt_id) });
     }
-  }, [selectedRow, detailReceipt, userCode, fetchPayments]);
+  }, [activeCancelRequest, detailReceipt, selectedRow, applyCancellation, fetchPayments]);
 
   // --- Receipt status badge ---
   const statusBadge = (desc: string, status: string | null) => {
@@ -752,8 +769,19 @@ const PaymentHistoryManagement = () => {
           </div>
 
           <DialogFooter className="px-6 py-3 border-t shrink-0 gap-2 sm:gap-0">
-            {/* Cancel Payment: visible only when receipt status is 'O' */}
-            {detailReceipt && detailReceipt.status === 'O' && (
+            {/* Pending Approval badge */}
+            {isPendingApproval && (
+              <ShadBadge variant="warning" className="text-xs py-1">Pending Cancellation Approval</ShadBadge>
+            )}
+            {/* Apply Approved Cancellation */}
+            {isApprovedReady && (
+              <Button variant="destructive" size="sm" onClick={handleApplyCancellation} disabled={applyCancellation.isPending}>
+                {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
+                Apply Approved Cancellation
+              </Button>
+            )}
+            {/* Cancel Payment: visible only when receipt status is 'O' and no active request */}
+            {detailReceipt && detailReceipt.status === 'O' && !activeCancelRequest && (
               <Button
                 variant="destructive"
                 size="sm"
