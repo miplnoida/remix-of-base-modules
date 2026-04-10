@@ -769,8 +769,19 @@ const PaymentHistoryManagement = () => {
           </div>
 
           <DialogFooter className="px-6 py-3 border-t shrink-0 gap-2 sm:gap-0">
-            {/* Cancel Payment: visible only when receipt status is 'O' */}
-            {detailReceipt && detailReceipt.status === 'O' && (
+            {/* Pending Approval badge */}
+            {isPendingApproval && (
+              <ShadBadge variant="warning" className="text-xs py-1">Pending Cancellation Approval</ShadBadge>
+            )}
+            {/* Apply Approved Cancellation */}
+            {isApprovedReady && (
+              <Button variant="destructive" size="sm" onClick={handleApplyCancellation} disabled={applyCancellation.isPending}>
+                {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
+                Apply Approved Cancellation
+              </Button>
+            )}
+            {/* Cancel Payment: visible only when receipt status is 'O' and no active request */}
+            {detailReceipt && detailReceipt.status === 'O' && !activeCancelRequest && (
               <Button
                 variant="destructive"
                 size="sm"
