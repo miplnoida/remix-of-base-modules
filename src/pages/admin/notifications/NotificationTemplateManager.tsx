@@ -16,7 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Plus, Edit, Trash2, Eye, Copy, Mail, Search, History,
   Layout, FileText, ChevronRight, Code, Sparkles, Save,
-  Info, AlertCircle, CheckCircle, Clock, RefreshCw, Tag
+  Info, AlertCircle, CheckCircle, Clock, RefreshCw, Tag,
+  MessageSquare, Bell, Smartphone
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +26,9 @@ import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-interface EmailTemplate {
+type ChannelType = 'email' | 'sms' | 'push' | 'in_app';
+
+interface NotificationTemplate {
   id: string;
   name: string;
   template_code: string | null;
@@ -80,6 +83,14 @@ interface AuditLog {
   details: any;
 }
 
+// ─── Channel Config ────────────────────────────────────────────────────────────
+const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: typeof Mail; description: string }> = {
+  email: { label: 'Email', icon: Mail, description: 'HTML email templates with shared header/footer layout' },
+  sms: { label: 'SMS', icon: MessageSquare, description: 'Plain-text SMS templates with character limits' },
+  push: { label: 'Push', icon: Bell, description: 'Push notification templates with title and short body' },
+  in_app: { label: 'In-App', icon: Smartphone, description: 'In-app message templates with optional action links' },
+};
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const TEMPLATE_CATEGORIES = [
   'informational', 'action-required', 'approval-notification',
@@ -87,29 +98,21 @@ const TEMPLATE_CATEGORIES = [
 ];
 
 const TRIGGER_EVENTS = [
-  // Registration
   'ip_registration_submitted', 'ip_registration_approved', 'ip_registration_rejected',
   'ip_meeting_scheduled', 'ip_meeting_rescheduled', 'ip_meeting_cancelled',
   'ip_document_required', 'ip_account_activated',
   'employer_registration_submitted', 'employer_registration_approved', 'employer_registration_rejected',
   'employer_meeting_scheduled',
-  // Benefits
   'claim_submitted', 'claim_approved', 'claim_rejected', 'claim_payment_issued',
   'claim_additional_info_required', 'sickness_cert_reminder',
-  // Compliance
   'compliance_notice_1', 'compliance_notice_2', 'compliance_final_notice',
   'compliance_legal_escalated', 'inspection_scheduled',
-  // Finance / BEMA
   'payment_received', 'payment_overdue', 'payment_plan_created',
   'waiver_approved', 'waiver_rejected', 'c3_submission_confirmed',
-  // Cashier / Invoices & Receipts
   'invoice_email_sent', 'receipt_email_sent',
-  // System / Admin
   'user_account_created', 'password_reset_requested', 'api_key_generated',
   'system_lockdown_activated', 'role_assigned', 'security_alert',
-  // Workflow
   'workflow_task_assigned', 'workflow_sla_breach', 'workflow_escalated', 'workflow_completed',
-  // Meetings
   'meeting_scheduled', 'meeting_rescheduled', 'meeting_cancelled', 'meeting_outcome',
 ];
 
@@ -147,7 +150,6 @@ const AVAILABLE_PLACEHOLDERS = [
   { key: '{{TASK_NAME}}', description: 'Workflow task name' },
   { key: '{{ASSIGNED_TO}}', description: 'Person task is assigned to' },
   { key: '{{SLA_DEADLINE}}', description: 'SLA deadline datetime' },
-  // Document / Invoice / Receipt placeholders
   { key: '{{DOCUMENT_NUMBER}}', description: 'Invoice or receipt number' },
   { key: '{{PAYER_NAME}}', description: 'Name of the payer' },
   { key: '{{PAYER_ID}}', description: 'Payer identifier (SSN/RegNo)' },
@@ -156,7 +158,7 @@ const AVAILABLE_PLACEHOLDERS = [
   { key: '{{DOCUMENT_DATE}}', description: 'Document creation date' },
 ];
 
-// ─── Helper ────────────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 const extractPlaceholders = (text: string): string[] => {
   const matches = text.match(/\{\{([^}]+)\}\}/g) || [];
   return [...new Set(matches)];
@@ -175,7 +177,6 @@ const categoryColor = (cat: string) => {
   return map[cat] || 'bg-gray-100 text-gray-700';
 };
 
-// ─── Default HTML body template ────────────────────────────────────────────────
 const DEFAULT_HTML_BODY = `<p style="color: #333; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
   Dear <strong>{{APPLICANT_NAME}}</strong>,
 </p>
@@ -197,12 +198,36 @@ const DEFAULT_HTML_BODY = `<p style="color: #333; font-size: 15px; line-height: 
   If you need assistance, please contact our office.
 </p>`;
 
+const SMS_MAX_SINGLE = 160;
+const SMS_MAX_CONCAT = 320;
+const PUSH_MAX_BODY = 255;
+
+const SAMPLE_DATA: Record<string, string> = {
+  '{{APPLICANT_NAME}}': 'John Michael Smith', '{{REF_NUMBER}}': 'IP-REG-2026-123456',
+  '{{MEETING_DATE}}': 'Wednesday, February 18, 2026', '{{MEETING_TIME}}': '09:40 AM',
+  '{{MEETING_LOCATION}}': 'Bay Road, Basseterre, St. Kitts', '{{MEETING_WITH}}': 'Inspector Jane Doe',
+  '{{STATUS}}': 'Approved', '{{REMARKS}}': 'All documents verified successfully.',
+  '{{REJECTION_REASON}}': 'Incomplete documentation provided.', '{{AMOUNT}}': 'XCD 2,500.00',
+  '{{SSN}}': '123-456-789', '{{TODAY}}': new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+  '{{EMPLOYER_NAME}}': 'ABC Construction Ltd.', '{{CLAIM_NUMBER}}': 'CLM-2024-567',
+  '{{DOCUMENT_NUMBER}}': 'INV-2026-001234', '{{PAYER_NAME}}': 'John Smith',
+  '{{PAYER_ID}}': '123456', '{{TOTAL_AMOUNT}}': '2,500.00',
+  '{{CURRENCY_CODE}}': 'XCD', '{{DOCUMENT_DATE}}': 'March 31, 2026',
+};
+
+const replaceSampleData = (text: string) => {
+  let result = text;
+  Object.entries(SAMPLE_DATA).forEach(([k, v]) => { result = result.split(k).join(v); });
+  return result;
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function EmailTemplateManager() {
+export default function NotificationTemplateManager() {
   const { user } = useSupabaseAuth();
   const queryClient = useQueryClient();
+  const [activeChannel, setActiveChannel] = useState<ChannelType>('email');
   const [activeTab, setActiveTab] = useState("templates");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -214,7 +239,7 @@ export default function EmailTemplateManager() {
   const [isVersionsOpen, setIsVersionsOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLayoutOpen, setIsLayoutOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
 
   // Editor state
   const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
@@ -231,23 +256,31 @@ export default function EmailTemplateManager() {
     is_enabled: true,
     module_id: '',
     change_summary: '',
+    action_url: '',
   });
 
   // Layout editor state
   const [layoutData, setLayoutData] = useState({ header: '', footer: '' });
   const [editingLayoutType, setEditingLayoutType] = useState<'header' | 'footer'>('header');
 
+  const isEmail = activeChannel === 'email';
+  const isSms = activeChannel === 'sms';
+  const isPush = activeChannel === 'push';
+  const isInApp = activeChannel === 'in_app';
+  const channelConfig = CHANNEL_CONFIG[activeChannel];
+  const ChannelIcon = channelConfig.icon;
+
   // ── Queries ─────────────────────────────────────────────────────────────────
   const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['email-templates-full'],
+    queryKey: ['templates-full', activeChannel],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_templates')
         .select('*, module:app_modules(id, display_name)')
-        .eq('channel', 'email')
+        .eq('channel', activeChannel)
         .order('name');
       if (error) throw error;
-      return (data || []) as unknown as EmailTemplate[];
+      return (data || []) as unknown as NotificationTemplate[];
     },
   });
 
@@ -300,14 +333,15 @@ export default function EmailTemplateManager() {
   // ── Mutations ───────────────────────────────────────────────────────────────
   const saveTemplate = useMutation({
     mutationFn: async () => {
-      const detected = extractPlaceholders((useHtmlBody ? formData.html_body : formData.body));
-      const payload = {
+      const bodyContent = isEmail && useHtmlBody ? formData.html_body : formData.body;
+      const detected = extractPlaceholders(bodyContent);
+      const payload: Record<string, any> = {
         name: formData.name,
         template_code: formData.template_code || null,
-        channel: 'email',
-        subject: formData.subject || null,
-        body: useHtmlBody ? formData.html_body : formData.body,
-        html_body: useHtmlBody ? formData.html_body : null,
+        channel: activeChannel,
+        subject: (isEmail || isPush || isInApp) ? (formData.subject || null) : null,
+        body: bodyContent,
+        html_body: (isEmail && useHtmlBody) ? formData.html_body : null,
         placeholders: detected.map(k => ({ key: k })),
         is_enabled: formData.is_enabled,
         trigger_event: formData.trigger_event || null,
@@ -319,21 +353,19 @@ export default function EmailTemplateManager() {
       };
 
       if (editorMode === 'create') {
-        const { data, error } = await supabase.from('notification_templates').insert([{ ...payload, channel: 'email' as const, created_by: user?.id }] as any).select().single();
+        const { data, error } = await supabase.from('notification_templates').insert([{ ...payload, created_by: user?.id }] as any).select().single();
         if (error) throw error;
-        // Audit log
         await supabase.from('notification_template_audit_logs').insert({
           template_id: data.id, template_name: formData.name,
           action: 'CREATED', performed_by: user?.id,
-          details: { template_code: formData.template_code }
+          details: { template_code: formData.template_code, channel: activeChannel }
         });
       } else {
         const oldVersion = selectedTemplate!.version_no;
         const { error } = await supabase.from('notification_templates')
-          .update({ ...payload, channel: 'email' as const, version_no: oldVersion + 1 } as any)
+          .update({ ...payload, version_no: oldVersion + 1 } as any)
           .eq('id', selectedTemplate!.id);
         if (error) throw error;
-        // Save version snapshot
         await supabase.from('notification_template_versions').insert({
           template_id: selectedTemplate!.id,
           version_no: oldVersion,
@@ -345,16 +377,15 @@ export default function EmailTemplateManager() {
           changed_by: user?.id,
           change_summary: formData.change_summary || `Updated to v${oldVersion + 1}`,
         });
-        // Audit log
         await supabase.from('notification_template_audit_logs').insert({
           template_id: selectedTemplate!.id, template_name: formData.name,
           action: 'UPDATED', field_name: 'content', performed_by: user?.id,
-          details: { change_summary: formData.change_summary }
+          details: { change_summary: formData.change_summary, channel: activeChannel }
         });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-templates-full'] });
+      queryClient.invalidateQueries({ queryKey: ['templates-full', activeChannel] });
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
       toast.success(editorMode === 'create' ? 'Template created successfully' : 'Template updated successfully');
       setIsEditorOpen(false);
@@ -363,7 +394,7 @@ export default function EmailTemplateManager() {
   });
 
   const toggleTemplate = useMutation({
-    mutationFn: async (t: EmailTemplate) => {
+    mutationFn: async (t: NotificationTemplate) => {
       const { error } = await supabase.from('notification_templates').update({ is_enabled: !t.is_enabled, updated_by: user?.id }).eq('id', t.id);
       if (error) throw error;
       await supabase.from('notification_template_audit_logs').insert({
@@ -371,7 +402,10 @@ export default function EmailTemplateManager() {
         action: t.is_enabled ? 'DEACTIVATED' : 'ACTIVATED', performed_by: user?.id,
       });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['email-templates-full'] }); queryClient.invalidateQueries({ queryKey: ['notification-templates'] }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates-full', activeChannel] });
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -386,7 +420,7 @@ export default function EmailTemplateManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-templates-full'] });
+      queryClient.invalidateQueries({ queryKey: ['templates-full', activeChannel] });
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
       toast.success('Template deleted');
       setIsDeleteOpen(false);
@@ -413,7 +447,7 @@ export default function EmailTemplateManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-layout-components'] });
-      toast.success(`${editingLayoutType.charAt(0).toUpperCase() + editingLayoutType.slice(1)} saved — changes will reflect on all templates`);
+      toast.success(`${editingLayoutType.charAt(0).toUpperCase() + editingLayoutType.slice(1)} saved — changes will reflect on all email templates`);
       setIsLayoutOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -422,28 +456,32 @@ export default function EmailTemplateManager() {
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const openCreate = () => {
     setEditorMode('create');
-    setFormData({ name: '', template_code: '', subject: '', body: '', html_body: DEFAULT_HTML_BODY, category: 'informational', trigger_event: '', description: '', is_enabled: true, module_id: '', change_summary: '' });
-    setUseHtmlBody(true);
+    setFormData({
+      name: '', template_code: '', subject: '', body: '',
+      html_body: isEmail ? DEFAULT_HTML_BODY : '',
+      category: 'informational', trigger_event: '', description: '',
+      is_enabled: true, module_id: '', change_summary: '', action_url: '',
+    });
+    setUseHtmlBody(isEmail);
     setIsEditorOpen(true);
   };
 
-  const openEdit = (t: EmailTemplate) => {
+  const openEdit = (t: NotificationTemplate) => {
     setSelectedTemplate(t);
     setEditorMode('edit');
-    setUseHtmlBody(!!t.html_body);
+    setUseHtmlBody(isEmail && !!t.html_body);
     setFormData({
       name: t.name, template_code: t.template_code || '', subject: t.subject || '',
       body: t.body, html_body: t.html_body || t.body,
       category: t.category || 'informational', trigger_event: t.trigger_event || '',
       description: t.description || '', is_enabled: t.is_enabled, module_id: t.module_id || '',
-      change_summary: '',
+      change_summary: '', action_url: '',
     });
     setIsEditorOpen(true);
   };
 
   const openLayoutEditor = (type: 'header' | 'footer') => {
     setEditingLayoutType(type);
-    const component = layoutComponents.find(c => c.component_type === type);
     setLayoutData({
       header: layoutComponents.find(c => c.component_type === 'header')?.html_content || '',
       footer: layoutComponents.find(c => c.component_type === 'footer')?.html_content || '',
@@ -452,34 +490,19 @@ export default function EmailTemplateManager() {
   };
 
   const insertPlaceholder = (key: string) => {
-    if (useHtmlBody) {
+    if (isEmail && useHtmlBody) {
       setFormData(f => ({ ...f, html_body: f.html_body + key }));
     } else {
       setFormData(f => ({ ...f, body: f.body + key }));
     }
   };
 
-  const renderPreviewHtml = (t: EmailTemplate) => {
+  const renderPreviewHtml = (t: NotificationTemplate) => {
     const header = layoutComponents.find(c => c.component_type === 'header')?.html_content || '';
     const footer = layoutComponents.find(c => c.component_type === 'footer')?.html_content || '';
     const body = t.html_body || t.body;
     const merged = header.replace('{{EMAIL_TITLE}}', t.subject || t.name) + body + footer;
-    // Replace sample data
-    const samples: Record<string, string> = {
-      '{{APPLICANT_NAME}}': 'John Michael Smith', '{{REF_NUMBER}}': 'IP-REG-2026-123456',
-      '{{MEETING_DATE}}': 'Wednesday, February 18, 2026', '{{MEETING_TIME}}': '09:40 AM',
-      '{{MEETING_LOCATION}}': 'Bay Road, Basseterre, St. Kitts', '{{MEETING_WITH}}': 'Inspector Jane Doe',
-      '{{STATUS}}': 'Approved', '{{REMARKS}}': 'All documents verified successfully.',
-      '{{REJECTION_REASON}}': 'Incomplete documentation provided.', '{{AMOUNT}}': 'XCD 2,500.00',
-      '{{SSN}}': '123-456-789', '{{TODAY}}': new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      '{{EMPLOYER_NAME}}': 'ABC Construction Ltd.', '{{CLAIM_NUMBER}}': 'CLM-2024-567',
-      '{{DOCUMENT_NUMBER}}': 'INV-2026-001234', '{{PAYER_NAME}}': 'John Smith',
-      '{{PAYER_ID}}': '123456', '{{TOTAL_AMOUNT}}': '2,500.00',
-      '{{CURRENCY_CODE}}': 'XCD', '{{DOCUMENT_DATE}}': 'March 31, 2026',
-    };
-    let result = merged;
-    Object.entries(samples).forEach(([k, v]) => { result = result.split(k).join(v); });
-    return result;
+    return replaceSampleData(merged);
   };
 
   const filteredTemplates = templates.filter(t => {
@@ -491,8 +514,8 @@ export default function EmailTemplateManager() {
     return matchSearch && matchCat && matchMod;
   });
 
-  const header = layoutComponents.find(c => c.component_type === 'header');
-  const footer = layoutComponents.find(c => c.component_type === 'footer');
+  const currentBodyText = isEmail && useHtmlBody ? formData.html_body : formData.body;
+  const bodyCharCount = formData.body.length;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -500,46 +523,75 @@ export default function EmailTemplateManager() {
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Email Template Manager</h1>
+          <h1 className="text-3xl font-bold text-foreground">Notification Template Manager</h1>
           <p className="text-muted-foreground mt-1">
-            Manage professional email templates with shared layout components. Header/footer changes reflect across all templates automatically.
+            Manage notification templates across all channels — Email, SMS, Push, and In-App.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => openLayoutEditor('header')}>
-            <Layout className="h-4 w-4 mr-2" />Layout Editor
-          </Button>
+          {isEmail && (
+            <Button variant="outline" onClick={() => openLayoutEditor('header')}>
+              <Layout className="h-4 w-4 mr-2" />Layout Editor
+            </Button>
+          )}
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4 mr-2" />New Template
           </Button>
         </div>
       </div>
 
-      {/* Layout Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {['header', 'footer'].map(type => {
-          const comp = layoutComponents.find(c => c.component_type === type);
+      {/* ── Channel Tabs ── */}
+      <div className="flex items-center gap-1 border-b border-border pb-0">
+        {(Object.entries(CHANNEL_CONFIG) as [ChannelType, typeof CHANNEL_CONFIG['email']][]).map(([key, config]) => {
+          const Icon = config.icon;
           return (
-            <Card key={type} className="border-l-4 border-l-primary cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLayoutEditor(type as 'header' | 'footer')}>
-              <CardContent className="py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Layout className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="font-medium capitalize">{type} Layout</p>
-                    <p className="text-xs text-muted-foreground">{comp ? `Version ${comp.version_no} • Updated ${new Date(comp.updated_at).toLocaleDateString()}` : 'Not configured'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {comp?.is_active && <Badge variant="outline" className="text-success border-success/30 bg-success/10">Active</Badge>}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
+            <button
+              key={key}
+              onClick={() => { setActiveChannel(key); setSearchTerm(''); setCategoryFilter('all'); setModuleFilter('all'); }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-[3px] transition-colors",
+                activeChannel === key
+                  ? "border-b-primary text-foreground"
+                  : "border-b-transparent text-muted-foreground hover:text-foreground hover:border-b-muted-foreground/30"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {config.label}
+            </button>
           );
         })}
       </div>
 
-      {/* Main Tabs */}
+      {/* Channel description */}
+      <p className="text-sm text-muted-foreground">{channelConfig.description}</p>
+
+      {/* Layout Status Cards — Email only */}
+      {isEmail && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {['header', 'footer'].map(type => {
+            const comp = layoutComponents.find(c => c.component_type === type);
+            return (
+              <Card key={type} className="border-l-4 border-l-primary cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLayoutEditor(type as 'header' | 'footer')}>
+                <CardContent className="py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Layout className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium capitalize">{type} Layout</p>
+                      <p className="text-xs text-muted-foreground">{comp ? `Version ${comp.version_no} • Updated ${new Date(comp.updated_at).toLocaleDateString()}` : 'Not configured'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {comp?.is_active && <Badge variant="outline" className="text-success border-success/30 bg-success/10">Active</Badge>}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Main Tabs — Templates / Audit */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="templates"><FileText className="h-4 w-4 mr-1.5" />Templates ({templates.length})</TabsTrigger>
@@ -580,8 +632,8 @@ export default function EmailTemplateManager() {
           ) : filteredTemplates.length === 0 ? (
             <Card className="text-center py-16">
               <CardContent>
-                <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No email templates found</h3>
+                <ChannelIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No {channelConfig.label} templates found</h3>
                 <p className="text-muted-foreground mb-4">Create your first template or adjust filters.</p>
                 <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Create Template</Button>
               </CardContent>
@@ -663,7 +715,7 @@ export default function EmailTemplateManager() {
         {/* ── Audit Tab ── */}
         <TabsContent value="audit">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />Template Audit Logs</CardTitle><CardDescription>Track all changes made to email templates</CardDescription></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />Template Audit Logs</CardTitle><CardDescription>Track all changes made to notification templates</CardDescription></CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -702,11 +754,13 @@ export default function EmailTemplateManager() {
         <DialogContent className="max-w-7xl h-[90vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              {editorMode === 'create' ? 'Create Email Template' : `Edit Template: ${selectedTemplate?.name}`}
+              <ChannelIcon className="h-5 w-5 text-primary" />
+              {editorMode === 'create' ? `Create ${channelConfig.label} Template` : `Edit Template: ${selectedTemplate?.name}`}
             </DialogTitle>
             <DialogDescription>
-              Header and footer are automatically applied from the shared layout. Edit only the body content.
+              {isEmail
+                ? 'Header and footer are automatically applied from the shared layout. Edit only the body content.'
+                : `Configure the ${channelConfig.label} template content and metadata.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -724,10 +778,28 @@ export default function EmailTemplateManager() {
                     <Input placeholder="e.g., IP_MEETING_SCHEDULED" value={formData.template_code} onChange={e => setFormData(f => ({ ...f, template_code: e.target.value.toUpperCase().replace(/\s/g, '_') }))} className="font-mono text-xs" />
                     <p className="text-xs text-muted-foreground">Unique identifier used in code to fetch this template.</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Email Subject *</Label>
-                    <Input placeholder="e.g., Your Appointment Has Been Scheduled" value={formData.subject} onChange={e => setFormData(f => ({ ...f, subject: e.target.value }))} />
-                  </div>
+
+                  {/* Subject — Email, Push, In-App only */}
+                  {(isEmail || isPush || isInApp) && (
+                    <div className="space-y-1.5">
+                      <Label>{isEmail ? 'Email Subject *' : 'Title *'}</Label>
+                      <Input
+                        placeholder={isEmail ? 'e.g., Your Appointment Has Been Scheduled' : 'e.g., New Notification'}
+                        value={formData.subject}
+                        onChange={e => setFormData(f => ({ ...f, subject: e.target.value }))}
+                      />
+                    </div>
+                  )}
+
+                  {/* Action URL — Push and In-App only */}
+                  {(isPush || isInApp) && (
+                    <div className="space-y-1.5">
+                      <Label>Action URL</Label>
+                      <Input placeholder="e.g., /claims/CLM-001" value={formData.action_url} onChange={e => setFormData(f => ({ ...f, action_url: e.target.value }))} />
+                      <p className="text-xs text-muted-foreground">Optional deep link when user taps the notification.</p>
+                    </div>
+                  )}
+
                   <Separator />
                   <div className="space-y-1.5">
                     <Label>Module</Label>
@@ -773,24 +845,61 @@ export default function EmailTemplateManager() {
               <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Code className="h-4 w-4" />
-                  Email Body (HTML)
+                  {isEmail ? 'Email Body (HTML)' : isSms ? 'SMS Body (Plain Text)' : isPush ? 'Push Body' : 'In-App Body'}
                 </div>
                 <div className="flex items-center gap-2">
+                  {isSms && (
+                    <span className={cn("text-xs font-mono", bodyCharCount > SMS_MAX_CONCAT ? 'text-destructive' : bodyCharCount > SMS_MAX_SINGLE ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {bodyCharCount}/{SMS_MAX_SINGLE} chars
+                      {bodyCharCount > SMS_MAX_SINGLE && ` (${Math.ceil(bodyCharCount / 153)} segments)`}
+                    </span>
+                  )}
+                  {isPush && (
+                    <span className={cn("text-xs font-mono", bodyCharCount > PUSH_MAX_BODY ? 'text-destructive' : 'text-muted-foreground')}>
+                      {bodyCharCount}/{PUSH_MAX_BODY} chars
+                    </span>
+                  )}
                   <span className="text-xs text-muted-foreground">
-                    {extractPlaceholders(useHtmlBody ? formData.html_body : formData.body).length} placeholders detected
+                    {extractPlaceholders(currentBodyText).length} placeholders detected
                   </span>
                 </div>
               </div>
               <div className="flex-1 flex flex-col p-4 overflow-hidden">
-                <div className="p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 mb-3 flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  The shared header and footer are automatically applied. Only edit the body content below.
-                </div>
+                {isEmail && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 mb-3 flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    The shared header and footer are automatically applied. Only edit the body content below.
+                  </div>
+                )}
+                {isSms && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 mb-3 flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    SMS messages are plain text only. Keep under {SMS_MAX_SINGLE} characters for a single segment. Messages up to {SMS_MAX_CONCAT} characters will be sent as multi-part SMS.
+                  </div>
+                )}
+                {isPush && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 mb-3 flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    Push notification body should be concise — maximum {PUSH_MAX_BODY} characters.
+                  </div>
+                )}
                 <Textarea
-                  className="flex-1 font-mono text-xs resize-none"
-                  value={useHtmlBody ? formData.html_body : formData.body}
-                  onChange={e => useHtmlBody ? setFormData(f => ({ ...f, html_body: e.target.value })) : setFormData(f => ({ ...f, body: e.target.value }))}
-                  placeholder="Write HTML email body content here…"
+                  className={cn("flex-1 resize-none", isEmail ? "font-mono text-xs" : "text-sm")}
+                  value={isEmail && useHtmlBody ? formData.html_body : formData.body}
+                  onChange={e => {
+                    if (isEmail && useHtmlBody) {
+                      setFormData(f => ({ ...f, html_body: e.target.value }));
+                    } else {
+                      setFormData(f => ({ ...f, body: e.target.value }));
+                    }
+                  }}
+                  placeholder={
+                    isEmail ? 'Write HTML email body content here…'
+                    : isSms ? 'Write SMS message here…'
+                    : isPush ? 'Write push notification body here…'
+                    : 'Write in-app message body here…'
+                  }
+                  maxLength={isSms ? SMS_MAX_CONCAT : isPush ? PUSH_MAX_BODY : undefined}
                 />
               </div>
             </div>
@@ -837,11 +946,13 @@ export default function EmailTemplateManager() {
         <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />Preview: {selectedTemplate?.name}</DialogTitle>
-            <DialogDescription>Rendered with sample data. Header and footer applied from shared layout.</DialogDescription>
+            <DialogDescription>
+              {isEmail ? 'Rendered with sample data. Header and footer applied from shared layout.' : 'Rendered with sample placeholder data.'}
+            </DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1">
             <div className="p-6">
-              {selectedTemplate && (
+              {selectedTemplate && isEmail && (
                 <div className="border rounded-lg overflow-hidden shadow-sm">
                   <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground border-b flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
@@ -855,6 +966,59 @@ export default function EmailTemplateManager() {
                       sandbox="allow-same-origin"
                     />
                   </div>
+                </div>
+              )}
+
+              {selectedTemplate && isSms && (
+                <div className="max-w-sm mx-auto">
+                  <div className="bg-muted rounded-2xl p-1">
+                    <div className="bg-background rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-2">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>SMS Preview</span>
+                      </div>
+                      <div className="bg-primary/10 rounded-lg p-3 text-sm leading-relaxed">
+                        {replaceSampleData(selectedTemplate.body)}
+                      </div>
+                      <p className="text-xs text-muted-foreground text-right">
+                        {selectedTemplate.body.length} characters • {selectedTemplate.body.length <= SMS_MAX_SINGLE ? '1 segment' : `${Math.ceil(selectedTemplate.body.length / 153)} segments`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedTemplate && isPush && (
+                <div className="max-w-sm mx-auto space-y-4">
+                  <div className="bg-muted rounded-xl p-4 shadow-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center shrink-0">
+                        <Bell className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm">{replaceSampleData(selectedTemplate.subject || selectedTemplate.name)}</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{replaceSampleData(selectedTemplate.body)}</p>
+                        <p className="text-xs text-muted-foreground mt-2">now</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedTemplate && isInApp && (
+                <div className="max-w-md mx-auto space-y-4">
+                  <Card>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-2">
+                        <Smartphone className="h-3.5 w-3.5" />
+                        <span>In-App Message Preview</span>
+                      </div>
+                      <h3 className="font-semibold text-base">{replaceSampleData(selectedTemplate.subject || selectedTemplate.name)}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {replaceSampleData(selectedTemplate.body)}
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </div>
@@ -897,7 +1061,7 @@ export default function EmailTemplateManager() {
       </Dialog>
 
       {/* ════════════════════════════════════════════════════════════
-          LAYOUT EDITOR DIALOG
+          LAYOUT EDITOR DIALOG (Email only)
       ════════════════════════════════════════════════════════════ */}
       <Dialog open={isLayoutOpen} onOpenChange={setIsLayoutOpen}>
         <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0">
@@ -959,7 +1123,7 @@ export default function EmailTemplateManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Template</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{selectedTemplate?.name}</strong>? This action cannot be undone. If this template is mapped to a trigger event, emails will stop sending.
+              Are you sure you want to delete <strong>{selectedTemplate?.name}</strong>? This action cannot be undone. If this template is mapped to a trigger event, notifications will stop sending.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
