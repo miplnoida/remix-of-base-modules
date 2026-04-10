@@ -99,9 +99,9 @@ export function useWorkflowInstances(
       if (error) throw error;
       
       // Batch-fetch all current step names in a single query (fixes N+1)
-      const stepIds = [...new Set(
+      const stepIds = Array.from(new Set(
         (data || []).map(i => i.current_step_id).filter(Boolean) as string[]
-      )];
+      ));
       let stepNameMap = new Map<string, string>();
       if (stepIds.length > 0) {
         const { data: steps } = await supabase

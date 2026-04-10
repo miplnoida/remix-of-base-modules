@@ -125,7 +125,7 @@ export function useMyPendingApprovals() {
       if (!tasks || tasks.length === 0) return [];
 
       // Batch-fetch all step configurations in a single query (fixes N+1)
-      const uniqueStepIds = [...new Set(tasks.map(t => t.step_id).filter(Boolean))];
+      const uniqueStepIds = Array.from(new Set(tasks.map(t => t.step_id).filter(Boolean))) as string[];
       let stepMap = new Map<string, any>();
       if (uniqueStepIds.length > 0) {
         const { data: stepsData } = await supabase
