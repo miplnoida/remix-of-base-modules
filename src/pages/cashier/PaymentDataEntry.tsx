@@ -16,14 +16,16 @@ import { useBatchSelection } from '@/hooks/useBatchSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { useMopDetailConfig } from '@/hooks/usePaymentModuleConfig';
 import { useEmailDeliveryConfig, sendDocumentEmail, resolvePayerEmail } from '@/hooks/useEmailDeliveryConfig';
+import { useReceiptCancelRequestByPayment, useCreateReceiptCancelRequest, useApplyReceiptCancellation } from '@/hooks/useReceiptCancelRequests';
 import { toast } from '@/hooks/use-toast';
 import { formatDateForStorage } from '@/lib/dateFormat';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { logApplicationError } from '@/lib/globalErrorHandler';
 import { printConfiguredReceipt } from '@/lib/receiptPrinter';
 import {
-  RotateCcw, XCircle, Loader2, Receipt, PlusCircle,
+  RotateCcw, XCircle, Loader2, Receipt, PlusCircle, CheckCircle,
 } from 'lucide-react';
 
 type FlowState = 'entry' | 'saving' | 'saved';
@@ -328,7 +330,11 @@ const PaymentDataEntry = () => {
     }
   }, [savedPaymentId, receipt, userCode]);
 
-  // --- Cancel Receipt ---
+  // --- Cancel Receipt (workflow-based) ---
+  const { data: activeCancelRequest, isLoading: cancelReqLoading } = useReceiptCancelRequestByPayment(savedPaymentId);
+  const createCancelRequest = useCreateReceiptCancelRequest();
+  const applyCancellation = useApplyReceiptCancellation();
+
   const handleCancelReceipt = useCallback(async (reason: string) => {
     if (!savedPaymentId || !receipt.currentReceipt) return;
     if (receipt.currentReceipt.status !== 'O') {
@@ -336,26 +342,35 @@ const PaymentDataEntry = () => {
       setShowCancelModal(false);
       return;
     }
-    const uCode = userCode || 'SYS';
     try {
-      const { error } = await supabase.from('cn_receipt').update({
-        status: 'C',
-        cancel_reason: reason,
-        cancel_date: new Date().toISOString(),
-        cancel_user: uCode,
-        updated_by: uCode,
-        updated_at: new Date().toISOString(),
-      } as any).eq('receipt_id', receipt.currentReceipt.receipt_id);
-      if (error) throw error;
-
-      await receipt.loadReceipt(savedPaymentId);
-      toast({ title: 'Receipt Cancelled', description: 'Receipt has been cancelled.' });
+      await createCancelRequest.mutateAsync({
+        batchNumber: batch.currentBatch?.batch_number || batchSel.selectedBatch?.batch_number || '',
+        paymentId: savedPaymentId,
+        receiptId: receipt.currentReceipt.receipt_id,
+        receiptTotal: receipt.currentReceipt.receipt_total,
+        reason,
+      });
       setShowCancelModal(false);
     } catch (err: any) {
       await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleCancelReceipt', entity_type: 'cn_receipt', entity_id: String(receipt.currentReceipt?.receipt_id), request_payload: { payment_id: savedPaymentId, reason } });
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
-  }, [savedPaymentId, receipt, userCode]);
+  }, [savedPaymentId, receipt, batch.currentBatch, batchSel.selectedBatch, createCancelRequest]);
+
+  const handleApplyCancellation = useCallback(async () => {
+    if (!activeCancelRequest || !receipt.currentReceipt || !savedPaymentId) return;
+    try {
+      await applyCancellation.mutateAsync({
+        requestId: activeCancelRequest.id,
+        receiptId: receipt.currentReceipt.receipt_id,
+        paymentId: savedPaymentId,
+        batchNumber: activeCancelRequest.batch_number,
+        reason: activeCancelRequest.reason,
+      });
+      await receipt.loadReceipt(savedPaymentId);
+    } catch (err: any) {
+      await logApplicationError(err, { module: 'PaymentDataEntry', action: 'handleApplyCancellation', entity_type: 'cn_receipt', entity_id: String(receipt.currentReceipt?.receipt_id) });
+    }
+  }, [activeCancelRequest, receipt, savedPaymentId, applyCancellation]);
 
   // --- New Payment (reset) ---
   const resetForm = useCallback(() => {
@@ -373,7 +388,9 @@ const PaymentDataEntry = () => {
   const isEntry = flowState === 'entry';
   const isSaving = flowState === 'saving';
   const isSaved = flowState === 'saved';
-  const canCancel = isSaved && receipt.currentReceipt?.status === 'O';
+  const canCancel = isSaved && receipt.currentReceipt?.status === 'O' && !activeCancelRequest;
+  const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
+  const isApprovedReady = activeCancelRequest?.status === 'Approved';
   const canReprint = isSaved && !!receipt.currentReceipt;
 
   return (
@@ -411,6 +428,17 @@ const PaymentDataEntry = () => {
           <Button onClick={handleReprint} variant="outline" size="sm" disabled={!canReprint}>
             <RotateCcw className="h-4 w-4 mr-1" /> Re-Print
           </Button>
+
+          {isPendingApproval && (
+            <Badge variant="warning" className="text-xs py-1">Pending Cancellation Approval</Badge>
+          )}
+
+          {isApprovedReady && (
+            <Button onClick={handleApplyCancellation} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
+              {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+              Apply Approved Cancellation
+            </Button>
+          )}
 
           <Button onClick={() => setShowCancelModal(true)} variant="destructive" size="sm" disabled={!canCancel}>
             <XCircle className="h-4 w-4 mr-1" /> Cancel Receipt
