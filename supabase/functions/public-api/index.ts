@@ -477,6 +477,7 @@ async function handleC3ReportedInsert(supabase: ReturnType<typeof createClient>,
     p_emp_ss_fines_due: payload.emp_ss_fines_due != null ? Number(payload.emp_ss_fines_due) : null,
     p_emp_levy_penalty_amt: payload.emp_levy_penalty_amt != null ? Number(payload.emp_levy_penalty_amt) : null,
     p_emp_pe_penalty_amt: payload.emp_pe_penalty_amt != null ? Number(payload.emp_pe_penalty_amt) : null,
+    p_is_for_director: payload.is_for_director != null ? Boolean(payload.is_for_director) : false,
   });
   if (error) throw error;
   return data;

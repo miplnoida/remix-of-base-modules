@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     // Fetch payment header
     const { data: header, error: headerErr } = await supabase
       .from("cn_payment_header")
-      .select("payer_id, payer_type")
+      .select("payer_id, payer_type, is_for_director")
       .eq("payment_id", payment_id)
       .single();
     if (headerErr || !header) {
@@ -193,6 +193,11 @@ Deno.serve(async (req) => {
       currency: baseCurrency,
       receipt_amount: String(receipt.receipt_total || 0),
     };
+
+    // Include is_for_director flag when true (NWD record)
+    if (header.is_for_director) {
+      payload.is_for_director = "true";
+    }
 
     // Conditional fields
     if (header.payer_type === "SE") {

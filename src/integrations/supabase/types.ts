@@ -13729,6 +13729,7 @@ export type Database = {
           emp_ss_fines_due: number | null
           entered_by: string | null
           id: string
+          is_for_director: boolean
           modified_by: string | null
           modified_date: string | null
           nil_return: boolean | null
@@ -13763,6 +13764,7 @@ export type Database = {
           emp_ss_fines_due?: number | null
           entered_by?: string | null
           id?: string
+          is_for_director?: boolean
           modified_by?: string | null
           modified_date?: string | null
           nil_return?: boolean | null
@@ -13797,6 +13799,7 @@ export type Database = {
           emp_ss_fines_due?: number | null
           entered_by?: string | null
           id?: string
+          is_for_director?: boolean
           modified_by?: string | null
           modified_date?: string | null
           nil_return?: boolean | null
@@ -14782,6 +14785,7 @@ export type Database = {
           batch_number: string
           created_at: string | null
           date_received: string | null
+          is_for_director: boolean
           payer_id: string
           payer_type: string
           payment_id: number
@@ -14793,6 +14797,7 @@ export type Database = {
           batch_number: string
           created_at?: string | null
           date_received?: string | null
+          is_for_director?: boolean
           payer_id: string
           payer_type: string
           payment_id?: number
@@ -14804,6 +14809,7 @@ export type Database = {
           batch_number?: string
           created_at?: string | null
           date_received?: string | null
+          is_for_director?: boolean
           payer_id?: string
           payer_type?: string
           payment_id?: number
@@ -38931,6 +38937,7 @@ export type Database = {
       }
       get_c3_component_balances: {
         Args: {
+          p_is_for_director?: boolean
           p_payer_id: string
           p_payer_type: string
           p_period: string
@@ -39637,6 +39644,7 @@ export type Database = {
               p_emp_ss_amt_calc?: number
               p_emp_ss_fines_due?: number
               p_entered_by?: string
+              p_is_for_director?: boolean
               p_nil_return?: boolean
               p_notes?: string
               p_number_employed?: number
