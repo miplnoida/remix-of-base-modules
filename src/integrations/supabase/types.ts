@@ -38708,6 +38708,7 @@ export type Database = {
           p_batch_number: string
           p_components?: Json
           p_date_received: string
+          p_is_for_director?: boolean
           p_methods?: Json
           p_payer_id: string
           p_payer_type: string

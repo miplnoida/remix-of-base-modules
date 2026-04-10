@@ -399,7 +399,7 @@ const C3Payments: React.FC = () => {
 
       const { data: result, error: rpcErr } = await supabase.rpc('create_c3_payment_with_receipt' as any, {
         p_batch_number: batchSel.selectedBatch.batch_number,
-        p_payer_type: payerType,
+        p_payer_type: payerType === 'NW' ? 'ER' : payerType,
         p_payer_id: payerId.trim(),
         p_date_received: dateRcvd,
         p_remarks: remarks || null,
@@ -407,6 +407,7 @@ const C3Payments: React.FC = () => {
         p_methods: methodsJson,
         p_receipt_total: totalPaymentReceived,
         p_user_code: uCode,
+        p_is_for_director: payerType === 'NW',
       });
 
       if (rpcErr) {
