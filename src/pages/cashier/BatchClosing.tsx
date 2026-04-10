@@ -189,12 +189,8 @@ const BatchClosing: React.FC = () => {
         batchNumber: req.batch_number,
         reason: req.reason,
       });
-      // Re-fetch batch data so cancelled receipts are filtered out
-      if (batchNumber) {
-        await fetchTotals(batchNumber);
-      }
     } catch (_) {}
-  }, [applyCancellation, batchNumber, fetchTotals]);
+  }, [applyCancellation]);
 
   useEffect(() => {
     const fetchMops = async () => {
