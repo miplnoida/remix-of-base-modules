@@ -18,6 +18,7 @@ import {
   resyncPayment,
   type NwdContributionRecord,
 } from '@/services/wizC3DetailsService';
+import { useSessionPersistedSearch } from '@/hooks/useSessionPersistedSearch';
 import { getNwCompanies, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import NwdContributionPreview from './previews/NwdContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
@@ -58,8 +59,25 @@ const NwDirectorList: React.FC = () => {
   const [resyncConfirmRecord, setResyncConfirmRecord] = useState<NwdContributionRecord | null>(null);
   const [resyncing, setResyncing] = useState(false);
 
+  // Session persistence
+  interface NwdFilters { entityId: string; periodFromMonth: string; periodFromYear: string; periodToMonth: string; periodToYear: string; }
+  const { save: saveSession, load: loadSession } = useSessionPersistedSearch<NwdFilters, NwdContributionRecord[]>('nw-director');
+
   useEffect(() => {
-    getNwCompanies().then(res => setCompanies(res.data?.companies || [])).catch(() => {});
+    getNwCompanies().then(res => {
+      const companiesData = res.data?.companies || [];
+      setCompanies(companiesData);
+
+      const persisted = loadSession();
+      if (persisted && companiesData.length > 0) {
+        setSelectedCompanyId(persisted.filters.entityId);
+        setPeriodFromMonth(persisted.filters.periodFromMonth);
+        setPeriodFromYear(persisted.filters.periodFromYear);
+        setPeriodToMonth(persisted.filters.periodToMonth);
+        setPeriodToYear(persisted.filters.periodToYear);
+        setContributions(persisted.results);
+      }
+    }).catch(() => {});
   }, []);
 
   const handleSearch = useCallback(async () => {
@@ -69,7 +87,12 @@ const NwDirectorList: React.FC = () => {
       const periodFrom = periodFromMonth && periodFromYear ? `${periodFromMonth}-${periodFromYear}` : undefined;
       const periodTo = periodToMonth && periodToYear ? `${periodToMonth}-${periodToYear}` : undefined;
       const res = await getNwdContributionList({ company_id: Number(selectedCompanyId), period_from: periodFrom, period_to: periodTo });
-      setContributions(res.data?.contributions || []);
+      const data = res.data?.contributions || [];
+      setContributions(data);
+      saveSession(
+        { entityId: selectedCompanyId, periodFromMonth, periodFromYear, periodToMonth, periodToYear },
+        data
+      );
     } catch (err: any) {
       toast.error(err.message || 'Failed to load contributions');
     } finally { setLoading(false); }

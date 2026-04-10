@@ -18,6 +18,7 @@ import {
   resyncPayment,
   type C3ContributionRecord,
 } from '@/services/wizC3DetailsService';
+import { useSessionPersistedSearch } from '@/hooks/useSessionPersistedSearch';
 import { getCompaniesDropdown, type WizCompanyDropdown } from '@/services/wizAdminApiService';
 import C3ContributionPreview from './previews/C3ContributionPreview';
 import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
@@ -65,9 +66,25 @@ const C3ContributionList: React.FC = () => {
   const [resyncConfirmRecord, setResyncConfirmRecord] = useState<C3ContributionRecord | null>(null);
   const [resyncing, setResyncing] = useState(false);
 
+  // Session persistence
+  interface C3Filters { entityId: string; periodFromMonth: string; periodFromYear: string; periodToMonth: string; periodToYear: string; }
+  const { save: saveSession, load: loadSession } = useSessionPersistedSearch<C3Filters, C3ContributionRecord[]>('c3-contribution');
+
   useEffect(() => {
     getCompaniesDropdown().then(res => {
-      setCompanies(res.data?.companies || []);
+      const companiesData = res.data?.companies || [];
+      setCompanies(companiesData);
+
+      // Restore persisted session after companies are loaded
+      const persisted = loadSession();
+      if (persisted && companiesData.length > 0) {
+        setSelectedCompanyId(persisted.filters.entityId);
+        setPeriodFromMonth(persisted.filters.periodFromMonth);
+        setPeriodFromYear(persisted.filters.periodFromYear);
+        setPeriodToMonth(persisted.filters.periodToMonth);
+        setPeriodToYear(persisted.filters.periodToYear);
+        setContributions(persisted.results);
+      }
     }).catch(() => {});
   }, []);
 
@@ -82,7 +99,12 @@ const C3ContributionList: React.FC = () => {
         period_from: periodFrom,
         period_to: periodTo,
       });
-      setContributions(res.data?.contributions || []);
+      const data = res.data?.contributions || [];
+      setContributions(data);
+      saveSession(
+        { entityId: selectedCompanyId, periodFromMonth, periodFromYear, periodToMonth, periodToYear },
+        data
+      );
     } catch (err: any) {
       toast.error(err.message || 'Failed to load contributions');
     } finally {
