@@ -1,94 +1,44 @@
 
 
-# Plan: Session-Persistent Search Criteria and Results for C3 Screens
+# Set Base URL for Benefit Management Module
 
-## Problem
+## What This Does
 
-On all three C3 contribution screens, when a cashier navigates away (e.g., to process a payment) and returns, all search filters and results are lost. The cashier must re-enter criteria and re-search, wasting time during sequential payment workflows.
+Updates the `Benefit Management` parent module in the `app_modules` table to set `base_url = 'https://benefits.secureserve.biz'`. Once set, all child menu items under Benefit Management will automatically resolve their routes as external URLs (e.g., `https://benefits.secureserve.biz/bn/claims`). The existing sidebar infrastructure already handles this — `useDynamicNavigation` propagates `base_url` from parent to children, and `SidebarMenuLink` uses `window.location.href` for external URLs.
 
-## Approach: Client-Side `sessionStorage` with User-Scoped Keys
+## Steps
 
-Backend persistence is unnecessary here. The data involved is:
-- **Filters**: 5-6 string values (selected entity ID, period months/years) — a few hundred bytes
-- **Results**: JSON array returned from external C3-Wizard API — typically under 50KB
+### 1. Database Migration — Set `base_url` on the parent module
 
-Using `sessionStorage` is the right fit because:
-- Automatically clears when the browser tab/session closes (no cleanup needed)
-- Instant read/write with no network latency
-- Naturally isolated per browser tab
-- User isolation is achieved by including the authenticated user's ID in the storage key
-
-No database tables, RPCs, or edge functions are needed.
-
-## Implementation
-
-### 1. Create a reusable hook: `src/hooks/useSessionPersistedSearch.ts`
-
-A generic hook that:
-- Accepts a `screenKey` (e.g., `'c3-contribution'`, `'nw-director'`, `'self-employed-c3'`)
-- Reads the current user ID from `SupabaseAuthContext`
-- Constructs a storage key: `c3_search_{screenKey}_{userId}`
-- Provides `save(filters, results)` and `load()` methods, plus a `clear()` method
-- On `save`: serializes filters + results to `sessionStorage`, completely replacing any prior data
-- On `load`: deserializes and returns `{ filters, results } | null`
-
-### 2. Update `C3ContributionList.tsx`
-
-- Import the hook with `screenKey = 'c3-contribution'`
-- On mount (`useEffect`): call `load()`. If data exists, restore `selectedCompanyId`, `periodFromMonth/Year`, `periodToMonth/Year` and `contributions` state
-- In `handleSearch`: after successful API response, call `save()` with current filters and the fetched `contributions` array (full replacement, no merging)
-- UI fields will naturally reflect restored state since they're bound to the same state variables
-
-### 3. Update `NwDirectorList.tsx`
-
-- Same pattern with `screenKey = 'nw-director'`
-- Restore `selectedCompanyId`, period filters, and `contributions`
-
-### 4. Update `SelfEmployedContributionList.tsx`
-
-- Same pattern with `screenKey = 'self-employed-c3'`
-- Restore `selectedSeId`, period filters, and `contributions`
-
-## Technical Details
-
-```text
-sessionStorage key format:
-  c3_search_{screenKey}_{userId}
-
-Stored value (JSON):
-{
-  "filters": {
-    "entityId": "123",
-    "periodFromMonth": "Jan",
-    "periodFromYear": "2026",
-    "periodToMonth": "Mar",
-    "periodToYear": "2026"
-  },
-  "results": [ ...contribution records... ],
-  "timestamp": 1712764800000
-}
+```sql
+UPDATE app_modules
+SET base_url = 'https://benefits.secureserve.biz'
+WHERE id = '839cee37-4006-43a4-a53c-6d0cea76a6b0';
 ```
 
-- Each new Search click overwrites the entire stored value — no merging
-- User ID from `useSupabaseAuth()` ensures isolation between users
-- `sessionStorage` is tab-scoped, so different tabs are naturally isolated
-- No expiration logic needed — `sessionStorage` auto-clears on tab close
+This single update cascades to all 13+ child modules automatically via the `useDynamicNavigation` hook's `effectiveBaseUrl` inheritance logic.
+
+### 2. Verify Sidebar Navigation
+
+After the migration, confirm that:
+- Clicking any Benefit Management sub-item in the sidebar navigates to `https://benefits.secureserve.biz/bn/...`
+- The sidebar correctly renders all child items with their icons and titles
+- Non-benefit modules are unaffected
+
+## No Code Changes Required
+
+The existing infrastructure already supports this:
+- `useDynamicNavigation.ts` line 176: `const effectiveBaseUrl = module.base_url || parentBaseUrl || null;`
+- `useDynamicNavigation.ts` line 187-188: Prepends `base_url` to routes
+- `SidebarMenuLink.tsx` line 20-28: Detects `http://` / `https://` and uses `window.location.href`
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| `src/hooks/useSessionPersistedSearch.ts` | **New** — reusable hook for session-scoped search persistence |
-| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Add restore-on-mount + save-on-search |
-| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Add restore-on-mount + save-on-search |
-| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Add restore-on-mount + save-on-search |
+| **Migration (SQL)** | `UPDATE app_modules SET base_url = 'https://benefits.secureserve.biz'` on `benefit_management` row |
 
-## Impact
+## Important Note
 
-- Zero backend changes — no migrations, no new tables
-- No regression: search behavior unchanged; persistence is additive
-- Cashiers can process multiple payments sequentially without re-searching
-- Navigating away and returning restores the exact prior state
-- New search fully replaces old data
-- Different users on different sessions never see each other's data
+This assumes the satellite app at `https://benefits.secureserve.biz` is deployed and running with the shared backend credentials (same Supabase URL and anon key). If that app is not yet live, the sidebar links will navigate to it but the destination may not load.
 
