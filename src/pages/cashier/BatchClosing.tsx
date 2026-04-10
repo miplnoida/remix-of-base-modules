@@ -136,6 +136,10 @@ const BatchClosing: React.FC = () => {
   const [showBatchCancelModal, setShowBatchCancelModal] = useState(false);
   const [cancelTargetPayment, setCancelTargetPayment] = useState<BatchPaymentRow | null>(null);
 
+  // Apply cancel confirmation dialog
+  const [confirmApplyCancelOpen, setConfirmApplyCancelOpen] = useState(false);
+  const [applyCancelTarget, setApplyCancelTarget] = useState<ReceiptCancelRequest | null>(null);
+
   const officeCode = batchSel.selectedBatch?.office_code;
   const { allMachines } = useOfficeCardMachines(officeCode);
 
@@ -815,12 +819,15 @@ const BatchClosing: React.FC = () => {
                                       size="sm"
                                       className="h-6 text-xs px-2"
                                       disabled={applyCancellation.isPending}
-                                      onClick={() => handleApplyBatchCancellation(cancelReq!)}
+                                      onClick={() => {
+                                        setApplyCancelTarget(cancelReq!);
+                                        setConfirmApplyCancelOpen(true);
+                                      }}
                                     >
                                       Apply Cancel
                                     </Button>
                                   )}
-                                  {p.status === 'O' && !cancelReq && (
+                                  {p.status === 'O' && (!cancelReq || cancelReq.status === 'Rejected') && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -1189,6 +1196,28 @@ const BatchClosing: React.FC = () => {
           onConfirm={handleBatchCancelReceipt}
           isLoading={createCancelRequest.isPending}
           receiptId={cancelTargetPayment?.payment_id}
+        />
+        {/* Apply Cancel Confirmation Dialog */}
+        <ConfirmDialog
+          open={confirmApplyCancelOpen}
+          onOpenChange={setConfirmApplyCancelOpen}
+          title="Confirm Receipt Cancellation"
+          description="Are you sure you want to apply this approved cancellation? This will permanently cancel the receipt and cannot be undone."
+          confirmLabel="Yes, Cancel Receipt"
+          cancelLabel="No, Go Back"
+          variant="destructive"
+          isLoading={applyCancellation.isPending}
+          onConfirm={async () => {
+            if (applyCancelTarget) {
+              await handleApplyBatchCancellation(applyCancelTarget);
+              // Re-fetch batch data so cancelled receipts are filtered out
+              if (batchNumber) {
+                await fetchTotals(batchNumber);
+              }
+              setConfirmApplyCancelOpen(false);
+              setApplyCancelTarget(null);
+            }
+          }}
         />
       </div>
     </BatchSelectionGuard>

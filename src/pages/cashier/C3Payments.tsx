@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -500,6 +501,7 @@ const C3Payments: React.FC = () => {
   const canCancel = isSaved && receiptActions.currentReceipt?.status === 'O' && !activeCancelRequest;
   const isPendingApproval = !!activeCancelRequest && ['Pending', 'InProgress'].includes(activeCancelRequest.status);
   const isApprovedReady = activeCancelRequest?.status === 'Approved';
+  const [confirmApplyCancelOpen, setConfirmApplyCancelOpen] = useState(false);
 
   const handleCancelReceipt = useCallback(async (reason: string) => {
     if (!savedPaymentId || !receiptActions.currentReceipt) return;
@@ -616,7 +618,7 @@ const C3Payments: React.FC = () => {
             <Badge variant="warning" className="text-xs py-1">Pending Cancellation Approval</Badge>
           )}
           {isApprovedReady && (
-            <Button onClick={handleApplyCancellation} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
+            <Button onClick={() => setConfirmApplyCancelOpen(true)} variant="destructive" size="sm" disabled={applyCancellation.isPending}>
               {applyCancellation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
               Apply Approved Cancellation
             </Button>
@@ -904,6 +906,20 @@ const C3Payments: React.FC = () => {
             sort_order: i,
           }))}
           methods={methods.map(m => ({ mop_code: m.mop_code, currency_code: m.currency_code, original_amount: m.original_amount }))}
+        />
+        <ConfirmDialog
+          open={confirmApplyCancelOpen}
+          onOpenChange={setConfirmApplyCancelOpen}
+          title="Confirm Receipt Cancellation"
+          description="Are you sure you want to apply this approved cancellation? This will permanently cancel the receipt and cannot be undone."
+          confirmLabel="Yes, Cancel Receipt"
+          cancelLabel="No, Go Back"
+          variant="destructive"
+          isLoading={applyCancellation.isPending}
+          onConfirm={async () => {
+            await handleApplyCancellation();
+            setConfirmApplyCancelOpen(false);
+          }}
         />
       </div>
     </BatchSelectionGuard>
