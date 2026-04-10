@@ -1,61 +1,94 @@
 
 
-# Fix: `get_c3_component_balances` RPC Not Filtering by Sequence Number
+# Plan: Session-Persistent Search Criteria and Results for C3 Screens
 
-## Root Cause
+## Problem
 
-The `$200` discrepancy comes from the `get_c3_component_balances` RPC used by the C3 Payments screen (`/cashier/c3-payments`). 
+On all three C3 contribution screens, when a cashier navigates away (e.g., to process a payment) and returns, all search filters and results are lost. The cashier must re-enter criteria and re-search, wasting time during sequential payment workflows.
 
-**Payment History popup** (`get_c3_payment_history_by_schedule`): Correctly joins `c3_payment_components` and filters by `sequence_no = 4`. Finds no payments → shows $0 paid, full due of $5,395.02.
+## Approach: Client-Side `sessionStorage` with User-Scoped Keys
 
-**C3 Payments screen** (`get_c3_component_balances`): Sums paid amounts from `cn_payment` matching the payer/period, but **does NOT filter by `sequence_no`**. It sums payments across ALL schedules (1, 2, 3, etc.) — deducting $200 that was actually paid against other schedules, incorrectly reducing the balance to $5,195.02.
+Backend persistence is unnecessary here. The data involved is:
+- **Filters**: 5-6 string values (selected entity ID, period months/years) — a few hundred bytes
+- **Results**: JSON array returned from external C3-Wizard API — typically under 50KB
 
-The bug is in `get_c3_component_balances` at lines 90–106 of migration `20260410132635`:
+Using `sessionStorage` is the right fit because:
+- Automatically clears when the browser tab/session closes (no cleanup needed)
+- Instant read/write with no network latency
+- Naturally isolated per browser tab
+- User isolation is achieved by including the authenticated user's ID in the storage key
 
-```sql
--- Current: sums ALL payments for this payer+period regardless of schedule
-SELECT cp.payment_code, SUM(COALESCE(cp.payment_amount, 0)) AS total_paid
-FROM cn_payment cp
-INNER JOIN cn_payment_header h ON h.payment_id = cp.payment_id
-INNER JOIN cn_receipt r ON r.payment_id = cp.payment_id
-WHERE h.payer_id = p_payer_id ...
-  AND cp.period = p_period::timestamp
-  -- MISSING: no join to c3_payment_components, no sequence_no filter
+No database tables, RPCs, or edge functions are needed.
+
+## Implementation
+
+### 1. Create a reusable hook: `src/hooks/useSessionPersistedSearch.ts`
+
+A generic hook that:
+- Accepts a `screenKey` (e.g., `'c3-contribution'`, `'nw-director'`, `'self-employed-c3'`)
+- Reads the current user ID from `SupabaseAuthContext`
+- Constructs a storage key: `c3_search_{screenKey}_{userId}`
+- Provides `save(filters, results)` and `load()` methods, plus a `clear()` method
+- On `save`: serializes filters + results to `sessionStorage`, completely replacing any prior data
+- On `load`: deserializes and returns `{ filters, results } | null`
+
+### 2. Update `C3ContributionList.tsx`
+
+- Import the hook with `screenKey = 'c3-contribution'`
+- On mount (`useEffect`): call `load()`. If data exists, restore `selectedCompanyId`, `periodFromMonth/Year`, `periodToMonth/Year` and `contributions` state
+- In `handleSearch`: after successful API response, call `save()` with current filters and the fetched `contributions` array (full replacement, no merging)
+- UI fields will naturally reflect restored state since they're bound to the same state variables
+
+### 3. Update `NwDirectorList.tsx`
+
+- Same pattern with `screenKey = 'nw-director'`
+- Restore `selectedCompanyId`, period filters, and `contributions`
+
+### 4. Update `SelfEmployedContributionList.tsx`
+
+- Same pattern with `screenKey = 'self-employed-c3'`
+- Restore `selectedSeId`, period filters, and `contributions`
+
+## Technical Details
+
+```text
+sessionStorage key format:
+  c3_search_{screenKey}_{userId}
+
+Stored value (JSON):
+{
+  "filters": {
+    "entityId": "123",
+    "periodFromMonth": "Jan",
+    "periodFromYear": "2026",
+    "periodToMonth": "Mar",
+    "periodToYear": "2026"
+  },
+  "results": [ ...contribution records... ],
+  "timestamp": 1712764800000
+}
 ```
 
-## Fix
-
-Update the paid-amounts aggregation in `get_c3_component_balances` to join `c3_payment_components` and filter by `sequence_no = p_sequence_no`:
-
-```sql
-SELECT cp.payment_code, SUM(COALESCE(cp.payment_amount, 0)) AS total_paid
-FROM cn_payment cp
-INNER JOIN cn_payment_header h ON h.payment_id = cp.payment_id
-INNER JOIN cn_receipt r ON r.payment_id = cp.payment_id
-INNER JOIN c3_payment_components cpc 
-  ON cpc.payment_id = cp.payment_id::BIGINT
-WHERE h.payer_id = p_payer_id
-  AND h.payer_type = p_payer_type
-  AND h.status IS DISTINCT FROM 'deleted'
-  AND r.status != 'C'
-  AND COALESCE(h.is_for_director, FALSE) = COALESCE(p_is_for_director, FALSE)
-  AND cp.period = p_period::timestamp
-  AND cp.payment_code = ANY(v_codes)
-  AND cpc.sequence_no = p_sequence_no
-GROUP BY cp.payment_code
-```
-
-This ensures only payments mapped to the specific schedule are deducted, making the C3 Payments screen balance consistent with the Payment History popup.
+- Each new Search click overwrites the entire stored value — no merging
+- User ID from `useSupabaseAuth()` ensures isolation between users
+- `sessionStorage` is tab-scoped, so different tabs are naturally isolated
+- No expiration logic needed — `sessionStorage` auto-clears on tab close
 
 ## Files Modified
 
 | File | Change |
 |---|---|
-| **Migration** | Recreate `get_c3_component_balances` with `c3_payment_components` join filtered by `p_sequence_no` |
+| `src/hooks/useSessionPersistedSearch.ts` | **New** — reusable hook for session-scoped search persistence |
+| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Add restore-on-mount + save-on-search |
+| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Add restore-on-mount + save-on-search |
+| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Add restore-on-mount + save-on-search |
 
 ## Impact
 
-- Fixes the $200 discrepancy — both screens will now show consistent balances
-- No UI changes needed
-- No regression: the RPC already accepts `p_sequence_no` as a parameter; it was just not used in the paid-amount calculation
+- Zero backend changes — no migrations, no new tables
+- No regression: search behavior unchanged; persistence is additive
+- Cashiers can process multiple payments sequentially without re-searching
+- Navigating away and returning restores the exact prior state
+- New search fully replaces old data
+- Different users on different sessions never see each other's data
 
