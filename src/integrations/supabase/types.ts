@@ -382,6 +382,7 @@ export type Database = {
       }
       app_modules: {
         Row: {
+          base_url: string | null
           business_key_column: string | null
           created_at: string | null
           created_by: string | null
@@ -401,6 +402,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          base_url?: string | null
           business_key_column?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -420,6 +422,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          base_url?: string | null
           business_key_column?: string | null
           created_at?: string | null
           created_by?: string | null
