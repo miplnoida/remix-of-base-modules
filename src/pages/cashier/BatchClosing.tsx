@@ -132,6 +132,10 @@ const BatchClosing: React.FC = () => {
   // Batch close guard dialog
   const [batchCloseGuardOpen, setBatchCloseGuardOpen] = useState(false);
 
+  // Receipt cancel states
+  const [showBatchCancelModal, setShowBatchCancelModal] = useState(false);
+  const [cancelTargetPayment, setCancelTargetPayment] = useState<BatchPaymentRow | null>(null);
+
   const officeCode = batchSel.selectedBatch?.office_code;
   const { allMachines } = useOfficeCardMachines(officeCode);
 
@@ -141,6 +145,48 @@ const BatchClosing: React.FC = () => {
   const createChangeRequest = useCreateCardMachineChangeRequest();
   const applyChange = useApplyCardMachineChange();
   const skipApproval = useSkipApprovedChange();
+
+  // Receipt cancel requests for this batch
+  const { data: cancelRequests = [] } = useReceiptCancelRequests(batchNumber);
+  const createCancelRequest = useCreateReceiptCancelRequest();
+  const applyCancellation = useApplyReceiptCancellation();
+
+  const handleBatchCancelReceipt = useCallback(async (reason: string) => {
+    if (!cancelTargetPayment || !batchNumber) return;
+    // Find receipt for this payment
+    const { data: rcpt } = await supabase
+      .from('cn_receipt')
+      .select('receipt_id, receipt_total')
+      .eq('payment_id', cancelTargetPayment.payment_id)
+      .maybeSingle();
+    if (!rcpt) {
+      toast({ title: 'No receipt found', variant: 'destructive' });
+      return;
+    }
+    try {
+      await createCancelRequest.mutateAsync({
+        batchNumber,
+        paymentId: cancelTargetPayment.payment_id,
+        receiptId: rcpt.receipt_id,
+        receiptTotal: rcpt.receipt_total,
+        reason,
+      });
+      setShowBatchCancelModal(false);
+      setCancelTargetPayment(null);
+    } catch (_) {}
+  }, [cancelTargetPayment, batchNumber, createCancelRequest]);
+
+  const handleApplyBatchCancellation = useCallback(async (req: ReceiptCancelRequest) => {
+    try {
+      await applyCancellation.mutateAsync({
+        requestId: req.id,
+        receiptId: req.receipt_id,
+        paymentId: req.payment_id,
+        batchNumber: req.batch_number,
+        reason: req.reason,
+      });
+    } catch (_) {}
+  }, [applyCancellation]);
 
   useEffect(() => {
     const fetchMops = async () => {
