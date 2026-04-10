@@ -1,44 +1,35 @@
-# Fix: "Payer Not Found" for NW Director Payments
+
+
+# Fix: "No C3 Record" for NW Director Payments
 
 ## Root Cause
 
-The NW Director list page navigates to C3 Payments with `payerType: 'NW'` (line 119 of `NwDirectorList.tsx`). However, `lookupPayer` in `usePaymentEntry.ts` only handles `'ER'`, `'SE'`, and `'AP'` explicitly. `'NW'` falls through to the `else` branch, which queries `ip_master` by SSN. Since the payer ID is an employer registration number (e.g., `658852`), it finds no match in `ip_master` and returns `null` — triggering "Payer not found."
+When navigating from the NW Director screen, `navState.payerType` is `'NW'`. The RPC call on line 214 passes `p_payer_type: 'NW'` directly to `get_c3_component_balances`. 
 
-**This is a mapping issue, not a data issue.** NWD contributions are filed under `payer_type = 'ER'` in the database. The payer is a valid employer in `er_master`. The `'NW'` type is only a UI/routing distinction to filter `is_for_director = TRUE` records.
+However, NWD records in `cn_c3_reported` are stored with `payer_type = 'ER'` and `is_for_director = TRUE`. The RPC's WHERE clause filters `payer_type = p_payer_type AND is_for_director = p_is_for_director`, so passing `'NW'` finds no match — hence "No C3 Record."
+
+The RPC already accepts a `p_is_for_director` parameter (added in the NWD migration), but C3Payments.tsx never passes it.
 
 ## Fix
 
-### 1. `src/hooks/usePaymentEntry.ts` — Add `'NW'` case to `lookupPayer`
+In `src/pages/cashier/C3Payments.tsx`, when calling the RPC (lines 212-217):
 
-Treat `'NW'` the same as `'ER'` — look up the payer in `er_master`:  
-Note: NW should not be payer_type as payer_type is ER but is_for_director = true means employer is paying or contributing for their non-wokring director.
+- If `pType === 'NW'`, pass `p_payer_type: 'ER'` and `p_is_for_director: true`
+- Otherwise, pass `p_payer_type: pType` and `p_is_for_director: false`
 
 ```typescript
-if (payerType === 'ER' || payerType === 'NW') {
-  // Both standard Employer and Non-Working Director resolve from er_master
-  const { data, error } = await supabase
-    .from('er_master')
-    .select('regno, name, status')
-    .eq('regno', payerId)
-    .single();
-  if (error || !data) return null;
-  return { id: data.regno, name: data.name, status: data.status };
-}
+const { data, error } = await supabase.rpc('get_c3_component_balances' as any, {
+  p_payer_id: regNo,
+  p_payer_type: pType === 'NW' ? 'ER' : pType,
+  p_period: periodDate,
+  p_sequence_no: parseInt(schedule, 10),
+  p_is_for_director: pType === 'NW',
+});
 ```
 
-### 2. `src/hooks/usePaymentEntry.ts` — Add `'NW'` case to `searchPayers`
+## File Modified
 
-Same pattern — the `searchPayers` function likely also needs to handle `'NW'` as `'ER'`.
+| File | Change |
+|---|---|
+| `src/pages/cashier/C3Payments.tsx` | Lines 212-217: Map `'NW'` to `'ER'` + `is_for_director: true` in the RPC call |
 
-### 3. No other changes needed
-
-- The `get_c3_component_balances` RPC already receives `p_payer_type: 'NW'` and handles NWD filtering server-side via `is_for_director`.
-- The `create_c3_payment_with_receipt` RPC will receive the correct payer type.
-- No database or migration changes required.
-
-## Files Modified
-
-
-| File                           | Change                                                   |
-| ------------------------------ | -------------------------------------------------------- |
-| `src/hooks/usePaymentEntry.ts` | Add `'NW'` to `lookupPayer` and `searchPayers` ER branch |
