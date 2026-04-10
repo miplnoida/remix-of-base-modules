@@ -1,35 +1,35 @@
-
-
-# Fix: "No C3 Record" for NW Director Payments
+# Fix: NWD "Fully Paid" Due to Missing `is_for_director` Filter in Payment Aggregation
 
 ## Root Cause
 
-When navigating from the NW Director screen, `navState.payerType` is `'NW'`. The RPC call on line 214 passes `p_payer_type: 'NW'` directly to `get_c3_component_balances`. 
+The `get_c3_component_balances` RPC aggregates paid amounts (lines 493-507) by joining `cn_payment_header` but does **not** filter on `h.is_for_director`. 
 
-However, NWD records in `cn_c3_reported` are stored with `payer_type = 'ER'` and `is_for_director = TRUE`. The RPC's WHERE clause filters `payer_type = p_payer_type AND is_for_director = p_is_for_director`, so passing `'NW'` finds no match — hence "No C3 Record."
+For employer `658852`, the query sums ALL LVC payments regardless of the director flag:
 
-The RPC already accepts a `p_is_for_director` parameter (added in the NWD migration), but C3Payments.tsx never passes it.
+- Regular ER LVC payments: **$3,638.13** (`is_for_director = false`)
+- NWD LVC payments: **$100.00** (`is_for_director = true`)
+- **Total counted as paid: $3,738.13**
+
+Since the NWD LVC due is only ~$202, the balance computes as 0 → "Fully Paid".  
+  
+Note/:- No it due 102 because 100 already paid by the employer.
 
 ## Fix
 
-In `src/pages/cashier/C3Payments.tsx`, when calling the RPC (lines 212-217):
+Add `is_for_director` filter to the paid-amount aggregation query in the RPC. One line change:
 
-- If `pType === 'NW'`, pass `p_payer_type: 'ER'` and `p_is_for_director: true`
-- Otherwise, pass `p_payer_type: pType` and `p_is_for_director: false`
-
-```typescript
-const { data, error } = await supabase.rpc('get_c3_component_balances' as any, {
-  p_payer_id: regNo,
-  p_payer_type: pType === 'NW' ? 'ER' : pType,
-  p_period: periodDate,
-  p_sequence_no: parseInt(schedule, 10),
-  p_is_for_director: pType === 'NW',
-});
+```sql
+-- Add after line 503 (AND r.status != 'C'):
+AND COALESCE(h.is_for_director, FALSE) = COALESCE(p_is_for_director, FALSE)
 ```
 
-## File Modified
+This ensures NWD payments are only counted against NWD balances, and regular ER payments only against regular ER balances.
 
-| File | Change |
-|---|---|
-| `src/pages/cashier/C3Payments.tsx` | Lines 212-217: Map `'NW'` to `'ER'` + `is_for_director: true` in the RPC call |
+## Change
 
+
+| What       | Detail                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Type**   | Database migration (RPC update)                                                                                                                                                            |
+| **File**   | New migration to recreate `get_c3_component_balances`                                                                                                                                      |
+| **Impact** | Fixes NWD partial payment detection; no regression on ER/SE/VC flows since `p_is_for_director` defaults to `FALSE` `Make sure: other functionality should not be impacted by this change.` |
