@@ -55,6 +55,7 @@ import { useWorkflowActionTypes } from '@/hooks/useMeetings';
 import { WorkflowActionApiConfig } from '@/components/workflow/WorkflowActionApiConfig';
 import { MeetingDepartmentConfig } from '@/components/workflow/MeetingDepartmentConfig';
 import { useUpdateMeetingNotifyConfig } from '@/hooks/useWorkflowMeetingDepartments';
+import { useActiveNotificationTypes } from '@/hooks/useNotificationTypes';
 // useWorkflowActionApiConfig now used internally by WorkflowActionApiConfig
 
 interface StepFormData {
@@ -165,7 +166,7 @@ const ACTION_TYPES = [
   'Custom',
 ];
 
-const NOTIFICATION_TYPES = ['Email', 'SMS', 'Push', 'In-App'];
+// NOTIFICATION_TYPES now fetched dynamically via useActiveNotificationTypes hook
 
 export default function WorkflowForm() {
   const navigate = useNavigate();
@@ -204,6 +205,7 @@ export default function WorkflowForm() {
   const { data: roles } = useDbRoles();
   const { data: designations } = useDesignations();
   const { data: dbActionTypes } = useWorkflowActionTypes();
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
   
   // refetchApiConfig kept for invalidation after save/delete (no longer needed for passing data)
   const refetchApiConfig = () => {};
@@ -1178,8 +1180,8 @@ export default function WorkflowForm() {
                                     <SelectValue placeholder="Select type" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {NOTIFICATION_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    {activeNotificationTypes.map((nt) => (
+                                      <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -1438,8 +1440,8 @@ export default function WorkflowForm() {
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="__none__">None</SelectItem>
-                                              {NOTIFICATION_TYPES.map((type) => (
-                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                              {activeNotificationTypes.map((nt) => (
+                                                <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
                                               ))}
                                             </SelectContent>
                                           </Select>

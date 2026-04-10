@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useActiveNotificationTypes } from "@/hooks/useNotificationTypes";
 
 interface NotificationTemplate {
   id: string;
@@ -29,10 +30,12 @@ interface NotificationTemplate {
   module?: { id: string; display_name: string } | null;
 }
 
-const CHANNELS = ['email', 'sms', 'push', 'in_app'] as const;
+// CHANNELS now fetched dynamically via useActiveNotificationTypes hook
 
 const NotificationTemplates = () => {
   const { user } = useSupabaseAuth();
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
+  const CHANNELS = activeNotificationTypes.map(nt => nt.code.toLowerCase());
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
@@ -45,7 +48,7 @@ const NotificationTemplates = () => {
   const [testRecipient, setTestRecipient] = useState("");
   const [formData, setFormData] = useState({
     name: '',
-    channel: 'email' as typeof CHANNELS[number],
+    channel: 'email' as string,
     subject: '',
     title: '',
     body: '',
@@ -85,7 +88,7 @@ const NotificationTemplates = () => {
       const placeholders = extractPlaceholders(formData.body);
       const { error } = await supabase.from('notification_templates').insert({
         name: formData.name,
-        channel: formData.channel,
+        channel: formData.channel as any,
         subject: formData.subject || null,
         title: formData.title || null,
         body: formData.body,
@@ -114,7 +117,7 @@ const NotificationTemplates = () => {
         .from('notification_templates')
         .update({
           name: formData.name,
-          channel: formData.channel,
+          channel: formData.channel as any,
           subject: formData.subject || null,
           title: formData.title || null,
           body: formData.body,

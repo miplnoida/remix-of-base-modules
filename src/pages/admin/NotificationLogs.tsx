@@ -10,6 +10,7 @@ import { FileText, Search, Download, Eye, Filter, Mail, MessageSquare, Bell, Ale
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatAuditDateTime, formatDateForStorage } from '@/lib/dateFormat';
+import { useActiveNotificationTypes } from "@/hooks/useNotificationTypes";
 
 interface NotificationLog {
   id: string;
@@ -27,10 +28,12 @@ interface NotificationLog {
   ip_address: string | null;
 }
 
-const CHANNELS = ['email', 'sms', 'push', 'in_app'];
+// CHANNELS now fetched dynamically via useActiveNotificationTypes hook
 const STATUSES = ['pending', 'sent', 'delivered', 'failed', 'bounced'];
 
 const NotificationLogs = () => {
+  const { data: activeNotificationTypes = [] } = useActiveNotificationTypes();
+  const CHANNELS = activeNotificationTypes.map(nt => nt.code.toLowerCase());
   const [filters, setFilters] = useState<{
     channel?: string;
     status?: string;

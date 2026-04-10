@@ -29543,6 +29543,8 @@ export type Database = {
           is_active: boolean | null
           is_default: boolean | null
           provider_name: string
+          push_provider_type: string | null
+          sms_provider_type: string | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -29558,6 +29560,8 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           provider_name: string
+          push_provider_type?: string | null
+          sms_provider_type?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -29573,6 +29577,8 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           provider_name?: string
+          push_provider_type?: string | null
+          sms_provider_type?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -29751,6 +29757,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_types: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       office_ip_addresses: {
         Row: {
@@ -39837,6 +39888,14 @@ export type Database = {
         Returns: Json
       }
       set_email_provider_default: {
+        Args: { provider_id: string }
+        Returns: undefined
+      }
+      set_push_provider_default: {
+        Args: { provider_id: string }
+        Returns: undefined
+      }
+      set_sms_provider_default: {
         Args: { provider_id: string }
         Returns: undefined
       }
