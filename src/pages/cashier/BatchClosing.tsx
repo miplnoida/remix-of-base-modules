@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle2, XCircle, Lock, AlertTriangle, ChevronDown, FileText, Landmark, CreditCard, Send, SkipForward } from 'lucide-react';
+import { ReceiptCancelModal } from '@/components/payments/ReceiptCancelModal';
+import {
+  useReceiptCancelRequests,
+  useCreateReceiptCancelRequest,
+  useApplyReceiptCancellation,
+  getActiveCancelRequest,
+  ReceiptCancelRequest,
+} from '@/hooks/useReceiptCancelRequests';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BatchSelectionGuard, BatchInfoBar } from '@/components/payments/BatchSelectionGuard';
@@ -734,22 +742,57 @@ const BatchClosing: React.FC = () => {
                             <TableHead>Receipt #</TableHead>
                             <TableHead>Payer</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="text-center">Cancel</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {batchPayments.map(p => (
-                            <TableRow
-                              key={p.payment_id}
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => handlePaymentRowClick(p)}
-                            >
-                              <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
-                              <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
-                              <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
-                            </TableRow>
-                          ))}
+                          {batchPayments.map(p => {
+                            const cancelReq = cancelRequests ? getActiveCancelRequest(cancelRequests, p.payment_id) : undefined;
+                            const isPending = cancelReq && ['Pending', 'InProgress'].includes(cancelReq.status);
+                            const isApproved = cancelReq?.status === 'Approved';
+                            return (
+                              <TableRow
+                                key={p.payment_id}
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => handlePaymentRowClick(p)}
+                              >
+                                <TableCell className="font-mono text-xs">{p.receipt_number}</TableCell>
+                                <TableCell className="text-sm">{p.payer_id || '—'}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(p.receipt_total)}</TableCell>
+                                <TableCell className="text-center" onClick={e => e.stopPropagation()}>
+                                  {isPending && (
+                                    <Badge variant="warning" className="text-[10px]">Pending</Badge>
+                                  )}
+                                  {isApproved && (
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="h-6 text-xs px-2"
+                                      disabled={applyCancellation.isPending}
+                                      onClick={() => handleApplyBatchCancellation(cancelReq!)}
+                                    >
+                                      Apply Cancel
+                                    </Button>
+                                  )}
+                                  {p.status === 'O' && !cancelReq && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 text-xs px-2 text-destructive hover:text-destructive"
+                                      onClick={() => {
+                                        setCancelTargetPayment(p);
+                                        setShowBatchCancelModal(true);
+                                      }}
+                                    >
+                                      <XCircle className="h-3 w-3 mr-1" />Cancel
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                           <TableRow className="border-t-2 font-semibold">
-                            <TableCell colSpan={2}>Grand Total</TableCell>
+                            <TableCell colSpan={3}>Grand Total</TableCell>
                             <TableCell className="text-right font-mono">
                               {formatCurrency(batchPayments.reduce((s, p) => s + p.receipt_total, 0))}
                             </TableCell>
