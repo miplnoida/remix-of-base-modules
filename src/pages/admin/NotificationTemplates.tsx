@@ -29,7 +29,7 @@ interface NotificationTemplate {
   module?: { id: string; display_name: string } | null;
 }
 
-const CHANNELS = ['email', 'sms', 'push', 'in_app'] as const;
+// CHANNELS now fetched dynamically via useActiveNotificationTypes hook
 
 const NotificationTemplates = () => {
   const { user } = useSupabaseAuth();

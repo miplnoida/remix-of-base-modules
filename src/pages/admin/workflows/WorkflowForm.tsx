@@ -165,7 +165,7 @@ const ACTION_TYPES = [
   'Custom',
 ];
 
-const NOTIFICATION_TYPES = ['Email', 'SMS', 'Push', 'In-App'];
+// NOTIFICATION_TYPES now fetched dynamically via useActiveNotificationTypes hook
 
 export default function WorkflowForm() {
   const navigate = useNavigate();

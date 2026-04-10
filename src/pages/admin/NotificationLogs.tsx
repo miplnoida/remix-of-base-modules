@@ -27,7 +27,7 @@ interface NotificationLog {
   ip_address: string | null;
 }
 
-const CHANNELS = ['email', 'sms', 'push', 'in_app'];
+// CHANNELS now fetched dynamically via useActiveNotificationTypes hook
 const STATUSES = ['pending', 'sent', 'delivered', 'failed', 'bounced'];
 
 const NotificationLogs = () => {
