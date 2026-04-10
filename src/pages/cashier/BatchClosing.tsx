@@ -823,12 +823,15 @@ const BatchClosing: React.FC = () => {
                                       size="sm"
                                       className="h-6 text-xs px-2"
                                       disabled={applyCancellation.isPending}
-                                      onClick={() => handleApplyBatchCancellation(cancelReq!)}
+                                      onClick={() => {
+                                        setApplyCancelTarget(cancelReq!);
+                                        setConfirmApplyCancelOpen(true);
+                                      }}
                                     >
                                       Apply Cancel
                                     </Button>
                                   )}
-                                  {p.status === 'O' && !cancelReq && (
+                                  {p.status === 'O' && (!cancelReq || cancelReq.status === 'Rejected') && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
