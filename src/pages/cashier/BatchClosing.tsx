@@ -1182,6 +1182,14 @@ const BatchClosing: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* Receipt Cancel Modal for Batch Transactions */}
+        <ReceiptCancelModal
+          open={showBatchCancelModal}
+          onClose={() => { setShowBatchCancelModal(false); setCancelTargetPayment(null); }}
+          onConfirm={handleBatchCancelReceipt}
+          isLoading={createCancelRequest.isPending}
+          receiptId={cancelTargetPayment?.payment_id}
+        />
       </div>
     </BatchSelectionGuard>
   );
