@@ -157,7 +157,7 @@ export const systemAdminMenuItems = [
             requiresPermission: "system_administration"
           },
           {
-            title: "Email Templates",
+            title: "Notification Templates",
             url: "/admin/notifications/email-templates",
             icon: Mail,
             requiresPermission: "system_administration"

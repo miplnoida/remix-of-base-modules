@@ -379,7 +379,7 @@ import PerformanceMonitor from '@/pages/system-logs/PerformanceMonitor';
 import SystemWorkflowLogs from '@/pages/system-logs/WorkflowLogs';
 import AdminNotificationLogs from '@/pages/admin/NotificationLogs';
 import AdminNotificationTemplates from '@/pages/admin/NotificationTemplates';
-import EmailTemplateManager from '@/pages/admin/notifications/EmailTemplateManager';
+import NotificationTemplateManager from '@/pages/admin/notifications/NotificationTemplateManager';
 
 import SicknessBenefit from '@/pages/nbenefit/short-term/SicknessBenefit';
 import MaternityBenefit from '@/pages/nbenefit/short-term/MaternityBenefit';
