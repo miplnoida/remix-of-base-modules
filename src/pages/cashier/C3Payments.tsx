@@ -211,9 +211,10 @@ const C3Payments: React.FC = () => {
       try {
         const { data, error } = await supabase.rpc('get_c3_component_balances' as any, {
           p_payer_id: regNo,
-          p_payer_type: pType,
+          p_payer_type: pType === 'NW' ? 'ER' : pType,
           p_period: periodDate,
           p_sequence_no: parseInt(schedule, 10),
+          p_is_for_director: pType === 'NW',
         });
 
         if (error) {
