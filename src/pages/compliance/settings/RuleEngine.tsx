@@ -43,6 +43,7 @@ interface CalculationRule {
   fund_type: string | null;
   source_config: string | null;
   is_enabled: boolean | null;
+  violation_type_id: string | null;
 }
 
 interface EscalationRule {
@@ -58,6 +59,7 @@ interface EscalationRule {
   auto_escalate: boolean | null;
   requires_approval: boolean | null;
   is_enabled: boolean | null;
+  violation_type_id: string | null;
 }
 
 interface ViolationType {
