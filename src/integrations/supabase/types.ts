@@ -9413,6 +9413,84 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_arrangement_report_entries: {
+        Row: {
+          created_at: string | null
+          data_origin: string | null
+          employer_name: string
+          id: string
+          installment: number | null
+          next_due: string | null
+          payments_made: number | null
+          status: string | null
+          total_debt: number | null
+          total_payments: number | null
+          zone: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name: string
+          id?: string
+          installment?: number | null
+          next_due?: string | null
+          payments_made?: number | null
+          status?: string | null
+          total_debt?: number | null
+          total_payments?: number | null
+          zone?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name?: string
+          id?: string
+          installment?: number | null
+          next_due?: string | null
+          payments_made?: number | null
+          status?: string | null
+          total_debt?: number | null
+          total_payments?: number | null
+          zone?: string | null
+        }
+        Relationships: []
+      }
+      ce_arrears_report_entries: {
+        Row: {
+          aging_category: string | null
+          created_at: string | null
+          data_origin: string | null
+          employer_name: string
+          id: string
+          last_payment_date: string | null
+          total_arrears: number | null
+          trend: string | null
+          zone: string | null
+        }
+        Insert: {
+          aging_category?: string | null
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name: string
+          id?: string
+          last_payment_date?: string | null
+          total_arrears?: number | null
+          trend?: string | null
+          zone?: string | null
+        }
+        Update: {
+          aging_category?: string | null
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name?: string
+          id?: string
+          last_payment_date?: string | null
+          total_arrears?: number | null
+          trend?: string | null
+          zone?: string | null
+        }
+        Relationships: []
+      }
       ce_audit_log: {
         Row: {
           action: string
@@ -9452,6 +9530,42 @@ export type Database = {
           performed_at?: string | null
           performed_by?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      ce_audit_report_entries: {
+        Row: {
+          audit_date: string
+          created_at: string | null
+          data_origin: string | null
+          employer_name: string
+          findings_count: number | null
+          id: string
+          severity: string | null
+          status: string | null
+          zone: string | null
+        }
+        Insert: {
+          audit_date: string
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name: string
+          findings_count?: number | null
+          id?: string
+          severity?: string | null
+          status?: string | null
+          zone?: string | null
+        }
+        Update: {
+          audit_date?: string
+          created_at?: string | null
+          data_origin?: string | null
+          employer_name?: string
+          findings_count?: number | null
+          id?: string
+          severity?: string | null
+          status?: string | null
+          zone?: string | null
         }
         Relationships: []
       }
@@ -9627,6 +9741,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_breach_monitoring: {
+        Row: {
+          auto_detected: boolean | null
+          breach_date: string
+          breach_id: string
+          breach_type: string
+          consecutive_misses: number | null
+          created_at: string | null
+          created_by: string | null
+          data_origin: string | null
+          employer_name: string
+          id: string
+          missed_amount: number | null
+          plan_id: string | null
+          reg_no: string | null
+          status: string
+          total_remaining: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          auto_detected?: boolean | null
+          breach_date: string
+          breach_id: string
+          breach_type: string
+          consecutive_misses?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          employer_name: string
+          id?: string
+          missed_amount?: number | null
+          plan_id?: string | null
+          reg_no?: string | null
+          status?: string
+          total_remaining?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          auto_detected?: boolean | null
+          breach_date?: string
+          breach_id?: string
+          breach_type?: string
+          consecutive_misses?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          employer_name?: string
+          id?: string
+          missed_amount?: number | null
+          plan_id?: string | null
+          reg_no?: string | null
+          status?: string
+          total_remaining?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       ce_c3_ledger_sync_log: {
         Row: {
@@ -11504,6 +11678,48 @@ export type Database = {
           },
         ]
       }
+      ce_inspector_performance: {
+        Row: {
+          cases_handled: number | null
+          compliance_rate: number | null
+          created_at: string | null
+          data_origin: string | null
+          field_visits: number | null
+          id: string
+          inspector_name: string
+          plans_approved: number | null
+          plans_submitted: number | null
+          report_period: string | null
+          zone: string | null
+        }
+        Insert: {
+          cases_handled?: number | null
+          compliance_rate?: number | null
+          created_at?: string | null
+          data_origin?: string | null
+          field_visits?: number | null
+          id?: string
+          inspector_name: string
+          plans_approved?: number | null
+          plans_submitted?: number | null
+          report_period?: string | null
+          zone?: string | null
+        }
+        Update: {
+          cases_handled?: number | null
+          compliance_rate?: number | null
+          created_at?: string | null
+          data_origin?: string | null
+          field_visits?: number | null
+          id?: string
+          inspector_name?: string
+          plans_approved?: number | null
+          plans_submitted?: number | null
+          report_period?: string | null
+          zone?: string | null
+        }
+        Relationships: []
+      }
       ce_inspectors: {
         Row: {
           active_from: string | null
@@ -11952,6 +12168,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_legal_proceedings: {
+        Row: {
+          arrears: number | null
+          case_number: string
+          court: string | null
+          created_at: string | null
+          created_by: string | null
+          data_origin: string | null
+          employer_name: string
+          filed_date: string | null
+          id: string
+          next_hearing: string | null
+          outcome: string | null
+          reg_no: string | null
+          solicitor: string | null
+          stage: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          arrears?: number | null
+          case_number: string
+          court?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          employer_name: string
+          filed_date?: string | null
+          id?: string
+          next_hearing?: string | null
+          outcome?: string | null
+          reg_no?: string | null
+          solicitor?: string | null
+          stage: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          arrears?: number | null
+          case_number?: string
+          court?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          employer_name?: string
+          filed_date?: string | null
+          id?: string
+          next_hearing?: string | null
+          outcome?: string | null
+          reg_no?: string | null
+          solicitor?: string | null
+          stage?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       ce_notice_templates: {
         Row: {
@@ -13154,6 +13427,60 @@ export type Database = {
           setting_value?: string | null
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_violation_correspondence: {
+        Row: {
+          channel: string
+          contact_person: string | null
+          correspondence_date: string
+          created_at: string | null
+          created_by: string | null
+          data_origin: string | null
+          delivery_method: string | null
+          direction: string | null
+          id: string
+          status: string | null
+          subject: string
+          summary: string | null
+          updated_at: string | null
+          updated_by: string | null
+          violation_id: string
+        }
+        Insert: {
+          channel: string
+          contact_person?: string | null
+          correspondence_date: string
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          delivery_method?: string | null
+          direction?: string | null
+          id?: string
+          status?: string | null
+          subject: string
+          summary?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          violation_id: string
+        }
+        Update: {
+          channel?: string
+          contact_person?: string | null
+          correspondence_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_origin?: string | null
+          delivery_method?: string | null
+          direction?: string | null
+          id?: string
+          status?: string | null
+          subject?: string
+          summary?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          violation_id?: string
         }
         Relationships: []
       }
