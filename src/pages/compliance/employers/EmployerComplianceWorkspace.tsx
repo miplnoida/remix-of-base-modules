@@ -265,7 +265,6 @@ const EmployerComplianceWorkspace = () => {
                 <Row label="Last Filing Period" value={profile.last_filing_period || 'N/A'} />
                 <Row label="Last Payment" value={profile.last_payment_date ? formatDateForDisplay(profile.last_payment_date) : 'N/A'} />
                 <Row label="Last Computed" value={profile.last_computed_at ? formatDateForDisplay(profile.last_computed_at) : 'Never'} />
-                } />
               </CardContent>
             </Card>
           </div>
