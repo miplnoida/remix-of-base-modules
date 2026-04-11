@@ -817,11 +817,12 @@ const CalculationRuleDialog = ({
 const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
 
 const EscalationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes, conditionVars,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: EscalationRule | null;
+  violationTypes: ViolationType[];
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
@@ -840,6 +841,7 @@ const EscalationRuleDialog = ({
     auto_escalate: rule?.auto_escalate ?? false,
     requires_approval: rule?.requires_approval ?? true,
     is_enabled: rule?.is_enabled ?? true,
+    violation_type_id: rule?.violation_type_id || '',
   });
 
   React.useEffect(() => {
@@ -857,6 +859,7 @@ const EscalationRuleDialog = ({
         auto_escalate: rule?.auto_escalate ?? false,
         requires_approval: rule?.requires_approval ?? true,
         is_enabled: rule?.is_enabled ?? true,
+        violation_type_id: rule?.violation_type_id || '',
       });
     }
   }, [open, rule]);
@@ -875,6 +878,7 @@ const EscalationRuleDialog = ({
       days_threshold: form.days_threshold !== '' ? Number(form.days_threshold) : null,
       amount_threshold: form.amount_threshold !== '' ? Number(form.amount_threshold) : null,
       condition_expression: form.condition_expression || null,
+      violation_type_id: form.violation_type_id || null,
     });
   };
 
