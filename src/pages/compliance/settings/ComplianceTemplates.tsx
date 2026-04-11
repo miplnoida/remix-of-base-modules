@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FileText, Plus, Pencil, Trash2, Copy, Eye, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { FileText, Plus, Pencil, Trash2, Copy, Eye, Loader2, Play } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,24 +21,12 @@ import {
   duplicateNoticeTemplate,
   NoticeTemplateRow,
 } from '@/services/noticeTemplateService';
-
-const CATEGORIES = [
-  'Violation Notice', 'Payment Reminder', 'Hearing Summons', 'Penalty Assessment',
-  'Arrangement Confirmation', 'Breach Warning', 'Final Demand', 'Compliance Certificate',
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const CHANNELS: Array<{ value: string; label: string }> = [
   { value: 'email', label: 'Email' },
   { value: 'sms', label: 'SMS' },
   { value: 'letter', label: 'Letter' },
-];
-
-const AVAILABLE_VARIABLES = [
-  '{{employer_name}}', '{{employer_id}}', '{{violation_number}}', '{{violation_type}}',
-  '{{amount_due}}', '{{due_date}}', '{{penalty_amount}}', '{{interest_amount}}',
-  '{{hearing_date}}', '{{hearing_location}}', '{{case_number}}', '{{inspector_name}}',
-  '{{arrangement_id}}', '{{installment_amount}}', '{{next_payment_date}}',
-  '{{total_arrears}}', '{{period}}', '{{current_date}}', '{{deadline_date}}',
 ];
 
 const emptyForm = {
@@ -56,10 +44,38 @@ function generateNextCode(existingCodes: string[], channel: string): string {
   return `TPL-${prefix}-${String(next).padStart(3, '0')}`;
 }
 
+// Sample merge data for live preview
+const SAMPLE_MERGE_DATA: Record<string, string> = {
+  employer_name: 'Caribbean Sugar Mills Ltd',
+  employer_id: '100001',
+  violation_number: 'VIO-2026-0042',
+  violation_type: 'Late C3 Submission',
+  amount_due: '$12,450.00',
+  due_date: '15/04/2026',
+  penalty_amount: '$1,245.00',
+  interest_amount: '$312.50',
+  hearing_date: '20/05/2026',
+  hearing_location: 'Basseterre Magistrate Court',
+  case_number: 'CASE-2026-0015',
+  inspector_name: 'James Martinez',
+  arrangement_id: 'ARR-2026-0003',
+  installment_amount: '$2,075.00',
+  next_payment_date: '01/05/2026',
+  total_arrears: '$24,900.00',
+  period: 'Jan-Mar 2026',
+  current_date: new Date().toLocaleDateString('en-GB'),
+  deadline_date: '30/04/2026',
+};
+
+function resolveTemplate(body: string, vars: Record<string, string>): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] || `{{${key}}}`);
+}
+
 export default function ComplianceTemplates() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [livePreviewOpen, setLivePreviewOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [previewTemplate, setPreviewTemplate] = useState<NoticeTemplateRow | null>(null);
@@ -70,6 +86,37 @@ export default function ComplianceTemplates() {
     queryKey: ['ce_notice_templates'],
     queryFn: fetchNoticeTemplates,
   });
+
+  // Derive categories from DB templates
+  const categories = useMemo(() => {
+    const cats = new Set(templates.map(t => t.category));
+    return Array.from(cats).sort();
+  }, [templates]);
+
+  // Derive available variables from DB templates
+  const availableVariables = useMemo(() => {
+    const vars = new Set<string>();
+    templates.forEach(t => t.variables.forEach(v => vars.add(v)));
+    return Array.from(vars).sort().map(v => `{{${v}}}`);
+  }, [templates]);
+
+  // Fetch sample employer for live preview
+  const { data: sampleEmployers = [] } = useQuery({
+    queryKey: ['sample_employers_for_preview'],
+    queryFn: async () => {
+      const { data } = await supabase.from('er_master').select('regno, name').eq('status', 'A').limit(10);
+      return (data || []) as Array<{ regno: string; name: string }>;
+    },
+  });
+
+  const [livePreviewEmployer, setLivePreviewEmployer] = useState('');
+  const livePreviewData = useMemo(() => {
+    const emp = sampleEmployers.find(e => e.regno === livePreviewEmployer);
+    return {
+      ...SAMPLE_MERGE_DATA,
+      ...(emp ? { employer_name: emp.name, employer_id: emp.regno } : {}),
+    };
+  }, [livePreviewEmployer, sampleEmployers]);
 
   const createMut = useMutation({
     mutationFn: (data: Partial<NoticeTemplateRow>) => createNoticeTemplate(data),
@@ -124,10 +171,17 @@ export default function ComplianceTemplates() {
 
   const handleSave = () => {
     if (!form.template_name || !form.category || !form.body) {
-      toast.error('Please fill in all required fields');
+      toast.error('Please check the form for valid information!', {
+        description: 'Template name, category, and body are required.',
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
       return;
     }
     const vars = [...form.body.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]);
+    if (form.subject) {
+      [...form.subject.matchAll(/\{\{(\w+)\}\}/g)].forEach(m => { if (!vars.includes(m[1])) vars.push(m[1]); });
+    }
     if (editingId) {
       updateMut.mutate({ id: editingId, data: { template_name: form.template_name, category: form.category, channel: form.channel, subject: form.subject, body: form.body, variables: vars, is_active: form.is_active } });
     } else {
@@ -138,18 +192,14 @@ export default function ComplianceTemplates() {
   const channelBadge = (ch: string) => {
     const colors: Record<string, string> = {
       email: 'bg-primary/10 text-primary border-primary/20',
-      sms: 'bg-warning/10 text-warning border-warning/20',
+      sms: 'bg-yellow-500/10 text-yellow-700 border-yellow-300',
       letter: 'bg-accent/10 text-accent-foreground border-accent/20',
     };
     return <Badge variant="outline" className={colors[ch] || ''}>{ch.toUpperCase()}</Badge>;
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -178,7 +228,7 @@ export default function ComplianceTemplates() {
           <SelectTrigger className="w-52"><SelectValue placeholder="Category" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -211,7 +261,8 @@ export default function ComplianceTemplates() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="Raw Preview" onClick={() => { setPreviewTemplate(t); setPreviewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="Live Preview" onClick={() => { setPreviewTemplate(t); setLivePreviewEmployer(sampleEmployers[0]?.regno || ''); setLivePreviewOpen(true); }}><Play className="h-4 w-4 text-primary" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => duplicateMut.mutate(t)}><Copy className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -235,22 +286,30 @@ export default function ComplianceTemplates() {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Template Name *</Label>
+              <Label>Template Name <span className="text-destructive">*</span></Label>
               <Input value={form.template_name} onChange={e => setForm(p => ({ ...p, template_name: e.target.value }))} placeholder="e.g. Late Filing Notice" />
             </div>
             <div className="space-y-2">
               <Label>Template Code</Label>
-              <Input value={form.template_code} readOnly className="bg-muted" />
+              <Input value={form.template_code} readOnly className="bg-muted font-mono" />
             </div>
             <div className="space-y-2">
-              <Label>Category *</Label>
-              <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+              <Label>Category <span className="text-destructive">*</span></Label>
+              <Select value={form.category || '__pick__'} onValueChange={v => setForm(p => ({ ...p, category: v === '__pick__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__pick__">Select...</SelectItem>
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  <SelectItem value="__new__" disabled className="text-xs text-muted-foreground italic">— Type below for new category —</SelectItem>
+                </SelectContent>
               </Select>
+              {!categories.includes(form.category) && form.category && form.category !== '__pick__' && (
+                <p className="text-[11px] text-muted-foreground">New category: {form.category}</p>
+              )}
+              <Input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} placeholder="Or type a new category" className="text-sm" />
             </div>
             <div className="space-y-2">
-              <Label>Channel *</Label>
+              <Label>Channel <span className="text-destructive">*</span></Label>
               <Select value={form.channel} onValueChange={v => {
                 setForm(p => ({
                   ...p, channel: v,
@@ -266,13 +325,13 @@ export default function ComplianceTemplates() {
               <Input value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} placeholder="e.g. Notice of Non-Compliance - {{violation_number}}" />
             </div>
             <div className="col-span-2 space-y-2">
-              <Label>Body *</Label>
+              <Label>Body <span className="text-destructive">*</span></Label>
               <Textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={10} placeholder="Template body with {{variables}}..." />
             </div>
             <div className="col-span-2">
               <Label className="text-xs text-muted-foreground">Available Variables (click to insert)</Label>
               <div className="flex flex-wrap gap-1 mt-1">
-                {AVAILABLE_VARIABLES.map(v => (
+                {availableVariables.map(v => (
                   <Badge key={v} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs"
                     onClick={() => setForm(p => ({ ...p, body: p.body + ' ' + v }))}>{v}</Badge>
                 ))}
@@ -293,12 +352,10 @@ export default function ComplianceTemplates() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview Dialog */}
+      {/* Raw Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Template Preview</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Template Preview (Raw)</DialogTitle></DialogHeader>
           {previewTemplate && (
             <div className="space-y-4">
               <div className="flex gap-2 items-center">
@@ -306,18 +363,71 @@ export default function ComplianceTemplates() {
                 <Badge variant="outline">{previewTemplate.category}</Badge>
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{previewTemplate.template_code}</code>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Subject</Label>
-                <p className="font-medium text-foreground">{previewTemplate.subject}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Body</Label>
-                <pre className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg border text-foreground">{previewTemplate.body}</pre>
-              </div>
+              <div><Label className="text-xs text-muted-foreground">Subject</Label><p className="font-medium text-foreground">{previewTemplate.subject}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Body</Label><pre className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg border text-foreground">{previewTemplate.body}</pre></div>
               <div>
                 <Label className="text-xs text-muted-foreground">Variables Used</Label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {previewTemplate.variables.map(v => <Badge key={v} variant="secondary" className="text-xs">{`{{${v}}}`}</Badge>)}
+                <div className="flex flex-wrap gap-1 mt-1">{previewTemplate.variables.map(v => <Badge key={v} variant="secondary" className="text-xs">{`{{${v}}}`}</Badge>)}</div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Live Preview Dialog */}
+      <Dialog open={livePreviewOpen} onOpenChange={setLivePreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Live Preview</DialogTitle>
+            <DialogDescription>See how this template looks with real employer data</DialogDescription>
+          </DialogHeader>
+          {previewTemplate && (
+            <div className="space-y-4">
+              <div className="flex gap-2 items-center">
+                {channelBadge(previewTemplate.channel)}
+                <Badge variant="outline">{previewTemplate.category}</Badge>
+              </div>
+
+              {/* Employer selector */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Select Employer for Preview</Label>
+                <Select value={livePreviewEmployer || '__sample__'} onValueChange={v => setLivePreviewEmployer(v === '__sample__' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Use sample data" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__sample__">— Sample Data —</SelectItem>
+                    {sampleEmployers.map(e => (
+                      <SelectItem key={e.regno} value={e.regno}>{e.name} ({e.regno})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Resolved subject */}
+              {previewTemplate.subject && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Subject (Resolved)</Label>
+                  <p className="font-medium text-foreground mt-1">{resolveTemplate(previewTemplate.subject, livePreviewData)}</p>
+                </div>
+              )}
+
+              {/* Resolved body */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Body (Resolved)</Label>
+                <div className="bg-background border rounded-lg p-6 mt-1">
+                  <pre className="whitespace-pre-wrap text-sm text-foreground">{resolveTemplate(previewTemplate.body, livePreviewData)}</pre>
+                </div>
+              </div>
+
+              {/* Merge data reference */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Merge Data Used</Label>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-xs">
+                  {previewTemplate.variables.map(v => (
+                    <div key={v} className="flex justify-between py-0.5 border-b border-border/50">
+                      <span className="font-mono text-muted-foreground">{`{{${v}}}`}</span>
+                      <span className="text-foreground font-medium">{livePreviewData[v] || '—'}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
