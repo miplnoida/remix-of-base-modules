@@ -150,8 +150,6 @@ const NumberTemplates = () => {
       setDeactivateTarget(null);
     },
     onError: (err: any) => toast.error('Failed to deactivate', { description: err.message }),
-    },
-    onError: (err: any) => toast.error('Failed to delete', { description: err.message }),
   });
 
   const openAdd = () => {
