@@ -9356,6 +9356,63 @@ export type Database = {
           },
         ]
       }
+      ce_arrangement_policies: {
+        Row: {
+          arrangement_interest_rate: number
+          auto_terminate_on_breach: boolean
+          breach_grace_days: number
+          created_at: string
+          created_by: string | null
+          id: string
+          interest_on_arrangement: boolean
+          is_active: boolean
+          max_arrangement_months: number
+          max_missed_installments: number
+          min_down_payment_percent: number
+          notes: string | null
+          policy_code: string
+          policy_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          arrangement_interest_rate?: number
+          auto_terminate_on_breach?: boolean
+          breach_grace_days?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_on_arrangement?: boolean
+          is_active?: boolean
+          max_arrangement_months?: number
+          max_missed_installments?: number
+          min_down_payment_percent?: number
+          notes?: string | null
+          policy_code: string
+          policy_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          arrangement_interest_rate?: number
+          auto_terminate_on_breach?: boolean
+          breach_grace_days?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_on_arrangement?: boolean
+          is_active?: boolean
+          max_arrangement_months?: number
+          max_missed_installments?: number
+          min_down_payment_percent?: number
+          notes?: string | null
+          policy_code?: string
+          policy_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_audit_log: {
         Row: {
           action: string
@@ -9759,6 +9816,45 @@ export type Database = {
           },
         ]
       }
+      ce_case_status_masters: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_terminal: boolean
+          sort_order: number
+          status_code: string
+          status_name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          sort_order?: number
+          status_code: string
+          status_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          sort_order?: number
+          status_code?: string
+          status_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ce_case_violations: {
         Row: {
           case_id: string | null
@@ -9911,6 +10007,90 @@ export type Database = {
           total_principal?: number | null
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_compliance_policies: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          arrears_escalation_threshold: number
+          auto_violation_rules: Json
+          c3_grace_period_days: number
+          c3_submission_deadline_day: number
+          created_at: string
+          created_by: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          interest_rate_percent: number
+          is_active: boolean
+          min_audit_frequency_months: number
+          notes: string | null
+          payment_due_date_day: number
+          penalty_calc_frequency: string
+          penalty_rate_percent: number
+          policy_code: string
+          policy_version: string
+          updated_at: string
+          updated_by: string | null
+          violation_prefix_config: Json
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          arrears_escalation_threshold?: number
+          auto_violation_rules?: Json
+          c3_grace_period_days?: number
+          c3_submission_deadline_day?: number
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          interest_rate_percent?: number
+          is_active?: boolean
+          min_audit_frequency_months?: number
+          notes?: string | null
+          payment_due_date_day?: number
+          penalty_calc_frequency?: string
+          penalty_rate_percent?: number
+          policy_code: string
+          policy_version: string
+          updated_at?: string
+          updated_by?: string | null
+          violation_prefix_config?: Json
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          arrears_escalation_threshold?: number
+          auto_violation_rules?: Json
+          c3_grace_period_days?: number
+          c3_submission_deadline_day?: number
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          interest_rate_percent?: number
+          is_active?: boolean
+          min_audit_frequency_months?: number
+          notes?: string | null
+          payment_due_date_day?: number
+          penalty_calc_frequency?: string
+          penalty_rate_percent?: number
+          policy_code?: string
+          policy_version?: string
+          updated_at?: string
+          updated_by?: string | null
+          violation_prefix_config?: Json
         }
         Relationships: []
       }
@@ -11534,6 +11714,167 @@ export type Database = {
           },
         ]
       }
+      ce_legal_escalation_policies: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string
+          created_by: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          effective_from: string
+          effective_to: string | null
+          evaluation_frequency: string
+          id: string
+          is_active: boolean
+          last_evaluation_date: string | null
+          next_evaluation_date: string | null
+          notes: string | null
+          policy_code: string
+          policy_name: string
+          policy_version: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          evaluation_frequency?: string
+          id?: string
+          is_active?: boolean
+          last_evaluation_date?: string | null
+          next_evaluation_date?: string | null
+          notes?: string | null
+          policy_code: string
+          policy_name: string
+          policy_version: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          evaluation_frequency?: string
+          id?: string
+          is_active?: boolean
+          last_evaluation_date?: string | null
+          next_evaluation_date?: string | null
+          notes?: string | null
+          policy_code?: string
+          policy_name?: string
+          policy_version?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_legal_escalation_policy_rules: {
+        Row: {
+          age_days_overdue: number | null
+          audit_refused_count: number | null
+          auto_mark_legal_recommended: boolean
+          combine_with_age_threshold: boolean | null
+          consecutive_months_missing: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          no_response_days: number | null
+          notices_sent_minimum: number | null
+          notify_compliance_officer: boolean
+          notify_supervisor: boolean
+          payment_plan_breaches_count: number | null
+          policy_id: string
+          priority: number
+          risk_band_minimum: string | null
+          risk_score_minimum: number | null
+          rule_name: string
+          rule_type: string
+          single_period_threshold: number | null
+          total_arrears_threshold: number | null
+          trigger_condition: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          age_days_overdue?: number | null
+          audit_refused_count?: number | null
+          auto_mark_legal_recommended?: boolean
+          combine_with_age_threshold?: boolean | null
+          consecutive_months_missing?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          no_response_days?: number | null
+          notices_sent_minimum?: number | null
+          notify_compliance_officer?: boolean
+          notify_supervisor?: boolean
+          payment_plan_breaches_count?: number | null
+          policy_id: string
+          priority?: number
+          risk_band_minimum?: string | null
+          risk_score_minimum?: number | null
+          rule_name: string
+          rule_type: string
+          single_period_threshold?: number | null
+          total_arrears_threshold?: number | null
+          trigger_condition?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          age_days_overdue?: number | null
+          audit_refused_count?: number | null
+          auto_mark_legal_recommended?: boolean
+          combine_with_age_threshold?: boolean | null
+          consecutive_months_missing?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          no_response_days?: number | null
+          notices_sent_minimum?: number | null
+          notify_compliance_officer?: boolean
+          notify_supervisor?: boolean
+          payment_plan_breaches_count?: number | null
+          policy_id?: string
+          priority?: number
+          risk_band_minimum?: string | null
+          risk_score_minimum?: number | null
+          rule_name?: string
+          rule_type?: string
+          single_period_threshold?: number | null
+          total_arrears_threshold?: number | null
+          trigger_condition?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_legal_escalation_policy_rules_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_escalation_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_legal_escalations: {
         Row: {
           amount_in_dispute: number | null
@@ -11611,6 +11952,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_notice_templates: {
+        Row: {
+          body: string
+          category: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          sort_order: number
+          subject: string | null
+          template_code: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+          variables: string[]
+        }
+        Insert: {
+          body: string
+          category: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          subject?: string | null
+          template_code: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+        }
+        Update: {
+          body?: string
+          category?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          subject?: string | null
+          template_code?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+        }
+        Relationships: []
       }
       ce_notices: {
         Row: {
