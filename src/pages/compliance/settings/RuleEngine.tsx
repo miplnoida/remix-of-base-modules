@@ -530,6 +530,7 @@ const DetectionRuleDialog = ({
         auto_create_violation: rule?.auto_create_violation ?? true,
         is_enabled: rule?.is_enabled ?? true,
         violation_type_id: rule?.violation_type_id || '',
+        parameters: rule?.parameters || {},
       });
     }
   }, [open, rule]);
