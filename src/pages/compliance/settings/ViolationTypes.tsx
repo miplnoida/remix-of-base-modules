@@ -216,16 +216,28 @@ const ViolationTypes = () => {
         <Button className="gap-2" onClick={openAdd}><Plus className="h-4 w-4" />Add Violation Type</Button>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-2">
+        <Badge
+          variant={selectedCategory === null ? 'default' : 'outline'}
+          className="py-1 px-3 cursor-pointer select-none"
+          onClick={() => setSelectedCategory(null)}
+        >
+          All: {violationTypes.length}
+        </Badge>
         {categories.map(cat => (
-          <Badge key={cat} variant="outline" className="py-1 px-3">
+          <Badge
+            key={cat}
+            variant={selectedCategory === cat ? 'default' : 'outline'}
+            className="py-1 px-3 cursor-pointer select-none"
+            onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+          >
             {cat}: {violationTypes.filter(v => v.category === cat).length}
           </Badge>
         ))}
       </div>
 
       <div className="grid gap-3">
-        {violationTypes.map((vt) => (
+        {violationTypes.filter(vt => !selectedCategory || vt.category === selectedCategory).map((vt) => (
           <Card key={vt.id} className="hover:shadow-sm transition-shadow">
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
