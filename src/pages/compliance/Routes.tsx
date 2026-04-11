@@ -44,7 +44,6 @@ import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerHierarchy from './employers/EmployerHierarchy';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
-import EmployerNoticePreferences from './employers/EmployerNoticePreferences';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
@@ -66,6 +65,7 @@ import RiskSamplingSettings from './sampling/RiskSamplingSettings';
 // Automation
 import JobConfiguration from './automation/JobConfiguration';
 import JobHistory from './automation/JobHistory';
+import EmployerComplianceJobs from './automation/EmployerComplianceJobs';
 
 // Reports
 import CaseAnalytics from './reports/CaseAnalytics';
@@ -137,7 +137,6 @@ const ComplianceRoutes = () => {
       <Route path="/employers/management" element={<EmployerComplianceManagement />} />
       <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
       <Route path="/employers/hierarchy" element={<EmployerHierarchy />} />
-      <Route path="/employers/notice-preferences" element={<EmployerNoticePreferences />} />
 
       {/* Audit Planning */}
       <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
@@ -158,6 +157,7 @@ const ComplianceRoutes = () => {
 
       {/* Automation */}
       <Route path="/automation/jobs" element={<JobConfiguration />} />
+      <Route path="/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/automation/history" element={<JobHistory />} />
 
       {/* Settings */}
