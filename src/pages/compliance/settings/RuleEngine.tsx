@@ -1205,6 +1205,7 @@ const RuleEngine = () => {
                       <Badge variant="outline" className="text-[10px]">{rule.frequency}</Badge>
                       <Badge variant={rule.priority === 'Critical' ? 'destructive' : rule.priority === 'High' ? 'default' : 'secondary'} className="text-[10px]">{rule.priority}</Badge>
                       {rule.auto_create_violation && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Auto-Create</Badge>}
+                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-accent-foreground border-accent">{vt.code}</Badge> : null; })()}
                     </div>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
                     {rule.trigger_event && (
