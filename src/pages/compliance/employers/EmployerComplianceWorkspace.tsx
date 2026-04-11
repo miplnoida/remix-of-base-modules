@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +56,7 @@ const EmployerComplianceWorkspace = () => {
   const [localEmployerId, setLocalEmployerId] = useState(employerId || '');
 
   const resolvedId = employerId || localEmployerId;
+  const [isRecomputing, setIsRecomputing] = useState(false);
 
   const { data: profile, isLoading, refetch } = useEmployerComplianceProfile(resolvedId || undefined);
   const { data: flags } = useEmployerComplianceFlags(resolvedId || undefined);
@@ -61,6 +64,27 @@ const EmployerComplianceWorkspace = () => {
   const { data: violations } = useEmployerViolations(resolvedId || undefined);
   const { data: cases } = useEmployerCases(resolvedId || undefined);
   const { data: ledger } = useEmployerLedgerRecent(resolvedId || undefined);
+
+  const handleRecompute = useCallback(async () => {
+    if (!resolvedId) return;
+    setIsRecomputing(true);
+    try {
+      const { error: e1 } = await supabase.rpc('ce_recompute_employer_compliance' as any, {
+        p_employer_id: resolvedId, p_triggered_by: 'ADMIN_UI'
+      });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.rpc('ce_recompute_employer_risk' as any, {
+        p_employer_id: resolvedId, p_triggered_by: 'ADMIN_UI'
+      });
+      if (e2) throw e2;
+      toast.success('Compliance and risk scores recomputed successfully');
+      refetch();
+    } catch (err: any) {
+      toast.error('Recompute failed', { description: err.message });
+    } finally {
+      setIsRecomputing(false);
+    }
+  }, [resolvedId, refetch]);
 
   // ─── Search bar (when no employer in URL) ─────────
   if (!employerId && !localEmployerId) {
@@ -137,6 +161,9 @@ const EmployerComplianceWorkspace = () => {
           <Badge className={riskBandColor(profile.risk_band)}>
             {profile.risk_band || 'Unscored'}
           </Badge>
+          <Button variant="outline" size="sm" onClick={handleRecompute} disabled={isRecomputing}>
+            <Activity className={`h-3.5 w-3.5 mr-1 ${isRecomputing ? 'animate-spin' : ''}`} /> {isRecomputing ? 'Recomputing...' : 'Recompute'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
           </Button>
@@ -147,8 +174,8 @@ const EmployerComplianceWorkspace = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <KpiCard icon={DollarSign} label="Outstanding" value={fmt(profile.outstanding_balance)} color={profile.outstanding_balance > 0 ? 'text-destructive' : 'text-emerald-600'} />
         <KpiCard icon={TrendingUp} label="Risk Score" value={profile.risk_score?.toFixed(1) || '—'} color="text-foreground" />
-        <KpiCard icon={AlertTriangle} label="Violations" value={String(profile.open_violations_count)} color={profile.open_violations_count > 0 ? 'text-amber-600' : 'text-muted-foreground'} />
-        <KpiCard icon={FileText} label="Cases" value={String(profile.open_cases_count)} color={profile.open_cases_count > 0 ? 'text-orange-600' : 'text-muted-foreground'} />
+        <KpiCard icon={AlertTriangle} label="Violations" value={String(profile.active_violation_count)} color={profile.active_violation_count > 0 ? 'text-amber-600' : 'text-muted-foreground'} />
+        <KpiCard icon={FileText} label="Cases" value={String(profile.active_case_count)} color={profile.active_case_count > 0 ? 'text-orange-600' : 'text-muted-foreground'} />
         <KpiCard icon={Flag} label="Flags" value={String(profile.active_flags_count)} color={profile.active_flags_count > 0 ? 'text-red-600' : 'text-muted-foreground'} />
         <KpiCard icon={Building2} label="Related" value={String(profile.related_employers_count)} color="text-muted-foreground" />
       </div>
@@ -205,18 +232,27 @@ const EmployerComplianceWorkspace = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <Row label="Compliance Status" value={
-                  <Badge className={statusColor(profile.compliance_status)}>
-                    {(profile.compliance_status || 'unknown').replace(/_/g, ' ')}
+                <Row label="Overall Status" value={
+                  <Badge className={statusColor(profile.overall_compliance_status || profile.compliance_status)}>
+                    {((profile.overall_compliance_status || profile.compliance_status || 'unknown')).replace(/_/g, ' ')}
                   </Badge>
                 } />
-                <Row label="Effective From" value={profile.compliance_effective_from ? formatDateForDisplay(profile.compliance_effective_from) : 'N/A'} />
+                <Row label="Filing Status" value={
+                  <Badge variant="outline" className="text-[10px]">{(profile.filing_status || 'unknown').replace(/_/g, ' ')}</Badge>
+                } />
+                <Row label="Payment Status" value={
+                  <Badge variant="outline" className="text-[10px]">{(profile.payment_status || 'unknown').replace(/_/g, ' ')}</Badge>
+                } />
                 <Row label="Assigned Officer" value={profile.assigned_officer_id || 'Unassigned'} />
                 <Row label="Review Due" value={profile.review_due_date ? formatDateForDisplay(profile.review_due_date) : 'N/A'} />
                 <Separator className="my-2" />
+                <Row label="Arrears" value={<span className={(profile.current_arrears_amount ?? 0) > 0 ? 'text-destructive font-semibold' : 'text-emerald-600'}>{fmt(profile.current_arrears_amount)}</span>} />
+                <Row label="Penalties" value={<span className={(profile.current_penalty_amount ?? 0) > 0 ? 'text-amber-600 font-medium' : 'text-muted-foreground'}>{fmt(profile.current_penalty_amount)}</span>} />
                 <Row label="Outstanding Balance" value={<span className={profile.outstanding_balance > 0 ? 'text-destructive font-semibold' : 'text-emerald-600'}>{fmt(profile.outstanding_balance)}</span>} />
-                <Row label="Open Violations" value={String(profile.open_violations_count)} />
-                <Row label="Open Cases" value={String(profile.open_cases_count)} />
+                <Separator className="my-2" />
+                <Row label="Open Violations" value={String(profile.active_violation_count ?? 0)} />
+                <Row label="Open Cases" value={String(profile.active_case_count ?? 0)} />
+                <Row label="Arrangements" value={String(profile.active_arrangement_count ?? 0)} />
                 <Row label="Active Flags" value={
                   <span>
                     {profile.active_flags_count}
@@ -225,6 +261,10 @@ const EmployerComplianceWorkspace = () => {
                     )}
                   </span>
                 } />
+                <Separator className="my-2" />
+                <Row label="Last Filing Period" value={profile.last_filing_period || 'N/A'} />
+                <Row label="Last Payment" value={profile.last_payment_date ? formatDateForDisplay(profile.last_payment_date) : 'N/A'} />
+                <Row label="Last Computed" value={profile.last_computed_at ? formatDateForDisplay(profile.last_computed_at) : 'Never'} />
               </CardContent>
             </Card>
           </div>
@@ -447,8 +487,8 @@ const EmployerComplianceWorkspace = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Indicator label="Outstanding Balance" value={fmt(profile.outstanding_balance)} warn={profile.outstanding_balance > 50000} />
-                <Indicator label="Open Violations" value={String(profile.open_violations_count)} warn={profile.open_violations_count > 0} />
-                <Indicator label="Open Cases" value={String(profile.open_cases_count)} warn={profile.open_cases_count > 0} />
+                <Indicator label="Open Violations" value={String(profile.active_violation_count)} warn={profile.active_violation_count > 0} />
+                <Indicator label="Open Cases" value={String(profile.active_case_count)} warn={profile.active_case_count > 0} />
                 <Indicator label="Active Flags" value={String(profile.active_flags_count)} warn={profile.active_flags_count > 0} />
                 <Indicator label="Critical Flags" value={String(profile.critical_flags || 0)} warn={(profile.critical_flags ?? 0) > 0} />
                 <Indicator label="Related Employers" value={String(profile.related_employers_count)} warn={false} />
