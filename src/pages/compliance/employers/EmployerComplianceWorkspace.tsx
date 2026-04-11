@@ -161,6 +161,9 @@ const EmployerComplianceWorkspace = () => {
           <Badge className={riskBandColor(profile.risk_band)}>
             {profile.risk_band || 'Unscored'}
           </Badge>
+          <Button variant="outline" size="sm" onClick={handleRecompute} disabled={isRecomputing}>
+            <Activity className={`h-3.5 w-3.5 mr-1 ${isRecomputing ? 'animate-spin' : ''}`} /> {isRecomputing ? 'Recomputing...' : 'Recompute'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
           </Button>
