@@ -38902,6 +38902,56 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      ce_breach_check_arrangements: {
+        Args: { p_as_of_date?: string; p_checked_by?: string }
+        Returns: {
+          arrangement_id: string
+          arrangement_number: string
+          employer_id: string
+          missed_count: number
+          total_overdue: number
+        }[]
+      }
+      ce_calculate_employer_arrears: {
+        Args: { p_employer_id: string }
+        Returns: {
+          adjustments: number
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          interest: number
+          net_balance: number
+          payments: number
+          penalties: number
+          period_count: number
+          principal_due: number
+          waivers: number
+          write_offs: number
+        }[]
+      }
+      ce_generate_employer_statement: {
+        Args: {
+          p_employer_id: string
+          p_from_period?: string
+          p_fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          p_to_period?: string
+        }
+        Returns: {
+          credit_amount: number
+          debit_amount: number
+          description: string
+          entry_id: string
+          entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          period: string
+          posted_at: string
+          posted_by: string
+          reference_id: string
+          reference_type: string
+          reversal_of_id: string
+          reversal_reason: string
+          running_balance: number
+          status: Database["public"]["Enums"]["ce_ledger_status"]
+        }[]
+      }
       ce_get_employer_balance: {
         Args: {
           p_as_of_date?: string
@@ -38934,6 +38984,23 @@ export type Database = {
         }
         Returns: string
       }
+      ce_post_ledger_entry: {
+        Args: {
+          p_amount?: number
+          p_description?: string
+          p_employer_id: string
+          p_employer_name?: string
+          p_entry_type?: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          p_fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          p_idempotency_key?: string
+          p_period?: string
+          p_posted_by?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_territory?: string
+        }
+        Returns: string
+      }
       ce_recalculate_period_summary: {
         Args: {
           p_employer_id: string
@@ -38946,6 +39013,14 @@ export type Database = {
         Args: {
           p_original_entry_id: string
           p_reason: string
+          p_reversed_by?: string
+        }
+        Returns: string
+      }
+      ce_reverse_ledger_entry: {
+        Args: {
+          p_original_entry_id: string
+          p_reversal_reason: string
           p_reversed_by?: string
         }
         Returns: string
