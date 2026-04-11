@@ -31,6 +31,7 @@ interface DetectionRule {
   auto_create_violation: boolean | null;
   is_enabled: boolean | null;
   violation_type_id: string | null;
+  parameters: Record<string, any> | null;
 }
 
 interface CalculationRule {
@@ -43,6 +44,7 @@ interface CalculationRule {
   fund_type: string | null;
   source_config: string | null;
   is_enabled: boolean | null;
+  violation_type_id: string | null;
 }
 
 interface EscalationRule {
@@ -58,6 +60,7 @@ interface EscalationRule {
   auto_escalate: boolean | null;
   requires_approval: boolean | null;
   is_enabled: boolean | null;
+  violation_type_id: string | null;
 }
 
 interface ViolationType {
@@ -449,6 +452,41 @@ const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange
   );
 };
 
+// ── Parameters Editor (JSONB key-value) ──
+
+const ParametersEditor = ({ value, onChange }: { value: Record<string, any>; onChange: (v: Record<string, any>) => void }) => {
+  const entries = Object.entries(value || {});
+  const addParam = () => onChange({ ...value, '': '' });
+  const removeParam = (key: string) => {
+    const copy = { ...value };
+    delete copy[key];
+    onChange(copy);
+  };
+  const updateKey = (oldKey: string, newKey: string) => {
+    const copy: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      copy[k === oldKey ? newKey : k] = v;
+    }
+    onChange(copy);
+  };
+  const updateValue = (key: string, val: string) => onChange({ ...value, [key]: val });
+
+  return (
+    <div className="space-y-2">
+      {entries.length === 0 && <p className="text-xs text-muted-foreground">No parameters configured.</p>}
+      {entries.map(([key, val], idx) => (
+        <div key={idx} className="flex items-center gap-2">
+          <Input className="flex-1 h-8 text-sm font-mono" placeholder="key" value={key} onChange={e => updateKey(key, e.target.value)} />
+          <span className="text-muted-foreground">=</span>
+          <Input className="flex-1 h-8 text-sm" placeholder="value" value={String(val)} onChange={e => updateValue(key, e.target.value)} />
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeParam(key)}><X className="h-3.5 w-3.5" /></Button>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addParam}><PlusCircle className="h-3.5 w-3.5" /> Add Parameter</Button>
+    </div>
+  );
+};
+
 // ── Detection Rule Dialog ──
 
 const DetectionRuleDialog = ({
@@ -475,6 +513,7 @@ const DetectionRuleDialog = ({
     auto_create_violation: rule?.auto_create_violation ?? true,
     is_enabled: rule?.is_enabled ?? true,
     violation_type_id: rule?.violation_type_id || '',
+    parameters: rule?.parameters || {},
   });
 
   React.useEffect(() => {
@@ -491,6 +530,7 @@ const DetectionRuleDialog = ({
         auto_create_violation: rule?.auto_create_violation ?? true,
         is_enabled: rule?.is_enabled ?? true,
         violation_type_id: rule?.violation_type_id || '',
+        parameters: rule?.parameters || {},
       });
     }
   }, [open, rule]);
@@ -517,6 +557,7 @@ const DetectionRuleDialog = ({
       ...form,
       violation_type_id: form.violation_type_id || null,
       condition_expression: form.condition_expression || null,
+      parameters: Object.keys(form.parameters).length > 0 ? form.parameters : null,
     });
   };
 
@@ -600,6 +641,10 @@ const DetectionRuleDialog = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Parameters <span className="text-muted-foreground text-xs font-normal">(detection thresholds & config)</span></Label>
+            <ParametersEditor value={form.parameters} onChange={v => setForm(p => ({ ...p, parameters: v }))} />
+          </div>
           <div className="flex items-center gap-6 pt-2">
             <div className="flex items-center gap-2">
               <Checkbox checked={form.auto_create_violation} onCheckedChange={c => setForm(p => ({ ...p, auto_create_violation: !!c }))} />
@@ -623,11 +668,12 @@ const DetectionRuleDialog = ({
 // ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes, formulaOps,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, formulaOps,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: CalculationRule | null;
+  violationTypes: ViolationType[];
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
@@ -643,6 +689,7 @@ const CalculationRuleDialog = ({
     fund_type: rule?.fund_type || '',
     source_config: rule?.source_config || 'c3_config',
     is_enabled: rule?.is_enabled ?? true,
+    violation_type_id: rule?.violation_type_id || '',
   });
 
   React.useEffect(() => {
@@ -657,6 +704,7 @@ const CalculationRuleDialog = ({
         fund_type: rule?.fund_type || '',
         source_config: rule?.source_config || 'c3_config',
         is_enabled: rule?.is_enabled ?? true,
+        violation_type_id: rule?.violation_type_id || '',
       });
     }
   }, [open, rule]);
@@ -673,6 +721,7 @@ const CalculationRuleDialog = ({
     onSave({
       ...form,
       fund_type: form.fund_type || null,
+      violation_type_id: form.violation_type_id || null,
     });
   };
 
@@ -739,6 +788,16 @@ const CalculationRuleDialog = ({
               </Select>
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label>Linked Violation Type <span className="text-muted-foreground text-xs font-normal">(optional – scope to specific type)</span></Label>
+            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="All violation types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">All Violation Types</SelectItem>
+                {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-2 pt-2">
             <Checkbox checked={form.is_enabled} onCheckedChange={c => setForm(p => ({ ...p, is_enabled: !!c }))} />
             <Label className="font-normal text-sm">Enabled</Label>
@@ -758,11 +817,12 @@ const CalculationRuleDialog = ({
 const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
 
 const EscalationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes, conditionVars,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: EscalationRule | null;
+  violationTypes: ViolationType[];
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
@@ -781,6 +841,7 @@ const EscalationRuleDialog = ({
     auto_escalate: rule?.auto_escalate ?? false,
     requires_approval: rule?.requires_approval ?? true,
     is_enabled: rule?.is_enabled ?? true,
+    violation_type_id: rule?.violation_type_id || '',
   });
 
   React.useEffect(() => {
@@ -798,6 +859,7 @@ const EscalationRuleDialog = ({
         auto_escalate: rule?.auto_escalate ?? false,
         requires_approval: rule?.requires_approval ?? true,
         is_enabled: rule?.is_enabled ?? true,
+        violation_type_id: rule?.violation_type_id || '',
       });
     }
   }, [open, rule]);
@@ -816,6 +878,7 @@ const EscalationRuleDialog = ({
       days_threshold: form.days_threshold !== '' ? Number(form.days_threshold) : null,
       amount_threshold: form.amount_threshold !== '' ? Number(form.amount_threshold) : null,
       condition_expression: form.condition_expression || null,
+      violation_type_id: form.violation_type_id || null,
     });
   };
 
@@ -881,6 +944,16 @@ const EscalationRuleDialog = ({
               onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
               variables={conditionVars}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Linked Violation Type <span className="text-muted-foreground text-xs font-normal">(optional – scope to specific type)</span></Label>
+            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="All violation types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">All Violation Types</SelectItem>
+                {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-6 pt-2">
             <div className="flex items-center gap-2">
@@ -1132,6 +1205,7 @@ const RuleEngine = () => {
                       <Badge variant="outline" className="text-[10px]">{rule.frequency}</Badge>
                       <Badge variant={rule.priority === 'Critical' ? 'destructive' : rule.priority === 'High' ? 'default' : 'secondary'} className="text-[10px]">{rule.priority}</Badge>
                       {rule.auto_create_violation && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Auto-Create</Badge>}
+                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-accent-foreground border-accent">{vt.code}</Badge> : null; })()}
                     </div>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
                     {rule.trigger_event && (
@@ -1163,6 +1237,7 @@ const RuleEngine = () => {
                       <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>
                       {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
                       <Badge variant="outline" className="text-[10px]">Source: {rule.source_config}</Badge>
+                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
                     </div>
                     <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
@@ -1190,6 +1265,7 @@ const RuleEngine = () => {
                       {rule.requires_approval && <Badge variant="outline" className="text-[10px]">Approval Required</Badge>}
                       {rule.days_threshold && <Badge variant="secondary" className="text-[10px]">{rule.days_threshold} days</Badge>}
                       {rule.amount_threshold && <Badge variant="secondary" className="text-[10px]">${rule.amount_threshold.toLocaleString()}</Badge>}
+                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
                     </div>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
                     <p className="text-xs text-muted-foreground"><span className="font-medium">Transition:</span> {rule.from_status} → <span className="text-foreground font-medium">{rule.to_status}</span></p>
@@ -1221,6 +1297,7 @@ const RuleEngine = () => {
         open={calcDialogOpen}
         onOpenChange={v => { setCalcDialogOpen(v); if (!v) setEditingCalc(null); }}
         rule={editingCalc}
+        violationTypes={violationTypes}
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
         existingCodes={calculationRules.map(r => r.rule_code)}
@@ -1230,6 +1307,7 @@ const RuleEngine = () => {
         open={escDialogOpen}
         onOpenChange={v => { setEscDialogOpen(v); if (!v) setEditingEsc(null); }}
         rule={editingEsc}
+        violationTypes={violationTypes}
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
