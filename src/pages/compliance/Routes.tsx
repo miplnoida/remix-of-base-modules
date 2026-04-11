@@ -42,6 +42,7 @@ import EmployerStatementDetail from './employers/EmployerStatementDetail';
 import EmployerFinancialStatement from './employers/EmployerFinancialStatement';
 import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
+import EmployerHierarchy from './employers/EmployerHierarchy';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
 
 // Audit Planning
