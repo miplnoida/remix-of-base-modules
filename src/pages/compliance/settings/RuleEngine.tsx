@@ -975,7 +975,8 @@ const RuleEngine = () => {
 
   const toggleDetection = useMutation({
     mutationFn: async ({ id, is_enabled }: { id: string; is_enabled: boolean }) => {
-      const { error } = await supabase.from('ce_detection_rules').update({ is_enabled } as any).eq('id', id);
+      const payload = withAuditFields({ is_enabled }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_detection_rules').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ce_detection_rules'] }); toast.success('Rule updated'); },
@@ -984,7 +985,8 @@ const RuleEngine = () => {
 
   const toggleCalc = useMutation({
     mutationFn: async ({ id, is_enabled }: { id: string; is_enabled: boolean }) => {
-      const { error } = await supabase.from('ce_calculation_rules').update({ is_enabled } as any).eq('id', id);
+      const payload = withAuditFields({ is_enabled }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_calculation_rules').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ce_calculation_rules'] }); toast.success('Rule updated'); },
@@ -993,7 +995,8 @@ const RuleEngine = () => {
 
   const toggleEsc = useMutation({
     mutationFn: async ({ id, is_enabled }: { id: string; is_enabled: boolean }) => {
-      const { error } = await supabase.from('ce_escalation_rules').update({ is_enabled } as any).eq('id', id);
+      const payload = withAuditFields({ is_enabled }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_escalation_rules').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ce_escalation_rules'] }); toast.success('Rule updated'); },
@@ -1004,11 +1007,17 @@ const RuleEngine = () => {
 
   const saveDetection = useMutation({
     mutationFn: async (formData: any) => {
+      const isNew = !editingDetection;
+      if (isNew) {
+        const dup = await checkDuplicateRuleCode('ce_detection_rules', formData.rule_code);
+        if (dup) throw new Error(`Rule code "${formData.rule_code}" already exists.`);
+      }
+      const payload = withAuditFields(formData, userCode || 'SYS', isNew);
       if (editingDetection) {
-        const { error } = await supabase.from('ce_detection_rules').update(formData as any).eq('id', editingDetection.id);
+        const { error } = await supabase.from('ce_detection_rules').update(payload as any).eq('id', editingDetection.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_detection_rules').insert(formData as any);
+        const { error } = await supabase.from('ce_detection_rules').insert(payload as any);
         if (error) throw error;
       }
     },
@@ -1021,15 +1030,19 @@ const RuleEngine = () => {
     onError: (err: any) => toast.error('Failed to save rule', { description: err.message }),
   });
 
-  // ── CRUD mutations: Calculation ──
-
   const saveCalc = useMutation({
     mutationFn: async (formData: any) => {
+      const isNew = !editingCalc;
+      if (isNew) {
+        const dup = await checkDuplicateRuleCode('ce_calculation_rules', formData.rule_code);
+        if (dup) throw new Error(`Rule code "${formData.rule_code}" already exists.`);
+      }
+      const payload = withAuditFields(formData, userCode || 'SYS', isNew);
       if (editingCalc) {
-        const { error } = await supabase.from('ce_calculation_rules').update(formData as any).eq('id', editingCalc.id);
+        const { error } = await supabase.from('ce_calculation_rules').update(payload as any).eq('id', editingCalc.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_calculation_rules').insert(formData as any);
+        const { error } = await supabase.from('ce_calculation_rules').insert(payload as any);
         if (error) throw error;
       }
     },
@@ -1042,15 +1055,19 @@ const RuleEngine = () => {
     onError: (err: any) => toast.error('Failed to save rule', { description: err.message }),
   });
 
-  // ── CRUD mutations: Escalation ──
-
   const saveEsc = useMutation({
     mutationFn: async (formData: any) => {
+      const isNew = !editingEsc;
+      if (isNew) {
+        const dup = await checkDuplicateRuleCode('ce_escalation_rules', formData.rule_code);
+        if (dup) throw new Error(`Rule code "${formData.rule_code}" already exists.`);
+      }
+      const payload = withAuditFields(formData, userCode || 'SYS', isNew);
       if (editingEsc) {
-        const { error } = await supabase.from('ce_escalation_rules').update(formData as any).eq('id', editingEsc.id);
+        const { error } = await supabase.from('ce_escalation_rules').update(payload as any).eq('id', editingEsc.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_escalation_rules').insert(formData as any);
+        const { error } = await supabase.from('ce_escalation_rules').insert(payload as any);
         if (error) throw error;
       }
     },
