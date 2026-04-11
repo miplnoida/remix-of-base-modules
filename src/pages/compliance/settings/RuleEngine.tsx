@@ -788,6 +788,16 @@ const CalculationRuleDialog = ({
               </Select>
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label>Linked Violation Type <span className="text-muted-foreground text-xs font-normal">(optional – scope to specific type)</span></Label>
+            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="All violation types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">All Violation Types</SelectItem>
+                {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-2 pt-2">
             <Checkbox checked={form.is_enabled} onCheckedChange={c => setForm(p => ({ ...p, is_enabled: !!c }))} />
             <Label className="font-normal text-sm">Enabled</Label>
