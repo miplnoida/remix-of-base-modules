@@ -14,6 +14,8 @@ import { Cog, Plus, Zap, Calculator, TrendingUp, Edit, Loader2, Trash2, PlusCirc
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
+import { withAuditFields, checkDuplicateRuleCode, validationToastConfig } from '@/services/complianceSettingsService';
 
 // ── Types ──
 
