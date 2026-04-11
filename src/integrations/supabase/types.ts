@@ -9512,6 +9512,57 @@ export type Database = {
           },
         ]
       }
+      ce_c3_ledger_sync_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          ledger_entry_ids: string[] | null
+          payer_id: string
+          period: string
+          posting_status_snapshot: string
+          sequence_no: number
+          source_table: string
+          sync_run_id: string | null
+          sync_status: string
+          synced_at: string | null
+          synced_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ledger_entry_ids?: string[] | null
+          payer_id: string
+          period: string
+          posting_status_snapshot: string
+          sequence_no: number
+          source_table?: string
+          sync_run_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          synced_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ledger_entry_ids?: string[] | null
+          payer_id?: string
+          period?: string
+          posting_status_snapshot?: string
+          sequence_no?: number
+          source_table?: string
+          sync_run_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          synced_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ce_calculation_rules: {
         Row: {
           applies_to: string
@@ -27518,6 +27569,13 @@ export type Database = {
             foreignKeyName: "ip_wages_c3_id_fkey"
             columns: ["c3_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_c3_unposted_to_ledger"
+            referencedColumns: ["c3_id"]
+          },
+          {
+            foreignKeyName: "ip_wages_c3_id_fkey"
+            columns: ["c3_id"]
+            isOneToOne: false
             referencedRelation: "cn_c3_reported"
             referencedColumns: ["id"]
           },
@@ -38768,6 +38826,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_c3_unposted_to_ledger: {
+        Row: {
+          c3_id: string | null
+          date_posted: string | null
+          ei_dues: number | null
+          employer_name: string | null
+          entered_by: string | null
+          levy_dues: number | null
+          levy_penalty: number | null
+          payer_id: string | null
+          payer_type: string | null
+          pe_penalty: number | null
+          period: string | null
+          posting_status: string | null
+          sequence_no: number | null
+          ss_dues: number | null
+          ss_penalty: number | null
+          total_amount: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_sep_activity: {
@@ -39024,6 +39103,16 @@ export type Database = {
           p_reversed_by?: string
         }
         Returns: string
+      }
+      ce_sync_c3_to_ledger: {
+        Args: {
+          p_dry_run?: boolean
+          p_employer_id?: string
+          p_limit?: number
+          p_period?: string
+          p_triggered_by?: string
+        }
+        Returns: Json
       }
       cease_voluntary_contributor: {
         Args: { p_reason?: string; p_ssn: string }

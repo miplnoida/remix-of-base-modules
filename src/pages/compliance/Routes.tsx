@@ -84,6 +84,7 @@ import RiskScoringConfig from './settings/RiskScoringConfig';
 import ComplianceSettings from './settings/ComplianceSettings';
 import ComplianceTemplates from './settings/ComplianceTemplates';
 import LedgerAdministration from './settings/LedgerAdministration';
+import C3LedgerSync from './settings/C3LedgerSync';
 
 const ComplianceRoutes = () => {
   return (
@@ -164,6 +165,7 @@ const ComplianceRoutes = () => {
       <Route path="/settings/legal-escalation-policy" element={<RiskRulePolicy />} />
       <Route path="/settings/templates" element={<ComplianceTemplates />} />
       <Route path="/settings/ledger-admin" element={<LedgerAdministration />} />
+      <Route path="/settings/c3-ledger-sync" element={<C3LedgerSync />} />
 
       {/* Reports */}
       <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
