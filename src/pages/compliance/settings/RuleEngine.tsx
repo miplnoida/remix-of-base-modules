@@ -452,6 +452,41 @@ const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange
   );
 };
 
+// ── Parameters Editor (JSONB key-value) ──
+
+const ParametersEditor = ({ value, onChange }: { value: Record<string, any>; onChange: (v: Record<string, any>) => void }) => {
+  const entries = Object.entries(value || {});
+  const addParam = () => onChange({ ...value, '': '' });
+  const removeParam = (key: string) => {
+    const copy = { ...value };
+    delete copy[key];
+    onChange(copy);
+  };
+  const updateKey = (oldKey: string, newKey: string) => {
+    const copy: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      copy[k === oldKey ? newKey : k] = v;
+    }
+    onChange(copy);
+  };
+  const updateValue = (key: string, val: string) => onChange({ ...value, [key]: val });
+
+  return (
+    <div className="space-y-2">
+      {entries.length === 0 && <p className="text-xs text-muted-foreground">No parameters configured.</p>}
+      {entries.map(([key, val], idx) => (
+        <div key={idx} className="flex items-center gap-2">
+          <Input className="flex-1 h-8 text-sm font-mono" placeholder="key" value={key} onChange={e => updateKey(key, e.target.value)} />
+          <span className="text-muted-foreground">=</span>
+          <Input className="flex-1 h-8 text-sm" placeholder="value" value={String(val)} onChange={e => updateValue(key, e.target.value)} />
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeParam(key)}><X className="h-3.5 w-3.5" /></Button>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addParam}><PlusCircle className="h-3.5 w-3.5" /> Add Parameter</Button>
+    </div>
+  );
+};
+
 // ── Detection Rule Dialog ──
 
 const DetectionRuleDialog = ({
@@ -478,6 +513,7 @@ const DetectionRuleDialog = ({
     auto_create_violation: rule?.auto_create_violation ?? true,
     is_enabled: rule?.is_enabled ?? true,
     violation_type_id: rule?.violation_type_id || '',
+    parameters: rule?.parameters || {},
   });
 
   React.useEffect(() => {
