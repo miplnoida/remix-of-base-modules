@@ -9398,6 +9398,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_automation_job_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          error_details: Json | null
+          errors_count: number | null
+          id: string
+          is_dry_run: boolean
+          job_id: string
+          records_affected: number | null
+          records_processed: number | null
+          run_status: string
+          started_at: string | null
+          summary: Json | null
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          errors_count?: number | null
+          id?: string
+          is_dry_run?: boolean
+          job_id: string
+          records_affected?: number | null
+          records_processed?: number | null
+          run_status?: string
+          started_at?: string | null
+          summary?: Json | null
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          errors_count?: number | null
+          id?: string
+          is_dry_run?: boolean
+          job_id?: string
+          records_affected?: number | null
+          records_processed?: number | null
+          run_status?: string
+          started_at?: string | null
+          summary?: Json | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_automation_job_runs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ce_automation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_automation_jobs: {
         Row: {
           created_at: string | null
@@ -40411,6 +40470,14 @@ export type Database = {
         }
         Returns: string
       }
+      ce_execute_automation_job: {
+        Args: {
+          p_dry_run?: boolean
+          p_job_code: string
+          p_triggered_by?: string
+        }
+        Returns: Json
+      }
       ce_generate_employer_statement: {
         Args: {
           p_employer_id: string
@@ -40516,6 +40583,34 @@ export type Database = {
           p_reversed_by?: string
         }
         Returns: string
+      }
+      ce_run_employer_compliance_refresh: {
+        Args: { p_batch_size?: number; p_dry_run?: boolean }
+        Returns: Json
+      }
+      ce_run_employer_flag_generation: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
+      ce_run_employer_risk_refresh: {
+        Args: { p_batch_size?: number; p_dry_run?: boolean }
+        Returns: Json
+      }
+      ce_run_group_rollup_refresh: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
+      ce_run_notice_recipient_validation: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
+      ce_run_recon_exception_detection: {
+        Args: { p_dry_run?: boolean; p_tolerance?: number }
+        Returns: Json
+      }
+      ce_run_stale_employer_review: {
+        Args: { p_dry_run?: boolean; p_stale_months?: number }
+        Returns: Json
       }
       ce_sync_c3_to_ledger: {
         Args: {
