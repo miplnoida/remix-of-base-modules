@@ -9294,6 +9294,8 @@ export type Database = {
         Row: {
           arrangement_id: string | null
           breach_type: string | null
+          created_at: string
+          created_by: string | null
           description: string | null
           detected_at: string | null
           detected_by: string | null
@@ -9302,10 +9304,14 @@ export type Database = {
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
           arrangement_id?: string | null
           breach_type?: string | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           detected_at?: string | null
           detected_by?: string | null
@@ -9314,10 +9320,14 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           arrangement_id?: string | null
           breach_type?: string | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           detected_at?: string | null
           detected_by?: string | null
@@ -9326,10 +9336,19 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "ce_arrangement_breaches_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_payment_arrangements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_arrangement_breaches_arrangement"
             columns: ["arrangement_id"]
             isOneToOne: false
             referencedRelation: "ce_payment_arrangements"
@@ -9484,6 +9503,13 @@ export type Database = {
             referencedRelation: "ce_automation_jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_automation_runs_job"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ce_automation_jobs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_calculation_rules: {
@@ -9582,28 +9608,41 @@ export type Database = {
             referencedRelation: "ce_cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_case_history_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_case_violations: {
         Row: {
           case_id: string | null
+          created_at: string | null
           id: string
           linked_at: string | null
           linked_by: string | null
+          updated_at: string | null
           violation_id: string | null
         }
         Insert: {
           case_id?: string | null
+          created_at?: string | null
           id?: string
           linked_at?: string | null
           linked_by?: string | null
+          updated_at?: string | null
           violation_id?: string | null
         }
         Update: {
           case_id?: string | null
+          created_at?: string | null
           id?: string
           linked_at?: string | null
           linked_by?: string | null
+          updated_at?: string | null
           violation_id?: string | null
         }
         Relationships: [
@@ -9616,6 +9655,20 @@ export type Database = {
           },
           {
             foreignKeyName: "ce_case_violations_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_case_violations_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_case_violations_violation"
             columns: ["violation_id"]
             isOneToOne: false
             referencedRelation: "ce_violations"
@@ -9856,6 +9909,41 @@ export type Database = {
             referencedRelation: "ce_employer_financial_ledger"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ce_employer_financial_ledger_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_employer_financial_ledger_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_ledger_reversal_of"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_ledger_reversal_of"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_ledger_reversal_of"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
         ]
       }
       ce_escalation_rules: {
@@ -9928,6 +10016,8 @@ export type Database = {
           id: string
           inspection_id: string | null
           severity: string | null
+          updated_at: string | null
+          updated_by: string | null
           violation_created: boolean | null
           violation_id: string | null
         }
@@ -9940,6 +10030,8 @@ export type Database = {
           id?: string
           inspection_id?: string | null
           severity?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
           violation_created?: boolean | null
           violation_id?: string | null
         }
@@ -9952,6 +10044,8 @@ export type Database = {
           id?: string
           inspection_id?: string | null
           severity?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
           violation_created?: boolean | null
           violation_id?: string | null
         }
@@ -9965,6 +10059,20 @@ export type Database = {
           },
           {
             foreignKeyName: "ce_inspection_findings_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_inspection_findings_inspection"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_inspection_findings_violation"
             columns: ["violation_id"]
             isOneToOne: false
             referencedRelation: "ce_violations"
@@ -10127,6 +10235,13 @@ export type Database = {
             referencedRelation: "ce_payment_arrangements"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_installments_arrangement"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_payment_arrangements"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_ledger_periods: {
@@ -10228,6 +10343,13 @@ export type Database = {
             referencedRelation: "ce_legal_escalations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_legal_documents_escalation"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_escalations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_legal_escalations: {
@@ -10294,6 +10416,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ce_legal_escalations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_legal_escalations_case"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
@@ -10392,6 +10521,20 @@ export type Database = {
             referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_notices_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_notices_violation"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_number_sequences: {
@@ -10419,6 +10562,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ce_number_sequences_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_number_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_number_sequences_template"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "ce_number_templates"
@@ -10591,6 +10741,13 @@ export type Database = {
             referencedRelation: "ce_cases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_payment_arrangements_case"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_penalty_calculations: {
@@ -10663,6 +10820,41 @@ export type Database = {
             referencedRelation: "ce_employer_financial_ledger"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ce_penalty_calculations_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_penalty_calculations_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_penalty_calculations_ledger_entry"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_penalty_calculations_ledger_entry"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_penalty_calculations_ledger_entry"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
         ]
       }
       ce_risk_bands: {
@@ -10726,6 +10918,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ce_risk_bands_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_risk_bands_policy"
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "ce_risk_policies"
@@ -10887,6 +11086,20 @@ export type Database = {
             referencedRelation: "ce_risk_policies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_ce_risk_policy_factors_factor"
+            columns: ["factor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_risk_policy_factors_policy"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_policies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ce_risk_profiles: {
@@ -10995,6 +11208,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ce_risk_score_history_risk_profile_id_fkey"
+            columns: ["risk_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ce_risk_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_risk_score_history_profile"
             columns: ["risk_profile_id"]
             isOneToOne: false
             referencedRelation: "ce_risk_profiles"
@@ -11129,6 +11349,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ce_violation_history_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_violation_history_violation"
             columns: ["violation_id"]
             isOneToOne: false
             referencedRelation: "ce_violations"
@@ -38513,7 +38740,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ce_ledger_reversals_v: {
+        Row: {
+          employer_id: string | null
+          employer_name: string | null
+          fund_type: Database["public"]["Enums"]["ce_fund_type"] | null
+          original_credit: number | null
+          original_debit: number | null
+          original_description: string | null
+          original_entry_id: string | null
+          original_entry_type:
+            | Database["public"]["Enums"]["ce_ledger_entry_type"]
+            | null
+          original_posted_at: string | null
+          original_posted_by: string | null
+          period: string | null
+          reversal_credit: number | null
+          reversal_debit: number | null
+          reversal_description: string | null
+          reversal_entry_id: string | null
+          reversal_entry_type:
+            | Database["public"]["Enums"]["ce_ledger_entry_type"]
+            | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_sep_activity: {
@@ -38648,6 +38902,56 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      ce_breach_check_arrangements: {
+        Args: { p_as_of_date?: string; p_checked_by?: string }
+        Returns: {
+          arrangement_id: string
+          arrangement_number: string
+          employer_id: string
+          missed_count: number
+          total_overdue: number
+        }[]
+      }
+      ce_calculate_employer_arrears: {
+        Args: { p_employer_id: string }
+        Returns: {
+          adjustments: number
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          interest: number
+          net_balance: number
+          payments: number
+          penalties: number
+          period_count: number
+          principal_due: number
+          waivers: number
+          write_offs: number
+        }[]
+      }
+      ce_generate_employer_statement: {
+        Args: {
+          p_employer_id: string
+          p_from_period?: string
+          p_fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          p_to_period?: string
+        }
+        Returns: {
+          credit_amount: number
+          debit_amount: number
+          description: string
+          entry_id: string
+          entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          period: string
+          posted_at: string
+          posted_by: string
+          reference_id: string
+          reference_type: string
+          reversal_of_id: string
+          reversal_reason: string
+          running_balance: number
+          status: Database["public"]["Enums"]["ce_ledger_status"]
+        }[]
+      }
       ce_get_employer_balance: {
         Args: {
           p_as_of_date?: string
@@ -38680,6 +38984,23 @@ export type Database = {
         }
         Returns: string
       }
+      ce_post_ledger_entry: {
+        Args: {
+          p_amount?: number
+          p_description?: string
+          p_employer_id: string
+          p_employer_name?: string
+          p_entry_type?: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          p_fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          p_idempotency_key?: string
+          p_period?: string
+          p_posted_by?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_territory?: string
+        }
+        Returns: string
+      }
       ce_recalculate_period_summary: {
         Args: {
           p_employer_id: string
@@ -38692,6 +39013,14 @@ export type Database = {
         Args: {
           p_original_entry_id: string
           p_reason: string
+          p_reversed_by?: string
+        }
+        Returns: string
+      }
+      ce_reverse_ledger_entry: {
+        Args: {
+          p_original_entry_id: string
+          p_reversal_reason: string
           p_reversed_by?: string
         }
         Returns: string
@@ -40474,6 +40803,8 @@ export type Database = {
         | "WRITE_OFF"
         | "ARRANGEMENT_CREDIT"
         | "REFUND"
+        | "OPENING_BALANCE"
+        | "TRANSFER_IN"
       ce_ledger_status: "POSTED" | "REVERSED"
       compliance_registration_status:
         | "pending"
@@ -40825,6 +41156,8 @@ export const Constants = {
         "WRITE_OFF",
         "ARRANGEMENT_CREDIT",
         "REFUND",
+        "OPENING_BALANCE",
+        "TRANSFER_IN",
       ],
       ce_ledger_status: ["POSTED", "REVERSED"],
       compliance_registration_status: [

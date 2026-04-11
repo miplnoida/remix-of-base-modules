@@ -39,6 +39,7 @@ import LegalReferralWizard from './legal/LegalReferralWizard';
 // Employers
 import EmployerStatements from './employers/EmployerStatements';
 import EmployerStatementDetail from './employers/EmployerStatementDetail';
+import EmployerFinancialStatement from './employers/EmployerFinancialStatement';
 import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
@@ -82,6 +83,7 @@ import RiskRulePolicy from './settings/RiskRulePolicy';
 import RiskScoringConfig from './settings/RiskScoringConfig';
 import ComplianceSettings from './settings/ComplianceSettings';
 import ComplianceTemplates from './settings/ComplianceTemplates';
+import LedgerAdministration from './settings/LedgerAdministration';
 
 const ComplianceRoutes = () => {
   return (
@@ -126,6 +128,7 @@ const ComplianceRoutes = () => {
       {/* Employers */}
       <Route path="/employer-statements" element={<EmployerStatements />} />
       <Route path="/employer-statements/:id" element={<EmployerStatementDetail />} />
+      <Route path="/employer-statements/:id/financial" element={<EmployerFinancialStatement />} />
       <Route path="/employers/findings" element={<EmployerFindings />} />
       <Route path="/employers/management" element={<EmployerComplianceManagement />} />
       <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
@@ -160,6 +163,7 @@ const ComplianceRoutes = () => {
       <Route path="/settings/risk-policy" element={<RiskRulePolicy />} />
       <Route path="/settings/legal-escalation-policy" element={<RiskRulePolicy />} />
       <Route path="/settings/templates" element={<ComplianceTemplates />} />
+      <Route path="/settings/ledger-admin" element={<LedgerAdministration />} />
 
       {/* Reports */}
       <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
