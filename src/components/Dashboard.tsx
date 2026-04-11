@@ -5,7 +5,9 @@ import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 import { ComplianceDashboard } from "@/components/dashboards/ComplianceDashboard";
 import { BenefitsDashboard } from "@/components/dashboards/BenefitsDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, FileText, Shield, DollarSign } from "lucide-react";
+import { Users, Building2, FileText, Shield, DollarSign, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchAdminKPIs, fetchFinancialSummary } from "@/services/dashboardDataService";
 
 const DASHBOARD_ROLES = new Set([
   'admin',
@@ -49,13 +51,26 @@ export const Dashboard = () => {
   return <div className="h-full">{renderDashboard()}</div>;
 };
 
-// HR Dashboard Component
+// HR Dashboard Component - DB-driven
 const HRDashboard = () => {
+  const { data: kpis, isLoading } = useQuery({
+    queryKey: ['hr_dashboard_kpis'],
+    queryFn: fetchAdminKPIs,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const stats = [
-    { label: 'Total Employees', value: '1,234,567', icon: Users, change: '+12%' },
-    { label: 'New Registrations', value: '156', icon: Building2, change: '+8%' },
-    { label: 'Pending Applications', value: '45', icon: FileText, change: '-5%' },
-    { label: 'ID Cards Generated', value: '89', icon: Shield, change: '+15%' },
+    { label: 'Insured Persons', value: (kpis?.insured_persons ?? 0).toLocaleString(), icon: Users },
+    { label: 'Total Employers', value: (kpis?.total_employers ?? 0).toLocaleString(), icon: Building2 },
+    { label: 'Active Claims', value: (kpis?.active_claims ?? 0).toLocaleString(), icon: FileText },
+    { label: 'Compliance Issues', value: (kpis?.compliance_issues ?? 0).toLocaleString(), icon: Shield },
   ];
 
   return (
@@ -75,9 +90,6 @@ const HRDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-              <p className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-secondary' : 'text-destructive'}`}>
-                {stat.change} from last month
-              </p>
             </CardContent>
           </Card>
         ))}
@@ -86,8 +98,28 @@ const HRDashboard = () => {
   );
 };
 
-// Financial Dashboard Component
+// Financial Dashboard Component - DB-driven
 const FinancialDashboard = () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['financial_dashboard_summary'],
+    queryFn: fetchFinancialSummary,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const formatVal = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${v.toFixed(0)}`;
+  };
+
   return (
     <div className="space-y-4 h-full animate-fade-in">
       <div className="mb-4">
@@ -102,18 +134,22 @@ const FinancialDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center p-4 rounded-lg bg-secondary/10">
-              <div className="text-3xl font-bold text-secondary">$12.5M</div>
+              <div className="text-3xl font-bold text-secondary">{formatVal(Number(data?.monthly_contributions ?? 0))}</div>
               <p className="text-sm text-muted-foreground font-medium">Monthly Contributions</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-[hsl(217_91%_60%/0.1)]">
-              <div className="text-3xl font-bold text-[hsl(217_91%_60%)]">$8.2M</div>
+              <div className="text-3xl font-bold text-[hsl(217_91%_60%)]">{formatVal(Number(data?.benefits_paid_mtd ?? 0))}</div>
               <p className="text-sm text-muted-foreground font-medium">Benefits Paid</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-primary/10">
-              <div className="text-3xl font-bold text-primary">$4.3M</div>
+              <div className="text-3xl font-bold text-primary">{formatVal(Number(data?.net_surplus ?? 0))}</div>
               <p className="text-sm text-muted-foreground font-medium">Net Surplus</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-destructive/10">
+              <div className="text-3xl font-bold text-destructive">{formatVal(Number(data?.outstanding_arrears ?? 0))}</div>
+              <p className="text-sm text-muted-foreground font-medium">Outstanding Arrears</p>
             </div>
           </div>
         </CardContent>
