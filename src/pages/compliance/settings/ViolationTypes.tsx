@@ -257,7 +257,7 @@ const ViolationTypes = () => {
                     {expandedCode === vt.code ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(vt)}><Edit className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(vt)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeactivateTarget(vt)}><Ban className="h-4 w-4 text-destructive" /></Button>
                 </div>
               </div>
               {expandedCode === vt.code && (
@@ -266,6 +266,9 @@ const ViolationTypes = () => {
                   <div><span className="text-muted-foreground">Grace Period:</span> <span className="font-medium text-foreground">{vt.grace_period_days} days</span></div>
                   <div><span className="text-muted-foreground">Auto-Detection:</span> <span className="font-medium text-foreground">{vt.auto_detect ? 'Yes' : 'No (Manual)'}</span></div>
                   <div><span className="text-muted-foreground">Applicable Funds:</span> <span className="font-medium text-foreground">{(vt.applicable_funds || []).join(', ')}</span></div>
+                  <div><span className="text-muted-foreground">Created by:</span> <span className="font-medium text-foreground">{(vt as any).created_by || '-'}</span></div>
+                  <div><span className="text-muted-foreground">Last updated:</span> <span className="font-medium text-foreground">{formatAuditTimestamp((vt as any).updated_at)}</span></div>
+                  <div><span className="text-muted-foreground">Updated by:</span> <span className="font-medium text-foreground">{(vt as any).updated_by || '-'}</span></div>
                 </div>
               )}
             </CardContent>
@@ -371,22 +374,22 @@ const ViolationTypes = () => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+      <AlertDialog open={!!deactivateTarget} onOpenChange={v => { if (!v) setDeactivateTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Violation Type</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate Violation Type</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.code} - {deleteTarget?.name}</strong>? This action cannot be undone.
+              Are you sure you want to deactivate <strong>{deactivateTarget?.code} - {deactivateTarget?.name}</strong>? It can be reactivated later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() => deactivateTarget && deactivateMutation.mutate(deactivateTarget.id)}
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete
+              {deactivateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Deactivate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
