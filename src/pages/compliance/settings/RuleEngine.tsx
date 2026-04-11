@@ -668,11 +668,12 @@ const DetectionRuleDialog = ({
 // ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
-  open, onOpenChange, rule, onSave, saving, existingCodes, formulaOps,
+  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, formulaOps,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   rule: CalculationRule | null;
+  violationTypes: ViolationType[];
   onSave: (data: any) => void;
   saving: boolean;
   existingCodes: string[];
@@ -688,6 +689,7 @@ const CalculationRuleDialog = ({
     fund_type: rule?.fund_type || '',
     source_config: rule?.source_config || 'c3_config',
     is_enabled: rule?.is_enabled ?? true,
+    violation_type_id: rule?.violation_type_id || '',
   });
 
   React.useEffect(() => {
@@ -702,6 +704,7 @@ const CalculationRuleDialog = ({
         fund_type: rule?.fund_type || '',
         source_config: rule?.source_config || 'c3_config',
         is_enabled: rule?.is_enabled ?? true,
+        violation_type_id: rule?.violation_type_id || '',
       });
     }
   }, [open, rule]);
@@ -718,6 +721,7 @@ const CalculationRuleDialog = ({
     onSave({
       ...form,
       fund_type: form.fund_type || null,
+      violation_type_id: form.violation_type_id || null,
     });
   };
 
