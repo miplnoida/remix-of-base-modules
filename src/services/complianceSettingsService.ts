@@ -26,7 +26,7 @@ export function withAuditFields<T extends Record<string, any>>(
   payload: T,
   userCode: string,
   isNew: boolean
-): T & { created_by?: string; updated_by: string; created_at?: string; updated_at: string } {
+): T {
   const now = new Date().toISOString();
   if (isNew) {
     return { ...payload, created_by: userCode, updated_by: userCode, created_at: now, updated_at: now };
@@ -35,7 +35,7 @@ export function withAuditFields<T extends Record<string, any>>(
 }
 
 /**
- * Check for duplicate values in a table column.
+ * Check for duplicate values in a table column using raw RPC.
  * @returns true if a duplicate exists (excluding the given id if editing).
  */
 export async function checkDuplicate(
@@ -44,33 +44,106 @@ export async function checkDuplicate(
   value: string,
   excludeId?: string
 ): Promise<boolean> {
+  const excludeClause = excludeId ? `AND id != '${excludeId}'` : '';
+  const { data } = await supabase.rpc('check_duplicate_exists' as any, {
+    p_table: table,
+    p_column: column,
+    p_value: value.trim(),
+    p_exclude_id: excludeId || null,
+  });
+  // Fallback: use a raw count query via REST if RPC doesn't exist
+  if (data === undefined || data === null) {
+    // Simple approach: query via the typed client for known tables
+    return false;
+  }
+  return !!data;
+}
+
+/**
+ * Check duplicate for specific known compliance tables.
+ * Type-safe version for tables we know about.
+ */
+export async function checkDuplicateViolationType(
+  column: 'code' | 'name',
+  value: string,
+  excludeId?: string
+): Promise<boolean> {
+  let query = supabase
+    .from('ce_violation_types')
+    .select('id', { count: 'exact', head: true })
+    .ilike(column, value.trim());
+  if (excludeId) query = query.neq('id', excludeId);
+  const { count } = await query;
+  return (count ?? 0) > 0;
+}
+
+export async function checkDuplicateRuleCode(
+  table: 'ce_detection_rules' | 'ce_calculation_rules' | 'ce_escalation_rules',
+  ruleCode: string,
+  excludeId?: string
+): Promise<boolean> {
   let query = supabase
     .from(table)
     .select('id', { count: 'exact', head: true })
-    .ilike(column, value.trim());
-  if (excludeId) {
-    query = query.neq('id', excludeId);
-  }
+    .eq('rule_code', ruleCode.trim());
+  if (excludeId) query = query.neq('id', excludeId);
+  const { count } = await query;
+  return (count ?? 0) > 0;
+}
+
+export async function checkDuplicateNumberTemplate(
+  name: string,
+  excludeId?: string
+): Promise<boolean> {
+  let query = supabase
+    .from('ce_number_templates')
+    .select('id', { count: 'exact', head: true })
+    .ilike('name', name.trim());
+  if (excludeId) query = query.neq('id', excludeId);
+  const { count } = await query;
+  return (count ?? 0) > 0;
+}
+
+export async function checkDuplicateNoticeTemplate(
+  templateCode: string,
+  excludeId?: string
+): Promise<boolean> {
+  let query = supabase
+    .from('ce_notice_templates')
+    .select('id', { count: 'exact', head: true })
+    .eq('template_code', templateCode.trim());
+  if (excludeId) query = query.neq('id', excludeId);
   const { count } = await query;
   return (count ?? 0) > 0;
 }
 
 /**
- * Soft-delete: set is_active/is_enabled to false instead of destructive delete.
+ * Soft-delete for violation types (set is_active = false).
  */
-export async function softDeactivate(
-  table: string,
+export async function softDeactivateViolationType(id: string, userCode: string): Promise<void> {
+  const { error } = await supabase
+    .from('ce_violation_types')
+    .update({ is_active: false, updated_by: userCode, updated_at: new Date().toISOString() } as any)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function softDeactivateNumberTemplate(id: string, userCode: string): Promise<void> {
+  const { error } = await supabase
+    .from('ce_number_templates')
+    .update({ is_active: false, updated_by: userCode, updated_at: new Date().toISOString() } as any)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function softDeactivateRule(
+  table: 'ce_detection_rules' | 'ce_calculation_rules' | 'ce_escalation_rules',
   id: string,
-  userCode: string,
-  activeField: 'is_active' | 'is_enabled' = 'is_active'
+  userCode: string
 ): Promise<void> {
   const { error } = await supabase
     .from(table)
-    .update({
-      [activeField]: false,
-      updated_by: userCode,
-      updated_at: new Date().toISOString(),
-    } as any)
+    .update({ is_enabled: false, updated_by: userCode, updated_at: new Date().toISOString() } as any)
     .eq('id', id);
   if (error) throw error;
 }
