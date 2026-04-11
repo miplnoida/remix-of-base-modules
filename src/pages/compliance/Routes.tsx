@@ -44,6 +44,7 @@ import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerHierarchy from './employers/EmployerHierarchy';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
+import EmployerNoticePreferences from './employers/EmployerNoticePreferences';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
