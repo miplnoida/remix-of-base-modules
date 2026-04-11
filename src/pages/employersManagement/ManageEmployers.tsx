@@ -11,307 +11,103 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Search,
   RefreshCw,
-  CheckCircle,
-  Printer,
   Plus,
-  Download,
   ChevronDown,
   ChevronRight,
   CalendarIcon,
-  Eye,
-  Edit,
-  Trash2
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-interface EmployerRecord {
-  regNo: string;
-  name: string;
-  tradeName: string;
-  phone: string;
-  fax: string;
-  hqAddress1: string;
-  hqAddress2: string;
-  officeCode: string;
-  activityType: string;
-  industrialCode: string;
-  mailingAddress1: string;
-  mailingAddress2: string;
-  villageCode: string;
-  sectorCode: string;
-  malesEmployed: number;
-  femalesEmployed: number;
-  arrears: number;
-  legalAction: string;
-  expectedMonthlyIncomeDate: string;
-  dateOfRegistration: string;
-  dateWagesFirstPaid: string;
-  dateOfClosure: string;
-  dateOfApplication: string;
-  dateOfEntry: string;
-  dateOfIssue: string;
-  dateModified: string;
-  dateVerified: string;
-  enteredBy: string;
-  modifiedBy: string;
-  verifiedBy: string;
-  ownershipCode: string;
-  previousOwner: string;
-  previousOwnerAddress1: string;
-  previousOwnerAddress2: string;
-  dateOfAcquisition: string;
-  dateOfIncorporated: string;
-  companyPayroll: string;
-  makeModel: string;
-  diskType: string;
-  acquiredCode: string;
-  estimatedArrearsSS: number;
-  estimatedArrearsLV: number;
-  estimatedArrearsPE: number;
-  estimatedWagesSS: number;
-  estimatedWagesLV: number;
-  estimatedWagesPE: number;
-  status: string;
-  inspectorCode: string;
-  parentRegNo: string;
-  reRegistrationDate: string;
+// ── Status mapping (er_master status codes → display labels) ──
+
+const STATUS_MAP: Record<string, string> = {
+  A: 'Active',
+  P: 'Pending',
+  S: 'Suspended',
+  T: 'Terminated',
+  D: 'De-registered',
+  V: 'Verification',
+  I: 'Inactive',
+  E: 'Expired',
+};
+
+const displayStatus = (code: string | null) => STATUS_MAP[code ?? ''] ?? code ?? 'Unknown';
+
+// ── Tab → status filter mapping ──
+
+const TAB_STATUS_FILTERS: Record<string, string[]> = {
+  pending: ['P', 'V'],
+  registered: ['A'],
+  ceased: ['S', 'T', 'D', 'I', 'E'],
+};
+
+// ── Fetch employers from er_master ──
+
+interface EmployerRow {
+  regno: string;
+  name: string | null;
+  trade_name: string | null;
+  phone: string | null;
+  activity_type: string | null;
+  status: string | null;
+  hq_addr1: string | null;
+  hq_addr2: string | null;
+  males_employed: number | null;
+  females_employed: number | null;
 }
 
-// Sample data with comprehensive employer records
-const sampleEmployers: EmployerRecord[] = [
-  {
-    regNo: "EMP001",
-    name: "ABC Construction Ltd",
-    tradeName: "ABC Construction",
-    phone: "(869) 465-2345",
-    fax: "(869) 465-2346",
-    hqAddress1: "123 Main Street",
-    hqAddress2: "Basseterre",
-    officeCode: "BST001",
-    activityType: "Construction",
-    industrialCode: "Building of Complete Con",
-    mailingAddress1: "P.O. Box 123",
-    mailingAddress2: "Basseterre",
-    villageCode: "Basseterre",
-    sectorCode: "SEC001",
-    malesEmployed: 25,
-    femalesEmployed: 15,
-    arrears: 5000,
-    legalAction: "None",
-    expectedMonthlyIncomeDate: "2024-01-15",
-    dateOfRegistration: "2023-01-15",
-    dateWagesFirstPaid: "2023-02-01",
-    dateOfClosure: "",
-    dateOfApplication: "2023-01-01",
-    dateOfEntry: "2023-01-10",
-    dateOfIssue: "2023-01-20",
-    dateModified: "2024-01-01",
-    dateVerified: "2023-01-25",
-    enteredBy: "John Doe",
-    modifiedBy: "Jane Smith",
-    verifiedBy: "Bob Johnson",
-    ownershipCode: "OWN001",
-    previousOwner: "",
-    previousOwnerAddress1: "",
-    previousOwnerAddress2: "",
-    dateOfAcquisition: "",
-    dateOfIncorporated: "2023-01-01",
-    companyPayroll: "Yes",
-    makeModel: "Dell Optiplex",
-    diskType: "SSD",
-    acquiredCode: "No",
-    estimatedArrearsSS: 1500,
-    estimatedArrearsLV: 1000,
-    estimatedArrearsPE: 2500,
-    estimatedWagesSS: 15000,
-    estimatedWagesLV: 10000,
-    estimatedWagesPE: 25000,
-    status: "Active",
-    inspectorCode: "01 Vincent Sutton",
-    parentRegNo: "",
-    reRegistrationDate: ""
-  },
-  {
-    regNo: "EMP002",
-    name: "XYZ Manufacturing Inc",
-    tradeName: "XYZ Manufacturing",
-    phone: "(869) 465-3456",
-    fax: "(869) 465-3457",
-    hqAddress1: "456 Industrial Road",
-    hqAddress2: "Cayon",
-    officeCode: "CAY001",
-    activityType: "Manufacturing",
-    industrialCode: "Farming Domestic Animals",
-    mailingAddress1: "P.O. Box 456",
-    mailingAddress2: "Cayon",
-    villageCode: "Cayon",
-    sectorCode: "SEC002",
-    malesEmployed: 35,
-    femalesEmployed: 28,
-    arrears: 0,
-    legalAction: "Pending",
-    expectedMonthlyIncomeDate: "2024-02-15",
-    dateOfRegistration: "2022-05-20",
-    dateWagesFirstPaid: "2022-06-01",
-    dateOfClosure: "",
-    dateOfApplication: "2022-05-01",
-    dateOfEntry: "2022-05-15",
-    dateOfIssue: "2022-05-25",
-    dateModified: "2024-01-15",
-    dateVerified: "2022-06-01",
-    enteredBy: "Mary Johnson",
-    modifiedBy: "Peter Wilson",
-    verifiedBy: "Alice Brown",
-    ownershipCode: "OWN002",
-    previousOwner: "Previous Corp",
-    previousOwnerAddress1: "789 Old Street",
-    previousOwnerAddress2: "Old Town",
-    dateOfAcquisition: "2022-04-01",
-    dateOfIncorporated: "2022-01-01",
-    companyPayroll: "Yes",
-    makeModel: "HP ProDesk",
-    diskType: "HDD",
-    acquiredCode: "Yes",
-    estimatedArrearsSS: 0,
-    estimatedArrearsLV: 0,
-    estimatedArrearsPE: 0,
-    estimatedWagesSS: 25000,
-    estimatedWagesLV: 18000,
-    estimatedWagesPE: 35000,
-    status: "Suspended",
-    inspectorCode: "02 Dexter Richardson",
-    parentRegNo: "PARENT001",
-    reRegistrationDate: "2023-01-01"
-  },
-  // Adding pending verification employers
-  {
-    regNo: "PEND001",
-    name: "PendingCorp Solutions",
-    tradeName: "PendingCorp",
-    phone: "(869) 465-4567",
-    fax: "(869) 465-4568",
-    hqAddress1: "789 Pending Street",
-    hqAddress2: "Charlestown",
-    officeCode: "CHT001",
-    activityType: "IT Services",
-    industrialCode: "Software Development",
-    mailingAddress1: "P.O. Box 789",
-    mailingAddress2: "Charlestown",
-    villageCode: "Charlestown",
-    sectorCode: "SEC003",
-    malesEmployed: 12,
-    femalesEmployed: 8,
-    arrears: 0,
-    legalAction: "None",
-    expectedMonthlyIncomeDate: "2024-03-15",
-    dateOfRegistration: "",
-    dateWagesFirstPaid: "",
-    dateOfClosure: "",
-    dateOfApplication: "2024-02-01",
-    dateOfEntry: "2024-02-05",
-    dateOfIssue: "",
-    dateModified: "",
-    dateVerified: "",
-    enteredBy: "System Admin",
-    modifiedBy: "",
-    verifiedBy: "",
-    ownershipCode: "OWN003",
-    previousOwner: "",
-    previousOwnerAddress1: "",
-    previousOwnerAddress2: "",
-    dateOfAcquisition: "",
-    dateOfIncorporated: "2024-01-01",
-    companyPayroll: "No",
-    makeModel: "",
-    diskType: "",
-    acquiredCode: "No",
-    estimatedArrearsSS: 0,
-    estimatedArrearsLV: 0,
-    estimatedArrearsPE: 0,
-    estimatedWagesSS: 8000,
-    estimatedWagesLV: 6000,
-    estimatedWagesPE: 12000,
-    status: "Pending",
-    inspectorCode: "03 Sarah Williams",
-    parentRegNo: "",
-    reRegistrationDate: ""
-  },
-  {
-    regNo: "PEND002",
-    name: "NewTech Innovations",
-    tradeName: "NewTech",
-    phone: "(869) 465-5678",
-    fax: "(869) 465-5679",
-    hqAddress1: "321 Innovation Drive",
-    hqAddress2: "Sandy Point",
-    officeCode: "SPT001",
-    activityType: "Technology",
-    industrialCode: "Tech Innovation",
-    mailingAddress1: "P.O. Box 321",
-    mailingAddress2: "Sandy Point",
-    villageCode: "Sandy Point",
-    sectorCode: "SEC004",
-    malesEmployed: 18,
-    femalesEmployed: 22,
-    arrears: 0,
-    legalAction: "None",
-    expectedMonthlyIncomeDate: "2024-03-20",
-    dateOfRegistration: "",
-    dateWagesFirstPaid: "",
-    dateOfClosure: "",
-    dateOfApplication: "2024-02-10",
-    dateOfEntry: "2024-02-15",
-    dateOfIssue: "",
-    dateModified: "",
-    dateVerified: "",
-    enteredBy: "Admin User",
-    modifiedBy: "",
-    verifiedBy: "",
-    ownershipCode: "OWN004",
-    previousOwner: "",
-    previousOwnerAddress1: "",
-    previousOwnerAddress2: "",
-    dateOfAcquisition: "",
-    dateOfIncorporated: "2024-01-15",
-    companyPayroll: "Yes",
-    makeModel: "",
-    diskType: "",
-    acquiredCode: "No",
-    estimatedArrearsSS: 0,
-    estimatedArrearsLV: 0,
-    estimatedArrearsPE: 0,
-    estimatedWagesSS: 15000,
-    estimatedWagesLV: 12000,
-    estimatedWagesPE: 20000,
-    status: "Pending",
-    inspectorCode: "04 Michael Davis",
-    parentRegNo: "",
-    reRegistrationDate: ""
-  }
-];
+async function fetchEmployersByStatus(statuses: string[]): Promise<EmployerRow[]> {
+  const { data, error } = await supabase
+    .from('er_master')
+    .select('regno, name, trade_name, phone, activity_type, status, hq_addr1, hq_addr2, males_employed, females_employed')
+    .in('status', statuses)
+    .order('regno', { ascending: true })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []) as EmployerRow[];
+}
+
+async function fetchEmployerCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('er_master')
+    .select('status');
+  if (error) throw error;
+
+  const counts: Record<string, number> = { pending: 0, registered: 0, ceased: 0 };
+  (data ?? []).forEach((row: any) => {
+    const s = row.status;
+    if (TAB_STATUS_FILTERS.pending.includes(s)) counts.pending++;
+    else if (TAB_STATUS_FILTERS.registered.includes(s)) counts.registered++;
+    else if (TAB_STATUS_FILTERS.ceased.includes(s)) counts.ceased++;
+  });
+  return counts;
+}
+
+// ── Component ──
 
 const ManageEmployers = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('registered');
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
-  
-  // Dialog states
-  const [selectedEmployer, setSelectedEmployer] = useState<EmployerRecord | null>(null);
+
+  const [selectedEmployer, setSelectedEmployer] = useState<EmployerRow | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  
+
   const [searchParams, setSearchParams] = useState({
     registrationNumber: '',
     employerName: '',
@@ -320,57 +116,59 @@ const ManageEmployers = () => {
     status: 'All',
   });
 
-  const handleSearch = () => {
-    console.log('Searching with parameters:', searchParams);
-    // Implement actual search functionality here
-  };
+  // Fetch tab counts
+  const { data: tabCounts } = useQuery({
+    queryKey: ['manage_employers_counts'],
+    queryFn: fetchEmployerCounts,
+  });
+
+  // Fetch employers for active tab
+  const statuses = TAB_STATUS_FILTERS[activeTab] ?? ['A'];
+  const { data: employers = [], isLoading } = useQuery({
+    queryKey: ['manage_employers_list', activeTab],
+    queryFn: () => fetchEmployersByStatus(statuses),
+  });
+
+  // Client-side search filter
+  const filteredEmployers = employers.filter((emp) => {
+    const s = searchParams;
+    if (s.registrationNumber && !(emp.regno ?? '').includes(s.registrationNumber)) return false;
+    if (s.employerName && !(emp.name ?? '').toLowerCase().includes(s.employerName.toLowerCase())) return false;
+    if (s.tradeName && !(emp.trade_name ?? '').toLowerCase().includes(s.tradeName.toLowerCase())) return false;
+    if (s.phoneNumber && !(emp.phone ?? '').includes(s.phoneNumber)) return false;
+    return true;
+  });
+
+  // Map to DataTable format
+  const tableData = filteredEmployers.map((emp) => ({
+    regNo: emp.regno,
+    name: emp.name ?? '',
+    tradeName: emp.trade_name ?? '',
+    phone: emp.phone ?? '',
+    activityType: emp.activity_type ?? '',
+    status: displayStatus(emp.status),
+  }));
 
   const handleReset = () => {
-    setSearchParams({
-      registrationNumber: '',
-      employerName: '',
-      tradeName: '',
-      phoneNumber: '',
-      status: 'All',
-    });
+    setSearchParams({ registrationNumber: '', employerName: '', tradeName: '', phoneNumber: '', status: 'All' });
     setFromDate(undefined);
     setToDate(undefined);
   };
 
-  // Action handlers for regular employers
-  const handleView = (employer: EmployerRecord) => {
-    navigate(`/employers-management/view/${employer.regNo}`);
-  };
+  const handleView = (employer: any) => navigate(`/employers-management/view/${employer.regNo}`);
+  const handleEdit = (employer: any) => navigate(`/employers-management/edit/${employer.regNo}`);
 
-  const handleEdit = (employer: EmployerRecord) => {
-    navigate(`/employers-management/edit/${employer.regNo}`);
-  };
-
-  const handleDelete = (employer: EmployerRecord) => {
-    if (confirm(`Are you sure you want to delete ${employer.name}?`)) {
-      console.log('Deleting employer:', employer);
-      alert(`Successfully deleted ${employer.name}`);
-    }
-  };
-
-  // Pending Verification handlers
-  const handleApprove = (employer: EmployerRecord) => {
+  const handleApprove = (employer: EmployerRow) => {
     setSelectedEmployer(employer);
     setApproveDialogOpen(true);
   };
-
-  const handleReject = (employer: EmployerRecord) => {
+  const handleReject = (employer: EmployerRow) => {
     setSelectedEmployer(employer);
     setRejectDialogOpen(true);
   };
 
-  const handleViewDetails = (employer: EmployerRecord) => {
-    navigate(`/employers-management/view/${employer.regNo}`);
-  };
-
   const confirmApprove = () => {
     if (selectedEmployer) {
-      console.log('Approving employer:', selectedEmployer);
       alert(`Successfully approved ${selectedEmployer.name}. Status changed to Active.`);
       setApproveDialogOpen(false);
       setSelectedEmployer(null);
@@ -379,8 +177,7 @@ const ManageEmployers = () => {
 
   const confirmReject = () => {
     if (selectedEmployer && rejectionReason.trim()) {
-      console.log('Rejecting employer:', selectedEmployer, 'Reason:', rejectionReason);
-      alert(`Successfully rejected ${selectedEmployer.name}. Rejection email sent with reason: ${rejectionReason}`);
+      alert(`Successfully rejected ${selectedEmployer.name}. Rejection email sent.`);
       setRejectDialogOpen(false);
       setSelectedEmployer(null);
       setRejectionReason('');
@@ -393,536 +190,177 @@ const ManageEmployers = () => {
         return <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">Active</Badge>;
       case 'Suspended':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Suspended</Badge>;
-      case 'Closed':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800 hover:bg-red-200">Closed</Badge>;
+      case 'Terminated':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800 hover:bg-red-200">Terminated</Badge>;
       case 'Pending':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">Pending</Badge>;
-      case 'Inactive':
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-200">Inactive</Badge>;
+      case 'Verification':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">{status}</Badge>;
+      case 'De-registered':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-200">De-registered</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  // Filter employers based on active tab
-  const getFilteredEmployers = () => {
-    switch (activeTab) {
-      case 'pending':
-        return sampleEmployers.filter(emp => emp.status === 'Pending');
-      case 'registered':
-        return sampleEmployers.filter(emp => emp.status === 'Active');
-      case 'ceased':
-        return sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed');
-      default:
-        return sampleEmployers;
-    }
-  };
+  const columns = [
+    { key: 'regNo', label: 'Reg. No' },
+    { key: 'name', label: 'Employer Name' },
+    { key: 'tradeName', label: 'Trade Name' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'activityType', label: 'Activity Type' },
+    { key: 'status', label: 'Status' },
+  ];
 
-  const filteredEmployers = getFilteredEmployers();
+  const renderFilterPanel = () => (
+    <Card className="mb-6 mt-5 shadow-sm">
+      <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+        <CardHeader className="border-b bg-background">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg text-foreground">Query By</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Filter and search employers</p>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-2 h-auto">
+                {isFilterExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </CardHeader>
+        <CollapsibleContent className="bg-background">
+          <CardContent className="p-6 bg-background">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Reg No (6-digit)</label>
+                <Input placeholder="Enter 6-digit registration No." value={searchParams.registrationNumber} onChange={(e) => setSearchParams((p) => ({ ...p, registrationNumber: e.target.value }))} className="bg-background" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Name</label>
+                <Input placeholder="Enter Name" value={searchParams.employerName} onChange={(e) => setSearchParams((p) => ({ ...p, employerName: e.target.value }))} className="bg-background" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name</label>
+                <Input placeholder="Enter Trade Name" value={searchParams.tradeName} onChange={(e) => setSearchParams((p) => ({ ...p, tradeName: e.target.value }))} className="bg-background" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone No.</label>
+                <Input placeholder="Enter Phone Number" value={searchParams.phoneNumber} onChange={(e) => setSearchParams((p) => ({ ...p, phoneNumber: e.target.value }))} className="bg-background" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-background", !fromDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={fromDate} onSelect={setFromDate} initialFocus className="p-3 pointer-events-auto bg-background" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
+                <Select value={searchParams.status} onValueChange={(value) => setSearchParams((p) => ({ ...p, status: value }))}>
+                  <SelectTrigger className="bg-background"><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="All">All</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Suspended">Suspended</SelectItem>
+                    <SelectItem value="Closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4 border-t">
+              <Button onClick={() => {}}>
+                <Search className="w-4 h-4 mr-2" />Search
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                <RefreshCw className="w-4 h-4 mr-2" />Reset
+              </Button>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
 
-  return ( 
+  const renderTable = (title: string, searchPlaceholder: string, actions: { view?: boolean; edit?: boolean; approve?: boolean; reject?: boolean }) => (
+    <>
+      {renderFilterPanel()}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : tableData.length === 0 ? (
+        <EmptyState title={`No ${title.toLowerCase()}`} description="No employers found matching the current criteria." />
+      ) : (
+        <DataTable
+          data={tableData}
+          columns={columns}
+          title={title}
+          searchPlaceholder={searchPlaceholder}
+          actions={actions}
+          idField="regNo"
+          statusField="status"
+          getStatusBadge={getStatusBadge}
+          onView={handleView}
+          onEdit={handleEdit}
+          onApprove={actions.approve ? (id) => {
+            const emp = employers.find((e) => e.regno === id);
+            if (emp) handleApprove(emp);
+          } : undefined}
+          onReject={actions.reject ? (id) => {
+            const emp = employers.find((e) => e.regno === id);
+            if (emp) handleReject(emp);
+          } : undefined}
+        />
+      )}
+    </>
+  );
+
+  return (
     <TooltipProvider>
       <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Manage Employers</h1>
-            <Button 
-              onClick={() => navigate('/employer/register')}
-              className="flex items-center gap-2"
-            >
+            <Button onClick={() => navigate('/employer/register')} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Register New Employers
+              Register New Employer
             </Button>
           </div>
-          
-          {/* Section 1: Query By (Collapsible Filters Panel) */}
-          
 
-          {/* Section 2: Search Result Area */}
-         
-            
-            <div className="p-0 ">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger 
-                    value="pending" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Pending Verification ({sampleEmployers.filter(emp => emp.status === 'Pending').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="registered" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Registered Employers ({sampleEmployers.filter(emp => emp.status === 'Active').length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="ceased" 
-                    className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
-                  >
-                    Ceased/Suspended ({sampleEmployers.filter(emp => emp.status === 'Suspended' || emp.status === 'Closed').length})
-                  </TabsTrigger>
-                </TabsList>
+          <div className="p-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="pending" className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">
+                  Pending Verification ({tabCounts?.pending ?? 0})
+                </TabsTrigger>
+                <TabsTrigger value="registered" className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">
+                  Registered Employers ({tabCounts?.registered ?? 0})
+                </TabsTrigger>
+                <TabsTrigger value="ceased" className="relative data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">
+                  Ceased/Suspended ({tabCounts?.ceased ?? 0})
+                </TabsTrigger>
+              </TabsList>
 
-                {/* Pending Verification Tab */}
-                <TabsContent value="pending" className="mt-0">
-                  <Card className="mb-6 mt-5 shadow-sm">
-            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
-              <CardHeader className="border-b bg-background">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Filter and search Employers Management</p>
-                  </div>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="p-2 h-auto">
-                      {isFilterExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                </div>
-              </CardHeader>
-              
-              <CollapsibleContent className="bg-background">
-                <CardContent className="p-6 bg-background">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Reg No (6-digit)</label>
-                      <Input
-                        placeholder="Enter 6-digit registration No."
-                        value={searchParams.registrationNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Name</label>
-                      <Input
-                        placeholder="Enter Name"
-                        value={searchParams.employerName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name:</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.tradeName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone No.</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.phoneNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date:</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal bg-background",
-                              !fromDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {fromDate ? format(fromDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto bg-background"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
-                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="All">All</SelectItem>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              <TabsContent value="pending" className="mt-0">
+                {renderTable('Pending Verification', 'Search pending applications...', { view: true, approve: true, reject: true })}
+              </TabsContent>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t">
-                    <Button 
-                      onClick={handleSearch} 
-                     // className="bg-primary-foreground text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Search
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleReset}
-                    //  className="border-primary-foreground text-primary hover:bg-primary/10"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
-                  {filteredEmployers.length === 0 ? (
-                    <EmptyState 
-                      title="No pending applications"
-                      description="All employer registrations have been processed."
-                    />
-                  ) : (
-                    <DataTable
-                      data={filteredEmployers}
-                      columns={[
-                        { key: 'regNo', label: 'Application No' },
-                        { key: 'name', label: 'Employer Name' },
-                        { key: 'tradeName', label: 'Trade Name' },
-                        { key: 'phone', label: 'Phone' },
-                        { key: 'activityType', label: 'Activity Type' },
-                        { key: 'status', label: 'Status' }
-                      ]}
-                      title="Pending Verification"
-                      searchPlaceholder="Search pending applications..."
-                      actions={{ view: true, approve: true, reject: true }}
-                      idField="regNo"
-                      statusField="status"
-                      getStatusBadge={getStatusBadge}
-                      onView={handleViewDetails}
-                      onApprove={(id) => {
-                        const employer = filteredEmployers.find(emp => emp.regNo === id);
-                        if (employer) handleApprove(employer);
-                      }}
-                      onReject={(id) => {
-                        const employer = filteredEmployers.find(emp => emp.regNo === id);
-                        if (employer) handleReject(employer);
-                      }}
-                    />
-                  )}
-                </TabsContent>
+              <TabsContent value="registered" className="mt-0">
+                {renderTable('Registered Employers', 'Search registered employers...', { view: true, edit: true })}
+              </TabsContent>
 
-                {/* Registered Employers Tab */}
-                <TabsContent value="registered" className=" mt-0">
-                  <Card className="mb-6  mt-5  shadow-sm">
-            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
-              <CardHeader className="border-b bg-background">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Filter and search Employers Management</p>
-                  </div>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="p-2 h-auto">
-                      {isFilterExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                </div>
-              </CardHeader>
-              
-              <CollapsibleContent className="bg-background">
-                <CardContent className="p-6 bg-background">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Reg No (6-digit)</label>
-                      <Input
-                        placeholder="Enter 6-digit registration No."
-                        value={searchParams.registrationNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Name</label>
-                      <Input
-                        placeholder="Enter Name"
-                        value={searchParams.employerName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name:</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.tradeName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone No.</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.phoneNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date:</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal bg-background",
-                              !fromDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {fromDate ? format(fromDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto bg-background"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
-                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="All">All</SelectItem>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t">
-                    <Button 
-                      onClick={handleSearch} 
-                     // className="bg-primary-foreground text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Search
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleReset}
-                    //  className="border-primary-foreground text-primary hover:bg-primary/10"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
-                  <DataTable
-                    data={filteredEmployers}
-                    columns={[
-                      { key: 'regNo', label: 'Reg. No' },
-                      { key: 'name', label: 'Employer Name' },
-                      { key: 'tradeName', label: 'Trade Name' },
-                      { key: 'phone', label: 'Phone' },
-                      { key: 'activityType', label: 'Activity Type' },
-                      { key: 'status', label: 'Status' }
-                    ]}
-                    title="Registered Employers"
-                    searchPlaceholder="Search registered employers..."
-                    actions={{ view: true, edit: true, approve: false, reject: false }}
-                    idField="regNo"
-                    statusField="status"
-                    getStatusBadge={getStatusBadge}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                  />
-                </TabsContent>
-
-                {/* Ceased/Suspended Employers Tab */}
-                <TabsContent value="ceased" className=" mt-0">
-                  <Card className="mb-6  mt-5  shadow-sm">
-            <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
-              <CardHeader className="border-b bg-background">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg text-foreground">Query By</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Filter and search Employers Management</p>
-                  </div>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="p-2 h-auto">
-                      {isFilterExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                </div>
-              </CardHeader>
-              
-              <CollapsibleContent className="bg-background">
-                <CardContent className="p-6 bg-background">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Reg No (6-digit)</label>
-                      <Input
-                        placeholder="Enter 6-digit registration No."
-                        value={searchParams.registrationNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, registrationNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Name</label>
-                      <Input
-                        placeholder="Enter Name"
-                        value={searchParams.employerName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, employerName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Trade Name:</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.tradeName}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, tradeName: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Phone No.</label>
-                      <Input
-                        placeholder="Enter Trade Name"
-                        value={searchParams.phoneNumber}
-                        onChange={(e) => setSearchParams(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Registration Date:</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal bg-background",
-                              !fromDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {fromDate ? format(fromDate, "MM/dd/yyyy") : "mm/dd/yyyy"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto bg-background"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
-                      <Select value={searchParams.status} onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="All">All</SelectItem>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t">
-                    <Button 
-                      onClick={handleSearch} 
-                     // className="bg-primary-foreground text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Search
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleReset}
-                    //  className="border-primary-foreground text-primary hover:bg-primary/10"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
-                  <DataTable
-                    data={filteredEmployers}
-                    columns={[
-                      { key: 'regNo', label: 'Reg. No' },
-                      { key: 'name', label: 'Employer Name' },
-                      { key: 'tradeName', label: 'Trade Name' },
-                      { key: 'phone', label: 'Phone' },
-                      { key: 'activityType', label: 'Activity Type' },
-                      { key: 'status', label: 'Status' }
-                    ]}
-                    title="Ceased/Suspended Employers"
-                    searchPlaceholder="Search ceased/suspended employers..."
-                    actions={{ view: true, edit: true, approve: false, reject: false }}
-                    idField="regNo"
-                    statusField="status"
-                    getStatusBadge={getStatusBadge}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-        
+              <TabsContent value="ceased" className="mt-0">
+                {renderTable('Ceased/Suspended Employers', 'Search ceased/suspended employers...', { view: true, edit: true })}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
 
         {/* Approval Dialog */}
@@ -931,17 +369,13 @@ const ManageEmployers = () => {
             <DialogHeader>
               <DialogTitle>Approve Employer Registration</DialogTitle>
               <DialogDescription>
-                Are you sure you want to approve the registration for {selectedEmployer?.name}? 
+                Are you sure you want to approve the registration for {selectedEmployer?.name}?
                 This will change their status to Active and send a confirmation notification.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={confirmApprove}>
-                Approve Registration
-              </Button>
+              <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmApprove}>Approve Registration</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -952,32 +386,16 @@ const ManageEmployers = () => {
             <DialogHeader>
               <DialogTitle>Reject Employer Registration</DialogTitle>
               <DialogDescription>
-                Please provide a reason for rejecting the registration for {selectedEmployer?.name}. 
-                This reason will be included in the rejection email.
+                Please provide a reason for rejecting the registration for {selectedEmployer?.name}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Label htmlFor="rejection-reason">Rejection Reason</Label>
-              <Textarea
-                id="rejection-reason"
-                placeholder="Enter the reason for rejection..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="mt-2"
-                rows={4}
-              />
+              <Textarea id="rejection-reason" placeholder="Enter the reason for rejection..." value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="mt-2" rows={4} />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={confirmReject} 
-                disabled={!rejectionReason.trim()}
-                variant="destructive"
-              >
-                Reject Registration
-              </Button>
+              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmReject} disabled={!rejectionReason.trim()} variant="destructive">Reject Registration</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -985,9 +403,5 @@ const ManageEmployers = () => {
     </TooltipProvider>
   );
 };
-
-
-
-
 
 export default ManageEmployers;
