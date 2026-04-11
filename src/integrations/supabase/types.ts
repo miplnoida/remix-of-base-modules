@@ -10058,64 +10058,115 @@ export type Database = {
       }
       ce_employer_contact_preferences: {
         Row: {
+          authorized_contact_email: string | null
+          authorized_contact_name: string | null
+          authorized_contact_phone: string | null
+          authorized_contact_title: string | null
           compliance_contact_email: string | null
           compliance_contact_name: string | null
           compliance_contact_phone: string | null
           compliance_contact_title: string | null
+          consent_given: boolean | null
+          consent_given_at: string | null
+          consent_given_by: string | null
+          consent_reference: string | null
           created_at: string
           created_by: string
           employer_id: string
           id: string
           is_active: boolean
           language_preference: string | null
+          legal_representative_email: string | null
+          legal_representative_firm: string | null
+          legal_representative_name: string | null
+          legal_representative_phone: string | null
           notes: string | null
           notice_address_line1: string | null
           notice_address_line2: string | null
           notice_email: string | null
           notice_fax: string | null
           notice_phone: string | null
+          opt_out_email: boolean | null
+          opt_out_physical: boolean | null
+          physical_delivery_address_1: string | null
+          physical_delivery_address_2: string | null
+          physical_delivery_parish: string | null
           preferred_channel: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          authorized_contact_email?: string | null
+          authorized_contact_name?: string | null
+          authorized_contact_phone?: string | null
+          authorized_contact_title?: string | null
           compliance_contact_email?: string | null
           compliance_contact_name?: string | null
           compliance_contact_phone?: string | null
           compliance_contact_title?: string | null
+          consent_given?: boolean | null
+          consent_given_at?: string | null
+          consent_given_by?: string | null
+          consent_reference?: string | null
           created_at?: string
           created_by?: string
           employer_id: string
           id?: string
           is_active?: boolean
           language_preference?: string | null
+          legal_representative_email?: string | null
+          legal_representative_firm?: string | null
+          legal_representative_name?: string | null
+          legal_representative_phone?: string | null
           notes?: string | null
           notice_address_line1?: string | null
           notice_address_line2?: string | null
           notice_email?: string | null
           notice_fax?: string | null
           notice_phone?: string | null
+          opt_out_email?: boolean | null
+          opt_out_physical?: boolean | null
+          physical_delivery_address_1?: string | null
+          physical_delivery_address_2?: string | null
+          physical_delivery_parish?: string | null
           preferred_channel?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          authorized_contact_email?: string | null
+          authorized_contact_name?: string | null
+          authorized_contact_phone?: string | null
+          authorized_contact_title?: string | null
           compliance_contact_email?: string | null
           compliance_contact_name?: string | null
           compliance_contact_phone?: string | null
           compliance_contact_title?: string | null
+          consent_given?: boolean | null
+          consent_given_at?: string | null
+          consent_given_by?: string | null
+          consent_reference?: string | null
           created_at?: string
           created_by?: string
           employer_id?: string
           id?: string
           is_active?: boolean
           language_preference?: string | null
+          legal_representative_email?: string | null
+          legal_representative_firm?: string | null
+          legal_representative_name?: string | null
+          legal_representative_phone?: string | null
           notes?: string | null
           notice_address_line1?: string | null
           notice_address_line2?: string | null
           notice_email?: string | null
           notice_fax?: string | null
           notice_phone?: string | null
+          opt_out_email?: boolean | null
+          opt_out_physical?: boolean | null
+          physical_delivery_address_1?: string | null
+          physical_delivery_address_2?: string | null
+          physical_delivery_parish?: string | null
           preferred_channel?: string
           updated_at?: string
           updated_by?: string | null
@@ -10330,6 +10381,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_employer_notice_recipients: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          channel: Database["public"]["Enums"]["ce_notice_channel"]
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_email: string | null
+          delivery_status: Database["public"]["Enums"]["ce_delivery_status"]
+          dispatched_at: string | null
+          employer_id: string
+          failure_reason: string | null
+          id: string
+          max_retries: number
+          notes: string | null
+          notice_reference: string | null
+          notice_type: string
+          recipient_name: string
+          recipient_role: string | null
+          retry_count: number
+          return_reason: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channel: Database["public"]["Enums"]["ce_notice_channel"]
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_email?: string | null
+          delivery_status?: Database["public"]["Enums"]["ce_delivery_status"]
+          dispatched_at?: string | null
+          employer_id: string
+          failure_reason?: string | null
+          id?: string
+          max_retries?: number
+          notes?: string | null
+          notice_reference?: string | null
+          notice_type: string
+          recipient_name: string
+          recipient_role?: string | null
+          retry_count?: number
+          return_reason?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channel?: Database["public"]["Enums"]["ce_notice_channel"]
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_email?: string | null
+          delivery_status?: Database["public"]["Enums"]["ce_delivery_status"]
+          dispatched_at?: string | null
+          employer_id?: string
+          failure_reason?: string | null
+          id?: string
+          max_retries?: number
+          notes?: string | null
+          notice_reference?: string | null
+          notice_type?: string
+          recipient_name?: string
+          recipient_role?: string | null
+          retry_count?: number
+          return_reason?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_employer_relationships: {
         Row: {
           child_employer_id: string
@@ -10395,6 +10530,92 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: []
+      }
+      ce_employer_service_log: {
+        Row: {
+          attempted_at: string
+          channel: Database["public"]["Enums"]["ce_notice_channel"] | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          employer_id: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          notice_recipient_id: string | null
+          officer_id: string | null
+          officer_name: string | null
+          outcome: string
+          outcome_detail: string | null
+          recipient_address: string | null
+          recipient_name: string | null
+          reference_number: string | null
+          service_action: string
+          service_type: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          channel?: Database["public"]["Enums"]["ce_notice_channel"] | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          notice_recipient_id?: string | null
+          officer_id?: string | null
+          officer_name?: string | null
+          outcome?: string
+          outcome_detail?: string | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          reference_number?: string | null
+          service_action: string
+          service_type: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          channel?: Database["public"]["Enums"]["ce_notice_channel"] | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          notice_recipient_id?: string | null
+          officer_id?: string | null
+          officer_name?: string | null
+          outcome?: string
+          outcome_detail?: string | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          reference_number?: string | null
+          service_action?: string
+          service_type?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_employer_service_log_notice_recipient_id_fkey"
+            columns: ["notice_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_notice_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_employer_snapshot_history: {
         Row: {
@@ -39501,6 +39722,52 @@ export type Database = {
       }
     }
     Views: {
+      ce_employer_contact_view: {
+        Row: {
+          authorized_contact_email: string | null
+          authorized_contact_name: string | null
+          authorized_contact_phone: string | null
+          compliance_contact_email: string | null
+          compliance_contact_name: string | null
+          compliance_contact_phone: string | null
+          compliance_contact_title: string | null
+          consent_given: boolean | null
+          consent_given_at: string | null
+          effective_address_1: string | null
+          effective_address_2: string | null
+          effective_channel: string | null
+          effective_email: string | null
+          effective_phone: string | null
+          employer_id: string | null
+          employer_name: string | null
+          employer_status: string | null
+          legal_representative_email: string | null
+          legal_representative_firm: string | null
+          legal_representative_name: string | null
+          legal_representative_phone: string | null
+          master_email: string | null
+          master_fax: string | null
+          master_hq_address_1: string | null
+          master_hq_address_2: string | null
+          master_mail_address_1: string | null
+          master_mail_address_2: string | null
+          master_mobile: string | null
+          master_phone: string | null
+          notice_address_line1: string | null
+          notice_address_line2: string | null
+          notice_email: string | null
+          notice_fax: string | null
+          notice_phone: string | null
+          opt_out_email: boolean | null
+          opt_out_physical: boolean | null
+          physical_delivery_address_1: string | null
+          physical_delivery_address_2: string | null
+          physical_delivery_parish: string | null
+          preference_id: string | null
+          preferred_channel: string | null
+        }
+        Relationships: []
+      }
       ce_employer_group_summary_view: {
         Row: {
           avg_risk_score: number | null
@@ -41781,6 +42048,13 @@ export type Database = {
         | "IP Dispute"
         | "Garnishment"
         | "Other"
+      ce_delivery_status:
+        | "pending"
+        | "dispatched"
+        | "delivered"
+        | "failed"
+        | "returned"
+        | "acknowledged"
       ce_employer_group_role: "primary" | "member" | "branch"
       ce_fund_type: "SS" | "LEVY" | "EI"
       ce_ledger_entry_type:
@@ -41797,6 +42071,12 @@ export type Database = {
         | "OPENING_BALANCE"
         | "TRANSFER_IN"
       ce_ledger_status: "POSTED" | "REVERSED"
+      ce_notice_channel:
+        | "email"
+        | "print"
+        | "officer_delivery"
+        | "registered_mail"
+        | "courier"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -42135,6 +42415,14 @@ export const Constants = {
         "Garnishment",
         "Other",
       ],
+      ce_delivery_status: [
+        "pending",
+        "dispatched",
+        "delivered",
+        "failed",
+        "returned",
+        "acknowledged",
+      ],
       ce_employer_group_role: ["primary", "member", "branch"],
       ce_fund_type: ["SS", "LEVY", "EI"],
       ce_ledger_entry_type: [
@@ -42152,6 +42440,13 @@ export const Constants = {
         "TRANSFER_IN",
       ],
       ce_ledger_status: ["POSTED", "REVERSED"],
+      ce_notice_channel: [
+        "email",
+        "print",
+        "officer_delivery",
+        "registered_mail",
+        "courier",
+      ],
       compliance_registration_status: [
         "pending",
         "approved",
