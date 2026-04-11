@@ -56,6 +56,7 @@ const EmployerComplianceWorkspace = () => {
   const [localEmployerId, setLocalEmployerId] = useState(employerId || '');
 
   const resolvedId = employerId || localEmployerId;
+  const [isRecomputing, setIsRecomputing] = useState(false);
 
   const { data: profile, isLoading, refetch } = useEmployerComplianceProfile(resolvedId || undefined);
   const { data: flags } = useEmployerComplianceFlags(resolvedId || undefined);
@@ -63,6 +64,27 @@ const EmployerComplianceWorkspace = () => {
   const { data: violations } = useEmployerViolations(resolvedId || undefined);
   const { data: cases } = useEmployerCases(resolvedId || undefined);
   const { data: ledger } = useEmployerLedgerRecent(resolvedId || undefined);
+
+  const handleRecompute = useCallback(async () => {
+    if (!resolvedId) return;
+    setIsRecomputing(true);
+    try {
+      const { error: e1 } = await supabase.rpc('ce_recompute_employer_compliance' as any, {
+        p_employer_id: resolvedId, p_triggered_by: 'ADMIN_UI'
+      });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.rpc('ce_recompute_employer_risk' as any, {
+        p_employer_id: resolvedId, p_triggered_by: 'ADMIN_UI'
+      });
+      if (e2) throw e2;
+      toast.success('Compliance and risk scores recomputed successfully');
+      refetch();
+    } catch (err: any) {
+      toast.error('Recompute failed', { description: err.message });
+    } finally {
+      setIsRecomputing(false);
+    }
+  }, [resolvedId, refetch]);
 
   // ─── Search bar (when no employer in URL) ─────────
   if (!employerId && !localEmployerId) {
