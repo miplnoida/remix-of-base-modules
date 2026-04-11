@@ -86,9 +86,8 @@ const ViolationTypes = () => {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from('ce_violation_types').update(
-        withAuditFields({ is_active }, userCode || 'SYS', false)
-      as any).eq('id', id);
+      const payload = withAuditFields({ is_active }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_violation_types').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
