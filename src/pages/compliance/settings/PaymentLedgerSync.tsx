@@ -199,7 +199,7 @@ const PaymentLedgerSync: React.FC = () => {
           {syncResult && (
             <div className="mt-4 p-3 rounded-md border bg-muted/40 grid grid-cols-5 gap-4 text-center text-sm">
               <div><div className="font-bold text-lg">{syncResult.processed_count}</div><div className="text-muted-foreground">Processed</div></div>
-              <div><div className="font-bold text-lg text-green-600">{syncResult.posted_count}</div><div className="text-muted-foreground">Posted</div></div>
+              <div><div className="font-bold text-lg text-primary">{syncResult.posted_count}</div><div className="text-muted-foreground">Posted</div></div>
               <div><div className="font-bold text-lg">{syncResult.skipped_count}</div><div className="text-muted-foreground">Skipped</div></div>
               <div><div className="font-bold text-lg text-destructive">{syncResult.failed_count}</div><div className="text-muted-foreground">Failed</div></div>
               <div><div className="font-bold text-lg">{syncResult.total_amount_processed?.toFixed(2)}</div><div className="text-muted-foreground">Amount</div></div>
