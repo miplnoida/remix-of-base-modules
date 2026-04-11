@@ -137,6 +137,7 @@ const ComplianceRoutes = () => {
       <Route path="/employers/management" element={<EmployerComplianceManagement />} />
       <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
       <Route path="/employers/hierarchy" element={<EmployerHierarchy />} />
+      <Route path="/employers/notice-preferences" element={<EmployerNoticePreferences />} />
 
       {/* Audit Planning */}
       <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
