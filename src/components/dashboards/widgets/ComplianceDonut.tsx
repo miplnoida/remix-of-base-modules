@@ -1,18 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Shield } from 'lucide-react';
-
-const data = [
-  { name: 'Compliant', value: 12840, color: 'hsl(144 65% 34%)' },
-  { name: 'Minor Issues', value: 1820, color: 'hsl(44 90% 57%)' },
-  { name: 'Non-Compliant', value: 310, color: 'hsl(2 74% 50%)' },
-  { name: 'Under Review', value: 462, color: 'hsl(217 91% 60%)' },
-];
-
-const total = data.reduce((s, d) => s + d.value, 0);
-const compliantPct = ((data[0].value / total) * 100).toFixed(1);
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Shield, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchComplianceDistribution } from '@/services/dashboardDataService';
 
 export function ComplianceDonut() {
+  const { data: rawData, isLoading } = useQuery({
+    queryKey: ['dashboard_compliance_distribution'],
+    queryFn: fetchComplianceDistribution,
+  });
+
+  const data = (rawData ?? []).map(d => ({ ...d, value: Number(d.value) }));
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const compliantPct = total > 0 ? ((data.find(d => d.name === 'Compliant')?.value ?? 0) / total * 100).toFixed(1) : '0';
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -23,57 +24,67 @@ export function ComplianceDonut() {
         <p className="text-xs text-muted-foreground">Current compliance distribution – {total.toLocaleString()} employers</p>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-[180px] w-[180px] relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={52}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                  strokeWidth={0}
-                >
-                  {data.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(0 0% 100%)',
-                    border: '1px solid hsl(214 20% 91%)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                  }}
-                  formatter={(val: number) => [val.toLocaleString(), undefined]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-bold text-foreground">{compliantPct}%</span>
-              <span className="text-[11px] text-muted-foreground">Compliant</span>
+        {isLoading ? (
+          <div className="h-[280px] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : total === 0 ? (
+          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+            No compliance data available
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-[180px] w-[180px] relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={52}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {data.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(0 0% 100%)',
+                      border: '1px solid hsl(214 20% 91%)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
+                    formatter={(val: number) => [val.toLocaleString(), undefined]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-bold text-foreground">{compliantPct}%</span>
+                <span className="text-[11px] text-muted-foreground">Compliant</span>
+              </div>
+            </div>
+            <div className="w-full space-y-2.5">
+              {data.map((d, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                    <span className="text-sm text-foreground truncate">{d.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-semibold text-foreground">{d.value.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {((d.value / total) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="w-full space-y-2.5">
-            {data.map((d, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                  <span className="text-sm text-foreground truncate">{d.name}</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm font-semibold text-foreground">{d.value.toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground w-10 text-right">
-                    {((d.value / total) * 100).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

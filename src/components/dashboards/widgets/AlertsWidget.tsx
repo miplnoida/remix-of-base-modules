@@ -1,21 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, AlertTriangle, Clock, FileWarning } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, FileWarning, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface AlertItem {
-  severity: 'critical' | 'warning' | 'info';
-  title: string;
-  detail: string;
-  time: string;
-}
-
-const alerts: AlertItem[] = [
-  { severity: 'critical', title: '23 employers overdue on C3 filing', detail: 'February 2026 filing deadline passed', time: 'Action required' },
-  { severity: 'warning', title: '5 payment plans at risk of breach', detail: 'Missed installment within 7 days', time: '2 days left' },
-  { severity: 'warning', title: 'Pending benefit approvals reaching SLA', detail: '12 claims pending > 10 business days', time: 'Escalate' },
-  { severity: 'info', title: 'System maintenance scheduled', detail: 'Database optimization – Sunday 2 AM', time: 'Mar 9' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { fetchActiveAlerts } from '@/services/dashboardDataService';
 
 const severityConfig = {
   critical: {
@@ -39,9 +27,16 @@ const severityConfig = {
     iconColor: 'text-primary',
     badge: 'bg-primary/15 text-primary',
   },
-};
+} as const;
 
 export function AlertsWidget() {
+  const { data: alerts, isLoading } = useQuery({
+    queryKey: ['dashboard_active_alerts'],
+    queryFn: fetchActiveAlerts,
+  });
+
+  const items = alerts ?? [];
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -51,36 +46,46 @@ export function AlertsWidget() {
             Alerts & Notifications
           </CardTitle>
           <Badge variant="outline" className="text-xs">
-            {alerts.length} active
+            {items.length} active
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {alerts.map((alert, i) => {
-            const cfg = severityConfig[alert.severity];
-            const Icon = cfg.icon;
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'flex items-start gap-3 p-3 rounded-lg border',
-                  cfg.bg,
-                  cfg.border
-                )}
-              >
-                <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', cfg.iconColor)} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground leading-snug">{alert.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{alert.detail}</p>
+        {isLoading ? (
+          <div className="h-[120px] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="h-[120px] flex items-center justify-center text-sm text-muted-foreground">
+            No active alerts — all clear
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((alert, i) => {
+              const cfg = severityConfig[alert.severity as keyof typeof severityConfig] ?? severityConfig.info;
+              const Icon = cfg.icon;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex items-start gap-3 p-3 rounded-lg border',
+                    cfg.bg,
+                    cfg.border
+                  )}
+                >
+                  <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', cfg.iconColor)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground leading-snug">{alert.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{alert.detail}</p>
+                  </div>
+                  <Badge className={cn('text-[10px] px-2 py-0.5 whitespace-nowrap', cfg.badge)}>
+                    {alert.time_label}
+                  </Badge>
                 </div>
-                <Badge className={cn('text-[10px] px-2 py-0.5 whitespace-nowrap', cfg.badge)}>
-                  {alert.time}
-                </Badge>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
