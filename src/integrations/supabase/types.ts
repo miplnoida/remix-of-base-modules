@@ -10231,6 +10231,105 @@ export type Database = {
           },
         ]
       }
+      ce_employer_group_membership: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          employer_id: string
+          group_id: string
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["ce_employer_group_role"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          employer_id: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["ce_employer_group_role"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          employer_id?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["ce_employer_group_role"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_employer_group_membership_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_group_summary_view"
+            referencedColumns: ["group_id"]
+          },
+          {
+            foreignKeyName: "ce_employer_group_membership_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_employer_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_code: string | null
+          group_name: string
+          id: string
+          is_active: boolean
+          sector: string | null
+          territory: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_code?: string | null
+          group_name: string
+          id?: string
+          is_active?: boolean
+          sector?: string | null
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_code?: string | null
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          sector?: string | null
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_employer_relationships: {
         Row: {
           child_employer_id: string
@@ -10238,6 +10337,7 @@ export type Database = {
           consolidate_financials: boolean
           created_at: string
           created_by: string
+          description: string | null
           effective_from: string
           effective_to: string | null
           id: string
@@ -10245,8 +10345,12 @@ export type Database = {
           notes: string | null
           parent_employer_id: string
           relationship_type: string
+          source_reference: string | null
           updated_at: string
           updated_by: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           child_employer_id: string
@@ -10254,6 +10358,7 @@ export type Database = {
           consolidate_financials?: boolean
           created_at?: string
           created_by?: string
+          description?: string | null
           effective_from?: string
           effective_to?: string | null
           id?: string
@@ -10261,8 +10366,12 @@ export type Database = {
           notes?: string | null
           parent_employer_id: string
           relationship_type?: string
+          source_reference?: string | null
           updated_at?: string
           updated_by?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           child_employer_id?: string
@@ -10270,6 +10379,7 @@ export type Database = {
           consolidate_financials?: boolean
           created_at?: string
           created_by?: string
+          description?: string | null
           effective_from?: string
           effective_to?: string | null
           id?: string
@@ -10277,8 +10387,12 @@ export type Database = {
           notes?: string | null
           parent_employer_id?: string
           relationship_type?: string
+          source_reference?: string | null
           updated_at?: string
           updated_by?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
       }
@@ -39387,6 +39501,75 @@ export type Database = {
       }
     }
     Views: {
+      ce_employer_group_summary_view: {
+        Row: {
+          avg_risk_score: number | null
+          group_code: string | null
+          group_id: string | null
+          group_name: string | null
+          is_active: boolean | null
+          max_risk_score: number | null
+          member_count: number | null
+          min_risk_score: number | null
+          sector: string | null
+          territory: string | null
+          total_group_arrears: number | null
+          total_group_cases: number | null
+          total_group_penalties: number | null
+          total_group_violations: number | null
+        }
+        Relationships: []
+      }
+      ce_employer_hierarchy_view: {
+        Row: {
+          effective_from: string | null
+          effective_to: string | null
+          relationship_active: boolean | null
+          relationship_id: string | null
+          relationship_type: string | null
+          source_arrears: number | null
+          source_cases: number | null
+          source_compliance_status: string | null
+          source_employer_id: string | null
+          source_employer_name: string | null
+          source_employer_status: string | null
+          source_group_id: string | null
+          source_group_name: string | null
+          source_risk_band: string | null
+          source_risk_score: number | null
+          source_sector: string | null
+          source_territory: string | null
+          source_violations: number | null
+          target_arrears: number | null
+          target_cases: number | null
+          target_compliance_status: string | null
+          target_employer_id: string | null
+          target_employer_name: string | null
+          target_employer_status: string | null
+          target_risk_band: string | null
+          target_risk_score: number | null
+          target_sector: string | null
+          target_territory: string | null
+          target_violations: number | null
+          verification_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_employer_group_membership_group_id_fkey"
+            columns: ["source_group_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_group_summary_view"
+            referencedColumns: ["group_id"]
+          },
+          {
+            foreignKeyName: "ce_employer_group_membership_group_id_fkey"
+            columns: ["source_group_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_employer_profile_view: {
         Row: {
           active_arrangement_count: number | null
@@ -41598,6 +41781,7 @@ export type Database = {
         | "IP Dispute"
         | "Garnishment"
         | "Other"
+      ce_employer_group_role: "primary" | "member" | "branch"
       ce_fund_type: "SS" | "LEVY" | "EI"
       ce_ledger_entry_type:
         | "C3_DUES_POSTED"
@@ -41951,6 +42135,7 @@ export const Constants = {
         "Garnishment",
         "Other",
       ],
+      ce_employer_group_role: ["primary", "member", "branch"],
       ce_fund_type: ["SS", "LEVY", "EI"],
       ce_ledger_entry_type: [
         "C3_DUES_POSTED",
