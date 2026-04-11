@@ -380,7 +380,7 @@ const PaymentLedgerSync: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />Reconciliation Exceptions
+                <AlertTriangle className="h-4 w-4 text-destructive" />Reconciliation Exceptions
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => refetchExceptions()}><RefreshCw className="h-4 w-4" /></Button>
             </CardHeader>
