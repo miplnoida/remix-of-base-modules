@@ -15664,6 +15664,51 @@ export type Database = {
         }
         Relationships: []
       }
+      claims_to_benefits: {
+        Row: {
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          data_origin: string | null
+          id: string
+          notes: string | null
+          officer: string | null
+          received_at_crd: string
+          status: string
+          submitted_to_benefits: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          id?: string
+          notes?: string | null
+          officer?: string | null
+          received_at_crd: string
+          status?: string
+          submitted_to_benefits?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          id?: string
+          notes?: string | null
+          officer?: string | null
+          received_at_crd?: string
+          status?: string
+          submitted_to_benefits?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cn_adjustments_journal: {
         Row: {
           adj_type: string
@@ -18598,6 +18643,57 @@ export type Database = {
           },
         ]
       }
+      crm_interactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_origin: string | null
+          employer_regno: string | null
+          id: string
+          insured_ssn: string | null
+          interaction_date: string
+          interaction_type: string
+          notes: string | null
+          officer: string | null
+          outcome: string | null
+          resolution_time_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          employer_regno?: string | null
+          id?: string
+          insured_ssn?: string | null
+          interaction_date?: string
+          interaction_type: string
+          notes?: string | null
+          officer?: string | null
+          outcome?: string | null
+          resolution_time_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          employer_regno?: string | null
+          id?: string
+          insured_ssn?: string | null
+          interaction_date?: string
+          interaction_type?: string
+          notes?: string | null
+          officer?: string | null
+          outcome?: string | null
+          resolution_time_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       data_policy_audit_log: {
         Row: {
           access_granted: boolean | null
@@ -19759,6 +19855,54 @@ export type Database = {
           reason?: string | null
           validated_at?: string
           validated_by?: string | null
+        }
+        Relationships: []
+      }
+      electronic_c3_uploads: {
+        Row: {
+          c3_period: string
+          created_at: string
+          created_by: string | null
+          data_origin: string | null
+          employer_id: string
+          employer_name: string
+          id: string
+          record_count: number | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          upload_date: string
+          upload_method: string
+        }
+        Insert: {
+          c3_period: string
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          employer_id: string
+          employer_name: string
+          id?: string
+          record_count?: number | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          upload_date: string
+          upload_method?: string
+        }
+        Update: {
+          c3_period?: string
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          employer_id?: string
+          employer_name?: string
+          id?: string
+          record_count?: number | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          upload_date?: string
+          upload_method?: string
         }
         Relationships: []
       }
@@ -30786,6 +30930,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_workflow_stages: {
+        Row: {
+          active: boolean
+          code: string
+          colour: string | null
+          created_at: string
+          created_by: string | null
+          data_origin: string | null
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          colour?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          colour?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_origin?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       login_security_events: {
         Row: {
