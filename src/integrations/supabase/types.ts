@@ -9871,6 +9871,7 @@ export type Database = {
           source_config: string | null
           updated_at: string | null
           updated_by: string | null
+          violation_type_id: string | null
         }
         Insert: {
           applies_to: string
@@ -9889,6 +9890,7 @@ export type Database = {
           source_config?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_type_id?: string | null
         }
         Update: {
           applies_to?: string
@@ -9907,8 +9909,17 @@ export type Database = {
           source_config?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_type_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_calculation_rules_violation_type_id_fkey"
+            columns: ["violation_type_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violation_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_case_employer_snapshot: {
         Row: {
@@ -11387,6 +11398,7 @@ export type Database = {
           to_status: string
           updated_at: string | null
           updated_by: string | null
+          violation_type_id: string | null
         }
         Insert: {
           amount_threshold?: number | null
@@ -11406,6 +11418,7 @@ export type Database = {
           to_status: string
           updated_at?: string | null
           updated_by?: string | null
+          violation_type_id?: string | null
         }
         Update: {
           amount_threshold?: number | null
@@ -11425,8 +11438,17 @@ export type Database = {
           to_status?: string
           updated_at?: string | null
           updated_by?: string | null
+          violation_type_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_escalation_rules_violation_type_id_fkey"
+            columns: ["violation_type_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violation_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_field_activities: {
         Row: {
@@ -12784,6 +12806,7 @@ export type Database = {
           ledger_entry_id: string | null
           period: string
           rule_code: string | null
+          violation_id: string | null
         }
         Insert: {
           calculated_amount: number
@@ -12802,6 +12825,7 @@ export type Database = {
           ledger_entry_id?: string | null
           period: string
           rule_code?: string | null
+          violation_id?: string | null
         }
         Update: {
           calculated_amount?: number
@@ -12820,6 +12844,7 @@ export type Database = {
           ledger_entry_id?: string | null
           period?: string
           rule_code?: string | null
+          violation_id?: string | null
         }
         Relationships: [
           {
@@ -12849,6 +12874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_ledger_reversals_v"
             referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_penalty_calculations_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_ce_penalty_calculations_ledger_entry"
