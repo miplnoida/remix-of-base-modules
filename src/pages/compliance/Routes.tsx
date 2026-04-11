@@ -65,6 +65,7 @@ import RiskSamplingSettings from './sampling/RiskSamplingSettings';
 // Automation
 import JobConfiguration from './automation/JobConfiguration';
 import JobHistory from './automation/JobHistory';
+import EmployerComplianceJobs from './automation/EmployerComplianceJobs';
 
 // Reports
 import CaseAnalytics from './reports/CaseAnalytics';
