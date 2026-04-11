@@ -420,13 +420,14 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
 
 // Hook for employer list
 export const useEmployerList = () => {
+  const queryClient = useQueryClient();
   const { isAuthReady, isAuthenticated } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState('pending');
 
-  const PENDING_STATUSES = ['Z', 'P'];
-  const REGISTERED_STATUSES = ['A', 'V'];
-  const CEASED_STATUSES = ['C', 'S'];
-  const EXCLUDED_STATUS = 'D';
+  const PENDING_STATUSES = ['Z', 'P', 'V'];
+  const REGISTERED_STATUSES = ['A'];
+  const CEASED_STATUSES = ['C', 'S', 'T', 'D', 'I', 'E'];
+  const PAGE_SIZE = 1000;
 
   const getStatusesForTab = useCallback((tab: string): string[] => {
     switch (tab) {
@@ -441,42 +442,70 @@ export const useEmployerList = () => {
     }
   }, []);
 
-  const { data: employers, isLoading, refetch } = useQuery({
-    queryKey: ['er_master_list', activeTab],
-    queryFn: async () => {
-      const tabStatuses = getStatusesForTab(activeTab);
+  const fetchAllEmployersForStatuses = useCallback(async (statuses: string[]) => {
+    let from = 0;
+    let allRows: any[] = [];
+    let hasMore = true;
+
+    while (hasMore) {
       const { data, error } = await supabase
         .from('er_master')
         .select('*')
-        .neq('status', EXCLUDED_STATUS)
-        .in('status', tabStatuses)
-        .order('date_of_entry', { ascending: false });
+        .in('status', statuses)
+        .order('date_of_entry', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
 
       if (error) throw error;
-      return data || [];
-    },
+
+      const rows = data || [];
+      allRows = allRows.concat(rows);
+
+      if (rows.length < PAGE_SIZE) {
+        hasMore = false;
+      } else {
+        from += PAGE_SIZE;
+      }
+    }
+
+    return allRows;
+  }, []);
+
+  const countEmployersForStatuses = useCallback(async (statuses: string[]) => {
+    const { count, error } = await supabase
+      .from('er_master')
+      .select('*', { count: 'exact', head: true })
+      .in('status', statuses);
+
+    if (error) throw error;
+    return count ?? 0;
+  }, []);
+
+  const { data: employers, isLoading, refetch } = useQuery({
+    queryKey: ['er_master_list', activeTab],
+    queryFn: async () => fetchAllEmployersForStatuses(getStatusesForTab(activeTab)),
     enabled: isAuthReady && isAuthenticated,
   });
 
   const { data: counts } = useQuery({
     queryKey: ['er_master_counts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('er_master')
-        .select('status')
-        .neq('status', EXCLUDED_STATUS);
+      const [pending, registered, ceased] = await Promise.all([
+        countEmployersForStatuses(PENDING_STATUSES),
+        countEmployersForStatuses(REGISTERED_STATUSES),
+        countEmployersForStatuses(CEASED_STATUSES),
+      ]);
 
-      if (error) throw error;
-
-      const allRecords = data || [];
-      return {
-        pending: allRecords.filter(r => PENDING_STATUSES.includes(r.status)).length,
-        registered: allRecords.filter(r => REGISTERED_STATUSES.includes(r.status)).length,
-        ceased: allRecords.filter(r => CEASED_STATUSES.includes(r.status)).length,
-      };
+      return { pending, registered, ceased };
     },
     enabled: isAuthReady && isAuthenticated,
   });
+
+  const refreshEmployerQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['er_master_list'] }),
+      queryClient.invalidateQueries({ queryKey: ['er_master_counts'] }),
+    ]);
+  };
 
   // Delete employer (soft delete)
   const deleteEmployer = async (regno: string): Promise<boolean> => {
@@ -489,7 +518,7 @@ export const useEmployerList = () => {
       if (error) throw error;
 
       toast.success('Employer deleted');
-      refetch();
+      await refreshEmployerQueries();
       return true;
     } catch (error: any) {
       toast.error('Failed to delete: ' + error.message);
@@ -512,7 +541,7 @@ export const useEmployerList = () => {
       if (error) throw error;
 
       toast.success('Employer approved');
-      refetch();
+      await refreshEmployerQueries();
       return true;
     } catch (error: any) {
       toast.error('Failed to approve: ' + error.message);
@@ -531,7 +560,7 @@ export const useEmployerList = () => {
       if (error) throw error;
 
       toast.success('Employer rejected');
-      refetch();
+      await refreshEmployerQueries();
       return true;
     } catch (error: any) {
       toast.error('Failed to reject: ' + error.message);
