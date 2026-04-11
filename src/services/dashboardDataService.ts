@@ -209,8 +209,8 @@ export const getLegalEscalationSummary = () =>
 
 // ── Legacy aliases (keep existing consumers working) ──
 
-export const fetchRecentViolations = getRecentViolations;
-export const fetchUpcomingInspections = getRecentInspections;
+export const fetchRecentViolations = () => getRecentViolations();
+export const fetchUpcomingInspections = () => getRecentInspections();
 
 /** Recent claims for benefits dashboard */
 export async function fetchRecentClaims() {
