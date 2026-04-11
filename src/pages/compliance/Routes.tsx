@@ -44,6 +44,7 @@ import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerHierarchy from './employers/EmployerHierarchy';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
+import EmployerNoticePreferences from './employers/EmployerNoticePreferences';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
@@ -136,6 +137,7 @@ const ComplianceRoutes = () => {
       <Route path="/employers/management" element={<EmployerComplianceManagement />} />
       <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
       <Route path="/employers/hierarchy" element={<EmployerHierarchy />} />
+      <Route path="/employers/notice-preferences" element={<EmployerNoticePreferences />} />
 
       {/* Audit Planning */}
       <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
