@@ -9620,6 +9620,38 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_case_employer_snapshot: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          snapshot_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_employer_snapshot_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_case_history: {
         Row: {
           action: string
@@ -10686,6 +10718,189 @@ export type Database = {
           snapshot_date?: string
           snapshot_type?: string
           total_arrears?: number | null
+        }
+        Relationships: []
+      }
+      ce_employer_snapshots: {
+        Row: {
+          active_arrangements: number | null
+          active_cases: number | null
+          active_flags: Json | null
+          active_violations: number | null
+          authorized_contact_name: string | null
+          compliance_email: string | null
+          compliance_phone: string | null
+          compliance_status: string | null
+          consent_given: boolean | null
+          created_at: string
+          created_by: string | null
+          current_arrears: number | null
+          current_penalties: number | null
+          email: string | null
+          employer_id: string
+          employer_name: string | null
+          employer_status: string | null
+          enforcement_risk_score: number | null
+          fax: string | null
+          filing_risk_score: number | null
+          filing_status: string | null
+          group_id: string | null
+          group_name: string | null
+          group_role: string | null
+          hq_address_1: string | null
+          hq_address_2: string | null
+          id: string
+          industrial_code: string | null
+          last_filing_period: string | null
+          last_payment_date: string | null
+          legal_representative_name: string | null
+          mailing_address_1: string | null
+          mailing_address_2: string | null
+          mobile: string | null
+          office_code: string | null
+          ownership_code: string | null
+          parent_employer_id: string | null
+          parent_employer_name: string | null
+          parent_regno: string | null
+          payment_risk_score: number | null
+          payment_status: string | null
+          phone: string | null
+          preferred_channel: string | null
+          raw_compliance_data: Json | null
+          raw_master_data: Json | null
+          raw_risk_data: Json | null
+          registration_date: string | null
+          regno: string | null
+          risk_band: string | null
+          risk_score: number | null
+          sector_code: string | null
+          snapshot_at: string
+          snapshot_by: string | null
+          snapshot_trigger: string
+          snapshot_trigger_id: string | null
+          snapshot_trigger_type: string | null
+          trade_name: string | null
+          village_code: string | null
+        }
+        Insert: {
+          active_arrangements?: number | null
+          active_cases?: number | null
+          active_flags?: Json | null
+          active_violations?: number | null
+          authorized_contact_name?: string | null
+          compliance_email?: string | null
+          compliance_phone?: string | null
+          compliance_status?: string | null
+          consent_given?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          current_arrears?: number | null
+          current_penalties?: number | null
+          email?: string | null
+          employer_id: string
+          employer_name?: string | null
+          employer_status?: string | null
+          enforcement_risk_score?: number | null
+          fax?: string | null
+          filing_risk_score?: number | null
+          filing_status?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          group_role?: string | null
+          hq_address_1?: string | null
+          hq_address_2?: string | null
+          id?: string
+          industrial_code?: string | null
+          last_filing_period?: string | null
+          last_payment_date?: string | null
+          legal_representative_name?: string | null
+          mailing_address_1?: string | null
+          mailing_address_2?: string | null
+          mobile?: string | null
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_employer_id?: string | null
+          parent_employer_name?: string | null
+          parent_regno?: string | null
+          payment_risk_score?: number | null
+          payment_status?: string | null
+          phone?: string | null
+          preferred_channel?: string | null
+          raw_compliance_data?: Json | null
+          raw_master_data?: Json | null
+          raw_risk_data?: Json | null
+          registration_date?: string | null
+          regno?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          sector_code?: string | null
+          snapshot_at?: string
+          snapshot_by?: string | null
+          snapshot_trigger: string
+          snapshot_trigger_id?: string | null
+          snapshot_trigger_type?: string | null
+          trade_name?: string | null
+          village_code?: string | null
+        }
+        Update: {
+          active_arrangements?: number | null
+          active_cases?: number | null
+          active_flags?: Json | null
+          active_violations?: number | null
+          authorized_contact_name?: string | null
+          compliance_email?: string | null
+          compliance_phone?: string | null
+          compliance_status?: string | null
+          consent_given?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          current_arrears?: number | null
+          current_penalties?: number | null
+          email?: string | null
+          employer_id?: string
+          employer_name?: string | null
+          employer_status?: string | null
+          enforcement_risk_score?: number | null
+          fax?: string | null
+          filing_risk_score?: number | null
+          filing_status?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          group_role?: string | null
+          hq_address_1?: string | null
+          hq_address_2?: string | null
+          id?: string
+          industrial_code?: string | null
+          last_filing_period?: string | null
+          last_payment_date?: string | null
+          legal_representative_name?: string | null
+          mailing_address_1?: string | null
+          mailing_address_2?: string | null
+          mobile?: string | null
+          office_code?: string | null
+          ownership_code?: string | null
+          parent_employer_id?: string | null
+          parent_employer_name?: string | null
+          parent_regno?: string | null
+          payment_risk_score?: number | null
+          payment_status?: string | null
+          phone?: string | null
+          preferred_channel?: string | null
+          raw_compliance_data?: Json | null
+          raw_master_data?: Json | null
+          raw_risk_data?: Json | null
+          registration_date?: string | null
+          regno?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          sector_code?: string | null
+          snapshot_at?: string
+          snapshot_by?: string | null
+          snapshot_trigger?: string
+          snapshot_trigger_id?: string | null
+          snapshot_trigger_type?: string | null
+          trade_name?: string | null
+          village_code?: string | null
         }
         Relationships: []
       }
@@ -12289,6 +12504,38 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ce_violation_employer_snapshot: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          snapshot_id: string
+          violation_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot_id: string
+          violation_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          snapshot_id?: string
+          violation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_violation_employer_snapshot_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_violation_history: {
         Row: {
@@ -40153,6 +40400,16 @@ export type Database = {
           waivers: number
           write_offs: number
         }[]
+      }
+      ce_create_employer_snapshot: {
+        Args: {
+          p_employer_id: string
+          p_snapshot_by?: string
+          p_trigger: string
+          p_trigger_id?: string
+          p_trigger_type?: string
+        }
+        Returns: string
       }
       ce_generate_employer_statement: {
         Args: {
