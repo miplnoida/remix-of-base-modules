@@ -40890,6 +40890,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_c3_aggregate_stats: {
+        Row: {
+          total_late: number | null
+          total_missing: number | null
+          total_on_time: number | null
+          total_submissions: number | null
+        }
+        Relationships: []
+      }
+      ce_v_c3_compliance_summary: {
+        Row: {
+          compliance_rate: number | null
+          employer_id: string | null
+          employer_name: string | null
+          late: number | null
+          missing: number | null
+          on_time: number | null
+          zone: string | null
+        }
+        Relationships: []
+      }
       ce_v_c3_unposted_to_ledger: {
         Row: {
           c3_id: string | null
@@ -40908,6 +40929,46 @@ export type Database = {
           ss_dues: number | null
           ss_penalty: number | null
           total_amount: number | null
+        }
+        Relationships: []
+      }
+      ce_v_case_monthly_trend: {
+        Row: {
+          closed: number | null
+          created: number | null
+          month_key: string | null
+          month_label: string | null
+        }
+        Relationships: []
+      }
+      ce_v_case_resolution_stats: {
+        Row: {
+          avg_days: number | null
+          case_count: number | null
+          case_type: string | null
+        }
+        Relationships: []
+      }
+      ce_v_compliance_monitoring: {
+        Row: {
+          active_arrangement_count: number | null
+          active_case_count: number | null
+          active_violation_count: number | null
+          current_arrears_amount: number | null
+          current_penalty_amount: number | null
+          employer_id: string | null
+          employer_name: string | null
+          employer_regno: string | null
+          filing_status: string | null
+          id: string | null
+          last_computed_at: string | null
+          last_filing_period: string | null
+          last_payment_date: string | null
+          overall_compliance_status: string | null
+          payment_status: string | null
+          review_due_date: string | null
+          risk_band: string | null
+          risk_score: number | null
         }
         Relationships: []
       }
