@@ -43,6 +43,7 @@ import EmployerFinancialStatement from './employers/EmployerFinancialStatement';
 import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
+import EmployerComplianceWorkspace from './employers/EmployerComplianceWorkspace';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
