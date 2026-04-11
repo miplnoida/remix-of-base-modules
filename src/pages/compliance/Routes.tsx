@@ -157,6 +157,7 @@ const ComplianceRoutes = () => {
 
       {/* Automation */}
       <Route path="/automation/jobs" element={<JobConfiguration />} />
+      <Route path="/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/automation/history" element={<JobHistory />} />
 
       {/* Settings */}
