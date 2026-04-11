@@ -11074,6 +11074,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_field_activities: {
+        Row: {
+          case_id: string | null
+          case_number: string | null
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string | null
+          employer_id: string | null
+          employer_name: string | null
+          evidence_count: number | null
+          id: string
+          notes: string | null
+          plan_id: string | null
+          plan_reference: string | null
+          status: string | null
+          updated_at: string | null
+          visit_type: string | null
+          working_papers: number | null
+        }
+        Insert: {
+          case_id?: string | null
+          case_number?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          evidence_count?: number | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          plan_reference?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_type?: string | null
+          working_papers?: number | null
+        }
+        Update: {
+          case_id?: string | null
+          case_number?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          evidence_count?: number | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          plan_reference?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_type?: string | null
+          working_papers?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_field_activities_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_field_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_inspection_findings: {
         Row: {
           created_at: string | null
@@ -11251,6 +11323,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_inspectors: {
+        Row: {
+          active_from: string | null
+          assigned_zones: Json | null
+          created_at: string | null
+          email: string | null
+          id: string
+          inspector_code: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_from?: string | null
+          assigned_zones?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inspector_code: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_from?: string | null
+          assigned_zones?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inspector_code?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       ce_installments: {
         Row: {
@@ -12091,6 +12205,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_ledger_reversals_v"
             referencedColumns: ["reversal_entry_id"]
+          },
+        ]
+      }
+      ce_planned_visits: {
+        Row: {
+          case_id: string | null
+          completed: boolean | null
+          completed_date: string | null
+          created_at: string | null
+          employer_id: string | null
+          employer_name: string | null
+          id: string
+          notes: string | null
+          plan_id: string | null
+          purpose: string | null
+          scheduled_date: string | null
+          visit_type: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          completed?: boolean | null
+          completed_date?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          purpose?: string | null
+          scheduled_date?: string | null
+          visit_type?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          completed?: boolean | null
+          completed_date?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          purpose?: string | null
+          scheduled_date?: string | null
+          visit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_planned_visits_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_planned_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12938,6 +13112,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_weekly_plans: {
+        Row: {
+          approved_by: string | null
+          approved_by_name: string | null
+          approved_date: string | null
+          completed_visits: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          inspector_id: string | null
+          inspector_name: string | null
+          plan_number: string
+          status: string | null
+          submitted_date: string | null
+          supervisor_comments: string | null
+          total_planned_visits: number | null
+          updated_at: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_date?: string | null
+          completed_visits?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          plan_number: string
+          status?: string | null
+          submitted_date?: string | null
+          supervisor_comments?: string | null
+          total_planned_visits?: number | null
+          updated_at?: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_date?: string | null
+          completed_visits?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          plan_number?: string
+          status?: string | null
+          submitted_date?: string | null
+          supervisor_comments?: string | null
+          total_planned_visits?: number | null
+          updated_at?: string | null
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_zones: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          parishes: Json | null
+          updated_at: string | null
+          zone_code: string
+          zone_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          parishes?: Json | null
+          updated_at?: string | null
+          zone_code: string
+          zone_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          parishes?: Json | null
+          updated_at?: string | null
+          zone_code?: string
+          zone_name?: string
+        }
+        Relationships: []
       }
       cl_bank_acct: {
         Row: {
