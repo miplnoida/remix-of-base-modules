@@ -41602,12 +41602,43 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_v_employer_compliance_alerts: {
+        Row: {
+          active_violation_count: number | null
+          current_arrears_amount: number | null
+          employer_id: string | null
+          employer_name: string | null
+          last_computed_at: string | null
+          overall_compliance_status: string | null
+          risk_band: string | null
+          risk_score: number | null
+        }
+        Relationships: []
+      }
       dashboard_v_financial_summary: {
         Row: {
           benefits_paid_mtd: number | null
           monthly_contributions: number | null
           net_surplus: number | null
           outstanding_arrears: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_legal_escalation_summary: {
+        Row: {
+          escalation_count: number | null
+          escalation_stage: string | null
+          total_amount_in_dispute: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_payment_arrangement_risk: {
+        Row: {
+          arrangement_count: number | null
+          risk_status: string | null
+          total_debt: number | null
+          total_missed_payments: number | null
+          total_paid: number | null
         }
         Relationships: []
       }
