@@ -135,7 +135,8 @@ const ComplianceRoutes = () => {
       <Route path="/employers/findings" element={<EmployerFindings />} />
       <Route path="/employers/management" element={<EmployerComplianceManagement />} />
       <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
-
+      <Route path="/employers/workspace" element={<EmployerComplianceWorkspace />} />
+      <Route path="/employers/workspace/:id" element={<EmployerComplianceWorkspace />} />
       {/* Audit Planning */}
       <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
       <Route path="/audit-planning/my-plans" element={<MyPlans />} />
