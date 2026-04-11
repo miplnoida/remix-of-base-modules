@@ -69,6 +69,7 @@ const ViolationTypes = () => {
   const [editing, setEditing] = useState<ViolationType | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<ViolationType | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
 
