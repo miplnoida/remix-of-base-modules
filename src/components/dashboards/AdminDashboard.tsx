@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Building2, Users, FileText, AlertTriangle, DollarSign, ClipboardCheck, Calendar, Briefcase } from 'lucide-react';
+import { Building2, Users, FileText, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
 import { DashboardKPICard } from './widgets/DashboardKPICard';
 import { ContributionTrendChart } from './widgets/ContributionTrendChart';
 import { ComplianceDonut } from './widgets/ComplianceDonut';
@@ -9,10 +8,17 @@ import { RecentSystemActivity } from './widgets/RecentSystemActivity';
 import { QuickActions } from './widgets/QuickActions';
 import { AlertsWidget } from './widgets/AlertsWidget';
 import { FinancialSummaryStrip } from './widgets/FinancialSummaryStrip';
+import { useQuery } from '@tanstack/react-query';
+import { fetchAdminKPIs } from '@/services/dashboardDataService';
 
 export const AdminDashboard = () => {
   const today = new Date();
   const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  const { data: kpis, isLoading: kpisLoading } = useQuery({
+    queryKey: ['dashboard_admin_kpis'],
+    queryFn: fetchAdminKPIs,
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -33,36 +39,38 @@ export const AdminDashboard = () => {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKPICard
-          title="Total Employers"
-          value="15,432"
-          change="+2.3%"
-          icon={Building2}
-          iconBg="bg-primary/10 text-primary"
-        />
-        <DashboardKPICard
-          title="Insured Persons"
-          value="1,234,567"
-          change="+5.1%"
-          icon={Users}
-          iconBg="bg-secondary/15 text-secondary"
-        />
-        <DashboardKPICard
-          title="Active Claims"
-          value="8,456"
-          change="-1.2%"
-          icon={FileText}
-          iconBg="bg-[hsl(217_91%_60%/0.12)] text-[hsl(217_91%_60%)]"
-        />
-        <DashboardKPICard
-          title="Compliance Issues"
-          value="23"
-          change="-15%"
-          icon={AlertTriangle}
-          iconBg="bg-destructive/10 text-destructive"
-        />
-      </div>
+      {kpisLoading ? (
+        <div className="flex items-center justify-center h-[100px]">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardKPICard
+            title="Total Employers"
+            value={(kpis?.total_employers ?? 0).toLocaleString()}
+            icon={Building2}
+            iconBg="bg-primary/10 text-primary"
+          />
+          <DashboardKPICard
+            title="Insured Persons"
+            value={(kpis?.insured_persons ?? 0).toLocaleString()}
+            icon={Users}
+            iconBg="bg-secondary/15 text-secondary"
+          />
+          <DashboardKPICard
+            title="Active Claims"
+            value={(kpis?.active_claims ?? 0).toLocaleString()}
+            icon={FileText}
+            iconBg="bg-[hsl(217_91%_60%/0.12)] text-[hsl(217_91%_60%)]"
+          />
+          <DashboardKPICard
+            title="Compliance Issues"
+            value={(kpis?.compliance_issues ?? 0).toLocaleString()}
+            icon={AlertTriangle}
+            iconBg="bg-destructive/10 text-destructive"
+          />
+        </div>
+      )}
 
       {/* Financial Summary Strip */}
       <FinancialSummaryStrip />

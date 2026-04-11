@@ -1,27 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, CheckCircle2, AlertTriangle, UserPlus, FileText, DollarSign, Shield } from 'lucide-react';
+import { Activity, AlertTriangle, UserPlus, FileText, DollarSign, Shield, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchRecentActivity } from '@/services/dashboardDataService';
+import { formatDistanceToNow } from 'date-fns';
 
-interface ActivityEntry {
-  icon: LucideIcon;
-  iconColor: string;
-  action: string;
-  entity: string;
-  time: string;
-}
-
-const activities: ActivityEntry[] = [
-  { icon: UserPlus, iconColor: 'text-primary', action: 'New employer registered', entity: 'Caribbean Shipping Ltd – #EMP-2026-1847', time: '12 min ago' },
-  { icon: DollarSign, iconColor: 'text-secondary', action: 'Contribution payment received', entity: 'Nevis Hotels Group – EC$24,500', time: '28 min ago' },
-  { icon: AlertTriangle, iconColor: 'text-destructive', action: 'Compliance violation flagged', entity: 'Island Traders Inc – Missing C3 filing', time: '1 hr ago' },
-  { icon: CheckCircle2, iconColor: 'text-secondary', action: 'Benefit claim approved', entity: 'Age Benefit – Claim #CLM-2026-0394', time: '2 hrs ago' },
-  { icon: FileText, iconColor: 'text-primary', action: 'Bulk ID cards generated', entity: '320 cards processed – Batch #B-0891', time: '3 hrs ago' },
-  { icon: Shield, iconColor: 'text-primary', action: 'Field inspection completed', entity: 'Frigate Bay Zone – Inspector M. Thomas', time: '4 hrs ago' },
-  { icon: DollarSign, iconColor: 'text-secondary', action: 'Payment plan installment received', entity: 'St. Kitts Contractors – EC$8,200', time: '5 hrs ago' },
-];
+const iconMap: Record<string, { icon: LucideIcon; color: string }> = {
+  violation: { icon: AlertTriangle, color: 'text-destructive' },
+  inspection: { icon: Shield, color: 'text-primary' },
+  registration: { icon: UserPlus, color: 'text-primary' },
+  payment: { icon: DollarSign, color: 'text-secondary' },
+  claim: { icon: FileText, color: 'text-primary' },
+};
 
 export function RecentSystemActivity() {
+  const { data: activities, isLoading } = useQuery({
+    queryKey: ['dashboard_recent_activity'],
+    queryFn: fetchRecentActivity,
+  });
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -32,23 +30,40 @@ export function RecentSystemActivity() {
         <p className="text-xs text-muted-foreground">Latest events across all modules</p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1">
-          {activities.map((a, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors"
-            >
-              <div className="mt-0.5">
-                <a.icon className={cn('h-4 w-4', a.iconColor)} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground leading-snug">{a.action}</p>
-                <p className="text-xs text-muted-foreground leading-snug mt-0.5 truncate">{a.entity}</p>
-              </div>
-              <span className="text-[11px] text-muted-foreground whitespace-nowrap pt-0.5">{a.time}</span>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="h-[200px] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !activities || activities.length === 0 ? (
+          <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+            No recent activity
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {activities.map((a, i) => {
+              const mapping = iconMap[a.activity_type] ?? iconMap.violation;
+              const Icon = mapping.icon;
+              const timeAgo = a.occurred_at
+                ? formatDistanceToNow(new Date(a.occurred_at), { addSuffix: true })
+                : '';
+              return (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors"
+                >
+                  <div className="mt-0.5">
+                    <Icon className={cn('h-4 w-4', mapping.color)} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground leading-snug">{a.action}</p>
+                    <p className="text-xs text-muted-foreground leading-snug mt-0.5 truncate">{a.entity}</p>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap pt-0.5">{timeAgo}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

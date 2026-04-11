@@ -41550,6 +41550,93 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_v_active_alerts: {
+        Row: {
+          detail: string | null
+          severity: string | null
+          time_label: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
+      dashboard_v_admin_kpis: {
+        Row: {
+          active_claims: number | null
+          compliance_issues: number | null
+          insured_persons: number | null
+          total_employers: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_benefits_distribution: {
+        Row: {
+          amount: number | null
+          claim_count: number | null
+          type: string | null
+        }
+        Relationships: []
+      }
+      dashboard_v_compliance_distribution: {
+        Row: {
+          color: string | null
+          name: string | null
+          value: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_compliance_metrics: {
+        Row: {
+          active_violations: number | null
+          compliant_employers: number | null
+          pending_audits: number | null
+          total_employers: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_contribution_trend: {
+        Row: {
+          benefits: number | null
+          contributions: number | null
+          month: string | null
+          month_key: string | null
+        }
+        Relationships: []
+      }
+      dashboard_v_financial_summary: {
+        Row: {
+          benefits_paid_mtd: number | null
+          monthly_contributions: number | null
+          net_surplus: number | null
+          outstanding_arrears: number | null
+        }
+        Relationships: []
+      }
+      dashboard_v_recent_activity: {
+        Row: {
+          action: string | null
+          activity_type: string | null
+          entity: string | null
+          occurred_at: string | null
+        }
+        Relationships: []
+      }
+      dashboard_v_registration_pipeline: {
+        Row: {
+          count: number | null
+          fill: string | null
+          stage: string | null
+        }
+        Relationships: []
+      }
+      dashboard_v_sector_compliance: {
+        Row: {
+          compliant: number | null
+          rate: number | null
+          sector: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_sep_activity: {

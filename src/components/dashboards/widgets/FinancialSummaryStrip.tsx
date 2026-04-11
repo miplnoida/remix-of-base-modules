@@ -1,14 +1,38 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchFinancialSummary } from '@/services/dashboardDataService';
 
-const financials = [
-  { label: 'Monthly Contributions', value: '$12.5M', icon: DollarSign, trend: '+3.2%', positive: true },
-  { label: 'Benefits Paid (MTD)', value: '$8.2M', icon: TrendingDown, trend: '+1.5%', positive: false },
-  { label: 'Net Fund Surplus', value: '$4.3M', icon: TrendingUp, trend: '+8.4%', positive: true },
-  { label: 'Outstanding Arrears', value: '$2.1M', icon: Wallet, trend: '-12.3%', positive: true },
-];
+function formatCurrency(val: number): string {
+  const abs = Math.abs(val);
+  if (abs >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+  return `$${val.toFixed(0)}`;
+}
 
 export function FinancialSummaryStrip() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard_financial_summary'],
+    queryFn: fetchFinancialSummary,
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-4 flex items-center justify-center h-[80px]">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const financials = [
+    { label: 'Monthly Contributions', value: formatCurrency(Number(data?.monthly_contributions ?? 0)), icon: DollarSign, positive: true },
+    { label: 'Benefits Paid (MTD)', value: formatCurrency(Number(data?.benefits_paid_mtd ?? 0)), icon: TrendingDown, positive: false },
+    { label: 'Net Fund Surplus', value: formatCurrency(Number(data?.net_surplus ?? 0)), icon: TrendingUp, positive: Number(data?.net_surplus ?? 0) >= 0 },
+    { label: 'Outstanding Arrears', value: formatCurrency(Number(data?.outstanding_arrears ?? 0)), icon: Wallet, positive: false },
+  ];
+
   return (
     <Card>
       <CardContent className="p-4">
@@ -21,9 +45,6 @@ export function FinancialSummaryStrip() {
               <div>
                 <p className="text-[11px] text-muted-foreground leading-none">{f.label}</p>
                 <p className="text-lg font-bold text-foreground mt-0.5">{f.value}</p>
-                <span className={`text-[11px] font-medium ${f.positive ? 'text-secondary' : 'text-destructive'}`}>
-                  {f.trend}
-                </span>
               </div>
             </div>
           ))}

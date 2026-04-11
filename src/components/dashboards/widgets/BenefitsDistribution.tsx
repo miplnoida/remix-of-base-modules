@@ -1,15 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Heart } from 'lucide-react';
-
-const benefitTypes = [
-  { type: 'Sickness', amount: 2.4, count: 1820 },
-  { type: 'Maternity', amount: 1.8, count: 642 },
-  { type: 'Age', amount: 5.6, count: 4231 },
-  { type: 'Invalidity', amount: 1.2, count: 389 },
-  { type: 'Funeral', amount: 0.4, count: 210 },
-  { type: 'Employment Injury', amount: 0.9, count: 164 },
-];
+import { Heart, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchBenefitsDistribution } from '@/services/dashboardDataService';
 
 const barColors = [
   'hsl(217 91% 60%)',
@@ -18,9 +11,21 @@ const barColors = [
   'hsl(44 90% 57%)',
   'hsl(2 74% 50%)',
   'hsl(144 65% 34%)',
+  'hsl(30 80% 55%)',
 ];
 
 export function BenefitsDistribution() {
+  const { data: rawData, isLoading } = useQuery({
+    queryKey: ['dashboard_benefits_distribution'],
+    queryFn: fetchBenefitsDistribution,
+  });
+
+  const chartData = (rawData ?? []).map(d => ({
+    type: d.type,
+    amount: Number(d.amount) / 1000000, // Convert to millions
+    count: Number(d.claim_count),
+  }));
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -28,32 +33,42 @@ export function BenefitsDistribution() {
           <Heart className="h-5 w-5 text-primary" />
           Benefits Distribution
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Current fiscal year – EC$ millions by benefit type</p>
+        <p className="text-xs text-muted-foreground">EC$ millions by benefit type</p>
       </CardHeader>
       <CardContent>
-        <div className="h-[260px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={benefitTypes} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 20% 91%)" />
-              <XAxis dataKey="type" tick={{ fontSize: 11 }} stroke="hsl(217 10% 50%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" tickFormatter={(v) => `$${v}M`} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(0 0% 100%)',
-                  border: '1px solid hsl(214 20% 91%)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                }}
-                formatter={(val: number) => [`$${val}M`, 'Amount']}
-              />
-              <Bar dataKey="amount" radius={[4, 4, 0, 0]} barSize={36}>
-                {benefitTypes.map((_, i) => (
-                  <Cell key={i} fill={barColors[i]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {isLoading ? (
+          <div className="h-[260px] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">
+            No benefits data available
+          </div>
+        ) : (
+          <div className="h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 20% 91%)" />
+                <XAxis dataKey="type" tick={{ fontSize: 11 }} stroke="hsl(217 10% 50%)" />
+                <YAxis tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" tickFormatter={(v) => `$${v}M`} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(0 0% 100%)',
+                    border: '1px solid hsl(214 20% 91%)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  }}
+                  formatter={(val: number) => [`$${val.toFixed(2)}M`, 'Amount']}
+                />
+                <Bar dataKey="amount" radius={[4, 4, 0, 0]} barSize={36}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={barColors[i % barColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

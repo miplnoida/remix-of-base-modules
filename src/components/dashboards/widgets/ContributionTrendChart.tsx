@@ -1,21 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchContributionTrend } from '@/services/dashboardDataService';
 
-const monthlyData = [
-  { month: 'Jul', contributions: 10.2, benefits: 6.8 },
-  { month: 'Aug', contributions: 10.5, benefits: 7.1 },
-  { month: 'Sep', contributions: 11.0, benefits: 7.4 },
-  { month: 'Oct', contributions: 11.3, benefits: 7.2 },
-  { month: 'Nov', contributions: 11.8, benefits: 7.9 },
-  { month: 'Dec', contributions: 12.1, benefits: 8.0 },
-  { month: 'Jan', contributions: 12.5, benefits: 8.2 },
-  { month: 'Feb', contributions: 12.9, benefits: 8.1 },
-];
-
-const formatValue = (value: number) => `$${value}M`;
+const formatValue = (value: number) => `$${(value / 1000000).toFixed(1)}M`;
 
 export function ContributionTrendChart() {
+  const { data: trendData, isLoading } = useQuery({
+    queryKey: ['dashboard_contribution_trend'],
+    queryFn: fetchContributionTrend,
+  });
+
+  const chartData = (trendData ?? []).map(d => ({
+    month: d.month,
+    contributions: Number(d.contributions),
+    benefits: Number(d.benefits),
+  }));
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -23,54 +25,64 @@ export function ContributionTrendChart() {
           <TrendingUp className="h-5 w-5 text-primary" />
           Contributions vs Benefits Paid
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Monthly trend – last 8 months (EC$, millions)</p>
+        <p className="text-xs text-muted-foreground">Monthly trend – last 12 months (EC$)</p>
       </CardHeader>
       <CardContent>
-        <div className="h-[280px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={monthlyData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradContrib" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(153 73% 21%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(153 73% 21%)" stopOpacity={0.02} />
-                </linearGradient>
-                <linearGradient id="gradBenefits" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(217 91% 60%)" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="hsl(217 91% 60%)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 20% 91%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" tickFormatter={formatValue} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(0 0% 100%)',
-                  border: '1px solid hsl(214 20% 91%)',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                }}
-                formatter={(val: number) => [`$${val}M`, undefined]}
-              />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-              <Area
-                type="monotone"
-                dataKey="contributions"
-                name="Contributions"
-                stroke="hsl(153 73% 21%)"
-                strokeWidth={2}
-                fill="url(#gradContrib)"
-              />
-              <Area
-                type="monotone"
-                dataKey="benefits"
-                name="Benefits Paid"
-                stroke="hsl(217 91% 60%)"
-                strokeWidth={2}
-                fill="url(#gradBenefits)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {isLoading ? (
+          <div className="h-[280px] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+            No contribution data available
+          </div>
+        ) : (
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradContrib" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(153 73% 21%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(153 73% 21%)" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="gradBenefits" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(217 91% 60%)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="hsl(217 91% 60%)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 20% 91%)" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" />
+                <YAxis tick={{ fontSize: 12 }} stroke="hsl(217 10% 50%)" tickFormatter={formatValue} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(0 0% 100%)',
+                    border: '1px solid hsl(214 20% 91%)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  }}
+                  formatter={(val: number) => [formatValue(val), undefined]}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Area
+                  type="monotone"
+                  dataKey="contributions"
+                  name="Contributions"
+                  stroke="hsl(153 73% 21%)"
+                  strokeWidth={2}
+                  fill="url(#gradContrib)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="benefits"
+                  name="Benefits Paid"
+                  stroke="hsl(217 91% 60%)"
+                  strokeWidth={2}
+                  fill="url(#gradBenefits)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
