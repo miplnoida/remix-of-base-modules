@@ -147,8 +147,8 @@ const EmployerComplianceWorkspace = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <KpiCard icon={DollarSign} label="Outstanding" value={fmt(profile.outstanding_balance)} color={profile.outstanding_balance > 0 ? 'text-destructive' : 'text-emerald-600'} />
         <KpiCard icon={TrendingUp} label="Risk Score" value={profile.risk_score?.toFixed(1) || '—'} color="text-foreground" />
-        <KpiCard icon={AlertTriangle} label="Violations" value={String(profile.open_violations_count)} color={profile.open_violations_count > 0 ? 'text-amber-600' : 'text-muted-foreground'} />
-        <KpiCard icon={FileText} label="Cases" value={String(profile.open_cases_count)} color={profile.open_cases_count > 0 ? 'text-orange-600' : 'text-muted-foreground'} />
+        <KpiCard icon={AlertTriangle} label="Violations" value={String(profile.active_violation_count)} color={profile.active_violation_count > 0 ? 'text-amber-600' : 'text-muted-foreground'} />
+        <KpiCard icon={FileText} label="Cases" value={String(profile.active_case_count)} color={profile.active_case_count > 0 ? 'text-orange-600' : 'text-muted-foreground'} />
         <KpiCard icon={Flag} label="Flags" value={String(profile.active_flags_count)} color={profile.active_flags_count > 0 ? 'text-red-600' : 'text-muted-foreground'} />
         <KpiCard icon={Building2} label="Related" value={String(profile.related_employers_count)} color="text-muted-foreground" />
       </div>
@@ -215,8 +215,8 @@ const EmployerComplianceWorkspace = () => {
                 <Row label="Review Due" value={profile.review_due_date ? formatDateForDisplay(profile.review_due_date) : 'N/A'} />
                 <Separator className="my-2" />
                 <Row label="Outstanding Balance" value={<span className={profile.outstanding_balance > 0 ? 'text-destructive font-semibold' : 'text-emerald-600'}>{fmt(profile.outstanding_balance)}</span>} />
-                <Row label="Open Violations" value={String(profile.open_violations_count)} />
-                <Row label="Open Cases" value={String(profile.open_cases_count)} />
+                <Row label="Open Violations" value={String(profile.active_violation_count)} />
+                <Row label="Open Cases" value={String(profile.active_case_count)} />
                 <Row label="Active Flags" value={
                   <span>
                     {profile.active_flags_count}
@@ -447,8 +447,8 @@ const EmployerComplianceWorkspace = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Indicator label="Outstanding Balance" value={fmt(profile.outstanding_balance)} warn={profile.outstanding_balance > 50000} />
-                <Indicator label="Open Violations" value={String(profile.open_violations_count)} warn={profile.open_violations_count > 0} />
-                <Indicator label="Open Cases" value={String(profile.open_cases_count)} warn={profile.open_cases_count > 0} />
+                <Indicator label="Open Violations" value={String(profile.active_violation_count)} warn={profile.active_violation_count > 0} />
+                <Indicator label="Open Cases" value={String(profile.active_case_count)} warn={profile.active_case_count > 0} />
                 <Indicator label="Active Flags" value={String(profile.active_flags_count)} warn={profile.active_flags_count > 0} />
                 <Indicator label="Critical Flags" value={String(profile.critical_flags || 0)} warn={(profile.critical_flags ?? 0) > 0} />
                 <Indicator label="Related Employers" value={String(profile.related_employers_count)} warn={false} />
