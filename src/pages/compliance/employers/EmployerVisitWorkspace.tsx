@@ -59,7 +59,7 @@ export default function EmployerVisitWorkspace() {
         itemType: 'EMPLOYER_VISIT' as any,
         employerId: employer.id,
         employerName: employer.name,
-        territory: employer.territory,
+        territory: employer.territory as "Nevis" | "St Kitts",
         plannedDate: new Date().toISOString().split('T')[0],
         status: 'NOT_STARTED' as any,
         createdAt: new Date().toISOString(),
