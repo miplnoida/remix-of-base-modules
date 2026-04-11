@@ -9888,6 +9888,189 @@ export type Database = {
           },
         ]
       }
+      ce_employer_compliance_flags: {
+        Row: {
+          auto_resolve_condition: string | null
+          created_at: string
+          employer_id: string
+          flag_category: string
+          flag_code: string
+          flag_label: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          raised_at: string
+          raised_by: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source_event: string | null
+          source_reference_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_resolve_condition?: string | null
+          created_at?: string
+          employer_id: string
+          flag_category?: string
+          flag_code: string
+          flag_label: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          raised_at?: string
+          raised_by?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_event?: string | null
+          source_reference_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_resolve_condition?: string | null
+          created_at?: string
+          employer_id?: string
+          flag_category?: string
+          flag_code?: string
+          flag_label?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          raised_at?: string
+          raised_by?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_event?: string | null
+          source_reference_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ce_employer_compliance_status: {
+        Row: {
+          assigned_officer_id: string | null
+          compliance_status: string
+          created_at: string
+          created_by: string
+          effective_from: string
+          effective_to: string | null
+          employer_id: string
+          id: string
+          notes: string | null
+          officer_assigned_at: string | null
+          reason_code: string | null
+          reason_detail: string | null
+          review_due_date: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assigned_officer_id?: string | null
+          compliance_status?: string
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          effective_to?: string | null
+          employer_id: string
+          id?: string
+          notes?: string | null
+          officer_assigned_at?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          review_due_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assigned_officer_id?: string | null
+          compliance_status?: string
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          effective_to?: string | null
+          employer_id?: string
+          id?: string
+          notes?: string | null
+          officer_assigned_at?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          review_due_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_employer_contact_preferences: {
+        Row: {
+          compliance_contact_email: string | null
+          compliance_contact_name: string | null
+          compliance_contact_phone: string | null
+          compliance_contact_title: string | null
+          created_at: string
+          created_by: string
+          employer_id: string
+          id: string
+          is_active: boolean
+          language_preference: string | null
+          notes: string | null
+          notice_address_line1: string | null
+          notice_address_line2: string | null
+          notice_email: string | null
+          notice_fax: string | null
+          notice_phone: string | null
+          preferred_channel: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          compliance_contact_email?: string | null
+          compliance_contact_name?: string | null
+          compliance_contact_phone?: string | null
+          compliance_contact_title?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id: string
+          id?: string
+          is_active?: boolean
+          language_preference?: string | null
+          notes?: string | null
+          notice_address_line1?: string | null
+          notice_address_line2?: string | null
+          notice_email?: string | null
+          notice_fax?: string | null
+          notice_phone?: string | null
+          preferred_channel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          compliance_contact_email?: string | null
+          compliance_contact_name?: string | null
+          compliance_contact_phone?: string | null
+          compliance_contact_title?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          id?: string
+          is_active?: boolean
+          language_preference?: string | null
+          notes?: string | null
+          notice_address_line1?: string | null
+          notice_address_line2?: string | null
+          notice_email?: string | null
+          notice_fax?: string | null
+          notice_phone?: string | null
+          preferred_channel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_employer_financial_ledger: {
         Row: {
           credit_amount: number
@@ -9996,6 +10179,174 @@ export type Database = {
             referencedColumns: ["reversal_entry_id"]
           },
         ]
+      }
+      ce_employer_relationships: {
+        Row: {
+          child_employer_id: string
+          consolidate_compliance: boolean
+          consolidate_financials: boolean
+          created_at: string
+          created_by: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          parent_employer_id: string
+          relationship_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          child_employer_id: string
+          consolidate_compliance?: boolean
+          consolidate_financials?: boolean
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          parent_employer_id: string
+          relationship_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          child_employer_id?: string
+          consolidate_compliance?: boolean
+          consolidate_financials?: boolean
+          created_at?: string
+          created_by?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          parent_employer_id?: string
+          relationship_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_employer_snapshot_history: {
+        Row: {
+          active_flags_count: number | null
+          arrangement_balance: number | null
+          arrangement_count: number | null
+          compliance_status: string | null
+          created_at: string
+          created_by: string
+          employer_id: string
+          filing_compliance_pct: number | null
+          id: string
+          last_filing_date: string | null
+          last_payment_date: string | null
+          metadata: Json | null
+          open_cases_count: number | null
+          open_violations_count: number | null
+          outstanding_balance: number | null
+          payment_compliance_pct: number | null
+          risk_band: string | null
+          risk_score: number | null
+          snapshot_date: string
+          snapshot_type: string
+          total_arrears: number | null
+        }
+        Insert: {
+          active_flags_count?: number | null
+          arrangement_balance?: number | null
+          arrangement_count?: number | null
+          compliance_status?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id: string
+          filing_compliance_pct?: number | null
+          id?: string
+          last_filing_date?: string | null
+          last_payment_date?: string | null
+          metadata?: Json | null
+          open_cases_count?: number | null
+          open_violations_count?: number | null
+          outstanding_balance?: number | null
+          payment_compliance_pct?: number | null
+          risk_band?: string | null
+          risk_score?: number | null
+          snapshot_date?: string
+          snapshot_type?: string
+          total_arrears?: number | null
+        }
+        Update: {
+          active_flags_count?: number | null
+          arrangement_balance?: number | null
+          arrangement_count?: number | null
+          compliance_status?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          filing_compliance_pct?: number | null
+          id?: string
+          last_filing_date?: string | null
+          last_payment_date?: string | null
+          metadata?: Json | null
+          open_cases_count?: number | null
+          open_violations_count?: number | null
+          outstanding_balance?: number | null
+          payment_compliance_pct?: number | null
+          risk_band?: string | null
+          risk_score?: number | null
+          snapshot_date?: string
+          snapshot_type?: string
+          total_arrears?: number | null
+        }
+        Relationships: []
+      }
+      ce_employer_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          created_at: string
+          employer_id: string
+          id: string
+          new_status: string
+          notes: string | null
+          previous_status: string | null
+          reason_code: string | null
+          reason_detail: string | null
+          source_event: string | null
+          source_reference_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          employer_id: string
+          id?: string
+          new_status: string
+          notes?: string | null
+          previous_status?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          source_event?: string | null
+          source_reference_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          employer_id?: string
+          id?: string
+          new_status?: string
+          notes?: string | null
+          previous_status?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          source_event?: string | null
+          source_reference_id?: string | null
+        }
+        Relationships: []
       }
       ce_escalation_rules: {
         Row: {
@@ -38967,6 +39318,43 @@ export type Database = {
       }
     }
     Views: {
+      ce_employer_profile_view: {
+        Row: {
+          active_flags_count: number | null
+          arrears_score: number | null
+          assigned_officer_id: string | null
+          compliance_effective_from: string | null
+          compliance_status: string | null
+          critical_flags: number | null
+          email: string | null
+          employer_id: string | null
+          employer_name: string | null
+          filing_score: number | null
+          hq_addr1: string | null
+          hq_addr2: string | null
+          inspector_code: string | null
+          legal_history_score: number | null
+          master_status: string | null
+          office_code: string | null
+          open_cases_count: number | null
+          open_violations_count: number | null
+          outstanding_balance: number | null
+          payment_behavior_score: number | null
+          phone: string | null
+          related_employers_count: number | null
+          review_due_date: string | null
+          risk_band: string | null
+          risk_last_calculated: string | null
+          risk_next_review: string | null
+          risk_score: number | null
+          sector_code: string | null
+          territory: string | null
+          total_credits: number | null
+          total_debits: number | null
+          violation_score: number | null
+        }
+        Relationships: []
+      }
       ce_ledger_reversals_v: {
         Row: {
           employer_id: string | null
