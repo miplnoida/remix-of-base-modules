@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Plus, Edit, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { AlertTriangle, Plus, Edit, Trash2, ChevronDown, ChevronUp, Loader2, Ban } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
+import {
+  withAuditFields,
+  checkDuplicateViolationType,
+  softDeactivateViolationType,
+  formatAuditTimestamp,
+  validationToastConfig,
+} from '@/services/complianceSettingsService';
 
 interface ViolationType {
   id: string;
