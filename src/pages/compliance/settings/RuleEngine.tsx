@@ -911,6 +911,7 @@ const EscalationRuleDialog = ({
 const RuleEngine = () => {
   const [activeTab, setActiveTab] = useState('detection');
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
 
   // Dialog state
   const [detectionDialogOpen, setDetectionDialogOpen] = useState(false);
