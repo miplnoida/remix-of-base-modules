@@ -67,7 +67,7 @@ const ViolationTypes = () => {
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ViolationType | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ViolationType | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<ViolationType | null>(null);
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
 
