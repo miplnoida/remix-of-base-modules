@@ -12669,6 +12669,7 @@ export type Database = {
           band_name: string
           color: string | null
           created_at: string | null
+          created_by: string | null
           escalation_action: string | null
           escalation_enabled: boolean | null
           escalation_months_in_band: number | null
@@ -12679,6 +12680,7 @@ export type Database = {
           score_range_max: number
           score_range_min: number
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           audit_frequency?: string | null
@@ -12688,6 +12690,7 @@ export type Database = {
           band_name: string
           color?: string | null
           created_at?: string | null
+          created_by?: string | null
           escalation_action?: string | null
           escalation_enabled?: boolean | null
           escalation_months_in_band?: number | null
@@ -12698,6 +12701,7 @@ export type Database = {
           score_range_max?: number
           score_range_min?: number
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           audit_frequency?: string | null
@@ -12707,6 +12711,7 @@ export type Database = {
           band_name?: string
           color?: string | null
           created_at?: string | null
+          created_by?: string | null
           escalation_action?: string | null
           escalation_enabled?: boolean | null
           escalation_months_in_band?: number | null
@@ -12717,6 +12722,7 @@ export type Database = {
           score_range_max?: number
           score_range_min?: number
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -12852,26 +12858,35 @@ export type Database = {
       ce_risk_policy_factors: {
         Row: {
           created_at: string | null
+          created_by: string | null
           factor_id: string
           id: string
           is_active: boolean | null
           policy_id: string
+          updated_at: string | null
+          updated_by: string | null
           weight_override: number | null
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           factor_id: string
           id?: string
           is_active?: boolean | null
           policy_id: string
+          updated_at?: string | null
+          updated_by?: string | null
           weight_override?: number | null
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           factor_id?: string
           id?: string
           is_active?: boolean | null
           policy_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
           weight_override?: number | null
         }
         Relationships: [
@@ -13043,6 +13058,7 @@ export type Database = {
           c3_config_key: string | null
           computation_logic: string | null
           created_at: string | null
+          created_by: string | null
           data_type: string
           description: string | null
           display_name: string
@@ -13054,6 +13070,7 @@ export type Database = {
           source_schema: string | null
           source_table: string | null
           updated_at: string | null
+          updated_by: string | null
           variable_category: string
           variable_key: string
         }
@@ -13062,6 +13079,7 @@ export type Database = {
           c3_config_key?: string | null
           computation_logic?: string | null
           created_at?: string | null
+          created_by?: string | null
           data_type?: string
           description?: string | null
           display_name: string
@@ -13073,6 +13091,7 @@ export type Database = {
           source_schema?: string | null
           source_table?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           variable_category: string
           variable_key: string
         }
@@ -13081,6 +13100,7 @@ export type Database = {
           c3_config_key?: string | null
           computation_logic?: string | null
           created_at?: string | null
+          created_by?: string | null
           data_type?: string
           description?: string | null
           display_name?: string
@@ -13092,6 +13112,7 @@ export type Database = {
           source_schema?: string | null
           source_table?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           variable_category?: string
           variable_key?: string
         }
@@ -13100,6 +13121,8 @@ export type Database = {
       ce_settings: {
         Row: {
           category: string | null
+          created_at: string | null
+          created_by: string | null
           data_type: string | null
           description: string | null
           id: string
@@ -13110,6 +13133,8 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          created_at?: string | null
+          created_by?: string | null
           data_type?: string | null
           description?: string | null
           id?: string
@@ -13120,6 +13145,8 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          created_at?: string | null
+          created_by?: string | null
           data_type?: string | null
           description?: string | null
           id?: string

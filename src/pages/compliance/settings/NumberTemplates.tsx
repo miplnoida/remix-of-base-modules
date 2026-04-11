@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Hash, Plus, Edit, Trash2, CheckCircle, Loader2 } from 'lucide-react';
+import { Hash, Plus, Edit, Loader2, CheckCircle, Ban } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
+import {
+  withAuditFields,
+  checkDuplicateNumberTemplate,
+  softDeactivateNumberTemplate,
+  formatAuditTimestamp,
+  validationToastConfig,
+} from '@/services/complianceSettingsService';
 
 interface NumberTemplate {
   id: string;
@@ -80,8 +88,9 @@ const NumberTemplates = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<NumberTemplate | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<NumberTemplate | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<NumberTemplate | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { userCode } = useUserCode();
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['ce_number_templates'],
@@ -97,7 +106,8 @@ const NumberTemplates = () => {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from('ce_number_templates').update({ is_active } as any).eq('id', id);
+      const payload = withAuditFields({ is_active }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_number_templates').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,11 +119,15 @@ const NumberTemplates = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
+      const isNew = !editing;
+      const dupName = await checkDuplicateNumberTemplate(data.name, editing?.id);
+      if (dupName) throw new Error(`A scheme named "${data.name}" already exists.`);
+      const payload = withAuditFields(data, userCode || 'SYS', isNew);
       if (editing) {
-        const { error } = await supabase.from('ce_number_templates').update(data as any).eq('id', editing.id);
+        const { error } = await supabase.from('ce_number_templates').update(payload as any).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_number_templates').insert(data as any);
+        const { error } = await supabase.from('ce_number_templates').insert(payload as any);
         if (error) throw error;
       }
     },
@@ -126,17 +140,16 @@ const NumberTemplates = () => {
     onError: (err: any) => toast.error('Failed to save', { description: err.message }),
   });
 
-  const deleteMutation = useMutation({
+  const deactivateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('ce_number_templates').delete().eq('id', id);
-      if (error) throw error;
+      await softDeactivateNumberTemplate(id, userCode || 'SYS');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ce_number_templates'] });
-      toast.success('Numbering scheme deleted');
-      setDeleteTarget(null);
+      toast.success('Numbering scheme deactivated');
+      setDeactivateTarget(null);
     },
-    onError: (err: any) => toast.error('Failed to delete', { description: err.message }),
+    onError: (err: any) => toast.error('Failed to deactivate', { description: err.message }),
   });
 
   const openAdd = () => {
@@ -252,7 +265,7 @@ const NumberTemplates = () => {
                     onCheckedChange={(checked) => toggleMutation.mutate({ id: tmpl.id, is_active: checked })}
                   />
                   <Button variant="ghost" size="icon" onClick={() => openEdit(tmpl)}><Edit className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(tmpl)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeactivateTarget(tmpl)}><Ban className="h-4 w-4 text-destructive" /></Button>
                 </div>
               </div>
             </CardContent>
@@ -351,23 +364,23 @@ const NumberTemplates = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+      {/* Deactivate Confirmation */}
+      <AlertDialog open={!!deactivateTarget} onOpenChange={v => { if (!v) setDeactivateTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Numbering Scheme</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate Numbering Scheme</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+              Are you sure you want to deactivate <strong>{deactivateTarget?.name}</strong>? It can be reactivated later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() => deactivateTarget && deactivateMutation.mutate(deactivateTarget.id)}
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete
+              {deactivateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Deactivate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
