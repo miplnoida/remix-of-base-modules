@@ -1236,6 +1236,7 @@ const RuleEngine = () => {
                       <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>
                       {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
                       <Badge variant="outline" className="text-[10px]">Source: {rule.source_config}</Badge>
+                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
                     </div>
                     <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
                     <p className="text-xs text-muted-foreground">{rule.description}</p>
