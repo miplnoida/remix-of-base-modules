@@ -265,7 +265,7 @@ const NumberTemplates = () => {
                     onCheckedChange={(checked) => toggleMutation.mutate({ id: tmpl.id, is_active: checked })}
                   />
                   <Button variant="ghost" size="icon" onClick={() => openEdit(tmpl)}><Edit className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(tmpl)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeactivateTarget(tmpl)}><Ban className="h-4 w-4 text-destructive" /></Button>
                 </div>
               </div>
             </CardContent>
@@ -364,23 +364,23 @@ const NumberTemplates = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+      {/* Deactivate Confirmation */}
+      <AlertDialog open={!!deactivateTarget} onOpenChange={v => { if (!v) setDeactivateTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Numbering Scheme</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate Numbering Scheme</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+              Are you sure you want to deactivate <strong>{deactivateTarget?.name}</strong>? It can be reactivated later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() => deactivateTarget && deactivateMutation.mutate(deactivateTarget.id)}
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete
+              {deactivateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Deactivate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
