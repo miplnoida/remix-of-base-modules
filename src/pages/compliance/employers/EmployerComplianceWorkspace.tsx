@@ -232,18 +232,27 @@ const EmployerComplianceWorkspace = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <Row label="Compliance Status" value={
-                  <Badge className={statusColor(profile.compliance_status)}>
-                    {(profile.compliance_status || 'unknown').replace(/_/g, ' ')}
+                <Row label="Overall Status" value={
+                  <Badge className={statusColor(profile.overall_compliance_status || profile.compliance_status)}>
+                    {((profile.overall_compliance_status || profile.compliance_status || 'unknown')).replace(/_/g, ' ')}
                   </Badge>
                 } />
-                <Row label="Effective From" value={profile.compliance_effective_from ? formatDateForDisplay(profile.compliance_effective_from) : 'N/A'} />
+                <Row label="Filing Status" value={
+                  <Badge variant="outline" className="text-[10px]">{(profile.filing_status || 'unknown').replace(/_/g, ' ')}</Badge>
+                } />
+                <Row label="Payment Status" value={
+                  <Badge variant="outline" className="text-[10px]">{(profile.payment_status || 'unknown').replace(/_/g, ' ')}</Badge>
+                } />
                 <Row label="Assigned Officer" value={profile.assigned_officer_id || 'Unassigned'} />
                 <Row label="Review Due" value={profile.review_due_date ? formatDateForDisplay(profile.review_due_date) : 'N/A'} />
                 <Separator className="my-2" />
+                <Row label="Arrears" value={<span className={(profile.current_arrears_amount ?? 0) > 0 ? 'text-destructive font-semibold' : 'text-emerald-600'}>{fmt(profile.current_arrears_amount)}</span>} />
+                <Row label="Penalties" value={<span className={(profile.current_penalty_amount ?? 0) > 0 ? 'text-amber-600 font-medium' : 'text-muted-foreground'}>{fmt(profile.current_penalty_amount)}</span>} />
                 <Row label="Outstanding Balance" value={<span className={profile.outstanding_balance > 0 ? 'text-destructive font-semibold' : 'text-emerald-600'}>{fmt(profile.outstanding_balance)}</span>} />
-                <Row label="Open Violations" value={String(profile.active_violation_count)} />
-                <Row label="Open Cases" value={String(profile.active_case_count)} />
+                <Separator className="my-2" />
+                <Row label="Open Violations" value={String(profile.active_violation_count ?? 0)} />
+                <Row label="Open Cases" value={String(profile.active_case_count ?? 0)} />
+                <Row label="Arrangements" value={String(profile.active_arrangement_count ?? 0)} />
                 <Row label="Active Flags" value={
                   <span>
                     {profile.active_flags_count}
@@ -251,6 +260,11 @@ const EmployerComplianceWorkspace = () => {
                       <span className="text-destructive ml-1">({profile.critical_flags} critical)</span>
                     )}
                   </span>
+                } />
+                <Separator className="my-2" />
+                <Row label="Last Filing Period" value={profile.last_filing_period || 'N/A'} />
+                <Row label="Last Payment" value={profile.last_payment_date ? formatDateForDisplay(profile.last_payment_date) : 'N/A'} />
+                <Row label="Last Computed" value={profile.last_computed_at ? formatDateForDisplay(profile.last_computed_at) : 'Never'} />
                 } />
               </CardContent>
             </Card>
