@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,13 +19,25 @@ export default function EmployerVisitWorkspace() {
   const { employerId } = useParams<{ employerId: string }>();
   const navigate = useNavigate();
   
-  // Mock employer data - in real app, fetch from employer service
-  const [employer] = useState({
-    id: employerId || 'EMP-2024-001',
-    name: 'ABC Construction Ltd',
-    code: 'EMP-2024-001',
-    territory: 'St Kitts' as const
+  const [employer, setEmployer] = useState({
+    id: employerId || '',
+    name: '',
+    code: '',
+    territory: '' as string
   });
+
+  useEffect(() => {
+    if (employerId) {
+      supabase.from('er_master').select('regno, name').eq('regno', employerId).maybeSingle().then(({ data }) => {
+        setEmployer({
+          id: employerId,
+          name: (data as any)?.name || employerId,
+          code: employerId,
+          territory: 'St Kitts'
+        });
+      });
+    }
+  }, [employerId]);
 
   const [currentVisit, setCurrentVisit] = useState<InspectionVisit | null>(null);
   const [planItem, setPlanItem] = useState<WeeklyPlanItem | null>(null);
