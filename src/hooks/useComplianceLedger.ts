@@ -66,7 +66,7 @@ export function useEmployerStatement(
         p_employer_id: employerId,
         p_from_period: fromPeriod || null,
         p_to_period: toPeriod || null,
-        p_fund_type: fundType || null,
+        p_fund_type: (fundType || null) as any,
       });
       if (error) throw error;
       return (data || []) as LedgerEntry[];
@@ -130,9 +130,9 @@ export function useLedgerEntries(filters?: {
         .limit(500);
 
       if (filters?.employerId) query = query.eq('employer_id', filters.employerId);
-      if (filters?.fundType) query = query.eq('fund_type', filters.fundType);
-      if (filters?.entryType) query = query.eq('entry_type', filters.entryType);
-      if (filters?.status) query = query.eq('status', filters.status);
+      if (filters?.fundType) query = query.eq('fund_type', filters.fundType as any);
+      if (filters?.entryType) query = query.eq('entry_type', filters.entryType as any);
+      if (filters?.status) query = query.eq('status', filters.status as any);
       if (filters?.period) query = query.eq('period', filters.period);
 
       const { data, error } = await query;
@@ -165,8 +165,8 @@ export function usePostLedgerEntry() {
         p_employer_id: params.employer_id,
         p_employer_name: params.employer_name || null,
         p_territory: params.territory || null,
-        p_entry_type: params.entry_type,
-        p_fund_type: params.fund_type,
+        p_entry_type: params.entry_type as any,
+        p_fund_type: params.fund_type as any,
         p_period: params.period,
         p_amount: params.amount,
         p_description: params.description,
