@@ -9892,10 +9892,13 @@ export type Database = {
         Row: {
           auto_resolve_condition: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           employer_id: string
           flag_category: string
           flag_code: string
           flag_label: string
+          flag_name: string | null
           id: string
           is_active: boolean
           notes: string | null
@@ -9906,16 +9909,21 @@ export type Database = {
           resolved_by: string | null
           severity: string
           source_event: string | null
+          source_reference: string | null
           source_reference_id: string | null
+          source_type: string | null
           updated_at: string
         }
         Insert: {
           auto_resolve_condition?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           employer_id: string
           flag_category?: string
           flag_code: string
           flag_label: string
+          flag_name?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -9926,16 +9934,21 @@ export type Database = {
           resolved_by?: string | null
           severity?: string
           source_event?: string | null
+          source_reference?: string | null
           source_reference_id?: string | null
+          source_type?: string | null
           updated_at?: string
         }
         Update: {
           auto_resolve_condition?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           employer_id?: string
           flag_category?: string
           flag_code?: string
           flag_label?: string
+          flag_name?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -9946,23 +9959,37 @@ export type Database = {
           resolved_by?: string | null
           severity?: string
           source_event?: string | null
+          source_reference?: string | null
           source_reference_id?: string | null
+          source_type?: string | null
           updated_at?: string
         }
         Relationships: []
       }
       ce_employer_compliance_status: {
         Row: {
+          active_arrangement_count: number | null
+          active_case_count: number | null
+          active_violation_count: number | null
           assigned_officer_id: string | null
           compliance_status: string
+          computed_by: string | null
           created_at: string
           created_by: string
+          current_arrears_amount: number | null
+          current_penalty_amount: number | null
           effective_from: string
           effective_to: string | null
           employer_id: string
+          filing_status: string | null
           id: string
+          last_computed_at: string | null
+          last_filing_period: string | null
+          last_payment_date: string | null
           notes: string | null
           officer_assigned_at: string | null
+          overall_compliance_status: string | null
+          payment_status: string | null
           reason_code: string | null
           reason_detail: string | null
           review_due_date: string | null
@@ -9970,16 +9997,28 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          active_arrangement_count?: number | null
+          active_case_count?: number | null
+          active_violation_count?: number | null
           assigned_officer_id?: string | null
           compliance_status?: string
+          computed_by?: string | null
           created_at?: string
           created_by?: string
+          current_arrears_amount?: number | null
+          current_penalty_amount?: number | null
           effective_from?: string
           effective_to?: string | null
           employer_id: string
+          filing_status?: string | null
           id?: string
+          last_computed_at?: string | null
+          last_filing_period?: string | null
+          last_payment_date?: string | null
           notes?: string | null
           officer_assigned_at?: string | null
+          overall_compliance_status?: string | null
+          payment_status?: string | null
           reason_code?: string | null
           reason_detail?: string | null
           review_due_date?: string | null
@@ -9987,16 +10026,28 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          active_arrangement_count?: number | null
+          active_case_count?: number | null
+          active_violation_count?: number | null
           assigned_officer_id?: string | null
           compliance_status?: string
+          computed_by?: string | null
           created_at?: string
           created_by?: string
+          current_arrears_amount?: number | null
+          current_penalty_amount?: number | null
           effective_from?: string
           effective_to?: string | null
           employer_id?: string
+          filing_status?: string | null
           id?: string
+          last_computed_at?: string | null
+          last_filing_period?: string | null
+          last_payment_date?: string | null
           notes?: string | null
           officer_assigned_at?: string | null
+          overall_compliance_status?: string | null
+          payment_status?: string | null
           reason_code?: string | null
           reason_detail?: string | null
           review_due_date?: string | null
@@ -10305,6 +10356,7 @@ export type Database = {
       }
       ce_employer_status_history: {
         Row: {
+          change_reason: string | null
           changed_at: string
           changed_by: string
           created_at: string
@@ -10317,8 +10369,10 @@ export type Database = {
           reason_detail: string | null
           source_event: string | null
           source_reference_id: string | null
+          source_type: string | null
         }
         Insert: {
+          change_reason?: string | null
           changed_at?: string
           changed_by?: string
           created_at?: string
@@ -10331,8 +10385,10 @@ export type Database = {
           reason_detail?: string | null
           source_event?: string | null
           source_reference_id?: string | null
+          source_type?: string | null
         }
         Update: {
+          change_reason?: string | null
           changed_at?: string
           changed_by?: string
           created_at?: string
@@ -10345,6 +10401,7 @@ export type Database = {
           reason_detail?: string | null
           source_event?: string | null
           source_reference_id?: string | null
+          source_type?: string | null
         }
         Relationships: []
       }
@@ -11676,20 +11733,24 @@ export type Database = {
       ce_risk_profiles: {
         Row: {
           arrears_score: number | null
+          assessed_by: string | null
           created_at: string | null
           created_by: string | null
           employer_id: string
           employer_name: string | null
+          enforcement_risk_score: number | null
           filing_score: number | null
           id: string
           last_calculated_at: string | null
           legal_history_score: number | null
           next_review_date: string | null
+          notes: string | null
           override_band: string | null
           override_by: string | null
           override_reason: string | null
           payment_behavior_score: number | null
           risk_band: string | null
+          scoring_version: string | null
           territory: string | null
           total_score: number | null
           updated_at: string | null
@@ -11698,20 +11759,24 @@ export type Database = {
         }
         Insert: {
           arrears_score?: number | null
+          assessed_by?: string | null
           created_at?: string | null
           created_by?: string | null
           employer_id: string
           employer_name?: string | null
+          enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
           last_calculated_at?: string | null
           legal_history_score?: number | null
           next_review_date?: string | null
+          notes?: string | null
           override_band?: string | null
           override_by?: string | null
           override_reason?: string | null
           payment_behavior_score?: number | null
           risk_band?: string | null
+          scoring_version?: string | null
           territory?: string | null
           total_score?: number | null
           updated_at?: string | null
@@ -11720,20 +11785,24 @@ export type Database = {
         }
         Update: {
           arrears_score?: number | null
+          assessed_by?: string | null
           created_at?: string | null
           created_by?: string | null
           employer_id?: string
           employer_name?: string | null
+          enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
           last_calculated_at?: string | null
           legal_history_score?: number | null
           next_review_date?: string | null
+          notes?: string | null
           override_band?: string | null
           override_by?: string | null
           override_reason?: string | null
           payment_behavior_score?: number | null
           risk_band?: string | null
+          scoring_version?: string | null
           territory?: string | null
           total_score?: number | null
           updated_at?: string | null
@@ -39320,37 +39389,55 @@ export type Database = {
     Views: {
       ce_employer_profile_view: {
         Row: {
+          active_arrangement_count: number | null
+          active_case_count: number | null
           active_flags_count: number | null
+          active_violation_count: number | null
           arrears_score: number | null
           assigned_officer_id: string | null
           compliance_effective_from: string | null
           compliance_status: string | null
+          computed_by: string | null
           critical_flags: number | null
+          current_arrears_amount: number | null
+          current_penalty_amount: number | null
           email: string | null
           employer_id: string | null
           employer_name: string | null
+          enforcement_risk_score: number | null
+          females_employed: number | null
           filing_score: number | null
+          filing_status: string | null
           hq_addr1: string | null
           hq_addr2: string | null
           inspector_code: string | null
+          last_computed_at: string | null
+          last_filing_period: string | null
+          last_payment_date: string | null
           legal_history_score: number | null
+          males_employed: number | null
           master_status: string | null
           office_code: string | null
-          open_cases_count: number | null
-          open_violations_count: number | null
           outstanding_balance: number | null
+          overall_compliance_status: string | null
+          ownership_code: string | null
           payment_behavior_score: number | null
+          payment_status: string | null
           phone: string | null
+          registration_date: string | null
           related_employers_count: number | null
           review_due_date: string | null
+          risk_assessed_by: string | null
           risk_band: string | null
           risk_last_calculated: string | null
           risk_next_review: string | null
           risk_score: number | null
+          scoring_version: string | null
           sector_code: string | null
           territory: string | null
           total_credits: number | null
           total_debits: number | null
+          trade_name: string | null
           violation_score: number | null
         }
         Relationships: []
@@ -39583,6 +39670,15 @@ export type Database = {
         }
         Returns: Json
       }
+      ce_batch_recompute_compliance: {
+        Args: {
+          p_employer_ids?: string[]
+          p_limit?: number
+          p_territory?: string
+          p_triggered_by?: string
+        }
+        Returns: Json
+      }
       ce_breach_check_arrangements: {
         Args: { p_as_of_date?: string; p_checked_by?: string }
         Returns: {
@@ -39689,6 +39785,14 @@ export type Database = {
           p_period: string
         }
         Returns: undefined
+      }
+      ce_recompute_employer_compliance: {
+        Args: { p_employer_id: string; p_triggered_by?: string }
+        Returns: Json
+      }
+      ce_recompute_employer_risk: {
+        Args: { p_employer_id: string; p_triggered_by?: string }
+        Returns: Json
       }
       ce_reverse_financial_event: {
         Args: {
