@@ -31,6 +31,7 @@ interface DetectionRule {
   auto_create_violation: boolean | null;
   is_enabled: boolean | null;
   violation_type_id: string | null;
+  parameters: Record<string, any> | null;
 }
 
 interface CalculationRule {
