@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle, MessageSquare, Mail, ListChecks, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye } from 'lucide-react';
 import { CaseStatus } from '@/types/compliance';
 import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
 import { ComponentPaymentArrangement } from '@/types/paymentArrangement';
