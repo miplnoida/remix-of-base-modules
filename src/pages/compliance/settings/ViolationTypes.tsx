@@ -70,6 +70,7 @@ const ViolationTypes = () => {
   const [deactivateTarget, setDeactivateTarget] = useState<ViolationType | null>(null);
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
 
   const { data: violationTypes = [], isLoading } = useQuery({
     queryKey: ['ce_violation_types'],
@@ -85,7 +86,9 @@ const ViolationTypes = () => {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from('ce_violation_types').update({ is_active } as any).eq('id', id);
+      const { error } = await supabase.from('ce_violation_types').update(
+        withAuditFields({ is_active }, userCode || 'SYS', false)
+      as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -97,11 +100,19 @@ const ViolationTypes = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
+      const isNew = !editing;
+      // Duplicate check
+      const dupName = await checkDuplicateViolationType('name', data.name, editing?.id);
+      if (dupName) throw new Error(`A violation type named "${data.name}" already exists.`);
+      const dupCode = await checkDuplicateViolationType('code', data.code, editing?.id);
+      if (dupCode) throw new Error(`Code "${data.code}" is already in use.`);
+
+      const payload = withAuditFields(data, userCode || 'SYS', isNew);
       if (editing) {
-        const { error } = await supabase.from('ce_violation_types').update(data as any).eq('id', editing.id);
+        const { error } = await supabase.from('ce_violation_types').update(payload as any).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_violation_types').insert(data as any);
+        const { error } = await supabase.from('ce_violation_types').insert(payload as any);
         if (error) throw error;
       }
     },
@@ -114,17 +125,16 @@ const ViolationTypes = () => {
     onError: (err: any) => toast.error('Failed to save', { description: err.message }),
   });
 
-  const deleteMutation = useMutation({
+  const deactivateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('ce_violation_types').delete().eq('id', id);
-      if (error) throw error;
+      await softDeactivateViolationType(id, userCode || 'SYS');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ce_violation_types'] });
-      toast.success('Violation type deleted');
-      setDeleteTarget(null);
+      toast.success('Violation type deactivated');
+      setDeactivateTarget(null);
     },
-    onError: (err: any) => toast.error('Failed to delete', { description: err.message }),
+    onError: (err: any) => toast.error('Failed to deactivate', { description: err.message }),
   });
 
   const openAdd = () => {
@@ -158,8 +168,14 @@ const ViolationTypes = () => {
     if (!form.name) {
       toast.error('Please check the form for valid information!', {
         description: 'Name is required.',
-        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
-        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+        ...validationToastConfig,
+      });
+      return;
+    }
+    if (!form.code) {
+      toast.error('Please check the form for valid information!', {
+        description: 'Code is required.',
+        ...validationToastConfig,
       });
       return;
     }
