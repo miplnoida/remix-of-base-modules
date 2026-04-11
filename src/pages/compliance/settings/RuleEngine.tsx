@@ -557,6 +557,7 @@ const DetectionRuleDialog = ({
       ...form,
       violation_type_id: form.violation_type_id || null,
       condition_expression: form.condition_expression || null,
+      parameters: Object.keys(form.parameters).length > 0 ? form.parameters : null,
     });
   };
 
@@ -639,6 +640,10 @@ const DetectionRuleDialog = ({
                 {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Parameters <span className="text-muted-foreground text-xs font-normal">(detection thresholds & config)</span></Label>
+            <ParametersEditor value={form.parameters} onChange={v => setForm(p => ({ ...p, parameters: v }))} />
           </div>
           <div className="flex items-center gap-6 pt-2">
             <div className="flex items-center gap-2">
