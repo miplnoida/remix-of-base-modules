@@ -10678,6 +10678,109 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_payment_allocations: {
+        Row: {
+          allocated_amount: number
+          allocated_at: string
+          allocated_by: string
+          allocation_mode: string
+          allocation_sequence: number
+          created_at: string
+          employer_id: string
+          fund_type: string | null
+          id: string
+          ledger_credit_entry_id: string | null
+          notes: string | null
+          source_payment_id: number
+          source_table: string
+          target_ledger_debit_entry_id: string | null
+          target_period: string | null
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          allocated_amount?: number
+          allocated_at?: string
+          allocated_by?: string
+          allocation_mode?: string
+          allocation_sequence?: number
+          created_at?: string
+          employer_id: string
+          fund_type?: string | null
+          id?: string
+          ledger_credit_entry_id?: string | null
+          notes?: string | null
+          source_payment_id: number
+          source_table?: string
+          target_ledger_debit_entry_id?: string | null
+          target_period?: string | null
+          target_type?: string
+          updated_at?: string
+        }
+        Update: {
+          allocated_amount?: number
+          allocated_at?: string
+          allocated_by?: string
+          allocation_mode?: string
+          allocation_sequence?: number
+          created_at?: string
+          employer_id?: string
+          fund_type?: string | null
+          id?: string
+          ledger_credit_entry_id?: string | null
+          notes?: string | null
+          source_payment_id?: number
+          source_table?: string
+          target_ledger_debit_entry_id?: string | null
+          target_period?: string | null
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_payment_allocations_ledger_credit_entry_id_fkey"
+            columns: ["ledger_credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_ledger_credit_entry_id_fkey"
+            columns: ["ledger_credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_ledger_credit_entry_id_fkey"
+            columns: ["ledger_credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_target_ledger_debit_entry_id_fkey"
+            columns: ["target_ledger_debit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_target_ledger_debit_entry_id_fkey"
+            columns: ["target_ledger_debit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_target_ledger_debit_entry_id_fkey"
+            columns: ["target_ledger_debit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+        ]
+      }
       ce_payment_arrangements: {
         Row: {
           agreement_document_url: string | null
@@ -10800,6 +10903,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_payment_ledger_sync_log: {
+        Row: {
+          allocation_status: string | null
+          amount_snapshot: number
+          created_at: string
+          employer_id: string
+          error_message: string | null
+          fund_code: string | null
+          id: string
+          ledger_entry_ids: Json | null
+          payment_code: string | null
+          payment_date: string | null
+          receipt_no: string | null
+          source_payment_id: number
+          source_table: string
+          status_snapshot: string | null
+          sync_run_id: string | null
+          sync_status: string
+          synced_at: string | null
+          synced_by: string | null
+          transaction_no: string | null
+        }
+        Insert: {
+          allocation_status?: string | null
+          amount_snapshot?: number
+          created_at?: string
+          employer_id: string
+          error_message?: string | null
+          fund_code?: string | null
+          id?: string
+          ledger_entry_ids?: Json | null
+          payment_code?: string | null
+          payment_date?: string | null
+          receipt_no?: string | null
+          source_payment_id: number
+          source_table?: string
+          status_snapshot?: string | null
+          sync_run_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          synced_by?: string | null
+          transaction_no?: string | null
+        }
+        Update: {
+          allocation_status?: string | null
+          amount_snapshot?: number
+          created_at?: string
+          employer_id?: string
+          error_message?: string | null
+          fund_code?: string | null
+          id?: string
+          ledger_entry_ids?: Json | null
+          payment_code?: string | null
+          payment_date?: string | null
+          receipt_no?: string | null
+          source_payment_id?: number
+          source_table?: string
+          status_snapshot?: string | null
+          sync_run_id?: string | null
+          sync_status?: string
+          synced_at?: string | null
+          synced_by?: string | null
+          transaction_no?: string | null
+        }
+        Relationships: []
       }
       ce_penalty_calculations: {
         Row: {
@@ -38847,6 +39016,41 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_payment_reconciliation_exceptions: {
+        Row: {
+          allocated_amount: number | null
+          description: string | null
+          employer_id: string | null
+          event_date: string | null
+          exception_type: string | null
+          ledger_amount: number | null
+          source_amount: number | null
+          source_id: number | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
+      ce_v_payments_unposted_to_ledger: {
+        Row: {
+          amount: number | null
+          batch_number: string | null
+          cashier: string | null
+          employer_id: string | null
+          fund_code: string | null
+          header_status: string | null
+          payment_code: string | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_source_table: string | null
+          period: string | null
+          receipt_id: number | null
+          receipt_number: string | null
+          receipt_status: string | null
+          source_payment_id: number | null
+          sync_key: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_sep_activity: {
@@ -38981,6 +39185,16 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      ce_allocate_employer_payment: {
+        Args: {
+          p_allocation_mode?: string
+          p_effective_date?: string
+          p_employer_id: string
+          p_source_payment_id: number
+          p_triggered_by?: string
+        }
+        Returns: Json
+      }
       ce_breach_check_arrangements: {
         Args: { p_as_of_date?: string; p_checked_by?: string }
         Returns: {
@@ -39110,6 +39324,18 @@ export type Database = {
           p_employer_id?: string
           p_limit?: number
           p_period?: string
+          p_triggered_by?: string
+        }
+        Returns: Json
+      }
+      ce_sync_payments_to_ledger: {
+        Args: {
+          p_dry_run?: boolean
+          p_employer_id?: string
+          p_limit?: number
+          p_payment_date_from?: string
+          p_payment_date_to?: string
+          p_source_payment_id?: number
           p_triggered_by?: string
         }
         Returns: Json
