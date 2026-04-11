@@ -19,10 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, FileText, Plus, Search, Filter } from 'lucide-react';
-import { MOCK_CASES } from '@/services/mockData/complianceData';
+import { Eye, FileText, Plus, Search, Filter, Loader2 } from 'lucide-react';
 import { CaseStatus, CaseType } from '@/types/compliance';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchComplianceCases } from '@/services/complianceDataService';
 
 export default function ViolationsManagement() {
   const navigate = useNavigate();
@@ -30,13 +31,13 @@ export default function ViolationsManagement() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
 
-  const filteredViolations = MOCK_CASES.filter(violation => {
-    const matchesSearch = 
-      violation.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      violation.employerName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || violation.caseStatus === statusFilter;
-    const matchesType = typeFilter === 'ALL' || violation.caseType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+  const { data: cases = [], isLoading } = useQuery({
+    queryKey: ['ce_cases', statusFilter, typeFilter, searchTerm],
+    queryFn: () => fetchComplianceCases({
+      status: statusFilter,
+      caseType: typeFilter,
+      search: searchTerm || undefined,
+    }),
   });
 
   const getStatusColor = (status: CaseStatus) => {
@@ -76,6 +77,18 @@ export default function ViolationsManagement() {
     return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const activeCases = cases.filter((v: any) => v.status === CaseStatus.ACTIVE);
+  const escalatedCases = cases.filter((v: any) => v.status === CaseStatus.ESCALATED_LEGAL);
+  const totalOutstanding = cases.reduce((sum: number, v: any) => sum + (Number(v.outstanding_balance) || 0), 0);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -91,48 +104,34 @@ export default function ViolationsManagement() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Violations
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Violations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{MOCK_CASES.length}</div>
+            <div className="text-2xl font-bold text-foreground">{cases.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Violations
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Violations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {MOCK_CASES.filter(v => v.caseStatus === CaseStatus.ACTIVE).length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{activeCases.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Escalated to Legal
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Escalated to Legal</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {MOCK_CASES.filter(v => v.caseStatus === CaseStatus.ESCALATED_LEGAL).length}
-            </div>
+            <div className="text-2xl font-bold text-red-600">{escalatedCases.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Outstanding
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatCurrency(MOCK_CASES.reduce((sum, v) => sum + v.outstandingBalance, 0))}
-            </div>
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalOutstanding)}</div>
           </CardContent>
         </Card>
       </div>
@@ -185,7 +184,7 @@ export default function ViolationsManagement() {
       {/* Violations Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Violations ({filteredViolations.length})</CardTitle>
+          <CardTitle>All Violations ({cases.length})</CardTitle>
           <Button size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Create Manual Violation
@@ -208,76 +207,72 @@ export default function ViolationsManagement() {
                   <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-            <TableBody>
-              {filteredViolations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground">
-                    No violations found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredViolations.map((violation) => (
-                  <TableRow key={violation.id}>
-                    <TableCell className="font-medium">{violation.caseNumber}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{violation.employerName}</div>
-                        <div className="text-xs text-muted-foreground">{violation.employerZone}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{formatCaseType(violation.caseType)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getStatusColor(violation.caseStatus)}>
-                        {violation.caseStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs max-w-[150px] truncate" title={violation.caseStage}>
-                        {violation.caseStage}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getPriorityColor(violation.priority)}>
-                        {violation.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(violation.outstandingBalance)}
-                    </TableCell>
-                    <TableCell>
-                      {violation.assignedInspectorName || (
-                        <span className="text-muted-foreground">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(violation.lastActivityDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="sticky right-0 bg-background">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/compliance/violations/${violation.id}`)}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          title="View Documents"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </div>
+              <TableBody>
+                {cases.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                      No violations found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  cases.map((violation: any) => (
+                    <TableRow key={violation.id}>
+                      <TableCell className="font-medium">{violation.case_number}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{violation.employer_name}</div>
+                          <div className="text-xs text-muted-foreground">{violation.employer_zone}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{formatCaseType(violation.case_type)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getStatusColor(violation.status)}>
+                          {violation.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs max-w-[150px] truncate" title={violation.stage}>
+                          {violation.stage}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getPriorityColor(violation.priority)}>
+                          {violation.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(Number(violation.outstanding_balance) || 0)}
+                      </TableCell>
+                      <TableCell>
+                        {violation.assigned_inspector_name || (
+                          <span className="text-muted-foreground">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {violation.last_activity_date ? new Date(violation.last_activity_date).toLocaleDateString() : '-'}
+                      </TableCell>
+                      <TableCell className="sticky right-0 bg-background">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/compliance/violations/${violation.id}`)}
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" title="View Documents">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
