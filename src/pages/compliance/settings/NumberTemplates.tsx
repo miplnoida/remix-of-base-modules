@@ -88,8 +88,9 @@ const NumberTemplates = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<NumberTemplate | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<NumberTemplate | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<NumberTemplate | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { userCode } = useUserCode();
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['ce_number_templates'],
@@ -105,7 +106,8 @@ const NumberTemplates = () => {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from('ce_number_templates').update({ is_active } as any).eq('id', id);
+      const payload = withAuditFields({ is_active }, userCode || 'SYS', false);
+      const { error } = await supabase.from('ce_number_templates').update(payload as any).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -117,11 +119,15 @@ const NumberTemplates = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
+      const isNew = !editing;
+      const dupName = await checkDuplicateNumberTemplate(data.name, editing?.id);
+      if (dupName) throw new Error(`A scheme named "${data.name}" already exists.`);
+      const payload = withAuditFields(data, userCode || 'SYS', isNew);
       if (editing) {
-        const { error } = await supabase.from('ce_number_templates').update(data as any).eq('id', editing.id);
+        const { error } = await supabase.from('ce_number_templates').update(payload as any).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ce_number_templates').insert(data as any);
+        const { error } = await supabase.from('ce_number_templates').insert(payload as any);
         if (error) throw error;
       }
     },
@@ -134,15 +140,16 @@ const NumberTemplates = () => {
     onError: (err: any) => toast.error('Failed to save', { description: err.message }),
   });
 
-  const deleteMutation = useMutation({
+  const deactivateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('ce_number_templates').delete().eq('id', id);
-      if (error) throw error;
+      await softDeactivateNumberTemplate(id, userCode || 'SYS');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ce_number_templates'] });
-      toast.success('Numbering scheme deleted');
-      setDeleteTarget(null);
+      toast.success('Numbering scheme deactivated');
+      setDeactivateTarget(null);
+    },
+    onError: (err: any) => toast.error('Failed to deactivate', { description: err.message }),
     },
     onError: (err: any) => toast.error('Failed to delete', { description: err.message }),
   });
