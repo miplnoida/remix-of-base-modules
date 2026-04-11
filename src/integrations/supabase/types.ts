@@ -9442,6 +9442,7 @@ export type Database = {
           error_message: string | null
           execution_log: Json | null
           id: string
+          idempotency_key: string | null
           job_id: string | null
           records_affected: number | null
           records_processed: number | null
@@ -9454,6 +9455,7 @@ export type Database = {
           error_message?: string | null
           execution_log?: Json | null
           id?: string
+          idempotency_key?: string | null
           job_id?: string | null
           records_affected?: number | null
           records_processed?: number | null
@@ -9466,6 +9468,7 @@ export type Database = {
           error_message?: string | null
           execution_log?: Json | null
           id?: string
+          idempotency_key?: string | null
           job_id?: string | null
           records_affected?: number | null
           records_processed?: number | null
@@ -9781,6 +9784,80 @@ export type Database = {
           },
         ]
       }
+      ce_employer_financial_ledger: {
+        Row: {
+          credit_amount: number
+          debit_amount: number
+          description: string
+          employer_id: string
+          employer_name: string | null
+          entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id: string
+          idempotency_key: string
+          period: string
+          posted_at: string
+          posted_by: string
+          reference_id: string | null
+          reference_type: string
+          reversal_of_id: string | null
+          reversal_reason: string | null
+          running_balance: number
+          status: Database["public"]["Enums"]["ce_ledger_status"]
+          territory: string | null
+        }
+        Insert: {
+          credit_amount?: number
+          debit_amount?: number
+          description: string
+          employer_id: string
+          employer_name?: string | null
+          entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          idempotency_key: string
+          period: string
+          posted_at?: string
+          posted_by: string
+          reference_id?: string | null
+          reference_type: string
+          reversal_of_id?: string | null
+          reversal_reason?: string | null
+          running_balance?: number
+          status?: Database["public"]["Enums"]["ce_ledger_status"]
+          territory?: string | null
+        }
+        Update: {
+          credit_amount?: number
+          debit_amount?: number
+          description?: string
+          employer_id?: string
+          employer_name?: string | null
+          entry_type?: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          idempotency_key?: string
+          period?: string
+          posted_at?: string
+          posted_by?: string
+          reference_id?: string | null
+          reference_type?: string
+          reversal_of_id?: string | null
+          reversal_reason?: string | null
+          running_balance?: number
+          status?: Database["public"]["Enums"]["ce_ledger_status"]
+          territory?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_employer_financial_ledger_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_escalation_rules: {
         Row: {
           amount_threshold: number | null
@@ -10051,6 +10128,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_ledger_periods: {
+        Row: {
+          adjustments: number
+          balance: number
+          employer_id: string
+          entry_count: number
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id: string
+          interest: number
+          last_recalculated_at: string
+          last_recalculated_by: string | null
+          payments: number
+          penalties: number
+          period: string
+          principal_due: number
+          waivers: number
+          write_offs: number
+        }
+        Insert: {
+          adjustments?: number
+          balance?: number
+          employer_id: string
+          entry_count?: number
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          interest?: number
+          last_recalculated_at?: string
+          last_recalculated_by?: string | null
+          payments?: number
+          penalties?: number
+          period: string
+          principal_due?: number
+          waivers?: number
+          write_offs?: number
+        }
+        Update: {
+          adjustments?: number
+          balance?: number
+          employer_id?: string
+          entry_count?: number
+          fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          interest?: number
+          last_recalculated_at?: string
+          last_recalculated_by?: string | null
+          payments?: number
+          penalties?: number
+          period?: string
+          principal_due?: number
+          waivers?: number
+          write_offs?: number
+        }
+        Relationships: []
       }
       ce_legal_documents: {
         Row: {
@@ -10458,6 +10589,78 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_penalty_calculations: {
+        Row: {
+          calculated_amount: number
+          calculated_at: string
+          calculated_by: string
+          calculation_rule_id: string | null
+          calculation_type: string
+          effective_from: string
+          effective_to: string | null
+          employer_id: string
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id: string
+          idempotency_key: string
+          input_parameters: Json
+          input_principal: number
+          ledger_entry_id: string | null
+          period: string
+          rule_code: string | null
+        }
+        Insert: {
+          calculated_amount: number
+          calculated_at?: string
+          calculated_by: string
+          calculation_rule_id?: string | null
+          calculation_type: string
+          effective_from: string
+          effective_to?: string | null
+          employer_id: string
+          fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          idempotency_key: string
+          input_parameters?: Json
+          input_principal: number
+          ledger_entry_id?: string | null
+          period: string
+          rule_code?: string | null
+        }
+        Update: {
+          calculated_amount?: number
+          calculated_at?: string
+          calculated_by?: string
+          calculation_rule_id?: string | null
+          calculation_type?: string
+          effective_from?: string
+          effective_to?: string | null
+          employer_id?: string
+          fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+          id?: string
+          idempotency_key?: string
+          input_parameters?: Json
+          input_principal?: number
+          ledger_entry_id?: string | null
+          period?: string
+          rule_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_penalty_calculations_calculation_rule_id_fkey"
+            columns: ["calculation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "ce_calculation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_penalty_calculations_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
             referencedColumns: ["id"]
           },
         ]
@@ -38445,6 +38648,54 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      ce_get_employer_balance: {
+        Args: {
+          p_as_of_date?: string
+          p_employer_id: string
+          p_fund_type?: Database["public"]["Enums"]["ce_fund_type"]
+        }
+        Returns: {
+          balance: number
+          entry_count: number
+          fund: Database["public"]["Enums"]["ce_fund_type"]
+          total_credits: number
+          total_debits: number
+        }[]
+      }
+      ce_post_financial_event: {
+        Args: {
+          p_credit_amount?: number
+          p_debit_amount?: number
+          p_description?: string
+          p_employer_id: string
+          p_employer_name: string
+          p_entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"]
+          p_fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          p_idempotency_key?: string
+          p_period: string
+          p_posted_by?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_territory: string
+        }
+        Returns: string
+      }
+      ce_recalculate_period_summary: {
+        Args: {
+          p_employer_id: string
+          p_fund_type: Database["public"]["Enums"]["ce_fund_type"]
+          p_period: string
+        }
+        Returns: undefined
+      }
+      ce_reverse_financial_event: {
+        Args: {
+          p_original_entry_id: string
+          p_reason: string
+          p_reversed_by?: string
+        }
+        Returns: string
+      }
       cease_voluntary_contributor: {
         Args: { p_reason?: string; p_ssn: string }
         Returns: Json
@@ -40211,6 +40462,19 @@ export type Database = {
         | "IP Dispute"
         | "Garnishment"
         | "Other"
+      ce_fund_type: "SS" | "LEVY" | "EI"
+      ce_ledger_entry_type:
+        | "C3_DUES_POSTED"
+        | "PAYMENT_RECEIVED"
+        | "PENALTY_ASSESSED"
+        | "INTEREST_ACCRUED"
+        | "WAIVER_APPLIED"
+        | "ADJUSTMENT"
+        | "REVERSAL"
+        | "WRITE_OFF"
+        | "ARRANGEMENT_CREDIT"
+        | "REFUND"
+      ce_ledger_status: "POSTED" | "REVERSED"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -40549,6 +40813,20 @@ export const Constants = {
         "Garnishment",
         "Other",
       ],
+      ce_fund_type: ["SS", "LEVY", "EI"],
+      ce_ledger_entry_type: [
+        "C3_DUES_POSTED",
+        "PAYMENT_RECEIVED",
+        "PENALTY_ASSESSED",
+        "INTEREST_ACCRUED",
+        "WAIVER_APPLIED",
+        "ADJUSTMENT",
+        "REVERSAL",
+        "WRITE_OFF",
+        "ARRANGEMENT_CREDIT",
+        "REFUND",
+      ],
+      ce_ledger_status: ["POSTED", "REVERSED"],
       compliance_registration_status: [
         "pending",
         "approved",
