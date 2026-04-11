@@ -68,30 +68,49 @@ interface EmployerRow {
 }
 
 async function fetchEmployersByStatus(statuses: string[]): Promise<EmployerRow[]> {
-  const { data, error } = await supabase
-    .from('er_master')
-    .select('regno, name, trade_name, phone, activity_type, status, hq_addr1, hq_addr2, males_employed, females_employed')
-    .in('status', statuses)
-    .order('regno', { ascending: true })
-    .limit(1000);
-  if (error) throw error;
-  return (data ?? []) as EmployerRow[];
+  // Supabase caps at 1000 per request — paginate to fetch all rows
+  const PAGE_SIZE = 1000;
+  let allData: EmployerRow[] = [];
+  let from = 0;
+  let keepFetching = true;
+
+  while (keepFetching) {
+    const { data, error } = await supabase
+      .from('er_master')
+      .select('regno, name, trade_name, phone, activity_type, status, hq_addr1, hq_addr2, males_employed, females_employed')
+      .in('status', statuses)
+      .order('regno', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as EmployerRow[];
+    allData = allData.concat(page);
+    if (page.length < PAGE_SIZE) {
+      keepFetching = false;
+    } else {
+      from += PAGE_SIZE;
+    }
+  }
+  return allData;
 }
 
 async function fetchEmployerCounts(): Promise<Record<string, number>> {
-  const { data, error } = await supabase
-    .from('er_master')
-    .select('status');
-  if (error) throw error;
+  // Use individual count queries to avoid the 1000-row default limit
+  const countForStatuses = async (statuses: string[]): Promise<number> => {
+    const { count, error } = await supabase
+      .from('er_master')
+      .select('*', { count: 'exact', head: true })
+      .in('status', statuses);
+    if (error) throw error;
+    return count ?? 0;
+  };
 
-  const counts: Record<string, number> = { pending: 0, registered: 0, ceased: 0 };
-  (data ?? []).forEach((row: any) => {
-    const s = row.status;
-    if (TAB_STATUS_FILTERS.pending.includes(s)) counts.pending++;
-    else if (TAB_STATUS_FILTERS.registered.includes(s)) counts.registered++;
-    else if (TAB_STATUS_FILTERS.ceased.includes(s)) counts.ceased++;
-  });
-  return counts;
+  const [pending, registered, ceased] = await Promise.all([
+    countForStatuses(TAB_STATUS_FILTERS.pending),
+    countForStatuses(TAB_STATUS_FILTERS.registered),
+    countForStatuses(TAB_STATUS_FILTERS.ceased),
+  ]);
+
+  return { pending, registered, ceased };
 }
 
 // ── Component ──
