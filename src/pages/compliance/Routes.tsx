@@ -176,6 +176,9 @@ const ComplianceRoutes = () => {
       <Route path="/settings/c3-ledger-sync" element={<C3LedgerSync />} />
       <Route path="/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
 
+      {/* Tools */}
+      <Route path="/tools/rule-simulator" element={<RuleSimulator />} />
+
       {/* Reports */}
       <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
       <Route path="/reports/violations-analytics" element={<CaseAnalytics />} />
