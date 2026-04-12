@@ -19,63 +19,54 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, FileText, Plus, Search, Filter, Loader2 } from 'lucide-react';
-import { CaseStatus, CaseType } from '@/types/compliance';
+import { Eye, Plus, Search, Filter, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchComplianceCases } from '@/services/complianceDataService';
+import { fetchViolations } from '@/services/complianceDataService';
+
+const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
+const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 
 export default function ViolationsManagement() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
 
-  const { data: cases = [], isLoading } = useQuery({
-    queryKey: ['ce_cases', statusFilter, typeFilter, searchTerm],
-    queryFn: () => fetchComplianceCases({
+  const { data: violations = [], isLoading } = useQuery({
+    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm],
+    queryFn: () => fetchViolations({
       status: statusFilter,
-      caseType: typeFilter,
+      priority: priorityFilter,
       search: searchTerm || undefined,
     }),
   });
 
-  const getStatusColor = (status: CaseStatus) => {
-    const colors: Record<CaseStatus, string> = {
-      [CaseStatus.OPEN]: 'bg-blue-100 text-blue-800',
-      [CaseStatus.ACTIVE]: 'bg-green-100 text-green-800',
-      [CaseStatus.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
-      [CaseStatus.ARRANGEMENT_ACTIVE]: 'bg-purple-100 text-purple-800',
-      [CaseStatus.ESCALATED_LEGAL]: 'bg-red-100 text-red-800',
-      [CaseStatus.COMPLETED]: 'bg-teal-100 text-teal-800',
-      [CaseStatus.CLOSED_NO_ACTION]: 'bg-gray-100 text-gray-800',
-      [CaseStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-      [CaseStatus.ARCHIVED]: 'bg-gray-100 text-gray-800',
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      OPEN: 'bg-primary/10 text-primary',
+      UNDER_REVIEW: 'bg-warning/10 text-warning',
+      IN_PROGRESS: 'bg-accent/10 text-accent-foreground',
+      ESCALATED: 'bg-destructive/10 text-destructive',
+      RESOLVED: 'bg-green-100 text-green-800',
+      CLOSED: 'bg-muted text-muted-foreground',
+      CANCELLED: 'bg-muted text-muted-foreground',
     };
-    return colors[status];
+    return colors[status] ?? 'bg-muted text-muted-foreground';
   };
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      LOW: 'bg-gray-100 text-gray-800',
-      MEDIUM: 'bg-blue-100 text-blue-800',
-      HIGH: 'bg-orange-100 text-orange-800',
-      URGENT: 'bg-red-100 text-red-800',
+      Critical: 'bg-destructive/10 text-destructive',
+      High: 'bg-orange-100 text-orange-800',
+      Medium: 'bg-warning/10 text-warning',
+      Low: 'bg-muted text-muted-foreground',
     };
-    return colors[priority];
+    return colors[priority] ?? 'bg-muted text-muted-foreground';
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'XCD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const formatCaseType = (type: CaseType) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
 
   if (isLoading) {
     return (
@@ -85,9 +76,10 @@ export default function ViolationsManagement() {
     );
   }
 
-  const activeCases = cases.filter((v: any) => v.status === CaseStatus.ACTIVE);
-  const escalatedCases = cases.filter((v: any) => v.status === CaseStatus.ESCALATED_LEGAL);
-  const totalOutstanding = cases.reduce((sum: number, v: any) => sum + (Number(v.outstanding_balance) || 0), 0);
+  const openCount = violations.filter((v: any) => v.status === 'OPEN').length;
+  const escalatedCount = violations.filter((v: any) => v.status === 'ESCALATED').length;
+  const reviewCount = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
+  const totalOutstanding = violations.reduce((sum: number, v: any) => sum + (Number(v.total_amount) || 0), 0);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -107,31 +99,31 @@ export default function ViolationsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Violations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{cases.length}</div>
+            <div className="text-2xl font-bold text-foreground">{violations.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Violations</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Open</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCases.length}</div>
+            <div className="text-2xl font-bold text-primary">{openCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Escalated to Legal</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Under Review</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{escalatedCases.length}</div>
+            <div className="text-2xl font-bold text-warning">{reviewCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Outstanding</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Escalated</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalOutstanding)}</div>
+            <div className="text-2xl font-bold text-destructive">{escalatedCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -149,7 +141,7 @@ export default function ViolationsManagement() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by violation number or employer..."
+                placeholder="Search by number, employer, or summary..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -161,19 +153,19 @@ export default function ViolationsManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Statuses</SelectItem>
-                {Object.values(CaseStatus).map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                {VIOLATION_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Types</SelectItem>
-                {Object.values(CaseType).map(type => (
-                  <SelectItem key={type} value={type}>{formatCaseType(type)}</SelectItem>
+                <SelectItem value="ALL">All Priorities</SelectItem>
+                {VIOLATION_PRIORITIES.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -184,8 +176,8 @@ export default function ViolationsManagement() {
       {/* Violations Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Violations ({cases.length})</CardTitle>
-          <Button size="sm">
+          <CardTitle>All Violations ({violations.length})</CardTitle>
+          <Button size="sm" onClick={() => navigate('/compliance/violations/manual-entry')}>
             <Plus className="mr-2 h-4 w-4" />
             Create Manual Violation
           </Button>
@@ -195,78 +187,70 @@ export default function ViolationsManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[140px]">Violation Number</TableHead>
+                  <TableHead className="min-w-[150px]">Violation #</TableHead>
                   <TableHead className="min-w-[200px]">Employer</TableHead>
                   <TableHead className="min-w-[150px]">Type</TableHead>
-                  <TableHead className="min-w-[120px]">Status</TableHead>
-                  <TableHead className="min-w-[180px]">Stage</TableHead>
-                  <TableHead className="min-w-[100px]">Priority</TableHead>
-                  <TableHead className="min-w-[130px]">Outstanding</TableHead>
-                  <TableHead className="min-w-[150px]">Assigned To</TableHead>
-                  <TableHead className="min-w-[120px]">Last Activity</TableHead>
-                  <TableHead className="min-w-[100px] sticky right-0 bg-background">Actions</TableHead>
+                  <TableHead className="min-w-[110px]">Status</TableHead>
+                  <TableHead className="min-w-[90px]">Priority</TableHead>
+                  <TableHead className="min-w-[90px]">Period</TableHead>
+                  <TableHead className="min-w-[110px]">Amount</TableHead>
+                  <TableHead className="min-w-[130px]">Assigned To</TableHead>
+                  <TableHead className="min-w-[110px]">Discovered</TableHead>
+                  <TableHead className="min-w-[80px] sticky right-0 bg-background">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cases.length === 0 ? (
+                {violations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                       No violations found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  cases.map((violation: any) => (
-                    <TableRow key={violation.id}>
-                      <TableCell className="font-medium">{violation.case_number}</TableCell>
+                  violations.map((v: any) => (
+                    <TableRow key={v.id}>
+                      <TableCell className="font-medium font-mono text-xs">{v.violation_number}</TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{violation.employer_name}</div>
-                          <div className="text-xs text-muted-foreground">{violation.employer_zone}</div>
+                          <div className="font-medium">{v.employer_name ?? 'Unknown'}</div>
+                          <div className="text-xs text-muted-foreground">{v.employer_id}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{formatCaseType(violation.case_type)}</div>
+                        <div className="text-sm">{v.ce_violation_types?.name ?? '-'}</div>
+                        <div className="text-xs text-muted-foreground">{v.ce_violation_types?.category}</div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getStatusColor(violation.status)}>
-                          {violation.status}
+                        <Badge variant="outline" className={getStatusColor(v.status)}>
+                          {v.status?.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="text-xs max-w-[150px] truncate" title={violation.stage}>
-                          {violation.stage}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getPriorityColor(violation.priority)}>
-                          {violation.priority}
+                        <Badge variant="outline" className={getPriorityColor(v.priority)}>
+                          {v.priority}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-sm">{v.period_from ?? '-'}</TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(Number(violation.outstanding_balance) || 0)}
+                        {v.total_amount ? formatCurrency(Number(v.total_amount)) : '-'}
                       </TableCell>
                       <TableCell>
-                        {violation.assigned_inspector_name || (
-                          <span className="text-muted-foreground">Unassigned</span>
+                        {v.assigned_to_name || (
+                          <span className="text-muted-foreground text-xs">Unassigned</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {violation.last_activity_date ? new Date(violation.last_activity_date).toLocaleDateString() : '-'}
+                      <TableCell className="text-sm">
+                        {v.discovered_date ? new Date(v.discovered_date).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/compliance/violations/${violation.id}`)}
-                            title="View Details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" title="View Documents">
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => navigate(`/compliance/violations/${v.id}`)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
