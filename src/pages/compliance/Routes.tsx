@@ -89,6 +89,9 @@ import LedgerAdministration from './settings/LedgerAdministration';
 import C3LedgerSync from './settings/C3LedgerSync';
 import PaymentLedgerSync from './settings/PaymentLedgerSync';
 
+// Tools
+import RuleSimulator from './tools/RuleSimulator';
+
 const ComplianceRoutes = () => {
   return (
     <Routes>
