@@ -10,6 +10,12 @@ const EDGE_FUNCTION_JOBS: Record<string, string> = {
   'JOB-VIOLATION-SCAN': 'ce-violation-scan',
 };
 
+// Jobs that have RPC handlers
+const RPC_JOBS: Record<string, string> = {
+  // Add mappings here as RPC handlers are implemented
+  // e.g. 'JOB-BREACH-DETECTION': 'ce_execute_breach_detection',
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -18,8 +24,8 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
+      return new Response(JSON.stringify({ ok: false, error: "Missing authorization" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -32,21 +38,61 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { job_code, dry_run = false, force = false } = await req.json();
     if (!job_code || typeof job_code !== "string") {
-      return new Response(JSON.stringify({ error: "job_code is required" }), {
-        status: 400,
+      return new Response(JSON.stringify({ ok: false, error: "job_code is required" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Route to dedicated edge function if applicable
+    // ── Server-side gating: check job exists and has runtime ──
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: jobRecord, error: jobErr } = await serviceClient
+      .from("ce_automation_jobs")
+      .select("id, job_code, name, parameters, is_enabled")
+      .eq("job_code", job_code)
+      .maybeSingle();
+
+    if (jobErr || !jobRecord) {
+      return new Response(JSON.stringify({ ok: false, error: `Job '${job_code}' not found` }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const params = jobRecord.parameters || {};
+    const hasRuntime = params.has_runtime === true;
+    const isDeprecated = params.status === 'DEPRECATED';
+
+    if (isDeprecated) {
+      return new Response(JSON.stringify({ ok: false, error: `Job '${jobRecord.name}' is deprecated and cannot be executed.` }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!hasRuntime) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: `Job '${jobRecord.name}' has no runtime handler. ${params.blocked_reason || 'Edge function not yet implemented.'}`,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Route to dedicated edge function if applicable ──
     const edgeFn = EDGE_FUNCTION_JOBS[job_code];
     if (edgeFn) {
       const fnUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${edgeFn}`;
@@ -65,14 +111,12 @@ Deno.serve(async (req) => {
 
       const fnData = await fnRes.json();
       if (!fnRes.ok) {
-        // Return 200 with error payload so Supabase client can read the body
         return new Response(JSON.stringify({ ok: false, error: fnData.error || "Edge function failed", status: fnRes.status }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Normalize the response to match the expected shape
       return new Response(JSON.stringify({
         run_id: fnData.run_id,
         result: {
@@ -81,7 +125,6 @@ Deno.serve(async (req) => {
           errors: 0,
           dry_run: fnData.dry_run ?? dry_run,
         },
-        // Include the rich scan-specific fields
         scan_details: {
           total_employers_scanned: fnData.total_employers_scanned,
           rules_evaluated: fnData.rules_evaluated,
@@ -92,17 +135,34 @@ Deno.serve(async (req) => {
           sample_violations: fnData.sample_violations,
           dry_run: fnData.dry_run,
         },
+        already_completed: fnData.already_completed,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Standard RPC path for other jobs
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // ── Route to RPC handler if applicable ──
+    const rpcFn = RPC_JOBS[job_code];
+    if (rpcFn) {
+      const { data, error } = await serviceClient.rpc(rpcFn, {
+        p_job_code: job_code,
+        p_dry_run: dry_run,
+        p_triggered_by: user.email || user.id,
+      });
 
+      if (error) {
+        return new Response(JSON.stringify({ ok: false, error: error.message }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Fallback to generic RPC ──
     const { data, error } = await serviceClient.rpc("ce_execute_automation_job", {
       p_job_code: job_code,
       p_dry_run: dry_run,
