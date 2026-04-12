@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Timer, CheckCircle, XCircle, Search, Eye, RefreshCw, Loader2 } from 'lucide-react';
+import { Timer, CheckCircle, XCircle, Search, Eye, RefreshCw, Loader2, FlaskConical, Zap, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { StandardModal } from '@/components/common/StandardModal';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AutomationRun {
   id: string;
@@ -18,6 +20,10 @@ interface AutomationRun {
   records_affected: number | null;
   error_message: string | null;
   triggered_by: string | null;
+  execution_log: Record<string, any> | null;
+  is_dry_run: boolean | null;
+  idempotency_key: string | null;
+  parameters: Record<string, any> | null;
 }
 
 interface AutomationJob {
@@ -25,9 +31,85 @@ interface AutomationJob {
   name: string;
 }
 
+const DetailField = ({ label, value, className = '' }: { label: string; value: React.ReactNode; className?: string }) => (
+  <div className={className}>
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className="text-sm font-medium text-foreground mt-0.5">{value ?? '—'}</p>
+  </div>
+);
+
+const ScanDetailsView = ({ scan }: { scan: Record<string, any> }) => {
+  const ruleBreakdown = scan.rule_breakdown || scan.per_rule_counts;
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {scan.total_employers_scanned != null && (
+          <DetailField label="Employers Scanned" value={scan.total_employers_scanned.toLocaleString()} />
+        )}
+        {scan.violations_detected != null && (
+          <DetailField label="Violations Detected" value={scan.violations_detected.toLocaleString()} />
+        )}
+        {scan.violations_created != null && (
+          <DetailField label="Violations Created" value={scan.violations_created.toLocaleString()} />
+        )}
+        {scan.violations_skipped_dedupe != null && (
+          <DetailField label="Duplicates Skipped" value={scan.violations_skipped_dedupe.toLocaleString()} />
+        )}
+        {scan.rules_evaluated != null && (
+          <DetailField label="Rules Evaluated" value={scan.rules_evaluated} />
+        )}
+        {scan.dry_run != null && (
+          <DetailField label="Mode" value={scan.dry_run ? 'Dry Run' : 'Live Run'} />
+        )}
+      </div>
+
+      {ruleBreakdown && typeof ruleBreakdown === 'object' && Object.keys(ruleBreakdown).length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Rule Breakdown</p>
+          <div className="border border-border rounded-md overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="text-left py-1.5 px-3 text-muted-foreground font-medium">Rule</th>
+                  <th className="text-right py-1.5 px-3 text-muted-foreground font-medium">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(ruleBreakdown).map(([rule, count]) => (
+                  <tr key={rule} className="border-t border-border">
+                    <td className="py-1.5 px-3 text-foreground">{rule}</td>
+                    <td className="py-1.5 px-3 text-right text-foreground">{String(count)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CollapsibleSection = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {title}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-1 pb-2">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const JobHistory = () => {
   const [jobFilter, setJobFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [selectedRun, setSelectedRun] = useState<AutomationRun | null>(null);
 
   const { data: jobs = [] } = useQuery({
     queryKey: ['ce_automation_jobs_list'],
@@ -61,6 +143,12 @@ const JobHistory = () => {
     const ms = new Date(end).getTime() - new Date(start).getTime();
     const s = Math.floor(ms / 1000);
     return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
+  };
+
+  const getExecutionLog = (run: AutomationRun) => {
+    const log = run.execution_log;
+    if (!log) return null;
+    return log.scan_details || log.result || log;
   };
 
   if (isLoading) {
@@ -115,6 +203,7 @@ const JobHistory = () => {
                     <th className="text-left py-2 px-3 text-muted-foreground font-medium">Job Name</th>
                     <th className="text-left py-2 px-3 text-muted-foreground font-medium">Start Time</th>
                     <th className="text-left py-2 px-3 text-muted-foreground font-medium">Duration</th>
+                    <th className="text-center py-2 px-3 text-muted-foreground font-medium">Mode</th>
                     <th className="text-center py-2 px-3 text-muted-foreground font-medium">Status</th>
                     <th className="text-right py-2 px-3 text-muted-foreground font-medium">Records</th>
                     <th className="text-right py-2 px-3 text-muted-foreground font-medium">Affected</th>
@@ -129,6 +218,13 @@ const JobHistory = () => {
                       <td className="py-2 px-3 text-foreground text-xs">{new Date(h.started_at).toLocaleString()}</td>
                       <td className="py-2 px-3 text-muted-foreground">{getDuration(h.started_at, h.completed_at)}</td>
                       <td className="py-2 px-3 text-center">
+                        {h.is_dry_run ? (
+                          <Badge variant="outline" className="text-[10px] gap-1"><FlaskConical className="h-3 w-3" />Dry Run</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] gap-1"><Zap className="h-3 w-3" />Live</Badge>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-center">
                         <Badge variant={h.status === 'COMPLETED' ? 'default' : h.status === 'FAILED' ? 'destructive' : 'secondary'} className="text-[10px] gap-1">
                           {h.status === 'COMPLETED' ? <CheckCircle className="h-3 w-3" /> : h.status === 'FAILED' ? <XCircle className="h-3 w-3" /> : null}
                           {h.status}
@@ -136,8 +232,12 @@ const JobHistory = () => {
                       </td>
                       <td className="py-2 px-3 text-right text-foreground">{(h.records_processed || 0).toLocaleString()}</td>
                       <td className="py-2 px-3 text-right text-foreground">{h.records_affected || 0}</td>
-                      <td className="py-2 px-3 text-foreground">{h.triggered_by}</td>
-                      <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
+                      <td className="py-2 px-3 text-foreground">{h.triggered_by || '—'}</td>
+                      <td className="py-2 px-3 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedRun(h)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -146,6 +246,94 @@ const JobHistory = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Execution Detail Modal */}
+      <StandardModal
+        open={!!selectedRun}
+        onOpenChange={(open) => { if (!open) setSelectedRun(null); }}
+        title="Execution Details"
+        mode="view"
+        size="3xl"
+      >
+        {selectedRun && (() => {
+          const run = selectedRun;
+          const jobName = jobNameMap[run.job_id] || 'Unknown Job';
+          const scanDetails = run.execution_log?.scan_details;
+          const hasLog = run.execution_log && Object.keys(run.execution_log).length > 0;
+
+          return (
+            <div className="space-y-5">
+              {/* Section 1: Run Overview */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Run Overview</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <DetailField label="Job Name" value={jobName} />
+                  <DetailField label="Status" value={
+                    <Badge variant={run.status === 'COMPLETED' ? 'default' : run.status === 'FAILED' ? 'destructive' : 'secondary'} className="text-[10px] gap-1">
+                      {run.status === 'COMPLETED' ? <CheckCircle className="h-3 w-3" /> : run.status === 'FAILED' ? <XCircle className="h-3 w-3" /> : run.status === 'RUNNING' ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                      {run.status}
+                    </Badge>
+                  } />
+                  <DetailField label="Mode" value={
+                    run.is_dry_run ? (
+                      <Badge variant="outline" className="text-[10px] gap-1"><FlaskConical className="h-3 w-3" />Dry Run</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] gap-1"><Zap className="h-3 w-3" />Live Run</Badge>
+                    )
+                  } />
+                  <DetailField label="Triggered By" value={run.triggered_by || '—'} />
+                  <DetailField label="Started At" value={new Date(run.started_at).toLocaleString()} />
+                  <DetailField label="Completed At" value={run.completed_at ? new Date(run.completed_at).toLocaleString() : '—'} />
+                  <DetailField label="Duration" value={getDuration(run.started_at, run.completed_at)} />
+                  <DetailField label="Idempotency Key" value={run.idempotency_key || '—'} />
+                  <DetailField label="Run ID" value={<span className="font-mono text-xs break-all">{run.id}</span>} />
+                </div>
+              </div>
+
+              {/* Section 2: Results */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Results</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <DetailField label="Records Processed" value={(run.records_processed ?? 0).toLocaleString()} />
+                  <DetailField label="Records Affected" value={(run.records_affected ?? 0).toLocaleString()} />
+                </div>
+                {run.error_message && (
+                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-xs font-medium text-destructive mb-1">Error Message</p>
+                    <p className="text-sm text-destructive">{run.error_message}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 3: Execution Log (collapsible) */}
+              <div className="border-t border-border pt-2">
+                <CollapsibleSection title="Execution Log" defaultOpen={!!scanDetails}>
+                  {!hasLog ? (
+                    <p className="text-sm text-muted-foreground italic">No execution log recorded</p>
+                  ) : scanDetails ? (
+                    <ScanDetailsView scan={scanDetails} />
+                  ) : (
+                    <pre className="text-xs bg-muted/50 p-3 rounded-md overflow-auto max-h-64 text-foreground font-mono">
+                      {JSON.stringify(run.execution_log, null, 2)}
+                    </pre>
+                  )}
+                </CollapsibleSection>
+              </div>
+
+              {/* Section 4: Parameters (collapsible, if present) */}
+              {run.parameters && Object.keys(run.parameters).length > 0 && (
+                <div className="border-t border-border pt-2">
+                  <CollapsibleSection title="Input Parameters">
+                    <pre className="text-xs bg-muted/50 p-3 rounded-md overflow-auto max-h-40 text-foreground font-mono">
+                      {JSON.stringify(run.parameters, null, 2)}
+                    </pre>
+                  </CollapsibleSection>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </StandardModal>
     </div>
   );
 };
