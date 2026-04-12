@@ -33,8 +33,9 @@ export function useActiveRiskPolicy() {
         .eq('status', 'ACTIVE')
         .limit(1);
       if (pErr) throw pErr;
-      const policy = policies?.[0] || null;
-      if (!policy) return { policy: null, factorConfigs: [], factorWeights: {}, bands: [] };
+      const policiesArr = policies as any[];
+      const policy = policiesArr?.[0] || null;
+      if (!policy) return { policy: null, factorConfigs: [] as FactorConfig[], factorWeights: {} as Record<string, number>, bands: [] as BandConfig[] };
 
       // 2. Get policy factors
       const { data: policyFactors, error: pfErr } = await supabase
@@ -43,8 +44,9 @@ export function useActiveRiskPolicy() {
         .eq('policy_id', policy.id)
         .eq('is_active', true);
       if (pfErr) throw pfErr;
+      const pfArr = (policyFactors as any[]) || [];
 
-      const factorIds = (policyFactors || []).map((pf: any) => pf.factor_id);
+      const factorIds = pfArr.map((pf: any) => pf.factor_id);
 
       // 3. Get factor configs
       const { data: configs, error: cErr } = await supabase
@@ -53,15 +55,15 @@ export function useActiveRiskPolicy() {
         .in('id', factorIds.length > 0 ? factorIds : ['00000000-0000-0000-0000-000000000000']);
       if (cErr) throw cErr;
 
-      const factorConfigs: FactorConfig[] = (configs || []).map((c: any) => ({
+      const factorConfigs: FactorConfig[] = ((configs as any[]) || []).map((c: any) => ({
         ...c,
         thresholds: typeof c.thresholds === 'string' ? JSON.parse(c.thresholds) : (c.thresholds || []),
       }));
 
       // Build weight map: factor_id → weight_override
       const factorWeights: Record<string, number> = {};
-      for (const pf of policyFactors || []) {
-        factorWeights[(pf as any).factor_id] = (pf as any).weight_override;
+      for (const pf of pfArr) {
+        factorWeights[pf.factor_id] = pf.weight_override;
       }
 
       // 4. Get bands
@@ -120,13 +122,16 @@ export function useEmployerLiveFactors(employerId: string | null) {
         .select('*', { count: 'exact', head: true })
         .eq('employer_id', employerId)
         .eq('status', 'ACTIVE');
-      const { count: breachCount } = await supabase
-        .from('ce_arrangement_breaches' as any)
-        .select('*, ce_payment_arrangements!inner(employer_id)', { count: 'exact', head: true })
-        .eq('ce_payment_arrangements.employer_id' as any, employerId)
-        .is('resolution', null);
-      const total = (arrangementsCount || 0) + (breachCount || 0);
-      const breachPct = total > 0 ? Math.round(((breachCount || 0) / Math.max(total, 1)) * 100) : 0;
+      let breachCount = 0;
+      try {
+        const { count: bc } = await supabase
+          .from('ce_arrangement_breaches' as any)
+          .select('*', { count: 'exact', head: true })
+          .is('resolution', null);
+        breachCount = bc || 0;
+      } catch { /* no breach table */ }
+      const total = (arrangementsCount || 0) + breachCount;
+      const breachPct = total > 0 ? Math.round((breachCount / Math.max(total, 1)) * 100) : 0;
 
       // Legal
       const { count: legalCount } = await supabase
