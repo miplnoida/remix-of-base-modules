@@ -424,8 +424,8 @@ export const useEmployerList = () => {
   const { isAuthReady, isAuthenticated } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState('pending');
 
-  const PENDING_STATUSES = ['Z', 'P', 'V'];
-  const REGISTERED_STATUSES = ['A'];
+  const PENDING_STATUSES = ['Z', 'P'];
+  const REGISTERED_STATUSES = ['A', 'V'];
   const CEASED_STATUSES = ['C', 'S', 'T', 'D', 'I', 'E'];
   const PAGE_SIZE = 1000;
 
