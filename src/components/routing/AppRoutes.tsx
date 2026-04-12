@@ -87,6 +87,7 @@ import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
 import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import ComplianceRuleSimulator from '@/pages/compliance/tools/RuleSimulator';
+import ComplianceRiskSimulator from '@/pages/compliance/tools/RiskSimulator';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
 import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
@@ -990,6 +991,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/settings/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
       <Route path="/compliance/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
       <Route path="/compliance/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
+      <Route path="/compliance/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
 
       {/* Audit Module Routes — Simplified Department Function Audit */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
