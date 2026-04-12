@@ -80,7 +80,7 @@ export default function ViolationDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ce_violation_assignments')
-        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(name, inspector_code)')
+        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(inspector_code)')
         .eq('violation_id', id!)
         .order('assigned_at', { ascending: false });
       if (error) return [];
@@ -431,7 +431,7 @@ export default function ViolationDetails() {
                           </Badge>
                         </TableCell>
                         <TableCell>{a.ce_assignment_queues?.queue_name || '-'}</TableCell>
-                        <TableCell>{a.ce_inspectors?.name || 'Queue-only'}</TableCell>
+                        <TableCell>{a.ce_inspectors?.inspector_code || 'Queue-only'}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{a.resolution_method || '-'}</Badge>
                         </TableCell>

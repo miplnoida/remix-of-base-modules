@@ -12,8 +12,7 @@ import { toast } from "sonner";
 
 interface InspectorRow {
   id: string;
-  name: string | null;
-  legacy_inspector_code: string | null;
+  display_name: string;
   supervisor_id: string | null;
   max_caseload: number | null;
   is_active: boolean;
@@ -30,16 +29,23 @@ export default function SupervisorHierarchy() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("ce_inspectors").select("id, name, legacy_inspector_code, supervisor_id, max_caseload, is_active").order("name");
-    setAllInspectors(data || []);
+    const [{ data: inspData }, { data: profiles }] = await Promise.all([
+      supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, supervisor_id, max_caseload, is_active, profile_id"),
+      supabase.from("profiles").select("id, full_name"),
+    ]);
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+    setAllInspectors((inspData || []).map(i => ({
+      id: i.id,
+      display_name: (i.profile_id ? profileMap[i.profile_id] : null) || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 12),
+      supervisor_id: i.supervisor_id,
+      max_caseload: i.max_caseload,
+      is_active: i.is_active,
+    })));
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const getName = (o: InspectorRow) => o.name || o.legacy_inspector_code || o.id.slice(0, 12);
-
-  // Detect circular: would assigning `supervisorId` to `inspectorId` create a cycle?
   const wouldCreateCycle = (inspectorId: string, supervisorId: string): boolean => {
     const visited = new Set<string>();
     let current: string | null = supervisorId;
@@ -92,7 +98,7 @@ export default function SupervisorHierarchy() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Network className="h-5 w-5" />
-                Supervisor: {getName(sup)}
+                Supervisor: {sup.display_name}
                 <Badge variant="default">SUPERVISOR</Badge>
                 <Badge variant="secondary">{reports.length} reports</Badge>
               </CardTitle>
@@ -110,7 +116,7 @@ export default function SupervisorHierarchy() {
                 <TableBody>
                   {reports.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell>{getName(r)}</TableCell>
+                      <TableCell>{r.display_name}</TableCell>
                       <TableCell>{r.max_caseload || "—"}</TableCell>
                       <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Active" : "Inactive"}</Badge></TableCell>
                       <TableCell className="text-right">
@@ -145,7 +151,7 @@ export default function SupervisorHierarchy() {
               <TableBody>
                 {orphans.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell>{getName(s)}</TableCell>
+                    <TableCell>{s.display_name}</TableCell>
                     <TableCell>{s.max_caseload || "—"}</TableCell>
                     <TableCell><Badge variant={s.is_active ? "default" : "secondary"}>{s.is_active ? "Active" : "Inactive"}</Badge></TableCell>
                     <TableCell className="text-right">
@@ -161,7 +167,7 @@ export default function SupervisorHierarchy() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Assign Supervisor for {editing ? getName(editing) : ""}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Assign Supervisor for {editing ? editing.display_name : ""}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Supervisor</Label>
@@ -170,7 +176,7 @@ export default function SupervisorHierarchy() {
                 <SelectContent>
                   <SelectItem value="none">— No Supervisor —</SelectItem>
                   {allInspectors.filter(i => i.is_active && i.id !== editing?.id).map(i => (
-                    <SelectItem key={i.id} value={i.id}>{getName(i)}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>{i.display_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

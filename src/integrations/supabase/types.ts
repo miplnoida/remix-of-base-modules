@@ -9614,7 +9614,7 @@ export type Database = {
             columns: ["target_inspector_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_assignment_routing_rules_target_inspector_id_fkey"
@@ -11905,71 +11905,62 @@ export type Database = {
       }
       ce_inspectors: {
         Row: {
-          active_from: string | null
-          assigned_zones: Json | null
+          can_handle_legal: boolean
+          can_handle_review: boolean
           created_at: string | null
-          designation_id: string | null
-          email: string | null
           id: string
           inspector_code: string
           is_active: boolean | null
-          is_primary: boolean | null
           legacy_inspector_code: string | null
           max_caseload: number | null
-          name: string
-          phone: string | null
+          office_code: string | null
+          primary_zone_id: string | null
           profile_id: string | null
           supervisor_id: string | null
           updated_at: string | null
         }
         Insert: {
-          active_from?: string | null
-          assigned_zones?: Json | null
+          can_handle_legal?: boolean
+          can_handle_review?: boolean
           created_at?: string | null
-          designation_id?: string | null
-          email?: string | null
           id?: string
           inspector_code: string
           is_active?: boolean | null
-          is_primary?: boolean | null
           legacy_inspector_code?: string | null
           max_caseload?: number | null
-          name: string
-          phone?: string | null
+          office_code?: string | null
+          primary_zone_id?: string | null
           profile_id?: string | null
           supervisor_id?: string | null
           updated_at?: string | null
         }
         Update: {
-          active_from?: string | null
-          assigned_zones?: Json | null
+          can_handle_legal?: boolean
+          can_handle_review?: boolean
           created_at?: string | null
-          designation_id?: string | null
-          email?: string | null
           id?: string
           inspector_code?: string
           is_active?: boolean | null
-          is_primary?: boolean | null
           legacy_inspector_code?: string | null
           max_caseload?: number | null
-          name?: string
-          phone?: string | null
+          office_code?: string | null
+          primary_zone_id?: string | null
           profile_id?: string | null
           supervisor_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ce_inspectors_designation_id_fkey"
-            columns: ["designation_id"]
+            foreignKeyName: "ce_inspectors_primary_zone_id_fkey"
+            columns: ["primary_zone_id"]
             isOneToOne: false
-            referencedRelation: "tb_designations"
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ce_inspectors_profile_id_fkey"
             columns: ["profile_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -11978,7 +11969,7 @@ export type Database = {
             columns: ["supervisor_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_inspectors_supervisor_id_fkey"
@@ -13230,7 +13221,7 @@ export type Database = {
             columns: ["inspector_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_queue_members_inspector_id_fkey"
@@ -13866,7 +13857,7 @@ export type Database = {
             columns: ["assigned_to_inspector_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_violation_assignments_assigned_to_inspector_id_fkey"
@@ -14414,7 +14405,7 @@ export type Database = {
             columns: ["inspector_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
@@ -41973,35 +41964,46 @@ export type Database = {
       }
       ce_inspector_profiles: {
         Row: {
-          active_from: string | null
-          assigned_zones: Json | null
-          compliance_active: boolean | null
+          can_handle_legal: boolean | null
+          can_handle_review: boolean | null
+          created_at: string | null
           designation_id: string | null
           designation_name: string | null
           email: string | null
+          first_name: string | null
           full_name: string | null
-          id: string | null
           inspector_code: string | null
-          is_primary: boolean | null
+          inspector_id: string | null
+          inspector_office_code: string | null
+          is_active: boolean | null
+          last_name: string | null
           legacy_inspector_code: string | null
-          legacy_name: string | null
+          legacy_inspector_name: string | null
           max_caseload: number | null
+          phone: string | null
+          primary_zone_id: string | null
           profile_id: string | null
           profile_office_code: string | null
+          reporting_to_user_id: string | null
           supervisor_id: string | null
+          supervisor_name: string | null
+          updated_at: string | null
+          user_code: string | null
+          zone_code: string | null
+          zone_name: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ce_inspectors_designation_id_fkey"
-            columns: ["designation_id"]
+            foreignKeyName: "ce_inspectors_primary_zone_id_fkey"
+            columns: ["primary_zone_id"]
             isOneToOne: false
-            referencedRelation: "tb_designations"
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ce_inspectors_profile_id_fkey"
             columns: ["profile_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -42010,7 +42012,7 @@ export type Database = {
             columns: ["supervisor_id"]
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "ce_inspectors_supervisor_id_fkey"
@@ -42020,11 +42022,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "tb_designations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_office_code_fkey"
             columns: ["profile_office_code"]
             isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
