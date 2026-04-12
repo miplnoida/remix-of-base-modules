@@ -1,0 +1,1 @@
+ALTER TABLE public.ce_violations ALTER COLUMN assigned_to_user_id TYPE VARCHAR(100);
