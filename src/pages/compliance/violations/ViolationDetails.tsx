@@ -74,6 +74,21 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  // Fetch assignment history
+  const { data: assignmentHistory = [] } = useQuery({
+    queryKey: ['ce_violation_assignments', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_violation_assignments')
+        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(name, inspector_code)')
+        .eq('violation_id', id!)
+        .order('assigned_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       OPEN: 'bg-primary/10 text-primary',
