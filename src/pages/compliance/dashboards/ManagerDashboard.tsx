@@ -86,7 +86,7 @@ const ManagerDashboard = () => {
     { label: 'Total Arrears', value: `$${caseStats.totalAmount > 1000 ? `${(caseStats.totalAmount / 1000).toFixed(0)}K` : caseStats.totalAmount.toFixed(0)}`, icon: DollarSign, color: 'text-primary' },
     { label: 'Legal Escalations', value: caseStats.legal.toString(), icon: Scale, color: 'text-destructive' },
     { label: 'Total Cases', value: caseStats.total.toString(), icon: CheckCircle, color: 'text-success' },
-    { label: 'At-Risk Employers', value: riskDistribution.filter(r => r.band === 'High' || r.band === 'Critical').reduce((s, r) => s + r.count, 0).toString(), icon: TrendingUp, color: 'text-warning' },
+    { label: 'At-Risk Employers', value: riskDistribution.filter(r => r.band === 'HIGH' || r.band === 'CRITICAL').reduce((s, r) => s + r.count, 0).toString(), icon: TrendingUp, color: 'text-warning' },
   ];
 
   return (
