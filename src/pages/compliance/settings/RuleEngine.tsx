@@ -88,17 +88,28 @@ interface VariableMapping {
 // ── Predefined options for intelligent dropdowns ──
 
 const TRIGGER_EVENTS = [
-  { value: 'c3_deadline_passed', label: 'C3 Filing Deadline Passed', description: 'Triggers when C3 submission deadline has elapsed' },
-  { value: 'payment_deadline_passed', label: 'Payment Deadline Passed', description: 'Triggers when contribution payment is overdue' },
+  // Filing triggers
+  { value: 'c3_deadline_passed', label: 'C3 Filing Deadline Passed', description: 'Triggers when C3 submission deadline has elapsed (late filing)' },
+  { value: 'c3_missing_30_days', label: 'C3 Missing (30+ Days)', description: 'No C3 submission found 30+ days past deadline (non-filing)' },
+  { value: 'contribution_gap_detected', label: 'Contribution Gap Detected', description: 'Missing contribution periods for active employees' },
+  // Payment triggers
+  { value: 'payment_not_received', label: 'Payment Not Received', description: 'No payment received by the contribution due date' },
+  { value: 'payment_partial', label: 'Partial Payment Detected', description: 'Payment received but less than the amount owed' },
+  { value: 'installment_overdue', label: 'Arrangement Installment Overdue', description: 'Missed installment on an active payment arrangement' },
+  // Levy & fund triggers
+  { value: 'levy_omission_check', label: 'Levy Omission Check', description: 'Employer eligible for levy but no levy amount reported' },
+  { value: 'severance_omission_check', label: 'Severance Omission Check', description: 'Employer eligible for severance but no severance amount reported' },
+  // Registration & employer triggers
   { value: 'registration_not_found', label: 'Unregistered Employer Detected', description: 'Business operating without SSB registration' },
+  { value: 'employer_cessation', label: 'Employer Cessation', description: 'Employer ceased operations without settling outstanding liabilities' },
+  // Discrepancy triggers
   { value: 'employee_underreporting', label: 'Employee Count Discrepancy', description: 'Reported employees differ from field verification' },
   { value: 'wage_underreporting', label: 'Wage Underreporting Detected', description: 'Declared wages below minimum or industry norms' },
-  { value: 'payment_plan_breach', label: 'Payment Plan Breach', description: 'Missed installment on an active payment arrangement' },
+  // Pattern triggers
+  { value: 'repeat_violation_check', label: 'Repeat Violation Check', description: 'Employer accumulates multiple violations within a rolling period' },
+  // Other triggers
   { value: 'benefit_fraud_indicator', label: 'Benefit Fraud Indicator', description: 'Suspicious benefit claim patterns detected' },
   { value: 'audit_discrepancy_found', label: 'Audit Discrepancy Found', description: 'Field audit reveals compliance mismatch' },
-  { value: 'cessation_without_clearance', label: 'Cessation Without Clearance', description: 'Employer ceased operations without settling liabilities' },
-  { value: 'multiple_violations_threshold', label: 'Multiple Violations Threshold', description: 'Employer accumulates violation count past limit' },
-  { value: 'contribution_gap_detected', label: 'Contribution Gap Detected', description: 'Missing contribution periods for active employees' },
   { value: 'late_registration', label: 'Late Employee Registration', description: 'Employee registered after statutory deadline' },
 ];
 
