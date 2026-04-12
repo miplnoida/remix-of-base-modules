@@ -227,6 +227,7 @@ const JobConfiguration = () => {
         body: { job_code: jobCode, dry_run: dryRun },
       });
       if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || 'Job execution failed');
       return data;
     },
     onSuccess: (data, variables) => {
