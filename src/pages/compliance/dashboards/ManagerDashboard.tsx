@@ -45,9 +45,19 @@ const ManagerDashboard = () => {
   const { data: riskData = { distribution: [], stats: { total: 0, avgScore: 0, highCritical: 0, medium: 0, low: 0, coverage: 0, avgArrears: 0, avgViolation: 0, avgFiling: 0, avgPayment: 0, avgLegal: 0 } }, isLoading: lr } = useQuery({
     queryKey: ['ce_dashboard_risk_full'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ce_risk_profiles').select('risk_band, total_score, arrears_score, violation_score, filing_score, payment_behavior_score, legal_history_score');
-      if (error) throw error;
-      const profiles = (data || []) as unknown as { risk_band: string; total_score: number; arrears_score: number; violation_score: number; filing_score: number; payment_behavior_score: number; legal_history_score: number }[];
+      // Paginated fetch to handle >1000 records
+      type RiskProfile = { risk_band: string; total_score: number; arrears_score: number; violation_score: number; filing_score: number; payment_behavior_score: number; legal_history_score: number };
+      const profiles: RiskProfile[] = [];
+      const PAGE = 1000;
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase.from('ce_risk_profiles').select('risk_band, total_score, arrears_score, violation_score, filing_score, payment_behavior_score, legal_history_score').range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        const chunk = (data || []) as unknown as RiskProfile[];
+        profiles.push(...chunk);
+        if (chunk.length < PAGE) break;
+        offset += PAGE;
+      }
       
       const bands = [
         { key: 'LOW', label: 'Low', color: 'hsl(142, 71%, 45%)' },
