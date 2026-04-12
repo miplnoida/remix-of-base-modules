@@ -96,33 +96,47 @@ Deno.serve(async (req) => {
     const runKey = `VIOLATION-SCAN-${asOfDate}`;
 
     if (!dryRun && !force) {
+      // Check for Completed OR stale Running runs with same key
       const { data: existingRun } = await supabase
         .from("ce_automation_runs")
-        .select("id")
+        .select("id, status")
         .eq("idempotency_key", runKey)
-        .eq("status", "Completed")
+        .in("status", ["Completed", "Running"])
         .maybeSingle();
 
       if (existingRun) {
-        return new Response(
-          JSON.stringify({
-            message: "Already completed for this date. Use force=true to re-run.",
-            run_id: existingRun.id,
-            dry_run: false,
-            total_employers_scanned: 0,
-            rules_evaluated: 0,
-            violations_detected: 0,
-            violations_created: 0,
-            violations_skipped_dedupe: 0,
-            by_rule: [],
-            already_completed: true,
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
+        if (existingRun.status === "Completed") {
+          return new Response(
+            JSON.stringify({
+              message: "Already completed for this date. Use force=true to re-run.",
+              run_id: existingRun.id,
+              dry_run: false,
+              total_employers_scanned: 0,
+              rules_evaluated: 0,
+              violations_detected: 0,
+              violations_created: 0,
+              violations_skipped_dedupe: 0,
+              by_rule: [],
+              already_completed: true,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+          );
+        }
+        // Stale "Running" record — mark it as failed and proceed
+        await supabase
+          .from("ce_automation_runs")
+          .update({ status: "Failed", error_message: "Stale run — superseded by new execution", completed_at: new Date().toISOString() })
+          .eq("id", existingRun.id);
       }
+    }
+
+    // For force re-runs, also clean up any stale Running records
+    if (force && !dryRun) {
+      await supabase
+        .from("ce_automation_runs")
+        .update({ status: "Failed", error_message: "Superseded by force re-run", completed_at: new Date().toISOString() })
+        .eq("idempotency_key", runKey)
+        .eq("status", "Running");
     }
 
     // Get the job record
