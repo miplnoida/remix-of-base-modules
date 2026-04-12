@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck } from 'lucide-react';
+import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck, ClipboardCheck } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
+import { ViolationFollowUpsTab } from '@/components/compliance/ViolationFollowUpsTab';
 import { useQuery } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
 import { supabase } from '@/integrations/supabase/client';
@@ -267,8 +268,9 @@ export default function ViolationDetails() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="overview"><FileText className="h-4 w-4 mr-2" />Overview</TabsTrigger>
+          <TabsTrigger value="follow-ups"><ClipboardCheck className="h-4 w-4 mr-2" />Follow-Ups</TabsTrigger>
           <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-2" />Notes</TabsTrigger>
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks className="h-4 w-4 mr-2" />Action Plan</TabsTrigger>
@@ -362,8 +364,12 @@ export default function ViolationDetails() {
           />
         </TabsContent>
 
+        <TabsContent value="follow-ups" className="space-y-4">
+          <ViolationFollowUpsTab violationId={v.id} employerId={v.employer_id} employerName={v.employer_name} />
+        </TabsContent>
+
         <TabsContent value="actions" className="space-y-4">
-          <ViolationActionPlanTab violationId={v.id} />
+          <ViolationActionPlanTab violationId={v.id} employerId={v.employer_id} employerName={v.employer_name} />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
