@@ -478,7 +478,7 @@ const JobConfiguration = () => {
         open={!!editJob}
         onOpenChange={(v) => { if (!v) setEditJob(null); }}
         job={editJob}
-        allJobCodes={allJobCodes}
+        allJobs={jobs}
         onSave={(id, updates) => updateMutation.mutate({ id, updates })}
         isSaving={updateMutation.isPending}
       />
