@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Play, RotateCcw, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Minus, Shield, Info, FlaskConical } from 'lucide-react';
-import { useRiskProfiles, useActiveRiskPolicy, useEmployerLiveFactors, useRiskScoreHistory } from '@/hooks/useRiskSimulatorData';
+import { useSimulatorEmployers, useActiveRiskPolicy, useEmployerLiveFactors, useRiskScoreHistory, type SimulatorEmployer } from '@/hooks/useRiskSimulatorData';
 import { runSimulation, getRecommendedAction, getBandStyle, type FactorInput, type SimulationResult } from '@/lib/compliance/riskScoringEngine';
 import { formatDateForDisplay } from '@/lib/format-config';
 
@@ -44,13 +44,13 @@ export default function RiskSimulator() {
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [currentResult, setCurrentResult] = useState<SimulationResult | null>(null);
 
-  const { data: profiles = [], isLoading: profilesLoading } = useRiskProfiles();
+  const { data: employers = [], isLoading: employersLoading } = useSimulatorEmployers();
   const { data: policyData, isLoading: policyLoading } = useActiveRiskPolicy();
-  const selectedProfile = useMemo(() => profiles.find((p: any) => p.employer_id === selectedEmployerId), [profiles, selectedEmployerId]);
+  const selectedEmployer = useMemo(() => employers.find((p) => p.employer_id === selectedEmployerId), [employers, selectedEmployerId]);
   const { data: liveFactors, isLoading: liveLoading } = useEmployerLiveFactors(selectedEmployerId);
-  const { data: scoreHistory = [] } = useRiskScoreHistory(selectedProfile?.id || null);
+  const { data: scoreHistory = [] } = useRiskScoreHistory(selectedEmployer?.profile_id || null);
 
-  const isLoading = profilesLoading || policyLoading;
+  const isLoading = employersLoading || policyLoading;
   const isReady = selectedEmployerId && liveFactors && policyData?.policy;
 
   const handleSelectEmployer = useCallback((empId: string) => {
@@ -137,10 +137,11 @@ export default function RiskSimulator() {
                 <SelectTrigger>
                   <SelectValue placeholder="Choose an employer to simulate..." />
                 </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p: any) => (
-                    <SelectItem key={p.employer_id} value={p.employer_id}>
-                      {p.employer_name} ({p.employer_id}) — {p.risk_band || 'N/A'}
+                <SelectContent className="max-h-[300px]">
+                  {employers.map((emp) => (
+                    <SelectItem key={emp.employer_id} value={emp.employer_id}>
+                      {emp.employer_name} ({emp.employer_id})
+                      {emp.has_risk_profile ? ` — ${emp.risk_band || 'N/A'}` : ' — No profile'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -165,7 +166,7 @@ export default function RiskSimulator() {
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       )}
 
-      {selectedProfile && liveFactors && policyData?.policy && (
+      {selectedEmployer && liveFactors && policyData?.policy && (
         <>
           {/* Current State + Override Inputs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -177,22 +178,22 @@ export default function RiskSimulator() {
                   Current Live State
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Last calculated: {selectedProfile.last_calculated_at ? formatDateForDisplay(selectedProfile.last_calculated_at) : 'Never'}
+                  Last calculated: {selectedEmployer.last_calculated_at ? formatDateForDisplay(selectedEmployer.last_calculated_at) : 'Never'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-2xl font-bold">{selectedProfile.total_score ?? 0}</div>
+                    <div className="text-2xl font-bold">{selectedEmployer.total_score ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Total Score</div>
                   </div>
-                  <BandBadge band={selectedProfile.risk_band || 'N/A'} size="lg" />
+                  <BandBadge band={selectedEmployer.risk_band || 'N/A'} size="lg" />
                 </div>
-                {selectedProfile.override_band && (
+                {selectedEmployer.override_band && (
                   <Alert className="border-blue-200 bg-blue-50">
                     <Info className="h-3 w-3 text-blue-600" />
                     <AlertDescription className="text-blue-800 text-xs">
-                      Manual override active: {selectedProfile.override_band} — {selectedProfile.override_reason || 'No reason'}
+                      Manual override active: {selectedEmployer.override_band} — {selectedEmployer.override_reason || 'No reason'}
                     </AlertDescription>
                   </Alert>
                 )}
