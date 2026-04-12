@@ -32,13 +32,16 @@ export default function ViolationsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
 
   const { data: violations = [], isLoading } = useQuery({
-    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm],
+    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
     queryFn: () => fetchViolations({
       status: statusFilter,
       priority: priorityFilter,
       search: searchTerm || undefined,
+      month: monthFilter || undefined,
     }),
   });
 
@@ -137,7 +140,7 @@ export default function ViolationsManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -169,6 +172,19 @@ export default function ViolationsManagement() {
                 ))}
               </SelectContent>
             </Select>
+            <div>
+              <Input
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="w-full"
+              />
+              {monthFilter && (
+                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => setMonthFilter('')}>
+                  Show all months
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
