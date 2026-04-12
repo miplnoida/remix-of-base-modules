@@ -431,7 +431,7 @@ export default function ViolationDetails() {
                           </Badge>
                         </TableCell>
                         <TableCell>{a.ce_assignment_queues?.queue_name || '-'}</TableCell>
-                        <TableCell>{a.ce_inspectors?.name || 'Queue-only'}</TableCell>
+                        <TableCell>{a.ce_inspectors?.inspector_code || 'Queue-only'}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{a.resolution_method || '-'}</Badge>
                         </TableCell>
