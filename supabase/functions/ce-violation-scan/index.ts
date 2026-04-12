@@ -188,11 +188,11 @@ Deno.serve(async (req) => {
       fetchAllRows(supabase, "ce_v_employer_legal_status", filterCol, filterVal),
     ]);
 
-    // Arrangements use employer_id not regno
+    // Arrangements now use regno column (stripped EMP- prefix)
     const arrangements = await fetchAllRows(
       supabase,
       "ce_v_arrangement_health",
-      employerFilter ? "employer_id" : undefined,
+      employerFilter ? "regno" : undefined,
       employerFilter || undefined
     );
 
@@ -202,6 +202,13 @@ Deno.serve(async (req) => {
     const arrearMap = new Map(arrears.map((a: any) => [a.regno, a]));
     const workforceMap = new Map(workforce.map((w: any) => [w.regno, w]));
     const legalMap = new Map(legal.map((l: any) => [l.regno, l]));
+    // Index arrangements by regno (was employer_id before fix)
+    const arrangementMap = new Map<string, any[]>();
+    for (const a of arrangements) {
+      const key = a.regno;
+      if (!arrangementMap.has(key)) arrangementMap.set(key, []);
+      arrangementMap.get(key)!.push(a);
+    }
 
     // Load existing unresolved violations for dedupe (paginated)
     const existingViolations = await fetchAllRows(supabase, "ce_violations");
@@ -220,10 +227,15 @@ Deno.serve(async (req) => {
     const detected: DetectedViolation[] = [];
 
     // Get all unique employer regnos from filing facts (primary list)
-    const allEmployers = filings.map((f: any) => ({
+    let allEmployers = filings.map((f: any) => ({
       regno: f.regno,
       name: f.employer_name,
     }));
+
+    // Apply limit/sample if specified
+    if (employerLimit && employerLimit > 0 && allEmployers.length > employerLimit) {
+      allEmployers = allEmployers.slice(0, employerLimit);
+    }
 
     // Process each rule
     for (const rule of enrichedRules) {
