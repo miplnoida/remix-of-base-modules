@@ -263,7 +263,7 @@ export function OfficerStatusChangeWizard({ open, onOpenChange, officer, officer
           newAssignment.resolution_method = "RETURNED_TO_QUEUE";
         }
 
-        await supabase.from("ce_violation_assignments").insert(newAssignment);
+        await supabase.from("ce_violation_assignments").insert([newAssignment as any]);
         reassignedCount++;
       }
 
