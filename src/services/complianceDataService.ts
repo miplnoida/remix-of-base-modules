@@ -256,28 +256,57 @@ export async function fetchViolations(filters?: {
   status?: string;
   priority?: string;
   search?: string;
+  month?: string; // YYYY-MM
 }) {
-  let query = supabase
-    .from("ce_violations")
-    .select("*, ce_violation_types(code, name, category)")
-    .eq("is_deleted", false)
-    .order("created_at", { ascending: false });
+  // Default to current month if no filters active
+  const hasActiveFilter = (filters?.status && filters.status !== 'ALL') ||
+    (filters?.priority && filters.priority !== 'ALL') ||
+    filters?.search;
 
-  if (filters?.status && filters.status !== "ALL") {
-    query = query.eq("status", filters.status);
-  }
-  if (filters?.priority && filters.priority !== "ALL") {
-    query = query.eq("priority", filters.priority);
-  }
-  if (filters?.search) {
-    query = query.or(
-      `violation_number.ilike.%${filters.search}%,employer_name.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`
-    );
+  const targetMonth = filters?.month || (!hasActiveFilter
+    ? new Date().toISOString().slice(0, 7)
+    : undefined);
+
+  const allRows: any[] = [];
+  const PAGE_SIZE = 1000;
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from("ce_violations")
+      .select("*, ce_violation_types(code, name, category)")
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (filters?.status && filters.status !== "ALL") {
+      query = query.eq("status", filters.status);
+    }
+    if (filters?.priority && filters.priority !== "ALL") {
+      query = query.eq("priority", filters.priority);
+    }
+    if (filters?.search) {
+      query = query.or(
+        `violation_number.ilike.%${filters.search}%,employer_name.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`
+      );
+    }
+    if (targetMonth) {
+      const startDate = `${targetMonth}-01`;
+      const nextMonth = new Date(`${targetMonth}-01T00:00:00Z`);
+      nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+      const endDate = nextMonth.toISOString().slice(0, 10);
+      query = query.gte("created_at", startDate).lt("created_at", endDate);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
   }
 
-  const { data, error } = await query.limit(500);
-  if (error) throw error;
-  return data ?? [];
+  return allRows;
 }
 
 export async function fetchViolationById(id: string) {
