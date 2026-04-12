@@ -424,8 +424,9 @@ Deno.serve(async (req) => {
     const newViolations = detected.filter((d) => !d.skipped);
     const skippedCount = detected.filter((d) => d.skipped).length;
 
-    // Insert violations if not dry run
+    // Insert violations if not dry run, then auto-route each one
     let insertedCount = 0;
+    let routedCount = 0;
     if (!dryRun && newViolations.length > 0) {
       // Insert in batches of 200
       const BATCH = 200;
@@ -457,6 +458,14 @@ Deno.serve(async (req) => {
 
         if (insertError) throw insertError;
         insertedCount += inserted?.length || 0;
+
+        // Auto-route each newly created violation
+        for (const ins of (inserted || [])) {
+          const { error: routeErr } = await supabase.rpc("fn_ce_route_violation", {
+            p_violation_id: ins.id,
+          });
+          if (!routeErr) routedCount++;
+        }
       }
     }
 
