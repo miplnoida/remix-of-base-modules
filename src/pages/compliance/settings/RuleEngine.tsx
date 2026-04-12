@@ -744,7 +744,14 @@ const CalculationRuleDialog = ({
               <Select value={form.applies_to} onValueChange={v => setForm(p => ({ ...p, applies_to: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['penalty', 'interest', 'fine', 'surcharge', 'waiver'].map(a => <SelectItem key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</SelectItem>)}
+                  {[
+                    { value: 'penalty', label: 'Penalty' },
+                    { value: 'interest', label: 'Interest' },
+                    { value: 'fine', label: 'Fine' },
+                    { value: 'estimate', label: 'Estimated Assessment' },
+                    { value: 'surcharge', label: 'Surcharge' },
+                    { value: 'waiver', label: 'Waiver' },
+                  ].map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -778,12 +785,13 @@ const CalculationRuleDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Source Config</Label>
-              <Select value={form.source_config || 'c3_config'} onValueChange={v => setForm(p => ({ ...p, source_config: v }))}>
+              <Select value={form.source_config || 'c3_config_details'} onValueChange={v => setForm(p => ({ ...p, source_config: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="c3_config">C3 Configuration</SelectItem>
+                  <SelectItem value="c3_config_details">C3 Configuration Details</SelectItem>
+                  <SelectItem value="ce_compliance_policies">Compliance Policies</SelectItem>
+                  <SelectItem value="cn_c3_reported">C3 Reported Data</SelectItem>
                   <SelectItem value="manual">Manual Entry</SelectItem>
-                  <SelectItem value="api">External API</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -814,7 +822,23 @@ const CalculationRuleDialog = ({
 
 // ── Escalation Rule Dialog ──
 
-const CASE_STATUSES = ['Open', 'Under Review', 'Warning Issued', 'Summons Issued', 'Legal Action', 'Arrangement', 'Closed'];
+const CASE_STATUSES = [
+  { value: 'OPEN', label: 'Open' },
+  { value: 'UNDER_REVIEW', label: 'Under Review' },
+  { value: 'WARNING_NOTICE', label: 'Warning Notice' },
+  { value: 'DEMAND_NOTICE', label: 'Demand Notice' },
+  { value: 'FINAL_DEMAND', label: 'Final Demand' },
+  { value: 'WARNING_ISSUED', label: 'Warning Issued' },
+  { value: 'ESCALATED', label: 'Escalated' },
+  { value: 'MANAGER_REVIEW', label: 'Manager Review' },
+  { value: 'PRIORITY_QUEUE', label: 'Priority Queue' },
+  { value: 'SUMMONS_ISSUED', label: 'Summons Issued' },
+  { value: 'LEGAL_ACTION_REQUISITION', label: 'Legal Action Requisition' },
+  { value: 'LEGAL_ACTION', label: 'Legal Action' },
+  { value: 'ARRANGEMENT', label: 'Arrangement' },
+  { value: 'RESOLVED', label: 'Resolved' },
+  { value: 'CLOSED', label: 'Closed' },
+];
 
 const EscalationRuleDialog = ({
   open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
