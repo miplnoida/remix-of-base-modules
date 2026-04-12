@@ -230,10 +230,24 @@ const JobConfiguration = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['ce_automation_jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ce_job_runs_detail'] });
-      const label = variables.dryRun ? 'Dry run' : 'Job';
-      toast.success(`${label} completed`, {
-        description: `Processed: ${data?.result?.processed ?? 0}, Affected: ${data?.result?.affected ?? 0}`,
-      });
+
+      // Handle scan-specific rich response
+      const scan = data?.scan_details;
+      if (scan) {
+        const isDry = scan.dry_run ?? variables.dryRun;
+        const label = isDry ? '🔍 Dry Run Complete' : '✅ Job Completed';
+        const desc = isDry
+          ? `Scanned ${scan.total_employers_scanned} employers, ${scan.rules_evaluated} rules. Would create ${scan.violations_detected - (scan.violations_skipped_dedupe || 0)} violations (${scan.violations_skipped_dedupe || 0} duplicates skipped). No data was changed.`
+          : `Scanned ${scan.total_employers_scanned} employers. Created ${scan.violations_created} violations, skipped ${scan.violations_skipped_dedupe || 0} duplicates.`;
+        toast.success(label, { description: desc, duration: 8000 });
+      } else if (data?.already_completed) {
+        toast.info('Already completed for today', { description: 'Use force re-run if needed.' });
+      } else {
+        const label = variables.dryRun ? 'Dry run' : 'Job';
+        toast.success(`${label} completed`, {
+          description: `Processed: ${data?.result?.processed ?? 0}, Affected: ${data?.result?.affected ?? 0}`,
+        });
+      }
     },
     onError: (error: any) => {
       toast.error('Job execution failed', { description: error.message });
