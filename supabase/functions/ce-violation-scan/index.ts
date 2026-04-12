@@ -442,7 +442,7 @@ Deno.serve(async (req) => {
           summary: v.summary,
           source_type: v.source_type,
           source_rule_id: v.source_rule_id,
-          period_from: v.period_from,
+          period_from: v.period_from ? v.period_from.slice(0, 7) : null,
           discovered_date: asOfDate,
           discovered_by: "VIOLATION-SCAN",
           created_by: "VIOLATION-SCAN",
