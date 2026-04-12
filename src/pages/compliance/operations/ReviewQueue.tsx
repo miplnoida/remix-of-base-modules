@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface QueueOption { id: string; queue_name: string; queue_type: string; }
-interface InspectorOption { id: string; name: string | null; legacy_inspector_code: string | null; }
+interface InspectorOption { id: string; display_name: string; }
 
 export default function ReviewQueue() {
   const [violations, setViolations] = useState<any[]>([]);
@@ -31,12 +31,17 @@ export default function ReviewQueue() {
     const allQueues = revQueues || [];
     const queueIds = allQueues.map(q => q.id);
 
-    const [{ data: inspData }] = await Promise.all([
-      supabase.from("ce_inspectors").select("id, name, legacy_inspector_code").eq("is_active", true).order("name"),
+    const [{ data: inspData }, { data: profiles }] = await Promise.all([
+      supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, profile_id").eq("is_active", true),
+      supabase.from("profiles").select("id, full_name"),
     ]);
-    setInspectors(inspData || []);
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+    const inspOptions: InspectorOption[] = (inspData || []).map(i => ({
+      id: i.id,
+      display_name: (i.profile_id ? profileMap[i.profile_id] : null) || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 8),
+    }));
+    setInspectors(inspOptions);
 
-    // Also fetch all queues for reassignment target
     const { data: allQData } = await supabase.from("ce_assignment_queues").select("id, queue_name, queue_type").eq("is_active", true).order("queue_name");
     setQueues(allQData || []);
 
@@ -51,7 +56,7 @@ export default function ReviewQueue() {
       .limit(200);
 
     const qMap = Object.fromEntries(allQueues.map(q => [q.id, q.queue_name]));
-    const iMap = Object.fromEntries((inspData || []).map(i => [i.id, i.name || i.legacy_inspector_code || i.id.slice(0, 8)]));
+    const iMap = Object.fromEntries(inspOptions.map(i => [i.id, i.display_name]));
 
     setViolations((data || []).map((v: any) => ({
       ...v,
@@ -73,23 +78,22 @@ export default function ReviewQueue() {
     if (!selectedViolation) return;
     setSaving(true);
     const update: any = {};
-    if (reassignTarget.type === "queue") {
-      if (!reassignTarget.queue_id) { toast.error("Select a target queue"); setSaving(false); return; }
+    if (reassignTarget.type === "queue" && reassignTarget.queue_id) {
       update.assigned_queue_id = reassignTarget.queue_id;
-    } else {
-      if (!reassignTarget.inspector_id) { toast.error("Select a target officer"); setSaving(false); return; }
+      update.assigned_to_user_id = null;
+    } else if (reassignTarget.type === "officer" && reassignTarget.inspector_id) {
       update.assigned_to_user_id = reassignTarget.inspector_id;
-    }
-    const { error } = await supabase.from("ce_violations").update(update).eq("id", selectedViolation.id);
-    if (error) { toast.error("Reassignment failed: " + error.message); setSaving(false); return; }
+    } else { toast.error("Select a target"); setSaving(false); return; }
 
-    // Log the reassignment
+    const { error } = await supabase.from("ce_violations").update(update).eq("id", selectedViolation.id);
+    if (error) { toast.error("Failed: " + error.message); setSaving(false); return; }
+
     await supabase.from("ce_violation_assignments").insert({
       violation_id: selectedViolation.id,
-      assigned_to_queue_id: reassignTarget.type === "queue" ? reassignTarget.queue_id : null,
-      assigned_to_user_id: reassignTarget.type === "officer" ? reassignTarget.inspector_id : null,
+      assigned_queue_id: update.assigned_queue_id || selectedViolation.assigned_queue_id,
+      assigned_to_user_id: update.assigned_to_user_id || null,
       assignment_type: "REASSIGN",
-      notes: `Reassigned from review queue`,
+      notes: `Review queue reassignment`,
     });
 
     toast.success("Violation reassigned");
@@ -100,41 +104,40 @@ export default function ReviewQueue() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Review Queue</h1>
-        <p className="text-muted-foreground">Violations assigned to review queues requiring supervisor evaluation</p>
+        <p className="text-muted-foreground">Violations under review or pending triage</p>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Eye className="h-5 w-5" /> Pending Review ({violations.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Eye className="h-5 w-5" /> Review Items ({violations.length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : violations.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No violations pending review</p>
+            <p className="text-center text-muted-foreground py-8">No violations in review queues</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Violation #</TableHead>
                   <TableHead>Employer</TableHead>
-                  <TableHead>Queue</TableHead>
-                  <TableHead>Assigned Officer</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Queue</TableHead>
+                  <TableHead>Officer</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {violations.map((v) => (
                   <TableRow key={v.id}>
-                    <TableCell className="font-mono text-sm cursor-pointer hover:underline" onClick={() => navigate(`/compliance/violations/${v.id}`)}>{v.violation_number}</TableCell>
-                    <TableCell>{v.employer_regno}</TableCell>
+                    <TableCell className="font-mono text-sm">{v.violation_number}</TableCell>
+                    <TableCell>{v.employer_regno || "—"}</TableCell>
+                    <TableCell><Badge variant="secondary">{v.status}</Badge></TableCell>
+                    <TableCell><Badge variant={v.priority === "CRITICAL" ? "destructive" : "secondary"}>{v.priority || "—"}</Badge></TableCell>
                     <TableCell>{v.queue_name}</TableCell>
                     <TableCell>{v.assigned_officer_name}</TableCell>
-                    <TableCell><Badge variant="secondary">{v.status}</Badge></TableCell>
-                    <TableCell><Badge variant={v.priority === "HIGH" ? "destructive" : "secondary"}>{v.priority}</Badge></TableCell>
-                    <TableCell>{new Date(v.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/compliance/violations/${v.id}`)} className="gap-1"><Eye className="h-3 w-3" /> View</Button>
                       <Button variant="outline" size="sm" onClick={() => openReassign(v)} className="gap-1"><ArrowRight className="h-3 w-3" /> Reassign</Button>
                     </TableCell>
                   </TableRow>
@@ -150,7 +153,7 @@ export default function ReviewQueue() {
           <DialogHeader><DialogTitle>Reassign Violation {selectedViolation?.violation_number}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Assign To</Label>
+              <Label>Reassign To</Label>
               <Select value={reassignTarget.type} onValueChange={v => setReassignTarget(t => ({ ...t, type: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -159,20 +162,25 @@ export default function ReviewQueue() {
                 </SelectContent>
               </Select>
             </div>
-            {reassignTarget.type === "queue" ? (
+            {reassignTarget.type === "queue" && (
               <div>
                 <Label>Target Queue</Label>
                 <Select value={reassignTarget.queue_id} onValueChange={v => setReassignTarget(t => ({ ...t, queue_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select queue" /></SelectTrigger>
-                  <SelectContent>{queues.map(q => <SelectItem key={q.id} value={q.id}>[{q.queue_type}] {q.queue_name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {queues.map(q => <SelectItem key={q.id} value={q.id}>{q.queue_name} ({q.queue_type})</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
-            ) : (
+            )}
+            {reassignTarget.type === "officer" && (
               <div>
                 <Label>Target Officer</Label>
                 <Select value={reassignTarget.inspector_id} onValueChange={v => setReassignTarget(t => ({ ...t, inspector_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select officer" /></SelectTrigger>
-                  <SelectContent>{inspectors.map(i => <SelectItem key={i.id} value={i.id}>{i.name || i.legacy_inspector_code || i.id.slice(0, 8)}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {inspectors.map(i => <SelectItem key={i.id} value={i.id}>{i.display_name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             )}

@@ -19,7 +19,7 @@ interface WorkloadRow {
   max_caseload: number | null;
 }
 
-interface InspectorOption { id: string; name: string | null; legacy_inspector_code: string | null; }
+interface InspectorOption { id: string; display_name: string; }
 
 export default function Reassignment() {
   const [workload, setWorkload] = useState<WorkloadRow[]>([]);
@@ -33,28 +33,35 @@ export default function Reassignment() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [{ data: members }, { data: inspData }] = await Promise.all([
+    const [{ data: members }, { data: inspData }, { data: profiles }] = await Promise.all([
       supabase.from("ce_queue_members").select("inspector_id, role, queue_id").eq("is_active", true),
-      supabase.from("ce_inspectors").select("id, name, legacy_inspector_code, max_caseload").eq("is_active", true),
+      supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, max_caseload, profile_id").eq("is_active", true),
+      supabase.from("profiles").select("id, full_name"),
     ]);
-    setInspectors(inspData || []);
+
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+    const inspOptions: InspectorOption[] = (inspData || []).map(i => ({
+      id: i.id,
+      display_name: (i.profile_id ? profileMap[i.profile_id] : null) || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 12),
+    }));
+    setInspectors(inspOptions);
 
     if (!members?.length) { setWorkload([]); setLoading(false); return; }
 
-    const inspMap = Object.fromEntries((inspData || []).map(i => [i.id, i]));
+    const inspMap = Object.fromEntries(inspOptions.map(i => [i.id, i]));
+    const inspDataMap = Object.fromEntries((inspData || []).map(i => [i.id, i]));
     const inspectorIds = [...new Set(members.map(m => m.inspector_id))];
     const workloadMap: Record<string, WorkloadRow> = {};
 
     inspectorIds.forEach(iid => {
       const userMembers = members.filter(m => m.inspector_id === iid);
-      const insp = inspMap[iid];
       workloadMap[iid] = {
         inspector_id: iid,
-        inspector_name: insp?.name || insp?.legacy_inspector_code || iid.slice(0, 12),
+        inspector_name: inspMap[iid]?.display_name || iid.slice(0, 12),
         role: userMembers[0]?.role || "MEMBER",
         queue_count: userMembers.length,
         violation_count: 0,
-        max_caseload: insp?.max_caseload || null,
+        max_caseload: inspDataMap[iid]?.max_caseload || null,
       };
     });
 
@@ -88,7 +95,6 @@ export default function Reassignment() {
     if (targetInspector === selectedFrom.inspector_id) { toast.error("Cannot reassign to the same officer"); return; }
     setSaving(true);
 
-    // Get violations assigned to source officer
     const { data: viols } = await supabase
       .from("ce_violations")
       .select("id")
@@ -102,7 +108,6 @@ export default function Reassignment() {
     const { error } = await supabase.from("ce_violations").update({ assigned_to_user_id: targetInspector }).in("id", ids);
     if (error) { toast.error("Reassignment failed: " + error.message); setSaving(false); return; }
 
-    // Log reassignments
     const logs = ids.map(vid => ({
       violation_id: vid,
       assigned_to_user_id: targetInspector,
@@ -185,7 +190,7 @@ export default function Reassignment() {
                 <SelectTrigger><SelectValue placeholder="Select officer" /></SelectTrigger>
                 <SelectContent>
                   {inspectors.filter(i => i.id !== selectedFrom?.inspector_id).map(i => (
-                    <SelectItem key={i.id} value={i.id}>{i.name || i.legacy_inspector_code || i.id.slice(0, 8)}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>{i.display_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

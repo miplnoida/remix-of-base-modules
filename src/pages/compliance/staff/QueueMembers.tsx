@@ -24,7 +24,7 @@ interface MemberRow {
 }
 
 interface QueueOption { id: string; queue_code: string; queue_name: string; queue_type: string; }
-interface InspectorOption { id: string; name: string | null; legacy_inspector_code: string | null; }
+interface InspectorOption { id: string; display_name: string; }
 
 const ROLES = ["MEMBER", "LEAD", "SUPERVISOR"];
 
@@ -41,20 +41,28 @@ export default function QueueMembers() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [{ data: memberData }, { data: queueData }, { data: inspData }] = await Promise.all([
+    const [{ data: memberData }, { data: queueData }, { data: inspData }, { data: profiles }] = await Promise.all([
       supabase.from("ce_queue_members").select("*").order("queue_id"),
       supabase.from("ce_assignment_queues").select("id, queue_code, queue_name, queue_type").eq("is_active", true).order("queue_name"),
-      supabase.from("ce_inspectors").select("id, name, legacy_inspector_code").eq("is_active", true).order("name"),
+      supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, profile_id").eq("is_active", true),
+      supabase.from("profiles").select("id, full_name"),
     ]);
     setQueues(queueData || []);
-    setInspectors(inspData || []);
+
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+    const inspOptions: InspectorOption[] = (inspData || []).map(i => ({
+      id: i.id,
+      display_name: (i.profile_id ? profileMap[i.profile_id] : null) || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 12),
+    }));
+    setInspectors(inspOptions);
+
     const qMap = Object.fromEntries((queueData || []).map(q => [q.id, q]));
-    const iMap = Object.fromEntries((inspData || []).map(i => [i.id, i]));
+    const iMap = Object.fromEntries(inspOptions.map(i => [i.id, i]));
     setMembers((memberData || []).map((m: any) => ({
       ...m,
       queue_name: qMap[m.queue_id]?.queue_name || "—",
       queue_type: qMap[m.queue_id]?.queue_type || "—",
-      inspector_name: iMap[m.inspector_id]?.name || iMap[m.inspector_id]?.legacy_inspector_code || m.inspector_id?.slice(0, 12),
+      inspector_name: iMap[m.inspector_id]?.display_name || m.inspector_id?.slice(0, 12),
     })));
     setLoading(false);
   }, []);
@@ -70,15 +78,20 @@ export default function QueueMembers() {
   };
 
   const openCreate = () => { setEditing(null); setForm({ queue_id: "", inspector_id: "", role: "MEMBER", is_active: true, max_caseload_override: "" }); setErrors({}); setDialogOpen(true); };
-  const openEdit = (m: MemberRow) => { setEditing(m); setForm({ queue_id: m.queue_id, inspector_id: m.inspector_id, role: m.role || "MEMBER", is_active: m.is_active, max_caseload_override: m.max_caseload_override?.toString() || "" }); setErrors({}); setDialogOpen(true); };
+  const openEdit = (m: MemberRow) => {
+    setEditing(m);
+    setForm({ queue_id: m.queue_id, inspector_id: m.inspector_id, role: m.role || "MEMBER", is_active: m.is_active, max_caseload_override: m.max_caseload_override?.toString() || "" });
+    setErrors({}); setDialogOpen(true);
+  };
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.queue_id) e.queue_id = "Queue is required";
     if (!form.inspector_id) e.inspector_id = "Inspector is required";
-    // Prevent duplicate active membership
-    const dup = members.find(m => m.queue_id === form.queue_id && m.inspector_id === form.inspector_id && m.is_active && m.id !== editing?.id);
-    if (dup) e.inspector_id = "This inspector is already an active member of this queue";
+    if (!editing) {
+      const dup = members.find(m => m.queue_id === form.queue_id && m.inspector_id === form.inspector_id && m.is_active);
+      if (dup) e.inspector_id = "This inspector is already an active member of this queue";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -100,7 +113,7 @@ export default function QueueMembers() {
     } else {
       const { error } = await supabase.from("ce_queue_members").insert(payload);
       if (error) { toast.error("Create failed: " + error.message); setSaving(false); return; }
-      toast.success("Member added to queue");
+      toast.success("Member added");
     }
     setSaving(false); setDialogOpen(false); fetchData();
   };
@@ -117,7 +130,7 @@ export default function QueueMembers() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Queue Members</h1>
-          <p className="text-muted-foreground">Officers enrolled in assignment queues with their roles</p>
+          <p className="text-muted-foreground">Inspector-to-queue assignments and roles</p>
         </div>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Add Member</Button>
       </div>
@@ -146,7 +159,7 @@ export default function QueueMembers() {
                     <TableCell className="font-medium">{m.queue_name}</TableCell>
                     <TableCell><Badge variant="secondary">{m.queue_type}</Badge></TableCell>
                     <TableCell>{m.inspector_name}</TableCell>
-                    <TableCell><Badge className={roleColor(m.role)} variant="secondary">{m.role || "MEMBER"}</Badge></TableCell>
+                    <TableCell><Badge className={roleColor(m.role)}>{m.role}</Badge></TableCell>
                     <TableCell>{m.max_caseload_override ?? "—"}</TableCell>
                     <TableCell><Badge variant={m.is_active ? "default" : "secondary"}>{m.is_active ? "Active" : "Inactive"}</Badge></TableCell>
                     <TableCell className="text-right space-x-1">
@@ -162,35 +175,43 @@ export default function QueueMembers() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? "Edit Queue Member" : "Add Queue Member"}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editing ? "Edit Member" : "Add Member"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Queue *</Label>
-              <Select value={form.queue_id} onValueChange={v => { setForm(f => ({ ...f, queue_id: v })); setErrors(er => ({ ...er, queue_id: "" })); }}>
+              <Select value={form.queue_id} onValueChange={v => { setForm(f => ({ ...f, queue_id: v })); setErrors(e => ({ ...e, queue_id: "" })); }} disabled={!!editing}>
                 <SelectTrigger className={errors.queue_id ? "border-destructive" : ""}><SelectValue placeholder="Select queue" /></SelectTrigger>
-                <SelectContent>{queues.map(q => <SelectItem key={q.id} value={q.id}>[{q.queue_type}] {q.queue_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {queues.map(q => <SelectItem key={q.id} value={q.id}>{q.queue_name} ({q.queue_type})</SelectItem>)}
+                </SelectContent>
               </Select>
               {errors.queue_id && <p className="text-xs text-destructive mt-1">{errors.queue_id}</p>}
             </div>
             <div>
               <Label>Inspector *</Label>
-              <Select value={form.inspector_id} onValueChange={v => { setForm(f => ({ ...f, inspector_id: v })); setErrors(er => ({ ...er, inspector_id: "" })); }}>
+              <Select value={form.inspector_id} onValueChange={v => { setForm(f => ({ ...f, inspector_id: v })); setErrors(e => ({ ...e, inspector_id: "" })); }} disabled={!!editing}>
                 <SelectTrigger className={errors.inspector_id ? "border-destructive" : ""}><SelectValue placeholder="Select inspector" /></SelectTrigger>
-                <SelectContent>{inspectors.map(i => <SelectItem key={i.id} value={i.id}>{i.name || i.legacy_inspector_code || i.id.slice(0, 12)}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {inspectors.map(i => <SelectItem key={i.id} value={i.id}>{i.display_name}</SelectItem>)}
+                </SelectContent>
               </Select>
               {errors.inspector_id && <p className="text-xs text-destructive mt-1">{errors.inspector_id}</p>}
             </div>
-            <div>
-              <Label>Role</Label>
-              <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Caseload Override</Label>
-              <Input type="number" value={form.max_caseload_override} onChange={e => setForm(f => ({ ...f, max_caseload_override: e.target.value }))} placeholder="Leave empty for default" min={1} max={9999} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Role</Label>
+                <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Caseload Override</Label>
+                <Input type="number" value={form.max_caseload_override} onChange={e => setForm(f => ({ ...f, max_caseload_override: e.target.value }))} min={1} placeholder="Use default" />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} id="mem-active" />
