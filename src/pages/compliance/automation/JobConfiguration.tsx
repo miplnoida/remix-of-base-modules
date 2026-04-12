@@ -415,7 +415,7 @@ const JobConfiguration = () => {
                 disabled={isBlocked || !job.is_enabled || runMutation.isPending}
                 onClick={() => runMutation.mutate({ jobCode: job.job_code, dryRun: false })}
               >
-                {runMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                {runningJobCode === job.job_code ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
                 Run
               </Button>
               <Switch
