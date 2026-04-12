@@ -9348,11 +9348,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_arrangement_breaches_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_arrangement_health"
+            referencedColumns: ["arrangement_id"]
+          },
+          {
             foreignKeyName: "fk_ce_arrangement_breaches_arrangement"
             columns: ["arrangement_id"]
             isOneToOne: false
             referencedRelation: "ce_payment_arrangements"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_arrangement_breaches_arrangement"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_arrangement_health"
+            referencedColumns: ["arrangement_id"]
           },
         ]
       }
@@ -9692,7 +9706,9 @@ export type Database = {
           execution_log: Json | null
           id: string
           idempotency_key: string | null
+          is_dry_run: boolean | null
           job_id: string | null
+          parameters: Json | null
           records_affected: number | null
           records_processed: number | null
           started_at: string | null
@@ -9705,7 +9721,9 @@ export type Database = {
           execution_log?: Json | null
           id?: string
           idempotency_key?: string | null
+          is_dry_run?: boolean | null
           job_id?: string | null
+          parameters?: Json | null
           records_affected?: number | null
           records_processed?: number | null
           started_at?: string | null
@@ -9718,7 +9736,9 @@ export type Database = {
           execution_log?: Json | null
           id?: string
           idempotency_key?: string | null
+          is_dry_run?: boolean | null
           job_id?: string | null
+          parameters?: Json | null
           records_affected?: number | null
           records_processed?: number | null
           started_at?: string | null
@@ -11836,11 +11856,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_installments_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_arrangement_health"
+            referencedColumns: ["arrangement_id"]
+          },
+          {
             foreignKeyName: "fk_ce_installments_arrangement"
             columns: ["arrangement_id"]
             isOneToOne: false
             referencedRelation: "ce_payment_arrangements"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_installments_arrangement"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_arrangement_health"
+            referencedColumns: ["arrangement_id"]
           },
         ]
       }
@@ -41465,6 +41499,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_arrangement_health: {
+        Row: {
+          arrangement_id: string | null
+          breach_detected: boolean | null
+          employer_id: string | null
+          employer_name: string | null
+          health_status: string | null
+          installments_paid: number | null
+          max_missed_before_breach: number | null
+          missed_payments: number | null
+          next_due_date: string | null
+          status: string | null
+          total_debt: number | null
+          total_paid: number | null
+          unresolved_breach_count: number | null
+        }
+        Relationships: []
+      }
       ce_v_c3_aggregate_stats: {
         Row: {
           total_late: number | null
@@ -41544,6 +41596,68 @@ export type Database = {
           review_due_date: string | null
           risk_band: string | null
           risk_score: number | null
+        }
+        Relationships: []
+      }
+      ce_v_employer_arrears_summary: {
+        Row: {
+          current_arrears: number | null
+          current_penalty: number | null
+          employer_name: string | null
+          has_arrears: boolean | null
+          regno: string | null
+          total_outstanding: number | null
+        }
+        Relationships: []
+      }
+      ce_v_employer_filing_status: {
+        Row: {
+          employer_name: string | null
+          employer_status: string | null
+          is_current: boolean | null
+          last_filing_date: string | null
+          last_filing_period: string | null
+          latest_period_due: string | null
+          missed_filings_12m: number | null
+          office_code: string | null
+          regno: string | null
+          total_filings_12m: number | null
+        }
+        Relationships: []
+      }
+      ce_v_employer_legal_status: {
+        Row: {
+          active_escalation_count: number | null
+          active_suit_count: number | null
+          employer_name: string | null
+          has_active_legal: boolean | null
+          latest_stage: string | null
+          regno: string | null
+        }
+        Relationships: []
+      }
+      ce_v_employer_payment_status: {
+        Row: {
+          employer_name: string | null
+          has_recent_payment: boolean | null
+          last_payment_date: string | null
+          last_payment_period: string | null
+          regno: string | null
+          total_amount_12m: number | null
+          total_payments_12m: number | null
+        }
+        Relationships: []
+      }
+      ce_v_employer_workforce: {
+        Row: {
+          employee_delta: number | null
+          employer_name: string | null
+          last_reported_employees: number | null
+          last_reported_period: string | null
+          registered_females: number | null
+          registered_males: number | null
+          registered_total: number | null
+          regno: string | null
         }
         Relationships: []
       }
