@@ -168,9 +168,9 @@ export function EmployerApplicationActions({
       // 4. Audit
       await logAuditTrail({
         action: 'employer_application_accepted',
-        entity_type: 'online-employer-application',
-        entity_id: applicationId,
-        new_value: JSON.stringify({ regno: employerRegno, remarks: approvalRemarks }),
+        entityType: 'online-employer-application',
+        entityId: applicationId,
+        afterValue: { regno: employerRegno, remarks: approvalRemarks },
       });
 
       invalidateAll();
@@ -212,15 +212,15 @@ export function EmployerApplicationActions({
           })
           .eq('id', meeting.id);
 
-        await supabase.from('meeting_history').insert({
+        await supabase.from('meeting_history').insert([{
           meeting_id: meeting.id,
-          old_status: meeting.status,
-          new_status: 'Closed',
+          old_status: meeting.status as any,
+          new_status: 'Closed' as const,
           action_taken: 'Closed with Rejection',
-          outcome: 'ClosedWithRejection',
+          outcome: 'ClosedWithRejection' as const,
           remarks: rejectRemarks.trim(),
           performed_at: now,
-        });
+        }]);
       }
 
       // Close workflow if linked
@@ -250,9 +250,9 @@ export function EmployerApplicationActions({
       // Audit
       await logAuditTrail({
         action: 'employer_application_rejected',
-        entity_type: 'online-employer-application',
-        entity_id: applicationId,
-        new_value: JSON.stringify({ remarks: rejectRemarks.trim() }),
+        entityType: 'online-employer-application',
+        entityId: applicationId,
+        afterValue: { remarks: rejectRemarks.trim() },
       });
 
       toast.success('Application rejected successfully');
