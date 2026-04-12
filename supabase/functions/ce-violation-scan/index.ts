@@ -39,7 +39,7 @@ interface DetectedViolation {
 function generateViolationNumber(): string {
   const d = new Date();
   const dateStr = d.toISOString().slice(0, 10).replace(/-/g, "");
-  const rand = Math.floor(10000 + Math.random() * 90000);
+  const rand = crypto.randomUUID().slice(0, 8).toUpperCase();
   return `VIO-${dateStr}-${rand}`;
 }
 
