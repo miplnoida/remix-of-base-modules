@@ -402,6 +402,47 @@ export default function ViolationDetails() {
               )}
             </CardContent>
           </Card>
+
+          {/* Assignment History */}
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5" />Assignment History</CardTitle></CardHeader>
+            <CardContent>
+              {assignmentHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No assignment records yet</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Queue</TableHead>
+                      <TableHead>Officer</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignmentHistory.map((a: any) => (
+                      <TableRow key={a.id} className={!a.is_current ? 'opacity-50' : ''}>
+                        <TableCell>{a.assigned_at ? formatDate(a.assigned_at) : '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={a.is_current ? 'default' : 'secondary'}>
+                            {a.assignment_type || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{a.ce_assignment_queues?.queue_name || '-'}</TableCell>
+                        <TableCell>{a.ce_inspectors?.name || 'Queue-only'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{a.resolution_method || '-'}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{a.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="notices" className="space-y-4">
