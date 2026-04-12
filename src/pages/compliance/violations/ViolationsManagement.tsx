@@ -32,13 +32,16 @@ export default function ViolationsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
 
   const { data: violations = [], isLoading } = useQuery({
-    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm],
+    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
     queryFn: () => fetchViolations({
       status: statusFilter,
       priority: priorityFilter,
       search: searchTerm || undefined,
+      month: monthFilter || undefined,
     }),
   });
 
