@@ -129,13 +129,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // For force re-runs, also clean up any stale Running records
+    // For force re-runs, clean up ALL existing records with same base key
     if (force && !dryRun) {
-      await supabase
+      const { data: existingForce } = await supabase
         .from("ce_automation_runs")
-        .update({ status: "Failed", error_message: "Superseded by force re-run", completed_at: new Date().toISOString() })
-        .eq("idempotency_key", runKey)
-        .eq("status", "Running");
+        .select("id")
+        .eq("idempotency_key", runKey);
+      if (existingForce && existingForce.length > 0) {
+        for (const r of existingForce) {
+          await supabase.from("ce_automation_runs").delete().eq("id", r.id);
+        }
+      }
     }
 
     // Get the job record
