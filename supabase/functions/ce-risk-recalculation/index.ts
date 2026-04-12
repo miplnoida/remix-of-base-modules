@@ -258,12 +258,31 @@ Deno.serve(async (req) => {
 
     const policy = policies[0];
 
-    // Get policy factors joined with ce_risk_config (factor definitions + thresholds)
-    const { data: policyFactors } = await supabase
+    // Get policy factors (two-step: factors then configs, to avoid embedded select issues)
+    const { data: rawPolicyFactors } = await supabase
       .from("ce_risk_policy_factors")
-      .select("factor_id, weight_override, is_active, ce_risk_config(*)")
+      .select("factor_id, weight_override, is_active")
       .eq("policy_id", policy.id)
       .eq("is_active", true);
+
+    // Get all risk config entries for the factor IDs
+    const factorIds = (rawPolicyFactors || []).map((pf: any) => pf.factor_id);
+    const { data: riskConfigs } = await supabase
+      .from("ce_risk_config")
+      .select("*")
+      .in("id", factorIds.length > 0 ? factorIds : ["00000000-0000-0000-0000-000000000000"]);
+
+    // Build a lookup map
+    const configMap: Record<string, any> = {};
+    for (const rc of riskConfigs || []) {
+      configMap[rc.id] = rc;
+    }
+
+    // Merge into policyFactors with config attached
+    const policyFactors = (rawPolicyFactors || []).map((pf: any) => ({
+      ...pf,
+      ce_risk_config: configMap[pf.factor_id] || null,
+    }));
 
     // Get risk bands for the policy
     const { data: bands } = await supabase
