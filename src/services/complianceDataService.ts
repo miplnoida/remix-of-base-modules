@@ -248,3 +248,44 @@ export async function fetchEmployerStatementTransactions(employerId: string) {
     pef: grouped["EI_PENALTY"] ?? [],
   };
 }
+
+// ============================================
+// VIOLATIONS (ce_violations)
+// ============================================
+export async function fetchViolations(filters?: {
+  status?: string;
+  priority?: string;
+  search?: string;
+}) {
+  let query = supabase
+    .from("ce_violations")
+    .select("*, ce_violation_types(code, name, category)")
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false });
+
+  if (filters?.status && filters.status !== "ALL") {
+    query = query.eq("status", filters.status);
+  }
+  if (filters?.priority && filters.priority !== "ALL") {
+    query = query.eq("priority", filters.priority);
+  }
+  if (filters?.search) {
+    query = query.or(
+      `violation_number.ilike.%${filters.search}%,employer_name.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`
+    );
+  }
+
+  const { data, error } = await query.limit(500);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchViolationById(id: string) {
+  const { data, error } = await supabase
+    .from("ce_violations")
+    .select("*, ce_violation_types(code, name, category)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
