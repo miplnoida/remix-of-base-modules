@@ -274,7 +274,7 @@ export async function fetchViolations(filters?: {
   while (true) {
     let query = supabase
       .from("ce_violations")
-      .select("*, ce_violation_types(code, name, category)")
+      .select("*, ce_violation_types(code, name, category), ce_zones(zone_code, zone_name), ce_assignment_queues(queue_code, queue_name, queue_type)")
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
