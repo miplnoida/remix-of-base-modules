@@ -1,169 +1,131 @@
-import { 
-  ViolationAction, 
-  CreateViolationActionRequest, 
-  UpdateViolationActionRequest,
-  ActionType,
-  ActionPriority,
+import { supabase } from '@/integrations/supabase/client';
+import {
+  FollowUpAction,
+  FollowUpActionHistory,
+  CreateFollowUpActionRequest,
+  UpdateFollowUpActionRequest,
   ActionStatus
 } from '@/types/violationActions';
 
-// Mock data
-const mockActions: ViolationAction[] = [
-  {
-    id: 'action-001',
-    violationId: 'VIOA-2024-001',
-    violationNumber: 'VIOA-2024-001',
-    employerId: 'EMP-2024-001',
-    employerName: 'ABC Construction Ltd',
-    territory: 'St Kitts',
-    assignedToUserId: 'user-001',
-    assignedToName: 'John Inspector',
-    actionType: ActionType.EMPLOYER_VISIT,
-    description: 'Follow-up visit to verify registration status and employee count',
-    dueDate: '2024-01-25',
-    suggestedWeek: '2024-01-22',
-    priority: ActionPriority.HIGH,
-    status: ActionStatus.PLANNED,
-    createdAt: '2024-01-15T10:00:00Z',
-    createdByUserId: 'user-002',
-    createdByName: 'Sarah Manager'
-  },
-  {
-    id: 'action-002',
-    violationId: 'VIOA-2024-001',
-    violationNumber: 'VIOA-2024-001',
-    employerId: 'EMP-2024-001',
-    employerName: 'ABC Construction Ltd',
-    territory: 'St Kitts',
-    assignedToUserId: 'user-001',
-    assignedToName: 'John Inspector',
-    actionType: ActionType.LETTER_NOTICE,
-    description: 'Send formal notice regarding registration requirement',
-    dueDate: '2024-01-20',
-    priority: ActionPriority.URGENT,
-    status: ActionStatus.PLANNED,
-    createdAt: '2024-01-15T10:05:00Z',
-    createdByUserId: 'user-002',
-    createdByName: 'Sarah Manager'
-  },
-  {
-    id: 'action-003',
-    violationId: 'VIOA-2024-002',
-    violationNumber: 'VIOA-2024-002',
-    employerId: 'EMP-2024-010',
-    employerName: 'Retail Services Inc',
-    territory: 'St Kitts',
-    assignedToUserId: 'user-001',
-    assignedToName: 'John Inspector',
-    actionType: ActionType.FOLLOW_UP_PAYMENT,
-    description: 'Call employer to confirm payment received for C3 submission',
-    dueDate: '2024-01-22',
-    suggestedWeek: '2024-01-22',
-    priority: ActionPriority.NORMAL,
-    status: ActionStatus.PLANNED,
-    createdAt: '2024-01-18T11:30:00Z',
-    createdByUserId: 'user-001',
-    createdByName: 'John Inspector'
-  }
-];
+const TABLE = 'ce_follow_up_actions';
+const HISTORY_TABLE = 'ce_follow_up_action_history';
 
 class ViolationActionsService {
-  async getByViolationId(violationId: string): Promise<ViolationAction[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockActions.filter(action => action.violationId === violationId);
+  async getByViolationId(violationId: string): Promise<FollowUpAction[]> {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .eq('violation_id', violationId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as unknown as FollowUpAction[];
   }
 
-  async getSuggestedForInspector(
-    inspectorId: string, 
-    weekStartDate: string
-  ): Promise<ViolationAction[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return mockActions.filter(action => 
-      action.assignedToUserId === inspectorId &&
-      action.status === ActionStatus.PLANNED &&
-      (action.suggestedWeek === weekStartDate || 
-       (action.dueDate && action.dueDate >= weekStartDate))
-    );
+  async getHistoryByActionId(actionId: string): Promise<FollowUpActionHistory[]> {
+    const { data, error } = await supabase
+      .from(HISTORY_TABLE)
+      .select('*')
+      .eq('action_id', actionId)
+      .order('changed_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as unknown as FollowUpActionHistory[];
   }
 
   async getAllPendingForInspector(
     inspectorId: string,
     weekStartDate: string,
     filterType: 'this-week' | 'past-due' | 'all-pending'
-  ): Promise<ViolationAction[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+  ): Promise<FollowUpAction[]> {
     const weekEnd = new Date(weekStartDate);
     weekEnd.setDate(weekEnd.getDate() + 6);
     const weekEndStr = weekEnd.toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];
 
-    let filtered = mockActions.filter(action => 
-      action.assignedToUserId === inspectorId &&
-      (action.status === ActionStatus.PLANNED || action.status === ActionStatus.IN_WEEKLY_PLAN)
-    );
+    let query = supabase
+      .from(TABLE)
+      .select('*')
+      .eq('assigned_to_user_id', inspectorId)
+      .eq('is_deleted', false)
+      .in('status', [ActionStatus.PLANNED, ActionStatus.SCHEDULED, ActionStatus.IN_PROGRESS]);
 
     switch (filterType) {
       case 'this-week':
-        filtered = filtered.filter(action =>
-          (action.suggestedWeek && action.suggestedWeek >= weekStartDate && action.suggestedWeek <= weekEndStr) ||
-          (action.dueDate && action.dueDate >= weekStartDate && action.dueDate <= weekEndStr)
-        );
+        query = query.gte('due_date', weekStartDate).lte('due_date', weekEndStr);
         break;
       case 'past-due':
-        filtered = filtered.filter(action =>
-          action.dueDate && action.dueDate < today && action.status !== ActionStatus.IN_WEEKLY_PLAN
-        );
+        query = query.lt('due_date', today);
         break;
       case 'all-pending':
-        // Return all pending actions
         break;
     }
 
-    return filtered;
+    const { data, error } = await query.order('due_date', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as unknown as FollowUpAction[];
   }
 
-  async create(request: CreateViolationActionRequest): Promise<ViolationAction> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const newAction: ViolationAction = {
-      id: `action-${Date.now()}`,
-      violationId: request.violationId,
-      assignedToUserId: request.assignedToUserId,
-      assignedToName: 'Assigned User',
-      actionType: request.actionType,
-      description: request.description,
-      dueDate: request.dueDate,
-      suggestedWeek: request.suggestedWeek,
-      priority: request.priority,
-      status: ActionStatus.PLANNED,
-      createdAt: new Date().toISOString(),
-      createdByUserId: 'current-user',
-      createdByName: 'Current User'
+  async create(request: CreateFollowUpActionRequest): Promise<FollowUpAction> {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert({
+        violation_id: request.violation_id,
+        employer_id: request.employer_id || null,
+        employer_name: request.employer_name || null,
+        action_type: request.action_type,
+        description: request.description,
+        priority: request.priority || 'NORMAL',
+        status: ActionStatus.PLANNED,
+        due_date: request.due_date || null,
+        scheduled_date: request.scheduled_date || null,
+        notes: request.notes || null,
+        assigned_to_user_id: request.assigned_to_user_id || null,
+        assigned_to_name: request.assigned_to_name || null,
+        assigned_queue_id: request.assigned_queue_id || null,
+        source: request.source || 'MANUAL',
+        created_by: request.created_by
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as unknown as FollowUpAction;
+  }
+
+  async update(id: string, request: UpdateFollowUpActionRequest): Promise<FollowUpAction> {
+    const updatePayload: Record<string, unknown> = {
+      updated_by: request.updated_by
     };
-    
-    mockActions.push(newAction);
-    return newAction;
+    if (request.status !== undefined) updatePayload.status = request.status;
+    if (request.notes !== undefined) updatePayload.notes = request.notes;
+    if (request.outcome !== undefined) updatePayload.outcome = request.outcome;
+    if (request.scheduled_date !== undefined) updatePayload.scheduled_date = request.scheduled_date;
+    if (request.due_date !== undefined) updatePayload.due_date = request.due_date;
+    if (request.assigned_to_user_id !== undefined) updatePayload.assigned_to_user_id = request.assigned_to_user_id;
+    if (request.assigned_to_name !== undefined) updatePayload.assigned_to_name = request.assigned_to_name;
+    if (request.completed_at !== undefined) updatePayload.completed_at = request.completed_at;
+    if (request.completed_by !== undefined) updatePayload.completed_by = request.completed_by;
+
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as unknown as FollowUpAction;
   }
 
-  async update(id: string, request: UpdateViolationActionRequest): Promise<ViolationAction> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const action = mockActions.find(a => a.id === id);
-    if (!action) {
-      throw new Error('Action not found');
-    }
-    
-    if (request.status) action.status = request.status;
-    if (request.linkedWeeklyPlanItemId) action.linkedWeeklyPlanItemId = request.linkedWeeklyPlanItemId;
-    if (request.completedAt) action.completedAt = request.completedAt;
-    if (request.completedByUserId) {
-      action.completedByUserId = request.completedByUserId;
-      action.completedByName = 'Completing User';
-    }
-    
-    return action;
+  async softDelete(id: string, updatedBy: string): Promise<void> {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ is_deleted: true, updated_by: updatedBy })
+      .eq('id', id);
+
+    if (error) throw error;
   }
 }
 
