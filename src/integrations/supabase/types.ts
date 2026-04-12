@@ -21453,7 +21453,7 @@ export type Database = {
         }
         Insert: {
           email?: string | null
-          location_id: number
+          location_id?: number
           mobile?: string | null
           name?: string | null
           owner_id?: number
