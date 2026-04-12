@@ -6,6 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { isValidCron } from '@/lib/cronUtils';
+import { ScheduleBuilder } from '@/components/compliance/automation/ScheduleBuilder';
+import { DependencyPicker } from '@/components/compliance/automation/DependencyPicker';
+import type { AutomationJob } from '@/types/automationJob';
 
 interface AddCustomJobDialogProps {
   open: boolean;
@@ -13,6 +17,7 @@ interface AddCustomJobDialogProps {
   onSave: (job: CustomJobPayload) => void;
   isSaving: boolean;
   existingCodes: string[];
+  allJobs: AutomationJob[];
 }
 
 export interface CustomJobPayload {
@@ -48,13 +53,13 @@ const initialForm = {
   frequency: '',
   edge_function: '',
   dry_run_support: true,
-  depends_on: '',
+  depends_on: [] as string[],
   notes: '',
   start_enabled: false,
 };
 
 export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
-  open, onOpenChange, onSave, isSaving, existingCodes,
+  open, onOpenChange, onSave, isSaving, existingCodes, allJobs,
 }) => {
   const [form, setForm] = useState({ ...initialForm });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,7 +70,7 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
     else if (!/^[A-Z0-9-]+$/.test(form.job_code)) errs.job_code = 'Use UPPER-CASE-DASHES only';
     else if (existingCodes.includes(form.job_code)) errs.job_code = 'Job code already exists';
     if (!form.name.trim()) errs.name = 'Required';
-    if (form.execution_mode === 'scheduled' && form.schedule_cron && form.schedule_cron.trim().split(/\s+/).length < 5) {
+    if (form.execution_mode === 'scheduled' && form.schedule_cron && !isValidCron(form.schedule_cron)) {
       errs.schedule_cron = 'Invalid cron (need 5-6 parts)';
     }
     if (form.start_enabled && !form.edge_function.trim()) {
@@ -76,12 +81,8 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
   };
 
   const handleSave = () => {
-    if (!validate()) {
-      toast.error('Please fix validation errors');
-      return;
-    }
+    if (!validate()) { toast.error('Please fix validation errors'); return; }
 
-    const dependsArray = form.depends_on.split(',').map(s => s.trim()).filter(Boolean);
     const phase = PIPELINE_PHASES.find(p => p.value === form.pipeline_phase);
 
     onSave({
@@ -100,7 +101,7 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
         edge_function: form.edge_function || null,
         has_runtime: !!form.edge_function,
         dry_run_default: form.dry_run_support,
-        depends_on: dependsArray,
+        depends_on: form.depends_on,
         notes: form.notes,
         canonical_purpose: form.description,
         activation_wave: 5,
@@ -109,6 +110,9 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
 
     setForm({ ...initialForm });
   };
+
+  // Build a fake job for the dependency picker
+  const fakeJobCode = form.job_code || '__NEW__';
 
   const Field = ({ label, field, required, children }: { label: string; field: string; required?: boolean; children: React.ReactNode }) => (
     <div className="space-y-1.5">
@@ -153,12 +157,7 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
         </div>
 
         <Field label="Description" field="description">
-          <Textarea
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            rows={2}
-            placeholder="What does this job do?"
-          />
+          <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="What does this job do?" />
         </Field>
 
         <div className="grid grid-cols-3 gap-4">
@@ -191,23 +190,13 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Schedule (Cron)" field="schedule_cron">
-            <Input
-              value={form.schedule_cron}
-              onChange={e => setForm(f => ({ ...f, schedule_cron: e.target.value }))}
-              placeholder="0 2 * * *"
-            />
-          </Field>
-          <div className="space-y-1.5">
-            <Label>Frequency Label</Label>
-            <Input
-              value={form.frequency}
-              onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
-              placeholder="e.g. Daily at 2am"
-            />
-          </div>
-        </div>
+        {/* Schedule Builder */}
+        <ScheduleBuilder
+          executionMode={form.execution_mode}
+          cronExpression={form.schedule_cron}
+          onCronChange={cron => setForm(f => ({ ...f, schedule_cron: cron }))}
+          onFrequencyLabelChange={label => setForm(f => ({ ...f, frequency: label }))}
+        />
 
         <Field label="Runtime Handler (Edge Function)" field="edge_function">
           <Input
@@ -217,42 +206,27 @@ export const AddCustomJobDialog: React.FC<AddCustomJobDialogProps> = ({
           />
         </Field>
 
-        <Field label="Dependencies (comma-separated job codes)" field="depends_on">
-          <Input
-            value={form.depends_on}
-            onChange={e => setForm(f => ({ ...f, depends_on: e.target.value }))}
-            placeholder="JOB-VIOLATION-SCAN, EMP-COMPLIANCE-REFRESH"
-          />
-        </Field>
+        {/* Dependency Picker */}
+        <DependencyPicker
+          jobCode={fakeJobCode}
+          selectedDeps={form.depends_on}
+          onDepsChange={deps => setForm(f => ({ ...f, depends_on: deps }))}
+          cronExpression={form.schedule_cron}
+          allJobs={allJobs}
+        />
 
         <div className="space-y-1.5">
           <Label>Operational Notes</Label>
-          <Textarea
-            value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            rows={2}
-          />
+          <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
         </div>
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="dry-run-support"
-              checked={form.dry_run_support}
-              onChange={e => setForm(f => ({ ...f, dry_run_support: e.target.checked }))}
-              className="rounded border-input"
-            />
+            <input type="checkbox" id="dry-run-support" checked={form.dry_run_support} onChange={e => setForm(f => ({ ...f, dry_run_support: e.target.checked }))} className="rounded border-input" />
             <Label htmlFor="dry-run-support">Supports Dry-Run</Label>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="start-enabled"
-              checked={form.start_enabled}
-              onChange={e => setForm(f => ({ ...f, start_enabled: e.target.checked }))}
-              className="rounded border-input"
-            />
+            <input type="checkbox" id="start-enabled" checked={form.start_enabled} onChange={e => setForm(f => ({ ...f, start_enabled: e.target.checked }))} className="rounded border-input" />
             <Label htmlFor="start-enabled">Start Enabled</Label>
           </div>
         </div>
