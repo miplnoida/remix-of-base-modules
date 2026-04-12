@@ -48,8 +48,13 @@ const ManagerDashboard = () => {
       const { data, error } = await supabase.from('ce_risk_profiles').select('risk_band');
       if (error) throw error;
       const profiles = (data || []) as unknown as { risk_band: string }[];
-      const bands = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-      return bands.map(b => ({ band: b, count: profiles.filter(p => p.risk_band === b).length }));
+      const bands = [
+        { key: 'LOW', label: 'Low' },
+        { key: 'MEDIUM', label: 'Medium' },
+        { key: 'HIGH', label: 'High' },
+        { key: 'CRITICAL', label: 'Critical' },
+      ];
+      return bands.map(b => ({ band: b.label, dbBand: b.key, count: profiles.filter(p => p.risk_band === b.key).length }));
     },
   });
 
