@@ -312,7 +312,7 @@ export async function fetchViolations(filters?: {
 export async function fetchViolationById(id: string) {
   const { data, error } = await supabase
     .from("ce_violations")
-    .select("*, ce_violation_types(code, name, category)")
+    .select("*, ce_violation_types(code, name, category), ce_zones(zone_code, zone_name), ce_assignment_queues(queue_code, queue_name, queue_type)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;

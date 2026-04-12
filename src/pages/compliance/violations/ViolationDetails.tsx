@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye } from 'lucide-react';
+import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
