@@ -20,20 +20,7 @@ import { ActivationConfirmDialog } from '@/components/compliance/automation/Acti
 import { JobDetailDrawer } from '@/components/compliance/automation/JobDetailDrawer';
 import { PipelineFlowView } from '@/components/compliance/automation/PipelineFlowView';
 
-interface AutomationJob {
-  id: string;
-  job_code: string;
-  name: string;
-  description: string | null;
-  job_type: string;
-  schedule_cron: string | null;
-  frequency: string | null;
-  is_enabled: boolean | null;
-  last_run_at: string | null;
-  last_run_status: string | null;
-  next_scheduled_at: string | null;
-  parameters: Record<string, any> | null;
-}
+import type { AutomationJob } from '@/types/automationJob';
 
 /* ─── UI Atoms ─── */
 

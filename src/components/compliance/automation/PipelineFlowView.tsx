@@ -2,14 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, ShieldAlert, ArrowDown } from 'lucide-react';
-
-interface AutomationJob {
-  id: string;
-  job_code: string;
-  name: string;
-  is_enabled: boolean | null;
-  parameters: Record<string, any> | null;
-}
+import type { AutomationJob } from '@/types/automationJob';
 
 interface PipelineFlowViewProps {
   jobs: AutomationJob[];
