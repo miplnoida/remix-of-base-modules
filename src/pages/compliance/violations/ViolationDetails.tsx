@@ -6,57 +6,102 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, FileText, Bell, DollarSign, History, AlertTriangle, Plus, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye } from 'lucide-react';
-import { CaseStatus } from '@/types/compliance';
-import { ContributionComponent, COMPONENT_LABELS } from '@/types/contributionComponents';
-import { ComponentPaymentArrangement } from '@/types/paymentArrangement';
-import { getArrangementsForCase, createPaymentArrangement } from '@/services/paymentArrangementService';
-import { CreateArrangementDialog } from '@/components/compliance/CreateArrangementDialog';
-import { ArrangementDetailsCard } from '@/components/compliance/ArrangementDetailsCard';
+import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
-import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCaseById, fetchCaseHistory, fetchNotices, fetchCasesByEmployer } from '@/services/complianceDataService';
+import { fetchViolationById } from '@/services/complianceDataService';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ViolationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [arrangements, setArrangements] = useState<ComponentPaymentArrangement[]>([]);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
-    queryKey: ['ce_case', id],
-    queryFn: () => fetchCaseById(id!),
+    queryKey: ['ce_violation', id],
+    queryFn: () => fetchViolationById(id!),
     enabled: !!id,
   });
 
-  const { data: violationHistory = [] } = useQuery({
-    queryKey: ['ce_case_history', id],
-    queryFn: () => fetchCaseHistory(id!),
-    enabled: !!id,
-  });
-
-  const { data: violationNotices = [] } = useQuery({
-    queryKey: ['ce_notices', id],
-    queryFn: () => fetchNotices({ caseId: id }),
-    enabled: !!id,
-  });
-
+  // Fetch other violations for the same employer
   const { data: otherViolations = [] } = useQuery({
-    queryKey: ['ce_cases_employer', violationData?.employer_id, id],
-    queryFn: () => fetchCasesByEmployer(violationData!.employer_id, id),
+    queryKey: ['ce_violations_employer', violationData?.employer_id, id],
+    queryFn: async () => {
+      if (!violationData?.employer_id) return [];
+      const { data, error } = await supabase
+        .from('ce_violations')
+        .select('*, ce_violation_types(code, name, category)')
+        .eq('employer_id', violationData.employer_id)
+        .eq('is_deleted', false)
+        .neq('id', id!)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: !!violationData?.employer_id,
   });
 
-  // Load arrangements
-  useState(() => {
-    if (id) {
-      getArrangementsForCase(id).then(setArrangements);
-    }
+  // Fetch violation history from ce_violation_history
+  const { data: violationHistory = [] } = useQuery({
+    queryKey: ['ce_violation_history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_violation_history')
+        .select('*')
+        .eq('violation_id', id!)
+        .order('performed_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
   });
+
+  // Fetch notices linked to this violation
+  const { data: violationNotices = [] } = useQuery({
+    queryKey: ['ce_notices_violation', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_notices')
+        .select('*')
+        .eq('violation_id', id!)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      OPEN: 'bg-primary/10 text-primary',
+      UNDER_REVIEW: 'bg-warning/10 text-warning',
+      IN_PROGRESS: 'bg-accent/10 text-accent-foreground',
+      ESCALATED: 'bg-destructive/10 text-destructive',
+      RESOLVED: 'bg-green-100 text-green-800',
+      CLOSED: 'bg-muted text-muted-foreground',
+      CANCELLED: 'bg-muted text-muted-foreground',
+    };
+    return colors[status] ?? 'bg-muted text-muted-foreground';
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const colors: Record<string, string> = {
+      Critical: 'bg-destructive/10 text-destructive',
+      High: 'bg-orange-100 text-orange-800',
+      Medium: 'bg-warning/10 text-warning',
+      Low: 'bg-muted text-muted-foreground',
+    };
+    return colors[priority] ?? 'bg-muted text-muted-foreground';
+  };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   if (loadingCase) {
     return (
@@ -79,49 +124,19 @@ export default function ViolationDetails() {
     );
   }
 
-  const getStatusColor = (status: CaseStatus) => {
-    const colors: Record<CaseStatus, string> = {
-      [CaseStatus.OPEN]: 'bg-blue-100 text-blue-800',
-      [CaseStatus.ACTIVE]: 'bg-green-100 text-green-800',
-      [CaseStatus.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
-      [CaseStatus.ARRANGEMENT_ACTIVE]: 'bg-purple-100 text-purple-800',
-      [CaseStatus.ESCALATED_LEGAL]: 'bg-red-100 text-red-800',
-      [CaseStatus.COMPLETED]: 'bg-teal-100 text-teal-800',
-      [CaseStatus.CLOSED_NO_ACTION]: 'bg-gray-100 text-gray-800',
-      [CaseStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-      [CaseStatus.ARCHIVED]: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status];
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'XCD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  // Map DB columns to display
   const v = violationData as any;
+  const typeName = v.ce_violation_types?.name ?? 'Unknown Type';
+  const typeCategory = v.ce_violation_types?.category ?? '';
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title={`Violation: ${v.case_number}`}
+        title={`Violation: ${v.violation_number}`}
         subtitle={v.employer_name}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance' },
           { label: 'Violations', href: '/compliance/violations' },
-          { label: v.case_number }
+          { label: v.violation_number }
         ]}
       />
 
@@ -131,20 +146,22 @@ export default function ViolationDetails() {
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <CardTitle className="text-2xl">{v.case_number}</CardTitle>
+                <CardTitle className="text-2xl">{v.violation_number}</CardTitle>
                 <Badge className={getStatusColor(v.status)}>
-                  {v.status}
+                  {v.status?.replace(/_/g, ' ')}
                 </Badge>
-                <Badge variant="outline">{(v.stage || '').replace(/_/g, ' ')}</Badge>
+                <Badge className={getPriorityColor(v.priority)}>
+                  {v.priority}
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Created: {formatDate(v.created_at)} | Last Activity: {v.last_activity_date ? formatDate(v.last_activity_date) : 'N/A'}
+                Discovered: {v.discovered_date ? formatDate(v.discovered_date) : 'N/A'} | Created: {formatDate(v.created_at)}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-muted-foreground">Outstanding Balance</div>
+              <div className="text-sm text-muted-foreground">Total Amount</div>
               <div className="text-2xl font-bold text-destructive">
-                {formatCurrency(Number(v.outstanding_balance) || 0)}
+                {formatCurrency(Number(v.total_amount) || 0)}
               </div>
             </div>
           </div>
@@ -152,7 +169,7 @@ export default function ViolationDetails() {
       </Card>
 
       {/* Financial Summary */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Principal</CardTitle>
@@ -182,29 +199,20 @@ export default function ViolationDetails() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Due</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(Number(v.total_amount_due) || 0)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Paid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-green-600">{formatCurrency(Number(v.amount_paid) || 0)}</div>
+            <div className="text-xl font-bold text-destructive">{formatCurrency(Number(v.total_amount) || 0)}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="overview"><FileText className="h-4 w-4 mr-2" />Overview</TabsTrigger>
           <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-2" />Notes</TabsTrigger>
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks className="h-4 w-4 mr-2" />Action Plan</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History</TabsTrigger>
           <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNotices.length})</TabsTrigger>
-          <TabsTrigger value="financial"><DollarSign className="h-4 w-4 mr-2" />Financial</TabsTrigger>
           <TabsTrigger value="other-violations"><AlertCircle className="h-4 w-4 mr-2" />Other ({otherViolations.length})</TabsTrigger>
         </TabsList>
 
@@ -214,40 +222,67 @@ export default function ViolationDetails() {
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Violation Type</div>
-                <div className="text-base">{(v.case_type || '').replace(/_/g, ' ')}</div>
+                <div className="text-base">{typeName}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Category</div>
+                <Badge variant="outline">{typeCategory || '-'}</Badge>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Priority</div>
-                <Badge variant={v.priority === 'URGENT' ? 'destructive' : 'default'}>{v.priority}</Badge>
+                <Badge className={getPriorityColor(v.priority)}>{v.priority}</Badge>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Severity</div>
+                <div className="text-base">{v.severity || '-'}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Employer</div>
                 <div className="text-base">{v.employer_name}</div>
+                <div className="text-xs text-muted-foreground">{v.employer_id}</div>
               </div>
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Zone</div>
-                <div className="text-base">{v.employer_zone || '-'}</div>
+                <div className="text-sm font-medium text-muted-foreground">Territory</div>
+                <div className="text-base">{v.territory || '-'}</div>
               </div>
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Assigned Inspector</div>
-                <div className="text-base">{v.assigned_inspector_name || 'Unassigned'}</div>
+                <div className="text-sm font-medium text-muted-foreground">Assigned To</div>
+                <div className="text-base">{v.assigned_to_name || 'Unassigned'}</div>
               </div>
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Assigned Date</div>
-                <div className="text-base">{v.assigned_date ? formatDate(v.assigned_date) : 'N/A'}</div>
+                <div className="text-sm font-medium text-muted-foreground">Due Date</div>
+                <div className="text-base">{v.due_date ? formatDate(v.due_date) : 'N/A'}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Period</div>
+                <div className="text-base">{v.period_from ?? '-'}{v.period_to ? ` to ${v.period_to}` : ''}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Fund Type</div>
+                <div className="text-base">{v.fund_type || '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Source</div>
+                <div className="text-base">{v.source_type || '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Discovered By</div>
+                <div className="text-base">{v.discovered_by || '-'}</div>
               </div>
               <div className="md:col-span-2">
-                <div className="text-sm font-medium text-muted-foreground">Description</div>
-                <div className="text-base">{v.description || '-'}</div>
+                <div className="text-sm font-medium text-muted-foreground">Summary</div>
+                <div className="text-base">{v.summary || '-'}</div>
               </div>
-              {v.linked_c3_periods && v.linked_c3_periods.length > 0 && (
+              {v.description && (
                 <div className="md:col-span-2">
-                  <div className="text-sm font-medium text-muted-foreground">Linked C3 Periods</div>
-                  <div className="flex gap-2 mt-1">
-                    {v.linked_c3_periods.map((period: string) => (
-                      <Badge key={period} variant="outline">{period}</Badge>
-                    ))}
-                  </div>
+                  <div className="text-sm font-medium text-muted-foreground">Description</div>
+                  <div className="text-base">{v.description}</div>
+                </div>
+              )}
+              {v.resolution_notes && (
+                <div className="md:col-span-2">
+                  <div className="text-sm font-medium text-muted-foreground">Resolution Notes</div>
+                  <div className="text-base">{v.resolution_notes}</div>
                 </div>
               )}
             </CardContent>
@@ -272,10 +307,10 @@ export default function ViolationDetails() {
 
         <TabsContent value="history" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>Violation Stage History</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Violation History</CardTitle></CardHeader>
             <CardContent>
               {violationHistory.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No history records</div>
+                <div className="text-center py-8 text-muted-foreground">No history records yet</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -293,7 +328,7 @@ export default function ViolationDetails() {
                         <TableCell>{h.performed_at ? formatDate(h.performed_at) : '-'}</TableCell>
                         <TableCell>{h.action || '-'}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(h.new_status || h.status)}>
+                          <Badge className={getStatusColor(h.new_status || h.status || '')}>
                             {h.new_status || h.status || '-'}
                           </Badge>
                         </TableCell>
@@ -353,124 +388,6 @@ export default function ViolationDetails() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-blue-200 bg-blue-50/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Badge className="bg-blue-100 text-blue-800 border-blue-300">Social Security</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">SSC - Contributions</div>
-                  <div className="text-base font-semibold">{formatCurrency(4166.67)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">SSF - Penalties</div>
-                  <div className="text-base font-semibold">{formatCurrency(1250.00)}</div>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
-                  <div className="text-lg font-bold text-blue-600">{formatCurrency(5416.67)}</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-green-200 bg-green-50/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 border-green-300">Levy</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">LVC - Contributions</div>
-                  <div className="text-base font-semibold">{formatCurrency(2800.00)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">LVF - Penalties</div>
-                  <div className="text-base font-semibold">{formatCurrency(700.00)}</div>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
-                  <div className="text-lg font-bold text-green-600">{formatCurrency(3500.00)}</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-purple-200 bg-purple-50/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Badge className="bg-purple-100 text-purple-800 border-purple-300">Severance</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">PEC - Contributions</div>
-                  <div className="text-base font-semibold">{formatCurrency(5000.00)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">PEF - Penalties</div>
-                  <div className="text-base font-semibold">{formatCurrency(1500.00)}</div>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-muted-foreground mb-1">Subtotal</div>
-                  <div className="text-lg font-bold text-purple-600">{formatCurrency(6500.00)}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <Card>
-            <CardHeader><CardTitle>Component-Level Financial Details</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Component</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Principal</TableHead>
-                    <TableHead className="text-right">Penalty</TableHead>
-                    <TableHead className="text-right">Interest</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className="bg-blue-50/50">
-                    <TableCell className="font-medium"><Badge className="bg-blue-100 text-blue-800 border-blue-300">SSC</Badge></TableCell>
-                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.SSC]}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(4166.67)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(625.00)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(200.00)}</TableCell>
-                    <TableCell className="text-right font-bold">{formatCurrency(4991.67)}</TableCell>
-                  </TableRow>
-                  <TableRow className="bg-green-50/50">
-                    <TableCell className="font-medium"><Badge className="bg-green-100 text-green-800 border-green-300">LVC</Badge></TableCell>
-                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.LVC]}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(2800.00)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(420.00)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(140.00)}</TableCell>
-                    <TableCell className="text-right font-bold">{formatCurrency(3360.00)}</TableCell>
-                  </TableRow>
-                  <TableRow className="bg-purple-50/50">
-                    <TableCell className="font-medium"><Badge className="bg-purple-100 text-purple-800 border-purple-300">PEC</Badge></TableCell>
-                    <TableCell className="text-sm">{COMPONENT_LABELS[ContributionComponent.PEC]}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(5000.00)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(750.00)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(250.00)}</TableCell>
-                    <TableCell className="text-right font-bold">{formatCurrency(6000.00)}</TableCell>
-                  </TableRow>
-                  <TableRow className="font-bold bg-muted">
-                    <TableCell colSpan={2} className="text-right">Grand Total</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(v.principal_amount) || 0)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(v.penalty_amount) || 0)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(v.interest_amount) || 0)}</TableCell>
-                    <TableCell className="text-right text-primary">{formatCurrency(Number(v.total_amount_due) || 0)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="other-violations" className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Other Violations for {v.employer_name}</CardTitle></CardHeader>
@@ -481,20 +398,22 @@ export default function ViolationDetails() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Case Number</TableHead>
+                      <TableHead>Violation #</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Outstanding</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Period</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {otherViolations.map((ov: any) => (
                       <TableRow key={ov.id}>
-                        <TableCell className="font-medium">{ov.case_number}</TableCell>
-                        <TableCell>{(ov.case_type || '').replace(/_/g, ' ')}</TableCell>
-                        <TableCell><Badge className={getStatusColor(ov.status)}>{ov.status}</Badge></TableCell>
-                        <TableCell>{formatCurrency(Number(ov.outstanding_balance) || 0)}</TableCell>
+                        <TableCell className="font-medium font-mono text-xs">{ov.violation_number}</TableCell>
+                        <TableCell>{ov.ce_violation_types?.name || '-'}</TableCell>
+                        <TableCell><Badge className={getStatusColor(ov.status)}>{ov.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell><Badge className={getPriorityColor(ov.priority)}>{ov.priority}</Badge></TableCell>
+                        <TableCell>{ov.period_from ?? '-'}</TableCell>
                         <TableCell>
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/violations/${ov.id}`)}>
                             <Eye className="h-4 w-4" />
