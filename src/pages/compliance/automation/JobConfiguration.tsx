@@ -491,6 +491,7 @@ const JobConfiguration = () => {
         onSave={(payload) => createMutation.mutate(payload)}
         isSaving={createMutation.isPending}
         existingCodes={allJobCodes}
+        allJobs={jobs}
       />
 
       {confirmActivation && (
