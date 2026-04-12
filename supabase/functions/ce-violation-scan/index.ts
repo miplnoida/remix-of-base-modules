@@ -25,7 +25,7 @@ interface DetectedViolation {
   employer_name: string;
   violation_type_id: string;
   violation_type_code: string;
-  status: string; // OPEN or UNDER_REVIEW
+  status: string;
   priority: string;
   summary: string;
   period_from?: string;
@@ -36,12 +36,40 @@ interface DetectedViolation {
   skip_reason?: string;
 }
 
-// Generate a violation number: VIO-YYYYMMDD-XXXXX
 function generateViolationNumber(): string {
   const d = new Date();
   const dateStr = d.toISOString().slice(0, 10).replace(/-/g, "");
   const rand = Math.floor(10000 + Math.random() * 90000);
   return `VIO-${dateStr}-${rand}`;
+}
+
+/**
+ * Paginated fetch — fetches ALL rows from a view/table, bypassing the 1,000-row default.
+ */
+async function fetchAllRows(
+  supabase: any,
+  table: string,
+  filterCol?: string,
+  filterVal?: string
+): Promise<any[]> {
+  const PAGE_SIZE = 1000;
+  let allRows: any[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = supabase.from(table).select("*").range(from, from + PAGE_SIZE - 1);
+    if (filterCol && filterVal) {
+      query = query.eq(filterCol, filterVal);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows = allRows.concat(data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return allRows;
 }
 
 Deno.serve(async (req) => {
@@ -57,14 +85,16 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const dryRun: boolean = body.dry_run ?? false;
+    const force: boolean = body.force ?? false;
     const asOfDate: string =
       body.as_of_date || new Date().toISOString().slice(0, 10);
     const employerFilter: string | null = body.employer_id || null;
+    const triggeredBy: string = body.triggered_by || "SYSTEM";
 
-    // Idempotency check
+    // Idempotency check (skip if force=true or dry_run)
     const runKey = `VIOLATION-SCAN-${asOfDate}`;
 
-    if (!dryRun) {
+    if (!dryRun && !force) {
       const { data: existingRun } = await supabase
         .from("ce_automation_runs")
         .select("id")
@@ -75,8 +105,16 @@ Deno.serve(async (req) => {
       if (existingRun) {
         return new Response(
           JSON.stringify({
-            message: "Already completed for this date",
+            message: "Already completed for this date. Use force=true to re-run.",
             run_id: existingRun.id,
+            dry_run: false,
+            total_employers_scanned: 0,
+            rules_evaluated: 0,
+            violations_detected: 0,
+            violations_created: 0,
+            violations_skipped_dedupe: 0,
+            by_rule: [],
+            already_completed: true,
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,16 +132,17 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     // Create run record
+    const idempKey = dryRun ? `${runKey}-DRY-${Date.now()}` : force ? `${runKey}-FORCE-${Date.now()}` : runKey;
     const { data: run, error: runError } = await supabase
       .from("ce_automation_runs")
       .insert({
         job_id: job?.id,
         started_at: new Date().toISOString(),
         status: "Running",
-        triggered_by: body.triggered_by || "SYSTEM",
-        idempotency_key: dryRun ? `${runKey}-DRY` : runKey,
+        triggered_by: triggeredBy,
+        idempotency_key: idempKey,
         is_dry_run: dryRun,
-        parameters: { as_of_date: asOfDate, employer_id: employerFilter },
+        parameters: { as_of_date: asOfDate, employer_id: employerFilter, force },
       })
       .select("id")
       .single();
@@ -136,39 +175,25 @@ Deno.serve(async (req) => {
       violation_type_code: vtMap[r.violation_type_id] || "UNKNOWN",
     }));
 
-    // Load fact views
-    const filingQuery = supabase.from("ce_v_employer_filing_status").select("*");
-    const paymentQuery = supabase.from("ce_v_employer_payment_status").select("*");
-    const arrearQuery = supabase.from("ce_v_employer_arrears_summary").select("*");
-    const arrangementQuery = supabase.from("ce_v_arrangement_health").select("*");
-    const workforceQuery = supabase.from("ce_v_employer_workforce").select("*");
-    const legalQuery = supabase.from("ce_v_employer_legal_status").select("*");
+    // Load fact views with FULL pagination
+    const filterCol = employerFilter ? "regno" : undefined;
+    const filterVal = employerFilter || undefined;
 
-    if (employerFilter) {
-      filingQuery.eq("regno", employerFilter);
-      paymentQuery.eq("regno", employerFilter);
-      arrearQuery.eq("regno", employerFilter);
-      arrangementQuery.eq("employer_id", employerFilter);
-      workforceQuery.eq("regno", employerFilter);
-      legalQuery.eq("regno", employerFilter);
-    }
+    const [filings, payments, arrears, workforce, legal] = await Promise.all([
+      fetchAllRows(supabase, "ce_v_employer_filing_status", filterCol, filterVal),
+      fetchAllRows(supabase, "ce_v_employer_payment_status", filterCol, filterVal),
+      fetchAllRows(supabase, "ce_v_employer_arrears_summary", filterCol, filterVal),
+      fetchAllRows(supabase, "ce_v_employer_workforce", filterCol, filterVal),
+      fetchAllRows(supabase, "ce_v_employer_legal_status", filterCol, filterVal),
+    ]);
 
-    const [filingRes, paymentRes, arrearRes, arrangementRes, workforceRes, legalRes] =
-      await Promise.all([
-        filingQuery,
-        paymentQuery,
-        arrearQuery,
-        arrangementQuery,
-        workforceQuery,
-        legalQuery,
-      ]);
-
-    const filings = filingRes.data || [];
-    const payments = paymentRes.data || [];
-    const arrears = arrearRes.data || [];
-    const arrangements = arrangementRes.data || [];
-    const workforce = workforceRes.data || [];
-    const legal = legalRes.data || [];
+    // Arrangements use employer_id not regno
+    const arrangements = await fetchAllRows(
+      supabase,
+      "ce_v_arrangement_health",
+      employerFilter ? "employer_id" : undefined,
+      employerFilter || undefined
+    );
 
     // Index by regno for quick lookup
     const filingMap = new Map(filings.map((f: any) => [f.regno, f]));
@@ -177,15 +202,16 @@ Deno.serve(async (req) => {
     const workforceMap = new Map(workforce.map((w: any) => [w.regno, w]));
     const legalMap = new Map(legal.map((l: any) => [l.regno, l]));
 
-    // Load existing unresolved violations for dedupe
-    const { data: existingViolations } = await supabase
-      .from("ce_violations")
-      .select("employer_id, violation_type_id, period_from, status")
-      .in("status", ["OPEN", "IN_PROGRESS", "ESCALATED", "UNDER_REVIEW"])
-      .eq("is_deleted", false);
+    // Load existing unresolved violations for dedupe (paginated)
+    const existingViolations = await fetchAllRows(supabase, "ce_violations");
+    const unresolvedViolations = existingViolations.filter(
+      (v: any) =>
+        ["OPEN", "IN_PROGRESS", "ESCALATED", "UNDER_REVIEW"].includes(v.status) &&
+        v.is_deleted === false
+    );
 
     const existingSet = new Set(
-      (existingViolations || []).map(
+      unresolvedViolations.map(
         (v: any) => `${v.employer_id}|${v.violation_type_id}|${v.period_from || ""}`
       )
     );
@@ -201,14 +227,13 @@ Deno.serve(async (req) => {
     // Process each rule
     for (const rule of enrichedRules) {
       const initialStatus = rule.auto_create_violation ? "OPEN" : "UNDER_REVIEW";
-      const asOfPeriod = asOfDate.slice(0, 7); // YYYY-MM
+      const asOfPeriod = asOfDate.slice(0, 7);
 
       for (const emp of allEmployers) {
         const filing = filingMap.get(emp.regno) as any;
         const payment = paymentMap.get(emp.regno) as any;
         const arrear = arrearMap.get(emp.regno) as any;
         const wf = workforceMap.get(emp.regno) as any;
-        const lg = legalMap.get(emp.regno) as any;
 
         let shouldFlag = false;
         let summary = "";
@@ -216,11 +241,7 @@ Deno.serve(async (req) => {
 
         switch (rule.trigger_event) {
           case "c3_deadline_passed": {
-            // DR-001: Late filing — filed but late
-            const graceDays = rule.parameters?.grace_period_days ?? 15;
             if (filing && filing.last_filing_date) {
-              // Check if latest period due has a filing but was received late
-              // Simplified: if missed_filings > 0 and they have some filings
               if (filing.missed_filings_12m > 0 && filing.total_filings_12m > 0) {
                 shouldFlag = true;
                 summary = `Late C3 submission detected. ${filing.missed_filings_12m} period(s) with delayed filing in last 12 months.`;
@@ -232,7 +253,6 @@ Deno.serve(async (req) => {
 
           case "c3_missing_30_days":
           case "contribution_gap_detected": {
-            // DR-002/DR-012: Non-filing — no C3 at all for expected periods
             if (filing && filing.missed_filings_12m >= 2 && !filing.is_current) {
               shouldFlag = true;
               summary = `Non-filing detected: ${filing.missed_filings_12m} missed C3 submissions in last 12 months. Last filed: ${filing.last_filing_period || "Never"}.`;
@@ -242,7 +262,6 @@ Deno.serve(async (req) => {
           }
 
           case "payment_not_received": {
-            // DR-003: Non-payment
             if (payment && !payment.has_recent_payment && filing?.total_filings_12m > 0) {
               shouldFlag = true;
               summary = `Non-payment: No payment received in last 60 days despite active filing. Last payment: ${payment.last_payment_date || "Never"}.`;
@@ -252,7 +271,6 @@ Deno.serve(async (req) => {
           }
 
           case "payment_partial": {
-            // DR-004: Partial payment — has arrears and recent payment but still outstanding
             if (arrear?.has_arrears && payment?.has_recent_payment && arrear.total_outstanding > 0) {
               shouldFlag = true;
               summary = `Partial payment: Outstanding balance of $${Number(arrear.total_outstanding).toLocaleString()} despite recent payments.`;
@@ -262,9 +280,8 @@ Deno.serve(async (req) => {
           }
 
           case "repeat_violation_check": {
-            // DR-005: Repeat offender (review-first)
             const threshold = rule.parameters?.repeat_threshold ?? 3;
-            const empViolations = (existingViolations || []).filter(
+            const empViolations = unresolvedViolations.filter(
               (v: any) => v.employer_id === emp.regno
             );
             if (empViolations.length >= threshold) {
@@ -276,7 +293,6 @@ Deno.serve(async (req) => {
           }
 
           case "installment_overdue": {
-            // DR-006: Arrangement breach
             const empArrangements = arrangements.filter(
               (a: any) => a.employer_id === emp.regno && a.health_status !== "HEALTHY" && a.health_status !== "INACTIVE"
             );
@@ -290,7 +306,6 @@ Deno.serve(async (req) => {
           }
 
           case "levy_omission_check": {
-            // DR-007: Levy omission (simplified — flag if arrears exist but no levy component detected)
             if (arrear?.has_arrears && arrear.total_outstanding > 500) {
               shouldFlag = true;
               summary = `Levy/severance contribution omission suspected. Outstanding: $${Number(arrear.total_outstanding).toLocaleString()}.`;
@@ -300,12 +315,10 @@ Deno.serve(async (req) => {
           }
 
           case "registration_not_found": {
-            // DR-008: Unregistered employer (review-first) — skip, requires scouting data
             break;
           }
 
           case "employee_underreporting": {
-            // DR-009: Employee discrepancy (review-first)
             const minDelta = rule.parameters?.min_employee_delta ?? 3;
             if (wf && wf.employee_delta < -minDelta) {
               shouldFlag = true;
@@ -316,14 +329,12 @@ Deno.serve(async (req) => {
           }
 
           case "wage_underreporting": {
-            // DR-010: Under-declaration (review-first) — provisional, skip if no min wage configured
             const minWage = rule.parameters?.min_wage_weekly_xcd;
-            if (!minWage) break; // Provisional — skip
+            if (!minWage) break;
             break;
           }
 
           case "employer_cessation": {
-            // DR-011: Cessation without clearance
             if (arrear?.has_arrears && filing?.employer_status && ["I", "D"].includes(filing.employer_status)) {
               shouldFlag = true;
               summary = `Cessation without clearance: Employer status '${filing.employer_status}' with outstanding balance $${Number(arrear.total_outstanding).toLocaleString()}.`;
@@ -333,7 +344,6 @@ Deno.serve(async (req) => {
           }
 
           case "severance_omission_check": {
-            // DR-013: Severance omission (review-first) — simplified
             break;
           }
 
@@ -342,7 +352,6 @@ Deno.serve(async (req) => {
         }
 
         if (shouldFlag) {
-          // Dedupe check
           const dedupeKey = `${emp.regno}|${rule.violation_type_id}|${periodFrom || ""}`;
           if (existingSet.has(dedupeKey)) {
             detected.push({
@@ -376,7 +385,6 @@ Deno.serve(async (req) => {
               source_type: "DETECTION_RULE",
               source_rule_id: rule.id,
             });
-            // Add to dedup set to avoid duplicate within same scan
             existingSet.add(dedupeKey);
           }
         }
@@ -389,48 +397,59 @@ Deno.serve(async (req) => {
     // Insert violations if not dry run
     let insertedCount = 0;
     if (!dryRun && newViolations.length > 0) {
-      const rows = newViolations.map((v) => ({
-        violation_number: generateViolationNumber(),
-        employer_id: v.employer_id,
-        employer_name: v.employer_name,
-        territory: "St Kitts",
-        violation_type_id: v.violation_type_id,
-        status: v.status,
-        priority: v.priority,
-        summary: v.summary,
-        source_type: v.source_type,
-        source_rule_id: v.source_rule_id,
-        period_from: v.period_from,
-        discovered_date: asOfDate,
-        discovered_by: "VIOLATION-SCAN",
-        created_by: "VIOLATION-SCAN",
-        is_unlinked: false,
-        is_deleted: false,
-      }));
+      // Insert in batches of 200
+      const BATCH = 200;
+      for (let i = 0; i < newViolations.length; i += BATCH) {
+        const batch = newViolations.slice(i, i + BATCH);
+        const rows = batch.map((v) => ({
+          violation_number: generateViolationNumber(),
+          employer_id: v.employer_id,
+          employer_name: v.employer_name,
+          territory: "St Kitts",
+          violation_type_id: v.violation_type_id,
+          status: v.status,
+          priority: v.priority,
+          summary: v.summary,
+          source_type: v.source_type,
+          source_rule_id: v.source_rule_id,
+          period_from: v.period_from,
+          discovered_date: asOfDate,
+          discovered_by: "VIOLATION-SCAN",
+          created_by: "VIOLATION-SCAN",
+          is_unlinked: false,
+          is_deleted: false,
+        }));
 
-      const { data: inserted, error: insertError } = await supabase
-        .from("ce_violations")
-        .insert(rows)
-        .select("id");
+        const { data: inserted, error: insertError } = await supabase
+          .from("ce_violations")
+          .insert(rows)
+          .select("id");
 
-      if (insertError) throw insertError;
-      insertedCount = inserted?.length || 0;
+        if (insertError) throw insertError;
+        insertedCount += inserted?.length || 0;
+      }
     }
 
-    // Update run record
+    // Build by-rule breakdown
+    const byRule = enrichedRules.map((r) => ({
+      rule_code: r.rule_code,
+      rule_name: r.name,
+      detected: detected.filter((d) => d.rule_code === r.rule_code && !d.skipped).length,
+      skipped: detected.filter((d) => d.rule_code === r.rule_code && d.skipped).length,
+      total: detected.filter((d) => d.rule_code === r.rule_code).length,
+    }));
+
     const runResult = {
       total_employers_scanned: allEmployers.length,
       rules_evaluated: enrichedRules.length,
       violations_detected: detected.length,
       violations_created: dryRun ? 0 : insertedCount,
       violations_skipped_dedupe: skippedCount,
-      by_rule: enrichedRules.map((r) => ({
-        rule_code: r.rule_code,
-        detected: detected.filter((d) => d.rule_code === r.rule_code && !d.skipped).length,
-        skipped: detected.filter((d) => d.rule_code === r.rule_code && d.skipped).length,
-      })),
+      violations_would_create: newViolations.length,
+      by_rule: byRule,
     };
 
+    // Update run record
     await supabase
       .from("ce_automation_runs")
       .update({
@@ -440,6 +459,8 @@ Deno.serve(async (req) => {
         records_affected: dryRun ? 0 : insertedCount,
         execution_log: {
           ...runResult,
+          dry_run: dryRun,
+          force,
           details: detected.slice(0, 100),
         },
       })
@@ -460,6 +481,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         run_id: run.id,
         dry_run: dryRun,
+        force,
         ...runResult,
         sample_violations: detected.slice(0, 20),
       }),
