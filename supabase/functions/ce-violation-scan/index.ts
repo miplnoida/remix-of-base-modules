@@ -483,6 +483,7 @@ Deno.serve(async (req) => {
       rules_evaluated: enrichedRules.length,
       violations_detected: detected.length,
       violations_created: dryRun ? 0 : insertedCount,
+      violations_routed: dryRun ? 0 : routedCount,
       violations_skipped_dedupe: skippedCount,
       violations_would_create: newViolations.length,
       by_rule: byRule,
