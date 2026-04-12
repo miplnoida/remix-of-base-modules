@@ -88,6 +88,19 @@ import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWo
 import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import ComplianceRuleSimulator from '@/pages/compliance/tools/RuleSimulator';
 import ComplianceRiskSimulator from '@/pages/compliance/tools/RiskSimulator';
+
+// Compliance Operations, Geography, Staff
+import AssignmentQueues from '@/pages/compliance/operations/AssignmentQueues';
+import ReviewQueue from '@/pages/compliance/operations/ReviewQueue';
+import Reassignment from '@/pages/compliance/operations/Reassignment';
+import ZoneManagement from '@/pages/compliance/geography/ZoneManagement';
+import OfficeZoneMapping from '@/pages/compliance/geography/OfficeZoneMapping';
+import VillageZoneMapping from '@/pages/compliance/geography/VillageZoneMapping';
+import OfficerManagement from '@/pages/compliance/staff/OfficerManagement';
+import QueueMembers from '@/pages/compliance/staff/QueueMembers';
+import SupervisorHierarchy from '@/pages/compliance/staff/SupervisorHierarchy';
+import AssignmentRoutingRules from '@/pages/compliance/settings/AssignmentRoutingRules';
+
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
 import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
