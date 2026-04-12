@@ -369,7 +369,6 @@ Deno.serve(async (req) => {
           filing_score: 0,
           payment_behavior_score: 0,
           legal_history_score: 0,
-          scoring_version: "v2-threshold-driven",
           created_by: triggeredBy,
           last_calculated_at: new Date().toISOString(),
         }));
@@ -405,7 +404,6 @@ Deno.serve(async (req) => {
             territory: resolveTerritory(emp.office_code),
             total_score: 0,
             risk_band: "LOW",
-            scoring_version: "v2-threshold-driven",
             created_by: triggeredBy,
           });
           provisioned = 1;
@@ -529,7 +527,6 @@ Deno.serve(async (req) => {
             total_score: totalScore,
             risk_band: riskBand,
             last_calculated_at: new Date().toISOString(),
-            scoring_version: "v2-threshold-driven",
             updated_by: triggeredBy,
           })
           .eq("id", profile.id);
