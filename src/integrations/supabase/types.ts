@@ -11683,6 +11683,140 @@ export type Database = {
           },
         ]
       }
+      ce_follow_up_action_history: {
+        Row: {
+          action_id: string
+          changed_at: string
+          changed_by: string
+          changed_by_name: string | null
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+        }
+        Insert: {
+          action_id: string
+          changed_at?: string
+          changed_by?: string
+          changed_by_name?: string | null
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+        }
+        Update: {
+          action_id?: string
+          changed_at?: string
+          changed_by?: string
+          changed_by_name?: string | null
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_follow_up_action_history_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "ce_follow_up_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_follow_up_actions: {
+        Row: {
+          action_type: string
+          assigned_queue_id: string | null
+          assigned_to_name: string | null
+          assigned_to_user_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          description: string
+          due_date: string | null
+          employer_id: string | null
+          employer_name: string | null
+          id: string
+          is_deleted: boolean
+          notes: string | null
+          outcome: string | null
+          priority: string
+          scheduled_date: string | null
+          source: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          violation_id: string
+        }
+        Insert: {
+          action_type: string
+          assigned_queue_id?: string | null
+          assigned_to_name?: string | null
+          assigned_to_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          description: string
+          due_date?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          id?: string
+          is_deleted?: boolean
+          notes?: string | null
+          outcome?: string | null
+          priority?: string
+          scheduled_date?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          violation_id: string
+        }
+        Update: {
+          action_type?: string
+          assigned_queue_id?: string | null
+          assigned_to_name?: string | null
+          assigned_to_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          id?: string
+          is_deleted?: boolean
+          notes?: string | null
+          outcome?: string | null
+          priority?: string
+          scheduled_date?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          violation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_follow_up_actions_assigned_queue_id_fkey"
+            columns: ["assigned_queue_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_follow_up_actions_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_inspection_findings: {
         Row: {
           created_at: string | null

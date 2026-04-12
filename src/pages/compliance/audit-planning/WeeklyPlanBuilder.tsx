@@ -286,14 +286,14 @@ export default function WeeklyPlanBuilder() {
     const [hours] = startTime.split(':').map(Number);
     const endTime = `${String(hours + 1).padStart(2, '0')}:00`;
 
-    if (action.actionType === ActionType.EMPLOYER_VISIT && action.employerId) {
+    if (action.action_type === ActionType.VISIT && action.employer_id) {
       // Add as employer visit
       setCurrentVisit({
         itemType: PlanItemType.EMPLOYER_VISIT,
         dayOfWeek: 'Monday',
         visitDate: visitDate,
-        employerId: action.employerId,
-        employerName: action.employerName,
+        employerId: action.employer_id,
+        employerName: action.employer_name,
         visitType: VisitType.AUDIT,
         duration: VisitDuration.FULL_DAY,
         purpose: action.description,
@@ -304,7 +304,8 @@ export default function WeeklyPlanBuilder() {
       // Update action status
       try {
         await violationActionsService.update(action.id, {
-          status: ActionStatus.IN_WEEKLY_PLAN
+          status: ActionStatus.SCHEDULED,
+          updated_by: 'CURRENT_USER'
         });
       } catch (error) {
         console.error('Failed to update action status:', error);
@@ -319,7 +320,7 @@ export default function WeeklyPlanBuilder() {
       // For non-visit actions (calls, etc.), just show a notification
       toast({
         title: 'Action Noted',
-        description: `${action.actionType}: ${action.description}`,
+        description: `${action.action_type}: ${action.description}`,
       });
     }
   };
