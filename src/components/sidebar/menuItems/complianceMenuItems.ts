@@ -393,6 +393,23 @@ export const complianceMenuItems = [
         ]
       },
 
+      // ── Tools ──
+      {
+        title: "Tools",
+        icon: Search,
+        requiresPermission: "manage_compliance",
+        description: "Compliance testing and diagnostic tools",
+        subItems: [
+          {
+            title: "Rule Simulator",
+            url: "/compliance/tools/rule-simulator",
+            icon: Zap,
+            requiresPermission: "manage_compliance",
+            description: "Dry-run simulation of detection, calculation, and escalation rules"
+          }
+        ]
+      },
+
       // ── Settings ──
       {
         title: "Settings",
