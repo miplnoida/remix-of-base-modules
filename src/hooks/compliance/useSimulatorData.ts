@@ -155,7 +155,7 @@ export function useEmployerComplianceContext(regno: string | null) {
         priorViolationsCount: violations.length,
         priorSameTypeViolationsRolling12: repeatCount,
         repeatOffender: repeatCount >= 3,
-        riskScore: risk?.overall_score || 0,
+        riskScore: risk?.total_score || 0,
         totalOwed: Math.max(0, totalOutstanding),
         noticeStage: latestNotice?.notice_type || null,
         arrangementActive: !!activeArr,
