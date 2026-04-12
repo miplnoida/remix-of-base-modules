@@ -687,7 +687,7 @@ const CalculationRuleDialog = ({
     applies_to: rule?.applies_to || 'penalty',
     formula_expression: rule?.formula_expression || '',
     fund_type: rule?.fund_type || '',
-    source_config: rule?.source_config || 'c3_config',
+    source_config: rule?.source_config || 'c3_config_details',
     is_enabled: rule?.is_enabled ?? true,
     violation_type_id: rule?.violation_type_id || '',
   });
@@ -702,7 +702,7 @@ const CalculationRuleDialog = ({
         applies_to: rule?.applies_to || 'penalty',
         formula_expression: rule?.formula_expression || '',
         fund_type: rule?.fund_type || '',
-        source_config: rule?.source_config || 'c3_config',
+        source_config: rule?.source_config || 'c3_config_details',
         is_enabled: rule?.is_enabled ?? true,
         violation_type_id: rule?.violation_type_id || '',
       });
