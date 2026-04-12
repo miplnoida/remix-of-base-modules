@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
     const asOfDate: string =
       body.as_of_date || new Date().toISOString().slice(0, 10);
     const employerFilter: string | null = body.employer_id || null;
+    const employerLimit: number | null = body.limit ? Number(body.limit) : null;
     const triggeredBy: string = body.triggered_by || "SYSTEM";
 
     // Idempotency check (skip if force=true or dry_run)
