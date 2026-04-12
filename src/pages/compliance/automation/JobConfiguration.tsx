@@ -222,6 +222,7 @@ const JobConfiguration = () => {
 
   const runMutation = useMutation({
     mutationFn: async ({ jobCode, dryRun }: { jobCode: string; dryRun: boolean }) => {
+      setRunningJobCode(jobCode);
       const { data, error } = await supabase.functions.invoke('run-compliance-job', {
         body: { job_code: jobCode, dry_run: dryRun },
       });
@@ -229,6 +230,7 @@ const JobConfiguration = () => {
       return data;
     },
     onSuccess: (data, variables) => {
+      setRunningJobCode(null);
       queryClient.invalidateQueries({ queryKey: ['ce_automation_jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ce_job_runs_detail'] });
 
@@ -251,6 +253,7 @@ const JobConfiguration = () => {
       }
     },
     onError: (error: any) => {
+      setRunningJobCode(null);
       toast.error('Job execution failed', { description: error.message });
     },
   });
