@@ -17,12 +17,11 @@ export default function QueueMembers() {
         .select("*")
         .order("queue_id");
 
-      // Enrich with queue names
-      const queueIds = [...new Set((data || []).map((m: any) => m.queue_id))];
+      const queueIds = [...new Set((data || []).map((m) => m.queue_id))];
       const { data: queues } = await supabase.from("ce_assignment_queues").select("id, queue_name, queue_type").in("id", queueIds);
       const qMap = Object.fromEntries((queues || []).map((q: any) => [q.id, q]));
 
-      setMembers((data || []).map((m: any) => ({
+      setMembers((data || []).map((m) => ({
         ...m,
         queue_name: qMap[m.queue_id]?.queue_name || "—",
         queue_type: qMap[m.queue_id]?.queue_type || "—",
@@ -32,7 +31,7 @@ export default function QueueMembers() {
     fetch();
   }, []);
 
-  const roleColor = (r: string) => {
+  const roleColor = (r: string | null) => {
     switch (r) {
       case "LEAD": return "bg-blue-100 text-blue-800";
       case "SUPERVISOR": return "bg-purple-100 text-purple-800";
@@ -62,7 +61,7 @@ export default function QueueMembers() {
                 <TableRow>
                   <TableHead>Queue</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>User ID</TableHead>
+                  <TableHead>Inspector ID</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -72,8 +71,8 @@ export default function QueueMembers() {
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.queue_name}</TableCell>
                     <TableCell><Badge variant="secondary">{m.queue_type}</Badge></TableCell>
-                    <TableCell className="font-mono text-sm">{m.user_id?.slice(0, 12)}…</TableCell>
-                    <TableCell><Badge className={roleColor(m.role)} variant="secondary">{m.role}</Badge></TableCell>
+                    <TableCell className="font-mono text-sm">{m.inspector_id?.slice(0, 12)}…</TableCell>
+                    <TableCell><Badge className={roleColor(m.role)} variant="secondary">{m.role || "MEMBER"}</Badge></TableCell>
                     <TableCell>
                       <Badge variant={m.is_active ? "default" : "secondary"}>{m.is_active ? "Active" : "Inactive"}</Badge>
                     </TableCell>

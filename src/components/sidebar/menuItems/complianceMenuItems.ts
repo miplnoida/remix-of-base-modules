@@ -27,7 +27,11 @@ import {
   ListChecks,
   Eye,
   Briefcase,
-  UserCheck
+  UserCheck,
+  Map,
+  Network,
+  ArrowRightLeft,
+  Route
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -114,6 +118,99 @@ export const complianceMenuItems = [
         ]
       },
 
+      // ── Compliance Operations (NEW) ──
+      {
+        title: "Compliance Operations",
+        icon: ListChecks,
+        requiresPermission: "manage_compliance",
+        description: "Queue-based assignment and workload management",
+        subItems: [
+          {
+            title: "Assignment Queues",
+            url: "/compliance/operations/queues",
+            icon: Users,
+            requiresPermission: "manage_compliance",
+            description: "View and manage all assignment queues across zones"
+          },
+          {
+            title: "Review Queue",
+            url: "/compliance/operations/review-queue",
+            icon: Eye,
+            requiresPermission: "manage_compliance",
+            description: "Violations assigned to review queues for supervisor evaluation"
+          },
+          {
+            title: "Reassign / Workload",
+            url: "/compliance/operations/reassignment",
+            icon: ArrowRightLeft,
+            requiresPermission: "manage_compliance",
+            description: "Officer workload distribution and reassignment"
+          }
+        ]
+      },
+
+      // ── Compliance Geography (NEW) ──
+      {
+        title: "Compliance Geography",
+        icon: Map,
+        requiresPermission: "manage_compliance",
+        description: "Zonal territory and geographic routing configuration",
+        subItems: [
+          {
+            title: "Zones",
+            url: "/compliance/geography/zones",
+            icon: Map,
+            requiresPermission: "manage_compliance",
+            description: "Enterprise compliance zone definitions"
+          },
+          {
+            title: "Office-to-Zone Mapping",
+            url: "/compliance/geography/office-zone-mapping",
+            icon: Building2,
+            requiresPermission: "manage_compliance",
+            description: "Map SSB office codes to compliance zones"
+          },
+          {
+            title: "Village-to-Zone Mapping",
+            url: "/compliance/geography/village-zone-mapping",
+            icon: MapPin,
+            requiresPermission: "manage_compliance",
+            description: "Granular village-level routing to compliance zones"
+          }
+        ]
+      },
+
+      // ── Compliance Staff (NEW) ──
+      {
+        title: "Compliance Staff",
+        icon: UserCheck,
+        requiresPermission: "manage_compliance",
+        description: "Officer management, queue membership, and supervisor hierarchy",
+        subItems: [
+          {
+            title: "Officers / Inspectors",
+            url: "/compliance/staff/officers",
+            icon: UserCheck,
+            requiresPermission: "manage_compliance",
+            description: "Compliance officers and field inspectors"
+          },
+          {
+            title: "Queue Members",
+            url: "/compliance/staff/queue-members",
+            icon: Users,
+            requiresPermission: "manage_compliance",
+            description: "Officers enrolled in assignment queues"
+          },
+          {
+            title: "Supervisor Hierarchy",
+            url: "/compliance/staff/supervisors",
+            icon: Network,
+            requiresPermission: "manage_compliance",
+            description: "Inspector-to-supervisor reporting structure"
+          }
+        ]
+      },
+
       // ── Employer Risk Profiles ──
       {
         title: "Employer Risk Profiles",
@@ -154,7 +251,7 @@ export const complianceMenuItems = [
         ]
       },
 
-      // ── Weekly Audit Planning (existing) ──
+      // ── Weekly Audit Planning ──
       {
         title: "Weekly Audit Planning",
         icon: Calendar,
@@ -254,7 +351,7 @@ export const complianceMenuItems = [
         ]
       },
 
-      // ── Employer Statements (existing) ──
+      // ── Employer Statements ──
       {
         title: "Employer Statements",
         url: "/compliance/employer-statements",
@@ -263,7 +360,7 @@ export const complianceMenuItems = [
         description: "Generate as-of-date employer statements"
       },
 
-      // ── Reports (keep existing structure) ──
+      // ── Reports ──
       {
         title: "Reports",
         icon: TrendingUp,
@@ -436,6 +533,13 @@ export const complianceMenuItems = [
             icon: AlertTriangle,
             requiresPermission: "manage_compliance",
             description: "Configure violation type definitions"
+          },
+          {
+            title: "Assignment Routing Rules",
+            url: "/compliance/settings/assignment-routing",
+            icon: Route,
+            requiresPermission: "manage_compliance",
+            description: "Rules for routing violations to queues based on type and office"
           },
           {
             title: "Reference Numbering",
