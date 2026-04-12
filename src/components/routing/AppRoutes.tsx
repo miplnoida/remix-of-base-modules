@@ -87,6 +87,7 @@ import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
 import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import ComplianceRuleSimulator from '@/pages/compliance/tools/RuleSimulator';
+import ComplianceRiskSimulator from '@/pages/compliance/tools/RiskSimulator';
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
 import LevySchemeDetail from '@/pages/c3/settings/levy/LevySchemeDetail';
 import LevySimulator from '@/pages/c3/settings/levy/LevySimulator';
