@@ -25,6 +25,7 @@ import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActi
 import { useAuth } from '@/contexts/AuthContext';
 import { useTablePagination } from '@/hooks/useTablePagination';
 import { TablePagination } from '@/components/shared/TablePagination';
+import { useAutoAttachEmployerWorkflow } from '@/hooks/useAutoAttachEmployerWorkflow';
 
 interface Filters {
   regno: string;
