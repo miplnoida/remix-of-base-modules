@@ -1005,6 +1005,16 @@ export const AppRoutes = () => {
       <Route path="/compliance/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
       <Route path="/compliance/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
       <Route path="/compliance/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
+      <Route path="/compliance/settings/assignment-routing" element={<ProtectedLayout><AssignmentRoutingRules /></ProtectedLayout>} />
+      <Route path="/compliance/operations/queues" element={<ProtectedLayout><AssignmentQueues /></ProtectedLayout>} />
+      <Route path="/compliance/operations/review-queue" element={<ProtectedLayout><ReviewQueue /></ProtectedLayout>} />
+      <Route path="/compliance/operations/reassignment" element={<ProtectedLayout><Reassignment /></ProtectedLayout>} />
+      <Route path="/compliance/geography/zones" element={<ProtectedLayout><ZoneManagement /></ProtectedLayout>} />
+      <Route path="/compliance/geography/office-zone-mapping" element={<ProtectedLayout><OfficeZoneMapping /></ProtectedLayout>} />
+      <Route path="/compliance/geography/village-zone-mapping" element={<ProtectedLayout><VillageZoneMapping /></ProtectedLayout>} />
+      <Route path="/compliance/staff/officers" element={<ProtectedLayout><OfficerManagement /></ProtectedLayout>} />
+      <Route path="/compliance/staff/queue-members" element={<ProtectedLayout><QueueMembers /></ProtectedLayout>} />
+      <Route path="/compliance/staff/supervisors" element={<ProtectedLayout><SupervisorHierarchy /></ProtectedLayout>} />
 
       {/* Audit Module Routes — Simplified Department Function Audit */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
