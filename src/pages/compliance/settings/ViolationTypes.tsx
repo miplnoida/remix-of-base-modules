@@ -392,12 +392,12 @@ const ViolationTypes = () => {
                                     ))}
                                     {linked.calculation.map(r => (
                                       <Badge key={r.rule_code} variant="outline" className="text-[10px] gap-1">
-                                        <span className="text-orange-600 font-mono">{r.rule_code}</span> {r.name}
+                                        <span className="text-accent-foreground font-mono">{r.rule_code}</span> {r.name}
                                       </Badge>
                                     ))}
                                     {linked.escalation.map(r => (
                                       <Badge key={r.rule_code} variant="outline" className="text-[10px] gap-1">
-                                        <span className="text-red-600 font-mono">{r.rule_code}</span> {r.name}
+                                        <span className="text-destructive font-mono">{r.rule_code}</span> {r.name}
                                       </Badge>
                                     ))}
                                   </div>
