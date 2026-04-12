@@ -18,11 +18,18 @@ export default function VillageZoneMapping() {
       const { data } = await supabase.from("ce_village_zone_mapping").select("*").order("village_code");
       
       const zoneIds = [...new Set((data || []).map((m: any) => m.zone_id))];
+      const villageCodes = [...new Set((data || []).map((m: any) => m.village_code).filter(Boolean))];
+      
       const { data: zones } = await supabase.from("ce_zones").select("id, zone_name, zone_code").in("id", zoneIds);
       const zoneMap = Object.fromEntries((zones || []).map((z: any) => [z.id, z]));
 
+      // Enrich with village names from tb_villages
+      const { data: villages } = await supabase.from("tb_villages").select("code, description").in("code", villageCodes);
+      const villageMap = Object.fromEntries((villages || []).map((v: any) => [v.code, v.description]));
+
       const enriched = (data || []).map((m: any) => ({
         ...m,
+        village_name: villageMap[m.village_code] || "—",
         zone_name: zoneMap[m.zone_id]?.zone_name || "—",
         zone_code: zoneMap[m.zone_id]?.zone_code || "—",
       }));
