@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
         triggered_by: triggeredBy,
         idempotency_key: idempKey,
         is_dry_run: dryRun,
-        parameters: { as_of_date: asOfDate, employer_id: employerFilter, force },
+        parameters: { as_of_date: asOfDate, employer_id: employerFilter, force, limit: employerLimit },
       })
       .select("id")
       .single();
