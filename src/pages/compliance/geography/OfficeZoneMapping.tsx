@@ -61,7 +61,7 @@ export default function OfficeZoneMapping() {
                     <TableCell className="font-mono font-medium">{m.office_code}</TableCell>
                     <TableCell><Badge variant="secondary">{m.zone_code}</Badge></TableCell>
                     <TableCell>{m.zone_name}</TableCell>
-                    <TableCell>{m.is_primary ? <Badge>Primary</Badge> : <Badge variant="secondary">Secondary</Badge>}</TableCell>
+                    <TableCell>{m.is_default ? <Badge>Default</Badge> : <Badge variant="secondary">Alternate</Badge>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

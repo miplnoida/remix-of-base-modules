@@ -25,7 +25,7 @@ export default function ReviewQueue() {
 
       const { data } = await supabase
         .from("ce_violations")
-        .select("id, violation_code, employer_regno, status, priority, created_at, assigned_queue_id, zone_id")
+        .select("id, violation_number, employer_regno, status, priority, created_at, assigned_queue_id, zone_id")
         .in("assigned_queue_id", queueIds)
         .in("status", ["UNDER_REVIEW", "OPEN"])
         .order("created_at", { ascending: false })
@@ -59,7 +59,7 @@ export default function ReviewQueue() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Violation Code</TableHead>
+                  <TableHead>Violation #</TableHead>
                   <TableHead>Employer</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
@@ -69,7 +69,7 @@ export default function ReviewQueue() {
               <TableBody>
                 {violations.map((v) => (
                   <TableRow key={v.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/compliance/violations/${v.id}`)}>
-                    <TableCell className="font-mono text-sm">{v.violation_code}</TableCell>
+                    <TableCell className="font-mono text-sm">{v.violation_number}</TableCell>
                     <TableCell>{v.employer_regno}</TableCell>
                     <TableCell><Badge variant="secondary">{v.status}</Badge></TableCell>
                     <TableCell><Badge variant={v.priority === "HIGH" ? "destructive" : "secondary"}>{v.priority}</Badge></TableCell>
