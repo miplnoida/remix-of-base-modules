@@ -9505,6 +9505,147 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_assignment_queues: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          priority: number | null
+          queue_code: string
+          queue_name: string
+          queue_type: string
+          updated_at: string | null
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          priority?: number | null
+          queue_code: string
+          queue_name: string
+          queue_type: string
+          updated_at?: string | null
+          zone_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          priority?: number | null
+          queue_code?: string
+          queue_name?: string
+          queue_type?: string
+          updated_at?: string | null
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_assignment_queues_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_assignment_routing_rules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          office_code: string | null
+          priority: number | null
+          requires_review: boolean | null
+          rule_name: string
+          target_inspector_id: string | null
+          target_queue_id: string | null
+          updated_at: string | null
+          violation_type_id: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          office_code?: string | null
+          priority?: number | null
+          requires_review?: boolean | null
+          rule_name: string
+          target_inspector_id?: string | null
+          target_queue_id?: string | null
+          updated_at?: string | null
+          violation_type_id?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          office_code?: string | null
+          priority?: number | null
+          requires_review?: boolean | null
+          rule_name?: string
+          target_inspector_id?: string | null
+          target_queue_id?: string | null
+          updated_at?: string | null
+          violation_type_id?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_assignment_routing_rules_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_target_inspector_id_fkey"
+            columns: ["target_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_target_inspector_id_fkey"
+            columns: ["target_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_target_queue_id_fkey"
+            columns: ["target_queue_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_violation_type_id_fkey"
+            columns: ["violation_type_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violation_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_log: {
         Row: {
           action: string
@@ -11767,42 +11908,86 @@ export type Database = {
           active_from: string | null
           assigned_zones: Json | null
           created_at: string | null
+          designation_id: string | null
           email: string | null
           id: string
           inspector_code: string
           is_active: boolean | null
           is_primary: boolean | null
+          legacy_inspector_code: string | null
+          max_caseload: number | null
           name: string
           phone: string | null
+          profile_id: string | null
+          supervisor_id: string | null
           updated_at: string | null
         }
         Insert: {
           active_from?: string | null
           assigned_zones?: Json | null
           created_at?: string | null
+          designation_id?: string | null
           email?: string | null
           id?: string
           inspector_code: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          legacy_inspector_code?: string | null
+          max_caseload?: number | null
           name: string
           phone?: string | null
+          profile_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
         }
         Update: {
           active_from?: string | null
           assigned_zones?: Json | null
           created_at?: string | null
+          designation_id?: string | null
           email?: string | null
           id?: string
           inspector_code?: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          legacy_inspector_code?: string | null
+          max_caseload?: number | null
           name?: string
           phone?: string | null
+          profile_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspectors_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "tb_designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_installments: {
         Row: {
@@ -12999,6 +13184,70 @@ export type Database = {
           },
         ]
       }
+      ce_queue_members: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          inspector_id: string
+          is_active: boolean | null
+          max_caseload_override: number | null
+          queue_id: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          inspector_id: string
+          is_active?: boolean | null
+          max_caseload_override?: number | null
+          queue_id: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          inspector_id?: string
+          is_active?: boolean | null
+          max_caseload_override?: number | null
+          queue_id?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_queue_members_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_queue_members_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_queue_members_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_risk_bands: {
         Row: {
           audit_frequency: string | null
@@ -13496,6 +13745,159 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_village_zone_mapping: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          district_code: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean | null
+          manually_overridden: boolean | null
+          mapping_confidence: string | null
+          mapping_source: string | null
+          office_code: string | null
+          updated_at: string | null
+          village_code: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          district_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          manually_overridden?: boolean | null
+          mapping_confidence?: string | null
+          mapping_source?: string | null
+          office_code?: string | null
+          updated_at?: string | null
+          village_code: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          district_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          manually_overridden?: boolean | null
+          mapping_confidence?: string | null
+          mapping_source?: string | null
+          office_code?: string | null
+          updated_at?: string | null
+          village_code?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_village_zone_mapping_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ce_village_zone_mapping_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_violation_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to_inspector_id: string | null
+          assigned_to_queue_id: string | null
+          assignment_type: string | null
+          created_at: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          resolution_method: string | null
+          routing_rule_id: string | null
+          superseded_at: string | null
+          violation_id: string
+          zone_resolved_from: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to_inspector_id?: string | null
+          assigned_to_queue_id?: string | null
+          assignment_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          resolution_method?: string | null
+          routing_rule_id?: string | null
+          superseded_at?: string | null
+          violation_id: string
+          zone_resolved_from?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to_inspector_id?: string | null
+          assigned_to_queue_id?: string | null
+          assignment_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          resolution_method?: string | null
+          routing_rule_id?: string | null
+          superseded_at?: string | null
+          violation_id?: string
+          zone_resolved_from?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_violation_assignments_assigned_to_inspector_id_fkey"
+            columns: ["assigned_to_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_assigned_to_inspector_id_fkey"
+            columns: ["assigned_to_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_assigned_to_queue_id_fkey"
+            columns: ["assigned_to_queue_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_routing_rule_id_fkey"
+            columns: ["routing_rule_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_routing_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_violation_correspondence: {
         Row: {
           channel: string
@@ -13988,7 +14390,68 @@ export type Database = {
             foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
             columns: ["inspector_id"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
             referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_zone_office_mapping: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          office_code: string
+          updated_at: string | null
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          office_code: string
+          updated_at?: string | null
+          zone_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          office_code?: string
+          updated_at?: string | null
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_zone_office_mapping_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ce_zone_office_mapping_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -13998,7 +14461,9 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          office_code: string | null
           parishes: Json | null
+          territory: string | null
           updated_at: string | null
           zone_code: string
           zone_name: string
@@ -14007,7 +14472,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          office_code?: string | null
           parishes?: Json | null
+          territory?: string | null
           updated_at?: string | null
           zone_code: string
           zone_name: string
@@ -14016,12 +14483,22 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          office_code?: string | null
           parishes?: Json | null
+          territory?: string | null
           updated_at?: string | null
           zone_code?: string
           zone_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_zones_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       cl_bank_acct: {
         Row: {
@@ -41471,6 +41948,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_inspector_profiles: {
+        Row: {
+          active_from: string | null
+          assigned_zones: Json | null
+          compliance_active: boolean | null
+          designation_id: string | null
+          designation_name: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          inspector_code: string | null
+          is_primary: boolean | null
+          legacy_inspector_code: string | null
+          legacy_name: string | null
+          max_caseload: number | null
+          profile_id: string | null
+          profile_office_code: string | null
+          supervisor_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspectors_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "tb_designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_office_code_fkey"
+            columns: ["profile_office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       ce_ledger_reversals_v: {
         Row: {
           employer_id: string | null
@@ -42637,6 +43171,15 @@ export type Database = {
           has_data_access: boolean
           user_id: string
           user_name: string
+        }[]
+      }
+      fn_ce_resolve_zone: {
+        Args: { p_office_code?: string; p_village_code?: string }
+        Returns: {
+          resolution_method: string
+          zone_code: string
+          zone_id: string
+          zone_name: string
         }[]
       }
       generate_application_id: { Args: never; Returns: string }
