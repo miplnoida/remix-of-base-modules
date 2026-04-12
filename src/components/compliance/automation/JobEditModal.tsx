@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StandardModal } from '@/components/common/StandardModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,17 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Lock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidCron, detectScheduleConflicts, detectCircularDeps } from '@/lib/cronUtils';
+import { ScheduleBuilder } from '@/components/compliance/automation/ScheduleBuilder';
+import { DependencyPicker } from '@/components/compliance/automation/DependencyPicker';
 import type { AutomationJob } from '@/types/automationJob';
-
-type JobData = AutomationJob;
 
 interface JobEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  job: JobData | null;
-  onSave: (id: string, updates: Partial<JobData> & { parameters: Record<string, any> }) => void;
+  job: AutomationJob | null;
+  onSave: (id: string, updates: Partial<AutomationJob> & { parameters: Record<string, any> }) => void;
   isSaving: boolean;
-  allJobCodes: string[];
+  allJobs: AutomationJob[];
 }
 
 const EXECUTION_MODES = ['scheduled', 'manual', 'event-driven'];
@@ -31,7 +32,7 @@ const PIPELINE_PHASES = [
 ];
 
 export const JobEditModal: React.FC<JobEditModalProps> = ({
-  open, onOpenChange, job, onSave, isSaving, allJobCodes,
+  open, onOpenChange, job, onSave, isSaving, allJobs,
 }) => {
   const [form, setForm] = useState({
     name: '',
@@ -40,7 +41,7 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
     frequency: '',
     execution_mode: 'manual',
     pipeline_phase: 3,
-    depends_on: '',
+    depends_on: [] as string[],
     canonical_purpose: '',
     notes: '',
     dry_run_default: true,
@@ -60,7 +61,7 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
         frequency: job.frequency || '',
         execution_mode: params.execution_mode || 'manual',
         pipeline_phase: params.pipeline_phase || 3,
-        depends_on: (params.depends_on || []).join(', '),
+        depends_on: (params.depends_on || []) as string[],
         canonical_purpose: params.canonical_purpose || '',
         notes: params.notes || '',
         dry_run_default: params.dry_run_default !== false,
@@ -69,35 +70,38 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
     }
   }, [job]);
 
-  const handleSave = () => {
-    if (!job) return;
-    if (!form.name.trim()) {
-      toast.error('Job name is required');
-      return;
+  // Validation warnings
+  const saveWarnings = useMemo(() => {
+    if (!job) return [];
+    const w: string[] = [];
+    if (form.execution_mode === 'scheduled' && !form.schedule_cron) {
+      w.push('Scheduled job has no schedule configured');
     }
     if (form.execution_mode === 'scheduled' && form.schedule_cron && !isValidCron(form.schedule_cron)) {
-      toast.error('Invalid cron expression');
-      return;
+      w.push('Invalid cron expression');
     }
+    const conflicts = detectScheduleConflicts(job.job_code, form.schedule_cron || null, form.depends_on, allJobs);
+    conflicts.forEach(c => w.push(c.message));
+    const circular = detectCircularDeps(job.job_code, form.depends_on, allJobs);
+    if (circular) w.push('Circular dependency detected — please remove conflicting dependencies');
+    return w;
+  }, [job, form, allJobs]);
 
-    const dependsArray = form.depends_on
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Validate dependencies exist
-    const invalidDeps = dependsArray.filter(d => !allJobCodes.includes(d));
-    if (invalidDeps.length > 0) {
-      toast.error(`Unknown dependency job codes: ${invalidDeps.join(', ')}`);
-      return;
+  const handleSave = () => {
+    if (!job) return;
+    if (!form.name.trim()) { toast.error('Job name is required'); return; }
+    if (form.execution_mode === 'scheduled' && form.schedule_cron && !isValidCron(form.schedule_cron)) {
+      toast.error('Invalid cron expression'); return;
     }
+    const circular = detectCircularDeps(job.job_code, form.depends_on, allJobs);
+    if (circular) { toast.error('Cannot save: circular dependency detected'); return; }
 
     const updatedParams = {
       ...params,
       execution_mode: form.execution_mode,
       pipeline_phase: form.pipeline_phase,
       pipeline_label: PIPELINE_PHASES.find(p => p.value === form.pipeline_phase)?.label || '',
-      depends_on: dependsArray,
+      depends_on: form.depends_on,
       canonical_purpose: form.canonical_purpose,
       notes: form.notes,
       dry_run_default: form.dry_run_default,
@@ -144,14 +148,10 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
           )}
         </div>
 
-        {/* Protected fields notice for canonical jobs */}
         {isCanonical && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 border text-sm text-muted-foreground">
             <Lock className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              Job Code, Runtime Handler, and Job Type are protected for canonical system jobs.
-              Only name, description, schedule, and operational metadata can be modified.
-            </span>
+            <span>Job Code, Runtime Handler, and Job Type are protected for canonical system jobs.</span>
           </div>
         )}
 
@@ -199,29 +199,15 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Schedule (Cron)</Label>
-            <Input
-              value={form.schedule_cron}
-              onChange={e => setForm(f => ({ ...f, schedule_cron: e.target.value }))}
-              placeholder="0 2 * * *"
-            />
-            {form.schedule_cron && !isValidCron(form.schedule_cron) && (
-              <p className="text-xs text-destructive">Invalid cron expression</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Frequency Label</Label>
-            <Input
-              value={form.frequency}
-              onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
-              placeholder="e.g. Daily at 2am"
-            />
-          </div>
-        </div>
+        {/* Schedule Builder */}
+        <ScheduleBuilder
+          executionMode={form.execution_mode}
+          cronExpression={form.schedule_cron}
+          onCronChange={cron => setForm(f => ({ ...f, schedule_cron: cron }))}
+          onFrequencyLabelChange={label => setForm(f => ({ ...f, frequency: label }))}
+        />
 
-        {/* Runtime handler - only editable for custom jobs */}
+        {/* Runtime handler */}
         <div className="space-y-1.5">
           <Label className={isCanonical ? 'text-muted-foreground' : ''}>
             Runtime Handler (Edge Function)
@@ -236,50 +222,42 @@ export const JobEditModal: React.FC<JobEditModalProps> = ({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Dependencies (comma-separated job codes)</Label>
-          <Input
-            value={form.depends_on}
-            onChange={e => setForm(f => ({ ...f, depends_on: e.target.value }))}
-            placeholder="e.g. JOB-VIOLATION-SCAN, EMP-COMPLIANCE-REFRESH"
-          />
-        </div>
+        {/* Dependency Picker */}
+        <DependencyPicker
+          jobCode={job.job_code}
+          selectedDeps={form.depends_on}
+          onDepsChange={deps => setForm(f => ({ ...f, depends_on: deps }))}
+          cronExpression={form.schedule_cron}
+          allJobs={allJobs}
+        />
 
         <div className="space-y-1.5">
           <Label>Canonical Purpose</Label>
-          <Textarea
-            value={form.canonical_purpose}
-            onChange={e => setForm(f => ({ ...f, canonical_purpose: e.target.value }))}
-            rows={2}
-          />
+          <Textarea value={form.canonical_purpose} onChange={e => setForm(f => ({ ...f, canonical_purpose: e.target.value }))} rows={2} />
         </div>
 
         <div className="space-y-1.5">
           <Label>Operational Notes</Label>
-          <Textarea
-            value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            rows={2}
-            placeholder="Admin notes about this job..."
-          />
+          <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Admin notes..." />
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="dry-run-default"
-            checked={form.dry_run_default}
-            onChange={e => setForm(f => ({ ...f, dry_run_default: e.target.checked }))}
-            className="rounded border-input"
-          />
+          <input type="checkbox" id="dry-run-default" checked={form.dry_run_default} onChange={e => setForm(f => ({ ...f, dry_run_default: e.target.checked }))} className="rounded border-input" />
           <Label htmlFor="dry-run-default">Supports Dry-Run</Label>
         </div>
+
+        {/* Pre-save warnings */}
+        {saveWarnings.length > 0 && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-1">
+            <p className="text-xs font-medium text-amber-700">Warnings before saving:</p>
+            {saveWarnings.map((w, i) => (
+              <p key={i} className="text-xs text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 shrink-0" /> {w}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     </StandardModal>
   );
 };
-
-function isValidCron(cron: string): boolean {
-  const parts = cron.trim().split(/\s+/);
-  return parts.length === 5 || parts.length === 6;
-}
