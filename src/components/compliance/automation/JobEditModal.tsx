@@ -7,18 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Lock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import type { AutomationJob } from '@/types/automationJob';
 
-interface JobData {
-  id: string;
-  job_code: string;
-  name: string;
-  description: string | null;
-  job_type: string;
-  schedule_cron: string | null;
-  frequency: string | null;
-  is_enabled: boolean | null;
-  parameters: Record<string, any> | null;
-}
+type JobData = AutomationJob;
 
 interface JobEditModalProps {
   open: boolean;
