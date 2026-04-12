@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye } from 'lucide-react';
+import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
@@ -68,6 +68,21 @@ export default function ViolationDetails() {
         .select('*')
         .eq('violation_id', id!)
         .order('created_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch assignment history
+  const { data: assignmentHistory = [] } = useQuery({
+    queryKey: ['ce_violation_assignments', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_violation_assignments')
+        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(name, inspector_code)')
+        .eq('violation_id', id!)
+        .order('assigned_at', { ascending: false });
       if (error) return [];
       return data ?? [];
     },
@@ -204,7 +219,53 @@ export default function ViolationDetails() {
         </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Assignment & Routing Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Assignment & Routing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Zone</div>
+            <div className="text-base font-medium">
+              {(v as any).ce_zones?.zone_name || <span className="text-muted-foreground italic">Unresolved</span>}
+            </div>
+            {(v as any).ce_zones?.zone_code && (
+              <div className="text-xs text-muted-foreground">{(v as any).ce_zones.zone_code}</div>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Queue</div>
+            <div className="text-base font-medium">
+              {(v as any).ce_assignment_queues?.queue_name || <span className="text-muted-foreground italic">Unassigned</span>}
+            </div>
+            {(v as any).ce_assignment_queues?.queue_type && (
+              <Badge variant="outline" className="mt-1">
+                {(v as any).ce_assignment_queues.queue_type}
+              </Badge>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Assigned Officer</div>
+            <div className="text-base font-medium">
+              {v.assigned_to_name || <span className="text-muted-foreground italic">Queue-only</span>}
+            </div>
+            {v.assigned_at && (
+              <div className="text-xs text-muted-foreground">Since {formatDate(v.assigned_at)}</div>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Resolution Method</div>
+            <Badge variant="outline" className="mt-1">
+              {(v as any).assignment_method || 'N/A'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="overview"><FileText className="h-4 w-4 mr-2" />Overview</TabsTrigger>
@@ -334,6 +395,47 @@ export default function ViolationDetails() {
                         </TableCell>
                         <TableCell>{h.performed_by_name || h.performed_by || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">{h.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Assignment History */}
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5" />Assignment History</CardTitle></CardHeader>
+            <CardContent>
+              {assignmentHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No assignment records yet</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Queue</TableHead>
+                      <TableHead>Officer</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignmentHistory.map((a: any) => (
+                      <TableRow key={a.id} className={!a.is_current ? 'opacity-50' : ''}>
+                        <TableCell>{a.assigned_at ? formatDate(a.assigned_at) : '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={a.is_current ? 'default' : 'secondary'}>
+                            {a.assignment_type || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{a.ce_assignment_queues?.queue_name || '-'}</TableCell>
+                        <TableCell>{a.ce_inspectors?.name || 'Queue-only'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{a.resolution_method || '-'}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{a.notes || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
