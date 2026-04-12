@@ -18,8 +18,6 @@ import CaseManagement from './cases/CaseManagement';
 import CaseQueue from './cases/CaseQueue';
 import PenaltyManagement from './cases/PenaltyManagement';
 
-// Risk (removed - redirected to Risk Register)
-
 // Inspections
 import InspectionManagement from './inspections/InspectionManagement';
 import FieldOperations from './inspections/FieldOperations';
@@ -88,9 +86,25 @@ import ComplianceTemplates from './settings/ComplianceTemplates';
 import LedgerAdministration from './settings/LedgerAdministration';
 import C3LedgerSync from './settings/C3LedgerSync';
 import PaymentLedgerSync from './settings/PaymentLedgerSync';
+import AssignmentRoutingRules from './settings/AssignmentRoutingRules';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
+
+// Operations (NEW)
+import AssignmentQueues from './operations/AssignmentQueues';
+import ReviewQueue from './operations/ReviewQueue';
+import Reassignment from './operations/Reassignment';
+
+// Geography (NEW)
+import ZoneManagement from './geography/ZoneManagement';
+import OfficeZoneMapping from './geography/OfficeZoneMapping';
+import VillageZoneMapping from './geography/VillageZoneMapping';
+
+// Staff (NEW)
+import OfficerManagement from './staff/OfficerManagement';
+import QueueMembers from './staff/QueueMembers';
+import SupervisorHierarchy from './staff/SupervisorHierarchy';
 
 const ComplianceRoutes = () => {
   return (
@@ -113,7 +127,20 @@ const ComplianceRoutes = () => {
       <Route path="/cases/queue" element={<CaseQueue />} />
       <Route path="/cases/penalties" element={<PenaltyManagement />} />
 
-      {/* Risk Profiles - removed, redirected to Risk Register */}
+      {/* Operations (NEW) */}
+      <Route path="/operations/queues" element={<AssignmentQueues />} />
+      <Route path="/operations/review-queue" element={<ReviewQueue />} />
+      <Route path="/operations/reassignment" element={<Reassignment />} />
+
+      {/* Geography (NEW) */}
+      <Route path="/geography/zones" element={<ZoneManagement />} />
+      <Route path="/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
+      <Route path="/geography/village-zone-mapping" element={<VillageZoneMapping />} />
+
+      {/* Staff (NEW) */}
+      <Route path="/staff/officers" element={<OfficerManagement />} />
+      <Route path="/staff/queue-members" element={<QueueMembers />} />
+      <Route path="/staff/supervisors" element={<SupervisorHierarchy />} />
 
       {/* Inspections */}
       <Route path="/inspections" element={<InspectionManagement />} />
@@ -175,6 +202,7 @@ const ComplianceRoutes = () => {
       <Route path="/settings/ledger-admin" element={<LedgerAdministration />} />
       <Route path="/settings/c3-ledger-sync" element={<C3LedgerSync />} />
       <Route path="/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
+      <Route path="/settings/assignment-routing" element={<AssignmentRoutingRules />} />
 
       {/* Tools */}
       <Route path="/tools/rule-simulator" element={<RuleSimulator />} />
