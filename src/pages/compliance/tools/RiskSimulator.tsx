@@ -166,7 +166,7 @@ export default function RiskSimulator() {
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       )}
 
-      {selectedProfile && liveFactors && policyData?.policy && (
+      {selectedEmployer && liveFactors && policyData?.policy && (
         <>
           {/* Current State + Override Inputs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -178,22 +178,22 @@ export default function RiskSimulator() {
                   Current Live State
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Last calculated: {selectedProfile.last_calculated_at ? formatDateForDisplay(selectedProfile.last_calculated_at) : 'Never'}
+                  Last calculated: {selectedEmployer.last_calculated_at ? formatDateForDisplay(selectedEmployer.last_calculated_at) : 'Never'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-2xl font-bold">{selectedProfile.total_score ?? 0}</div>
+                    <div className="text-2xl font-bold">{selectedEmployer.total_score ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Total Score</div>
                   </div>
-                  <BandBadge band={selectedProfile.risk_band || 'N/A'} size="lg" />
+                  <BandBadge band={selectedEmployer.risk_band || 'N/A'} size="lg" />
                 </div>
-                {selectedProfile.override_band && (
+                {selectedEmployer.override_band && (
                   <Alert className="border-blue-200 bg-blue-50">
                     <Info className="h-3 w-3 text-blue-600" />
                     <AlertDescription className="text-blue-800 text-xs">
-                      Manual override active: {selectedProfile.override_band} — {selectedProfile.override_reason || 'No reason'}
+                      Manual override active: {selectedEmployer.override_band} — {selectedEmployer.override_reason || 'No reason'}
                     </AlertDescription>
                   </Alert>
                 )}
