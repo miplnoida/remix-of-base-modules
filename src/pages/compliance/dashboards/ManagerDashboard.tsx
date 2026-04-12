@@ -48,8 +48,13 @@ const ManagerDashboard = () => {
       const { data, error } = await supabase.from('ce_risk_profiles').select('risk_band');
       if (error) throw error;
       const profiles = (data || []) as unknown as { risk_band: string }[];
-      const bands = ['Low', 'Medium', 'High', 'Critical'];
-      return bands.map(b => ({ band: b, count: profiles.filter(p => p.risk_band === b).length }));
+      const bands = [
+        { key: 'LOW', label: 'Low' },
+        { key: 'MEDIUM', label: 'Medium' },
+        { key: 'HIGH', label: 'High' },
+        { key: 'CRITICAL', label: 'Critical' },
+      ];
+      return bands.map(b => ({ band: b.label, dbBand: b.key, count: profiles.filter(p => p.risk_band === b.key).length }));
     },
   });
 
@@ -86,7 +91,7 @@ const ManagerDashboard = () => {
     { label: 'Total Arrears', value: `$${caseStats.totalAmount > 1000 ? `${(caseStats.totalAmount / 1000).toFixed(0)}K` : caseStats.totalAmount.toFixed(0)}`, icon: DollarSign, color: 'text-primary' },
     { label: 'Legal Escalations', value: caseStats.legal.toString(), icon: Scale, color: 'text-destructive' },
     { label: 'Total Cases', value: caseStats.total.toString(), icon: CheckCircle, color: 'text-success' },
-    { label: 'At-Risk Employers', value: riskDistribution.filter(r => r.band === 'High' || r.band === 'Critical').reduce((s, r) => s + r.count, 0).toString(), icon: TrendingUp, color: 'text-warning' },
+    { label: 'At-Risk Employers', value: riskDistribution.filter(r => r.dbBand === 'HIGH' || r.dbBand === 'CRITICAL').reduce((s, r) => s + r.count, 0).toString(), icon: TrendingUp, color: 'text-warning' },
   ];
 
   return (
