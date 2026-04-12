@@ -172,6 +172,19 @@ export default function ViolationsManagement() {
                 ))}
               </SelectContent>
             </Select>
+            <div>
+              <Input
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="w-full"
+              />
+              {monthFilter && (
+                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => setMonthFilter('')}>
+                  Show all months
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
