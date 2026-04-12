@@ -323,7 +323,12 @@ Deno.serve(async (req) => {
           const weight = pf.weight_override || factor.weight || 0;
           const maxScore = factor.max_score || 100;
           const scoringMethod = factor.scoring_method || "tiered";
-          const thresholds: ThresholdTier[] = factor.thresholds || [];
+          // Handle double-encoded JSON strings (safety check)
+          let rawThresholds = factor.thresholds || [];
+          if (typeof rawThresholds === "string") {
+            try { rawThresholds = JSON.parse(rawThresholds); } catch { rawThresholds = []; }
+          }
+          const thresholds: ThresholdTier[] = rawThresholds;
 
           // Fetch raw data using the appropriate fetcher
           const fetcher = FACTOR_FETCHERS[factorCode];
