@@ -96,20 +96,19 @@ Deno.serve(async (req) => {
     const runKey = `VIOLATION-SCAN-${asOfDate}`;
 
     if (!dryRun && !force) {
-      // Check for Completed OR stale Running runs with same key
-      const { data: existingRun } = await supabase
+      // Check for any existing run with same key (any status)
+      const { data: existingRuns } = await supabase
         .from("ce_automation_runs")
         .select("id, status")
-        .eq("idempotency_key", runKey)
-        .in("status", ["Completed", "Running"])
-        .maybeSingle();
+        .eq("idempotency_key", runKey);
 
-      if (existingRun) {
-        if (existingRun.status === "Completed") {
+      if (existingRuns && existingRuns.length > 0) {
+        const completedRun = existingRuns.find((r: any) => r.status === "Completed");
+        if (completedRun) {
           return new Response(
             JSON.stringify({
               message: "Already completed for this date. Use force=true to re-run.",
-              run_id: existingRun.id,
+              run_id: completedRun.id,
               dry_run: false,
               total_employers_scanned: 0,
               rules_evaluated: 0,
@@ -122,11 +121,11 @@ Deno.serve(async (req) => {
             { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
           );
         }
-        // Stale "Running" record — mark it as failed and proceed
-        await supabase
-          .from("ce_automation_runs")
-          .update({ status: "Failed", error_message: "Stale run — superseded by new execution", completed_at: new Date().toISOString() })
-          .eq("id", existingRun.id);
+        // Delete all non-completed runs (Failed, Running) to free the idempotency key
+        const idsToRemove = existingRuns.map((r: any) => r.id);
+        for (const rid of idsToRemove) {
+          await supabase.from("ce_automation_runs").delete().eq("id", rid);
+        }
       }
     }
 
