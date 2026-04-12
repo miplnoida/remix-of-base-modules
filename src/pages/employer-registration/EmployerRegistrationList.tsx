@@ -51,6 +51,9 @@ export default function EmployerRegistrationList() {
 
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
 
+  // Auto-attach workflow to pending employers missing one
+  useAutoAttachEmployerWorkflow(employers, user?.id, refetch, activeTab === 'pending');
+
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [filters, setFilters] = useState<Filters>({
