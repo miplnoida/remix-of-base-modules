@@ -14092,8 +14092,10 @@ export type Database = {
       ce_violations: {
         Row: {
           assigned_at: string | null
+          assigned_queue_id: string | null
           assigned_to_name: string | null
           assigned_to_user_id: string | null
+          assignment_method: string | null
           c3_submission_id: string | null
           candidate_activity_type: string | null
           candidate_business_name: string | null
@@ -14135,11 +14137,14 @@ export type Database = {
           updated_by: string | null
           violation_number: string
           violation_type_id: string | null
+          zone_id: string | null
         }
         Insert: {
           assigned_at?: string | null
+          assigned_queue_id?: string | null
           assigned_to_name?: string | null
           assigned_to_user_id?: string | null
+          assignment_method?: string | null
           c3_submission_id?: string | null
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
@@ -14181,11 +14186,14 @@ export type Database = {
           updated_by?: string | null
           violation_number: string
           violation_type_id?: string | null
+          zone_id?: string | null
         }
         Update: {
           assigned_at?: string | null
+          assigned_queue_id?: string | null
           assigned_to_name?: string | null
           assigned_to_user_id?: string | null
+          assignment_method?: string | null
           c3_submission_id?: string | null
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
@@ -14227,13 +14235,28 @@ export type Database = {
           updated_by?: string | null
           violation_number?: string
           violation_type_id?: string | null
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_violations_assigned_queue_id_fkey"
+            columns: ["assigned_queue_id"]
+            isOneToOne: false
+            referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_violations_violation_type_id_fkey"
             columns: ["violation_type_id"]
             isOneToOne: false
             referencedRelation: "ce_violation_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -43173,6 +43196,7 @@ export type Database = {
           user_name: string
         }[]
       }
+      fn_ce_backfill_unassigned_violations: { Args: never; Returns: Json }
       fn_ce_resolve_zone: {
         Args: { p_office_code?: string; p_village_code?: string }
         Returns: {
@@ -43182,6 +43206,7 @@ export type Database = {
           zone_name: string
         }[]
       }
+      fn_ce_route_violation: { Args: { p_violation_id: string }; Returns: Json }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
